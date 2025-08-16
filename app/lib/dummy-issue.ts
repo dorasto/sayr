@@ -1,0 +1,40 @@
+export const dummyIssue = {
+  id: "1",
+  title: "Sample Bug",
+  description: "This is a sample bug description.",
+  status: "open",
+  priority: "high",
+  assignee: "John Doe",
+  labels: ["bug", "ui"],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  comments: [
+    {
+      id: "1",
+      author: "Jane Smith",
+      usertype: "external",
+      content: "This is a sample comment.",
+      public: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: "2",
+      author: "John Doe",
+      usertype: "internal",
+      content: "This is another sample comment, created by an internal user and is posted publicly.",
+      public: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: "3",
+      author: "John Doe",
+      usertype: "internal",
+      content: "This is a third sample comment.",
+      public: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  ],
+};
