@@ -43,7 +43,7 @@ export function SiteHeader() {
         </Breadcrumb>
         {/* <SearchForm className="w-full sm:ml-auto sm:w-auto" /> */}
         <div className="ml-auto">
-          <ModeToggle />
+          {/* <ModeToggle /> */}
         </div>
       </div>
     </header>

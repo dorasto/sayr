@@ -1,3 +1,27 @@
+export const dummyOrg = [
+    {
+        name: "Doras",
+        id: "1",
+        slug: "doras",
+        avatar: "/avatars/doras.jpg",
+        users: [
+            {
+                name: "Tommerty",
+                email: "tom@doras.to",
+                avatar: "/avatars/tommerty.jpg",
+                role: "Admin",
+            },
+            {
+                name: "Jane Doe",
+                email: "jane@doras.to",
+                avatar: "/avatars/jane.jpg",
+                role: "User",
+            },
+        ],
+    },
+
+]
+
 export const dummyIssues = [
   {
     id: "1",

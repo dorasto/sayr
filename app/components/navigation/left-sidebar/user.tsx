@@ -7,6 +7,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react"
+import { ModeToggle } from "~/components/mode-toggle"
 
 import {
   Avatar,
@@ -98,6 +99,9 @@ export function NavUser({
               <DropdownMenuItem>
                 <Bell />
                 Notifications
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <ModeToggle/>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
