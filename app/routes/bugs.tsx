@@ -1,29 +1,45 @@
+import { Link } from "react-router";
 import type { Route } from "./+types/bugs";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "~/components/ui/card"
-import {Badge} from "~/components/ui/badge";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { dummyIssues } from "~/lib/dummy-issue";
+
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "Bugs" },
+    { name: "description", content: "List of all bugs" },
   ];
 }
 
 export default function Bugs() {
-  return <div className="p-4">
-    <Card>
-        <CardHeader>
+  return (
+    <div className="p-4 grid gap-4">
+      {dummyIssues.map((issue) => (
+        <Card key={issue.id}>
+          <CardHeader>
             <div className="flex items-center gap-3">
-            <CardTitle>Bug title</CardTitle>
-            <div className="ml-auto gap-3 flex items-center">
-                <Badge>New</Badge>
-                <Badge variant="outline">Updated: 2 days ago</Badge>
+              <CardTitle>
+                <Link to={`/bugs/${issue.id}`} className="hover:underline">
+                  {issue.title}
+                </Link>
+              </CardTitle>
+              <div className="ml-auto gap-3 flex items-center">
+                <Badge>{issue.status}</Badge>
+                <Badge variant="outline">
+                  Updated: {issue.updatedAt.toLocaleDateString()}
+                </Badge>
+              </div>
             </div>
-            </div>
-            <CardDescription>This is the bug description</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <p>Additional information about the bug can go here.</p>
-        </CardContent>
-    </Card>
-  </div>;
+            <CardDescription>{issue.description}</CardDescription>
+          </CardHeader>
+        </Card>
+      ))}
+    </div>
+  );
 }
+
