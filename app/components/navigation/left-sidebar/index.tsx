@@ -45,7 +45,7 @@ const data = {
       items: [
         {
           title: "Bug Reports",
-          url: "#",
+          url: "/bugs",
         },
         {
           title: "Feature Requests",
