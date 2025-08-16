@@ -95,8 +95,8 @@ body {
   --sidebar-foreground: oklch(0.9699 0.0013 106.4238);
   --sidebar-primary: oklch(0.7049 0.1867 47.6044);
   --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.6847 0.1479 237.3225);
-  --sidebar-accent-foreground: oklch(0.2839 0.0734 254.5378);
+  --sidebar-accent: oklch(0.3741 0.0087 67.5582);
+  --sidebar-accent-foreground: oklch(1.0000 0 0);
   --sidebar-border: oklch(0.3741 0.0087 67.5582);
   --sidebar-ring: oklch(0.7049 0.1867 47.6044);
   --font-sans: Oxanium, sans-serif;
