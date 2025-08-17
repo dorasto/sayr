@@ -18,7 +18,7 @@ export default function Layout() {
           <SiteHeader />
           <div className="flex flex-1">
             <AppSidebar />
-            <SidebarInset>
+            <SidebarInset className="p-4">
               <Outlet />
             </SidebarInset>
             {showBugPageSidebar && <BugPageSidebar />}
