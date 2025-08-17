@@ -4,4 +4,4 @@ export default [  layout("./routes/layout.tsx", [
     index("./routes/home.tsx"),
     route("/bugs","./routes/bugs.tsx"),
     route("/bugs/:id","./routes/bugpage.tsx"),
-  ])] satisfies RouteConfig;
+  ],), route("/:slug","./routes/orgpage.tsx"), route("/:slug/:id", "./routes/orgbugpage.tsx")] satisfies RouteConfig;

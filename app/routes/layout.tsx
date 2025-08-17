@@ -8,7 +8,11 @@ import { ThemeProvider } from "~/components/theme-provider";
 export default function Layout() {
   const matches = useMatches();
   const showBugPageSidebar = matches.some(
-    (match) => match.pathname.startsWith("/bugs/") && match.params.id
+    (match) =>
+      (match.pathname.startsWith("/bugs/") && match.params.id) ||
+      (match.pathname.startsWith("/") &&
+        match.params.slug &&
+        match.params.id)
   );
 
   return (

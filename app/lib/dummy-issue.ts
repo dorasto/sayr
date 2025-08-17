@@ -3,7 +3,8 @@ export const dummyOrg = [
         name: "Doras",
         id: "1",
         slug: "doras",
-        avatar: "/avatars/doras.jpg",
+        avatar: "https://cdn.doras.to/doras/assets/05c5db48-cfba-49d7-82a1-5b4a3751aa40/49ca4647-65ed-412e-95c6-c475633d62af.png",
+        banner: "https://cdn.doras.to/doras/assets/05c5db48-cfba-49d7-82a1-5b4a3751aa40/2980edae-36d3-409f-ba25-d8e0c08c3a15.jpeg",
         users: [
             {
                 name: "Tommerty",
@@ -200,5 +201,9 @@ export const dummyIssues = [
 
 export function getIssueById(id: string) {
   return dummyIssues.find((issue) => issue.id === id);
+}
+
+export function getOrgBySlug(slug: string) {
+  return dummyOrg.find((org) => org.slug === slug);
 }
 
