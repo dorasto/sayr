@@ -128,3 +128,28 @@ A modern, transparent project management system:
 - Always keep external users and customers informed
 - Foster open collaboration while maintaining internal privacy/control
 - Streamline communications and handoffs
+
+--- 
+
+# Features
+
+- Orgs at the root
+- Teams within orgs
+- Projects
+  - Hosts tasks for an org
+- Tasks
+  - Title
+  - Assignee (user or team) (visibility optional)
+  - ID
+  - Category ( bug, feature, etc)
+  - Status 
+  - Labels
+    - Can add multiple labels. 
+    - When you create a label you also choose if it's public or internal
+  - Votes
+    - helpful for seeing how many users want a certain feature request, reporting the same bug, etc
+  - Meta
+    - Link to information like GitHub PR/issue
+  - Comments (thread)
+    - Main thread showing public and internal discussion in a single linear thread
+    - Toggles for internal teams to show/hide public/internal comments to get a better overview
