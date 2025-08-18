@@ -1,86 +1,89 @@
-"use client"
-import { ChevronRight, type LucideIcon } from "lucide-react"
-import { useMatches } from "react-router"
+"use client";
+import { ChevronRight, type LucideIcon } from "lucide-react";
+import { useMatches } from "react-router";
 
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "~/components/ui/collapsible"
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "~/components/ui/collapsible";
 import {
-    SidebarGroup,
-    SidebarGroupLabel,
-    SidebarMenu,
-    SidebarMenuAction,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarMenuSub,
-    SidebarMenuSubButton,
-    SidebarMenuSubItem,
-} from "~/components/ui/sidebar"
+	SidebarGroup,
+	SidebarGroupLabel,
+	SidebarMenu,
+	SidebarMenuAction,
+	SidebarMenuButton,
+	SidebarMenuItem,
+	SidebarMenuSub,
+	SidebarMenuSubButton,
+	SidebarMenuSubItem,
+} from "~/components/ui/sidebar";
 
 export function NavMain({
-    items,
+	items,
 }: {
-    items: {
-        title: string
-        url: string
-        icon: LucideIcon
-        isActive?: boolean
-        items?: {
-            title: string
-            url: string
-        }[]
-    }[]
+	items: {
+		title: string;
+		url: string;
+		icon: LucideIcon;
+		isActive?: boolean;
+		items?: {
+			title: string;
+			url: string;
+		}[];
+	}[];
 }) {
-    const matches = useMatches();
-    const isActive = matches.some(
-        (match) => match.pathname.startsWith("/bugs/") && match.params.id
-    );
-    return (
-        <SidebarGroup>
-            {/* <SidebarGroupLabel>Projects</SidebarGroupLabel> */}
-            <SidebarMenu>
-                {items.map((item) => (
-                    <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild tooltip={item.title}>
-                                <a href={item.url}>
-                                    <item.icon />
-                                    <span>{item.title}</span>
-                                </a>
-                            </SidebarMenuButton>
-                            {item.items?.length ? (
-                                <>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuAction className="data-[state=open]:rotate-90">
-                                            <ChevronRight />
-                                            <span className="sr-only">Toggle</span>
-                                        </SidebarMenuAction>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {item.items?.map((subItem) => (
-                                                <SidebarMenuSubItem key={subItem.title}>
-                                                    <SidebarMenuSubButton asChild isActive={matches.some(
-                                                        (match) =>
-                                                            match.pathname === subItem.url ||
-                                                            match.pathname.startsWith(`${subItem.url}/`)
-                                                    )}>
-                                                        <a href={subItem.url}>
-                                                            <span>{subItem.title}</span>
-                                                        </a>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </>
-                            ) : null}
-                        </SidebarMenuItem>
-                    </Collapsible>
-                ))}
-            </SidebarMenu>
-        </SidebarGroup>
-    )
+	const matches = useMatches();
+	const isActive = matches.some(
+		(match) => match.pathname.startsWith("/bugs/") && match.params.id,
+	);
+	return (
+		<SidebarGroup>
+			{/* <SidebarGroupLabel>Projects</SidebarGroupLabel> */}
+			<SidebarMenu>
+				{items.map((item) => (
+					<Collapsible key={item.title} asChild defaultOpen={item.isActive}>
+						<SidebarMenuItem>
+							<SidebarMenuButton asChild tooltip={item.title}>
+								<a href={item.url}>
+									<item.icon />
+									<span>{item.title}</span>
+								</a>
+							</SidebarMenuButton>
+							{item.items?.length ? (
+								<>
+									<CollapsibleTrigger asChild>
+										<SidebarMenuAction className="data-[state=open]:rotate-90">
+											<ChevronRight />
+											<span className="sr-only">Toggle</span>
+										</SidebarMenuAction>
+									</CollapsibleTrigger>
+									<CollapsibleContent>
+										<SidebarMenuSub>
+											{item.items?.map((subItem) => (
+												<SidebarMenuSubItem key={subItem.title}>
+													<SidebarMenuSubButton
+														asChild
+														isActive={matches.some(
+															(match) =>
+																match.pathname === subItem.url ||
+																match.pathname.startsWith(`${subItem.url}/`),
+														)}
+													>
+														<a href={subItem.url}>
+															<span>{subItem.title}</span>
+														</a>
+													</SidebarMenuSubButton>
+												</SidebarMenuSubItem>
+											))}
+										</SidebarMenuSub>
+									</CollapsibleContent>
+								</>
+							) : null}
+						</SidebarMenuItem>
+					</Collapsible>
+				))}
+			</SidebarMenu>
+		</SidebarGroup>
+	);
 }

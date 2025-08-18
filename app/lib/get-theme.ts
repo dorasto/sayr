@@ -14,5 +14,5 @@ const script = `
 `;
 
 export function getTheme() {
-  return script;
+	return script;
 }
