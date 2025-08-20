@@ -20,7 +20,7 @@ export default function Layout() {
 					<SiteHeader />
 					<div className="flex flex-1">
 						<AppSidebar />
-						<SidebarInset className="p-4">
+						<SidebarInset className="p-4 w-full max-w-7xl overflow-hidden mx-auto">
 							<Outlet />
 						</SidebarInset>
 						{showBugPageSidebar && <BugPageSidebar />}

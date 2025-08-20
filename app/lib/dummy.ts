@@ -95,6 +95,7 @@ export const fullyDummy = [
 							labels: ["documentation"],
 							priority: "medium",
 							assignee: "Tommerty",
+							votes: 23,
 							meta: {
 								release: "not yet released",
 							},
@@ -142,6 +143,7 @@ export const fullyDummy = [
 							labels: ["documentation"],
 							priority: "medium",
 							assignee: "Jane Doe",
+							votes: 45,
 							meta: {
 								release: "open beta",
 							},
@@ -158,6 +160,7 @@ export const fullyDummy = [
 							labels: ["bug"],
 							priority: "high",
 							assignee: "Tommerty",
+							votes: 12,
 							meta: {
 								release: "not yet released",
 							},
@@ -176,6 +179,7 @@ export const fullyDummy = [
 							labels: ["feature"],
 							priority: "medium",
 							assignee: "Jane Doe",
+							votes: 78,
 							meta: {
 								release: "general availability",
 							},
@@ -194,6 +198,7 @@ export const fullyDummy = [
 							labels: ["feature"],
 							priority: "medium",
 							assignee: "Tommerty",
+							votes: 3,
 							meta: {
 								release: "closed beta",
 							},
@@ -212,6 +217,7 @@ export const fullyDummy = [
 							labels: ["bug"],
 							priority: "high",
 							assignee: "Jane Doe",
+							votes: 91,
 							meta: {
 								release: "general availability",
 							},
@@ -230,6 +236,7 @@ export const fullyDummy = [
 							labels: ["feature"],
 							priority: "high",
 							assignee: "Tommerty",
+							votes: 156,
 							meta: {
 								release: "general availability",
 							},
@@ -248,6 +255,7 @@ export const fullyDummy = [
 							labels: ["feature"],
 							priority: "medium",
 							assignee: "Jane Doe",
+							votes: 34,
 							meta: {
 								release: "open beta",
 							},
@@ -264,6 +272,7 @@ export const fullyDummy = [
 							labels: ["feature"],
 							priority: "low",
 							assignee: "Tommerty",
+							votes: 67,
 							meta: {
 								release: "not yet released",
 							},
@@ -282,6 +291,7 @@ export const fullyDummy = [
 							labels: ["documentation"],
 							priority: "high",
 							assignee: "Jane Doe",
+							votes: 19,
 							meta: {
 								release: "open beta",
 							},
@@ -300,6 +310,7 @@ export const fullyDummy = [
 							labels: ["documentation"],
 							priority: "medium",
 							assignee: "Tommerty",
+							votes: 5,
 							meta: {
 								release: "general availability",
 							},
@@ -318,6 +329,7 @@ export const fullyDummy = [
 							labels: ["documentation"],
 							priority: "medium",
 							assignee: "Jane Doe",
+							votes: 42,
 							meta: {
 								release: "closed beta",
 							},
@@ -352,4 +364,9 @@ export function getIssueById(id: string) {
 
 export function getOrgBySlug(slug: string) {
 	return dummyOrg.find((org) => org.slug === slug);
+}
+
+export function getCategories() {
+	const categories = [...new Set(dummyIssues.map((issue) => issue.category))];
+	return categories.sort();
 }

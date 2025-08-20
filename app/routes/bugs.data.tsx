@@ -78,6 +78,27 @@ export const columns: ColumnDef<(typeof dummyIssues)[0]>[] = [
 		},
 	},
 	{
+		accessorKey: "votes",
+		header: ({ column }) => {
+			return (
+				<Button
+					variant="ghost"
+					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+				>
+					Votes
+					<CaretSortIcon className="ml-2 h-4 w-4" />
+				</Button>
+			);
+		},
+		cell: ({ row }) => {
+			return (
+				<div className="flex items-center gap-1">
+					<span className="font-medium">{row.getValue("votes")}</span>
+				</div>
+			);
+		},
+	},
+	{
 		accessorKey: "labels",
 		header: "Labels",
 		cell: ({ row }) => {

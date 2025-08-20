@@ -10,6 +10,7 @@ import {
 import { getIssueById } from "~/lib/dummy";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/bugpage";
+import { ArrowUpIcon, MessageCircleIcon } from "lucide-react";
 
 export function meta({ params }: Route.MetaArgs) {
 	const issue = getIssueById(params.id);
@@ -43,6 +44,16 @@ export default function BugPage() {
 					<div className="flex items-center gap-3">
 						<CardTitle>{issue.title}</CardTitle>
 						<div className="ml-auto gap-3 flex items-center">
+							<div className="flex items-center gap-1 text-sm text-muted-foreground bg-muted rounded-md px-2 py-1">
+								<ArrowUpIcon className="h-4 w-4" />
+								<span className="font-medium">{issue.votes}</span>
+								<span>votes</span>
+							</div>
+							<div className="flex items-center gap-1 text-sm text-muted-foreground bg-muted rounded-md px-2 py-1">
+								<MessageCircleIcon className="h-4 w-4" />
+								<span>{issue.comments.length}</span>
+								<span>comments</span>
+							</div>
 							<Badge>{issue.status}</Badge>
 							<Badge variant="outline">
 								Updated: {issue.updatedAt.toLocaleDateString()}
