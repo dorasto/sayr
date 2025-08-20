@@ -76,6 +76,7 @@ List of actions to drive the project forward:
 1. **Finalize Core Tech Choices**
    - Choose frontend framework and routing (e.g., TanStack Start vs React Router v7).
    - Select backend/server architecture and API strategy (e.g., tRPC, REST, GraphQL).
+     - We can include a WS with tanstack query such as `queryClient.invalidateQueries('field')`. This way we get the niceness of a ws to tell our state to update. 
    - Nail down authentication library (better-auth).
 
 2. **Model Public/Private Data**
