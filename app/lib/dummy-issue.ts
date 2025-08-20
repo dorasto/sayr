@@ -1,5 +1,3 @@
-import { labels } from "./data";
-
 export const dummyOrg = [
 	{
 		name: "Doras",

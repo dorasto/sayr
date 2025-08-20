@@ -29,7 +29,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "~/components/ui/table";
-import { dummyIssues } from "~/lib/dummy-issue";
+import { dummyIssues } from "~/lib/dummy";
 import { columns } from "./bugs.data";
 
 export default function Bugs() {

@@ -7,7 +7,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "~/components/ui/card";
-import { getIssueById } from "~/lib/dummy-issue";
+import { getIssueById } from "~/lib/dummy";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/bugpage";
 
@@ -24,7 +24,13 @@ export function meta({ params }: Route.MetaArgs) {
 
 export default function BugPage() {
 	const { id } = useParams();
-	const issue = getIssueById(id!);
+
+	// Early return if id is missing to avoid using a non-null assertion.
+	if (!id) {
+		return <div className="p-4">Bug not found</div>;
+	}
+
+	const issue = getIssueById(id);
 
 	if (!issue) {
 		return <div className="p-4">Bug not found</div>;

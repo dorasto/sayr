@@ -1,47 +1,27 @@
 import {
 	CaretSortIcon,
-	ChevronDownIcon,
 	DotsHorizontalIcon,
 } from "@radix-ui/react-icons";
 import type {
 	ColumnDef,
-	ColumnFiltersState,
-	SortingState,
-	VisibilityState,
+
 } from "@tanstack/react-table";
-import {
-	flexRender,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	getSortedRowModel,
-	useReactTable,
-} from "@tanstack/react-table";
-import * as React from "react";
+
 import { Link } from "react-router";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
 	DropdownMenu,
-	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Input } from "~/components/ui/input";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "~/components/ui/table";
+
 import { labels, priorities, statuses } from "~/lib/data";
-import type { dummyIssues } from "~/lib/dummy-issue";
+import type { dummyIssues } from "~/lib/dummy";
 
 export const columns: ColumnDef<(typeof dummyIssues)[0]>[] = [
 	{

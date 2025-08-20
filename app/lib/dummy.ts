@@ -86,15 +86,15 @@ export const fullyDummy = [
 					],
 					issues: [
 						{
-							id: 1,
+							id: "8782",
 							title: "Compressing problems",
 							description:
 								"You can't compress the program without quantifying the open-source SSD pixel!",
 							category: "Bug",
 							status: "in progress",
-							labels: ["Bug"],
+							labels: ["documentation"],
 							priority: "medium",
-							assignee: 4,
+							assignee: "Tommerty",
 							meta: {
 								release: "not yet released",
 							},
@@ -102,7 +102,7 @@ export const fullyDummy = [
 							updatedAt: new Date(),
 							comments: [
 								{
-									id: 1,
+									id: "1",
 									author: "Jane Smith",
 									usertype: "external",
 									content: "This is a sample comment.",
@@ -111,7 +111,7 @@ export const fullyDummy = [
 									updatedAt: new Date(),
 								},
 								{
-									id: 2,
+									id: "2",
 									author: "John Doe",
 									usertype: "internal",
 									content:
@@ -121,7 +121,7 @@ export const fullyDummy = [
 									updatedAt: new Date(),
 								},
 								{
-									id: 3,
+									id: "3",
 									author: "John Doe",
 									usertype: "internal",
 									content: "This is a third sample comment.",
@@ -131,9 +131,225 @@ export const fullyDummy = [
 								},
 							],
 						},
+						{
+							id: "7878",
+							title:
+								"Try to calculate the EXE feed, maybe it will index the multi-byte pixel!",
+							description:
+								"Try to calculate the EXE feed, maybe it will index the multi-byte pixel!",
+							category: "Feature",
+							status: "backlog",
+							labels: ["documentation"],
+							priority: "medium",
+							assignee: "Jane Doe",
+							meta: {
+								release: "open beta",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "7839",
+							title: "We need to bypass the neural TCP card!",
+							description: "We need to bypass the neural TCP card!",
+							category: "Bug",
+							status: "todo",
+							labels: ["bug"],
+							priority: "high",
+							assignee: "Tommerty",
+							meta: {
+								release: "not yet released",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "5562",
+							title:
+								"The SAS interface is down, bypass the open-source pixel so we can back up the PNG bandwidth!",
+							description:
+								"The SAS interface is down, bypass the open-source pixel so we can back up the PNG bandwidth!",
+							category: "Feature",
+							status: "backlog",
+							labels: ["feature"],
+							priority: "medium",
+							assignee: "Jane Doe",
+							meta: {
+								release: "general availability",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "8686",
+							title:
+								"I'll parse the wireless SSL protocol, that should driver the API panel!",
+							description:
+								"I'll parse the wireless SSL protocol, that should driver the API panel!",
+							category: "Enhancement",
+							status: "canceled",
+							labels: ["feature"],
+							priority: "medium",
+							assignee: "Tommerty",
+							meta: {
+								release: "closed beta",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "1280",
+							title:
+								"Use the digital TLS panel, then you can transmit the haptic system!",
+							description:
+								"Use the digital TLS panel, then you can transmit the haptic system!",
+							category: "Bug",
+							status: "done",
+							labels: ["bug"],
+							priority: "high",
+							assignee: "Jane Doe",
+							meta: {
+								release: "general availability",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "7262",
+							title:
+								"The UTF8 application is down, parse the neural bandwidth so we can back up the PNG bandwidth!",
+							description:
+								"The UTF8 application is down, parse the neural bandwidth so we can back up the PNG bandwidth!",
+							category: "Feature",
+							status: "done",
+							labels: ["feature"],
+							priority: "high",
+							assignee: "Tommerty",
+							meta: {
+								release: "general availability",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "1138",
+							title:
+								"Generating the driver won't do anything, we need to quantify the 1080p SMTP bandwidth!",
+							description:
+								"Generating the driver won't do anything, we need to quantify the 1080p SMTP bandwidth!",
+							category: "Feature",
+							status: "in progress",
+							labels: ["feature"],
+							priority: "medium",
+							assignee: "Jane Doe",
+							meta: {
+								release: "open beta",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "7184",
+							title: "We need to program the back-end THX pixel!",
+							description: "We need to program the back-end THX pixel!",
+							category: "Feature",
+							status: "todo",
+							labels: ["feature"],
+							priority: "low",
+							assignee: "Tommerty",
+							meta: {
+								release: "not yet released",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "5160",
+							title:
+								"Calculating the bus won't do anything, we need to navigate the back-end JSON protocol!",
+							description:
+								"Calculating the bus won't do anything, we need to navigate the back-end JSON protocol!",
+							category: "Documentation",
+							status: "in progress",
+							labels: ["documentation"],
+							priority: "high",
+							assignee: "Jane Doe",
+							meta: {
+								release: "open beta",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "5618",
+							title:
+								"Generating the driver won't do anything, we need to index the online SSL application!",
+							description:
+								"Generating the driver won't do anything, we need to index the online SSL application!",
+							category: "Documentation",
+							status: "done",
+							labels: ["documentation"],
+							priority: "medium",
+							assignee: "Tommerty",
+							meta: {
+								release: "general availability",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
+						{
+							id: "6699",
+							title:
+								"I'll transmit the wireless JBOD capacitor, that should hard drive the SSD feed!",
+							description:
+								"I'll transmit the wireless JBOD capacitor, that should hard drive the SSD feed!",
+							category: "Documentation",
+							status: "backlog",
+							labels: ["documentation"],
+							priority: "medium",
+							assignee: "Jane Doe",
+							meta: {
+								release: "closed beta",
+							},
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							comments: [],
+						},
 					],
 				},
 			],
 		},
 	},
 ];
+
+// Extract data for compatibility with existing code
+export const dummyOrg = fullyDummy.map((item) => ({
+	name: item.org.name,
+	id: item.org.id.toString(),
+	slug: item.org.slug,
+	avatar: item.org.avatar,
+	banner: item.org.banner,
+	users: item.org.users,
+}));
+
+export const dummyIssues = fullyDummy.flatMap((item) =>
+	item.org.projects.flatMap((project) => project.issues),
+);
+
+export function getIssueById(id: string) {
+	return dummyIssues.find((issue) => issue.id === id);
+}
+
+export function getOrgBySlug(slug: string) {
+	return dummyOrg.find((org) => org.slug === slug);
+}

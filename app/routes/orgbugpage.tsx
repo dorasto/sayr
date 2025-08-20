@@ -7,7 +7,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "~/components/ui/card";
-import { getIssueById } from "~/lib/dummy-issue";
+import { getIssueById } from "~/lib/dummy";
 
 export default function OrgBugPage() {
 	const { id } = useParams();

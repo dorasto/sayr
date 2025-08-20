@@ -20,7 +20,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "~/components/ui/table";
-import { dummyIssues, getOrgBySlug } from "~/lib/dummy-issue";
+import { dummyIssues, getOrgBySlug } from "~/lib/dummy";
 import { columns } from "./org.data";
 
 export default function OrgPage() {
