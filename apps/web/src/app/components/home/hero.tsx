@@ -2,8 +2,7 @@
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
-import Image from "next/image";
-import Link from "next/link";
+
 import React, { useEffect, useRef, useState } from "react";
 import Balancer from "react-wrap-balancer";
 import LoginDialog from "../auth/login";

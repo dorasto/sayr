@@ -1,12 +1,25 @@
-import type { Metadata } from 'next';
-import type React from 'react';
-import { ThemeProvider } from './components/theme-provider';
+import type { Metadata } from "next";
+import type React from "react";
+import { ThemeProvider } from "./components/theme-provider";
 
-import './globals.css';
+import "./globals.css";
 
+const name = process.env.NEXT_PUBLIC_PROJECT_NAME;
 export const metadata: Metadata = {
-	title: 'Turbo Starter',
-	description: 'A production-ready monorepo starter with Next.js 15, Turborepo, and Shadcn UI.',
+	title: {
+		template: `%s |${name}`,
+		default: `${name}`,
+	},
+	description: "A starter template for Next.js, Tailwind CSS, and Turborepo",
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: "white" },
+		{ media: "(prefers-color-scheme: dark)", color: "black" },
+	],
+	icons: {
+		icon: "/favicon.ico",
+		shortcut: "/favicon-16x16.png",
+		apple: "/apple-touch-icon.png",
+	},
 };
 
 export default function RootLayout({
@@ -16,8 +29,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body >
-				<meta name="apple-mobile-web-app-title" content="TurboStarter" />
+			<body>
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
 					{children}
 				</ThemeProvider>
