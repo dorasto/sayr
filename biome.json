@@ -21,7 +21,7 @@
 	},
 	"javascript": {
 		"formatter": {
-			"quoteStyle": "single",
+			"quoteStyle": "double",
 			"trailingCommas": "es5",
 			"semicolons": "always",
 			"arrowParentheses": "always",
@@ -35,14 +35,7 @@
 		}
 	},
 	"files": {
-		"includes": [
-			"**",
-			"!**/node_modules",
-			"!**/dist",
-			"!**/.next",
-			"!**/.turbo",
-			"!**/apps/web/out/**"
-		]
+		"includes": ["**", "!**/node_modules", "!**/dist", "!**/.next", "!**/.turbo", "!**/apps/web/out/**"]
 	},
 	"assist": {
 		"actions": {
@@ -53,9 +46,7 @@
 	},
 	"overrides": [
 		{
-			"includes": [
-				"**/apps/web/**"
-			],
+			"includes": ["**/apps/web/**"],
 			"linter": {
 				"rules": {
 					"a11y": {
@@ -68,9 +59,7 @@
 			}
 		},
 		{
-			"includes": [
-				"**/apps/backend/**"
-			],
+			"includes": ["**/apps/backend/**"],
 			"linter": {
 				"rules": {
 					"a11y": {
@@ -83,9 +72,7 @@
 			}
 		},
 		{
-			"includes": [
-				"**/packages/ui/**"
-			],
+			"includes": ["**/packages/ui/**"],
 			"linter": {
 				"rules": {
 					"a11y": {
@@ -100,9 +87,7 @@
 			}
 		},
 		{
-			"includes": [
-				"**/packages/auth/**"
-			],
+			"includes": ["**/packages/auth/**"],
 			"linter": {
 				"rules": {
 					"a11y": {
@@ -117,9 +102,7 @@
 			}
 		},
 		{
-			"includes": [
-				"**/packages/database/**"
-			],
+			"includes": ["**/packages/database/**"],
 			"linter": {
 				"rules": {
 					"a11y": {
