@@ -10,7 +10,8 @@
         ".": "./src/index.ts"
     },
     "scripts": {
-        "db:studio": "drizzle-kit studio"
+        "db:studio": "drizzle-kit studio",
+        "db:push": "drizzle-kit push:pg"
     },
     "dependencies": {
         "drizzle-orm": "0.29.4",
