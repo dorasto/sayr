@@ -1,24 +1,21 @@
+import { auth } from '@repo/auth';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui/components/card';
 import {
-	ArrowRight,
 	Code2,
 	Container,
-	GitBranch,
-	Globe,
 	Layers,
 	Package,
 	Palette,
 	Rocket,
 	Sparkles,
-	Terminal,
 	Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import ClipboardButton from '@/app/components/clipboard-button';
-import MobileNavigation from '@/app/components/mobile-navigation';
 import { ThemeToggle } from '@/app/components/theme-toggle';
+import { headers } from 'next/headers';
 
 const features = [
 	{
@@ -72,7 +69,11 @@ const techStack = [
 	{ name: 'pnpm', color: 'bg-[#f69220] text-black', url: 'https://pnpm.io' },
 ];
 
-export default function Home() {
+export default async function Home() {
+	    const session = await auth.api.getSession({
+        headers: await headers()
+    })
+	    console.log("🚀 ~ Home ~ session:", session)
 	return (
 		<div className="min-h-screen bg-background">
 			{/* Subtle gradient accent */}

@@ -8,6 +8,7 @@
 	},
 	"dependencies": {
 		"@repo/database": "workspace:*",
+		"@repo/auth": "workspace:*",
 		"hono": "^4.8.4"
 	},
 	"devDependencies": {

@@ -1,9 +1,9 @@
 'use client';
 
+import { ArrowUpRight, Check, Copy } from 'lucide-react';
 import { Button } from '@repo/ui/components/button';
-import { Check, Copy } from 'lucide-react';
+import {signInDoras} from "@repo/auth/client"
 import { useState } from 'react';
-
 export default function ClipboardButton({ cmd }: { cmd: string }) {
 	const [copied, setCopied] = useState(false);
 
@@ -20,6 +20,7 @@ export default function ClipboardButton({ cmd }: { cmd: string }) {
 	};
 
 	return (
+		<>
 		<Button
 			variant="ghost"
 			size="sm"
@@ -36,5 +37,13 @@ export default function ClipboardButton({ cmd }: { cmd: string }) {
 				<Copy className="h-4 w-4 text-muted-foreground transition-colors" />
 			)}
 		</Button>
+		      <Button
+        size="lg"
+        className="rounded-full text-base"
+        onClick={signInDoras}
+      >
+        Login Doras <ArrowUpRight className="!h-5 !w-5" />
+      </Button>
+	  </>
 	);
 }
