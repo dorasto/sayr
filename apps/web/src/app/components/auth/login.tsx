@@ -14,12 +14,13 @@ import { Label } from "@repo/ui/components/label";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 
-export default function LoginDialog() {
+interface Props {
+	trigger?: React.ReactNode;
+}
+export default function LoginDialog({ trigger }: Props) {
 	return (
 		<Dialog>
-			<DialogTrigger asChild>
-				<Button variant="outline">Sign in</Button>
-			</DialogTrigger>
+			<DialogTrigger asChild>{trigger || <Button variant="outline">Sign in</Button>}</DialogTrigger>
 			<DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
 				<div className="flex flex-col items-center gap-2">
 					<div
