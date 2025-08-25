@@ -1,0 +1,20 @@
+{
+	"name": "api-server",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "bun run index.ts --target=bun",
+		"build": "bun build index.ts --target=bun --outdir ./dist"
+	},
+	"dependencies": {
+		"@repo/database": "workspace:*",
+		"hono": "^4.8.4"
+	},
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"@hono/node-server": "^1.15.0",
+		"@hono/node-ws": "^1.2.0",
+		"@types/node": "^24.0.13",
+		"typescript": "^5.3.3"
+	}
+}
