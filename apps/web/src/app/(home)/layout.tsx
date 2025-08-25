@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
 import type React from "react";
-import { ThemeProvider } from "./components/theme-provider";
+import Navigation from "../components/home/navigation";
 
-import "./globals.css";
-
-const name = process.env.NEXT_PUBLIC_PROJECT_NAME;
 export const metadata: Metadata = {
-	title: {
-		template: `%s | ${name}`,
-		default: `${name}`,
-	},
+	title: "Home",
 	description: "A starter template for Next.js, Tailwind CSS, and Turborepo",
 	themeColor: [
 		{ media: "(prefers-color-scheme: light)", color: "white" },
@@ -28,12 +22,9 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<body className="relative">
-				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-					{children}
-				</ThemeProvider>
-			</body>
-		</html>
+		<div className="flex h-dvh flex-col overflow-hidden">
+			<Navigation />
+			<div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+		</div>
 	);
 }

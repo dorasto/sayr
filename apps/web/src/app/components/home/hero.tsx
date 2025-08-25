@@ -14,7 +14,7 @@ export function HeroSectionWithBeamsAndGrid() {
 	return (
 		<div
 			ref={parentRef}
-			className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-20 md:px-8 md:py-40"
+			className="relative flex min-h-[calc(100svh-var(--header-height))] flex-col items-center justify-center overflow-hidden px-4 py-20 md:px-8 md:py-40"
 		>
 			<BackgroundGrids />
 			<CollisionMechanism
