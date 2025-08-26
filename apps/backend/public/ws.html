@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Tester</title>
+    <style>
+        body {
+            background-color: #111;
+            color: #eee;
+            font-family: monospace;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .ws-tester {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .ws-tester input,
+        .ws-tester button,
+        .ws-tester textarea {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            border-radius: 4px;
+            border: 1px solid #444;
+            background: #222;
+            color: #eee;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .ws-tester button {
+            cursor: pointer;
+            background: #333;
+        }
+
+        .ws-log {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-size: 13px;
+        }
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ws-tester">
+        <h1>🔌 WebSocket Tester</h1>
+
+        <!-- Connect Section -->
+        <label for="ws-url">WebSocket URL:</label>
+        <input id="ws-url" type="text" value="ws://localhost:5468/ws" />
+        <button onclick="connectWS()">Connect</button>
+
+        <!-- Subscribe Section -->
+        <h2>📡 Subscribe to Room</h2>
+        <input id="org-id" type="text" placeholder="orgId" value="org_123" />
+        <input id="channel" type="text" placeholder="channel" value="general" />
+        <button onclick="subscribeRoom()">Subscribe</button>
+
+        <!-- Message Section -->
+        <h2>💬 Send Message</h2>
+        <textarea id="message-text" placeholder="Type your message..."></textarea>
+        <button onclick="sendMessage()">Send Message</button>
+
+        <!-- Log -->
+        <div id="ws-log" class="ws-log"></div>
+    </div>
+
+    <script>
+        let socket;
+        let subscribed = false; // track subscription state
+
+        function logMessage(msg) {
+            const log = document.getElementById("ws-log");
+            log.innerHTML += msg + "\n";
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function connectWS() {
+            const url = document.getElementById("ws-url").value;
+            if (socket) socket.close();
+
+            socket = new WebSocket(url);
+
+            socket.onopen = () => logMessage("✅ Connected to " + url);
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    // ✅ Handle PING from server
+                    if (data.type === "PING") {
+                        logMessage("📡 Received PING, sending PONG...");
+                        socket.send(JSON.stringify({ type: "PONG", ts: Date.now() }));
+                        return;
+                    }
+
+                    logMessage("📩 " + JSON.stringify(data, null, 2));
+
+                    // If server confirms subscription
+                    if (data.type === "SUBSCRIBED") {
+                        subscribed = true;
+                    }
+                } catch {
+                    logMessage("📩 " + event.data);
+                }
+            };
+
+            socket.onclose = () => {
+                logMessage("❌ Disconnected");
+                subscribed = false;
+            };
+
+            socket.onerror = (err) => logMessage("⚠️ Error: " + err.message);
+        }
+
+        function subscribeRoom() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const orgId = document.getElementById("org-id").value;
+                const channel = document.getElementById("channel").value;
+
+                const payload = {
+                    type: "SUBSCRIBE",
+                    orgId,
+                    channel,
+                    timestamp: new Date().toISOString(),
+                };
+
+                socket.send(JSON.stringify(payload));
+                logMessage("➡️ Sent SUBSCRIBE: " + JSON.stringify(payload, null, 2));
+            } else {
+                logMessage("⚠️ Not connected");
+            }
+        }
+
+        function sendMessage() {
+            if (!subscribed) {
+                logMessage("⚠️ You must SUBSCRIBE before sending messages");
+                return;
+            }
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const text = document.getElementById("message-text").value;
+
+                const payload = {
+                    type: "MESSAGE",
+                    text,
+                    timestamp: new Date().toISOString(),
+                };
+
+                socket.send(JSON.stringify(payload));
+                logMessage("➡️ Sent MESSAGE: " + JSON.stringify(payload, null, 2));
+            } else {
+                logMessage("⚠️ Not connected");
+            }
+        }
+    </script>
+</body>
+
+</html>

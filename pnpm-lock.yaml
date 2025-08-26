@@ -26,6 +26,9 @@ importers:
       '@repo/database':
         specifier: workspace:*
         version: link:../../packages/database
+      bun:
+        specifier: ^1.2.21
+        version: 1.2.21
       hono:
         specifier: ^4.8.4
         version: 4.9.4
@@ -33,15 +36,15 @@ importers:
       '@hono/node-server':
         specifier: ^1.15.0
         version: 1.19.0(hono@4.9.4)
-      '@hono/node-ws':
-        specifier: ^1.2.0
-        version: 1.2.0(@hono/node-server@1.19.0(hono@4.9.4))(hono@4.9.4)
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
         specifier: ^24.0.13
         version: 24.0.14
+      bun-types:
+        specifier: ^1.2.21
+        version: 1.2.21(@types/react@19.1.8)
       typescript:
         specifier: ^5.3.3
         version: 5.8.3
@@ -130,7 +133,7 @@ importers:
     dependencies:
       drizzle-orm:
         specifier: 0.29.4
-        version: 0.29.4(@types/react@19.1.8)(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)(react@19.1.0)
+        version: 0.29.4(@types/react@19.1.8)(bun-types@1.2.21(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)(react@19.1.0)
       pg:
         specifier: ^8.11.3
         version: 8.16.3
@@ -700,13 +703,6 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/node-ws@1.2.0':
-    resolution: {integrity: sha512-OBPQ8OSHBw29mj00wT/xGYtB6HY54j0fNSdVZ7gZM3TUeq0So11GXaWtFf1xWxQNfumKIsj0wRuLKWfVsO5GgQ==}
-    engines: {node: '>=18.14.1'}
-    peerDependencies:
-      '@hono/node-server': ^1.11.1
-      hono: ^4.6.0
-
   '@hookform/resolvers@5.1.1':
     resolution: {integrity: sha512-J/NVING3LMAEvexJkyTLjruSm7aOFx7QX21pzkiJfMoNG0wl5aFEjLTl7ay7IQb9EWY6AkrBy7tHL2Alijpdcg==}
     peerDependencies:
@@ -911,6 +907,61 @@ packages:
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@oven/bun-darwin-aarch64@1.2.21':
+    resolution: {integrity: sha512-SihfZ3czKeWz6Z3m5rUDrMlarwOXjnkUg+7tIiSB9VZCFSvWEItMfdAF170eCXxZmEh7A1dw20a3lW37lkmlrA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@oven/bun-darwin-x64-baseline@1.2.21':
+    resolution: {integrity: sha512-3KeslC5z3vpXxluYBqh6EDwojxTSyWJQeYPJFf7y/Z5QJuAN7g33l8jrx072X8P/G8CBzU1lJky14vhhnqWd7A==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@oven/bun-darwin-x64@1.2.21':
+    resolution: {integrity: sha512-iXr4y2ap6EmME7/EDoLMxSRKAh9yswKfrHDb9sF+ExHbk1C+XsNGxMY73ckQe2w0SIH6NXz2cRMTORbZ8LNjig==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@oven/bun-linux-aarch64-musl@1.2.21':
+    resolution: {integrity: sha512-7UoUHKACYDin3iR6kdqUrF1AOCCjTHPTv1xmzlX4rzwNQvFYSAR83AMrY7hkatKGzLYkI8EjXDAvFJpwF+ZxoA==}
+    cpu: [aarch64]
+    os: [linux]
+
+  '@oven/bun-linux-aarch64@1.2.21':
+    resolution: {integrity: sha512-jpUFKGUpim4h4KOqI1VYYgvifZVrWNQZFrmVPfSqGb0ZzF/p5L2qc9Hy2aUL3Lo+zHMPylwbe0iLKElPYk0xoQ==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@oven/bun-linux-x64-baseline@1.2.21':
+    resolution: {integrity: sha512-oZ5FUMfeghwbQcL9oxajsKjwVI+1GnVvxcJ3z+pifuXaLMZr25NCr5h0q2j+ZxEFL3RtL/Pyj8/HLfzGEIVAVg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@oven/bun-linux-x64-musl-baseline@1.2.21':
+    resolution: {integrity: sha512-0NzMg4XdXgujDM2jZogiV6MgACXW0a0NfB+o6fxwmUzdmMBUk1ZMRzypUi4XKjGUe89mYcPJcVFQRRnNwzTK/Q==}
+    cpu: [x64]
+    os: [linux]
+
+  '@oven/bun-linux-x64-musl@1.2.21':
+    resolution: {integrity: sha512-ioZjU+2yyLJXaDA8FKoy+tj/fuZKovG9EMp+n9+EG7g3MULbe5nU8gdsS/dET28WzuPlDlSkqF8EUocvg4HajQ==}
+    cpu: [x64]
+    os: [linux]
+
+  '@oven/bun-linux-x64@1.2.21':
+    resolution: {integrity: sha512-6RuXFaVU2ve0TVw1vfFo7ix/jh9IX7mMAEhwE2odX8EdX/ea55upiivYQ/EKeXt+Ij3STc2bCeV4vvRoEJAHdg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@oven/bun-windows-x64-baseline@1.2.21':
+    resolution: {integrity: sha512-sTnkLdThgsa6X8ib6eb3+zgy+CGJOibK6Th4wV2wmZFi5af6TM+digEi9i+q/X3nabGwPXm0V4vBiVpvcFilsA==}
+    cpu: [x64]
+    os: [win32]
+
+  '@oven/bun-windows-x64@1.2.21':
+    resolution: {integrity: sha512-DZVCXrZGN/B4JnVnieZin1Kxse1wOkf+Fm2hDGpZHzs27ECbw5xPMFIc0r/oCpxTc/InxuvYO9UGoOmvhFaHsQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@peculiar/asn1-android@2.4.0':
     resolution: {integrity: sha512-YFueREq97CLslZZBI8dKzis7jMfEHSLxM+nr0Zdx1POiXFLjqqwoY5s0F1UimdBiEw/iKlHey2m56MRDv7Jtyg==}
@@ -1725,6 +1776,17 @@ packages:
 
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
+
+  bun-types@1.2.21:
+    resolution: {integrity: sha512-sa2Tj77Ijc/NTLS0/Odjq/qngmEPZfbfnOERi0KRUYhT9R8M4VBioWVmMWE5GrYbKMc+5lVybXygLdibHaqVqw==}
+    peerDependencies:
+      '@types/react': ^19
+
+  bun@1.2.21:
+    resolution: {integrity: sha512-y0lJ02dS90U3PJm+7KAKY8Se95AQvP5Xm77LouUwrpNOHpv59kBG4SK1+9iE1cAhpUaFipq+0EJ56S6MmE3row==}
+    cpu: [arm64, x64, aarch64]
+    os: [darwin, linux, win32]
+    hasBin: true
 
   camelcase@7.0.1:
     resolution: {integrity: sha512-xlx1yCK2Oc1APsPXDL2LdlNP6+uu8OCDdhOBSVT279M/S+y75O30C2VuD8T2ogdePBBl7PfPF4504tnLgX3zfw==}
@@ -2630,18 +2692,6 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  ws@8.18.3:
-    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
@@ -2887,15 +2937,6 @@ snapshots:
     dependencies:
       hono: 4.9.4
 
-  '@hono/node-ws@1.2.0(@hono/node-server@1.19.0(hono@4.9.4))(hono@4.9.4)':
-    dependencies:
-      '@hono/node-server': 1.19.0(hono@4.9.4)
-      hono: 4.9.4
-      ws: 8.18.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
   '@hookform/resolvers@5.1.1(react-hook-form@7.60.0(react@19.1.0))':
     dependencies:
       '@standard-schema/utils': 0.3.0
@@ -3036,6 +3077,39 @@ snapshots:
   '@noble/ciphers@0.6.0': {}
 
   '@noble/hashes@1.8.0': {}
+
+  '@oven/bun-darwin-aarch64@1.2.21':
+    optional: true
+
+  '@oven/bun-darwin-x64-baseline@1.2.21':
+    optional: true
+
+  '@oven/bun-darwin-x64@1.2.21':
+    optional: true
+
+  '@oven/bun-linux-aarch64-musl@1.2.21':
+    optional: true
+
+  '@oven/bun-linux-aarch64@1.2.21':
+    optional: true
+
+  '@oven/bun-linux-x64-baseline@1.2.21':
+    optional: true
+
+  '@oven/bun-linux-x64-musl-baseline@1.2.21':
+    optional: true
+
+  '@oven/bun-linux-x64-musl@1.2.21':
+    optional: true
+
+  '@oven/bun-linux-x64@1.2.21':
+    optional: true
+
+  '@oven/bun-windows-x64-baseline@1.2.21':
+    optional: true
+
+  '@oven/bun-windows-x64@1.2.21':
+    optional: true
 
   '@peculiar/asn1-android@2.4.0':
     dependencies:
@@ -3916,6 +3990,25 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
+  bun-types@1.2.21(@types/react@19.1.8):
+    dependencies:
+      '@types/node': 24.0.14
+      '@types/react': 19.1.8
+
+  bun@1.2.21:
+    optionalDependencies:
+      '@oven/bun-darwin-aarch64': 1.2.21
+      '@oven/bun-darwin-x64': 1.2.21
+      '@oven/bun-darwin-x64-baseline': 1.2.21
+      '@oven/bun-linux-aarch64': 1.2.21
+      '@oven/bun-linux-aarch64-musl': 1.2.21
+      '@oven/bun-linux-x64': 1.2.21
+      '@oven/bun-linux-x64-baseline': 1.2.21
+      '@oven/bun-linux-x64-musl': 1.2.21
+      '@oven/bun-linux-x64-musl-baseline': 1.2.21
+      '@oven/bun-windows-x64': 1.2.21
+      '@oven/bun-windows-x64-baseline': 1.2.21
+
   camelcase@7.0.1: {}
 
   caniuse-lite@1.0.30001727: {}
@@ -4067,9 +4160,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.29.4(@types/react@19.1.8)(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)(react@19.1.0):
+  drizzle-orm@0.29.4(@types/react@19.1.8)(bun-types@1.2.21(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)(react@19.1.0):
     optionalDependencies:
       '@types/react': 19.1.8
+      bun-types: 1.2.21(@types/react@19.1.8)
       kysely: 0.28.5
       pg: 8.16.3
       postgres: 3.4.3
@@ -4763,8 +4857,6 @@ snapshots:
   wordwrap@1.0.0: {}
 
   wrappy@1.0.2: {}
-
-  ws@8.18.3: {}
 
   xtend@4.0.2: {}
 

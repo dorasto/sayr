@@ -3,9 +3,11 @@
 	"compilerOptions": {
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./src/*"]
-		},
+			"@/routes*": ["./routes/*"],
+			"@/public*": ["./public/*"],
+			"@/index": ["./index.ts"]
+		}
 	},
-	"include": ["src"],
+	"include": ["routes", "public", "index.ts"],
 	"exclude": ["node_modules"]
 }
