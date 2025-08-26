@@ -57,64 +57,6 @@
 					}
 				}
 			}
-		},
-		{
-			"includes": ["**/apps/backend/**"],
-			"linter": {
-				"rules": {
-					"a11y": {
-						"recommended": true
-					},
-					"correctness": {
-						"useJsxKeyInIterable": "error"
-					}
-				}
-			}
-		},
-		{
-			"includes": ["**/packages/ui/**"],
-			"linter": {
-				"rules": {
-					"a11y": {
-						"recommended": true,
-						"useKeyWithClickEvents": "error",
-						"useValidAnchor": "error"
-					},
-					"suspicious": {
-						"noExplicitAny": "error"
-					}
-				}
-			}
-		},
-		{
-			"includes": ["**/packages/auth/**"],
-			"linter": {
-				"rules": {
-					"a11y": {
-						"recommended": true,
-						"useKeyWithClickEvents": "error",
-						"useValidAnchor": "error"
-					},
-					"suspicious": {
-						"noExplicitAny": "error"
-					}
-				}
-			}
-		},
-		{
-			"includes": ["**/packages/database/**"],
-			"linter": {
-				"rules": {
-					"a11y": {
-						"recommended": true,
-						"useKeyWithClickEvents": "error",
-						"useValidAnchor": "error"
-					},
-					"suspicious": {
-						"noExplicitAny": "error"
-					}
-				}
-			}
 		}
 	]
 }
