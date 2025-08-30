@@ -1,0 +1,10 @@
+node_modules
+.turbo
+dist
+build
+.next
+out
+coverage
+.cache
+.vite
+apps/web/out

@@ -13,5 +13,24 @@
 	"[javascript]": { "editor.defaultFormatter": "biomejs.biome" },
 	"[javascriptreact]": { "editor.defaultFormatter": "biomejs.biome" },
 	"[json]": { "editor.defaultFormatter": "biomejs.biome" },
-	"[jsonc]": { "editor.defaultFormatter": "biomejs.biome" }
+	"[jsonc]": { "editor.defaultFormatter": "biomejs.biome" },
+
+	"files.watcherExclude": {
+		"**/node_modules/**": true,
+		"**/.turbo/**": true,
+		"**/dist/**": true,
+		"**/build/**": true,
+		"**/.next/**": true,
+		"**/out/**": true,
+		"**/coverage/**": true
+	},
+	"search.exclude": {
+		"**/node_modules/**": true,
+		"**/.turbo/**": true,
+		"**/dist/**": true,
+		"**/build/**": true,
+		"**/.next/**": true,
+		"**/out/**": true,
+		"**/coverage/**": true
+	}
 }

@@ -35,7 +35,7 @@
 		}
 	},
 	"files": {
-		"includes": ["**", "!**/node_modules", "!**/dist", "!**/.next", "!**/.turbo", "!**/apps/web/out/**"]
+		"includes": ["**"]
 	},
 	"assist": {
 		"actions": {
