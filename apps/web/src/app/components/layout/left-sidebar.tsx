@@ -202,12 +202,12 @@ export function LeftSidebarProvider() {
 }
 
 export function LeftSidebarToggle() {
-	const { isOpen: sidebarIsOpen, toggleSidebar: toggleSettingsSidebar } = useDynamicSidebar(["left-sidebar-state"]);
+	const { isOpen: sidebarIsOpen, toggleSidebar } = useDynamicSidebar(["left-sidebar-state"]);
 	if (sidebarIsOpen) {
 		return null;
 	}
 	return (
-		<Button variant={"ghost"} onClick={() => toggleSettingsSidebar()} size={"icon"}>
+		<Button variant={"ghost"} onClick={() => toggleSidebar()} size={"icon"}>
 			<SidebarIcon />
 		</Button>
 	);
