@@ -10,6 +10,7 @@ const useWebSocket = () => {
 	const [ws, setWs] = useState<WebSocket | null>(null);
 	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
 	useEffect(() => {
+		const abortController = new AbortController();
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
@@ -18,18 +19,22 @@ const useWebSocket = () => {
 					setWSStatus("Connected");
 					setWs(webSocket);
 				};
-				webSocket.addEventListener("message", (event) => {
-					try {
-						const data = JSON.parse(event.data);
-						if (data.type === "PING") {
-							console.log("📡 Received PING, sending PONG...");
-							webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() }));
-							return;
+				webSocket.addEventListener(
+					"message",
+					(event) => {
+						try {
+							const data = JSON.parse(event.data);
+							if (data.type === "PING") {
+								console.log("📡 Received PING, sending PONG...");
+								webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() }));
+								return;
+							}
+						} catch {
+							console.log("📩 Raw:", event.data);
 						}
-					} catch {
-						console.log("📩 Raw:", event.data);
-					}
-				});
+					},
+					{ signal: abortController.signal }
+				);
 				webSocket.onclose = () => {
 					webSocket = null;
 					console.log("WebSocket disconnected. Attempting to reconnect...");
@@ -58,6 +63,7 @@ const useWebSocket = () => {
 			console.log("Clearing WebSocket on unmount.");
 			clearTimeout(timeoutId);
 			webSocket?.close();
+			abortController.abort();
 		};
 	}, [setWSStatus]);
 	return ws;
@@ -67,7 +73,7 @@ export default useWebSocket;
 
 export type WSMessage =
 	| {
-			type: "PING";
+			type: "PING" | "PONG";
 			ts: number;
 	  }
 	| {

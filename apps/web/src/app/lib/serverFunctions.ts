@@ -7,7 +7,20 @@ export async function getAccess() {
 		headers: await headers(),
 	});
 	if (session) {
-		return session;
+		if (session.session.activeOrganizationId) {
+			const data = await auth.api.getFullOrganization({
+				query: {
+					organizationId: session.session.activeOrganizationId,
+				},
+				// This endpoint requires session cookies.
+				headers: await headers(),
+			});
+			return {
+				account: session.user,
+				organization: data,
+			};
+		}
+		return { account: session.user, organization: null };
 	}
 	return redirectAuth();
 }

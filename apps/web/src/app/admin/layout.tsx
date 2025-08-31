@@ -26,13 +26,13 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const account = await getAccess();
+	const { account, organization } = await getAccess();
 	return (
 		<QueryClientProvider>
 			<div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
 				<AdminNavigation />
 				{/* <div className="min-h-0 flex-1 overflow-y-auto"> */}
-				<RootProvider account={account}>
+				<RootProvider account={account} organization={organization}>
 					<Wrapper className="">
 						<AdminSubNavigation />
 						<div className="p-4">{children}</div>

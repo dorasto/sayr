@@ -28,13 +28,11 @@ export default function UserDropdown() {
 							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 						>
 							<Avatar className="h-8 w-8 rounded-lg">
-								<AvatarImage src={account.user.image || ""} alt={account.user.name} />
-								<AvatarFallback className="rounded-lg uppercase">
-									{account.user.name.slice(0, 2)}
-								</AvatarFallback>
+								<AvatarImage src={account.image || ""} alt={account.name} />
+								<AvatarFallback className="rounded-lg uppercase">{account.name.slice(0, 2)}</AvatarFallback>
 							</Avatar>
 							<div className="grid flex-1 text-left text-sm leading-tight">
-								<span className="truncate font-medium">{account.user.name}</span>
+								<span className="truncate font-medium">{account.name}</span>
 								{/* <span className="truncate text-xs">{account.user.email}</span> */}
 							</div>
 							<ChevronsUpDown className="ml-auto size-4" />
@@ -49,14 +47,12 @@ export default function UserDropdown() {
 						<DropdownMenuLabel className="p-0 font-normal">
 							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 								<Avatar className="h-8 w-8 rounded-lg">
-									<AvatarImage src={account.user.image || ""} alt={account.user.name} />
-									<AvatarFallback className="rounded-lg uppercase">
-										{account.user.name.slice(0, 2)}
-									</AvatarFallback>
+									<AvatarImage src={account.image || ""} alt={account.name} />
+									<AvatarFallback className="rounded-lg uppercase">{account.name.slice(0, 2)}</AvatarFallback>
 								</Avatar>
 								<div className="grid flex-1 text-left text-sm leading-tight">
-									<span className="truncate font-medium">{account.user.name}</span>
-									<span className="truncate text-xs">{account.user.email}</span>
+									<span className="truncate font-medium">{account.name}</span>
+									<span className="truncate text-xs">{account.email}</span>
 								</div>
 							</div>
 						</DropdownMenuLabel>
