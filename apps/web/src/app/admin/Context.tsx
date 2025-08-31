@@ -18,7 +18,7 @@ interface ContextType {
 		banReason?: string | null | undefined;
 		banExpires?: Date | null | undefined;
 	};
-	setValue: (newValue: ContextType["account"]) => void;
+	setAccount: (newValue: ContextType["account"]) => void;
 	ws: WebSocket | null;
 	organization: {
 		members: {
@@ -65,11 +65,11 @@ export function RootProvider({
 	account: ContextType["account"];
 	organization: ContextType["organization"] | null;
 }) {
-	const { value: Newaccount, setValue } = useStateManagement("account", account);
+	const { value: Newaccount, setValue: setAccount } = useStateManagement("account", account);
 	const { value: newOrg, setValue: setOrg } = useStateManagement("organization", organization);
 	const ws = useWebSocket();
 	return (
-		<RootContext.Provider value={{ account: Newaccount, setValue, ws, organization: newOrg, setOrg }}>
+		<RootContext.Provider value={{ account: Newaccount, setAccount, ws, organization: newOrg, setOrg }}>
 			{children}
 		</RootContext.Provider>
 	);

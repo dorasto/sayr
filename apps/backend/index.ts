@@ -8,6 +8,7 @@ const app = new Hono<{
 	Variables: {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
+		organization: typeof auth.$Infer.Organization | null;
 	};
 }>();
 app.use(
@@ -28,6 +29,8 @@ app.use("*", async (c, next) => {
 	}
 	c.set("user", session.user);
 	c.set("session", session.session);
+	const org = await auth.api.getFullOrganization({ headers: c.req.raw.headers });
+	c.set("organization", org);
 	return next();
 });
 app.get("/", serveStatic({ path: "./public/index.html" }));
