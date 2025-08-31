@@ -9,10 +9,6 @@ export async function getAccess() {
 	if (session) {
 		if (session.session.activeOrganizationId) {
 			const data = await auth.api.getFullOrganization({
-				query: {
-					organizationId: session.session.activeOrganizationId,
-				},
-				// This endpoint requires session cookies.
 				headers: await headers(),
 			});
 			return {

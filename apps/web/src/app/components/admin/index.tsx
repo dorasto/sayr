@@ -5,8 +5,7 @@ import { useLayoutData } from "@/app/admin/Context";
 import type { WSMessage } from "@/app/lib/ws";
 
 export default function AdminHomePage() {
-	const { account, ws } = useLayoutData();
-	console.log("🚀 ~ AdminHomePage ~ account:", account);
+	const { account, organization, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
 
 	const [messages, setMessages] = useState<WSMessage[]>([]);
@@ -17,7 +16,7 @@ export default function AdminHomePage() {
 
 		const payload = {
 			type: "SUBSCRIBE",
-			orgId: "org_123",
+			orgId: organization.id,
 			channel: "*",
 			timestamp: new Date().toISOString(),
 		};
@@ -35,7 +34,7 @@ export default function AdminHomePage() {
 				setMessages((prev) => [...prev, data]);
 			}
 		};
-	}, [ws]);
+	}, [ws, organization]);
 
 	return (
 		<div className="">

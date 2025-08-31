@@ -7,6 +7,7 @@ export const wsRoute = new Hono<{
 	Variables: {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
+		organization: typeof auth.$Infer.Organization | null;
 	};
 }>();
 
@@ -190,7 +191,17 @@ wsRoute.get(
 					} else if (channel === "public" && !session) {
 						handleSubscribe(ws.raw, wsClientId, crypto.randomUUID(), orgId, channel);
 					} else {
-						handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
+						const organization = c.get("organization");
+						if (organization.id === orgId) {
+							handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
+						} else {
+							ws.send(
+								JSON.stringify({
+									type: "ERROR",
+									data: { message: "Not authorized to subscribe to this ORG" },
+								})
+							);
+						}
 					}
 				}
 
