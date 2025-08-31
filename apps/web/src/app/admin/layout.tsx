@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type React from "react";
-import AdminNavigation from "../components/layout/admin-navigation";
-import AdminSubNavigation from "../components/layout/admin-sub-navigation";
+import AdminNavigation from "../components/layout/admin/admin-navigation";
+import AdminSubNavigation from "../components/layout/admin/admin-sub-navigation";
 import { QueryClientProvider } from "../components/layout/query-provider";
 import { Wrapper } from "../components/layout/wrapper";
 import { getAccess } from "../lib/serverFunctions";

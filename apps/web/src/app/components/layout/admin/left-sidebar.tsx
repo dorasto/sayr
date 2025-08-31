@@ -1,5 +1,4 @@
 "use client";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import {
 	Sidebar,
 	SidebarContent,
@@ -22,6 +21,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutData } from "@/app/admin/Context";
 import { navigation } from "@/app/lib/routemap";
+import OrgSection from "./org-section";
 import UserDropdown from "./user-dropdown";
 
 interface Props {
@@ -137,26 +137,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 				))}
 
 				{/* Organizations Section */}
-				{organization && (
-					<SidebarGroup>
-						<SidebarGroupLabel>Organizations</SidebarGroupLabel>
-						<SidebarMenu>
-							<SidebarMenuItem>
-								<SidebarMenuButton asChild isActive={pathname.includes(`/org/${organization.slug}`)}>
-									<Link href={`admin/org/${organization.slug}`} prefetch={false} onClick={closeMobileSidebar}>
-										<Avatar className="h-4 w-4 rounded-md">
-											<AvatarImage src={organization.logo || ""} alt={organization.name} />
-											<AvatarFallback className="rounded-md uppercase text-xs">
-												<IconUsers className="h-4 w-4" />
-											</AvatarFallback>
-										</Avatar>
-										<span>{organization.name}</span>
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-						</SidebarMenu>
-					</SidebarGroup>
-				)}
+				{organization && <OrgSection organization={organization} closeMobileSidebar={closeMobileSidebar} />}
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>

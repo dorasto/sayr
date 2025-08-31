@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@repo/ui/lib/utils";
-import { LeftSidebarProvider } from "./left-sidebar";
+import { LeftSidebarProvider } from "./admin/left-sidebar";
 
 interface Props {
 	children: React.ReactNode;
