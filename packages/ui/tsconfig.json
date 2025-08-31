@@ -7,6 +7,6 @@
 			"@repo/ui/*": ["./src/*"]
 		}
 	},
-	"include": ["src", "../../apps/web/src/app/lib/use-dynamic-sidebar.tsx"],
+	"include": ["src"],
 	"exclude": ["node_modules"]
 }

@@ -4,7 +4,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeft, SidebarIcon } from "lucide-react";
 import React from "react";
-import { useDynamicSidebar } from "../../../../apps/web/src/app/lib/use-dynamic-sidebar";
+import { useDynamicSidebar } from "../hooks/use-dynamic-sidebar";
 import { useIsMobile } from "../hooks/use-mobile";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
