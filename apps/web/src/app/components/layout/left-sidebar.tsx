@@ -19,6 +19,7 @@ import { Command } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navigation } from "@/app/lib/routemap";
+import UserDropdown from "./user-dropdown";
 
 interface Props {
 	isOpen: boolean;
@@ -70,7 +71,9 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 					</SidebarGroup>
 				))}
 			</SidebarContent>
-			<SidebarFooter>{/* <NavUser user={data.user} /> */}t</SidebarFooter>
+			<SidebarFooter>
+				<UserDropdown />
+			</SidebarFooter>
 		</Sidebar>
 	);
 }
