@@ -1,6 +1,7 @@
 "use client";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useContext } from "react";
+import useWebSocket from "../lib/ws";
 
 interface ContextType {
 	account: {
@@ -30,13 +31,15 @@ interface ContextType {
 		};
 	};
 	setValue: (newValue: ContextType["account"]) => void;
+	ws: WebSocket | null;
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);
 
 export function RootProvider({ children, account }: { children: ReactNode; account: ContextType["account"] }) {
 	const { value: Newaccount, setValue } = useStateManagement("account", account);
-	return <RootContext.Provider value={{ account: Newaccount, setValue }}>{children}</RootContext.Provider>;
+	const ws = useWebSocket();
+	return <RootContext.Provider value={{ account: Newaccount, setValue, ws }}>{children}</RootContext.Provider>;
 }
 
 export function useLayoutData() {
