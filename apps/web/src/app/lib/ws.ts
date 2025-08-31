@@ -64,3 +64,36 @@ const useWebSocket = () => {
 };
 
 export default useWebSocket;
+
+export type WSMessage =
+	| {
+			type: "PING";
+			ts: number;
+	  }
+	| {
+			type: "MESSAGE";
+			data: {
+				channel?: string;
+				text?: string;
+				timestamp?: number;
+			};
+	  }
+	| {
+			type: "SUBSCRIBED";
+			channel?: string;
+	  }
+	| {
+			type: "FIREHOSE";
+			data: {
+				channel: string;
+				payload: {
+					type: "MESSAGE";
+					data: {
+						text: string;
+						wsClientId: string;
+						clientId: string;
+						timestamp: string;
+					};
+				};
+			};
+	  };

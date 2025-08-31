@@ -2,13 +2,7 @@
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
-
-type WSMessage = {
-	type: string;
-	channel?: string;
-	text?: string;
-	ts?: number;
-};
+import type { WSMessage } from "@/app/lib/ws";
 
 export default function AdminHomePage() {
 	const { account, ws } = useLayoutData();
@@ -73,17 +67,27 @@ export default function AdminHomePage() {
 					<ul className="space-y-2">
 						{messages.map((msg, i) => (
 							<li key={i} className="p-3 border rounded bg-gray-500 shadow-sm text-sm">
-								<div className="font-mono text-gray-700">
+								<div className="font-mono text-white">
 									{msg.type === "MESSAGE" ? (
 										<>
-											<span className="font-bold">[{msg.channel}]</span> {msg.text}
+											<span className="font-bold">[Channel]</span> {msg.data.text}
 										</>
 									) : (
 										<pre>{JSON.stringify(msg, null, 2)}</pre>
 									)}
 								</div>
-								{msg.ts && (
+								{msg.type === "MESSAGE" && (
+									<div className="text-xs text-gray-400 mt-1">
+										{new Date(msg.data.timestamp || "").toLocaleTimeString()}
+									</div>
+								)}
+								{msg.type === "PING" && (
 									<div className="text-xs text-gray-400 mt-1">{new Date(msg.ts).toLocaleTimeString()}</div>
+								)}
+								{msg.type === "FIREHOSE" && (
+									<div className="text-xs text-gray-200 mt-1">
+										{new Date(msg.data.payload.data.timestamp || "").toLocaleTimeString()}
+									</div>
 								)}
 							</li>
 						))}
