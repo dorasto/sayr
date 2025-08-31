@@ -16,9 +16,9 @@ export default function middleware(req: NextRequest) {
 	if (hostname === rootDomain) {
 		console.log("🏠 Root domain request");
 
-		if (path === "/") {
-			console.log("🔀 Rewriting to /home");
-			return NextResponse.rewrite(new URL("/home", req.url));
+		if (path === "/login") {
+			console.log("🔀 Rewriting to /login");
+			return NextResponse.rewrite(new URL(`/login${search}`, req.url));
 		}
 
 		if (path.startsWith("/auth")) {

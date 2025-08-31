@@ -35,7 +35,7 @@
 		}
 	},
 	"files": {
-		"includes": ["**"]
+		"includes": ["apps/web/src/**", "packages/**/src/**", "packages/**/schema/**", "apps/backend/**"]
 	},
 	"assist": {
 		"actions": {
