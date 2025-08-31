@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Badge } from "@repo/ui/components/badge";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@repo/ui/components/custom-sidebar-localstorage";
 import {
 	DropdownMenu,
@@ -12,6 +13,7 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
+import { IconShield } from "@tabler/icons-react";
 import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from "lucide-react";
 import { useLayoutData } from "@/app/admin/Context";
 
@@ -51,13 +53,20 @@ export default function UserDropdown() {
 									<AvatarFallback className="rounded-lg uppercase">{account.name.slice(0, 2)}</AvatarFallback>
 								</Avatar>
 								<div className="grid flex-1 text-left text-sm leading-tight">
-									<span className="truncate font-medium">{account.name}</span>
+									<span className="line-clamp-1 font-medium">{account.name}</span>
+
 									<span className="truncate text-xs">{account.email}</span>
 								</div>
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
+							{account.role === "admin" && (
+								<DropdownMenuItem>
+									<IconShield />
+									Admin
+								</DropdownMenuItem>
+							)}
 							<DropdownMenuItem>
 								<Sparkles />
 								Upgrade to Pro
