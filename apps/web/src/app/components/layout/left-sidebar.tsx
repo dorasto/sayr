@@ -1,5 +1,4 @@
 "use client";
-import { Button } from "@repo/ui/components/button";
 import {
 	Sidebar,
 	SidebarContent,
@@ -12,15 +11,14 @@ import {
 	SidebarMenuItem,
 	SidebarProvider,
 	SidebarToggle,
-} from "@repo/ui/components/custom-sidebar";
-import { useIsMobile } from "@repo/ui/hooks/use-mobile";
+} from "@repo/ui/components/custom-sidebar-localstorage";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
+import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
-import { Command, SidebarIcon } from "lucide-react";
+import { Command } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navigation } from "@/app/lib/routemap";
-import { useDynamicSidebar } from "@/app/lib/use-dynamic-sidebar";
 
 interface Props {
 	isOpen: boolean;
@@ -28,8 +26,8 @@ interface Props {
 export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<typeof Sidebar>) {
 	const isMobile = useIsMobile();
 	const pathname = usePathname();
-	const { toggleSidebar } = useDynamicSidebar([`left-sidebar-state`]);
-	const closeMobileSidebar = () => isMobile && toggleSidebar();
+	const { value: sidebarIsOpen, setValue: toggleSidebar } = useLocalStorage(`left-sidebar-state`, false);
+	const closeMobileSidebar = () => isMobile && toggleSidebar(!sidebarIsOpen);
 
 	return (
 		<Sidebar
@@ -78,16 +76,10 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 }
 
 export function LeftSidebarProvider() {
-	const isMobile = useIsMobile();
-	const pathname = usePathname();
-	const { isOpen } = useDynamicSidebar(["left-sidebar-state"]);
+	const { value: isOpen } = useLocalStorage("left-sidebar-state", false);
+
 	return (
-		<SidebarProvider
-			name="left-sidebar"
-			// defaultOpen={isMobile ? false : isOpen}
-			defaultOpen
-			className="w-fit!"
-		>
+		<SidebarProvider name="left-sidebar" defaultOpen={isOpen} className="w-fit!">
 			<LeftSidebar isOpen={isOpen} />
 		</SidebarProvider>
 	);

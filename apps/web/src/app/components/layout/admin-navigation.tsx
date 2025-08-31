@@ -1,5 +1,5 @@
 "use client";
-import { SidebarToggle } from "@repo/ui/components/custom-sidebar";
+import { SidebarToggle } from "@repo/ui/components/custom-sidebar-localstorage";
 import { Separator } from "@repo/ui/components/separator";
 
 export default function AdminNavigation() {
