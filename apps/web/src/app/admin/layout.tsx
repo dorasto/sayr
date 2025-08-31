@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type React from "react";
 import AdminNavigation from "../components/layout/admin-navigation";
+import AdminSubNavigation from "../components/layout/admin-sub-navigation";
 import { QueryClientProvider } from "../components/layout/query-provider";
 import { Wrapper } from "../components/layout/wrapper";
 import { getAccess } from "../lib/serverFunctions";
@@ -32,7 +33,10 @@ export default async function RootLayout({
 				<AdminNavigation />
 				{/* <div className="min-h-0 flex-1 overflow-y-auto"> */}
 				<RootProvider account={account}>
-					<Wrapper>{children}</Wrapper>
+					<Wrapper className="">
+						<AdminSubNavigation />
+						<div className="p-4">{children}</div>
+					</Wrapper>
 				</RootProvider>
 				{/* </div> */}
 			</div>

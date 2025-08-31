@@ -32,7 +32,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 
 	return (
 		<Sidebar
-			className={cn("max-h-[calc(100dvh-var(--header-height))]  bg-sidebar")}
+			className={cn("max-h-[calc(100dvh-var(--header-height))]  bg-sidebar mr-0")}
 			{...props}
 			collapsible={"icon"}
 			side="left"

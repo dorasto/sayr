@@ -10,9 +10,9 @@ interface Props {
 export function Wrapper({ children, className }: Props) {
 	return (
 		<div className="h-full w-full max-h-(calc(100dvh-var(--header-height)))!">
-			<div className="flex gap-1 flex-1 h-full w-full transition-all">
+			<div className="flex flex-1 h-full w-full transition-all">
 				<LeftSidebarProvider />
-				<div className={cn("h-full overflow-y-auto w-full mx-auto flex max-w-full flex-col gap-4 p-3", className)}>
+				<div className={cn("h-full overflow-y-auto w-full mx-auto flex max-w-full flex-col gap-4", className)}>
 					{children}
 				</div>
 			</div>
