@@ -36,7 +36,8 @@ export default function middleware(req: NextRequest) {
 			if (path === "/admin") {
 				return NextResponse.rewrite(new URL(`/admin${search}`, req.url));
 			} else {
-				return NextResponse.rewrite(new URL(`/admin${path}${search}`, req.url));
+				console.log("🚀 ~ middleware ~ path:", path);
+				return NextResponse.rewrite(new URL(`${path}${search}`, req.url));
 			}
 		}
 	}
@@ -56,7 +57,7 @@ export default function middleware(req: NextRequest) {
 				if (path === "/admin") {
 					return NextResponse.rewrite(new URL(`/admin${search}`, req.url));
 				} else {
-					return NextResponse.rewrite(new URL(`/admin${path}${search}`, req.url));
+					return NextResponse.rewrite(new URL(`${path}${search}`, req.url));
 				}
 			}
 		}
