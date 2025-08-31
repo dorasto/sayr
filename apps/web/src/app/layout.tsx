@@ -1,7 +1,7 @@
+import { Toaster } from "@repo/ui/components/sonner";
 import type { Metadata } from "next";
 import type React from "react";
 import { ThemeProvider } from "./components/theme-provider";
-
 import "./globals.css";
 
 const name = process.env.NEXT_PUBLIC_PROJECT_NAME;
@@ -32,6 +32,8 @@ export default function RootLayout({
 			<body className="relative">
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
 					{children}
+
+					<Toaster />
 				</ThemeProvider>
 			</body>
 		</html>

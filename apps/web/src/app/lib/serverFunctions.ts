@@ -20,3 +20,31 @@ export async function getAccess() {
 	}
 	return redirectAuth();
 }
+
+export async function getUsers() {
+	const result = await auth.api.listUsers({
+		query: {
+			limit: 100,
+			offset: 0,
+			sortBy: "name",
+			sortDirection: "asc",
+		},
+		// This endpoint requires session cookies.
+		headers: await headers(),
+	});
+
+	return result;
+}
+
+export async function setUserRole(userId: string, role: "admin" | "user") {
+	const result = await auth.api.setRole({
+		body: {
+			userId: userId,
+			role: role, // "admin" or "user"
+		},
+		// This endpoint requires session cookies.
+		headers: await headers(),
+	});
+
+	return result;
+}
