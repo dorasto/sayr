@@ -1,6 +1,7 @@
 "use client";
 import { SidebarToggle } from "@repo/ui/components/custom-sidebar-localstorage";
 import { Separator } from "@repo/ui/components/separator";
+import AdminCommand from "./admin-command";
 
 export default function AdminNavigation() {
 	return (
@@ -8,6 +9,9 @@ export default function AdminNavigation() {
 			<div className="flex h-(--header-height) w-full items-center gap-2 px-4">
 				<SidebarToggle name="left-sidebar" />
 				<Separator orientation="vertical" className="mr-2 h-4" />
+				<div className="flex items-center gap-1 ml-auto">
+					<AdminCommand />
+				</div>
 			</div>
 		</header>
 	);
