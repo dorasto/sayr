@@ -627,14 +627,23 @@ export {
 interface SidebarToggleProps {
 	className?: string;
 	name: string;
+	icon?: React.ReactNode;
+	sidebar?: boolean;
 }
 
-export function SidebarToggle({ className, name }: SidebarToggleProps) {
+export function SidebarToggle({ className, name, icon, sidebar }: SidebarToggleProps) {
 	const { isOpen: sidebarIsOpen, toggleSidebar } = useDynamicSidebar([`${name}-state`]);
-
+	if (sidebar)
+		return (
+			<SidebarMenuItem onClick={() => toggleSidebar()}>
+				<SidebarMenuButton>
+					<SidebarIcon /> <span>Menu</span>
+				</SidebarMenuButton>
+			</SidebarMenuItem>
+		);
 	return (
 		<Button variant={"ghost"} onClick={() => toggleSidebar()} size={"icon"} className={className}>
-			<SidebarIcon className={cn(sidebarIsOpen ? "rotate-180" : "", "duration-150")} />
+			{icon ? icon : <SidebarIcon className={cn(sidebarIsOpen ? "rotate-180" : "", "duration-150")} />}
 		</Button>
 	);
 }

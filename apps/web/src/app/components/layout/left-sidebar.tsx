@@ -5,165 +5,39 @@ import {
 	SidebarContent,
 	SidebarFooter,
 	SidebarGroup,
+	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarProvider,
+	SidebarToggle,
 } from "@repo/ui/components/custom-sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	BookOpen,
-	Bot,
-	Command,
-	Frame,
-	LifeBuoy,
-	PieChart,
-	Send,
-	Settings2,
-	SidebarIcon,
-	SquareTerminal,
-} from "lucide-react";
+import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
+import { Command, SidebarIcon } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { navigation } from "@/app/lib/routemap";
 import { useDynamicSidebar } from "@/app/lib/use-dynamic-sidebar";
 
-const data = {
-	user: {
-		name: "shadcn",
-		email: "m@example.com",
-		avatar: "/avatars/shadcn.jpg",
-	},
-	navMain: [
-		{
-			title: "Playground",
-			url: "#",
-			icon: SquareTerminal,
-			isActive: true,
-			items: [
-				{
-					title: "History",
-					url: "#",
-				},
-				{
-					title: "Starred",
-					url: "#",
-				},
-				{
-					title: "Settings",
-					url: "#",
-				},
-			],
-		},
-		{
-			title: "Models",
-			url: "#",
-			icon: Bot,
-			items: [
-				{
-					title: "Genesis",
-					url: "#",
-				},
-				{
-					title: "Explorer",
-					url: "#",
-				},
-				{
-					title: "Quantum",
-					url: "#",
-				},
-			],
-		},
-		{
-			title: "Documentation",
-			url: "#",
-			icon: BookOpen,
-			items: [
-				{
-					title: "Introduction",
-					url: "#",
-				},
-				{
-					title: "Get Started",
-					url: "#",
-				},
-				{
-					title: "Tutorials",
-					url: "#",
-				},
-				{
-					title: "Changelog",
-					url: "#",
-				},
-			],
-		},
-		{
-			title: "Settings",
-			url: "#",
-			icon: Settings2,
-			items: [
-				{
-					title: "General",
-					url: "#",
-				},
-				{
-					title: "Team",
-					url: "#",
-				},
-				{
-					title: "Billing",
-					url: "#",
-				},
-				{
-					title: "Limits",
-					url: "#",
-				},
-			],
-		},
-	],
-	navSecondary: [
-		{
-			title: "Support",
-			url: "#",
-			icon: LifeBuoy,
-		},
-		{
-			title: "Feedback",
-			url: "#",
-			icon: Send,
-		},
-	],
-	projects: [
-		{
-			name: "Design Engineering",
-			url: "#",
-			icon: Frame,
-		},
-		{
-			name: "Sales & Marketing",
-			url: "#",
-			icon: PieChart,
-		},
-		{
-			name: "Travel",
-			url: "#",
-			icon: Map,
-		},
-	],
-};
-
-export function LeftSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface Props {
+	isOpen: boolean;
+}
+export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<typeof Sidebar>) {
 	const isMobile = useIsMobile();
 	const pathname = usePathname();
 	return (
 		<Sidebar
-			className="max-h-[calc(100dvh-var(--header-height))]"
+			className={cn("max-h-[calc(100dvh-var(--header-height))]  bg-sidebar")}
 			{...props}
 			collapsible={isMobile === true ? "none" : "icon"}
 			side="left"
 		>
 			<SidebarHeader>
 				<SidebarMenu>
+					<SidebarToggle sidebar name="left-sidebar" />
 					<SidebarMenuItem>
 						<SidebarMenuButton>
 							<Command /> <span>Test asd asd asd asd a</span>
@@ -172,18 +46,28 @@ export function LeftSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) 
 				</SidebarMenu>
 			</SidebarHeader>
 			<SidebarContent>
-				<SidebarGroup>
-					<SidebarMenu>
-						<SidebarMenuItem>
-							<SidebarMenuButton>
-								<Command /> <span>Test asd asd asd asd a</span>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					</SidebarMenu>
-				</SidebarGroup>
-				{/* <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+				{navigation.map((section) => (
+					<SidebarGroup key={section.title}>
+						<SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+						<SidebarMenu>
+							{section.items.map((item) => {
+								const isActive = pathname === item.url;
+								const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
+
+								return (
+									<SidebarMenuItem key={item.title}>
+										<SidebarMenuButton asChild isActive={isActive}>
+											<Link href={item.url} prefetch={false}>
+												{IconComponent && <IconComponent size={16} />}
+												<span>{item.title}</span>
+											</Link>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								);
+							})}
+						</SidebarMenu>
+					</SidebarGroup>
+				))}
 			</SidebarContent>
 			<SidebarFooter>{/* <NavUser user={data.user} /> */}t</SidebarFooter>
 		</Sidebar>
@@ -195,20 +79,13 @@ export function LeftSidebarProvider() {
 	const pathname = usePathname();
 	const { isOpen } = useDynamicSidebar(["left-sidebar-state"]);
 	return (
-		<SidebarProvider name="left-sidebar" defaultOpen={isMobile ? false : isOpen} className="w-fit!">
-			<LeftSidebar />
+		<SidebarProvider
+			name="left-sidebar"
+			// defaultOpen={isMobile ? false : isOpen}
+			defaultOpen
+			className="w-fit!"
+		>
+			<LeftSidebar isOpen={isOpen} />
 		</SidebarProvider>
-	);
-}
-
-export function LeftSidebarToggle() {
-	const { isOpen: sidebarIsOpen, toggleSidebar } = useDynamicSidebar(["left-sidebar-state"]);
-	if (sidebarIsOpen) {
-		return null;
-	}
-	return (
-		<Button variant={"ghost"} onClick={() => toggleSidebar()} size={"icon"}>
-			<SidebarIcon />
-		</Button>
 	);
 }
