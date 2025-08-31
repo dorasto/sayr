@@ -28,16 +28,19 @@ interface Props {
 export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<typeof Sidebar>) {
 	const isMobile = useIsMobile();
 	const pathname = usePathname();
+	const { toggleSidebar } = useDynamicSidebar([`left-sidebar-state`]);
+	const closeMobileSidebar = () => isMobile && toggleSidebar();
+
 	return (
 		<Sidebar
 			className={cn("max-h-[calc(100dvh-var(--header-height))]  bg-sidebar")}
 			{...props}
-			collapsible={isMobile === true ? "none" : "icon"}
+			collapsible={"icon"}
 			side="left"
 		>
 			<SidebarHeader>
 				<SidebarMenu>
-					<SidebarToggle sidebar name="left-sidebar" />
+					{!isOpen && <SidebarToggle sidebar name="left-sidebar" />}
 					<SidebarMenuItem>
 						<SidebarMenuButton>
 							<Command /> <span>Test asd asd asd asd a</span>
@@ -57,7 +60,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 								return (
 									<SidebarMenuItem key={item.title}>
 										<SidebarMenuButton asChild isActive={isActive}>
-											<Link href={item.url} prefetch={false}>
+											<Link href={item.url} prefetch={false} onClick={closeMobileSidebar}>
 												{IconComponent && <IconComponent size={16} />}
 												<span>{item.title}</span>
 											</Link>
