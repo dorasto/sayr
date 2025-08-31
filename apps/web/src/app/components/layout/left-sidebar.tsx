@@ -1,4 +1,5 @@
 "use client";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import {
 	Sidebar,
 	SidebarContent,
@@ -31,7 +32,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 	const pathname = usePathname();
 	const { value: sidebarIsOpen, setValue: toggleSidebar } = useLocalStorage(`left-sidebar-state`, false);
 	const closeMobileSidebar = () => isMobile && toggleSidebar(!sidebarIsOpen);
-	const { account } = useLayoutData();
+	const { account, organization } = useLayoutData();
 
 	//
 	//
@@ -134,6 +135,28 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 						</SidebarMenu>
 					</SidebarGroup>
 				))}
+
+				{/* Organizations Section */}
+				{organization && (
+					<SidebarGroup>
+						<SidebarGroupLabel>Organizations</SidebarGroupLabel>
+						<SidebarMenu>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild isActive={pathname.includes(`/org/${organization.slug}`)}>
+									<Link href={`admin/org/${organization.slug}`} prefetch={false} onClick={closeMobileSidebar}>
+										<Avatar className="h-4 w-4 rounded-md">
+											<AvatarImage src={organization.logo || ""} alt={organization.name} />
+											<AvatarFallback className="rounded-md uppercase text-xs">
+												<IconUsers className="h-4 w-4" />
+											</AvatarFallback>
+										</Avatar>
+										<span>{organization.name}</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						</SidebarMenu>
+					</SidebarGroup>
+				)}
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>
