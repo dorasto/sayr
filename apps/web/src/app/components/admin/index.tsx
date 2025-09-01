@@ -37,6 +37,9 @@ export default function AdminHomePage() {
 	}, [ws, organization]);
 	return (
 		<div className="">
+			<h1>org detail {organization.name}</h1>
+			<img src={organization.logo || ""} alt={organization.name} />
+			<img src={organization || ""} alt={organization.name} />
 			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
 			<div className="flex items-center gap-2">
 				<span className="font-medium">WebSocket Status:</span>

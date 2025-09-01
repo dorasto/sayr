@@ -302,14 +302,14 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="flex flex-col gap-0 overflow-y-visible p-0 sm:max-w-lg [&>button:last-child]:top-3.5">
+			<DialogContent className="flex flex-col gap-0 overflow-y-visible max-h-[90vh] p-0 sm:max-w-lg [&>button:last-child]:top-3.5">
 				<DialogHeader className="contents space-y-0 text-left">
-					<DialogTitle className="border-b px-6 py-4 text-base">Edit Organization</DialogTitle>
+					<DialogTitle className="border-b px-6 py-4 text-base">{organization.name}</DialogTitle>
 				</DialogHeader>
 				<DialogDescription className="sr-only">
 					Make changes to your organization here. You can change the banner, logo, name, slug, and description.
 				</DialogDescription>
-				<div className="overflow-y-auto">
+				<div className="overflow-y-scroll h-full">
 					<BannerUpload
 						currentImage={currentBannerImage}
 						openFileDialog={handleOpenBannerDialog}
@@ -325,7 +325,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 					<div className="px-6 pt-4 pb-6">
 						<form onSubmit={handleSubmit} className="space-y-4">
 							<div className="space-y-2">
-								<Label htmlFor={`${id}-name`}>Organization Name</Label>
+								<Label htmlFor={`${id}-name`}>Name</Label>
 								<Input
 									id={`${id}-name`}
 									placeholder="My Organization"
@@ -432,7 +432,7 @@ function BannerUpload({
 	files: FileWithPreview[];
 }) {
 	return (
-		<div className="h-32">
+		<div className="w-full aspect-video">
 			<div className="bg-muted relative flex size-full items-center justify-center overflow-hidden">
 				{currentImage && (
 					<Image

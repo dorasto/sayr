@@ -144,32 +144,6 @@ export function ImageCrop({
 				</DialogHeader>
 
 				<div className="space-y-4">
-					{/* Zoom Control */}
-					<div className="space-y-2">
-						<Label>Zoom: {Math.round(scale * 100)}%</Label>
-						<Slider
-							value={[scale]}
-							onValueChange={([value]) => setScale(value ?? 1)}
-							min={0.5}
-							max={3}
-							step={0.1}
-							className="w-full"
-						/>
-					</div>
-
-					{/* Rotation Control */}
-					<div className="space-y-2">
-						<Label>Rotation: {rotate}°</Label>
-						<Slider
-							value={[rotate]}
-							onValueChange={([value]) => setRotate(value ?? 0)}
-							min={-180}
-							max={180}
-							step={1}
-							className="w-full"
-						/>
-					</div>
-
 					{/* Crop Area */}
 					<div className="flex justify-center overflow-hidden rounded-lg border">
 						<ReactCrop
@@ -177,8 +151,8 @@ export function ImageCrop({
 							onChange={(_, percentCrop) => setCrop(percentCrop)}
 							onComplete={(c) => setCompletedCrop(c)}
 							aspect={aspectRatio}
-							minWidth={50}
-							minHeight={50}
+							minWidth={100}
+							minHeight={100}
 							keepSelection
 						>
 							<img
@@ -201,7 +175,7 @@ export function ImageCrop({
 						Cancel
 					</Button>
 					<Button type="button" onClick={handleCropComplete} disabled={!completedCrop}>
-						Apply Crop
+						Upload
 					</Button>
 				</DialogFooter>
 			</DialogContent>
