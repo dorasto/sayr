@@ -10,24 +10,33 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/components/dialog";
+import { ImageCrop } from "@repo/ui/components/image-crop";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLayoutData } from "@/app/admin/Context";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
-import { type FileWithPreview, useFileUpload } from "@/app/hooks/use-file-upload";
 import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/updateOrganization";
+
+interface FileWithPreview {
+	id: string;
+	name: string;
+	size: number;
+	type: string;
+	preview: string;
+}
 
 interface Organization {
 	id: string;
 	name: string;
 	slug: string;
 	logo?: string | null;
+	bannerImg?: string | null;
 	metadata?: Record<string, unknown>;
 }
 
@@ -36,16 +45,6 @@ interface UpdateOrgDialogProps {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 }
-
-// Helper function to convert file to base64
-const fileToBase64 = (file: File): Promise<string> => {
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.readAsDataURL(file);
-		reader.onload = () => resolve(reader.result as string);
-		reader.onerror = (error) => reject(error);
-	});
-};
 
 export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: UpdateOrgDialogProps) {
 	const id = useId();
@@ -67,30 +66,156 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 	});
 
 	// Initialize with existing logo if present
-	const initialFiles: FileWithPreview[] = organization.logo
+	const initialLogoFiles: FileWithPreview[] = organization.logo
 		? [
 				{
 					name: "current-logo.jpg",
 					size: 0,
 					type: "image/jpeg",
-					lastModified: Date.now(),
-					webkitRelativePath: "",
 					id: "current-logo",
 					preview: organization.logo,
-					arrayBuffer: async () => new ArrayBuffer(0),
-					bytes: async () => new Uint8Array(0),
-					stream: () => new ReadableStream(),
-					text: async () => "",
-					slice: () => new Blob(),
-				} as FileWithPreview,
+				},
 			]
 		: [];
 
-	const [{ files }, { removeFile, openFileDialog, getInputProps }] = useFileUpload({
-		accept: "image/*",
-		initialFiles,
-		multiple: false,
+	// Initialize with existing banner if present
+	const initialBannerFiles: FileWithPreview[] = organization.bannerImg
+		? [
+				{
+					name: "current-banner.jpg",
+					size: 0,
+					type: "image/jpeg",
+					id: "current-banner",
+					preview: organization.bannerImg,
+				},
+			]
+		: [];
+
+	// State for files since we're handling it manually
+	const [logoFiles, setLogoFiles] = useState<FileWithPreview[]>(initialLogoFiles);
+	const [bannerFiles, setBannerFiles] = useState<FileWithPreview[]>(initialBannerFiles);
+
+	// Cropping state
+	const [cropModalState, setCropModalState] = useState<{
+		isOpen: boolean;
+		src: string;
+		type: "logo" | "banner";
+	}>({
+		isOpen: false,
+		src: "",
+		type: "logo",
 	});
+
+	// Create refs for the file inputs
+	const logoFileInputRef = useRef<HTMLInputElement>(null);
+	const bannerFileInputRef = useRef<HTMLInputElement>(null);
+
+	// Override openFileDialog to use our refs
+	const handleOpenLogoDialog = () => {
+		logoFileInputRef.current?.click();
+	};
+
+	const handleOpenBannerDialog = () => {
+		bannerFileInputRef.current?.click();
+	};
+
+	// Handle file change manually for logo
+	const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const selectedFiles = e.target.files;
+		if (selectedFiles && selectedFiles.length > 0) {
+			const file = selectedFiles[0];
+			if (!file) return;
+
+			// Validate file type and size
+			if (!file.type.startsWith("image/")) {
+				toast.error("Please select an image file");
+				return;
+			}
+			if (file.size > 10 * 1024 * 1024) {
+				// 10MB limit
+				toast.error("File size must be less than 10MB");
+				return;
+			}
+
+			// Create preview URL and start cropping
+			const previewUrl = URL.createObjectURL(file);
+			setCropModalState({
+				isOpen: true,
+				src: previewUrl,
+				type: "logo",
+			});
+		}
+	};
+
+	// Handle file change manually for banner
+	const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const selectedFiles = e.target.files;
+		if (selectedFiles && selectedFiles.length > 0) {
+			const file = selectedFiles[0];
+			if (!file) return;
+
+			// Validate file type and size
+			if (!file.type.startsWith("image/")) {
+				toast.error("Please select an image file");
+				return;
+			}
+			if (file.size > 10 * 1024 * 1024) {
+				// 10MB limit
+				toast.error("File size must be less than 10MB");
+				return;
+			}
+
+			// Create preview URL and start cropping
+			const previewUrl = URL.createObjectURL(file);
+			setCropModalState({
+				isOpen: true,
+				src: previewUrl,
+				type: "banner",
+			});
+		}
+	};
+
+	// Handle crop completion
+	const handleCropComplete = (croppedImageBase64: string) => {
+		const newFile: FileWithPreview = {
+			id: Math.random().toString(36).substring(2, 15),
+			name: cropModalState.type === "logo" ? "cropped-logo.jpg" : "cropped-banner.jpg",
+			size: 0,
+			type: "image/jpeg",
+			preview: croppedImageBase64,
+		};
+
+		if (cropModalState.type === "logo") {
+			setLogoFiles([newFile]);
+		} else {
+			setBannerFiles([newFile]);
+		}
+
+		// Clean up the original preview URL
+		URL.revokeObjectURL(cropModalState.src);
+		setCropModalState({ isOpen: false, src: "", type: "logo" });
+	};
+
+	// Remove file functions
+	const removeLogoFile = (id: string) => {
+		setLogoFiles((prev) => {
+			const fileToRemove = prev.find((f) => f.id === id);
+			if (fileToRemove?.preview && fileToRemove.id !== "current-logo") {
+				URL.revokeObjectURL(fileToRemove.preview);
+			}
+			return prev.filter((f) => f.id !== id);
+		});
+	};
+
+	const removeBannerFile = (id: string) => {
+		setBannerFiles((prev) => {
+			const fileToRemove = prev.find((f) => f.id === id);
+			if (fileToRemove?.preview && fileToRemove.id !== "current-banner") {
+				URL.revokeObjectURL(fileToRemove.preview);
+			}
+			return prev.filter((f) => f.id !== id);
+		});
+	};
 
 	// Mutation for updating organization
 	const updateMutation = useMutation({
@@ -110,7 +235,8 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 					...currentOrg,
 					name,
 					slug,
-					logo: files[0]?.preview || null,
+					logo: logoFiles[0]?.preview || null,
+					bannerImg: bannerFiles[0]?.preview || null,
 					metadata: { ...organization.metadata, description },
 				};
 				setOrg(updatedOrg);
@@ -136,19 +262,29 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 
 		try {
 			let logoBase64: string | undefined;
+			let bannerBase64: string | undefined;
 
-			// Convert file to base64 if a new file is uploaded
-			if (files[0] && files[0].id !== "current-logo") {
-				logoBase64 = await fileToBase64(files[0]);
-			} else if (files[0] && files[0].id === "current-logo") {
+			// Convert logo file to base64 if a new file is uploaded
+			if (logoFiles[0] && logoFiles[0].id !== "current-logo") {
+				logoBase64 = logoFiles[0].preview; // Already base64 from cropping
+			} else if (logoFiles[0] && logoFiles[0].id === "current-logo") {
 				// Keep existing logo
 				logoBase64 = organization.logo || undefined;
+			}
+
+			// Convert banner file to base64 if a new file is uploaded
+			if (bannerFiles[0] && bannerFiles[0].id !== "current-banner") {
+				bannerBase64 = bannerFiles[0].preview; // Already base64 from cropping
+			} else if (bannerFiles[0] && bannerFiles[0].id === "current-banner") {
+				// Keep existing banner
+				bannerBase64 = organization.bannerImg || undefined;
 			}
 
 			const updateData: UpdateOrganizationData = {
 				name: name.trim(),
 				slug: slug.trim(),
 				logo: logoBase64,
+				bannerImg: bannerBase64,
 				metadata: {
 					...organization.metadata,
 					description: description.trim() || undefined,
@@ -157,11 +293,12 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 
 			updateMutation.mutate(updateData);
 		} catch {
-			toast.error("Failed to process logo image");
+			toast.error("Failed to process images");
 		}
 	};
 
-	const currentImage = files[0]?.preview || null;
+	const currentLogoImage = logoFiles[0]?.preview || null;
+	const currentBannerImage = bannerFiles[0]?.preview || null;
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -170,14 +307,20 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 					<DialogTitle className="border-b px-6 py-4 text-base">Edit Organization</DialogTitle>
 				</DialogHeader>
 				<DialogDescription className="sr-only">
-					Make changes to your organization here. You can change the logo, name, slug, and description.
+					Make changes to your organization here. You can change the banner, logo, name, slug, and description.
 				</DialogDescription>
 				<div className="overflow-y-auto">
+					<BannerUpload
+						currentImage={currentBannerImage}
+						openFileDialog={handleOpenBannerDialog}
+						removeFile={removeBannerFile}
+						files={bannerFiles}
+					/>
 					<LogoUpload
-						currentImage={currentImage}
-						openFileDialog={openFileDialog}
-						removeFile={removeFile}
-						files={files}
+						currentImage={currentLogoImage}
+						openFileDialog={handleOpenLogoDialog}
+						removeFile={removeLogoFile}
+						files={logoFiles}
 					/>
 					<div className="px-6 pt-4 pb-6">
 						<form onSubmit={handleSubmit} className="space-y-4">
@@ -241,12 +384,43 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 					</Button>
 				</DialogFooter>
 			</DialogContent>
-			<input {...getInputProps()} />
+
+			{/* Image Crop Modal */}
+			<ImageCrop
+				src={cropModalState.src}
+				aspectRatio={cropModalState.type === "logo" ? 1 : 16 / 9}
+				isOpen={cropModalState.isOpen}
+				onOpenChange={(open) => {
+					if (!open) {
+						URL.revokeObjectURL(cropModalState.src);
+						setCropModalState({ isOpen: false, src: "", type: "logo" });
+					}
+				}}
+				onCropComplete={handleCropComplete}
+				title={`Crop ${cropModalState.type === "logo" ? "Logo" : "Banner"}`}
+				description={`Adjust the crop area to get the perfect ${cropModalState.type}.`}
+			/>
+
+			{/* File inputs */}
+			<input
+				ref={logoFileInputRef}
+				type="file"
+				accept="image/*"
+				onChange={handleLogoFileChange}
+				style={{ display: "none" }}
+			/>
+			<input
+				ref={bannerFileInputRef}
+				type="file"
+				accept="image/*"
+				onChange={handleBannerFileChange}
+				style={{ display: "none" }}
+			/>
 		</Dialog>
 	);
 }
 
-function LogoUpload({
+function BannerUpload({
 	currentImage,
 	openFileDialog,
 	removeFile,
@@ -264,7 +438,7 @@ function LogoUpload({
 					<Image
 						className="size-full object-cover"
 						src={currentImage}
-						alt="Organization logo"
+						alt="Organization banner"
 						width={512}
 						height={128}
 					/>
@@ -274,7 +448,7 @@ function LogoUpload({
 						type="button"
 						className="focus-visible:border-ring focus-visible:ring-ring/50 z-50 flex size-10 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
 						onClick={openFileDialog}
-						aria-label={currentImage ? "Change logo" : "Upload logo"}
+						aria-label={currentImage ? "Change banner" : "Upload banner"}
 					>
 						<ImagePlusIcon size={16} aria-hidden="true" />
 					</button>
@@ -283,12 +457,58 @@ function LogoUpload({
 							type="button"
 							className="focus-visible:border-ring focus-visible:ring-ring/50 z-50 flex size-10 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
 							onClick={() => files[0]?.id && removeFile(files[0].id)}
-							aria-label="Remove logo"
+							aria-label="Remove banner"
 						>
 							<XIcon size={16} aria-hidden="true" />
 						</button>
 					)}
 				</div>
+			</div>
+		</div>
+	);
+}
+
+function LogoUpload({
+	currentImage,
+	openFileDialog,
+	removeFile,
+	files,
+}: {
+	currentImage: string | null;
+	openFileDialog: () => void;
+	removeFile: (id: string) => void;
+	files: FileWithPreview[];
+}) {
+	return (
+		<div className="-mt-10 px-6">
+			<div className="border-background bg-muted relative flex size-20 items-center justify-center overflow-hidden rounded-full border-4 shadow-xs shadow-black/10">
+				{currentImage && (
+					<Image
+						src={currentImage}
+						className="size-full object-cover"
+						width={80}
+						height={80}
+						alt="Organization logo"
+					/>
+				)}
+				<button
+					type="button"
+					className="focus-visible:border-ring focus-visible:ring-ring/50 absolute flex size-8 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
+					onClick={openFileDialog}
+					aria-label="Change organization logo"
+				>
+					<ImagePlusIcon size={16} aria-hidden="true" />
+				</button>
+				{currentImage && (
+					<button
+						type="button"
+						className="focus-visible:border-ring focus-visible:ring-ring/50 absolute -top-2 -right-2 flex size-6 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
+						onClick={() => files[0]?.id && removeFile(files[0].id)}
+						aria-label="Remove logo"
+					>
+						<XIcon size={12} aria-hidden="true" />
+					</button>
+				)}
 			</div>
 		</div>
 	);

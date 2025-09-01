@@ -17,12 +17,11 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { IconChevronRight, IconLibrary, IconPencil, IconUsers } from "@tabler/icons-react";
-import { Command, Forward, MoreHorizontal, Trash2 } from "lucide-react";
+import { Command, MoreHorizontal } from "lucide-react";
 import { usePathname } from "next/navigation";
 import UpdateOrgDialog from "@/app/components/dialogs/update-org-dialog";
 import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog";
@@ -66,17 +65,17 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 									className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180"
 								>
 									<div className="h-4 w-4 aspect-square relative flex items-center justify-center">
-										<Avatar className="h-4 w-4 rounded-md group-hover/coltrig:hidden transition-all">
+										<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
+										<Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0">
 											<AvatarImage src={organization.logo || ""} alt={organization.name} />
 											<AvatarFallback className="rounded-md uppercase text-xs">
 												<IconUsers className="h-4 w-4" />
 											</AvatarFallback>
 										</Avatar>
-										<IconChevronRight className="h-4 w-4 hidden group-hover/coltrig:flex duration-200 group-data-[state=open]/trigger:rotate-90 transition-all" />
 									</div>
 								</CollapsibleTrigger>
 								<a href="/" className="w-full">
-									<SidebarMenuButton className="hover:bg-transparent">
+									<SidebarMenuButton className="hover:bg-transparent hover:text-sidebar-foreground group-hover/coltrig:text-sidebar-foreground">
 										<span>{organization.name}</span>
 									</SidebarMenuButton>
 								</a>

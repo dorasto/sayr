@@ -7,6 +7,7 @@ export interface UpdateOrganizationData {
 	name: string;
 	slug: string;
 	logo?: string;
+	bannerImg?: string;
 	metadata?: Record<string, unknown>;
 }
 
