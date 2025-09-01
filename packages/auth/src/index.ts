@@ -20,7 +20,19 @@ export const auth = betterAuth({
 		enabled: false,
 	},
 	plugins: [
-		organization(),
+		organization({
+			schema: {
+				organization: {
+					additionalFields: {
+						bannerImg: {
+							type: "string",
+							input: true,
+							required: false,
+						},
+					},
+				},
+			},
+		}),
 		admin(),
 		genericOAuth({
 			config: [
