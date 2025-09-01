@@ -158,10 +158,13 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 }
 
 export function LeftSidebarProvider() {
-	const { value: isOpen } = useLocalStorage("left-sidebar-state", false);
+	const isMobile = useIsMobile();
+	const { value: isOpen } = useLocalStorage("left-sidebar-state", !isMobile);
+
+	const defaultSidebarState = isMobile ? false : isOpen;
 
 	return (
-		<SidebarProvider name="left-sidebar" defaultOpen={isOpen} className="w-fit!">
+		<SidebarProvider name="left-sidebar" defaultOpen={defaultSidebarState} className="w-fit!">
 			<LeftSidebar isOpen={isOpen} />
 		</SidebarProvider>
 	);

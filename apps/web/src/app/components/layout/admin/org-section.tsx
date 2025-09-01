@@ -47,15 +47,9 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 	return (
 		<>
-			<SidebarGroup className="group/org">
-				<SidebarGroupLabel className="gap-2 items-center text-sm h-8">
-					<Avatar className="h-4 w-4 rounded-md">
-						<AvatarImage src={organization.logo || ""} alt={organization.name} />
-						<AvatarFallback className="rounded-md uppercase text-xs">
-							<IconUsers className="h-4 w-4" />
-						</AvatarFallback>
-					</Avatar>{" "}
-					<span>{organization.name}</span>
+			<SidebarGroup>
+				<SidebarGroupLabel>
+					<span>Organizations</span>
 				</SidebarGroupLabel>
 
 				<SidebarMenu>
@@ -89,7 +83,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
-										<Button className="text-sidebar-foreground/0  group-hover/org:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative h-7 w-7 bg-transparent hover:bg-border">
+										<Button className="text-sidebar-foreground/0  group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative h-7 w-7 bg-transparent hover:bg-border">
 											<MoreHorizontal />
 											<span className="sr-only">More</span>
 										</Button>
@@ -102,15 +96,6 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 										<DropdownMenuItem onClick={openDialog}>
 											<IconPencil className="text-muted-foreground" />
 											<span>Update</span>
-										</DropdownMenuItem>
-										<DropdownMenuItem>
-											<Forward className="text-muted-foreground" />
-											<span>Share Project</span>
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem>
-											<Trash2 className="text-muted-foreground" />
-											<span>Delete Project</span>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
