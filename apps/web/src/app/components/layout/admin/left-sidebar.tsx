@@ -20,7 +20,7 @@ import { Command } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutData } from "@/app/admin/Context";
-import { navigation } from "@/app/lib/routemap";
+import { heading, navigation } from "@/app/lib/routemap";
 import OrgSection from "./org-section";
 import UserDropdown from "./user-dropdown";
 
@@ -42,7 +42,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 	if (pathname.includes("/admin/console"))
 		return (
 			<Sidebar
-				className={cn("max-h-[calc(100dvh-var(--header-height))]  bg-sidebar mr-0")}
+				className={cn("max-h-[calc(100dvh-var(--header-height))] bg-sidebar")}
 				{...props}
 				collapsible={"icon"}
 				side="left"
@@ -97,25 +97,41 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 
 	return (
 		<Sidebar
-			className={cn("max-h-[calc(100dvh-var(--header-height))]  bg-sidebar mr-0")}
+			className={cn("max-h-[calc(100dvh-var(--header-height))] bg-sidebar")}
 			{...props}
 			collapsible={"icon"}
 			side="left"
 		>
 			<SidebarHeader>
-				<SidebarMenu>
-					{!isOpen && <SidebarToggle sidebar name="left-sidebar" />}
-					<SidebarMenuItem>
-						<SidebarMenuButton>
-							<Command /> <span>Test asd asd asd asd a</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-				</SidebarMenu>
+				{/* <SidebarMenu> */}
+				{/* {!isOpen && <SidebarToggle sidebar name="left-sidebar" />} */}
+				{/* mapped items */}
+				{heading.map((section) => (
+					<SidebarMenu key={section.title}>
+						{section.items.map((item) => {
+							const isActive = pathname === item.url;
+							const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
+
+							return (
+								<SidebarMenuItem key={item.title}>
+									<SidebarMenuButton asChild isActive={isActive}>
+										<Link href={item.url} prefetch={false} onClick={closeMobileSidebar}>
+											{IconComponent && <IconComponent size={16} />}
+											<span>{item.title}</span>
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							);
+						})}
+					</SidebarMenu>
+				))}
+				{/* end */}
+				{/* </SidebarMenu> */}
 			</SidebarHeader>
 			<SidebarContent>
 				{navigation.map((section) => (
 					<SidebarGroup key={section.title}>
-						<SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+						{section.title === "Overview" ? null : <SidebarGroupLabel>{section.title}</SidebarGroupLabel>}
 						<SidebarMenu>
 							{section.items.map((item) => {
 								const isActive = pathname === item.url;

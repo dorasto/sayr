@@ -51,7 +51,6 @@ export default function AdminHomePage() {
 					{wsStatus}
 				</span>
 			</div>
-
 			{subscribed ? (
 				<div className="text-green-600 font-medium">
 					✅ Subscribed to channel <code>*</code>
@@ -59,7 +58,6 @@ export default function AdminHomePage() {
 			) : (
 				<div className="text-yellow-600">⏳ Waiting for subscription...</div>
 			)}
-
 			<div className="mt-4">
 				<h2 className="text-lg font-semibold mb-2">📩 Incoming Messages</h2>
 				{messages.length === 0 ? (
@@ -95,6 +93,7 @@ export default function AdminHomePage() {
 					</ul>
 				)}
 			</div>
+			test
 		</div>
 	);
 }
