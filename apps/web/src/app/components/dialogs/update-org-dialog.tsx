@@ -1,25 +1,14 @@
 "use client";
 
-import { Button } from "@repo/ui/components/button";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@repo/ui/components/dialog";
 import { ImageCrop } from "@repo/ui/components/image-crop";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
-import { ScrollArea } from "@repo/ui/components/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { Textarea } from "@repo/ui/components/textarea";
+import { TabbedDialog, TabbedDialogFooter, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
 import { cn } from "@repo/ui/lib/utils";
 import { IconHome } from "@tabler/icons-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { HouseIcon, ImagePlusIcon, XIcon } from "lucide-react";
+import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -44,13 +33,13 @@ interface Organization {
 	metadata?: Record<string, unknown>;
 }
 
-interface UpdateOrgDialogProps {
+interface UpdateOrgDialogV2Props {
 	organization: Organization;
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 }
 
-export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: UpdateOrgDialogProps) {
+export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }: UpdateOrgDialogV2Props) {
 	const id = useId();
 	const queryClient = useQueryClient();
 	const { setOrg, organization: currentOrg } = useLayoutData();
@@ -256,8 +245,8 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 		},
 	});
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const handleSubmit = async (e?: React.FormEvent) => {
+		e?.preventDefault();
 
 		if (!name.trim() || !slug.trim()) {
 			toast.error("Name and slug are required");
@@ -304,126 +293,147 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 	const currentLogoImage = logoFiles[0]?.preview || null;
 	const currentBannerImage = bannerFiles[0]?.preview || null;
 
-	return (
-		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="flex flex-col gap-0 overflow-y-visible max-h-[90vh] p-0 sm:max-w-lg [&>button:last-child]:top-3.5">
-				<DialogHeader className="contents space-y-0 text-left">
-					<DialogTitle className="border-b px-6 py-4 text-base">{organization.name}</DialogTitle>
-				</DialogHeader>
-				<DialogDescription className="sr-only">
-					Make changes to your organization here. You can change the banner, logo, name, slug, and description.
-				</DialogDescription>
-				<div className="overflow-y-scroll h-full sticky top-0">
-					<Tabs defaultValue="general">
-						<ScrollArea>
-							<TabsList className="text-foreground mb-3 h-auto gap-2 rounded-none border-b bg-transparent px-0 py-1">
-								<TabsTrigger
-									value="general"
-									className="hover:bg-accent hover:text-foreground data-[state=active]:after:bg-primary data-[state=active]:hover:bg-accent relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-								>
-									<IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />
-									General
-								</TabsTrigger>
-							</TabsList>
-						</ScrollArea>
-						<TabsContent value="general">
-							<BannerUpload
-								currentImage={currentBannerImage}
-								openFileDialog={handleOpenBannerDialog}
-								removeFile={removeBannerFile}
-								files={bannerFiles}
-							/>
+	const tabs = [
+		{
+			id: "general",
+			label: "General",
+			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
+		{
+			id: "general2",
+			label: "General2",
+			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
+		{
+			id: "general3",
+			label: "General2",
+			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
+		{
+			id: "general4",
+			label: "General2",
+			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
+		{
+			id: "general5",
+			label: "General2",
+			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
+		{
+			id: "general6",
+			label: "General2",
+			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
+		{
+			id: "general7",
+			label: "General2",
+			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
+	];
 
-							<div className="px-6 pt-4 pb-6">
-								<form onSubmit={handleSubmit} className="space-y-4">
-									<div className="space-y-2">
-										{/* <Label htmlFor={`${id}-name`}>Name</Label>
-										 */}
-										<div className="flex gap-2 items-center w-full">
-											<LogoUpload
-												currentImage={currentLogoImage}
-												openFileDialog={handleOpenLogoDialog}
-												removeFile={removeLogoFile}
-												files={logoFiles}
+	return (
+		<>
+			<TabbedDialog
+				isOpen={isOpen}
+				onOpenChange={onOpenChange}
+				title={organization.name}
+				description="Make changes to your organization here. You can change the banner, logo, name, slug, and description."
+				tabs={tabs}
+				defaultTab="general"
+				footer={
+					<TabbedDialogFooter
+						onCancel={() => onOpenChange(false)}
+						onSubmit={handleSubmit}
+						isSubmitting={updateMutation.isPending}
+						submitDisabled={!name.trim() || !slug.trim()}
+					/>
+				}
+				size="md"
+			>
+				<TabPanel tabId="general">
+					<BannerUpload
+						currentImage={currentBannerImage}
+						openFileDialog={handleOpenBannerDialog}
+						removeFile={removeBannerFile}
+						files={bannerFiles}
+					/>
+
+					<div className="">
+						<form onSubmit={handleSubmit} className="space-y-3">
+							<div className="space-y-3">
+								<div className="flex gap-3 items-center w-full">
+									<LogoUpload
+										currentImage={currentLogoImage}
+										openFileDialog={handleOpenLogoDialog}
+										removeFile={removeLogoFile}
+										files={logoFiles}
+									/>
+									<div className="flex flex-col gap-3 w-full">
+										<div className="group relative">
+											<Label
+												htmlFor={`${id}-name`}
+												className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+input:not(:placeholder-shown)]:text-foreground absolute top-1/2 block -translate-y-1/2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:top-0 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+input:not(:placeholder-shown)]:pointer-events-none has-[+input:not(:placeholder-shown)]:top-0 has-[+input:not(:placeholder-shown)]:cursor-default has-[+input:not(:placeholder-shown)]:text-xs has-[+input:not(:placeholder-shown)]:font-medium"
+											>
+												<span className="bg-popover inline-flex px-2">Display name</span>
+											</Label>
+											<Input
+												id={`${id}-name`}
+												type="text"
+												placeholder=" "
+												value={name}
+												onChange={(e) => setName(e.target.value)}
+												required
+												className="bg-popover"
 											/>
-											<div className="flex flex-col gap-3 w-full">
-												<div className="group relative">
-													<Label
-														htmlFor={`${id}-name`}
-														className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+input:not(:placeholder-shown)]:text-foreground absolute top-1/2 block -translate-y-1/2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:top-0 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+input:not(:placeholder-shown)]:pointer-events-none has-[+input:not(:placeholder-shown)]:top-0 has-[+input:not(:placeholder-shown)]:cursor-default has-[+input:not(:placeholder-shown)]:text-xs has-[+input:not(:placeholder-shown)]:font-medium"
-													>
-														<span className="bg-background inline-flex px-2">Display name</span>
-													</Label>
-													<Input
-														id={`${id}-name`}
-														type="email"
-														placeholder=" "
-														value={name}
-														onChange={(e) => setName(e.target.value)}
-														required
-													/>
-												</div>
-												<div className="group relative">
-													<Label
-														htmlFor={`${id}-slug`}
-														className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+input:not(:placeholder-shown)]:text-foreground absolute top-1/2 block -translate-y-1/2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:top-0 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+input:not(:placeholder-shown)]:pointer-events-none has-[+input:not(:placeholder-shown)]:top-0 has-[+input:not(:placeholder-shown)]:cursor-default has-[+input:not(:placeholder-shown)]:text-xs has-[+input:not(:placeholder-shown)]:font-medium"
-													>
-														<span className="bg-background inline-flex px-2">Slug</span>
-													</Label>
-													<Input
-														id={`${id}-slug`}
-														type="text"
-														placeholder=" "
-														value={slug}
-														onChange={(e) =>
-															setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))
-														}
-														required
-													/>
-												</div>
-											</div>
+										</div>
+										<div className="group relative">
+											<Label
+												htmlFor={`${id}-slug`}
+												className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+input:not(:placeholder-shown)]:text-foreground absolute top-1/2 block -translate-y-1/2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:top-0 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+input:not(:placeholder-shown)]:pointer-events-none has-[+input:not(:placeholder-shown)]:top-0 has-[+input:not(:placeholder-shown)]:cursor-default has-[+input:not(:placeholder-shown)]:text-xs has-[+input:not(:placeholder-shown)]:font-medium"
+											>
+												<span className="bg-popover inline-flex px-2">Slug</span>
+											</Label>
+											<Input
+												id={`${id}-slug`}
+												type="text"
+												placeholder=" "
+												value={slug}
+												onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+												required
+												className="bg-popover"
+											/>
 										</div>
 									</div>
-									<div className="group relative">
-										<Label
-											htmlFor={`${id}-description`}
-											className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+textarea:not(:placeholder-shown)]:text-foreground has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40 has-aria-invalid:border-destructive absolute top-0 block translate-y-2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:-translate-y-1/2 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+textarea:not(:placeholder-shown)]:pointer-events-none has-[+textarea:not(:placeholder-shown)]:-translate-y-1/2 has-[+textarea:not(:placeholder-shown)]:cursor-default has-[+textarea:not(:placeholder-shown)]:text-xs has-[+textarea:not(:placeholder-shown)]:font-medium"
-										>
-											<span className="bg-background inline-flex px-2">Description</span>
-										</Label>
-										<Textarea
-											id={id}
-											value={description}
-											maxLength={maxLength}
-											onChange={handleDescriptionChange}
-											aria-describedby={`${id}-description-help`}
-											className="resize-none"
-											placeholder=" "
-										/>
-										<p
-											id={`${id}-description-help`}
-											className="text-muted-foreground mt-2 text-right text-xs"
-											aria-live="polite"
-										>
-											<span className="tabular-nums">{maxLength - characterCount}</span> characters left
-										</p>
-									</div>
-								</form>
+								</div>
 							</div>
-						</TabsContent>
-					</Tabs>
-				</div>
-				<DialogFooter className="border-t px-6 py-4">
-					<DialogClose asChild>
-						<Button type="button" variant="outline" disabled={updateMutation.isPending}>
-							Cancel
-						</Button>
-					</DialogClose>
-					<Button type="button" onClick={handleSubmit} disabled={updateMutation.isPending}>
-						{updateMutation.isPending ? "Saving..." : "Save changes"}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
+							<div className="group relative">
+								<Label
+									htmlFor={`${id}-description`}
+									className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+textarea:not(:placeholder-shown)]:text-foreground has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40 has-aria-invalid:border-destructive absolute top-0 block translate-y-2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:-translate-y-1/2 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+textarea:not(:placeholder-shown)]:pointer-events-none has-[+textarea:not(:placeholder-shown)]:-translate-y-1/2 has-[+textarea:not(:placeholder-shown)]:cursor-default has-[+textarea:not(:placeholder-shown)]:text-xs has-[+textarea:not(:placeholder-shown)]:font-medium"
+								>
+									<span className="bg-popover inline-flex px-2">Description</span>
+								</Label>
+								<Textarea
+									id={id}
+									value={description}
+									maxLength={maxLength}
+									onChange={handleDescriptionChange}
+									aria-describedby={`${id}-description-help`}
+									className="resize-none bg-popover"
+									placeholder=" "
+								/>
+								<p
+									id={`${id}-description-help`}
+									className="text-muted-foreground mt-2 text-right text-xs"
+									aria-live="polite"
+								>
+									<span className="tabular-nums">{maxLength - characterCount}</span> characters left
+								</p>
+							</div>
+						</form>
+					</div>
+				</TabPanel>
+			</TabbedDialog>
 
 			{/* Image Crop Modal */}
 			<ImageCrop
@@ -456,7 +466,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 				onChange={handleBannerFileChange}
 				style={{ display: "none" }}
 			/>
-		</Dialog>
+		</>
 	);
 }
 
