@@ -299,36 +299,6 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 			label: "General",
 			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
 		},
-		{
-			id: "general2",
-			label: "General2",
-			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
-		},
-		{
-			id: "general3",
-			label: "General2",
-			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
-		},
-		{
-			id: "general4",
-			label: "General2",
-			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
-		},
-		{
-			id: "general5",
-			label: "General2",
-			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
-		},
-		{
-			id: "general6",
-			label: "General2",
-			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
-		},
-		{
-			id: "general7",
-			label: "General2",
-			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
-		},
 	];
 
 	return (
@@ -340,14 +310,14 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 				description="Make changes to your organization here. You can change the banner, logo, name, slug, and description."
 				tabs={tabs}
 				defaultTab="general"
-				footer={
-					<TabbedDialogFooter
-						onCancel={() => onOpenChange(false)}
-						onSubmit={handleSubmit}
-						isSubmitting={updateMutation.isPending}
-						submitDisabled={!name.trim() || !slug.trim()}
-					/>
-				}
+				// footer={
+				// 	<TabbedDialogFooter
+				// 		onCancel={() => onOpenChange(false)}
+				// 		onSubmit={handleSubmit}
+				// 		isSubmitting={updateMutation.isPending}
+				// 		submitDisabled={!name.trim() || !slug.trim()}
+				// 	/>
+				// }
 				size="md"
 			>
 				<TabPanel tabId="general">
@@ -431,6 +401,15 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 								</p>
 							</div>
 						</form>
+					</div>
+					<div className="mt-auto flex gap-2 ml-auto">
+						<TabbedDialogFooter
+							onCancel={() => onOpenChange(false)}
+							onSubmit={handleSubmit}
+							isSubmitting={updateMutation.isPending}
+							submitDisabled={!name.trim() || !slug.trim()}
+							classNameSuccess="hover:border-success/60"
+						/>
 					</div>
 				</TabPanel>
 			</TabbedDialog>

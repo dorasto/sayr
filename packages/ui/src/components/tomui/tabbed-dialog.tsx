@@ -100,7 +100,7 @@ export function TabbedDialog({
 			<DialogContent
 				showClose={false}
 				className={cn(
-					"flex flex-col max-h-[90vh] p-0 gap-0",
+					"flex flex-col max-h-[90vh] md:max-h-[70vh] md:h-full p-0 gap-0",
 					sizeClasses[size],
 					"[&>button:last-child]:top-3.5 bg-popover",
 					className
@@ -184,6 +184,30 @@ interface TabbedDialogFooterProps {
 	cancelLabel?: string;
 	isSubmitting?: boolean;
 	submitDisabled?: boolean;
+	classNameCancel?: string;
+	classNameSuccess?: string;
+	cancelVariant?:
+		| "link"
+		| "default"
+		| "destructive"
+		| "outline"
+		| "secondary"
+		| "accent"
+		| "success"
+		| "ghost"
+		| null
+		| undefined;
+	successVariant?:
+		| "link"
+		| "default"
+		| "destructive"
+		| "outline"
+		| "secondary"
+		| "accent"
+		| "success"
+		| "ghost"
+		| null
+		| undefined;
 }
 
 export function TabbedDialogFooter({
@@ -193,18 +217,34 @@ export function TabbedDialogFooter({
 	cancelLabel = "Cancel",
 	isSubmitting = false,
 	submitDisabled = false,
+	classNameCancel,
+	classNameSuccess,
+	cancelVariant = "outline",
+	successVariant = "success",
 }: TabbedDialogFooterProps) {
 	return (
 		<>
 			{onCancel && (
 				<DialogClose asChild>
-					<Button type="button" variant="outline" disabled={isSubmitting} onClick={onCancel}>
+					<Button
+						type="button"
+						variant={cancelVariant}
+						disabled={isSubmitting}
+						onClick={onCancel}
+						className={cn(classNameCancel)}
+					>
 						{cancelLabel}
 					</Button>
 				</DialogClose>
 			)}
 			{onSubmit && (
-				<Button type="button" onClick={onSubmit} disabled={isSubmitting || submitDisabled}>
+				<Button
+					variant={successVariant}
+					type="button"
+					onClick={onSubmit}
+					disabled={isSubmitting || submitDisabled}
+					className={cn(classNameSuccess)}
+				>
 					{isSubmitting ? "Saving..." : submitLabel}
 				</Button>
 			)}
