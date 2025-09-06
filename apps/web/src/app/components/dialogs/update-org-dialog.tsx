@@ -6,7 +6,7 @@ import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
 import { TabbedDialog, TabbedDialogFooter, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
 import { cn } from "@repo/ui/lib/utils";
-import { IconHome } from "@tabler/icons-react";
+import { IconHome, IconUsers } from "@tabler/icons-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
@@ -299,6 +299,11 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 			label: "General",
 			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
 		},
+		{
+			id: "members",
+			label: "Members",
+			icon: <IconUsers className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
 	];
 
 	return (
@@ -310,14 +315,6 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 				description="Make changes to your organization here. You can change the banner, logo, name, slug, and description."
 				tabs={tabs}
 				defaultTab="general"
-				// footer={
-				// 	<TabbedDialogFooter
-				// 		onCancel={() => onOpenChange(false)}
-				// 		onSubmit={handleSubmit}
-				// 		isSubmitting={updateMutation.isPending}
-				// 		submitDisabled={!name.trim() || !slug.trim()}
-				// 	/>
-				// }
 				size="md"
 			>
 				<TabPanel tabId="general">
@@ -411,6 +408,9 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 							classNameSuccess="hover:border-success/60"
 						/>
 					</div>
+				</TabPanel>
+				<TabPanel tabId={"members"}>
+					<div></div>
 				</TabPanel>
 			</TabbedDialog>
 
