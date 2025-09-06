@@ -13,10 +13,13 @@ import {
 import { ImageCrop } from "@repo/ui/components/image-crop";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui/lib/utils";
+import { IconHome } from "@tabler/icons-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ImagePlusIcon, XIcon } from "lucide-react";
+import { HouseIcon, ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -310,97 +313,105 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 				<DialogDescription className="sr-only">
 					Make changes to your organization here. You can change the banner, logo, name, slug, and description.
 				</DialogDescription>
-				<div className="overflow-y-scroll h-full">
-					<BannerUpload
-						currentImage={currentBannerImage}
-						openFileDialog={handleOpenBannerDialog}
-						removeFile={removeBannerFile}
-						files={bannerFiles}
-					/>
+				<div className="overflow-y-scroll h-full sticky top-0">
+					<Tabs defaultValue="general">
+						<ScrollArea>
+							<TabsList className="text-foreground mb-3 h-auto gap-2 rounded-none border-b bg-transparent px-0 py-1">
+								<TabsTrigger
+									value="general"
+									className="hover:bg-accent hover:text-foreground data-[state=active]:after:bg-primary data-[state=active]:hover:bg-accent relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+								>
+									<IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />
+									General
+								</TabsTrigger>
+							</TabsList>
+						</ScrollArea>
+						<TabsContent value="general">
+							<BannerUpload
+								currentImage={currentBannerImage}
+								openFileDialog={handleOpenBannerDialog}
+								removeFile={removeBannerFile}
+								files={bannerFiles}
+							/>
 
-					<div className="px-6 pt-4 pb-6">
-						<form onSubmit={handleSubmit} className="space-y-4">
-							<div className="space-y-2">
-								{/* <Label htmlFor={`${id}-name`}>Name</Label>
-								 */}
-								<div className="flex gap-2 items-center w-full">
-									<LogoUpload
-										currentImage={currentLogoImage}
-										openFileDialog={handleOpenLogoDialog}
-										removeFile={removeLogoFile}
-										files={logoFiles}
-									/>
-									<div className="flex flex-col w-full">
-										<Input
-											id={`${id}-name`}
-											placeholder="My Organization"
-											value={name}
-											onChange={(e) => setName(e.target.value)}
-											type="text"
-											className="border-transparent font-bold"
-											required
-										/>
-										<div className="relative flex items-center gap-1 max-w-full">
-											<Input
-												id={`${id}-slug`}
-												// className="-ms-px rounded-s-none shadow-none"
-												placeholder="my-organization"
-												value={slug}
-												onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
-												type="text"
-												className="border-transparent font-bold"
-												required
+							<div className="px-6 pt-4 pb-6">
+								<form onSubmit={handleSubmit} className="space-y-4">
+									<div className="space-y-2">
+										{/* <Label htmlFor={`${id}-name`}>Name</Label>
+										 */}
+										<div className="flex gap-2 items-center w-full">
+											<LogoUpload
+												currentImage={currentLogoImage}
+												openFileDialog={handleOpenLogoDialog}
+												removeFile={removeLogoFile}
+												files={logoFiles}
 											/>
-											<Input
-												// className="-ms-px rounded-s-none shadow-none"
-												placeholder={`.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
-												value={slug}
-												onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
-												type="text"
-												className="border-transparent font-bold"
-												disabled
-											/>
+											<div className="flex flex-col gap-3 w-full">
+												<div className="group relative">
+													<Label
+														htmlFor={`${id}-name`}
+														className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+input:not(:placeholder-shown)]:text-foreground absolute top-1/2 block -translate-y-1/2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:top-0 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+input:not(:placeholder-shown)]:pointer-events-none has-[+input:not(:placeholder-shown)]:top-0 has-[+input:not(:placeholder-shown)]:cursor-default has-[+input:not(:placeholder-shown)]:text-xs has-[+input:not(:placeholder-shown)]:font-medium"
+													>
+														<span className="bg-background inline-flex px-2">Display name</span>
+													</Label>
+													<Input
+														id={`${id}-name`}
+														type="email"
+														placeholder=" "
+														value={name}
+														onChange={(e) => setName(e.target.value)}
+														required
+													/>
+												</div>
+												<div className="group relative">
+													<Label
+														htmlFor={`${id}-slug`}
+														className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+input:not(:placeholder-shown)]:text-foreground absolute top-1/2 block -translate-y-1/2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:top-0 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+input:not(:placeholder-shown)]:pointer-events-none has-[+input:not(:placeholder-shown)]:top-0 has-[+input:not(:placeholder-shown)]:cursor-default has-[+input:not(:placeholder-shown)]:text-xs has-[+input:not(:placeholder-shown)]:font-medium"
+													>
+														<span className="bg-background inline-flex px-2">Slug</span>
+													</Label>
+													<Input
+														id={`${id}-slug`}
+														type="text"
+														placeholder=" "
+														value={slug}
+														onChange={(e) =>
+															setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))
+														}
+														required
+													/>
+												</div>
+											</div>
 										</div>
 									</div>
-								</div>
+									<div className="group relative">
+										<Label
+											htmlFor={`${id}-description`}
+											className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+textarea:not(:placeholder-shown)]:text-foreground has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40 has-aria-invalid:border-destructive absolute top-0 block translate-y-2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:-translate-y-1/2 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+textarea:not(:placeholder-shown)]:pointer-events-none has-[+textarea:not(:placeholder-shown)]:-translate-y-1/2 has-[+textarea:not(:placeholder-shown)]:cursor-default has-[+textarea:not(:placeholder-shown)]:text-xs has-[+textarea:not(:placeholder-shown)]:font-medium"
+										>
+											<span className="bg-background inline-flex px-2">Description</span>
+										</Label>
+										<Textarea
+											id={id}
+											value={description}
+											maxLength={maxLength}
+											onChange={handleDescriptionChange}
+											aria-describedby={`${id}-description-help`}
+											className="resize-none"
+											placeholder=" "
+										/>
+										<p
+											id={`${id}-description-help`}
+											className="text-muted-foreground mt-2 text-right text-xs"
+											aria-live="polite"
+										>
+											<span className="tabular-nums">{maxLength - characterCount}</span> characters left
+										</p>
+									</div>
+								</form>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor={`${id}-slug`}>Slug</Label>
-								{/* <div className="flex rounded-md shadow-xs"> */}
-								{/* <span className="border-input bg-background text-muted-foreground -z-10 inline-flex items-center rounded-s-md border px-3 text-sm">
-										/org/
-									</span> */}
-								<Input
-									id={`${id}-slug`}
-									// className="-ms-px rounded-s-none shadow-none"
-									placeholder="my-organization"
-									value={slug}
-									onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
-									type="text"
-									required
-								/>
-								{/* </div> */}
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor={`${id}-description`}>Description</Label>
-								<Textarea
-									id={`${id}-description`}
-									placeholder="Write a few sentences about your organization"
-									value={description}
-									maxLength={maxLength}
-									onChange={handleDescriptionChange}
-									aria-describedby={`${id}-description-help`}
-								/>
-								<p
-									id={`${id}-description-help`}
-									className="text-muted-foreground mt-2 text-right text-xs"
-									aria-live="polite"
-								>
-									<span className="tabular-nums">{maxLength - characterCount}</span> characters left
-								</p>
-							</div>
-						</form>
-					</div>
+						</TabsContent>
+					</Tabs>
 				</div>
 				<DialogFooter className="border-t px-6 py-4">
 					<DialogClose asChild>
@@ -512,13 +523,13 @@ function LogoUpload({
 }) {
 	return (
 		<div className={cn(className)}>
-			<div className="border-background bg-muted relative flex size-20 items-center justify-center overflow-hidden rounded-xl shadow-xs shadow-black/10 group/image">
+			<div className="border-background bg-muted relative flex size-24 items-center justify-center overflow-hidden rounded-xl shadow-xs shadow-black/10 group/image">
 				{currentImage && (
 					<Image
 						src={currentImage}
 						className="size-full object-cover group-hover/image:blur-xs transition-all"
-						width={80}
-						height={80}
+						width={96}
+						height={96}
 						alt="Organization logo"
 					/>
 				)}
