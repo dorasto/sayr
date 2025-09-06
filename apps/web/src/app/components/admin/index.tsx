@@ -38,8 +38,10 @@ export default function AdminHomePage() {
 	return (
 		<div className="">
 			<h1>org detail {organization.name}</h1>
+			{/** biome-ignore lint/performance/noImgElement: <will use> */}
 			<img src={organization.logo || ""} alt={organization.name} />
-			<img src={organization || ""} alt={organization.name} />
+			{/** biome-ignore lint/performance/noImgElement: <will use> */}
+			<img src={organization.bannerImg || ""} alt={organization.name} />
 			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
 			<div className="flex items-center gap-2">
 				<span className="font-medium">WebSocket Status:</span>
@@ -65,27 +67,30 @@ export default function AdminHomePage() {
 				) : (
 					<ul className="space-y-2">
 						{messages.map((msg, i) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: <only for testing>
 							<li key={i} className="p-3 border rounded bg-gray-500 shadow-sm text-sm">
 								<div className="font-mono text-white">
 									{msg.type === "MESSAGE" ? (
 										<>
-											<span className="font-bold">[Channel]</span> {msg.data.text}
+											<span className="font-bold">[{msg.meta?.channel || ""}]</span> {msg.data.text}
 										</>
 									) : (
 										<pre>{JSON.stringify(msg, null, 2)}</pre>
 									)}
 								</div>
 								{msg.type === "MESSAGE" && (
-									<div className="text-xs text-gray-400 mt-1">
-										{new Date(msg.data.timestamp || "").toLocaleTimeString()}
+									<div className="text-xs text-gray-200 mt-1">
+										{new Date(msg.meta?.ts || "").toLocaleTimeString()}
 									</div>
-								)}
-								{msg.type === "PING" && (
-									<div className="text-xs text-gray-400 mt-1">{new Date(msg.ts).toLocaleTimeString()}</div>
 								)}
 								{msg.type === "FIREHOSE" && (
 									<div className="text-xs text-gray-200 mt-1">
-										{new Date(msg.data.payload.data.timestamp || "").toLocaleTimeString()}
+										{new Date(msg.meta?.ts || "").toLocaleTimeString()}
+									</div>
+								)}
+								{msg.type === "PING" && (
+									<div className="text-xs text-gray-200 mt-1">
+										{new Date(msg.ts || "").toLocaleTimeString()}
 									</div>
 								)}
 							</li>

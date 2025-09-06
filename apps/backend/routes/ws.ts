@@ -19,26 +19,78 @@ type ClientInfo = {
 	channel: string;
 	lastPong: number; // ✅ track last pong here
 };
-
+// Base message type
+type WSBaseMessage = {
+	type: string;
+	// biome-ignore lint/suspicious/noExplicitAny: <any>
+	data?: any;
+	meta?: {
+		ts: number;
+		channel?: string;
+		orgId?: string;
+		// biome-ignore lint/suspicious/noExplicitAny: <any>
+		[key: string]: any;
+	};
+};
 const rooms = new Map<string, ClientInfo[]>(); // `${orgId}:${channel}`
 const wsClientIds = new Map<ServerWebSocket, string>();
 
-// 🔹 Internal helper to send to a list of clients
-function sendToClients(clients: ClientInfo[] = [], message: object, exclude?: ServerWebSocket) {
+// Internal helper to send to a list of clients
+function sendToClients(
+	clients: ClientInfo[] = [],
+	message: WSBaseMessage,
+	orgId: string,
+	channel: string,
+	exclude?: ServerWebSocket
+) {
 	for (const c of clients) {
 		if (exclude && c.socket === exclude) continue;
+		// Always clone + attach meta
+		const msgWithMeta: WSBaseMessage = {
+			...message,
+			meta: {
+				ts: Date.now(),
+				channel,
+				orgId,
+				...(message.meta || {}), // allow caller to override/add fields
+			},
+		};
 		try {
-			c.socket.send(JSON.stringify(message));
+			c.socket.send(JSON.stringify(msgWithMeta));
 		} catch (err) {
 			console.error("Send failed", c.wsClientId, err);
 		}
 	}
 }
 
-// 🔹 General broadcast (room + firehose)
-function broadcast(orgId: string, channel: string, message: object, exclude?: ServerWebSocket) {
+// Internal helper to send
+function send(ws: ServerWebSocket, message: WSBaseMessage) {
+	const msgWithMeta: WSBaseMessage = {
+		...message,
+		meta: {
+			ts: Date.now(),
+			...(message.meta || {}),
+		},
+	};
+	ws.send(JSON.stringify(msgWithMeta));
+}
+
+/**
+ * Broadcast a message to a specific org's channel and to firehose listeners.
+ *
+ * @param orgId - The organization ID to which the message is broadcasted.
+ * @param channel - The channel within the organization to which the message is sent.
+ * @param message - The message object to be broadcasted.
+ * @param exclude - An optional WebSocket to exclude from receiving the message (e.g., the sender).
+ * @returns void
+ * @example
+ * ```ts
+ * broadcast("org_123", "public", { type: "UPDATE", data: { ... } });
+ * ```
+ */
+export function broadcast(orgId: string, channel: string, message: WSBaseMessage, exclude?: ServerWebSocket) {
 	// Send to the specific channel
-	sendToClients(rooms.get(`${orgId}:${channel}`), message, exclude);
+	sendToClients(rooms.get(`${orgId}:${channel}`), message, orgId, channel, exclude);
 
 	// Send to firehose listeners, but include channel info
 	const firehoseMsg = {
@@ -48,26 +100,59 @@ function broadcast(orgId: string, channel: string, message: object, exclude?: Se
 			payload: message,
 		},
 	};
-	sendToClients(rooms.get(`${orgId}:*`), firehoseMsg, exclude);
+	sendToClients(rooms.get(`${orgId}:*`), firehoseMsg, orgId, "*", exclude);
 }
 
-// 🔹 Public broadcast (per org)
-function broadcastPublic(orgId: string, message: object, exclude?: ServerWebSocket) {
+/**
+ * Broadcast a message to a specific org's public channel.
+ *
+ * @param orgId - The organization ID to which the message is broadcasted.
+ * @param message - The message object to be broadcasted.
+ * @param exclude - An optional WebSocket to exclude from receiving the message (e.g., the sender).
+ * @returns void
+ * @example
+ * ```ts
+ * broadcastPublic("org_123", { type: "UPDATE", data: { ... } });
+ * ```
+ */
+export function broadcastPublic(orgId: string, message: WSBaseMessage, exclude?: ServerWebSocket) {
 	// Send to the org's public channel
-	sendToClients(rooms.get(`${orgId}:public`), message, exclude);
+	sendToClients(rooms.get(`${orgId}:public`), message, orgId, "public", exclude);
 
-	// Send to firehose listeners, include channel info
-	const firehoseMsg = {
-		type: "FIREHOSE",
-		data: {
-			channel: "public",
-			payload: message,
-		},
-	};
-	sendToClients(rooms.get(`${orgId}:*`), firehoseMsg, exclude);
+	// // Send to firehose listeners, include channel info
+	// const firehoseMsg = {
+	// 	type: "FIREHOSE",
+	// 	data: {
+	// 		channel: "public",
+	// 		payload: message,
+	// 	},
+	// };
+	// sendToClients(rooms.get(`${orgId}:*`), firehoseMsg, exclude);
 }
 
-// 🔹 Unsubscribe client from all rooms
+/**
+ * Find a connected WebSocket client by its unique WebSocket client ID.
+ *
+ * @param clientId - The unique WebSocket client ID to search for.
+ * @return The ClientInfo object if found, otherwise undefined.
+ * @example
+ * ```ts
+ * const client = findClientByWsId("some-unique-ws-client-id");
+ * if (client) {
+ *   console.log("Client found:", client);
+ * } else {
+ *  console.log("Client not found");
+ * }
+ * ```
+ */
+export function findClientByWsId(clientId: string) {
+	for (const clients of rooms.values()) {
+		const found = clients.find((c) => c.wsClientId === clientId);
+		if (found) return found;
+	}
+}
+
+// Unsubscribe client from all rooms
 function unsubscribe(socket: ServerWebSocket) {
 	const wsClientId = wsClientIds.get(socket);
 	for (const [key, clients] of rooms) {
@@ -83,7 +168,7 @@ function unsubscribe(socket: ServerWebSocket) {
 	}
 }
 
-// 🔹 Find client subscription
+// Find client subscription
 function findClient(socket: ServerWebSocket) {
 	for (const clients of rooms.values()) {
 		const found = clients.find((c) => c.socket === socket);
@@ -91,16 +176,14 @@ function findClient(socket: ServerWebSocket) {
 	}
 }
 
-// 🔹 Handle subscription
+// Handle subscription
 function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: string, orgId: string, channel: string) {
 	const key = `${orgId}:${channel}`;
 	if ((rooms.get(key) || []).some((c) => c.socket === ws)) {
-		ws.send(
-			JSON.stringify({
-				type: "ERROR",
-				data: { message: `Already subscribed to ${orgId}:${channel}` },
-			})
-		);
+		send(ws, {
+			type: "ERROR",
+			data: { message: `Already subscribed to ${orgId}:${channel}` },
+		});
 		return;
 	}
 
@@ -115,23 +198,14 @@ function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		lastPong: Date.now(),
 	};
 	rooms.set(key, [...(rooms.get(key) || []), info]);
-	ws.send(
-		JSON.stringify({
-			type: "SUBSCRIBED",
-			data: {
-				wsClientId,
-				clientId: info.clientId,
-				orgId,
-				channel,
-			},
-		})
-	);
-	broadcast(
-		orgId,
-		channel,
-		{ type: "USER_SUBSCRIBED", data: { wsClientId, clientId: info.clientId, orgId, channel } },
-		ws
-	);
+	send(ws, {
+		type: "SUBSCRIBED",
+		data: {
+			orgId,
+			channel,
+		},
+	});
+	broadcast(orgId, channel, { type: "USER_SUBSCRIBED", data: { wsClientId, clientId, orgId, channel } }, ws);
 }
 
 wsRoute.get(
@@ -141,20 +215,33 @@ wsRoute.get(
 			const session = c.get("session");
 			const wsClientId = crypto.randomUUID();
 			wsClientIds.set(ws.raw, wsClientId);
-
 			if (!session) {
-				// unauthenticated → join org’s public channel
 				const orgId = c.req.query("orgId") || "default"; // orgId must come from query param
-				handleSubscribe(ws.raw, wsClientId, crypto.randomUUID(), orgId, "public");
+				send(ws.raw, {
+					type: "CONNECTION_STATUS",
+					data: {
+						status: "connected",
+						authenticated: false,
+						wsClientId,
+					},
+					meta: {
+						ts: Date.now(),
+					},
+				});
+				handleSubscribe(ws.raw, wsClientId, "ANONYMOUS", orgId, "public");
 				return;
 			}
-
-			ws.send(
-				JSON.stringify({
-					type: "SERVER_MESSAGE",
-					data: { status: "Connected", wsClientId },
-				})
-			);
+			send(ws.raw, {
+				type: "CONNECTION_STATUS",
+				data: {
+					status: "connected",
+					authenticated: true,
+					wsClientId,
+				},
+				meta: {
+					ts: Date.now(),
+				},
+			});
 		},
 
 		onMessage: (event, ws) => {
@@ -172,108 +259,38 @@ wsRoute.get(
 				if (msg.type === "SUBSCRIBE") {
 					const { orgId, channel } = msg;
 					if (!orgId || !channel) {
-						return ws.send(
-							JSON.stringify({
-								type: "ERROR",
-								data: { message: "Need orgId+channel" },
-							})
-						);
+						return send(ws.raw, {
+							type: "ERROR",
+							data: { message: "Need orgId+channel" },
+							meta: {
+								ts: Date.now(),
+							},
+						});
 					}
-
 					// ✅ enforce session: only allow "public" channel if unauthenticated
 					if (!session && channel !== "public") {
-						return ws.send(
-							JSON.stringify({
-								type: "ERROR",
-								data: { message: "Auth required for private channels" },
-							})
-						);
+						return send(ws.raw, {
+							type: "ERROR",
+							data: { message: "Auth required for private channels" },
+							meta: {
+								ts: Date.now(),
+							},
+						});
 					} else if (channel === "public" && !session) {
 						handleSubscribe(ws.raw, wsClientId, crypto.randomUUID(), orgId, channel);
 					} else {
-						const organization = c.get("organization");
-						if (organization.id === orgId) {
-							handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
-						} else {
-							ws.send(
-								JSON.stringify({
-									type: "ERROR",
-									data: { message: "Not authorized to subscribe to this ORG" },
-								})
-							);
-						}
+						handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
 					}
-				}
-
-				if (msg.type === "MESSAGE") {
-					const client = findClient(ws.raw);
-					if (!client) {
-						return ws.send(
-							JSON.stringify({
-								type: "ERROR",
-								data: { message: "Must SUBSCRIBE before MESSAGE" },
-							})
-						);
-					}
-					if (!msg.text) {
-						return ws.send(
-							JSON.stringify({
-								type: "ERROR",
-								data: { message: "MESSAGE requires text" },
-							})
-						);
-					}
-
-					// ✅ enforce session: only allow MESSAGE in public if unauthenticated
-					if (!session && client.channel !== "public") {
-						return ws.send(
-							JSON.stringify({
-								type: "ERROR",
-								data: { message: "Auth required to send to private channels" },
-							})
-						);
-					}
-
-					if (client.channel === "public") {
-						if (session) {
-							broadcastPublic(
-								client.orgId,
-								{
-									type: "MESSAGE",
-									data: {
-										text: msg.text,
-										wsClientId,
-										clientId: client.clientId,
-										timestamp: new Date().toISOString(),
-									},
-								},
-								ws.raw
-							);
-						}
-					} else {
-						broadcast(
-							client.orgId,
-							client.channel,
-							{
-								type: "MESSAGE",
-								data: {
-									text: msg.text,
-									wsClientId,
-									clientId: client.clientId,
-									timestamp: new Date().toISOString(),
-								},
-							},
-							ws.raw
-						);
-					}
+					return;
 				}
 			} catch (err) {
-				ws.send(
-					JSON.stringify({
-						type: "ERROR",
-						data: { error: err instanceof Error ? err.message : String(err) },
-					})
-				);
+				send(ws.raw, {
+					type: "ERROR",
+					data: { error: err instanceof Error ? err.message : String(err) },
+					meta: {
+						ts: Date.now(),
+					},
+				});
 			}
 		},
 

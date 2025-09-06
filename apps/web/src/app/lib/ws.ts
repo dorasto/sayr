@@ -9,6 +9,7 @@ let webSocket: WebSocket | null = null;
 const useWebSocket = () => {
 	const [ws, setWs] = useState<WebSocket | null>(null);
 	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
+	const { setValue: setWSClientId } = useStateManagement<string>("ws-clientId", "");
 	useEffect(() => {
 		const abortController = new AbortController();
 		const connectWebSocket = () => {
@@ -16,18 +17,33 @@ const useWebSocket = () => {
 				setWSStatus("Connecting");
 				webSocket = new WebSocket(wsUrl || "/ws");
 				webSocket.onopen = () => {
-					setWSStatus("Connected");
 					setWs(webSocket);
 				};
 				webSocket.addEventListener(
 					"message",
 					(event) => {
 						try {
-							const data = JSON.parse(event.data);
-							if (data.type === "PING") {
-								console.log("📡 Received PING, sending PONG...");
-								webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() }));
-								return;
+							const data: WSMessage = JSON.parse(event.data);
+							switch (data.type) {
+								case "CONNECTION_STATUS":
+									if (data.data.authenticated) {
+										setWSStatus("Connected");
+										setWSClientId(data.data.wsClientId);
+									} else {
+										webSocket = null;
+										console.log("WebSocket disconnected. Attempting to reconnect...");
+										setWs(null);
+										setWSStatus("Reconnecting");
+										connectWebSocket();
+									}
+									return;
+								case "PING":
+									console.log("📡 Received PING, sending PONG...");
+									webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() } as WSMessage));
+									return;
+								default:
+									console.log("📩 switch Raw:", event.data);
+									break;
 							}
 						} catch {
 							console.log("📩 Raw:", event.data);
@@ -65,30 +81,46 @@ const useWebSocket = () => {
 			webSocket?.close();
 			abortController.abort();
 		};
-	}, [setWSStatus]);
+	}, [setWSStatus, setWSClientId]);
 	return ws;
 };
 
 export default useWebSocket;
 
+// Base message type with optional metadata
+export type BaseMessage = {
+	meta?: {
+		ts: number; // timestamp
+		channel?: string;
+		orgId?: string;
+	};
+};
+
 export type WSMessage =
-	| {
+	| (BaseMessage & {
+			type: "CONNECTION_STATUS";
+			data: { status: string; authenticated: boolean; wsClientId: string };
+	  })
+	| (BaseMessage & {
+			type: "SERVER_MESSAGE" | "ERROR";
+			data: { message: string };
+	  })
+	| (BaseMessage & {
 			type: "PING" | "PONG";
 			ts: number;
-	  }
-	| {
+	  })
+	| (BaseMessage & {
 			type: "MESSAGE";
 			data: {
 				channel?: string;
 				text?: string;
-				timestamp?: number;
 			};
-	  }
-	| {
+	  })
+	| (BaseMessage & {
 			type: "SUBSCRIBED";
 			channel?: string;
-	  }
-	| {
+	  })
+	| (BaseMessage & {
 			type: "FIREHOSE";
 			data: {
 				channel: string;
@@ -98,8 +130,17 @@ export type WSMessage =
 						text: string;
 						wsClientId: string;
 						clientId: string;
-						timestamp: string;
 					};
 				};
 			};
-	  };
+	  });
+
+// Messages the client can send to the server
+export type WSMessageSend =
+	| BaseMessage
+	| (BaseMessage & {
+			type: "SUBSCRIBE";
+			orgId: string;
+			channel: string;
+			timestamp: string;
+	  });

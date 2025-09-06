@@ -50,6 +50,7 @@ interface ContextType {
 		logo?: string | null | undefined | undefined;
 		// biome-ignore lint/suspicious/noExplicitAny: <any>
 		metadata?: any;
+		bannerImg: string | null | undefined | undefined;
 	};
 	setOrg: (newValue: ContextType["organization"]) => void;
 }

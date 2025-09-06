@@ -22,18 +22,26 @@ export async function getAccess() {
 }
 
 export async function getUsers() {
-	const result = await auth.api.listUsers({
-		query: {
-			limit: 100,
-			offset: 0,
-			sortBy: "name",
-			sortDirection: "asc",
-		},
-		// This endpoint requires session cookies.
-		headers: await headers(),
-	});
+	try {
+		const result = await auth.api.listUsers({
+			query: {
+				limit: 100,
+				offset: 0,
+				sortBy: "name",
+				sortDirection: "asc",
+			},
+			// This endpoint requires session cookies.
+			headers: await headers(),
+		});
 
-	return result;
+		return result;
+	} catch (error) {
+		console.log("🚀 ~ getUsers ~ error:", error);
+		return {
+			users: [],
+			total: 0,
+		};
+	}
 }
 
 export async function setUserRole(userId: string, role: "admin" | "user") {

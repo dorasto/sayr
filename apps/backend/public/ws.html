@@ -144,7 +144,6 @@
                     type: "SUBSCRIBE",
                     orgId,
                     channel,
-                    timestamp: new Date().toISOString(),
                 };
 
                 socket.send(JSON.stringify(payload));
@@ -166,7 +165,6 @@
                 const payload = {
                     type: "MESSAGE",
                     text,
-                    timestamp: new Date().toISOString(),
                 };
 
                 socket.send(JSON.stringify(payload));
