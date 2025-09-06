@@ -82,7 +82,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
-										<Button className="text-sidebar-foreground/0  group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative h-7 w-7 bg-transparent hover:bg-border">
+										<Button className="text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border">
 											<MoreHorizontal />
 											<span className="sr-only">More</span>
 										</Button>
@@ -115,7 +115,6 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 					</Collapsible>
 				</SidebarMenu>
 			</SidebarGroup>
-
 			<UpdateOrgDialog organization={organization} isOpen={isOpen} onOpenChange={setIsOpen} />
 		</>
 	);

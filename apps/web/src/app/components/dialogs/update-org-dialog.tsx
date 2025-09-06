@@ -14,6 +14,7 @@ import { ImageCrop } from "@repo/ui/components/image-crop";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
+import { cn } from "@repo/ui/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
@@ -316,24 +317,52 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 						removeFile={removeBannerFile}
 						files={bannerFiles}
 					/>
-					<LogoUpload
-						currentImage={currentLogoImage}
-						openFileDialog={handleOpenLogoDialog}
-						removeFile={removeLogoFile}
-						files={logoFiles}
-					/>
+
 					<div className="px-6 pt-4 pb-6">
 						<form onSubmit={handleSubmit} className="space-y-4">
 							<div className="space-y-2">
-								<Label htmlFor={`${id}-name`}>Name</Label>
-								<Input
-									id={`${id}-name`}
-									placeholder="My Organization"
-									value={name}
-									onChange={(e) => setName(e.target.value)}
-									type="text"
-									required
-								/>
+								{/* <Label htmlFor={`${id}-name`}>Name</Label>
+								 */}
+								<div className="flex gap-2 items-center w-full">
+									<LogoUpload
+										currentImage={currentLogoImage}
+										openFileDialog={handleOpenLogoDialog}
+										removeFile={removeLogoFile}
+										files={logoFiles}
+									/>
+									<div className="flex flex-col w-full">
+										<Input
+											id={`${id}-name`}
+											placeholder="My Organization"
+											value={name}
+											onChange={(e) => setName(e.target.value)}
+											type="text"
+											className="border-transparent font-bold"
+											required
+										/>
+										<div className="relative flex items-center gap-1 max-w-full">
+											<Input
+												id={`${id}-slug`}
+												// className="-ms-px rounded-s-none shadow-none"
+												placeholder="my-organization"
+												value={slug}
+												onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+												type="text"
+												className="border-transparent font-bold"
+												required
+											/>
+											<Input
+												// className="-ms-px rounded-s-none shadow-none"
+												placeholder={`.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
+												value={slug}
+												onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+												type="text"
+												className="border-transparent font-bold"
+												disabled
+											/>
+										</div>
+									</div>
+								</div>
 							</div>
 							<div className="space-y-2">
 								<Label htmlFor={`${id}-slug`}>Slug</Label>
@@ -473,19 +502,21 @@ function LogoUpload({
 	openFileDialog,
 	removeFile,
 	files,
+	className,
 }: {
 	currentImage: string | null;
 	openFileDialog: () => void;
 	removeFile: (id: string) => void;
 	files: FileWithPreview[];
+	className?: string;
 }) {
 	return (
-		<div className="-mt-10 px-6">
-			<div className="border-background bg-muted relative flex size-20 items-center justify-center overflow-hidden rounded-full border-4 shadow-xs shadow-black/10">
+		<div className={cn(className)}>
+			<div className="border-background bg-muted relative flex size-20 items-center justify-center overflow-hidden rounded-xl shadow-xs shadow-black/10 group/image">
 				{currentImage && (
 					<Image
 						src={currentImage}
-						className="size-full object-cover"
+						className="size-full object-cover group-hover/image:blur-xs transition-all"
 						width={80}
 						height={80}
 						alt="Organization logo"
@@ -493,7 +524,7 @@ function LogoUpload({
 				)}
 				<button
 					type="button"
-					className="focus-visible:border-ring focus-visible:ring-ring/50 absolute flex size-8 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
+					className="focus-visible:border-ring focus-visible:ring-ring/50 absolute flex size-8 cursor-pointer items-center justify-center rounded-full bg-muted/0 text-foreground/0 group-hover/image:text-foreground outline-none group-hover/image:bg-muted/80 hover:bg-muted focus-visible:ring-[3px] transition-all"
 					onClick={openFileDialog}
 					aria-label="Change organization logo"
 				>
@@ -502,7 +533,7 @@ function LogoUpload({
 				{currentImage && (
 					<button
 						type="button"
-						className="focus-visible:border-ring focus-visible:ring-ring/50 absolute -top-2 -right-2 flex size-6 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
+						className="focus-visible:border-ring focus-visible:ring-ring/50 absolute top-0 right-0 flex size-6 cursor-pointer items-center justify-center rounded-full bg-muted/0 text-foreground/0 transition-all outline-none hover:bg-muted group-hover/image:text-foreground/60 hover:text-foreground focus-visible:ring-[3px]"
 						onClick={() => files[0]?.id && removeFile(files[0].id)}
 						aria-label="Remove logo"
 					>
