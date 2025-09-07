@@ -1,5 +1,4 @@
 "use client";
-
 import { Button } from "@repo/ui/components/button";
 import {
 	Dialog,
@@ -10,14 +9,36 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/components/dialog";
+import {
+	Drawer,
+	DrawerContent,
+	DrawerDescription,
+	DrawerFooter,
+	DrawerHeader,
+	DrawerTitle,
+} from "@repo/ui/components/drawer";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+// @ts-ignore
+// it complains about the .tsx for some stupid reason but it works. Doesn't work without it.
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { CircleQuestionMark } from "lucide-react";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
+import { AnimatedMenuIcon } from "./animated-menu-icon";
 
 interface TabsContextType {
 	activeTab: string;
 	setActiveTab: (tab: string) => void;
+	setTabFooter: (tabId: string, footer: ReactNode) => void;
 }
 
 const TabsContext = createContext<TabsContextType | undefined>(undefined);
@@ -37,6 +58,7 @@ interface Tab {
 	group?: string; // For grouping tabs in side layout (legacy support)
 	title?: string; // Custom title for this tab (side layout only)
 	description?: string; // Custom description for this tab (side layout only)
+	footer?: ReactNode; // Per-tab footer content
 }
 
 interface TabGroup {
@@ -82,10 +104,26 @@ export function TabbedDialog({
 	groups,
 	groupedTabs: groupedTabsProp,
 }: TabbedDialogProps) {
+	const isMobile = useIsMobile();
 	const [activeTab, setActiveTab] = useState(defaultTab);
 	const [canScrollLeft, setCanScrollLeft] = useState(false);
 	const [canScrollRight, setCanScrollRight] = useState(false);
+	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	const [tabFooters, setTabFooters] = useState<Map<string, ReactNode>>(new Map());
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+	// Function to set footer for a specific tab
+	const setTabFooter = useCallback((tabId: string, footer: ReactNode) => {
+		setTabFooters((prev) => {
+			const newMap = new Map(prev);
+			if (footer) {
+				newMap.set(tabId, footer);
+			} else {
+				newMap.delete(tabId);
+			}
+			return newMap;
+		});
+	}, []);
 
 	// Flatten groupedTabs to a tabs array for compatibility
 	const allTabs = useMemo(() => {
@@ -94,6 +132,24 @@ export function TabbedDialog({
 		}
 		return tabs;
 	}, [groupedTabsProp, tabs]);
+
+	// Get the footer for the current active tab
+	const getCurrentFooter = useCallback(() => {
+		// First check if the active tab has a footer defined in its tab definition
+		const activeTabData = allTabs.find((tab) => tab.id === activeTab);
+		if (activeTabData?.footer) {
+			return activeTabData.footer;
+		}
+
+		// Then check if a TabPanel has set a footer for this tab
+		const panelFooter = tabFooters.get(activeTab);
+		if (panelFooter) {
+			return panelFooter;
+		}
+
+		// Finally fall back to the global footer prop (for backward compatibility)
+		return footer;
+	}, [activeTab, allTabs, tabFooters, footer]);
 
 	// Create grouped tabs structure for side layout
 	const processedGroups = useCallback(() => {
@@ -279,6 +335,105 @@ export function TabbedDialog({
 		);
 	};
 
+	const renderMobileDrawer = () => {
+		const groups = tabGroupsData;
+		const activeTabData = allTabs.find((tab) => tab.id === activeTab);
+
+		return (
+			<Drawer open={isOpen} onOpenChange={onOpenChange}>
+				<DrawerContent className="max-h-[90vh]">
+					<DrawerHeader className="border-b">
+						<div className="flex w-full items-center justify-between">
+							<div className="flex-1 shrink-0">
+								<DrawerTitle className="text-left w-full">{activeTabData?.title || title}</DrawerTitle>
+								{(activeTabData?.description || description) && (
+									<DrawerDescription className="text-left">
+										{activeTabData?.description || description}
+									</DrawerDescription>
+								)}
+							</div>
+
+							{/* Tab Dropdown */}
+							<DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+								<DropdownMenuTrigger asChild>
+									<Button variant="accent" size={"icon"} className="ml-auto">
+										<AnimatedMenuIcon isOpen={isDropdownOpen} size={16} />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent className="w-56" align="end">
+									{groups ? (
+										groups.map((group, groupIndex) => (
+											<div key={group.id}>
+												{group.label && (
+													<DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+														{group.label}
+													</DropdownMenuLabel>
+												)}
+												<DropdownMenuGroup>
+													{group.tabs.map((tab) => (
+														<DropdownMenuItem
+															key={tab.id}
+															onClick={() => setActiveTab(tab.id)}
+															className={cn(
+																"flex items-center gap-2",
+																activeTab === tab.id && "bg-accent"
+															)}
+														>
+															{tab.icon && (
+																<div className="w-4 h-4 flex items-center justify-center">
+																	{tab.icon}
+																</div>
+															)}
+															<span>{tab.label}</span>
+														</DropdownMenuItem>
+													))}
+												</DropdownMenuGroup>
+												{groupIndex < groups.length - 1 && <DropdownMenuSeparator />}
+											</div>
+										))
+									) : (
+										<DropdownMenuGroup>
+											{allTabs.map((tab) => (
+												<DropdownMenuItem
+													key={tab.id}
+													onClick={() => setActiveTab(tab.id)}
+													className={cn("flex items-center gap-2", activeTab === tab.id && "bg-accent")}
+												>
+													{tab.icon && (
+														<div className="w-4 h-4 flex items-center justify-center">{tab.icon}</div>
+													)}
+													<span>{tab.label}</span>
+												</DropdownMenuItem>
+											))}
+										</DropdownMenuGroup>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					</DrawerHeader>
+
+					{/* Scrollable Content */}
+					<div className="flex-1 overflow-hidden flex flex-col min-h-0">
+						<TabsContext.Provider value={{ activeTab, setActiveTab, setTabFooter }}>
+							{children}
+						</TabsContext.Provider>
+					</div>
+
+					{/* Footer */}
+					{(() => {
+						const currentFooter = getCurrentFooter();
+						return currentFooter && <DrawerFooter className="border-t flex-row">{currentFooter}</DrawerFooter>;
+					})()}
+				</DrawerContent>
+			</Drawer>
+		);
+	};
+
+	// Render mobile drawer or desktop dialog
+	if (isMobile) {
+		return renderMobileDrawer();
+	}
+
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
 			<DialogContent
@@ -291,13 +446,13 @@ export function TabbedDialog({
 					className
 				)}
 			>
-				<TabsContext.Provider value={{ activeTab, setActiveTab }}>
+				<TabsContext.Provider value={{ activeTab, setActiveTab, setTabFooter }}>
 					{layout === "top" ? renderTopTabs() : renderSideTabs()}
 
 					{description && <DialogDescription className="sr-only">{description}</DialogDescription>}
 
 					{/* Scrollable Content */}
-					<div className="flex-1 overflow-y-auto min-h-0 w-full flex flex-col">
+					<div className="flex-1 overflow-hidden min-h-0 w-full flex flex-col">
 						{layout === "side" && (
 							<div className="flex-shrink-0 border-b p-4 w-full bg-background">
 								{(() => {
@@ -334,9 +489,18 @@ export function TabbedDialog({
 								})()}
 							</div>
 						)}
-						<div className="flex-1">{children}</div>
+						<div className="flex-1 overflow-y-auto min-h-0">{children}</div>
 						{/* Fixed Footer */}
-						{footer && <DialogFooter className="flex-shrink-0 border-t p-2 bg-background">{footer}</DialogFooter>}
+						{(() => {
+							const currentFooter = getCurrentFooter();
+							return (
+								currentFooter && (
+									<DialogFooter className="flex-shrink-0 border-t p-2 bg-background flex-row w-full">
+										{currentFooter}
+									</DialogFooter>
+								)
+							);
+						})()}
 					</div>
 				</TabsContext.Provider>
 			</DialogContent>
@@ -348,16 +512,27 @@ interface TabPanelProps {
 	tabId: string;
 	children: ReactNode;
 	className?: string;
+	footer?: ReactNode; // Per-panel footer content
 }
 
-export function TabPanel({ tabId, children, className }: TabPanelProps) {
-	const { activeTab } = useTabsContext();
+export function TabPanel({ tabId, children, className, footer }: TabPanelProps) {
+	const { activeTab, setTabFooter } = useTabsContext();
+
+	// Register footer when component mounts/updates and unregister when unmounts
+	useEffect(() => {
+		if (footer) {
+			setTabFooter(tabId, footer);
+		}
+		return () => {
+			setTabFooter(tabId, null);
+		};
+	}, [tabId, footer, setTabFooter]);
 
 	if (activeTab !== tabId) {
 		return null;
 	}
 
-	return <div className={cn("h-full p-3 flex flex-col gap-3", className)}>{children}</div>;
+	return <div className={cn("h-full p-3 overflow-y-auto", className)}>{children}</div>;
 }
 
 // Convenience components for common footer patterns
@@ -407,7 +582,7 @@ export function TabbedDialogFooter({
 	successVariant = "success",
 }: TabbedDialogFooterProps) {
 	return (
-		<>
+		<div className="ml-auto gap-2 flex flex-row">
 			{onCancel && (
 				<DialogClose asChild>
 					<Button
@@ -432,7 +607,7 @@ export function TabbedDialogFooter({
 					{isSubmitting ? "Saving..." : submitLabel}
 				</Button>
 			)}
-		</>
+		</div>
 	);
 }
 

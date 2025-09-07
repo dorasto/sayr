@@ -299,6 +299,15 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 			id: "general",
 			label: "General",
 			icon: <IconHome className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+			footer: (
+				<TabbedDialogFooter
+					onCancel={() => onOpenChange(false)}
+					onSubmit={handleSubmit}
+					isSubmitting={updateMutation.isPending}
+					submitDisabled={!name.trim() || !slug.trim()}
+					classNameSuccess="hover:border-success/60"
+				/>
+			),
 		},
 		{
 			id: "members",
@@ -397,7 +406,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 									<span className="tabular-nums">{maxLength - characterCount}</span> characters left
 								</p>
 							</div>
-							<div className="mt-auto flex gap-2 ml-auto">
+							{/* <div className="mt-auto flex gap-2 ml-auto">
 								<TabbedDialogFooter
 									onCancel={() => onOpenChange(false)}
 									onSubmit={handleSubmit}
@@ -405,7 +414,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 									submitDisabled={!name.trim() || !slug.trim()}
 									classNameSuccess="hover:border-success/60"
 								/>
-							</div>
+							</div> */}
 						</form>
 					</div>
 				</TabPanel>

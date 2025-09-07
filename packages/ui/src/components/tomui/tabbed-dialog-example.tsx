@@ -11,10 +11,59 @@ export function TabbedDialogExample() {
 
 	// Example tabs for top layout
 	const topTabs = [
-		{ id: "general", label: "General", icon: <Settings className="w-4 h-4" /> },
-		{ id: "profile", label: "Profile", icon: <User className="w-4 h-4" /> },
-		{ id: "notifications", label: "Notifications", icon: <Bell className="w-4 h-4" /> },
-		{ id: "security", label: "Security", icon: <Shield className="w-4 h-4" /> },
+		{
+			id: "general",
+			label: "General",
+			icon: <Settings className="w-4 h-4" />,
+			footer: (
+				<TabbedDialogFooter
+					onCancel={() => setIsTopOpen(false)}
+					onSubmit={() => {
+						console.log("Saving general settings...");
+						setIsTopOpen(false);
+					}}
+					submitLabel="Save General"
+				/>
+			),
+		},
+		{
+			id: "profile",
+			label: "Profile",
+			icon: <User className="w-4 h-4" />,
+			footer: (
+				<TabbedDialogFooter
+					onCancel={() => setIsTopOpen(false)}
+					onSubmit={() => {
+						console.log("Saving profile...");
+						setIsTopOpen(false);
+					}}
+					submitLabel="Update Profiless"
+					successVariant="default"
+				/>
+			),
+		},
+		{
+			id: "notifications",
+			label: "Notifications",
+			icon: <Bell className="w-4 h-4" />,
+			// No footer for this tab
+		},
+		{
+			id: "security",
+			label: "Security",
+			icon: <Shield className="w-4 h-4" />,
+			footer: (
+				<TabbedDialogFooter
+					onCancel={() => setIsTopOpen(false)}
+					onSubmit={() => {
+						console.log("Saving security settings...");
+						setIsTopOpen(false);
+					}}
+					submitLabel="Apply Security Settings"
+					successVariant="destructive"
+				/>
+			),
+		},
 	];
 
 	// Example using the new hierarchical structure (recommended)
@@ -61,6 +110,17 @@ export function TabbedDialogExample() {
 					icon: <Globe className="w-4 h-4" />,
 					title: "Language & Regional Settings",
 					description: "Set your language, timezone, and regional preferences",
+					footer: (
+						<TabbedDialogFooter
+							onCancel={() => setIsTopOpen(false)}
+							onSubmit={() => {
+								console.log("Saving security settings...");
+								setIsTopOpen(false);
+							}}
+							submitLabel="Apply Security Settings"
+							successVariant="destructive"
+						/>
+					),
 				},
 			],
 		},
@@ -82,19 +142,97 @@ export function TabbedDialogExample() {
 				defaultTab="general"
 				layout="top"
 				size="lg"
-				footer={
-					<TabbedDialogFooter
-						onCancel={() => setIsTopOpen(false)}
-						onSubmit={() => {
-							console.log("Saving settings...");
-							setIsTopOpen(false);
-						}}
-					/>
-				}
 			>
 				<TabPanel tabId="general">
-					<h3 className="text-lg font-semibold">General Settings</h3>
-					<p className="text-muted-foreground">Configure your general preferences.</p>
+					<div className="space-y-4">
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="timezone" className="block text-sm font-medium mb-2">
+								Timezone
+							</label>
+							<select id="timezone" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="UTC">UTC</option>
+								<option value="America/New_York">Eastern Time</option>
+								<option value="America/Los_Angeles">Pacific Time</option>
+								<option value="Europe/London">London</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="dateFormat" className="block text-sm font-medium mb-2">
+								Date Format
+							</label>
+							<select id="dateFormat" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="MM/DD/YYYY">MM/DD/YYYY</option>
+								<option value="DD/MM/YYYY">DD/MM/YYYY</option>
+								<option value="YYYY-MM-DD">YYYY-MM-DD</option>
+							</select>
+						</div>
+					</div>
 				</TabPanel>
 
 				<TabPanel tabId="profile">
@@ -123,17 +261,8 @@ export function TabbedDialogExample() {
 				defaultTab="profile"
 				layout="side"
 				size="lg"
-				footer={
-					<TabbedDialogFooter
-						onCancel={() => setIsSideOpen(false)}
-						onSubmit={() => {
-							console.log("Saving preferences...");
-							setIsSideOpen(false);
-						}}
-					/>
-				}
 			>
-				<TabPanel tabId="profile">
+				<TabPanel tabId="profile" className="flex flex-col gap-3">
 					<div className="space-y-4">
 						<div>
 							<label htmlFor="displayName" className="block text-sm font-medium mb-2">
@@ -249,6 +378,61 @@ export function TabbedDialogExample() {
 
 				<TabPanel tabId="language">
 					<div className="space-y-4">
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
+						<div>
+							<label htmlFor="language" className="block text-sm font-medium mb-2">
+								Language
+							</label>
+							<select id="language" className="w-full px-3 py-2 border border-border rounded-md bg-background">
+								<option value="en">English</option>
+								<option value="es">Español</option>
+								<option value="fr">Français</option>
+								<option value="de">Deutsch</option>
+							</select>
+						</div>
 						<div>
 							<label htmlFor="language" className="block text-sm font-medium mb-2">
 								Language
