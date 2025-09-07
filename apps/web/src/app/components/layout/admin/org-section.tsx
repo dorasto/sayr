@@ -26,15 +26,18 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { Label } from "@repo/ui/components/label";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconChevronRight, IconLibrary, IconPencil, IconUsers } from "@tabler/icons-react";
-import { Command, MoreHorizontal } from "lucide-react";
+import { IconChevronRight, IconLibrary, IconPencil, IconSettings, IconUsers } from "@tabler/icons-react";
+import { Command, MoreHorizontal, PlusIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import UpdateOrgDialog from "@/app/components/admin/organizations/management/update";
@@ -58,7 +61,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	const pathname = usePathname();
 	const { isOpen: isDialogOpen, openDialog, setIsOpen } = useUpdateOrgDialog();
 	const { value: isOpen } = useLocalStorage("left-sidebar-state", !isMobile);
-	const [mobileEditOpen, setMobileEditOpen] = useState(false);
+	const [editOpen, setEditOpen] = useState(false);
 
 	// Desktop + Sidebar Open: Collapsible with full content
 	const renderCollapsibleView = () => (
@@ -119,7 +122,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	// Desktop + Sidebar Closed: Dropdown with organization options
 	const renderDropdownView = () => (
 		<SidebarMenuItem>
-			<DropdownMenu>
+			<DropdownMenu open={editOpen} onOpenChange={setEditOpen}>
 				<DropdownMenuTrigger asChild>
 					<SidebarMenuButton tooltip={organization.name}>
 						<Avatar className="h-4 w-4 rounded-md">
@@ -131,17 +134,39 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						<span>{organization.name}</span>
 					</SidebarMenuButton>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent className="w-48 rounded-lg" side="right" align="start">
-					<DropdownMenuItem asChild>
-						<a href="/" className="flex items-center gap-2">
-							<IconLibrary className="h-4 w-4" />
-							<span>Tasks</span>
-						</a>
-					</DropdownMenuItem>
-					<DropdownMenuItem onClick={openDialog}>
-						<IconPencil className="h-4 w-4" />
-						<span>Update Organization</span>
-					</DropdownMenuItem>
+				<DropdownMenuContent className="w-60 rounded-lg p-0" side="right" align="start">
+					<DropdownMenuLabel className="flex items-start gap-3 bg-background p-2 border-b">
+						<Avatar className="h-9 w-9 rounded-md">
+							<AvatarImage src={organization.logo || ""} alt={organization.name} />
+							<AvatarFallback className="rounded-md uppercase text-xs">
+								<IconUsers className="h-4 w-4" />
+							</AvatarFallback>
+						</Avatar>
+						<div className="flex min-w-0 flex-col">
+							<span className="text-foreground truncate text-sm font-medium">{organization.name}</span>
+							<span className="text-muted-foreground truncate text-xs font-normal">
+								{organization.slug}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN}
+							</span>
+						</div>
+						<Button
+							variant={"accent"}
+							className="h-9 w-9 ml-auto aspect-square p-0"
+							onClick={() => {
+								openDialog();
+								setEditOpen(false);
+							}}
+						>
+							<IconSettings className="h-4 w-4" />
+						</Button>
+					</DropdownMenuLabel>
+					<DropdownMenuGroup className="p-1">
+						<DropdownMenuItem asChild>
+							<a href="/" className="flex items-center gap-2">
+								<IconLibrary className="h-4 w-4" />
+								<span>Tasks</span>
+							</a>
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</SidebarMenuItem>
@@ -150,7 +175,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	// Mobile: Drawer with organization details
 	const renderDrawerView = () => (
 		<SidebarMenuItem>
-			<Drawer open={mobileEditOpen} onOpenChange={setMobileEditOpen}>
+			<Drawer open={editOpen} onOpenChange={setEditOpen}>
 				<DrawerTrigger asChild>
 					<SidebarMenuButton tooltip={organization.name}>
 						<Avatar className="h-4 w-4 rounded-md">
@@ -179,7 +204,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 								variant={"accent"}
 								onClick={() => {
 									openDialog();
-									setMobileEditOpen(false);
+									setEditOpen(false);
 								}}
 								className="ml-auto"
 							>
