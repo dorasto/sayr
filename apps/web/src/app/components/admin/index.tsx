@@ -1,4 +1,5 @@
 "use client";
+import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
@@ -37,6 +38,7 @@ export default function AdminHomePage() {
 	}, [ws, organization]);
 	return (
 		<div className="">
+			<TabbedDialogExample />
 			<h1>org detail {organization.name}</h1>
 			{/** biome-ignore lint/performance/noImgElement: <will use> */}
 			<img src={organization.logo || ""} alt={organization.name} />
