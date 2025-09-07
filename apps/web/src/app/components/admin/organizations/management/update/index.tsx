@@ -397,16 +397,16 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 									<span className="tabular-nums">{maxLength - characterCount}</span> characters left
 								</p>
 							</div>
+							<div className="mt-auto flex gap-2 ml-auto">
+								<TabbedDialogFooter
+									onCancel={() => onOpenChange(false)}
+									onSubmit={handleSubmit}
+									isSubmitting={updateMutation.isPending}
+									submitDisabled={!name.trim() || !slug.trim()}
+									classNameSuccess="hover:border-success/60"
+								/>
+							</div>
 						</form>
-					</div>
-					<div className="mt-auto flex gap-2 ml-auto">
-						<TabbedDialogFooter
-							onCancel={() => onOpenChange(false)}
-							onSubmit={handleSubmit}
-							isSubmitting={updateMutation.isPending}
-							submitDisabled={!name.trim() || !slug.trim()}
-							classNameSuccess="hover:border-success/60"
-						/>
 					</div>
 				</TabPanel>
 				<TabPanel tabId={"members"}>
