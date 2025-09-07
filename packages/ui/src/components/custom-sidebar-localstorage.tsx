@@ -633,16 +633,30 @@ interface SidebarToggleProps {
 
 export function SidebarToggle({ className, name, icon, sidebar }: SidebarToggleProps) {
 	const { value: sidebarIsOpen, setValue: toggleSidebar } = useLocalStorage(`${name}-state`, false);
+	const isMobile = useIsMobile();
 	if (sidebar)
 		return (
-			<SidebarMenuItem onClick={() => toggleSidebar(!sidebarIsOpen)}>
+			<SidebarMenuItem
+				onClick={() => {
+					toggleSidebar(!sidebarIsOpen);
+					console.log("toggling sidebar");
+				}}
+			>
 				<SidebarMenuButton>
 					<SidebarIcon /> <span>Menu</span>
 				</SidebarMenuButton>
 			</SidebarMenuItem>
 		);
 	return (
-		<Button variant={"ghost"} onClick={() => toggleSidebar(!sidebarIsOpen)} size={"icon"} className={className}>
+		<Button
+			variant={"ghost"}
+			onClick={() => {
+				toggleSidebar(!sidebarIsOpen);
+				console.log("toggling sidebar");
+			}}
+			size={"icon"}
+			className={className}
+		>
 			{icon ? icon : <SidebarIcon className={cn(sidebarIsOpen ? "rotate-180" : "", "duration-150")} />}
 		</Button>
 	);

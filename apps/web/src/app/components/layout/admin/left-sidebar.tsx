@@ -114,7 +114,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 
 							return (
 								<SidebarMenuItem key={item.title}>
-									<SidebarMenuButton asChild isActive={isActive}>
+									<SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
 										<Link href={item.url} prefetch={false} onClick={closeMobileSidebar}>
 											{IconComponent && <IconComponent size={16} />}
 											<span>{item.title}</span>
@@ -139,7 +139,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 
 								return (
 									<SidebarMenuItem key={item.title}>
-										<SidebarMenuButton asChild isActive={isActive}>
+										<SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
 											<Link href={item.url} prefetch={false} onClick={closeMobileSidebar}>
 												{IconComponent && <IconComponent size={16} />}
 												<span>{item.title}</span>
@@ -159,7 +159,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 				<SidebarMenu>
 					{account.role === "admin" && (
 						<SidebarMenuItem>
-							<SidebarMenuButton asChild isActive={pathname === "/admin/console"}>
+							<SidebarMenuButton asChild isActive={pathname === "/admin/console"} tooltip={"Admin console"}>
 								<Link href={"/admin/console"} prefetch={false} onClick={closeMobileSidebar}>
 									<IconShield /> <span>Admin Console</span>
 								</Link>
