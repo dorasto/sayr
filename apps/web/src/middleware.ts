@@ -2,7 +2,16 @@ import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const config = {
-	matcher: ["/((?!api|_next|_vercel|.*\\..*|$).*)"],
+	matcher: [
+		/*
+		 * Match all request paths except for the ones starting with:
+		 * - api (API routes)
+		 * - _next/static (static files)
+		 * - _next/image (image optimization files)
+		 * - favicon.ico (favicon file)
+		 */
+		"/((?!api|_next/static|_next/image|favicon.ico).*)",
+	],
 };
 
 export default function middleware(req: NextRequest) {
@@ -11,6 +20,10 @@ export default function middleware(req: NextRequest) {
 	const search = url.search;
 	const hostname = req.headers.get("host") || "";
 	const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "";
+
+	console.log("🚀 Middleware - hostname:", hostname);
+	console.log("🚀 Middleware - rootDomain:", rootDomain);
+	console.log("🚀 Middleware - path:", path);
 
 	// Root domain logic
 	if (hostname === rootDomain) {
@@ -40,12 +53,19 @@ export default function middleware(req: NextRequest) {
 				return NextResponse.rewrite(new URL(`${path}${search}`, req.url));
 			}
 		}
+
+		// For root domain, serve the home routes (no rewrite needed as (home) is the default)
+		console.log("🏠 Serving root domain home page");
+		return NextResponse.next();
 	}
 
 	// Subdomain logic
-	if (hostname.endsWith(rootDomain)) {
+	if (hostname.endsWith(rootDomain) && hostname !== rootDomain) {
 		const username = hostname.replace(`.${rootDomain}`, "");
 		console.log("👤 Subdomain detected:", username);
+		console.log("🔍 Hostname ends with rootDomain:", hostname.endsWith(rootDomain));
+		console.log("🔍 Hostname !== rootDomain:", hostname !== rootDomain);
+
 		if (username && username !== rootDomain) {
 			const sessionCookie = getSessionCookie(req);
 			console.log("🚀 ~ middleware ~ sessionCookie:", sessionCookie);
@@ -60,8 +80,12 @@ export default function middleware(req: NextRequest) {
 					return NextResponse.rewrite(new URL(`${path}${search}`, req.url));
 				}
 			}
+			// Rewrite subdomain requests to the org route group
+			console.log("🔀 Rewriting subdomain to org route");
+			const rewriteUrl = `/org/${username}${path === "/" ? "" : path}${search}`;
+			console.log("🔀 Rewrite URL:", rewriteUrl);
+			return NextResponse.rewrite(new URL(rewriteUrl, req.url));
 		}
-		return NextResponse.rewrite(new URL("/home", req.url));
 	}
 
 	console.log("➡️ No rewrite, continuing request");
