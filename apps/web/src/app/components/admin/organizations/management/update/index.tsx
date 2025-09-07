@@ -286,7 +286,8 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 			};
 
 			updateMutation.mutate(updateData);
-		} catch {
+		} catch (error) {
+			console.error("🚀 ~ handleSubmit ~ error:", error);
 			toast.error("Failed to process images");
 		}
 	};
