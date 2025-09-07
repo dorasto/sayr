@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getOrganization } from "@/app/lib/serverFunctions";
 
 interface OrgPageProps {
@@ -15,12 +16,12 @@ export default async function OrgPage({ params }: OrgPageProps) {
 	}
 	return (
 		<div className="">
-			<h1 className="text-4xl font-bold mb-8 text-center">Organization: {slug}</h1>
-			<h1>org detail {organization.name}</h1>
+			<div className="aspect-video w-full">
+				{/** biome-ignore lint/performance/noImgElement: <will use> */}
+				<Image width={1920} height={1080} src={organization.bannerImg || ""} alt={organization.name} />
+			</div>
 			{/** biome-ignore lint/performance/noImgElement: <will use> */}
 			<img src={organization.logo || ""} alt={organization.name} />
-			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			<img src={organization.bannerImg || ""} alt={organization.name} />
 		</div>
 	);
 }
