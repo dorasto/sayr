@@ -14,7 +14,7 @@ apiRoute.use("*", async (c, next) => {
 	return next();
 });
 apiRoute.get("/testing-shit/:id", async (c) => {
-	const id = c.req.param("id");
+	const { id } = c.req.param();
 	const found = findClientByWsId(id);
 	broadcast("org_123", "public", { type: "MESSAGE", data: { text: "Hello from backend" } }, found?.socket);
 	return c.json({ ok: true });

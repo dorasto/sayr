@@ -1,4 +1,6 @@
 import { auth } from "@repo/auth";
+import { auth as authType, db } from "@repo/database";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirectAuth } from "@/app/lib/redirectAuth";
 
@@ -42,6 +44,23 @@ export async function getUsers() {
 			total: 0,
 		};
 	}
+}
+
+export async function getOrganization(org_slug: string) {
+	const results = await db
+		.select({
+			id: authType.organization.id,
+			name: authType.organization.name,
+			slug: authType.organization.slug,
+			logo: authType.organization.logo,
+			bannerImg: authType.organization.bannerImg,
+		})
+		.from(authType.organization)
+		.where(eq(authType.organization.slug, org_slug));
+	if (results) {
+		return results[0];
+	}
+	return null;
 }
 
 export async function setUserRole(userId: string, role: "admin" | "user") {
