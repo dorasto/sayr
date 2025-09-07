@@ -23,7 +23,7 @@ import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { IconChevronRight, IconLibrary, IconPencil, IconUsers } from "@tabler/icons-react";
 import { Command, MoreHorizontal } from "lucide-react";
 import { usePathname } from "next/navigation";
-import UpdateOrgDialog from "@/app/components/dialogs/update-org-dialog";
+import UpdateOrgDialog from "@/app/components/admin/organizations/management/update";
 import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog";
 
 interface Organization {

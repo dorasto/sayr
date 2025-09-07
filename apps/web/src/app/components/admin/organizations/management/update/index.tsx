@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useLayoutData } from "@/app/admin/Context";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
 import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/updateOrganization";
+import OrganizationMembers from "./members";
 
 interface FileWithPreview {
 	id: string;
@@ -33,13 +34,13 @@ interface Organization {
 	metadata?: Record<string, unknown>;
 }
 
-interface UpdateOrgDialogV2Props {
+interface UpdateOrgDialogProps {
 	organization: Organization;
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 }
 
-export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }: UpdateOrgDialogV2Props) {
+export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: UpdateOrgDialogProps) {
 	const id = useId();
 	const queryClient = useQueryClient();
 	const { setOrg, organization: currentOrg } = useLayoutData();
@@ -315,7 +316,7 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 				description="Make changes to your organization here. You can change the banner, logo, name, slug, and description."
 				tabs={tabs}
 				defaultTab="general"
-				size="md"
+				size="xl"
 			>
 				<TabPanel tabId="general">
 					<BannerUpload
@@ -324,7 +325,6 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 						removeFile={removeBannerFile}
 						files={bannerFiles}
 					/>
-
 					<div className="">
 						<form onSubmit={handleSubmit} className="space-y-3">
 							<div className="space-y-3">
@@ -410,7 +410,7 @@ export default function UpdateOrgDialogV2({ organization, isOpen, onOpenChange }
 					</div>
 				</TabPanel>
 				<TabPanel tabId={"members"}>
-					<div></div>
+					<OrganizationMembers />
 				</TabPanel>
 			</TabbedDialog>
 
@@ -461,7 +461,7 @@ function BannerUpload({
 	files: FileWithPreview[];
 }) {
 	return (
-		<div className="w-full aspect-video">
+		<div className="w-full aspect-video max-w-1/2 mx-auto">
 			<div className="bg-muted relative flex size-full items-center justify-center overflow-hidden">
 				{currentImage && (
 					<Image
