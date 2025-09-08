@@ -9,11 +9,6 @@ const nextConfig = {
 	output: process.env.IS_DOCKER ? 'standalone' : undefined,
 	transpilePackages: ['@repo/ui'],
 	outputFileTracingRoot: path.join(__dirname, '../../'),
-    experimental: {
-        serverActions: {
-            bodySizeLimit: '4mb',
-        }
-    },
 };
 
 export default nextConfig;
