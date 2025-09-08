@@ -263,9 +263,9 @@ const memberColumns: ColumnDef<Member>[] = [
 	},
 ];
 
-export default function OrganizationMembers() {
+// biome-ignore lint/suspicious/noExplicitAny: <will fix>
+export default function OrganizationMembers({ members }: { members: any[] }) {
 	const id = useId();
-	const { organization } = useLayoutData();
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 	const [sorting, setSorting] = useState<SortingState>([
@@ -277,8 +277,8 @@ export default function OrganizationMembers() {
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	// Get members and invitations, with fallbacks for when organization is null
-	const members = organization?.members || [];
-	const invitations = organization?.invitations || [];
+	// biome-ignore lint/suspicious/noExplicitAny: <will fix>
+	const invitations: any[] = [];
 
 	const table = useReactTable({
 		data: members,
@@ -344,9 +344,9 @@ export default function OrganizationMembers() {
 	const filteredInvitations = useMemo(() => {
 		if (!searchTerm) return invitations;
 		return invitations.filter((invitation) => invitation.email.toLowerCase().includes(searchTerm.toLowerCase()));
-	}, [invitations, searchTerm]);
+	}, [searchTerm]);
 
-	if (!organization) {
+	if (!members) {
 		return (
 			<div className="flex flex-col items-center justify-center py-12">
 				<IconUsers className="h-12 w-12 text-muted-foreground mb-4" />

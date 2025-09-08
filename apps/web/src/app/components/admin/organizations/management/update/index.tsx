@@ -13,7 +13,6 @@ import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useLayoutData } from "@/app/admin/Context";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
 import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/test";
 import OrganizationMembers from "./members";
@@ -33,6 +32,8 @@ interface Organization {
 	logo?: string | null;
 	bannerImg?: string | null;
 	description?: string;
+	// biome-ignore lint/suspicious/noExplicitAny: <will fix>
+	members: any[];
 }
 
 interface UpdateOrgDialogProps {
@@ -45,7 +46,6 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 	const { value: WSClientId } = useStateManagement<string>("ws-clientId", "");
 	const id = useId();
 	const queryClient = useQueryClient();
-	const { setOrg, organization: currentOrg } = useLayoutData();
 
 	// Form state
 	const [name, setName] = useState(organization.name);
@@ -226,13 +226,13 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 			toast.success("Organization updated successfully");
 
 			// Update the organization in context with full structure
-			if (currentOrg) {
-				const updatedOrg = {
-					...currentOrg,
-					data,
-				};
-				setOrg(updatedOrg);
-			}
+			// if (currentOrg) {
+			// 	const updatedOrg = {
+			// 		...currentOrg,
+			// 		data,
+			// 	};
+			// 	setOrg(updatedOrg);
+			// }
 
 			// Invalidate relevant queries
 			queryClient.invalidateQueries({ queryKey: ["organization"] });
@@ -415,7 +415,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 					</div>
 				</TabPanel>
 				<TabPanel tabId={"members"}>
-					<OrganizationMembers />
+					<OrganizationMembers members={organization.members} />
 				</TabPanel>
 			</TabbedDialog>
 

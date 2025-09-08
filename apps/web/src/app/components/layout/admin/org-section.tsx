@@ -46,9 +46,12 @@ import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog";
 interface Organization {
 	id: string;
 	name: string;
-	logo?: string | null;
 	slug: string;
-	metadata?: Record<string, unknown>;
+	logo?: string | null;
+	bannerImg?: string | null;
+	description?: string;
+	// biome-ignore lint/suspicious/noExplicitAny: <will fix>
+	members: any[];
 }
 
 interface OrgSectionProps {
