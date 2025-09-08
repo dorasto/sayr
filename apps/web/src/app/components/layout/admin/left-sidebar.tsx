@@ -174,14 +174,21 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 	);
 }
 
+import { useEffect } from "react";
+
 export function LeftSidebarProvider() {
 	const isMobile = useIsMobile();
-	const { value: isOpen } = useLocalStorage("left-sidebar-state", !isMobile);
+	const { value: isOpen, setValue } = useLocalStorage("left-sidebar-state", true);
 
-	const defaultSidebarState = isMobile ? false : isOpen;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <any>
+	useEffect(() => {
+		if (isMobile && isOpen) {
+			setValue(false);
+		}
+	}, [isMobile]); // empty dependency array = run only once on mount
 
 	return (
-		<SidebarProvider name="left-sidebar" defaultOpen={defaultSidebarState} className="w-fit!">
+		<SidebarProvider name="left-sidebar" defaultOpen={isOpen} className="w-fit!">
 			<LeftSidebar isOpen={isOpen} />
 		</SidebarProvider>
 	);
