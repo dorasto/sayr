@@ -21,19 +21,20 @@ apiRouteAdmin.post("/update-org", async (c) => {
 			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
 		console.log("🚀 ~ roles:", role[0]?.role);
 		console.log("hasPermission fetch took", Date.now() - start, "ms");
+		if (role[0]?.role === "owner") {
+			const startNew = Date.now();
+			const result = await db
+				.update(schema.organization)
+				.set({ ...data, updatedAt: new Date() })
+				.where(eq(schema.organization.id, org_id))
+				.returning();
+			console.log("updateOrganization fetch took", Date.now() - startNew, "ms");
 
-		const startNew = Date.now();
-		const result = await db
-			.update(schema.organization)
-			.set({ ...data, updatedAt: new Date() })
-			.where(eq(schema.organization.id, org_id))
-			.returning();
-		console.log("updateOrganization fetch took", Date.now() - startNew, "ms");
-
-		if (result[0]) {
-			const found = findClientByWsId(wsClientId);
-			broadcast(org_id, "admin", { type: "UPDATE_ORG", data: result[0] }, found?.socket);
-			return c.json({ success: true, data: result[0] });
+			if (result[0]) {
+				const found = findClientByWsId(wsClientId);
+				broadcast(org_id, "admin", { type: "UPDATE_ORG", data: result[0] }, found?.socket);
+				return c.json({ success: true, data: result[0] });
+			}
 		}
 		return c.json({ error: "UNAUTHORIZED" }, 401);
 		// biome-ignore lint/suspicious/noExplicitAny: <has to be any>
