@@ -2,7 +2,7 @@ import * as schema from "@repo/database";
 import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, genericOAuth, organization } from "better-auth/plugins";
+import { admin, genericOAuth } from "better-auth/plugins";
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -20,24 +20,6 @@ export const auth = betterAuth({
 		enabled: false,
 	},
 	plugins: [
-		organization({
-			schema: {
-				organization: {
-					additionalFields: {
-						bannerImg: {
-							type: "string",
-							input: true,
-							required: false,
-						},
-						description: {
-							type: "string",
-							input: true,
-							required: false,
-						},
-					},
-				},
-			},
-		}),
 		admin(),
 		genericOAuth({
 			config: [

@@ -6,7 +6,7 @@ import { useLayoutData } from "@/app/admin/Context";
 import type { WSMessage } from "@/app/lib/ws";
 
 export default function AdminHomePage() {
-	const { account, organization, ws, setOrg } = useLayoutData();
+	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
 
 	const [messages, setMessages] = useState<WSMessage[]>([]);
@@ -17,7 +17,7 @@ export default function AdminHomePage() {
 
 		const payload = {
 			type: "SUBSCRIBE",
-			orgId: organization.id,
+			orgId: "test",
 			channel: "admin",
 		};
 
@@ -33,19 +33,19 @@ export default function AdminHomePage() {
 			} else {
 				setMessages((prev) => [...prev, data]);
 			}
-			if (data.type === "UPDATE_ORG") {
-				setOrg(data.data);
-			}
+			// if (data.type === "UPDATE_ORG") {
+			// 	setOrg(data.data);
+			// }
 		};
-	}, [ws, organization.id, setOrg]);
+	}, [ws]);
 	return (
 		<div className="">
 			<TabbedDialogExample />
-			<h1>org detail {organization.name}</h1>
+			{/* <h1>org detail {organization.name}</h1> */}
 			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			<img src={organization.logo || ""} alt={organization.name} />
+			{/* <img src={organization.logo || ""} alt={organization.name} /> */}
 			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			<img src={organization.bannerImg || ""} alt={organization.name} />
+			{/* <img src={organization.bannerImg || ""} alt={organization.name} /> */}
 			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
 			<div className="flex items-center gap-2">
 				<span className="font-medium">WebSocket Status:</span>

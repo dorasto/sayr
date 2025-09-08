@@ -16,7 +16,6 @@ import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconShield, IconUsers } from "@tabler/icons-react";
-import { Command } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutData } from "@/app/admin/Context";
@@ -32,7 +31,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 	const pathname = usePathname();
 	const { value: sidebarIsOpen, setValue: toggleSidebar } = useLocalStorage(`left-sidebar-state`, false);
 	const closeMobileSidebar = () => isMobile && toggleSidebar(!sidebarIsOpen);
-	const { account, organization } = useLayoutData();
+	const { account, organizations } = useLayoutData();
 
 	//
 	//
@@ -153,7 +152,9 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 				))}
 
 				{/* Organizations Section */}
-				{organization && <OrgSection organization={organization} closeMobileSidebar={closeMobileSidebar} />}
+				{organizations.map((org) => (
+					<OrgSection key={org.id} organization={org} closeMobileSidebar={closeMobileSidebar} />
+				))}
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>

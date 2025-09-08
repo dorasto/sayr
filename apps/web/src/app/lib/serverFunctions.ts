@@ -1,5 +1,5 @@
 import { auth } from "@repo/auth";
-import { auth as authType, db } from "@repo/database";
+import { db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirectAuth } from "@/app/lib/redirectAuth";
@@ -9,16 +9,7 @@ export async function getAccess() {
 		headers: await headers(),
 	});
 	if (session) {
-		if (session.session.activeOrganizationId) {
-			const data = await auth.api.getFullOrganization({
-				headers: await headers(),
-			});
-			return {
-				account: session.user,
-				organization: data,
-			};
-		}
-		return { account: session.user, organization: null };
+		return { account: session.user };
 	}
 	return redirectAuth();
 }
@@ -45,19 +36,29 @@ export async function getUsers() {
 		};
 	}
 }
+export async function getOrganizations(user_id: string) {
+	const organizations = await db.query.member.findMany({ where: eq(schema.member.userId, user_id) });
+	// Run queries in parallel and return results
+	const orgs = await Promise.all(
+		organizations.map(async (org) => {
+			return db.select().from(schema.organization).where(eq(schema.organization.id, org.organizationId));
+		})
+	);
+	return orgs.flat();
+}
 
 export async function getOrganization(org_slug: string) {
 	const results = await db
 		.select({
-			id: authType.organization.id,
-			name: authType.organization.name,
-			slug: authType.organization.slug,
-			logo: authType.organization.logo,
-			bannerImg: authType.organization.bannerImg,
-			description: authType.organization.description,
+			id: schema.organization.id,
+			name: schema.organization.name,
+			slug: schema.organization.slug,
+			logo: schema.organization.logo,
+			bannerImg: schema.organization.bannerImg,
+			description: schema.organization.description,
 		})
-		.from(authType.organization)
-		.where(eq(authType.organization.slug, org_slug));
+		.from(schema.organization)
+		.where(eq(schema.organization.slug, org_slug));
 	if (results) {
 		return results[0];
 	}

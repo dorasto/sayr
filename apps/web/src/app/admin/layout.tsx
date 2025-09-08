@@ -4,7 +4,7 @@ import AdminNavigation from "../components/layout/admin/admin-navigation";
 import AdminSubNavigation from "../components/layout/admin/admin-sub-navigation";
 import { QueryClientProvider } from "../components/layout/query-provider";
 import { Wrapper } from "../components/layout/wrapper";
-import { getAccess } from "../lib/serverFunctions";
+import { getAccess, getOrganizations } from "../lib/serverFunctions";
 import { RootProvider } from "./Context";
 
 export const metadata: Metadata = {
@@ -26,13 +26,14 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const { account, organization } = await getAccess();
+	const { account } = await getAccess();
+	const organizations = await getOrganizations(account.id);
 	return (
 		<QueryClientProvider>
 			<div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
 				<AdminNavigation />
 				{/* <div className="min-h-0 flex-1 overflow-y-auto"> */}
-				<RootProvider account={account} organization={organization}>
+				<RootProvider account={account} organizations={organizations}>
 					<Wrapper className="">
 						<AdminSubNavigation />
 						<div className="p-4">{children}</div>

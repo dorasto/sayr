@@ -1,5 +1,5 @@
 import type { auth } from "@repo/auth";
-import { auth as authType, db } from "@repo/database";
+import { db, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { broadcast, findClientByWsId } from "../ws";
@@ -8,7 +8,6 @@ export const apiRouteAdmin = new Hono<{
 	Variables: {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
-		organization: typeof auth.$Infer.Organization | null;
 	};
 }>();
 apiRouteAdmin.post("/update-org", async (c) => {
@@ -18,16 +17,16 @@ apiRouteAdmin.post("/update-org", async (c) => {
 		const start = Date.now();
 		const role = await db
 			.select()
-			.from(authType.member)
-			.where(and(eq(authType.member.userId, session?.userId || ""), eq(authType.member.organizationId, org_id)));
+			.from(schema.member)
+			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
 		console.log("🚀 ~ roles:", role[0]?.role);
 		console.log("hasPermission fetch took", Date.now() - start, "ms");
 
 		const startNew = Date.now();
 		const result = await db
-			.update(authType.organization)
+			.update(schema.organization)
 			.set({ ...data, updatedAt: new Date() })
-			.where(eq(authType.organization.id, org_id))
+			.where(eq(schema.organization.id, org_id))
 			.returning();
 		console.log("updateOrganization fetch took", Date.now() - startNew, "ms");
 

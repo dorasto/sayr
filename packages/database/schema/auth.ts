@@ -38,10 +38,6 @@ export const session = pgTable("session", {
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	impersonatedBy: text("impersonated_by"),
-
-	// Organization plugin additions
-	activeOrganizationId: text("active_organization_id"),
-	activeTeamId: text("active_team_id"),
 });
 
 // --------------------
@@ -75,81 +71,4 @@ export const verification = pgTable("verification", {
 	expiresAt: timestamp("expires_at").notNull(),
 	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
-});
-
-// --------------------
-// Organization
-// --------------------
-export const organization = pgTable("organization", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	slug: text("slug").notNull(),
-	logo: text("logo"),
-	bannerImg: text("banner_img"),
-	description: text("description").default(""),
-	metadata: text("metadata"),
-	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
-	updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
-});
-
-// --------------------
-// Member
-// --------------------
-export const member = pgTable("member", {
-	id: text("id").primaryKey(),
-	userId: text("user_id")
-		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
-	organizationId: text("organization_id")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
-	role: text("role").notNull(),
-	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
-});
-
-// --------------------
-// Invitation
-// --------------------
-export const invitation = pgTable("invitation", {
-	id: text("id").primaryKey(),
-	email: text("email").notNull(),
-	inviterId: text("inviter_id")
-		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
-	organizationId: text("organization_id")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
-	role: text("role").notNull(),
-	status: text("status").notNull(),
-	expiresAt: timestamp("expires_at").notNull(),
-
-	// Optional if teams are enabled
-	teamId: text("team_id"),
-});
-
-// --------------------
-// Team (optional)
-// --------------------
-export const team = pgTable("team", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	organizationId: text("organization_id")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
-	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
-	updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
-});
-
-// --------------------
-// Team Member (optional)
-// --------------------
-export const teamMember = pgTable("team_member", {
-	id: text("id").primaryKey(),
-	teamId: text("team_id")
-		.notNull()
-		.references(() => team.id, { onDelete: "cascade" }),
-	userId: text("user_id")
-		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
-	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 });
