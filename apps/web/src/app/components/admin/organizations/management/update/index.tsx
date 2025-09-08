@@ -14,7 +14,7 @@ import Image from "next/image";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
-import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/test";
+import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/fetches";
 import OrganizationMembers from "./members";
 
 interface FileWithPreview {
