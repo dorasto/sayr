@@ -1,4 +1,4 @@
-import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 // --------------------
 // User
@@ -86,7 +86,8 @@ export const organization = pgTable("organization", {
 	slug: text("slug").notNull(),
 	logo: text("logo"),
 	bannerImg: text("banner_img"),
-	metadata: jsonb("metadata").default({}),
+	description: text("description").default(""),
+	metadata: text("metadata"),
 	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
 });

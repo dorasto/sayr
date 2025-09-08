@@ -5,6 +5,7 @@ import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
 import { TabbedDialog, TabbedDialogFooter, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconHome, IconUsers } from "@tabler/icons-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLayoutData } from "@/app/admin/Context";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
-import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/updateOrganization";
+import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/test";
 import OrganizationMembers from "./members";
 
 interface FileWithPreview {
@@ -31,7 +32,7 @@ interface Organization {
 	slug: string;
 	logo?: string | null;
 	bannerImg?: string | null;
-	metadata?: Record<string, unknown>;
+	description?: string;
 }
 
 interface UpdateOrgDialogProps {
@@ -41,6 +42,7 @@ interface UpdateOrgDialogProps {
 }
 
 export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: UpdateOrgDialogProps) {
+	const { value: WSClientId } = useStateManagement<string>("ws-clientId", "");
 	const id = useId();
 	const queryClient = useQueryClient();
 	const { setOrg, organization: currentOrg } = useLayoutData();
@@ -56,7 +58,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 		handleChange: handleDescriptionChange,
 	} = useCharacterLimit({
 		maxLength,
-		initialValue: (organization.metadata?.description as string) || "",
+		initialValue: (organization?.description as string) || "",
 	});
 
 	// Initialize with existing logo if present
@@ -214,24 +216,20 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 	// Mutation for updating organization
 	const updateMutation = useMutation({
 		mutationFn: async (data: UpdateOrganizationData) => {
-			const result = await updateOrganizationAction(organization.id, data);
+			const result = await updateOrganizationAction(organization.id, data, WSClientId);
 			if (!result.success) {
 				throw new Error(result.error);
 			}
 			return result.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			toast.success("Organization updated successfully");
 
 			// Update the organization in context with full structure
 			if (currentOrg) {
 				const updatedOrg = {
 					...currentOrg,
-					name,
-					slug,
-					logo: logoFiles[0]?.preview || null,
-					bannerImg: bannerFiles[0]?.preview || null,
-					metadata: { ...organization.metadata, description },
+					data,
 				};
 				setOrg(updatedOrg);
 			}
@@ -279,10 +277,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 				slug: slug.trim(),
 				logo: logoBase64,
 				bannerImg: bannerBase64,
-				metadata: {
-					...organization.metadata,
-					description: description.trim() || undefined,
-				},
+				description: description.trim(),
 			};
 
 			updateMutation.mutate(updateData);

@@ -4,7 +4,7 @@ import { serveStatic, websocket } from "hono/bun"; // Or 'hono/bun' for Bun
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { requestId } from "hono/request-id";
-import { apiRoute } from "@/routesapi";
+import { apiRoute } from "./routes/api";
 import { wsRoute } from "./routes/ws";
 
 const app = new Hono<{

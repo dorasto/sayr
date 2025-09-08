@@ -6,7 +6,7 @@ import { useLayoutData } from "@/app/admin/Context";
 import type { WSMessage } from "@/app/lib/ws";
 
 export default function AdminHomePage() {
-	const { account, organization, ws } = useLayoutData();
+	const { account, organization, ws, setOrg } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
 
 	const [messages, setMessages] = useState<WSMessage[]>([]);
@@ -18,8 +18,7 @@ export default function AdminHomePage() {
 		const payload = {
 			type: "SUBSCRIBE",
 			orgId: organization.id,
-			channel: "*",
-			timestamp: new Date().toISOString(),
+			channel: "admin",
 		};
 
 		ws.send(JSON.stringify(payload));
@@ -34,8 +33,11 @@ export default function AdminHomePage() {
 			} else {
 				setMessages((prev) => [...prev, data]);
 			}
+			if (data.type === "UPDATE_ORG") {
+				setOrg(data.data);
+			}
 		};
-	}, [ws, organization]);
+	}, [ws, organization.id, setOrg]);
 	return (
 		<div className="">
 			<TabbedDialogExample />
@@ -57,7 +59,7 @@ export default function AdminHomePage() {
 			</div>
 			{subscribed ? (
 				<div className="text-green-600 font-medium">
-					✅ Subscribed to channel <code>*</code>
+					✅ Subscribed to channel <code>admin</code>
 				</div>
 			) : (
 				<div className="text-yellow-600">⏳ Waiting for subscription...</div>

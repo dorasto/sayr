@@ -121,6 +121,11 @@ export type WSMessage =
 			channel?: string;
 	  })
 	| (BaseMessage & {
+			type: "UPDATE_ORG";
+			// biome-ignore lint/suspicious/noExplicitAny: <any>
+			data?: any;
+	  })
+	| (BaseMessage & {
 			type: "FIREHOSE";
 			data: {
 				channel: string;

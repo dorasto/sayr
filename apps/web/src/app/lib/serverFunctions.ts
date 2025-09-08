@@ -54,7 +54,7 @@ export async function getOrganization(org_slug: string) {
 			slug: authType.organization.slug,
 			logo: authType.organization.logo,
 			bannerImg: authType.organization.bannerImg,
-			metadata: authType.organization.metadata,
+			description: authType.organization.description,
 		})
 		.from(authType.organization)
 		.where(eq(authType.organization.slug, org_slug));

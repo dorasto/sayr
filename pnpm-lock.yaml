@@ -29,6 +29,9 @@ importers:
       bun:
         specifier: ^1.2.21
         version: 1.2.21
+      drizzle-orm:
+        specifier: 0.29.4
+        version: 0.29.4(@types/react@19.1.8)(bun-types@1.2.21(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)(react@19.1.0)
       hono:
         specifier: ^4.8.4
         version: 4.9.4
