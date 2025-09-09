@@ -1,5 +1,19 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.1.1/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"maxSize": 1048576,
+		"includes": [
+			"apps/web/src/**/*.{ts,tsx,js,jsx}",
+			"apps/backend/**/*.{ts,js}",
+			"packages/*/src/**/*.{ts,tsx,js,jsx}",
+			"packages/*/schema/**/*.ts"
+		]
+	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
@@ -33,9 +47,6 @@
 		"parser": {
 			"allowComments": true
 		}
-	},
-	"files": {
-		"includes": ["apps/web/src/**", "packages/**/src/**", "packages/**/schema/**", "apps/backend/**"]
 	},
 	"assist": {
 		"actions": {

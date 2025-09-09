@@ -413,7 +413,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 			{/* Image Crop Modal */}
 			<ImageCrop
 				src={cropModalState.src}
-				aspectRatio={cropModalState.type === "logo" ? 1 : 16 / 9}
+				aspectRatio={cropModalState.type === "logo" ? 1 : 21 / 9}
 				isOpen={cropModalState.isOpen}
 				onOpenChange={(open) => {
 					if (!open) {
@@ -457,15 +457,15 @@ function BannerUpload({
 	files: FileWithPreview[];
 }) {
 	return (
-		<div className="w-full aspect-video max-w-1/2 mx-auto">
+		<div className="w-full aspect-[21/9] max-w-1/2 mx-auto">
 			<div className="bg-muted relative flex size-full items-center justify-center overflow-hidden">
 				{currentImage && (
 					<Image
 						className="size-full object-cover"
 						src={currentImage}
 						alt="Organization banner"
-						width={512}
-						height={128}
+						width={1260}
+						height={540}
 					/>
 				)}
 				<div className="absolute inset-0 flex items-center justify-center gap-2">

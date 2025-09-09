@@ -33,3 +33,10 @@ yarn-error.log*
 # Miscellaneous
 .DS_Store
 *.pem
+
+# Additional entries to help Biome performance
+**/.cache/**
+**/temp/**
+**/tmp/**
+**/*.log
+**/.vscode/settings.json.bak

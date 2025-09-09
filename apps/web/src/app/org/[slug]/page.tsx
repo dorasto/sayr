@@ -16,11 +16,24 @@ export default async function OrgPage({ params }: OrgPageProps) {
 	}
 	return (
 		<div className="">
-			<div className="aspect-video w-full">
-				<Image width={1920} height={1080} src={organization.bannerImg || ""} alt={organization.name} />
+			<div className="relative rounded-2xl overflow-hidden">
+				<div className="aspect-[21/9] w-full">
+					<Image width={1260} height={540} src={organization.bannerImg || ""} alt={organization.name} />
+				</div>
+				<div className="absolute bottom-0 left-0 transform flex items-center gap-3 bg-background/50 backdrop-blur p-3 rounded-tr-xl rounded-bl-2xl">
+					<Image
+						height={100}
+						width={100}
+						className="rounded-xl"
+						src={organization.logo || ""}
+						alt={organization.name}
+					/>
+					<div>
+						<p className="text-2xl font-bold">{organization.name}</p>
+						<p className="font-semibold max-w-prose line-clamp-2">{organization.description}</p>
+					</div>
+				</div>
 			</div>
-			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			<img src={organization.logo || ""} alt={organization.name} />
 		</div>
 	);
 }

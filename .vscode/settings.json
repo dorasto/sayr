@@ -1,11 +1,11 @@
 {
 	"editor.defaultFormatter": "biomejs.biome",
 	"editor.formatOnSave": true,
-	"biome.requireConfiguration": true, // only format when biome.json exists
+	"biome.requireConfiguration": true,
 
 	"editor.codeActionsOnSave": {
-		"source.fixAll.biome": "always",
-		"source.organizeImports.biome": "always"
+		"source.fixAll.biome": "explicit",
+		"source.organizeImports.biome": "explicit"
 	},
 
 	"[typescript]": { "editor.defaultFormatter": "biomejs.biome" },

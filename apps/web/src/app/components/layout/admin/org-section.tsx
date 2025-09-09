@@ -32,9 +32,11 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
+import { cn } from "@repo/ui/lib/utils";
 import { IconChevronRight, IconLibrary, IconPencil, IconSettings, IconUsers } from "@tabler/icons-react";
 import { Command, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import UpdateOrgDialog from "@/app/components/admin/organizations/management/update";
 import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog";
@@ -49,15 +51,22 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	const { isOpen: isDialogOpen, openDialog, setIsOpen } = useUpdateOrgDialog();
 	const { value: isOpen } = useLocalStorage("left-sidebar-state", !isMobile);
 	const [editOpen, setEditOpen] = useState(false);
+	const path = usePathname();
+	const isActive = path.includes(`/admin/${organization.id}`);
 
 	// Desktop + Sidebar Open: Collapsible with full content
 	const renderCollapsibleView = () => (
 		<Collapsible key={organization.id} defaultOpen className="group/collapsible">
-			<SidebarMenuItem className="">
-				<div className="flex items-center justify-center pl-2 pr-1 hover:bg-sidebar-accent rounded-md transition-all group/coltrig">
+			<SidebarMenuItem>
+				<div
+					className={cn(
+						"flex items-center justify-center pl-2 pr-1 hover:bg-sidebar-accent rounded-md transition-all group/coltrig",
+						isActive && "bg-sidebar-accent text-sidebar-foreground"
+					)}
+				>
 					<CollapsibleTrigger
 						asChild
-						className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180"
+						className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer"
 					>
 						<div className="h-4 w-4 aspect-square relative flex items-center justify-center">
 							<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
@@ -69,8 +78,13 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 							</Avatar>
 						</div>
 					</CollapsibleTrigger>
-					<Link href={`/admin/${organization.id}`} className="w-full">
-						<SidebarMenuButton className="hover:bg-transparent hover:text-sidebar-foreground group-hover/coltrig:text-sidebar-foreground">
+					<Link href={`/admin/${organization.id}`} className="w-full cursor-pointer">
+						<SidebarMenuButton
+							className={cn(
+								"hover:bg-transparent hover:text-sidebar-foreground group-hover/coltrig:text-sidebar-foreground cursor-pointer",
+								isActive && "text-sidebar-foreground"
+							)}
+						>
 							<span>{organization.name}</span>
 						</SidebarMenuButton>
 					</Link>
@@ -93,7 +107,11 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 				<CollapsibleContent>
 					<SidebarMenuSub>
 						<SidebarMenuSubItem>
-							<SidebarMenuSubButton asChild>
+							<SidebarMenuSubButton
+								asChild
+								className="transition-all"
+								isActive={path === `/admin/${organization.id}/tasks`}
+							>
 								<Link href={`/admin/${organization.id}`}>
 									<IconLibrary />
 									Tasks
@@ -220,20 +238,8 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 	return (
 		<>
-			<SidebarGroup>
-				<SidebarGroupLabel>
-					<span>Organizations</span>
-				</SidebarGroupLabel>
+			<SidebarMenu>{getOrganizationView()}</SidebarMenu>
 
-				<SidebarMenu>
-					<SidebarMenuItem>
-						<SidebarMenuButton>
-							<Command /> <span>Test asd asd asd asd a</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-					{getOrganizationView()}
-				</SidebarMenu>
-			</SidebarGroup>
 			<UpdateOrgDialog organization={organization} isOpen={isDialogOpen} onOpenChange={setIsOpen} />
 		</>
 	);

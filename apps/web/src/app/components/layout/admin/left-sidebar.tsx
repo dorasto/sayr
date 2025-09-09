@@ -152,9 +152,14 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 				))}
 
 				{/* Organizations Section */}
-				{organizations.map((org) => (
-					<OrgSection key={org.id} organization={org} closeMobileSidebar={closeMobileSidebar} />
-				))}
+				<SidebarGroup>
+					<SidebarGroupLabel>
+						<span>Organizations</span>
+					</SidebarGroupLabel>
+					{organizations.map((org) => (
+						<OrgSection key={org.id} organization={org} closeMobileSidebar={closeMobileSidebar} />
+					))}
+				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>
