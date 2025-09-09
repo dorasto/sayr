@@ -1,4 +1,6 @@
 import { auth } from "@repo/auth/index";
+import { db, schema } from "@repo/database";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun"; // Or 'hono/bun' for Bun
 import { cors } from "hono/cors";
@@ -11,7 +13,6 @@ const app = new Hono<{
 	Variables: {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
-		organization: typeof auth.$Infer.Organization | null;
 	};
 }>();
 app.use(logger());
@@ -36,8 +37,6 @@ app.use("*", async (c, next) => {
 	}
 	c.set("user", session.user);
 	c.set("session", session.session);
-	// const org = await auth.api.getFullOrganization({ headers: c.req.raw.headers });
-	// c.set("organization", org);
 	return next();
 });
 app.get("/", serveStatic({ path: "./public/index.html" }));
@@ -60,3 +59,22 @@ const generateNotFoundResponse = (method: string, url: string) => ({
 	error: "Not Found",
 	status: 404,
 });
+
+export async function getOrganization(orgId: string, userId: string) {
+	// Check if the user is a member of this org
+	const membership = await db.query.member.findFirst({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
+	});
+
+	// If no membership found, deny access
+	if (!membership) {
+		return null; // or throw new Error("Unauthorized");
+	}
+
+	// Fetch the organization itself
+	const [organization] = await db.select().from(schema.organization).where(eq(schema.organization.id, orgId));
+
+	if (!organization) return null;
+
+	return organization as schema.organizationType;
+}

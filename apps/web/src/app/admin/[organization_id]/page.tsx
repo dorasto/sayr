@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import AdminHomePage from "@/app/components/admin";
+import OrganizationHomePage from "@/app/components/admin/organization";
 import { getAccess, getOrganization } from "@/app/lib/serverFunctions";
 
 type Props = {
@@ -15,5 +15,5 @@ export default async function Home({ params }: Props) {
 	if (!organization) {
 		return redirect("/admin");
 	}
-	return <AdminHomePage organization={organization} />;
+	return <OrganizationHomePage organization={organization} />;
 }

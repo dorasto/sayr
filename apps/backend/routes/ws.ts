@@ -2,6 +2,7 @@ import type { auth } from "@repo/auth";
 import type { ServerWebSocket } from "bun";
 import { Hono } from "hono";
 import { upgradeWebSocket } from "hono/bun";
+import { getOrganization } from "..";
 
 export const wsRoute = new Hono<{
 	Variables: {
@@ -34,7 +35,14 @@ type WSBaseMessage = {
 const rooms = new Map<string, ClientInfo[]>(); // `${orgId}:${channel}`
 const wsClientIds = new Map<ServerWebSocket, string>();
 
-// Internal helper to send to a list of clients
+// ✅ waiting room constants
+const WAITING_ORG = "WAITING_ROOM";
+const WAITING_CHANNEL = "main";
+
+// ------------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------------
+
 function sendToClients(
 	clients: ClientInfo[] = [],
 	message: WSBaseMessage,
@@ -51,7 +59,7 @@ function sendToClients(
 				ts: Date.now(),
 				channel,
 				orgId,
-				...(message.meta || {}), // allow caller to override/add fields
+				...(message.meta || {}),
 			},
 		};
 		try {
@@ -151,17 +159,27 @@ export function findClientByWsId(clientId: string) {
 	}
 }
 
-// Unsubscribe client from all rooms
+// ------------------------------------------------------------------
+// Subscription Helpers
+// ------------------------------------------------------------------
+
 function unsubscribe(socket: ServerWebSocket) {
 	const wsClientId = wsClientIds.get(socket);
 	for (const [key, clients] of rooms) {
 		const filtered = clients.filter((c) => c.socket !== socket);
 		if (filtered.length < clients.length) {
 			const [orgId, channel] = key.split(":");
-			broadcast(orgId as string, channel as string, {
-				type: "USER_UNSUBSCRIBED",
-				data: { wsClientId, orgId, channel },
-			});
+			if (orgId && channel && orgId !== WAITING_ORG) {
+				broadcast(
+					orgId,
+					channel,
+					{
+						type: "USER_UNSUBSCRIBED",
+						data: { wsClientId, orgId, channel },
+					},
+					socket
+				);
+			}
 		}
 		filtered.length ? rooms.set(key, filtered) : rooms.delete(key);
 	}
@@ -207,15 +225,48 @@ function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: stri
 	broadcast(orgId, channel, { type: "USER_SUBSCRIBED", data: { wsClientId, clientId, orgId, channel } }, ws);
 }
 
+function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: string, reason?: string) {
+	// Clear any existing rooms first
+	unsubscribe(ws);
+
+	const waitingKey = `${WAITING_ORG}:${WAITING_CHANNEL}`;
+	const info: ClientInfo = {
+		socket: ws,
+		wsClientId,
+		clientId,
+		orgId: WAITING_ORG,
+		channel: WAITING_CHANNEL,
+		lastPong: Date.now(),
+	};
+	rooms.set(waitingKey, [...(rooms.get(waitingKey) || []), info]);
+
+	send(ws, {
+		type: "WAITING_ROOM",
+		data: {
+			message: "You have been placed in the waiting room",
+			reason,
+			orgId: WAITING_ORG,
+			channel: WAITING_CHANNEL,
+		},
+		meta: { ts: Date.now() },
+	});
+}
+
+// ------------------------------------------------------------------
+// WebSocket Route
+// ------------------------------------------------------------------
+
 wsRoute.get(
 	"/ws",
 	upgradeWebSocket((c) => ({
 		onOpen: (_, ws) => {
 			const session = c.get("session");
+			const user = c.get("user");
 			const wsClientId = crypto.randomUUID();
 			wsClientIds.set(ws.raw, wsClientId);
+
 			if (!session) {
-				const orgId = c.req.query("orgId") || "default"; // orgId must come from query param
+				const orgId = c.req.query("orgId") || "default";
 				send(ws.raw, {
 					type: "CONNECTION_STATUS",
 					data: {
@@ -230,6 +281,9 @@ wsRoute.get(
 				handleSubscribe(ws.raw, wsClientId, "ANONYMOUS", orgId, "public");
 				return;
 			}
+
+			// Authenticated but no org/channel yet → place in waiting room
+
 			send(ws.raw, {
 				type: "CONNECTION_STATUS",
 				data: {
@@ -241,29 +295,42 @@ wsRoute.get(
 					ts: Date.now(),
 				},
 			});
+			joinWaitingRoom(ws.raw, wsClientId, user?.id);
 		},
 
-		onMessage: (event, ws) => {
+		onMessage: async (event, ws) => {
 			try {
 				const msg = JSON.parse(event.data as string);
 				const wsClientId = wsClientIds.get(ws.raw) as string;
-				const session = c.get("session"); // ✅ check session on every message
+				const session = c.get("session");
 				const user = c.get("user");
-				// ✅ Handle PONG
+				const client = findClient(ws.raw);
+
+				// PONG
 				if (msg.type === "PONG") {
-					const client = findClient(ws.raw);
 					if (client) client.lastPong = Date.now();
 					return;
 				}
+
+				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE
+				if (client?.orgId === WAITING_ORG && client.channel === WAITING_CHANNEL) {
+					if (!["SUBSCRIBE", "UNSUBSCRIBE"].includes(msg.type)) {
+						return send(ws.raw, {
+							type: "ERROR",
+							data: { message: "You are in waiting room. Please SUBSCRIBE to an org/channel" },
+							meta: { ts: Date.now() },
+						});
+					}
+				}
+
+				// SUBSCRIBE
 				if (msg.type === "SUBSCRIBE") {
 					const { orgId, channel } = msg;
 					if (!orgId || !channel) {
 						return send(ws.raw, {
 							type: "ERROR",
 							data: { message: "Need orgId+channel" },
-							meta: {
-								ts: Date.now(),
-							},
+							meta: { ts: Date.now() },
 						});
 					}
 					// ✅ enforce session: only allow "public" channel if unauthenticated
@@ -271,20 +338,22 @@ wsRoute.get(
 						return send(ws.raw, {
 							type: "ERROR",
 							data: { message: "Auth required for private channels" },
-							meta: {
-								ts: Date.now(),
-							},
+							meta: { ts: Date.now() },
 						});
 					} else if (channel === "public" && !session) {
 						handleSubscribe(ws.raw, wsClientId, crypto.randomUUID(), orgId, channel);
 					} else {
-						handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
+						const organization = await getOrganization(orgId, user.id);
+						if (organization) {
+							handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
+						} else {
+							ws.close();
+						}
 					}
 					return;
 				}
 				// ✅ Handle UNSUBSCRIBE (auth only)
 				if (msg.type === "UNSUBSCRIBE") {
-					const session = c.get("session");
 					if (!session) {
 						return send(ws.raw, {
 							type: "ERROR",
@@ -292,20 +361,13 @@ wsRoute.get(
 							meta: { ts: Date.now() },
 						});
 					}
-					unsubscribe(ws.raw);
-					return send(ws.raw, {
-						type: "UNSUBSCRIBED",
-						data: { message: "Unsubscribed from all channels" },
-						meta: { ts: Date.now() },
-					});
+					joinWaitingRoom(ws.raw, wsClientId, user?.id);
 				}
 			} catch (err) {
 				send(ws.raw, {
 					type: "ERROR",
 					data: { error: err instanceof Error ? err.message : String(err) },
-					meta: {
-						ts: Date.now(),
-					},
+					meta: { ts: Date.now() },
 				});
 			}
 		},

@@ -1,18 +1,30 @@
 "use client";
+import type { schema } from "@repo/database";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 
-export default function AdminHomePage() {
+type Props = {
+	organization: schema.OrganizationWithMembers;
+};
+
+export default function OrganizationHomePage({ organization }: Props) {
 	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
 	const { messages, wsSubscribedState } = useWebSocketSubscription({
 		ws,
+		orgId: organization.id,
+		channel: "admin",
 	});
 	return (
 		<div className="">
 			<TabbedDialogExample />
+			<h1>org detail {organization.name}</h1>
+			{/** biome-ignore lint/performance/noImgElement: <will use> */}
+			<img src={organization.logo || ""} alt={organization.name} />
+			{/** biome-ignore lint/performance/noImgElement: <will use> */}
+			<img src={organization.bannerImg || ""} alt={organization.name} />
 			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
 			<div className="flex items-center gap-2">
 				<span className="font-medium">WebSocket Status:</span>

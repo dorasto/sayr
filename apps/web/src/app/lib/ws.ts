@@ -118,7 +118,10 @@ export type WSMessage =
 	  })
 	| (BaseMessage & {
 			type: "SUBSCRIBED";
-			channel?: string;
+			data: {
+				orgId: string;
+				channel: string;
+			};
 	  })
 	| (BaseMessage & {
 			type: "UPDATE_ORG";
