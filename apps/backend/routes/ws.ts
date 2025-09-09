@@ -282,6 +282,23 @@ wsRoute.get(
 					}
 					return;
 				}
+				// ✅ Handle UNSUBSCRIBE (auth only)
+				if (msg.type === "UNSUBSCRIBE") {
+					const session = c.get("session");
+					if (!session) {
+						return send(ws.raw, {
+							type: "ERROR",
+							data: { message: "Anonymous users cannot unsubscribe" },
+							meta: { ts: Date.now() },
+						});
+					}
+					unsubscribe(ws.raw);
+					return send(ws.raw, {
+						type: "UNSUBSCRIBED",
+						data: { message: "Unsubscribed from all channels" },
+						meta: { ts: Date.now() },
+					});
+				}
 			} catch (err) {
 				send(ws.raw, {
 					type: "ERROR",

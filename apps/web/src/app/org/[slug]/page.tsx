@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { getOrganization } from "@/app/lib/serverFunctions";
+import { getOrganizationPublic } from "@/app/lib/serverFunctions";
 
 interface OrgPageProps {
 	params: Promise<{
@@ -10,14 +10,13 @@ interface OrgPageProps {
 export default async function OrgPage({ params }: OrgPageProps) {
 	const { slug } = await params;
 	console.log("Organization slug:", slug);
-	const organization = await getOrganization(slug);
+	const organization = await getOrganizationPublic(slug);
 	if (!organization) {
 		return "NOT FOUND";
 	}
 	return (
 		<div className="">
 			<div className="aspect-video w-full">
-				{/** biome-ignore lint/performance/noImgElement: <will use> */}
 				<Image width={1920} height={1080} src={organization.bannerImg || ""} alt={organization.name} />
 			</div>
 			{/** biome-ignore lint/performance/noImgElement: <will use> */}

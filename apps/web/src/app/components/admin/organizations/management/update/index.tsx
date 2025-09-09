@@ -1,5 +1,6 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import { ImageCrop } from "@repo/ui/components/image-crop";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
@@ -25,19 +26,8 @@ interface FileWithPreview {
 	preview: string;
 }
 
-interface Organization {
-	id: string;
-	name: string;
-	slug: string;
-	logo?: string | null;
-	bannerImg?: string | null;
-	description?: string;
-	// biome-ignore lint/suspicious/noExplicitAny: <will fix>
-	members: any[];
-}
-
 interface UpdateOrgDialogProps {
-	organization: Organization;
+	organization: schema.OrganizationWithMembers;
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 }
@@ -415,7 +405,8 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 					</div>
 				</TabPanel>
 				<TabPanel tabId={"members"}>
-					<OrganizationMembers members={organization.members} />
+					{/** biome-ignore lint/suspicious/noExplicitAny: <will look into this> */}
+					<OrganizationMembers members={organization.members as any} />
 				</TabPanel>
 			</TabbedDialog>
 

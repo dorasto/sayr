@@ -1,5 +1,6 @@
 "use client";
 
+import { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
@@ -263,8 +264,7 @@ const memberColumns: ColumnDef<Member>[] = [
 	},
 ];
 
-// biome-ignore lint/suspicious/noExplicitAny: <will fix>
-export default function OrganizationMembers({ members }: { members: any[] }) {
+export default function OrganizationMembers({ members }: { members: Member[] }) {
 	const id = useId();
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});

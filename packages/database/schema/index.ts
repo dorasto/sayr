@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { user } from "./auth";
+import { type account, type session, user, type verification } from "./auth";
 
 // --------------------
 // Organization
@@ -30,3 +30,14 @@ export const member = pgTable("member", {
 	role: text("role").notNull(),
 	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 });
+
+export type userType = typeof user.$inferSelect;
+export type sessionType = typeof session.$inferSelect;
+export type accountType = typeof account.$inferSelect;
+export type verificationType = typeof verification.$inferSelect;
+export type organizationType = typeof organization.$inferSelect;
+export type memberType = typeof member.$inferSelect;
+
+export interface OrganizationWithMembers extends organizationType {
+	members: (memberType & { user: userType })[];
+}

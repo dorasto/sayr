@@ -1,8 +1,7 @@
-import type { Organization } from "better-auth/plugins";
 import type { Metadata } from "next";
 import type React from "react";
 import Navigation from "@/app/components/org/layout/navigation";
-import { getOrganization } from "@/app/lib/serverFunctions";
+import { getOrganizationPublic } from "@/app/lib/serverFunctions";
 
 interface OrgLayoutProps {
 	params: Promise<{
@@ -12,7 +11,7 @@ interface OrgLayoutProps {
 
 export async function generateMetadata({ params }: OrgLayoutProps): Promise<Metadata> {
 	const { slug } = await params;
-	const organization = await getOrganization(slug);
+	const organization = await getOrganizationPublic(slug);
 
 	if (!organization) {
 		return {
@@ -56,7 +55,7 @@ export default async function OrgLayout({
 }> &
 	OrgLayoutProps) {
 	const { slug } = await params;
-	const organization = await getOrganization(slug);
+	const organization = await getOrganizationPublic(slug);
 
 	if (!organization) {
 		return (

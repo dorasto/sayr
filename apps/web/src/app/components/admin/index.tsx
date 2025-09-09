@@ -1,51 +1,55 @@
 "use client";
+import type { schema } from "@repo/database";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import type { WSMessage } from "@/app/lib/ws";
 
-export default function AdminHomePage() {
+type Props = {
+	organization: schema.OrganizationWithMembers;
+};
+
+export default function AdminHomePage({ organization }: Props) {
 	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
 
 	const [messages, setMessages] = useState<WSMessage[]>([]);
 	const [subscribed, setSubscribed] = useState(false);
-
 	useEffect(() => {
 		if (!ws) return;
 
+		// --- SUBSCRIBE for this org ---
 		const payload = {
 			type: "SUBSCRIBE",
-			orgId: "test",
+			orgId: organization.id,
 			channel: "admin",
 		};
-
 		ws.send(JSON.stringify(payload));
-		console.log("📡 Sent SUBSCRIBE:", payload);
-
-		ws.onmessage = (event) => {
+		const handleMessage = (event: MessageEvent) => {
 			const data = JSON.parse(event.data) as WSMessage;
-			console.log("🚀 ~ AdminHomePage ~ data:", data);
-
 			if (data.type === "SUBSCRIBED") {
 				setSubscribed(true);
 			} else {
 				setMessages((prev) => [...prev, data]);
 			}
-			// if (data.type === "UPDATE_ORG") {
-			// 	setOrg(data.data);
-			// }
 		};
-	}, [ws]);
+
+		ws.addEventListener("message", handleMessage);
+
+		// --- cleanup when orgId changes ---
+		return () => {
+			ws.removeEventListener("message", handleMessage);
+		};
+	}, [ws, organization.id]);
 	return (
 		<div className="">
 			<TabbedDialogExample />
-			{/* <h1>org detail {organization.name}</h1> */}
+			<h1>org detail {organization.name}</h1>
 			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			{/* <img src={organization.logo || ""} alt={organization.name} /> */}
+			<img src={organization.logo || ""} alt={organization.name} />
 			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			{/* <img src={organization.bannerImg || ""} alt={organization.name} /> */}
+			<img src={organization.bannerImg || ""} alt={organization.name} />
 			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
 			<div className="flex items-center gap-2">
 				<span className="font-medium">WebSocket Status:</span>

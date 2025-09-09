@@ -1,26 +1,14 @@
 "use client";
+import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useContext } from "react";
 import useWebSocket from "../lib/ws";
 
 interface ContextType {
-	account: {
-		id: string;
-		email: string;
-		emailVerified: boolean;
-		name: string;
-		createdAt: Date;
-		updatedAt: Date;
-		image?: string | null | undefined;
-		role: string;
-		banned: boolean | null | undefined;
-		banReason?: string | null | undefined;
-		banExpires?: Date | null | undefined;
-	};
+	account: schema.userType;
 	setAccount: (newValue: ContextType["account"]) => void;
 	ws: WebSocket | null;
-	// biome-ignore lint/suspicious/noExplicitAny: <need types>
-	organizations: any[];
+	organizations: schema.OrganizationWithMembers[];
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);

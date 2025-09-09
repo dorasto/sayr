@@ -1,6 +1,6 @@
 import { auth } from "@repo/auth";
 import { auth as authType, db, schema } from "@repo/database";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirectAuth } from "@/app/lib/redirectAuth";
 
@@ -20,13 +20,18 @@ import { redirectAuth } from "@/app/lib/redirectAuth";
  * ```
  */
 export async function getAccess() {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-	if (session) {
-		return { account: session.user };
+	try {
+		const session = await auth.api.getSession({
+			headers: await headers(),
+		});
+		if (session) {
+			return { account: session.user };
+		}
+		return redirectAuth();
+	} catch (error) {
+		console.log("🚀 ~ getAccess ~ error:", error);
+		return redirectAuth();
 	}
-	return redirectAuth();
 }
 
 /**
@@ -149,6 +154,77 @@ export async function getOrganizations(userId: string) {
 }
 
 /**
+ * Retrieves a single organization by its ID **only if the user
+ * belongs to it**, including all members and their user details.
+ *
+ * @param orgId - The ID of the organization to retrieve.
+ * @param userId - The ID of the requesting user (must be a member).
+ * @returns The organization with enriched member data, or `null` if the user
+ * is not part of the organization.
+ *
+ * @example
+ * ```ts
+ * const org = await getOrganization("org_123", "user_123");
+ * if (org) {
+ *   console.log(`Organization: ${org.name}`);
+ *   org.members.forEach(member => {
+ *     console.log(`- ${member.user.name} (${member.user.email})`);
+ *   });
+ * } else {
+ *   console.log("User does not belong to this organization.");
+ * }
+ * ```
+ */
+export async function getOrganization(orgId: string, userId: string) {
+	// Check if the user is a member of this org
+	const membership = await db.query.member.findFirst({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
+	});
+
+	// If no membership found, deny access
+	if (!membership) {
+		return null; // or throw new Error("Unauthorized");
+	}
+
+	// Fetch the organization itself
+	const [organization] = await db.select().from(schema.organization).where(eq(schema.organization.id, orgId));
+
+	if (!organization) return null;
+
+	// Fetch all members for this org
+	const members = await db.query.member.findMany({
+		where: eq(schema.member.organizationId, orgId),
+	});
+
+	// For each member, fetch the user and merge
+	const membersWithUsers = await Promise.all(
+		members.map(async (member) => {
+			const [user] = await db
+				.select({
+					id: authType.user.id,
+					name: authType.user.name,
+					email: authType.user.email,
+					image: authType.user.image,
+					createdAt: authType.user.createdAt,
+					updatedAt: authType.user.updatedAt,
+				})
+				.from(authType.user)
+				.where(eq(authType.user.id, member.userId));
+
+			return {
+				...member,
+				user,
+			};
+		})
+	);
+
+	return {
+		...organization,
+		members: membersWithUsers,
+	} as schema.OrganizationWithMembers;
+}
+
+/**
  * Fetches a single organization by its unique slug.
  *
  * This query selects the organization's core profile fields including
@@ -160,7 +236,7 @@ export async function getOrganizations(userId: string) {
  *
  * @example
  * ```ts
- * const org = await getOrganization("my-cool-org");
+ * const org = await getOrganizationPublic("my-cool-org");
  *
  * if (org) {
  *   console.log(`Organization: ${org.name} (${org.slug})`);
@@ -169,7 +245,7 @@ export async function getOrganizations(userId: string) {
  * }
  * ```
  */
-export async function getOrganization(org_slug: string) {
+export async function getOrganizationPublic(org_slug: string) {
 	const results = await db
 		.select({
 			id: schema.organization.id,

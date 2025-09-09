@@ -1,5 +1,6 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
@@ -15,10 +16,8 @@ import {
 } from "@repo/ui/components/custom-sidebar-localstorage";
 import {
 	Drawer,
-	DrawerClose,
 	DrawerContent,
 	DrawerDescription,
-	DrawerFooter,
 	DrawerHeader,
 	DrawerTitle,
 	DrawerTrigger,
@@ -29,39 +28,24 @@ import {
 	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import { Label } from "@repo/ui/components/label";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
-import { cn } from "@repo/ui/lib/utils";
 import { IconChevronRight, IconLibrary, IconPencil, IconSettings, IconUsers } from "@tabler/icons-react";
-import { Command, MoreHorizontal, PlusIcon } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { Command, MoreHorizontal } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import UpdateOrgDialog from "@/app/components/admin/organizations/management/update";
 import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog";
 
-interface Organization {
-	id: string;
-	name: string;
-	slug: string;
-	logo?: string | null;
-	bannerImg?: string | null;
-	description?: string;
-	// biome-ignore lint/suspicious/noExplicitAny: <will fix>
-	members: any[];
-}
-
 interface OrgSectionProps {
-	organization: Organization;
+	organization: schema.OrganizationWithMembers;
 	closeMobileSidebar: () => void;
 }
 
 export default function OrgSection({ organization, closeMobileSidebar }: OrgSectionProps) {
 	const isMobile = useIsMobile();
-	const pathname = usePathname();
 	const { isOpen: isDialogOpen, openDialog, setIsOpen } = useUpdateOrgDialog();
 	const { value: isOpen } = useLocalStorage("left-sidebar-state", !isMobile);
 	const [editOpen, setEditOpen] = useState(false);
@@ -85,11 +69,11 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 							</Avatar>
 						</div>
 					</CollapsibleTrigger>
-					<a href="/" className="w-full">
+					<Link href={`/admin/${organization.id}`} className="w-full">
 						<SidebarMenuButton className="hover:bg-transparent hover:text-sidebar-foreground group-hover/coltrig:text-sidebar-foreground">
 							<span>{organization.name}</span>
 						</SidebarMenuButton>
-					</a>
+					</Link>
 
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
@@ -110,10 +94,10 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 					<SidebarMenuSub>
 						<SidebarMenuSubItem>
 							<SidebarMenuSubButton asChild>
-								<a href="/">
+								<Link href={`/admin/${organization.id}`}>
 									<IconLibrary />
 									Tasks
-								</a>
+								</Link>
 							</SidebarMenuSubButton>
 						</SidebarMenuSubItem>
 					</SidebarMenuSub>

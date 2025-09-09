@@ -1,5 +1,3 @@
-import AdminHomePage from "../components/admin";
-
 export default async function Home() {
-	return <AdminHomePage />;
+	return <h1>new page for this</h1>;
 }
