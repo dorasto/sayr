@@ -8,7 +8,7 @@ import { Textarea } from "@repo/ui/components/textarea";
 import { TabbedDialog, TabbedDialogFooter, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconHome, IconUsers } from "@tabler/icons-react";
+import { IconBrush, IconHome, IconUsers } from "@tabler/icons-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
@@ -16,6 +16,7 @@ import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
 import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/fetches";
+import Colors from "./colors";
 import OrganizationMembers from "./members";
 
 interface FileWithPreview {
@@ -296,6 +297,11 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 			),
 		},
 		{
+			id: "design",
+			label: "Design",
+			icon: <IconBrush className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
+		},
+		{
 			id: "members",
 			label: "Members",
 			icon: <IconUsers className="-ms-0.5 me-1.5 opacity-60" size={16} aria-hidden="true" />,
@@ -403,6 +409,9 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 							</div> */}
 						</form>
 					</div>
+				</TabPanel>
+				<TabPanel tabId={"design"}>
+					<Colors />
 				</TabPanel>
 				<TabPanel tabId={"members"}>
 					{/** biome-ignore lint/suspicious/noExplicitAny: <will look into this> */}
