@@ -3,7 +3,7 @@
 import { cn } from "@repo/ui/lib/utils";
 import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
-import type { FileWithPreview } from "./types";
+import type { FileWithPreview } from "../utils/types";
 
 interface LogoUploadProps {
 	currentImage: string | null;

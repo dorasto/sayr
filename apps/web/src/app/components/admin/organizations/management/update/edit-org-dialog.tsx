@@ -6,8 +6,8 @@ import { TabbedDialog, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog"
 import { IconBrush, IconHome, IconUsers } from "@tabler/icons-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import Colors, { ColorsFooter, type ColorsRef } from "./colors";
-import GeneralSettings, { GeneralSettingsFooter, type GeneralSettingsRef } from "./general-settings";
+import Design, { DesignFooter, type DesignRef } from "./design";
+import GeneralSettings, { GeneralSettingsFooter, type GeneralSettingsRef } from "./general";
 import OrganizationMembers from "./members";
 
 interface UpdateOrgDialogProps {
@@ -19,7 +19,7 @@ interface UpdateOrgDialogProps {
 export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: UpdateOrgDialogProps) {
 	// Refs for communicating with child components
 	const generalSettingsRef = useRef<GeneralSettingsRef>(null);
-	const colorsRef = useRef<ColorsRef>(null);
+	const designRef = useRef<DesignRef>(null);
 
 	// Cropping state
 	const [cropModalState, setCropModalState] = useState<{
@@ -46,7 +46,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 		if (cropModalState.type === "logo") {
 			generalSettingsRef.current?.setCroppedLogo(croppedImageBase64);
 		} else {
-			colorsRef.current?.setCroppedBanner(croppedImageBase64);
+			designRef.current?.setCroppedBanner(croppedImageBase64);
 		}
 
 		// Clean up the original preview URL
@@ -67,7 +67,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 			id: "design",
 			label: "Design",
 			icon: <IconBrush size={16} aria-hidden="true" />,
-			footer: <ColorsFooter colorsRef={colorsRef} onCloseDialog={() => onOpenChange(false)} />,
+			footer: <DesignFooter designRef={designRef} onCloseDialog={() => onOpenChange(false)} />,
 		},
 		{
 			id: "members",
@@ -96,8 +96,8 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 					/>
 				</TabPanel>
 				<TabPanel tabId={"design"}>
-					<Colors
-						ref={colorsRef}
+					<Design
+						ref={designRef}
 						organization={organization}
 						onRequestCrop={handleCropRequest}
 						onBannerSaved={() => {

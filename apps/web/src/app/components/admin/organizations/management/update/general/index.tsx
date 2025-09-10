@@ -11,9 +11,9 @@ import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef,
 import { toast } from "sonner";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
 import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/fetches";
+import { handleFileValidation } from "../utils/file-validation";
+import type { FileWithPreview } from "../utils/types";
 import LogoUpload from "./logo-upload";
-import type { FileWithPreview } from "./types";
-import { handleFileValidation } from "./utils/file-validation";
 
 export interface GeneralSettingsRef {
 	submit: () => void;

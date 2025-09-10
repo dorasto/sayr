@@ -2,7 +2,7 @@
 
 import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
-import type { FileWithPreview } from "./types";
+import type { FileWithPreview } from "../utils/types";
 
 interface BannerUploadProps {
 	currentImage: string | null;

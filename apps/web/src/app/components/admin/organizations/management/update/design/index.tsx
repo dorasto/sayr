@@ -11,23 +11,23 @@ import { useMutation } from "@tanstack/react-query";
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import { toast } from "sonner";
 import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/fetches";
+import { handleFileValidation } from "../utils/file-validation";
+import type { FileWithPreview } from "../utils/types";
 import BannerUpload from "./banner-upload";
-import type { FileWithPreview } from "./types";
-import { handleFileValidation } from "./utils/file-validation";
 
-export interface ColorsRef {
+export interface DesignRef {
 	saveBanner: () => void;
 	isSubmitting: boolean;
 	setCroppedBanner: (croppedImageBase64: string) => void;
 }
 
-interface ColorsProps {
+interface DesignProps {
 	organization: schema.OrganizationWithMembers;
 	onBannerSaved?: () => void; // Callback when banner is saved successfully
 	onRequestCrop?: (src: string, type: "banner") => void;
 }
 
-const Colors = forwardRef<ColorsRef, ColorsProps>(({ organization, onBannerSaved, onRequestCrop }, ref) => {
+const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved, onRequestCrop }, ref) => {
 	const [primary] = useState("#ff0000");
 	const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -248,27 +248,27 @@ const Colors = forwardRef<ColorsRef, ColorsProps>(({ organization, onBannerSaved
 	);
 });
 
-Colors.displayName = "Colors";
+Design.displayName = "Design";
 
-export default Colors;
+export default Design;
 
 // Footer component for the Design tab - now handles banner saving
-export function ColorsFooter({
-	colorsRef,
+export function DesignFooter({
+	designRef,
 	onCloseDialog,
 }: {
-	colorsRef: React.RefObject<ColorsRef | null>;
+	designRef: React.RefObject<DesignRef | null>;
 	onCloseDialog: () => void;
 }) {
 	const handleSave = () => {
-		colorsRef.current?.saveBanner();
+		designRef.current?.saveBanner();
 	};
 
 	return (
 		<TabbedDialogFooter
 			onCancel={onCloseDialog}
 			onSubmit={handleSave}
-			isSubmitting={colorsRef.current?.isSubmitting || false}
+			isSubmitting={designRef.current?.isSubmitting || false}
 			submitDisabled={false} // Could check if there are changes to save
 			classNameSuccess="hover:border-success/60"
 		/>

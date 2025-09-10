@@ -38,7 +38,7 @@ import { Command, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import UpdateOrgDialog from "@/app/components/admin/organizations/management/update";
+import UpdateOrgDialog from "@/app/components/admin/organizations/management/update/edit-org-dialog";
 import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog";
 
 interface OrgSectionProps {
