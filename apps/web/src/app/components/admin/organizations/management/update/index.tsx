@@ -5,6 +5,7 @@ import { ImageCrop } from "@repo/ui/components/image-crop";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
+import ClipboardCopy from "@repo/ui/components/tomui/input-clipboard";
 import { TabbedDialog, TabbedDialogFooter, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
 import { cn } from "@repo/ui/lib/utils";
 import { IconBrush, IconHome, IconUsers } from "@tabler/icons-react";
@@ -339,23 +340,40 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 												className="bg-popover"
 											/>
 										</div>
-										<div className="group relative">
-											<Label
-												htmlFor={`${id}-slug`}
-												className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+input:not(:placeholder-shown)]:text-foreground absolute top-1/2 block -translate-y-1/2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:top-0 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+input:not(:placeholder-shown)]:pointer-events-none has-[+input:not(:placeholder-shown)]:top-0 has-[+input:not(:placeholder-shown)]:cursor-default has-[+input:not(:placeholder-shown)]:text-xs has-[+input:not(:placeholder-shown)]:font-medium"
-											>
-												<span className="bg-popover inline-flex px-2">Slug</span>
-											</Label>
-											<Input
-												id={`${id}-slug`}
-												type="text"
-												placeholder=" "
-												value={slug}
-												onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
-												required
-												className="bg-popover"
-											/>
+										<div className="flex gap-3 items-center">
+											<div className="group relative flex-1 w-fit">
+												<Label
+													htmlFor={`${id}-slug`}
+													className="origin-start text-muted-foreground/70 group-focus-within:text-foreground has-[+div_.peer:not(:placeholder-shown)]:text-foreground absolute top-1/2 block -translate-y-1/2 cursor-text px-1 text-sm transition-all group-focus-within:pointer-events-none group-focus-within:top-0 group-focus-within:cursor-default group-focus-within:text-xs group-focus-within:font-medium has-[+div_.peer:not(:placeholder-shown)]:pointer-events-none has-[+div_.peer:not(:placeholder-shown)]:top-0 has-[+div_.peer:not(:placeholder-shown)]:cursor-default has-[+div_.peer:not(:placeholder-shown)]:text-xs has-[+div_.peer:not(:placeholder-shown)]:font-medium z-10"
+												>
+													<span className="bg-popover inline-flex px-2">Slug</span>
+												</Label>
+												<div className="relative flex items-center">
+													<Input
+														id={`${id}-slug`}
+														type="text"
+														placeholder=" "
+														value={slug}
+														onChange={(e) =>
+															setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))
+														}
+														required
+														className="bg-popover peer pe-32"
+													/>
+
+													<span className="text-muted-foreground pointer-events-none absolute inset-y-0 end-0 flex items-center justify-center pe-14 text-sm peer-disabled:opacity-50 ">
+														.{process.env.NEXT_PUBLIC_ROOT_DOMAIN}
+													</span>
+
+													<ClipboardCopy
+														value={`${slug}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
+														className="ml-2 rounded aspect-square"
+														urlify
+													/>
+												</div>
+											</div>
 										</div>
+										<div className="w-fit"></div>
 									</div>
 								</div>
 							</div>
@@ -502,13 +520,13 @@ function LogoUpload({
 }) {
 	return (
 		<div className={cn(className)}>
-			<div className="border-background bg-muted relative flex size-24 items-center justify-center overflow-hidden rounded-xl shadow-xs shadow-black/10 group/image">
+			<div className="border-background bg-muted relative flex size-40 items-center justify-center overflow-hidden rounded-xl shadow-xs shadow-black/10 group/image">
 				{currentImage && (
 					<Image
 						src={currentImage}
 						className="size-full object-cover group-hover/image:blur-xs transition-all"
-						width={96}
-						height={96}
+						width={160}
+						height={160}
 						alt="Organization logo"
 					/>
 				)}
