@@ -29,8 +29,8 @@ export default async function OrgPage({ params }: OrgPageProps) {
 						alt={organization.name}
 					/>
 					<div>
-						<p className="text-2xl font-bold">{organization.name}</p>
-						<p className="font-semibold max-w-prose line-clamp-2">{organization.description}</p>
+						<h1>{organization.name}</h1>
+						<span className="font-semibold max-w-prose line-clamp-2">{organization.description}</span>
 					</div>
 				</div>
 			</div>

@@ -213,3 +213,28 @@
 w-color-alpha {
     border-radius: 0px 0px var(--radius) var(--radius) !important;
 }
+
+/* Headings with common scroll-margin and tracking */
+h1, h2, h3, h4 {
+    @apply scroll-m-20 tracking-tight;
+}
+
+h1 {
+    @apply text-4xl font-extrabold text-balance;
+}
+
+h2 {
+    @apply border-b pb-2 text-3xl font-semibold first:mt-0;
+}
+
+h3 {
+    @apply text-2xl font-semibold;
+}
+
+h4 {
+    @apply text-xl font-semibold;
+}
+
+p {
+    @apply leading-7 [&:not(:first-child)]:mt-6;
+}
