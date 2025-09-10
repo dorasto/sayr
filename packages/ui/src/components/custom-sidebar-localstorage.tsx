@@ -8,7 +8,9 @@ import { useIsMobile } from "../hooks/use-mobile";
 import useLocalStorage from "../hooks/useLocalStorage";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "./drawer";
+import { Drawer, DrawerContent } from "./custom-sidebar-drawer";
+import { DrawerDescription, DrawerHeader, DrawerTitle } from "./drawer";
+// import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "./drawer";
 import { Input } from "./input";
 import { Separator } from "./separator";
 import { Skeleton } from "./skeleton";
@@ -134,16 +136,11 @@ const Sidebar = React.forwardRef<
 
 	if (isMobile) {
 		return (
-			<Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={true}>
+			<Drawer open={open} onOpenChange={setOpen}>
 				<DrawerContent
 					data-sidebar="sidebar"
 					data-mobile="true"
 					className="z-[999] mx-auto max-h-[60%] w-full bg-sidebar p-0 px-4 text-sidebar-foreground [&>button]:hidden"
-					style={
-						{
-							"--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-						} as React.CSSProperties
-					}
 				>
 					<DrawerHeader className="sr-only">
 						<DrawerTitle>Sidebar</DrawerTitle>

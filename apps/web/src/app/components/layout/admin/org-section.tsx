@@ -91,12 +91,17 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button className="text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border">
+							<Button
+								className={cn(
+									"text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border",
+									isMobile && "text-sidebar-foreground"
+								)}
+							>
 								<MoreHorizontal />
 								<span className="sr-only">More</span>
 							</Button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent className="w-48 rounded-lg" side="right" align="start">
+						<DropdownMenuContent className="w-48 rounded-lg z-[999]" side="right" align="start">
 							<DropdownMenuItem onClick={openDialog}>
 								<IconPencil className="text-muted-foreground" />
 								<span>Update</span>
@@ -139,7 +144,14 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						<span>{organization.name}</span>
 					</SidebarMenuButton>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent className="w-60 rounded-lg p-0" side="right" align="start">
+				<DropdownMenuContent
+					className={cn(
+						"w-60 rounded-lg p-0 z-[999]",
+						isMobile && "w-(--radix-dropdown-menu-trigger-width) min-w-56"
+					)}
+					side={isMobile ? "top" : "right"}
+					align="start"
+				>
 					<DropdownMenuLabel className="flex items-start gap-3 bg-background p-2 border-b">
 						<Avatar className="h-9 w-9 rounded-md">
 							<AvatarImage src={organization.logo || ""} alt={organization.name} />
@@ -230,7 +242,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	// Determine which view to render based on state
 	const getOrganizationView = () => {
 		if (isMobile) {
-			return renderDrawerView();
+			return renderCollapsibleView();
 		}
 
 		if (isOpen) {

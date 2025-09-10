@@ -9,13 +9,16 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarMenuSub,
+	SidebarMenuSubButton,
+	SidebarMenuSubItem,
 	SidebarProvider,
 	SidebarToggle,
 } from "@repo/ui/components/custom-sidebar-localstorage";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowBack, IconShield, IconUsers } from "@tabler/icons-react";
+import { IconArrowBack, IconExplicit, IconHome, IconShield, IconUsers } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutData } from "@/app/admin/Context";
@@ -179,6 +182,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 	);
 }
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
 import { useEffect } from "react";
 
 export function LeftSidebarProvider() {
