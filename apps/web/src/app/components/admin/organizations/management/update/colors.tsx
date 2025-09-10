@@ -2,17 +2,13 @@
 
 import { Button } from "@repo/ui/components/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import {
-	ColorPicker,
-	ColorPickerAlpha,
-	ColorPickerEyeDropper,
-	ColorPickerFormat,
-	ColorPickerHue,
-	ColorPickerOutput,
-	ColorPickerSelection,
-} from "@repo/ui/components/ui/kibo-ui/color-picker/index";
+import ColorPicker from "@repo/ui/components/tomui/color-picker";
+import { cn } from "@repo/ui/lib/utils";
+import { IconCircleFilled } from "@tabler/icons-react";
+import { useState } from "react";
 
 export default function Colors() {
+	const [primary, setPrimary] = useState("#ff0000");
 	// Available colours:
 	// Background, Foreground, Primary, Secondary
 	// Based off these, we'll generate shades and others provided context. For example, for a card background we can calculate
@@ -20,26 +16,65 @@ export default function Colors() {
 	// We will provide very minimal styling options, as the goal is to have a consistent design system.
 	// We'll also likely have some "defaults" that can be reset to.
 	return (
-		<div className="">
+		<div className="flex flex-col gap-3 w-fit">
 			<Popover>
 				<PopoverTrigger asChild>
-					<Button variant="outline">Background</Button>
+					<Button variant="outline" className="justify-start">
+						<IconCircleFilled className={cn(`text-[${primary}]`)} />
+						Background
+					</Button>
 				</PopoverTrigger>
-				<PopoverContent className="p-0 w-full">
-					<ColorPicker className="w-full aspect-video rounded-md border bg-background p-4 shadow-sm">
-						<ColorPickerSelection />
-						<div className="flex items-center gap-4">
-							<ColorPickerEyeDropper />
-							<div className="grid w-full gap-1">
-								<ColorPickerHue />
-								<ColorPickerAlpha />
-							</div>
-						</div>
-						<div className="flex items-center gap-2">
-							<ColorPickerOutput />
-							<ColorPickerFormat />
-						</div>
-					</ColorPicker>
+				<PopoverContent>
+					<ColorPicker
+						showDebugInfo
+						// value={primary}
+						// onChange={setPrimary}
+					/>
+				</PopoverContent>
+			</Popover>
+			<Popover>
+				<PopoverTrigger asChild>
+					<Button variant="outline" className="justify-start">
+						<IconCircleFilled className={cn(`text-[${primary}]`)} />
+						Foreground
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent>
+					<ColorPicker
+						showDebugInfo
+						// value={primary}
+						// onChange={setPrimary}
+					/>
+				</PopoverContent>
+			</Popover>
+			<Popover>
+				<PopoverTrigger asChild>
+					<Button variant="outline" className="justify-start">
+						<IconCircleFilled className={cn(`text-[${primary}]`)} />
+						Primary
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent>
+					<ColorPicker
+						showDebugInfo
+						// value={primary}
+						// onChange={setPrimary}
+					/>
+				</PopoverContent>
+			</Popover>
+			<Popover>
+				<PopoverTrigger asChild>
+					<Button variant="outline" className="justify-start">
+						<IconCircleFilled className={cn(`text-[${primary}]`)} />
+						Secondary
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent>
+					<ColorPicker
+						showDebugInfo
+						// value={primary}
+						// onChange={setPrimary}
+					/>
 				</PopoverContent>
 			</Popover>
 		</div>

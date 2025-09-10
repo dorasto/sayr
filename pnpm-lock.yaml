@@ -263,6 +263,12 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.85.5
         version: 5.85.5(react@19.1.0)
+      '@uiw/color-convert':
+        specifier: ^2.8.0
+        version: 2.8.0(@babel/runtime@7.27.6)
+      '@uiw/react-color-colorful':
+        specifier: ^2.8.0
+        version: 2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -2361,6 +2367,46 @@ packages:
   '@typescript-eslint/visitor-keys@8.41.0':
     resolution: {integrity: sha512-+GeGMebMCy0elMNg67LRNoVnUFPIm37iu5CmHESVx56/9Jsfdpsvbv605DQ81Pi/x11IdKUsS5nzgTYbCQU9fg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@uiw/color-convert@2.8.0':
+    resolution: {integrity: sha512-eRErVaYCkhtd+lltuGykQSwmxvFU7gTjF3AHHWsTQNa3o+sEBeRNY4urjpvRZRhsV6XgAbwsKe/IAZzuBBLx7g==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+
+  '@uiw/react-color-alpha@2.8.0':
+    resolution: {integrity: sha512-AZlPF6j+I1XftKt4FZ5VUQ7Au0W1BR/PZvgwKTI+bCb7bbRA2l/2am7aInpvaRAav46o13KneQ06Mgqg4jaDzw==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-colorful@2.8.0':
+    resolution: {integrity: sha512-m6FdmmQgiYEouBr59MFCrCPR34uhR5h0G3koRa64wBH6nHFyzK2wk3fXSgjc3Ckxmol34h7cbMtQwvU1+JiqBA==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-hue@2.8.0':
+    resolution: {integrity: sha512-4/oCVaD9gsqnqfjM2LMiyVx1YbM6l9G+HqrOZRBuBqL+UirLmNLSLZTMbhbezzvjxu+5cJMzt8ezT+jxkRqBbA==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-saturation@2.8.0':
+    resolution: {integrity: sha512-zpo7P+93Nu2VoBj9Mo3Ipn3ppjEl5SkdM/UDfn3PVdup9K67T451iyLMTgyUvHOegW9rBhyS7X1j68PmX/xd0w==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-drag-event-interactive@2.8.0':
+    resolution: {integrity: sha512-BE9eakoBxGtIk267weYvFm13NrGa+4k/6Iv5e3XxW6gToCGVc4QODQBoRFSNpR28W7JIekgqVjlNyvBUAmRwMg==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -5634,6 +5680,50 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.41.0
       eslint-visitor-keys: 4.2.1
+
+  '@uiw/color-convert@2.8.0(@babel/runtime@7.27.6)':
+    dependencies:
+      '@babel/runtime': 7.27.6
+
+  '@uiw/react-color-alpha@2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@babel/runtime': 7.27.6
+      '@uiw/color-convert': 2.8.0(@babel/runtime@7.27.6)
+      '@uiw/react-drag-event-interactive': 2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
+  '@uiw/react-color-colorful@2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@babel/runtime': 7.27.6
+      '@uiw/color-convert': 2.8.0(@babel/runtime@7.27.6)
+      '@uiw/react-color-alpha': 2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@uiw/react-color-hue': 2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@uiw/react-color-saturation': 2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
+  '@uiw/react-color-hue@2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@babel/runtime': 7.27.6
+      '@uiw/color-convert': 2.8.0(@babel/runtime@7.27.6)
+      '@uiw/react-color-alpha': 2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
+  '@uiw/react-color-saturation@2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@babel/runtime': 7.27.6
+      '@uiw/color-convert': 2.8.0(@babel/runtime@7.27.6)
+      '@uiw/react-drag-event-interactive': 2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
+  '@uiw/react-drag-event-interactive@2.8.0(@babel/runtime@7.27.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@babel/runtime': 7.27.6
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:

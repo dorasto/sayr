@@ -1,4 +1,5 @@
 "use client";
+import ColorPicker from "@repo/ui/components/tomui/color-picker";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useLayoutData } from "@/app/admin/Context";
@@ -13,6 +14,7 @@ export default function AdminHomePage() {
 	return (
 		<div className="">
 			<TabbedDialogExample />
+			<ColorPicker allowAlpha showDebugInfo={account.role === "admin"} />
 			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
 			<div className="flex items-center gap-2">
 				<span className="font-medium">WebSocket Status:</span>
