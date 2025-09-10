@@ -224,7 +224,7 @@ h1 {
 }
 
 h2 {
-    @apply border-b pb-2 text-3xl font-semibold first:mt-0;
+    @apply text-3xl font-semibold first:mt-0;
 }
 
 h3 {
@@ -236,5 +236,5 @@ h4 {
 }
 
 p {
-    @apply leading-7 [&:not(:first-child)]:mt-6;
+    @apply leading-7;
 }

@@ -192,18 +192,22 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						<span>{organization.name}</span>
 					</SidebarMenuButton>
 				</DrawerTrigger>
-				<DrawerContent>
+				<DrawerContent
+					className="z-[999] mx-auto max-h-[60%] h-full w-full bg-sidebar p-0 px-4 text-sidebar-foreground [&>button]:hidden"
+					overlay
+					overlayClassName="z-[999]"
+				>
 					<DrawerHeader>
 						<div className="flex items-center gap-2">
-							<Avatar className="h-10 w-10 rounded-md">
+							<Avatar className="h-12 w-12 rounded-md">
 								<AvatarImage src={organization.logo || ""} alt={organization.name} />
 								<AvatarFallback className="rounded-md uppercase text-xs">
 									<IconUsers className="h-10 w-10" />
 								</AvatarFallback>
 							</Avatar>
 							<div>
-								<DrawerTitle>{organization.name}</DrawerTitle>
-								<DrawerDescription>x members</DrawerDescription>
+								<DrawerTitle className="text-lg! text-left">{organization.name}</DrawerTitle>
+								<DrawerDescription className="text-left">x members</DrawerDescription>
 							</div>
 							<Button
 								variant={"accent"}

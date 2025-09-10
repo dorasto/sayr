@@ -341,18 +341,17 @@ export function TabbedDialog({
 
 		return (
 			<Drawer open={isOpen} onOpenChange={onOpenChange}>
-				<DrawerContent className="max-h-[90vh]">
-					<DrawerHeader className="border-b">
+				<DrawerContent className="z-[999] mx-auto max-h-[60%] h-full w-full bg-background p-0 px-4 text-sidebar-foreground [&>button]:hidden">
+					<DrawerHeader className="w-full border-0">
 						<div className="flex w-full items-center justify-between">
 							<div className="flex-1 shrink-0">
-								<DrawerTitle className="text-left w-full">{activeTabData?.title || title}</DrawerTitle>
+								<DrawerTitle className="text-left w-full ">{activeTabData?.title || title}</DrawerTitle>
 								{(activeTabData?.description || description) && (
-									<DrawerDescription className="text-left">
+									<DrawerDescription className="text-left sr-only">
 										{activeTabData?.description || description}
 									</DrawerDescription>
 								)}
 							</div>
-
 							{/* Tab Dropdown */}
 							<DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
 								<DropdownMenuTrigger asChild>
@@ -360,7 +359,7 @@ export function TabbedDialog({
 										<AnimatedMenuIcon isOpen={isDropdownOpen} size={16} />
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent className="w-56" align="end">
+								<DropdownMenuContent className="w-56 z-[999]" align="end">
 									{groups ? (
 										groups.map((group, groupIndex) => (
 											<div key={group.id}>
@@ -413,7 +412,7 @@ export function TabbedDialog({
 					</DrawerHeader>
 
 					{/* Scrollable Content */}
-					<div className="flex-1 overflow-hidden flex flex-col min-h-0">
+					<div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-popover">
 						<TabsContext.Provider value={{ activeTab, setActiveTab, setTabFooter }}>
 							{children}
 						</TabsContext.Provider>
