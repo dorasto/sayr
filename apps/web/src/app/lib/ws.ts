@@ -1,5 +1,6 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
 
@@ -125,8 +126,7 @@ export type WSMessage =
 	  })
 	| (BaseMessage & {
 			type: "UPDATE_ORG";
-			// biome-ignore lint/suspicious/noExplicitAny: <any>
-			data?: any;
+			data: schema.organizationType;
 	  })
 	| (BaseMessage & {
 			type: "FIREHOSE";

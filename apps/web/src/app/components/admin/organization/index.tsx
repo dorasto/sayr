@@ -2,21 +2,46 @@
 import type { schema } from "@repo/database";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useEffect } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 
 type Props = {
-	organization: schema.OrganizationWithMembers;
+	_organization: schema.OrganizationWithMembers;
 };
 
-export default function OrganizationHomePage({ organization }: Props) {
+export default function OrganizationHomePage({ _organization }: Props) {
 	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
+	const { value: organization, setValue: setOrganization } = useStateManagement<schema.OrganizationWithMembers>(
+		"organization",
+		_organization
+	);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <only run on mount>
+	useEffect(() => {
+		setOrganization(_organization);
+	}, []);
 	const { messages, wsSubscribedState } = useWebSocketSubscription({
 		ws,
-		orgId: organization.id,
+		orgId: _organization.id,
+		organization: organization,
 		channel: "admin",
+		setOrganization: setOrganization,
 	});
+	// useEffect(() => {
+	// 	if (!ws) return;
+	// 	const handleMessage = (event: MessageEvent) => {
+	// 		const data = JSON.parse(event.data) as WSMessage;
+	// 		if (data.type === "UPDATE_ORG") {
+	// 			setOrganization({ ...organization, ...data.data });
+	// 		}
+	// 	};
+	// 	ws.addEventListener("message", handleMessage);
+	// 	// Cleanup on unmount or dependency change
+	// 	return () => {
+	// 		ws.removeEventListener("message", handleMessage);
+	// 	};
+	// }, [ws, organization, setOrganization]);
 	return (
 		<div className="">
 			<TabbedDialogExample />

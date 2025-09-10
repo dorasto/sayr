@@ -15,5 +15,5 @@ export default async function Home({ params }: Props) {
 	if (!organization) {
 		return redirect("/admin");
 	}
-	return <OrganizationHomePage organization={organization} />;
+	return <OrganizationHomePage _organization={organization} />;
 }

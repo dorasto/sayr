@@ -1,3 +1,4 @@
+import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useCallback, useEffect, useState } from "react";
 import type { WSMessage } from "../lib/ws";
@@ -6,6 +7,8 @@ interface UseWebSocketSubscriptionOptions {
 	ws: WebSocket | null;
 	orgId?: string | null;
 	channel?: string | null;
+	organization?: schema.OrganizationWithMembers | null;
+	setOrganization?: (newValue: schema.OrganizationWithMembers) => void;
 }
 interface UseWebSocketSubscriptionReturn {
 	messages: WSMessage[];
@@ -17,6 +20,8 @@ export function useWebSocketSubscription({
 	ws,
 	orgId,
 	channel,
+	organization,
+	setOrganization,
 }: UseWebSocketSubscriptionOptions): UseWebSocketSubscriptionReturn {
 	const [messages, setMessages] = useState<WSMessage[]>([]);
 	const { value: wsSubscribedState, setValue: setWSSubscribedState } = useStateManagement<{
@@ -25,6 +30,7 @@ export function useWebSocketSubscription({
 	} | null>("ws-subscribe-state", null);
 
 	// stable handler
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <ignore>
 	const handleMessage = useCallback(
 		(event: MessageEvent) => {
 			const data = JSON.parse(event.data) as WSMessage;
@@ -32,8 +38,11 @@ export function useWebSocketSubscription({
 			if (data.type === "SUBSCRIBED" && orgId && channel) {
 				setWSSubscribedState({ orgId: data.data.orgId, channel: data.data.channel });
 			}
+			if (data.type === "UPDATE_ORG" && organization && setOrganization) {
+				setOrganization({ ...organization, ...data.data });
+			}
 		},
-		[orgId, channel, setWSSubscribedState]
+		[orgId, channel, setWSSubscribedState, setOrganization]
 	);
 
 	useEffect(() => {
@@ -61,7 +70,7 @@ export function useWebSocketSubscription({
 		// cleanup
 		return () => {
 			ws.removeEventListener("message", handleMessage);
-			if (ws.readyState === WebSocket.OPEN) {
+			if (ws.readyState === WebSocket.OPEN && orgId) {
 				ws.send(JSON.stringify({ type: "UNSUBSCRIBE" }));
 			}
 			setWSSubscribedState(null);

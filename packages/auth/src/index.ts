@@ -34,7 +34,7 @@ export const auth = betterAuth({
 					responseType: "code",
 					authentication: "post",
 					authorizationUrlParams: {
-						redirect_to: process.env.NEXT_PUBLIC_URL_ROOT as string,
+						redirect_to: `${process.env.NEXT_PUBLIC_URL_ROOT}/admin` as string,
 					},
 					mapProfileToUser: async (profile) => {
 						return {

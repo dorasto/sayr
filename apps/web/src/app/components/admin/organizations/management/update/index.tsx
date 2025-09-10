@@ -6,10 +6,9 @@ import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
 import { TabbedDialog, TabbedDialogFooter, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconBrush, IconHome, IconUsers } from "@tabler/icons-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ImagePlusIcon, XIcon } from "lucide-react";
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
@@ -34,9 +33,8 @@ interface UpdateOrgDialogProps {
 }
 
 export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: UpdateOrgDialogProps) {
-	const { value: WSClientId } = useStateManagement<string>("ws-clientId", "");
+	// const { value: WSClientId } = useStateManagement<string>("ws-clientId", "");
 	const id = useId();
-	const queryClient = useQueryClient();
 
 	// Form state
 	const [name, setName] = useState(organization.name);
@@ -207,27 +205,14 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 	// Mutation for updating organization
 	const updateMutation = useMutation({
 		mutationFn: async (data: UpdateOrganizationData) => {
-			const result = await updateOrganizationAction(organization.id, data, WSClientId);
+			const result = await updateOrganizationAction(organization.id, data, "");
 			if (!result.success) {
 				throw new Error(result.error);
 			}
 			return result.data;
 		},
-		onSuccess: (data) => {
+		onSuccess: () => {
 			toast.success("Organization updated successfully");
-
-			// Update the organization in context with full structure
-			// if (currentOrg) {
-			// 	const updatedOrg = {
-			// 		...currentOrg,
-			// 		data,
-			// 	};
-			// 	setOrg(updatedOrg);
-			// }
-
-			// Invalidate relevant queries
-			queryClient.invalidateQueries({ queryKey: ["organization"] });
-
 			onOpenChange(false);
 		},
 		onError: (error) => {
