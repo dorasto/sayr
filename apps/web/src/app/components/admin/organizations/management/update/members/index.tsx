@@ -179,6 +179,7 @@ const memberColumns: ColumnDef<Member>[] = [
 	{
 		header: "Member",
 		accessorKey: "user.name",
+		id: "user.name",
 		cell: ({ row }) => (
 			<div className="flex items-center gap-3 select-none">
 				{row.original.user.image ? (
