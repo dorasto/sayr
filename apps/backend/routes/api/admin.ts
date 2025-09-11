@@ -1,8 +1,8 @@
 import type { auth } from "@repo/auth";
-import { db, schema } from "@repo/database";
+import { db, getOrganizationMembers, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { broadcast, findClientByWsId } from "../ws";
+import { broadcast, broadcastPublic, findClientByWsId, findClientsByUserId, send } from "../ws";
 
 export const apiRouteAdmin = new Hono<{
 	Variables: {
@@ -33,6 +33,12 @@ apiRouteAdmin.post("/update-org", async (c) => {
 			if (result[0]) {
 				const found = findClientByWsId(wsClientId);
 				broadcast(org_id, "admin", { type: "UPDATE_ORG", data: result[0] }, found?.socket);
+				broadcastPublic(org_id, { type: "UPDATE_ORG", data: result[0] });
+				const members = await getOrganizationMembers(org_id);
+				members.forEach((member) => {
+					const clients = findClientsByUserId(member.userId);
+					clients.forEach((c) => send(c.socket, { type: "UPDATE_ORG_GLOBAL", data: result[0] }));
+				});
 				return c.json({ success: true, data: result[0] });
 			}
 		}
@@ -43,7 +49,7 @@ apiRouteAdmin.post("/update-org", async (c) => {
 		return c.json(
 			{
 				path: c.req.path,
-				error: error.status,
+				error: error.toString(),
 			},
 			error.statusCode
 		);

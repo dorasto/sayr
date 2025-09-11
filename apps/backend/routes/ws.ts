@@ -71,7 +71,7 @@ function sendToClients(
 }
 
 // Internal helper to send
-function send(ws: ServerWebSocket, message: WSBaseMessage) {
+export function send(ws: ServerWebSocket, message: WSBaseMessage) {
 	const msgWithMeta: WSBaseMessage = {
 		...message,
 		meta: {
@@ -157,6 +157,40 @@ export function findClientByWsId(clientId: string) {
 		const found = clients.find((c) => c.wsClientId === clientId);
 		if (found) return found;
 	}
+}
+
+/**
+ * Find all connected WebSocket clients for a given user ID.
+ *
+ * Since a user can have multiple WebSocket connections (e.g., across different
+ * orgs, channels, or devices), this returns an array of ClientInfo objects.
+ *
+ * @param userId - The user ID (`clientId`) to search for.
+ * @returns An array of ClientInfo objects if found, otherwise an empty array.
+ *
+ * @example
+ * ```ts
+ * const clients = findClientsByUserId("user_123");
+ * if (clients.length > 0) {
+ *   console.log(`User has ${clients.length} active connections:`);
+ *   clients.forEach(c =>
+ *     console.log(`- org=${c.orgId}, channel=${c.channel}, wsId=${c.wsClientId}`)
+ *   );
+ * } else {
+ *   console.log("No active WebSocket connections for this user.");
+ * }
+ * ```
+ */
+export function findClientsByUserId(userId: string): ClientInfo[] {
+	const results: ClientInfo[] = [];
+	for (const clients of rooms.values()) {
+		for (const client of clients) {
+			if (client.clientId === userId) {
+				results.push(client);
+			}
+		}
+	}
+	return results;
 }
 
 // ------------------------------------------------------------------

@@ -1,6 +1,7 @@
+import { getOrganization } from "@repo/database";
 import { redirect } from "next/navigation";
 import OrganizationHomePage from "@/app/components/admin/organization";
-import { getAccess, getOrganization } from "@/app/lib/serverFunctions";
+import { getAccess } from "@/app/lib/serverFunctions";
 
 type Props = {
 	params: Promise<{

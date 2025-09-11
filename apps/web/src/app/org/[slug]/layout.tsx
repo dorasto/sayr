@@ -1,7 +1,7 @@
+import { getOrganizationPublic } from "@repo/database";
 import type { Metadata } from "next";
 import type React from "react";
 import Navigation from "@/app/components/org/layout/navigation";
-import { getOrganizationPublic } from "@/app/lib/serverFunctions";
 
 interface OrgLayoutProps {
 	params: Promise<{

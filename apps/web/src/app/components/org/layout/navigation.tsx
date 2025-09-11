@@ -1,5 +1,6 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
@@ -13,11 +14,10 @@ import {
 	NavigationMenuTrigger,
 } from "@repo/ui/components/navigation-menu";
 import { IconUsers } from "@tabler/icons-react";
-import type { Organization } from "better-auth/plugins";
 import { MicIcon, SearchIcon } from "lucide-react";
 
 interface NavigationProps {
-	organization: Organization;
+	organization: schema.organizationType;
 }
 export default function Navigation({ organization }: NavigationProps) {
 	return (

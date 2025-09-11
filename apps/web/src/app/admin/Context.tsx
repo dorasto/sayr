@@ -9,6 +9,7 @@ interface ContextType {
 	setAccount: (newValue: ContextType["account"]) => void;
 	ws: WebSocket | null;
 	organizations: schema.OrganizationWithMembers[];
+	setOrganizations: (newVaule: ContextType["organizations"]) => void;
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);
@@ -23,10 +24,12 @@ export function RootProvider({
 	organizations: ContextType["organizations"];
 }) {
 	const { value: Newaccount, setValue: setAccount } = useStateManagement("account", account);
-	const { value: NewOrganizations } = useStateManagement("organizations", organizations);
+	const { value: NewOrganizations, setValue: setOrganizations } = useStateManagement("organizations", organizations);
 	const ws = useWebSocket();
 	return (
-		<RootContext.Provider value={{ account: Newaccount, setAccount, ws, organizations: NewOrganizations }}>
+		<RootContext.Provider
+			value={{ account: Newaccount, setAccount, ws, organizations: NewOrganizations, setOrganizations }}
+		>
 			{children}
 		</RootContext.Provider>
 	);

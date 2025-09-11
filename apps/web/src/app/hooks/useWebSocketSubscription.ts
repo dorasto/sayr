@@ -1,6 +1,7 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useCallback, useEffect, useState } from "react";
+import { useLayoutData } from "../admin/Context";
 import type { WSMessage } from "../lib/ws";
 
 interface UseWebSocketSubscriptionOptions {
@@ -23,6 +24,7 @@ export function useWebSocketSubscription({
 	organization,
 	setOrganization,
 }: UseWebSocketSubscriptionOptions): UseWebSocketSubscriptionReturn {
+	const { organizations, setOrganizations } = useLayoutData();
 	const [messages, setMessages] = useState<WSMessage[]>([]);
 	const { value: wsSubscribedState, setValue: setWSSubscribedState } = useStateManagement<{
 		orgId: string;
@@ -41,8 +43,11 @@ export function useWebSocketSubscription({
 			if (data.type === "UPDATE_ORG" && organization && setOrganization) {
 				setOrganization({ ...organization, ...data.data });
 			}
+			if (data.type === "UPDATE_ORG_GLOBAL" && organizations) {
+				setOrganizations(organizations.map((org) => (org.id === data.data.id ? { ...org, ...data.data } : org)));
+			}
 		},
-		[orgId, channel, setWSSubscribedState, setOrganization]
+		[orgId, channel, setWSSubscribedState, setOrganization, setOrganizations]
 	);
 
 	useEffect(() => {

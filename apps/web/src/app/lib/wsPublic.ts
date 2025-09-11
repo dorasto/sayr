@@ -3,14 +3,22 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
+import type { WSMessage } from "./ws";
 
 const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
 let webSocket: WebSocket | null = null;
 
-const useWebSocket = () => {
+const useWebSocketPublic = ({
+	organization,
+	setOrganization,
+}: {
+	organization: schema.organizationType;
+	setOrganization: (newValue: schema.organizationType) => void;
+}) => {
 	const [ws, setWs] = useState<WebSocket | null>(null);
 	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
 	const { setValue: setWSClientId } = useStateManagement<string>("ws-clientId", "");
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <need this>
 	useEffect(() => {
 		const abortController = new AbortController();
 		const connectWebSocket = () => {
@@ -19,6 +27,8 @@ const useWebSocket = () => {
 				webSocket = new WebSocket(wsUrl || "/ws");
 				webSocket.onopen = () => {
 					setWs(webSocket);
+					const payload = { type: "SUBSCRIBE", orgId: organization.id, channel: "public" };
+					webSocket?.send(JSON.stringify(payload));
 				};
 				webSocket.addEventListener(
 					"message",
@@ -27,20 +37,15 @@ const useWebSocket = () => {
 							const data: WSMessage = JSON.parse(event.data);
 							switch (data.type) {
 								case "CONNECTION_STATUS":
-									if (data.data.authenticated) {
-										setWSStatus("Connected");
-										setWSClientId(data.data.wsClientId);
-									} else {
-										webSocket = null;
-										console.log("WebSocket disconnected. Attempting to reconnect...");
-										setWs(null);
-										setWSStatus("Reconnecting");
-										connectWebSocket();
-									}
+									setWSStatus("Connected");
+									setWSClientId(data.data.wsClientId);
 									return;
 								case "PING":
 									console.log("📡 Received PING, sending PONG...");
 									webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() } as WSMessage));
+									return;
+								case "UPDATE_ORG":
+									setOrganization({ ...organization, ...data.data });
 									return;
 								default:
 									console.log("📩 switch default:", data);
@@ -82,77 +87,8 @@ const useWebSocket = () => {
 			webSocket?.close();
 			abortController.abort();
 		};
-	}, [setWSStatus, setWSClientId]);
+	}, [setWSStatus, setWSClientId, organization.id, setOrganization]);
 	return ws;
 };
 
-export default useWebSocket;
-
-// Base message type with optional metadata
-export type BaseMessage = {
-	meta?: {
-		ts: number; // timestamp
-		channel?: string;
-		orgId?: string;
-	};
-};
-
-export type WSMessage =
-	| (BaseMessage & {
-			type: "CONNECTION_STATUS";
-			data: { status: string; authenticated: boolean; wsClientId: string };
-	  })
-	| (BaseMessage & {
-			type: "SERVER_MESSAGE" | "ERROR";
-			data: { message: string };
-	  })
-	| (BaseMessage & {
-			type: "PING" | "PONG";
-			ts: number;
-	  })
-	| (BaseMessage & {
-			type: "MESSAGE";
-			data: {
-				channel?: string;
-				text?: string;
-			};
-	  })
-	| (BaseMessage & {
-			type: "SUBSCRIBED";
-			data: {
-				orgId: string;
-				channel: string;
-			};
-	  })
-	| (BaseMessage & {
-			type: "UPDATE_ORG";
-			data: schema.organizationType;
-	  })
-	| (BaseMessage & {
-			type: "UPDATE_ORG_GLOBAL";
-			data: schema.organizationType;
-	  })
-	| (BaseMessage & {
-			type: "FIREHOSE";
-			data: {
-				channel: string;
-				payload: {
-					type: "MESSAGE";
-					data: {
-						text: string;
-						wsClientId: string;
-						clientId: string;
-					};
-				};
-			};
-	  });
-
-// Messages the client can send to the server
-export type WSMessageSend =
-	| BaseMessage
-	| (BaseMessage & {
-			type: "SUBSCRIBE";
-			orgId: string;
-			channel: string;
-			timestamp: string;
-	  });
+export default useWebSocketPublic;

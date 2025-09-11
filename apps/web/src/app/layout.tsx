@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type React from "react";
 import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
+import { QueryClientProvider } from "./components/layout/query-provider";
 
 const name = process.env.NEXT_PUBLIC_PROJECT_NAME;
 export const metadata: Metadata = {
@@ -31,9 +32,11 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<body className="relative">
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-					{children}
+					<QueryClientProvider>
+						{children}
 
-					<Toaster />
+						<Toaster />
+					</QueryClientProvider>
 				</ThemeProvider>
 			</body>
 		</html>
