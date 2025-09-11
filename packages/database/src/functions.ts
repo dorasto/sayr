@@ -1,16 +1,9 @@
-import { and, eq } from "drizzle-orm";
-import { auth as authType, db, schema } from ".";
+import { eq } from "drizzle-orm";
+import { db, type schema } from ".";
 
 /**
  * Retrieves all organizations that a given user belongs to, including
  * their members and associated user account details.
- *
- * This function:
- * 1. Finds all organization memberships for the provided `userId`.
- * 2. Fetches each organization.
- * 3. Fetches all members of that organization.
- * 4. Augments each member with the corresponding user information.
- * 5. Returns the organizations with enriched member data.
  *
  * @param userId - The ID of the user whose organizations should be retrieved.
  * @returns A promise that resolves to an array of organizations,
@@ -28,58 +21,30 @@ import { auth as authType, db, schema } from ".";
  * });
  * ```
  */
-export async function getOrganizations(userId: string) {
-	// First, get all the organizations for this user
-	const organizations = await db.query.member.findMany({
-		where: eq(schema.member.userId, userId),
+export async function getOrganizations(userId: string): Promise<schema.OrganizationWithMembers[]> {
+	// Step 1: Find orgIds the user belongs to
+	const memberships = await db.query.member.findMany({
+		where: (member) => eq(member.userId, userId),
 	});
 
-	// Run queries in parallel and merge results
-	const orgsWithMembers = await Promise.all(
-		organizations.map(async (org) => {
-			// Fetch the organization itself
-			const [organization] = await db
-				.select()
-				.from(schema.organization)
-				.where(eq(schema.organization.id, org.organizationId));
+	if (memberships.length === 0) return [];
 
-			// Fetch all members for this org
-			const members = await db.query.member.findMany({
-				where: eq(schema.member.organizationId, org.organizationId),
-			});
+	const orgIds = memberships.map((m) => m.organizationId);
 
-			// For each member, fetch the user and merge
-			const membersWithUsers = await Promise.all(
-				members.map(async (member) => {
-					const [user] = await db
-						.select({
-							id: authType.user.id,
-							name: authType.user.name,
-							email: authType.user.email,
-							image: authType.user.image,
-							createdAt: authType.user.createdAt,
-							updatedAt: authType.user.updatedAt,
-						})
-						.from(authType.user)
-						.where(eq(authType.user.id, member.userId));
+	// Step 2: Load organizations with members + users in a *single query*
+	const orgsWithMembers = await db.query.organization.findMany({
+		with: {
+			members: {
+				with: {
+					user: true, // ✅ this now works because of relations()
+				},
+			},
+		},
+		where: (organization, { inArray }) => inArray(organization.id, orgIds),
+	});
 
-					return {
-						...member,
-						user, // attach user info to each member
-					};
-				})
-			);
-
-			return {
-				...organization,
-				members: membersWithUsers,
-			};
-		})
-	);
-
-	return orgsWithMembers as schema.OrganizationWithMembers[];
+	return orgsWithMembers;
 }
-
 /**
  * Retrieves a single organization by its ID **only if the user
  * belongs to it**, including all members and their user details.
@@ -102,53 +67,21 @@ export async function getOrganizations(userId: string) {
  * }
  * ```
  */
-export async function getOrganization(orgId: string, userId: string) {
-	// Check if the user is a member of this org
-	const membership = await db.query.member.findFirst({
-		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
+export async function getOrganization(orgId: string, userId: string): Promise<schema.OrganizationWithMembers | null> {
+	const organization = await db.query.organization.findFirst({
+		where: (org) => eq(org.id, orgId),
+		with: {
+			members: {
+				with: { user: true },
+			},
+		},
 	});
 
-	// If no membership found, deny access
-	if (!membership) {
-		return null; // or throw new Error("Unauthorized");
+	// Ensure the current user is part of it
+	if (!organization?.members.some((m) => m.userId === userId)) {
+		return null; // unauthorized
 	}
-
-	// Fetch the organization itself
-	const [organization] = await db.select().from(schema.organization).where(eq(schema.organization.id, orgId));
-
-	if (!organization) return null;
-
-	// Fetch all members for this org
-	const members = await db.query.member.findMany({
-		where: eq(schema.member.organizationId, orgId),
-	});
-
-	// For each member, fetch the user and merge
-	const membersWithUsers = await Promise.all(
-		members.map(async (member) => {
-			const [user] = await db
-				.select({
-					id: authType.user.id,
-					name: authType.user.name,
-					email: authType.user.email,
-					image: authType.user.image,
-					createdAt: authType.user.createdAt,
-					updatedAt: authType.user.updatedAt,
-				})
-				.from(authType.user)
-				.where(eq(authType.user.id, member.userId));
-
-			return {
-				...member,
-				user,
-			};
-		})
-	);
-
-	return {
-		...organization,
-		members: membersWithUsers,
-	} as schema.OrganizationWithMembers;
+	return organization;
 }
 
 /**
@@ -165,18 +98,13 @@ export async function getOrganization(orgId: string, userId: string) {
  * });
  * ```
  */
-export async function getOrganizationMembers(orgId: string) {
-	const membership = await db.query.member.findMany({
-		where: and(eq(schema.member.organizationId, orgId)),
+export async function getOrganizationMembers(orgId: string): Promise<schema.memberType[]> {
+	return db.query.member.findMany({
+		where: (member) => eq(member.organizationId, orgId),
 	});
-	return membership;
 }
-
 /**
  * Fetches a single organization by its unique slug.
- *
- * This query selects the organization's core profile fields including
- * `id`, `name`, `slug`, `logo`, `bannerImg`, `createdAt` and `description`.
  *
  * @param org_slug - The unique slug identifier of the organization.
  * @returns A promise that resolves to the organization's data if found,
@@ -193,10 +121,9 @@ export async function getOrganizationMembers(orgId: string) {
  * }
  * ```
  */
-export async function getOrganizationPublic(org_slug: string) {
-	const results = await db.select().from(schema.organization).where(eq(schema.organization.slug, org_slug));
-	if (results) {
-		return results[0];
-	}
-	return null;
+export async function getOrganizationPublic(orgSlug: string): Promise<schema.organizationType | null> {
+	const organization = await db.query.organization.findFirst({
+		where: (org) => eq(org.slug, orgSlug),
+	});
+	return organization ?? null;
 }
