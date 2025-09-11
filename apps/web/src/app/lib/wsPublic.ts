@@ -41,7 +41,6 @@ const useWebSocketPublic = ({
 									setWSClientId(data.data.wsClientId);
 									return;
 								case "PING":
-									console.log("📡 Received PING, sending PONG...");
 									webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() } as WSMessage));
 									return;
 								case "UPDATE_ORG":

@@ -6,5 +6,5 @@ export const authClient = createAuthClient({
 });
 
 export const signInDoras = async () => {
-	await authClient.signIn.oauth2({ providerId: "doras" });
+	await authClient.signIn.oauth2({ providerId: "doras", callbackURL: "/admin" });
 };

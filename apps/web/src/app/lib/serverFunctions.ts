@@ -27,8 +27,10 @@ export async function getAccess() {
 			return { account: session.user as schema.userType };
 		}
 		return redirectAuth();
-	} catch (error) {
+		// biome-ignore lint/suspicious/noExplicitAny: <da>
+	} catch (error: any) {
 		console.log("🚀 ~ getAccess ~ error:", error);
+		console.log("🚀 ~ getAccess ~ error:", error.body);
 		return redirectAuth();
 	}
 }
