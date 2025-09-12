@@ -15,7 +15,8 @@ export default function OrganizationHomePage({ _organization }: Props) {
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
 	const { value: organization, setValue: setOrganization } = useStateManagement<schema.OrganizationWithMembers>(
 		"organization",
-		_organization
+		_organization,
+		30000
 	);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <only run on mount>
 	useEffect(() => {

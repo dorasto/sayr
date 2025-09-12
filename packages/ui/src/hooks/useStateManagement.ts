@@ -4,8 +4,37 @@ export interface UseStateManagementResult<T> {
 	value: T;
 	setValue: (newValue: T) => void;
 }
-
-export function useStateManagement<T>(key: string, defaultValue: null | T): UseStateManagementResult<T> {
+/**
+ * A React hook that uses **TanStack React Query** to manage
+ * lightweight, globally accessible state with optional garbage collection.
+ *
+ * @example
+ * ```tsx
+ * const { value, setValue } = useStateManagement<number>("counter", 0);
+ *
+ * return (
+ *   <div>
+ *     <p>Count: {value}</p>
+ *     <button onClick={() => setValue(value + 1)}>Increment</button>
+ *   </div>
+ * );
+ * ```
+ *
+ * @template T - Type of the managed value
+ *
+ * @param key - A unique string key identifying this piece of state (used as React Query key)
+ * @param defaultValue - Default value if none exists in cache
+ * @param gcTime - Optional garbage collection time in ms (default: `Infinity`)
+ *
+ * @returns An object with:
+ * - `value`: The current state,
+ * - `setValue`: A function to update the state.
+ */
+export function useStateManagement<T>(
+	key: string,
+	defaultValue: null | T,
+	gcTime?: number | undefined
+): UseStateManagementResult<T> {
 	const queryClient = useQueryClient();
 	const queryKey = [key];
 
@@ -16,7 +45,7 @@ export function useStateManagement<T>(key: string, defaultValue: null | T): UseS
 			return storedValue ?? (defaultValue as any);
 		},
 		staleTime: Infinity,
-		gcTime: Infinity,
+		gcTime: gcTime || Infinity,
 	});
 
 	const { mutate: setValue } = useMutation<void, Error, T>({
@@ -100,6 +129,33 @@ const defaultMutator = async <TMutationData>(url: string, data: TMutationData): 
 	return res.json();
 };
 
+/**
+ * React Query powered state management hook
+ * for fetching + optionally mutating server state
+ * with minimal boilerplate.
+ *
+ * @example
+ * ```tsx
+ * type User = { id: string; name: string };
+ *
+ * const { value, mutate } = useStateManagementFetch<User[], Partial<User>>({
+ *   key: ["users"],
+ *   fetch: { url: "/api/users" },
+ *   mutate: { url: "/api/users" },
+ *   staleTime: 1000 * 60, // 1 min
+ * });
+ *
+ * if (value.isLoading) return <Spinner />;
+ * if (value.isError) return <p>Error: {value.error?.message}</p>;
+ *
+ * return (
+ *   <>
+ *     {value.data?.map(u => <div key={u.id}>{u.name}</div>)}
+ *     <button onClick={() => mutate?.({ name: "Alice" })}>Add</button>
+ *   </>
+ * );
+ * ```
+ */
 export function useStateManagementFetch<TypeFetch, TypeMutate = any>({
 	key,
 	initialData,

@@ -1,8 +1,9 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLayoutData } from "../admin/Context";
 import type { WSMessage } from "../lib/ws";
+import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandler";
 
 interface UseWebSocketSubscriptionOptions {
 	ws: WebSocket | null;
@@ -16,7 +17,6 @@ interface UseWebSocketSubscriptionReturn {
 	clearMessages: () => void;
 	wsSubscribedState: { orgId: string; channel: string } | null;
 }
-
 export function useWebSocketSubscription({
 	ws,
 	orgId,
@@ -30,26 +30,28 @@ export function useWebSocketSubscription({
 		orgId: string;
 		channel: string;
 	} | null>("ws-subscribe-state", null);
-
-	// stable handler
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <ignore>
-	const handleMessage = useCallback(
-		(event: MessageEvent) => {
-			const data = JSON.parse(event.data) as WSMessage;
-			setMessages((prev) => [...prev, data]);
-			if (data.type === "SUBSCRIBED" && orgId && channel) {
-				setWSSubscribedState({ orgId: data.data.orgId, channel: data.data.channel });
-			}
-			if (data.type === "UPDATE_ORG" && organization && setOrganization) {
-				setOrganization({ ...organization, ...data.data });
-			}
-			if (data.type === "UPDATE_ORG_GLOBAL" && organizations) {
-				setOrganizations(organizations.map((org) => (org.id === data.data.id ? { ...org, ...data.data } : org)));
+	// Define handlers for message types
+	const handlers: WSMessageHandler<WSMessage> = {
+		SUBSCRIBED: (msg) => {
+			setWSSubscribedState({
+				orgId: msg.data.orgId,
+				channel: msg.data.channel,
+			});
+		},
+		UPDATE_ORG: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations) {
+				setOrganizations(organizations.map((org) => (org.id === msg.data.id ? { ...org, ...msg.data } : org)));
+			} else if (organization && setOrganization) {
+				setOrganization({ ...organization, ...msg.data });
 			}
 		},
-		[orgId, channel, setWSSubscribedState, setOrganization, setOrganizations]
-	);
+	};
 
+	// Stable handler for WebSocket `onmessage`
+	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+		onEach: (msg) => setMessages((prev) => [...prev, msg]),
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
+	});
 	useEffect(() => {
 		if (!ws) {
 			setWSSubscribedState(null);
@@ -59,26 +61,24 @@ export function useWebSocketSubscription({
 		ws.addEventListener("message", handleMessage);
 
 		if (!orgId || !channel) {
-			setWSSubscribedState({
-				orgId: "WAITING_ROOM",
-				channel: "main",
-			});
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: "UNSUBSCRIBE" }));
+			}
+			setWSSubscribedState({ orgId: "WAITING_ROOM", channel: "main" });
 			return () => {
 				ws.removeEventListener("message", handleMessage);
+				setWSSubscribedState(null);
 			};
 		}
 
-		// SUBSCRIBE
-		const payload = { type: "SUBSCRIBE", orgId, channel };
-		ws.send(JSON.stringify(payload));
+		// 👉 Subscribe with the *current* org/channel
+		if (orgId && channel) {
+			const payload = { type: "SUBSCRIBE", orgId, channel };
+			ws.send(JSON.stringify(payload));
+		}
 
-		// cleanup
 		return () => {
 			ws.removeEventListener("message", handleMessage);
-			if (ws.readyState === WebSocket.OPEN && orgId) {
-				ws.send(JSON.stringify({ type: "UNSUBSCRIBE" }));
-			}
-			setWSSubscribedState(null);
 		};
 	}, [ws, orgId, channel, handleMessage, setWSSubscribedState]);
 

@@ -3,6 +3,7 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
+import { useWSMessageHandler, type WSMessageHandler } from "../hooks/useWSMessageHandler";
 import type { WSMessage } from "./ws";
 
 const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
@@ -18,44 +19,31 @@ const useWebSocketPublic = ({
 	const [ws, setWs] = useState<WebSocket | null>(null);
 	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
 	const { setValue: setWSClientId } = useStateManagement<string>("ws-clientId", "");
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <need this>
+	const handlers: WSMessageHandler<WSMessage> = {
+		CONNECTION_STATUS: (msg) => {
+			setWSStatus("Connected");
+			setWSClientId(msg.data.wsClientId);
+		},
+		PING: () => {
+			webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() } as WSMessage));
+		},
+		UPDATE_ORG: (msg) => {
+			setOrganization({ ...organization, ...msg.data });
+		},
+	};
+	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
+	});
 	useEffect(() => {
 		const abortController = new AbortController();
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(wsUrl || "/ws");
+				webSocket = new WebSocket(`${wsUrl}?orgId=${organization.id}` || "/ws");
 				webSocket.onopen = () => {
 					setWs(webSocket);
-					const payload = { type: "SUBSCRIBE", orgId: organization.id, channel: "public" };
-					webSocket?.send(JSON.stringify(payload));
 				};
-				webSocket.addEventListener(
-					"message",
-					(event) => {
-						try {
-							const data: WSMessage = JSON.parse(event.data);
-							switch (data.type) {
-								case "CONNECTION_STATUS":
-									setWSStatus("Connected");
-									setWSClientId(data.data.wsClientId);
-									return;
-								case "PING":
-									webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() } as WSMessage));
-									return;
-								case "UPDATE_ORG":
-									setOrganization({ ...organization, ...data.data });
-									return;
-								default:
-									console.log("📩 switch default:", data);
-									break;
-							}
-						} catch {
-							console.log("📩 Raw:", event.data);
-						}
-					},
-					{ signal: abortController.signal }
-				);
+				webSocket.addEventListener("message", handleMessage, { signal: abortController.signal });
 				webSocket.onclose = () => {
 					webSocket = null;
 					console.log("WebSocket disconnected. Attempting to reconnect...");
@@ -86,7 +74,7 @@ const useWebSocketPublic = ({
 			webSocket?.close();
 			abortController.abort();
 		};
-	}, [setWSStatus, setWSClientId, organization.id, setOrganization]);
+	}, [setWSStatus, organization.id, handleMessage]);
 	return ws;
 };
 

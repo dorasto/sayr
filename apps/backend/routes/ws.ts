@@ -24,6 +24,7 @@ type WSBaseMessage = {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	data?: any;
+	scope: "INDIVIDUAL" | "CHANNEL" | "PUBLIC";
 	meta?: {
 		ts: number;
 		channel?: string;
@@ -70,10 +71,24 @@ function sendToClients(
 	}
 }
 
-// Internal helper to send
-export function send(ws: ServerWebSocket, message: WSBaseMessage) {
+/**
+ * Send a message to an individual WebSocket connection.
+ *
+ * @param ws - The target WebSocket connection to send the message to.
+ * @param message - The message object to be sent. The `scope` field will be
+ * automatically set to `"INDIVIDUAL"`, and a `meta.ts` timestamp will be added.
+ *
+ * @returns void
+ *
+ * @example
+ * ```ts
+ * broadcastIndividual(ws, { type: "UPDATE", data: { ... } });
+ * ```
+ */
+export function broadcastIndividual(ws: ServerWebSocket, message: Omit<WSBaseMessage, "scope">) {
 	const msgWithMeta: WSBaseMessage = {
 		...message,
+		scope: "INDIVIDUAL",
 		meta: {
 			ts: Date.now(),
 			...(message.meta || {}),
@@ -87,7 +102,8 @@ export function send(ws: ServerWebSocket, message: WSBaseMessage) {
  *
  * @param orgId - The organization ID to which the message is broadcasted.
  * @param channel - The channel within the organization to which the message is sent.
- * @param message - The message object to be broadcasted.
+ * @param message - The message object to be sent. The `scope` field will be
+ * automatically set to `"CHANNEL"`, and a `meta.ts` timestamp will be added.
  * @param exclude - An optional WebSocket to exclude from receiving the message (e.g., the sender).
  * @returns void
  * @example
@@ -95,16 +111,26 @@ export function send(ws: ServerWebSocket, message: WSBaseMessage) {
  * broadcast("org_123", "public", { type: "UPDATE", data: { ... } });
  * ```
  */
-export function broadcast(orgId: string, channel: string, message: WSBaseMessage, exclude?: ServerWebSocket) {
+export function broadcast(
+	orgId: string,
+	channel: string,
+	message: Omit<WSBaseMessage, "scope">,
+	exclude?: ServerWebSocket
+) {
+	const fullMsg: WSBaseMessage = {
+		...message,
+		scope: "CHANNEL",
+	};
 	// Send to the specific channel
-	sendToClients(rooms.get(`${orgId}:${channel}`), message, orgId, channel, exclude);
+	sendToClients(rooms.get(`${orgId}:${channel}`), fullMsg, orgId, channel, exclude);
 
 	// Send to firehose listeners, but include channel info
-	const firehoseMsg = {
+	const firehoseMsg: WSBaseMessage = {
 		type: "FIREHOSE",
+		scope: "CHANNEL",
 		data: {
 			channel,
-			payload: message,
+			payload: fullMsg,
 		},
 	};
 	sendToClients(rooms.get(`${orgId}:*`), firehoseMsg, orgId, "*", exclude);
@@ -114,7 +140,8 @@ export function broadcast(orgId: string, channel: string, message: WSBaseMessage
  * Broadcast a message to a specific org's public channel.
  *
  * @param orgId - The organization ID to which the message is broadcasted.
- * @param message - The message object to be broadcasted.
+ * @param message - The message object to be sent. The `scope` field will be
+ * automatically set to `"PUBLIC"`, and a `meta.ts` timestamp will be added.
  * @param exclude - An optional WebSocket to exclude from receiving the message (e.g., the sender).
  * @returns void
  * @example
@@ -122,9 +149,13 @@ export function broadcast(orgId: string, channel: string, message: WSBaseMessage
  * broadcastPublic("org_123", { type: "UPDATE", data: { ... } });
  * ```
  */
-export function broadcastPublic(orgId: string, message: WSBaseMessage, exclude?: ServerWebSocket) {
+export function broadcastPublic(orgId: string, message: Omit<WSBaseMessage, "scope">, exclude?: ServerWebSocket) {
+	const fullMsg: WSBaseMessage = {
+		...message,
+		scope: "PUBLIC",
+	};
 	// Send to the org's public channel
-	sendToClients(rooms.get(`${orgId}:public`), message, orgId, "public", exclude);
+	sendToClients(rooms.get(`${orgId}:public`), fullMsg, orgId, "public", exclude);
 
 	// // Send to firehose listeners, include channel info
 	// const firehoseMsg = {
@@ -231,7 +262,7 @@ function findClient(socket: ServerWebSocket) {
 function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: string, orgId: string, channel: string) {
 	const key = `${orgId}:${channel}`;
 	if ((rooms.get(key) || []).some((c) => c.socket === ws)) {
-		send(ws, {
+		broadcastIndividual(ws, {
 			type: "ERROR",
 			data: { message: `Already subscribed to ${orgId}:${channel}` },
 		});
@@ -249,7 +280,7 @@ function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		lastPong: Date.now(),
 	};
 	rooms.set(key, [...(rooms.get(key) || []), info]);
-	send(ws, {
+	broadcastIndividual(ws, {
 		type: "SUBSCRIBED",
 		data: {
 			orgId,
@@ -274,7 +305,7 @@ function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: stri
 	};
 	rooms.set(waitingKey, [...(rooms.get(waitingKey) || []), info]);
 
-	send(ws, {
+	broadcastIndividual(ws, {
 		type: "WAITING_ROOM",
 		data: {
 			message: "You have been placed in the waiting room",
@@ -299,9 +330,9 @@ wsRoute.get(
 			const wsClientId = crypto.randomUUID();
 			wsClientIds.set(ws.raw, wsClientId);
 
+			const orgId = c.req.query("orgId");
 			if (!session) {
-				const orgId = c.req.query("orgId") || "default";
-				send(ws.raw, {
+				broadcastIndividual(ws.raw, {
 					type: "CONNECTION_STATUS",
 					data: {
 						status: "connected",
@@ -312,13 +343,17 @@ wsRoute.get(
 						ts: Date.now(),
 					},
 				});
-				handleSubscribe(ws.raw, wsClientId, "ANONYMOUS", orgId, "public");
+				if (orgId) {
+					handleSubscribe(ws.raw, wsClientId, "ANONYMOUS", orgId, "public");
+				} else {
+					handleSubscribe(ws.raw, wsClientId, "ANONYMOUS", "default", "public");
+				}
 				return;
 			}
 
 			// Authenticated but no org/channel yet → place in waiting room
 
-			send(ws.raw, {
+			broadcastIndividual(ws.raw, {
 				type: "CONNECTION_STATUS",
 				data: {
 					status: "connected",
@@ -329,7 +364,11 @@ wsRoute.get(
 					ts: Date.now(),
 				},
 			});
-			joinWaitingRoom(ws.raw, wsClientId, user?.id);
+			if (!orgId) {
+				joinWaitingRoom(ws.raw, wsClientId, user?.id);
+			} else {
+				handleSubscribe(ws.raw, wsClientId, user.id, orgId, "public");
+			}
 		},
 
 		onMessage: async (event, ws) => {
@@ -349,7 +388,7 @@ wsRoute.get(
 				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE
 				if (client?.orgId === WAITING_ORG && client.channel === WAITING_CHANNEL) {
 					if (!["SUBSCRIBE", "UNSUBSCRIBE"].includes(msg.type)) {
-						return send(ws.raw, {
+						return broadcastIndividual(ws.raw, {
 							type: "ERROR",
 							data: { message: "You are in waiting room. Please SUBSCRIBE to an org/channel" },
 							meta: { ts: Date.now() },
@@ -361,7 +400,7 @@ wsRoute.get(
 				if (msg.type === "SUBSCRIBE") {
 					const { orgId, channel } = msg;
 					if (!orgId || !channel) {
-						return send(ws.raw, {
+						return broadcastIndividual(ws.raw, {
 							type: "ERROR",
 							data: { message: "Need orgId+channel" },
 							meta: { ts: Date.now() },
@@ -369,7 +408,7 @@ wsRoute.get(
 					}
 					// ✅ enforce session: only allow "public" channel if unauthenticated
 					if (!session && channel !== "public") {
-						return send(ws.raw, {
+						return broadcastIndividual(ws.raw, {
 							type: "ERROR",
 							data: { message: "Auth required for private channels" },
 							meta: { ts: Date.now() },
@@ -389,7 +428,7 @@ wsRoute.get(
 				// ✅ Handle UNSUBSCRIBE (auth only)
 				if (msg.type === "UNSUBSCRIBE") {
 					if (!session) {
-						return send(ws.raw, {
+						return broadcastIndividual(ws.raw, {
 							type: "ERROR",
 							data: { message: "Anonymous users cannot unsubscribe" },
 							meta: { ts: Date.now() },
@@ -398,7 +437,7 @@ wsRoute.get(
 					joinWaitingRoom(ws.raw, wsClientId, user?.id);
 				}
 			} catch (err) {
-				send(ws.raw, {
+				broadcastIndividual(ws.raw, {
 					type: "ERROR",
 					data: { error: err instanceof Error ? err.message : String(err) },
 					meta: { ts: Date.now() },
@@ -429,7 +468,7 @@ setInterval(() => {
 			unsubscribe(socket);
 		} else {
 			try {
-				socket.send(JSON.stringify({ type: "PING", ts: now }));
+				socket.send(JSON.stringify({ type: "PING", scope: "INDIVIDUAL", ts: now }));
 			} catch {
 				console.log("Failed to ping, closing", wsClientId);
 				socket.close();

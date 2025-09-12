@@ -42,7 +42,6 @@ const useWebSocket = () => {
 									webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() } as WSMessage));
 									return;
 								default:
-									console.log("📩 switch default:", data);
 									break;
 							}
 						} catch {
@@ -89,6 +88,7 @@ export default useWebSocket;
 
 // Base message type with optional metadata
 export type BaseMessage = {
+	scope: "INDIVIDUAL" | "CHANNEL" | "PUBLIC";
 	meta?: {
 		ts: number; // timestamp
 		channel?: string;
@@ -125,10 +125,6 @@ export type WSMessage =
 	  })
 	| (BaseMessage & {
 			type: "UPDATE_ORG";
-			data: schema.organizationType;
-	  })
-	| (BaseMessage & {
-			type: "UPDATE_ORG_GLOBAL";
 			data: schema.organizationType;
 	  })
 	| (BaseMessage & {
