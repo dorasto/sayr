@@ -90,6 +90,7 @@ interface TabbedDialogProps {
 	stickyHeader?: boolean; // Controls whether header is sticky (side layout only)
 	groups?: TabGroup[]; // For organizing tabs in groups (side layout only) - legacy
 	groupedTabs?: TabGroupHierarchical[]; // New hierarchical structure
+	showTitle?: boolean; // Whether to show the title in the header (side layout only)
 }
 
 export function TabbedDialog({
@@ -107,6 +108,7 @@ export function TabbedDialog({
 	stickyHeader = false, // Default to true for backward compatibility
 	groups,
 	groupedTabs: groupedTabsProp,
+	showTitle = true,
 }: TabbedDialogProps) {
 	const isMobile = useIsMobile();
 	const [activeTab, setActiveTab] = useState(defaultTab);
@@ -506,7 +508,7 @@ export function TabbedDialog({
 							className={cn("flex-1 min-h-0", "overflow-y-auto", layout === "side" && !stickyHeader && "px-6")}
 						>
 							{layout === "side" && !stickyHeader && (
-								<div className="p-4 w-full">
+								<div className={cn("w-full", showTitle ? "p-4" : "")}>
 									{(() => {
 										// Find the current active tab to get its custom title/description
 										const activeTabData = allTabs.find((tab) => tab.id === activeTab);
@@ -515,7 +517,9 @@ export function TabbedDialog({
 
 										return (
 											<div className="flex items-center gap-3 relative">
-												<DialogTitle className="font-semibold text-base!">{displayTitle}</DialogTitle>
+												{showTitle && (
+													<DialogTitle className="font-semibold text-base!">{displayTitle}</DialogTitle>
+												)}
 												{displayDescription && (
 													<TooltipProvider delayDuration={0}>
 														<Tooltip>

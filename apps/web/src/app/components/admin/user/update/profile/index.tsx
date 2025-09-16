@@ -29,6 +29,7 @@ export default function ProfileUpdate() {
 				</div>
 				<OptionField title="Email" description={account.email} buttonText="Update email" />
 			</div>
+			<Separator />
 			<div className="flex flex-col gap-6">
 				<div>
 					<Label variant={"heading"}>Preferences</Label>

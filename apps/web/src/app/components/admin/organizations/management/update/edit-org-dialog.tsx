@@ -56,7 +56,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 
 	const tabs = [
 		{
-			name: "Account",
+			name: "Organization",
 			items: [
 				{
 					id: "general",

@@ -42,6 +42,7 @@ export function UserUpdate({ isOpen, onOpenChange }: UserUpdateProps) {
 			defaultTab="general"
 			layout="side"
 			size="lg"
+			showTitle={false}
 		>
 			<TabPanel tabId="general">
 				<ProfileUpdate />
