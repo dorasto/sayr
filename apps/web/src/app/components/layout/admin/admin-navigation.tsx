@@ -34,7 +34,7 @@ export default function AdminNavigation() {
 					>
 						<TasqIcon className="not-dark:hidden size-8! transition-all" />
 						<TasqIcon className="dark:hidden size-8! transition-all" />
-						<span className="text-inherit">Tasqr</span>
+						<span className="text-inherit">tasqr</span>
 					</Button>
 				</div>
 
