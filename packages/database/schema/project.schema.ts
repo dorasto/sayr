@@ -1,18 +1,17 @@
 import { relations } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { member } from "./member.schema";
+import { projectLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
 
 export const project = pgTable("project", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
-	organization: text("organization_id").references(() => organization.id),
+	organizationId: text("organization_id").references(() => organization.id, { onDelete: "cascade" }),
 	description: text("description").default(""),
 	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
 	visibility: text("visibility").default("public"), // public or private. Sets if the entire project is visible to the public or only to members.
-	tags: text("tags").array().default([]), // array of strings in "tag-name" format usable for filtering and categorization available to tasks within the project
 	/////////////////////
 	// other fields to do
 	/////////////////////
@@ -23,7 +22,11 @@ export const project = pgTable("project", {
 
 export type projectType = typeof project.$inferSelect;
 
-export const projectRelations = relations(project, ({ many }) => ({
-	members: many(member),
+export const projectRelations = relations(project, ({ one, many }) => ({
+	organization: one(organization, {
+		fields: [project.organizationId],
+		references: [organization.id],
+	}),
 	tasks: many(task),
+	projectLabels: many(projectLabelAssignment),
 }));

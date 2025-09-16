@@ -131,14 +131,7 @@ export type WSMessage =
 			type: "FIREHOSE";
 			data: {
 				channel: string;
-				payload: {
-					type: "MESSAGE";
-					data: {
-						text: string;
-						wsClientId: string;
-						clientId: string;
-					};
-				};
+				payload: WSMessage;
 			};
 	  });
 

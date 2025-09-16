@@ -1,74 +1,79 @@
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
+import * as v from "drizzle-orm/pg-core";
+import { pgTable as table } from "drizzle-orm/pg-core";
 // --------------------
 // User
 // --------------------
-export const user = pgTable("user", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	email: text("email").notNull().unique(),
-	emailVerified: boolean("email_verified")
+export const user = table("user", {
+	id: v.text("id").primaryKey(),
+	name: v.text("name").notNull(),
+	email: v.text("email").notNull().unique(),
+	emailVerified: v
+		.boolean("email_verified")
 		.$defaultFn(() => false)
 		.notNull(),
-	image: text("image"),
-	createdAt: timestamp("created_at")
+	image: v.text("image"),
+	createdAt: v
+		.timestamp("created_at")
 		.$defaultFn(() => new Date())
 		.notNull(),
-	updatedAt: timestamp("updated_at")
+	updatedAt: v
+		.timestamp("updated_at")
 		.$defaultFn(() => new Date())
 		.notNull(),
-	role: text("role"),
-	banned: boolean("banned"),
-	banReason: text("ban_reason"),
-	banExpires: timestamp("ban_expires"),
+	role: v.text("role"),
+	banned: v.boolean("banned"),
+	banReason: v.text("ban_reason"),
+	banExpires: v.timestamp("ban_expires"),
 });
 
 // --------------------
 // Session
 // --------------------
-export const session = pgTable("session", {
-	id: text("id").primaryKey(),
-	expiresAt: timestamp("expires_at").notNull(),
-	token: text("token").notNull().unique(),
-	createdAt: timestamp("created_at").notNull(),
-	updatedAt: timestamp("updated_at").notNull(),
-	ipAddress: text("ip_address"),
-	userAgent: text("user_agent"),
-	userId: text("user_id")
+export const session = table("session", {
+	id: v.text("id").primaryKey(),
+	expiresAt: v.timestamp("expires_at").notNull(),
+	token: v.text("token").notNull().unique(),
+	createdAt: v.timestamp("created_at").notNull(),
+	updatedAt: v.timestamp("updated_at").notNull(),
+	ipAddress: v.text("ip_address"),
+	userAgent: v.text("user_agent"),
+	userId: v
+		.text("user_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
-	impersonatedBy: text("impersonated_by"),
+	impersonatedBy: v.text("impersonated_by"),
 });
 
 // --------------------
 // Account
 // --------------------
-export const account = pgTable("account", {
-	id: text("id").primaryKey(),
-	accountId: text("account_id").notNull(),
-	providerId: text("provider_id").notNull(),
-	userId: text("user_id")
+export const account = table("account", {
+	id: v.text("id").primaryKey(),
+	accountId: v.text("account_id").notNull(),
+	providerId: v.text("provider_id").notNull(),
+	userId: v
+		.text("user_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
-	accessToken: text("access_token"),
-	refreshToken: text("refresh_token"),
-	idToken: text("id_token"),
-	accessTokenExpiresAt: timestamp("access_token_expires_at"),
-	refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
-	scope: text("scope"),
-	password: text("password"),
-	createdAt: timestamp("created_at").notNull(),
-	updatedAt: timestamp("updated_at").notNull(),
+	accessToken: v.text("access_token"),
+	refreshToken: v.text("refresh_token"),
+	idToken: v.text("id_token"),
+	accessTokenExpiresAt: v.timestamp("access_token_expires_at"),
+	refreshTokenExpiresAt: v.timestamp("refresh_token_expires_at"),
+	scope: v.text("scope"),
+	password: v.text("password"),
+	createdAt: v.timestamp("created_at").notNull(),
+	updatedAt: v.timestamp("updated_at").notNull(),
 });
 
 // --------------------
 // Verification
 // --------------------
-export const verification = pgTable("verification", {
-	id: text("id").primaryKey(),
-	identifier: text("identifier").notNull(),
-	value: text("value").notNull(),
-	expiresAt: timestamp("expires_at").notNull(),
-	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
-	updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
+export const verification = table("verification", {
+	id: v.text("id").primaryKey(),
+	identifier: v.text("identifier").notNull(),
+	value: v.text("value").notNull(),
+	expiresAt: v.timestamp("expires_at").notNull(),
+	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
+	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 });

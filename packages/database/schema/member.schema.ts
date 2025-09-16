@@ -1,18 +1,21 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import * as v from "drizzle-orm/pg-core";
+import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 
-export const member = pgTable("member", {
-	id: text("id").primaryKey(),
-	userId: text("user_id")
+export const member = table("member", {
+	id: v.text("id").primaryKey(),
+	userId: v
+		.text("user_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
-	organizationId: text("organization_id")
+	organizationId: v
+		.text("organization_id")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
-	role: text("role").notNull(),
-	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
+	role: v.text("role").notNull(),
+	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 });
 
 export type memberType = typeof member.$inferSelect;
