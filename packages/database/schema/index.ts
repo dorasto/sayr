@@ -2,8 +2,10 @@ import type { account, session, user, verification } from "./auth";
 import type { memberType } from "./member.schema";
 import type { organizationType } from "./organization.schema";
 
+export * from "./label.schema";
 export * from "./member.schema";
 export * from "./organization.schema";
+export * from "./project.schema";
 export * from "./task.schema";
 export * from "./taskComment.schema";
 

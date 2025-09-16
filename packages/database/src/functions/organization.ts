@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db, type schema } from ".";
+import { db, type schema } from "..";
 
 /**
  * Retrieves all organizations that a given user belongs to, including
