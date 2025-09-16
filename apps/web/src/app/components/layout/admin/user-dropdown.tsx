@@ -12,90 +12,96 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { IconShield } from "@tabler/icons-react";
-import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from "lucide-react";
+import { IconShield, IconUserCog } from "@tabler/icons-react";
+import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
+import { UserUpdate } from "../../admin/user/update";
 
 export default function UserDropdown() {
 	const { account } = useLayoutData();
 	const isMobile = useIsMobile();
+	const [isUserUpdateOpen, setIsUserUpdateOpen] = useState(false);
 	return (
-		<SidebarMenuItem>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<SidebarMenuButton
-						size="lg"
-						className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
-						tooltip={"Your account"}
-					>
-						<Avatar className="h-8 w-8 rounded-lg">
-							<AvatarImage src={account.image || ""} alt={account.name} />
-							<AvatarFallback className="rounded-lg uppercase">{account.name.slice(0, 2)}</AvatarFallback>
-						</Avatar>
-						<div className="grid flex-1 text-left text-sm leading-tight">
-							<span className="truncate font-medium">{account.name}</span>
-							{/* <span className="truncate text-xs">{account.user.email}</span> */}
-						</div>
-						<ChevronsUpDown className="ml-auto size-4" />
-					</SidebarMenuButton>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent
-					className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg z-[999]"
-					side={isMobile ? "bottom" : "right"}
-					align="end"
-					sideOffset={4}
-				>
-					<DropdownMenuLabel className="p-0 font-normal">
-						<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+		<>
+			<SidebarMenuItem>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<SidebarMenuButton
+							size="lg"
+							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
+							tooltip={"Your account"}
+						>
 							<Avatar className="h-8 w-8 rounded-lg">
 								<AvatarImage src={account.image || ""} alt={account.name} />
 								<AvatarFallback className="rounded-lg uppercase">{account.name.slice(0, 2)}</AvatarFallback>
 							</Avatar>
 							<div className="grid flex-1 text-left text-sm leading-tight">
-								<span className="line-clamp-1 font-medium">{account.name}</span>
-
-								<span className="truncate text-xs">{account.email}</span>
+								<span className="truncate font-medium">{account.name}</span>
+								{/* <span className="truncate text-xs">{account.user.email}</span> */}
 							</div>
-						</div>
-					</DropdownMenuLabel>
-					<DropdownMenuSeparator />
-					<DropdownMenuGroup>
-						{account.role === "admin" && (
-							<Link href="/admin/console" prefetch={false}>
-								<DropdownMenuItem>
-									<IconShield />
-									Admin
-								</DropdownMenuItem>
-							</Link>
-						)}
+							<ChevronsUpDown className="ml-auto size-4" />
+						</SidebarMenuButton>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg z-[999]"
+						side={isMobile ? "bottom" : "right"}
+						align="end"
+						sideOffset={4}
+					>
+						<DropdownMenuLabel className="p-0 font-normal">
+							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+								<Avatar className="h-8 w-8 rounded-lg">
+									<AvatarImage src={account.image || ""} alt={account.name} />
+									<AvatarFallback className="rounded-lg uppercase">{account.name.slice(0, 2)}</AvatarFallback>
+								</Avatar>
+								<div className="grid flex-1 text-left text-sm leading-tight">
+									<span className="line-clamp-1 font-medium">{account.name}</span>
+
+									<span className="truncate text-xs">{account.email}</span>
+								</div>
+							</div>
+						</DropdownMenuLabel>
+						<DropdownMenuSeparator />
+						<DropdownMenuGroup>
+							{account.role === "admin" && (
+								<Link href="/admin/console" prefetch={false}>
+									<DropdownMenuItem>
+										<IconShield />
+										Admin
+									</DropdownMenuItem>
+								</Link>
+							)}
+							<DropdownMenuItem onClick={() => setIsUserUpdateOpen(true)}>
+								<IconUserCog />
+								Account settings
+							</DropdownMenuItem>
+						</DropdownMenuGroup>
+						<DropdownMenuSeparator />
+						<DropdownMenuGroup>
+							<DropdownMenuItem>
+								<BadgeCheck />
+								Account
+							</DropdownMenuItem>
+							<DropdownMenuItem>
+								<CreditCard />
+								Billing
+							</DropdownMenuItem>
+							<DropdownMenuItem>
+								<Bell />
+								Notifications
+							</DropdownMenuItem>
+						</DropdownMenuGroup>
+						<DropdownMenuSeparator />
 						<DropdownMenuItem>
-							<Sparkles />
-							Upgrade to Pro
+							<LogOut />
+							Log out
 						</DropdownMenuItem>
-					</DropdownMenuGroup>
-					<DropdownMenuSeparator />
-					<DropdownMenuGroup>
-						<DropdownMenuItem>
-							<BadgeCheck />
-							Account
-						</DropdownMenuItem>
-						<DropdownMenuItem>
-							<CreditCard />
-							Billing
-						</DropdownMenuItem>
-						<DropdownMenuItem>
-							<Bell />
-							Notifications
-						</DropdownMenuItem>
-					</DropdownMenuGroup>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem>
-						<LogOut />
-						Log out
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</SidebarMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</SidebarMenuItem>
+			<UserUpdate isOpen={isUserUpdateOpen} onOpenChange={setIsUserUpdateOpen} />
+		</>
 	);
 }

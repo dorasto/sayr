@@ -345,7 +345,9 @@ export function TabbedDialog({
 					<DrawerHeader className="w-full border-0">
 						<div className="flex w-full items-center justify-between">
 							<div className="flex-1 shrink-0">
-								<DrawerTitle className="text-left w-full ">{activeTabData?.title || title}</DrawerTitle>
+								<DrawerTitle className="text-left w-full text-base!">
+									{activeTabData?.title || title}
+								</DrawerTitle>
 								{(activeTabData?.description || description) && (
 									<DrawerDescription className="text-left sr-only">
 										{activeTabData?.description || description}
@@ -462,7 +464,7 @@ export function TabbedDialog({
 
 									return (
 										<div className="flex items-center gap-3">
-											<DialogTitle className="font-semibold text-sm">{displayTitle}</DialogTitle>
+											<DialogTitle className="font-semibold text-base!">{displayTitle}</DialogTitle>
 											{displayDescription && (
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
