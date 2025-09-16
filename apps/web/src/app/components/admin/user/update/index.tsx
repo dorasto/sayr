@@ -13,28 +13,23 @@ interface UserUpdateProps {
 
 export function UserUpdate({ isOpen, onOpenChange }: UserUpdateProps) {
 	const { account } = useLayoutData();
-	const options = [
+	const tabs = [
 		{
-			id: "general",
-			label: account.name,
-			title: "Your account",
+			name: "Your Account",
+			items: [
+				{
+					id: "general",
+					label: account.name,
+					title: "Account",
 
-			icon: (
-				<Avatar className="h-4 w-4 rounded-lg">
-					<AvatarImage src={account.image || ""} alt={account.name} />
-					<AvatarFallback className="rounded-lg uppercase">{account.name.slice(0, 2)}</AvatarFallback>
-				</Avatar>
-			),
-			// footer: (
-			// 	<TabbedDialogFooter
-			// 		onCancel={() => onOpenChange(false)}
-			// 		onSubmit={() => {
-			// 			console.log("Saving general settings...");
-			// 			onOpenChange(false);
-			// 		}}
-			// 		submitLabel="Update"
-			// 	/>
-			// ),
+					icon: (
+						<Avatar className="h-4 w-4 rounded-lg">
+							<AvatarImage src={account.image || ""} alt={account.name} />
+							<AvatarFallback className="rounded-lg uppercase">{account.name.slice(0, 2)}</AvatarFallback>
+						</Avatar>
+					),
+				},
+			],
 		},
 	];
 
@@ -43,7 +38,7 @@ export function UserUpdate({ isOpen, onOpenChange }: UserUpdateProps) {
 			isOpen={isOpen}
 			onOpenChange={onOpenChange}
 			title="Settings"
-			tabs={options}
+			groupedTabs={tabs}
 			defaultTab="general"
 			layout="side"
 			size="lg"

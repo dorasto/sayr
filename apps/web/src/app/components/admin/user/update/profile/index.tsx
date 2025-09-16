@@ -4,7 +4,7 @@ export default function ProfileUpdate() {
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex gap-3">
-				<LabelledInput id="display-name" label="Display Name" />
+				<LabelledInput id="display-name" label="Display name" />
 			</div>
 		</div>
 	);

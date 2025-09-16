@@ -30,7 +30,7 @@ import {
 // it complains about the .tsx for some stupid reason but it works. Doesn't work without it.
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
-import { CircleQuestionMark } from "lucide-react";
+import { CircleQuestionMark, XIcon } from "lucide-react";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
 import { AnimatedMenuIcon } from "./animated-menu-icon";
@@ -39,6 +39,8 @@ interface TabsContextType {
 	activeTab: string;
 	setActiveTab: (tab: string) => void;
 	setTabFooter: (tabId: string, footer: ReactNode) => void;
+	layout: "top" | "side";
+	stickyHeader: boolean;
 }
 
 const TabsContext = createContext<TabsContextType | undefined>(undefined);
@@ -85,6 +87,7 @@ interface TabbedDialogProps {
 	className?: string;
 	size?: "sm" | "md" | "lg" | "xl";
 	layout?: "top" | "side"; // New prop for layout type
+	stickyHeader?: boolean; // Controls whether header is sticky (side layout only)
 	groups?: TabGroup[]; // For organizing tabs in groups (side layout only) - legacy
 	groupedTabs?: TabGroupHierarchical[]; // New hierarchical structure
 }
@@ -101,6 +104,7 @@ export function TabbedDialog({
 	className,
 	size = "lg",
 	layout = "top",
+	stickyHeader = false, // Default to true for backward compatibility
 	groups,
 	groupedTabs: groupedTabsProp,
 }: TabbedDialogProps) {
@@ -277,8 +281,8 @@ export function TabbedDialog({
 		const groups = tabGroupsData;
 
 		return (
-			<div className="flex-shrink-0 w-64 border-r bg-background/50 overflow-hidden">
-				<div className="p-3">
+			<div className="flex-shrink-0 w-52 bg-popover overflow-hidden">
+				<div className="p-4">
 					<h2 className="sr-only">{title}</h2>
 					<div className="space-y-4">
 						{groups
@@ -415,7 +419,7 @@ export function TabbedDialog({
 
 					{/* Scrollable Content */}
 					<div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-popover">
-						<TabsContext.Provider value={{ activeTab, setActiveTab, setTabFooter }}>
+						<TabsContext.Provider value={{ activeTab, setActiveTab, setTabFooter, layout, stickyHeader }}>
 							{children}
 						</TabsContext.Provider>
 					</div>
@@ -447,15 +451,15 @@ export function TabbedDialog({
 					className
 				)}
 			>
-				<TabsContext.Provider value={{ activeTab, setActiveTab, setTabFooter }}>
+				<TabsContext.Provider value={{ activeTab, setActiveTab, setTabFooter, layout, stickyHeader }}>
 					{layout === "top" ? renderTopTabs() : renderSideTabs()}
 
 					{description && <DialogDescription className="sr-only">{description}</DialogDescription>}
 
 					{/* Scrollable Content */}
 					<div className="flex-1 overflow-hidden min-h-0 w-full flex flex-col">
-						{layout === "side" && (
-							<div className="flex-shrink-0 border-b p-4 w-full bg-background">
+						{layout === "side" && stickyHeader && (
+							<div className="p-4 w-full">
 								{(() => {
 									// Find the current active tab to get its custom title/description
 									const activeTabData = allTabs.find((tab) => tab.id === activeTab);
@@ -485,18 +489,74 @@ export function TabbedDialog({
 												// 	{displayDescription}
 												// </DialogDescription>
 											)}
+											<DialogClose asChild>
+												<Button
+													variant="ghost"
+													className="ml-auto hover:bg-accent p-1 h-2 w-2 aspect-square "
+												>
+													<XIcon />
+												</Button>
+											</DialogClose>
 										</div>
 									);
 								})()}
 							</div>
 						)}
-						<div className="flex-1 overflow-y-auto min-h-0">{children}</div>
+						<div
+							className={cn("flex-1 min-h-0", "overflow-y-auto", layout === "side" && !stickyHeader && "px-6")}
+						>
+							{layout === "side" && !stickyHeader && (
+								<div className="p-4 w-full">
+									{(() => {
+										// Find the current active tab to get its custom title/description
+										const activeTabData = allTabs.find((tab) => tab.id === activeTab);
+										const displayTitle = activeTabData?.title || title;
+										const displayDescription = activeTabData?.description || description;
+
+										return (
+											<div className="flex items-center gap-3 relative">
+												<DialogTitle className="font-semibold text-base!">{displayTitle}</DialogTitle>
+												{displayDescription && (
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button variant="outline" className="h-2 w-2 p-1">
+																	<CircleQuestionMark />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent className="">
+																<div className="space-y-1">
+																	<p className="text-[13px] font-semibold">{displayTitle}</p>
+																	<p className="text-foreground text-xs">{displayDescription}</p>
+																</div>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+													// <DialogDescription className="text-sm text-muted-foreground mt-1">
+													// 	{displayDescription}
+													// </DialogDescription>
+												)}
+												<DialogClose asChild>
+													<Button
+														variant="ghost"
+														className="fixed top-4 right-4 hover:bg-accent p-1 h-2 w-2 aspect-square "
+													>
+														<XIcon />
+													</Button>
+												</DialogClose>
+											</div>
+										);
+									})()}
+								</div>
+							)}
+							{children}
+						</div>
 						{/* Fixed Footer */}
 						{(() => {
 							const currentFooter = getCurrentFooter();
 							return (
 								currentFooter && (
-									<DialogFooter className="flex-shrink-0 border-t p-2 bg-background flex-row w-full">
+									<DialogFooter className="flex-shrink-0 border-t border-l rounded-tl-md p-2 bg-background flex-row w-full">
 										{currentFooter}
 									</DialogFooter>
 								)
@@ -517,7 +577,7 @@ interface TabPanelProps {
 }
 
 export function TabPanel({ tabId, children, className, footer }: TabPanelProps) {
-	const { activeTab, setTabFooter } = useTabsContext();
+	const { activeTab, setTabFooter, layout, stickyHeader } = useTabsContext();
 
 	// Register footer when component mounts/updates and unregister when unmounts
 	useEffect(() => {
@@ -533,7 +593,11 @@ export function TabPanel({ tabId, children, className, footer }: TabPanelProps) 
 		return null;
 	}
 
-	return <div className={cn("h-full p-3 overflow-y-auto", className)}>{children}</div>;
+	// When layout is "side" and stickyHeader is false, don't add overflow-y-auto
+	// as the parent container handles all scrolling
+	const shouldAddScrolling = !(layout === "side" && !stickyHeader);
+
+	return <div className={cn("p-4", shouldAddScrolling && "overflow-y-auto", className)}>{children}</div>;
 }
 
 // Convenience components for common footer patterns

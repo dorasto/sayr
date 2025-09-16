@@ -56,23 +56,31 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 
 	const tabs = [
 		{
-			id: "general",
-			label: "General",
-			icon: <IconHome size={16} aria-hidden="true" />,
-			footer: (
-				<GeneralSettingsFooter generalSettingsRef={generalSettingsRef} onCloseDialog={() => onOpenChange(false)} />
-			),
-		},
-		{
-			id: "design",
-			label: "Design",
-			icon: <IconBrush size={16} aria-hidden="true" />,
-			footer: <DesignFooter designRef={designRef} onCloseDialog={() => onOpenChange(false)} />,
-		},
-		{
-			id: "members",
-			label: "Members",
-			icon: <IconUsers size={16} aria-hidden="true" />,
+			name: "Account",
+			items: [
+				{
+					id: "general",
+					label: "General",
+					icon: <IconHome size={16} aria-hidden="true" />,
+					footer: (
+						<GeneralSettingsFooter
+							generalSettingsRef={generalSettingsRef}
+							onCloseDialog={() => onOpenChange(false)}
+						/>
+					),
+				},
+				{
+					id: "design",
+					label: "Design",
+					icon: <IconBrush size={16} aria-hidden="true" />,
+					footer: <DesignFooter designRef={designRef} onCloseDialog={() => onOpenChange(false)} />,
+				},
+				{
+					id: "members",
+					label: "Members",
+					icon: <IconUsers size={16} aria-hidden="true" />,
+				},
+			],
 		},
 	];
 
@@ -83,7 +91,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 				onOpenChange={onOpenChange}
 				title={organization.name}
 				description="Make changes to your organization here. You can change the banner, logo, name, slug, and description."
-				tabs={tabs}
+				groupedTabs={tabs}
 				defaultTab="general"
 				size="xl"
 			>

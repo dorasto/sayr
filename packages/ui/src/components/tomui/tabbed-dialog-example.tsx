@@ -96,6 +96,17 @@ export function TabbedDialogExample() {
 					icon: <Bell className="w-4 h-4" />,
 					title: "Notification Settings",
 					// description: "Choose how and when you want to be notified",
+					footer: (
+						<TabbedDialogFooter
+							onCancel={() => setIsTopOpen(false)}
+							onSubmit={() => {
+								console.log("Saving security settings...");
+								setIsTopOpen(false);
+							}}
+							submitLabel="Apply Security Settings"
+							successVariant="destructive"
+						/>
+					),
 				},
 				{
 					id: "appearance",
