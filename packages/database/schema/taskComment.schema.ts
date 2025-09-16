@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
@@ -5,12 +6,17 @@ import { organization } from "./organization.schema";
 import { task } from "./task.schema";
 
 export const taskComment = table("task_comment", {
-	id: v.uuid("id").primaryKey().defaultRandom(),
+	id: v
+		.text("id")
+		.primaryKey()
+		.$defaultFn(() => {
+			return randomUUID();
+		}),
 	organizationId: v
 		.text("organization_id")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
-	taskId: v.uuid("task_id").references(() => task.id, {
+	taskId: v.text("task_id").references(() => task.id, {
 		onDelete: "cascade",
 	}),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),

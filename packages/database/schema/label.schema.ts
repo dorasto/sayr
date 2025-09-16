@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
@@ -7,7 +8,12 @@ import { task } from "./task.schema";
 
 // Universal label (scoped to an organization)
 export const label = table("label", {
-	id: v.uuid("id").primaryKey().defaultRandom(),
+	id: v
+		.text("id")
+		.primaryKey()
+		.$defaultFn(() => {
+			return randomUUID();
+		}),
 	organizationId: v
 		.text("organization_id")
 		.notNull()
@@ -21,11 +27,11 @@ export type labelType = typeof label.$inferSelect;
 
 export const projectLabelAssignment = table("project_labels", {
 	projectId: v
-		.uuid("project_id")
+		.text("project_id")
 		.notNull()
 		.references(() => project.id, { onDelete: "cascade" }),
 	labelId: v
-		.uuid("label_id")
+		.text("label_id")
 		.notNull()
 		.references(() => label.id, { onDelete: "cascade" }),
 });
@@ -34,15 +40,15 @@ export type projectLabelType = typeof projectLabelAssignment.$inferSelect;
 
 export const taskLabelAssignment = table("task_labels", {
 	taskId: v
-		.uuid("task_id")
+		.text("task_id")
 		.notNull()
 		.references(() => task.id, { onDelete: "cascade" }),
 	projectId: v
-		.uuid("project_id")
+		.text("project_id")
 		.notNull()
 		.references(() => project.id, { onDelete: "cascade" }),
 	labelId: v
-		.uuid("label_id")
+		.text("label_id")
 		.notNull()
 		.references(() => label.id, { onDelete: "cascade" }),
 });

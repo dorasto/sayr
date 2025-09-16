@@ -1,17 +1,24 @@
+import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import * as v from "drizzle-orm/pg-core";
+import { pgTable as table } from "drizzle-orm/pg-core";
 import { projectLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
 
-export const project = pgTable("project", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	organizationId: text("organization_id").references(() => organization.id, { onDelete: "cascade" }),
-	description: text("description").default(""),
-	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
-	updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
-	visibility: text("visibility").default("public"), // public or private. Sets if the entire project is visible to the public or only to members.
+export const project = table("project", {
+	id: v
+		.text("id")
+		.primaryKey()
+		.$defaultFn(() => {
+			return randomUUID();
+		}),
+	name: v.text("name").notNull(),
+	organizationId: v.text("organization_id").references(() => organization.id, { onDelete: "cascade" }),
+	description: v.text("description").default(""),
+	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
+	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
+	visibility: v.text("visibility").default("public"), // public or private. Sets if the entire project is visible to the public or only to members.
 	/////////////////////
 	// other fields to do
 	/////////////////////

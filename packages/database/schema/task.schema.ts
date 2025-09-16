@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
@@ -8,7 +9,12 @@ import { taskComment } from "./taskComment.schema";
 export const visibleEnum = v.pgEnum("visible", ["public", "private"]);
 
 export const task = table("task", {
-	id: v.uuid("id").primaryKey().defaultRandom(),
+	id: v
+		.text("id")
+		.primaryKey()
+		.$defaultFn(() => {
+			return randomUUID();
+		}),
 	organizationId: v
 		.text("organization_id")
 		.notNull()
