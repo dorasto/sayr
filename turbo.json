@@ -12,7 +12,8 @@
 		},
 		"dev": {
 			"cache": false,
-			"persistent": true
+			"persistent": true,
+            "interactive": true
 		},
 		"start": {
 			"dependsOn": ["build"],
@@ -23,6 +24,6 @@
 		"//#lint": {},
 		"//#lint:fix": { "cache": false }
 	},
-	"globalDependencies": ["package.json", "pnpm-lock.yaml"],
+	"globalDependencies": ["package.json", "bun.lock", "bun.lockb"],
 	"globalEnv": ["NODE_ENV"]
 }

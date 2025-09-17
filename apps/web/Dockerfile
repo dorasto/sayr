@@ -3,11 +3,15 @@ FROM node:22.12.0-alpine AS base
 FROM base AS builder
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk update
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 # Set working directory
 WORKDIR /app
 RUN npm install -g turbo
-RUN npm install -g pnpm
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash -s -- -y
+ENV BUN_INSTALL=/root/.bun
+ENV PATH="$BUN_INSTALL/bin:$PATH"
 
 # Copy all files needed for turbo prune
 COPY . .
@@ -17,24 +21,25 @@ RUN turbo prune web --docker
 
 FROM base AS installer
 RUN apk update
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install Bun in installer stage
+RUN curl -fsSL https://bun.sh/install | bash -s -- -y
+ENV BUN_INSTALL=/root/.bun
+ENV PATH="$BUN_INSTALL/bin:$PATH"
 
 # First install the dependencies (as they change less often)
 COPY --from=builder /app/out/json/ .
-COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=builder /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/out/bun.lockb ./bun.lockb
 COPY --from=builder /app/out/full/ .
 
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 ENV IS_DOCKER 1
 
 # Build the Next.js application
-RUN cd apps/web && pnpm exec next telemetry disable && pnpm run build
+RUN cd apps/web && bunx next telemetry disable && bun run build
 
 FROM base AS runner
 WORKDIR /app
