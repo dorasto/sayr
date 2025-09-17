@@ -67,7 +67,7 @@ export async function updateOrganizationAction(
  * }
  * ```
  */
-export async function uploadOrganizationLogo(organizationId: string, file: File) {
+export async function uploadOrganizationLogo(organizationId: string, file: File, old: string | undefined | null) {
 	const formData = new FormData();
 	formData.append("file", file);
 
@@ -75,6 +75,9 @@ export async function uploadOrganizationLogo(organizationId: string, file: File)
 		method: "PUT",
 		body: formData,
 		credentials: "include", // ensure cookies/session
+		headers: {
+			"X-old-file": old || "",
+		},
 	});
 
 	if (!res.ok) {
@@ -105,7 +108,7 @@ export async function uploadOrganizationLogo(organizationId: string, file: File)
  * }
  * ```
  */
-export async function uploadOrganizationBanner(organizationId: string, file: File) {
+export async function uploadOrganizationBanner(organizationId: string, file: File, old: string | undefined | null) {
 	const formData = new FormData();
 	formData.append("file", file);
 
@@ -113,6 +116,9 @@ export async function uploadOrganizationBanner(organizationId: string, file: Fil
 		method: "PUT",
 		body: formData,
 		credentials: "include", // ensure cookies/session
+		headers: {
+			"X-old-file": old || "",
+		},
 	});
 
 	if (!res.ok) {

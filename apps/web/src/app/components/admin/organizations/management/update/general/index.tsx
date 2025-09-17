@@ -96,9 +96,9 @@ const GeneralSettings = forwardRef<GeneralSettingsRef, GeneralSettingsProps>(
 		const setCroppedLogo = useCallback((croppedImageBase64: string) => {
 			const newFile: FileWithPreview = {
 				id: Math.random().toString(36).substring(2, 15),
-				name: "cropped-logo.jpg",
+				name: "cropped-logo.webp",
 				size: 0,
-				type: "image/jpeg",
+				type: "image/webp",
 				preview: croppedImageBase64,
 			};
 			setLogoFiles([newFile]);
@@ -142,7 +142,7 @@ const GeneralSettings = forwardRef<GeneralSettingsRef, GeneralSettingsProps>(
 						const blob = await res.blob();
 						const file = new File([blob], logoFiles[0].name, { type: blob.type });
 
-						const uploadResult = await uploadOrganizationLogo(organization.id, file);
+						const uploadResult = await uploadOrganizationLogo(organization.id, file, organization.logo);
 						logoUrl = uploadResult.image;
 
 						console.log("✅ Logo uploaded for org:", uploadResult.orgId, "→", uploadResult.image);

@@ -16,7 +16,8 @@
     "dependencies": {
         "drizzle-orm": "0.29.4",
         "pg": "^8.11.3",
-        "postgres": "3.4.3"
+        "postgres": "3.4.3",
+		"@repo/storage": "workspace:*"
     },
     "devDependencies": {
         "@repo/typescript-config": "workspace:*",

@@ -149,3 +149,20 @@ export async function removeObject(objectName: string): Promise<void> {
 export async function removeObjects(objectNames: string[]): Promise<void> {
 	await minioClient.removeObjects(BUCKET, objectNames);
 }
+
+export function getFileNameFromUrl(url: string): string {
+	return url.split("/").pop() || "";
+}
+
+export function ensureCdnUrl(pathOrUrl: string, cdnBase = process.env.FILE_CDN || ""): string {
+	if (!pathOrUrl) return "";
+
+	// If it already starts with http(s)://cdnBase → return as-is
+	if (pathOrUrl.startsWith(cdnBase) || pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+		return pathOrUrl;
+	}
+
+	// Otherwise prepend CDN base
+	// Avoid double slashes
+	return `${cdnBase.replace(/\/+$/, "")}/${pathOrUrl.replace(/^\/+/, "")}`;
+}

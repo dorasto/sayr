@@ -1,3 +1,4 @@
+import { ensureCdnUrl } from "@repo/storage";
 import { eq } from "drizzle-orm";
 import { db, type schema } from "..";
 
@@ -46,8 +47,8 @@ export async function getOrganizations(userId: string): Promise<schema.Organizat
 	// Step 3: Rewrite the logo URL
 	const enriched = orgsWithMembers.map((org) => ({
 		...org,
-		logo: org.logo ? `${process.env.FILE_CDN}/${org.logo}` : null,
-		bannerImg: org.bannerImg ? `${process.env.FILE_CDN}/${org.bannerImg}` : null,
+		logo: org.logo ? ensureCdnUrl(org.logo) : null,
+		bannerImg: org.bannerImg ? ensureCdnUrl(org.bannerImg) : null,
 	}));
 
 	return enriched;
@@ -90,8 +91,8 @@ export async function getOrganization(orgId: string, userId: string): Promise<sc
 	}
 	return {
 		...organization,
-		logo: organization.logo ? `${process.env.FILE_CDN}/${organization.logo}` : null,
-		bannerImg: organization.bannerImg ? `${process.env.FILE_CDN}/${organization.bannerImg}` : null,
+		logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
+		bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
 	};
 }
 
@@ -139,8 +140,8 @@ export async function getOrganizationPublic(orgSlug: string): Promise<schema.org
 	if (organization) {
 		return {
 			...organization,
-			logo: organization.logo ? `${process.env.FILE_CDN}/${organization.logo}` : null,
-			bannerImg: organization.bannerImg ? `${process.env.FILE_CDN}/${organization.bannerImg}` : null,
+			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
+			bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
 			privateId: null,
 		};
 	}

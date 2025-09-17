@@ -80,9 +80,9 @@ const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved
 	const setCroppedBanner = useCallback((croppedImageBase64: string) => {
 		const newFile: FileWithPreview = {
 			id: Math.random().toString(36).substring(2, 15),
-			name: "cropped-banner.jpg",
+			name: "cropped-banner.webp",
 			size: 0,
-			type: "image/jpeg",
+			type: "image/webp",
 			preview: croppedImageBase64,
 		};
 		setBannerFiles([newFile]);
@@ -130,7 +130,7 @@ const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved
 				const blob = await res.blob();
 				const file = new File([blob], bannerFiles[0].name, { type: blob.type });
 
-				const uploadResult = await uploadOrganizationBanner(organization.id, file);
+				const uploadResult = await uploadOrganizationBanner(organization.id, file, organization.bannerImg);
 
 				// Now update DB value with the banner CDN URL
 				bannerMutation.mutate(uploadResult.image);
@@ -143,7 +143,7 @@ const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved
 			console.error("🚀 ~ saveBanner ~ error:", error);
 			toast.error("Failed to upload banner");
 		}
-	}, [bannerFiles, bannerMutation, organization.id]);
+	}, [bannerFiles, bannerMutation, organization.id, organization.bannerImg]);
 	// Expose saveBanner function to parent via ref
 	useImperativeHandle(ref, () => ({
 		saveBanner,

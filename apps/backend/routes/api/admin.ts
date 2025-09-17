@@ -1,6 +1,6 @@
 import type { auth } from "@repo/auth";
 import { db, getOrganizationMembers, schema } from "@repo/database";
-import { uploadObject } from "@repo/storage";
+import { ensureCdnUrl, getFileNameFromUrl, removeObject, uploadObject } from "@repo/storage";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
@@ -37,8 +37,8 @@ apiRouteAdmin.post("/update-org", async (c) => {
 					type: "UPDATE_ORG",
 					data: {
 						...result,
-						logo: result.logo ? `${process.env.FILE_CDN}/${result.logo}` : null,
-						bannerImg: result.bannerImg ? `${process.env.FILE_CDN}/${result.bannerImg}` : null,
+						logo: result.logo ? ensureCdnUrl(result.logo) : null,
+						bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
 					},
 				};
 				broadcast(org_id, "admin", data, found?.socket);
@@ -52,8 +52,8 @@ apiRouteAdmin.post("/update-org", async (c) => {
 					success: true,
 					data: {
 						...result,
-						logo: result.logo ? `${process.env.FILE_CDN}/${result.logo}` : null,
-						bannerImg: result.bannerImg ? `${process.env.FILE_CDN}/${result.bannerImg}` : null,
+						logo: result.logo ? ensureCdnUrl(result.logo) : null,
+						bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
 					},
 				});
 			}
@@ -77,7 +77,7 @@ apiRouteAdmin.put("/orgs/:orgId/logo", async (c) => {
 		const session = c.get("session");
 		const user = c.get("user");
 		const orgId = c.req.param("orgId");
-
+		const oldLogo = c.req.header("X-old-file");
 		// 1. Verify membership + role
 		const role = await db
 			.select()
@@ -99,8 +99,10 @@ apiRouteAdmin.put("/orgs/:orgId/logo", async (c) => {
 
 		// Preserve the original extension based on file name or MIME
 		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
-		const objectName = `organization/${orgId}/logo.${ext}`;
-
+		const objectName = `/logo.${ext}`;
+		if (oldLogo) {
+			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`);
+		}
 		// 3. Upload to storage
 		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
@@ -128,6 +130,7 @@ apiRouteAdmin.put("/orgs/:orgId/banner", async (c) => {
 		const session = c.get("session");
 		const user = c.get("user");
 		const orgId = c.req.param("orgId");
+		const oldBanner = c.req.header("X-old-file");
 
 		// 1. Verify membership + role
 		const role = await db
@@ -150,8 +153,10 @@ apiRouteAdmin.put("/orgs/:orgId/banner", async (c) => {
 
 		// Preserve the original extension based on file name or MIME
 		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
-		const objectName = `organization/${orgId}/banner.${ext}`;
-
+		const objectName = `banner.${ext}`;
+		if (oldBanner) {
+			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`);
+		}
 		// 3. Upload to storage
 		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
