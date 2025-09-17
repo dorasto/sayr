@@ -1,0 +1,21 @@
+{
+    "name": "@repo/storage",
+    "version": "0.0.0",
+    "private": true,
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "exports": {
+        ".": "./src/index.ts",
+        "./*": "./src/*.ts"
+    },
+    "scripts": {},
+    "dependencies": {
+        "minio": "^8.0.6"
+    },
+    "devDependencies": {
+        "@repo/typescript-config": "workspace:*",
+        "@types/node": "^24.0.14"
+    }
+}

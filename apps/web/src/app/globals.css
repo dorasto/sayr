@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "@repo/ui/globals.css";
+
+/**
+ * Tailwind CSS official document:
+ * https://tailwindcss.com/docs/detecting-classes-in-source-files
+ *
+ * if you ever need to explicitly add a source that's excluded by default,
+ * you can always add it with the @source directive.
+ */
+@source '../../node_modules/@repo/ui';

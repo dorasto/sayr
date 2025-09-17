@@ -1,0 +1,23 @@
+{
+	"name": "backend",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "bun --watch run index.ts",
+		"build": "bun build index.ts --target=bun --outdir ./dist"
+	},
+	"dependencies": {
+		"@repo/auth": "workspace:*",
+		"@repo/database": "workspace:*",
+		"@repo/storage": "workspace:*",
+		"drizzle-orm": "0.29.4",
+		"hono": "^4.8.4"
+	},
+	"devDependencies": {
+		"@hono/node-server": "^1.15.0",
+		"@repo/typescript-config": "workspace:*",
+		"@types/node": "^24.0.13",
+		"bun-types": "^1.2.21",
+		"typescript": "^5.3.3"
+	}
+}
