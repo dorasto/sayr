@@ -1,2 +1,2 @@
-// export * from "./label";
+export * from "./label";
 export * from "./organization";

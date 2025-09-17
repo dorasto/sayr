@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { label, projectLabelAssignment, taskLabelAssignment } from "schema";
+import { label, projectLabelAssignment, taskLabelAssignment } from "../../schema/label.schema";
 import { db } from "..";
 
 /**
