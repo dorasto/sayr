@@ -3,14 +3,13 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"dev": "bun run index.ts --target=bun",
+		"dev": "bun --watch run index.ts",
 		"build": "bun build index.ts --target=bun --outdir ./dist"
 	},
 	"dependencies": {
 		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/storage": "workspace:*",
-		"bun": "^1.2.21",
 		"drizzle-orm": "0.29.4",
 		"hono": "^4.8.4"
 	},
