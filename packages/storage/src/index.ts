@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import type { Readable } from "node:stream";
-import { getUsersByIds } from "@repo/database";
 import * as Minio from "minio";
+import { getUsersByIds } from "../../database/src/functions";
 
 const minioClient = new Minio.Client({
 	endPoint: process.env.STORAGE_URL || "",

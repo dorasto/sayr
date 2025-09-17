@@ -180,9 +180,6 @@ importers:
 
   packages/storage:
     dependencies:
-      '@repo/database':
-        specifier: workspace:*
-        version: link:../database
       minio:
         specifier: ^8.0.6
         version: 8.0.6

@@ -12,7 +12,6 @@
     },
     "scripts": {},
     "dependencies": {
-        "@repo/database": "workspace:*",
         "minio": "^8.0.6"
     },
     "devDependencies": {
