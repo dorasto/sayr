@@ -1,6 +1,12 @@
 import type { auth } from "@repo/auth";
 import { db, getOrganizationMembers, schema } from "@repo/database";
-import { ensureCdnUrl, getFileNameFromUrl, removeObject, uploadObject } from "@repo/storage";
+import {
+	ensureCdnUrl,
+	getFileNameFromUrl,
+	listFileObjectsWithMetadata,
+	removeObject,
+	uploadObject,
+} from "@repo/storage";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
@@ -20,45 +26,43 @@ apiRouteAdmin.post("/update-org", async (c) => {
 			.select()
 			.from(schema.member)
 			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
-		console.log("🚀 ~ roles:", role[0]?.role);
-		console.log("hasPermission fetch took", Date.now() - start, "ms");
-		if (role[0]?.role === "owner") {
-			const startNew = Date.now();
-			const [result] = await db
-				.update(schema.organization)
-				.set({ ...data, updatedAt: new Date() })
-				.where(eq(schema.organization.id, org_id))
-				.returning();
-			console.log("updateOrganization fetch took", Date.now() - startNew, "ms");
-
-			if (result) {
-				const found = findClientByWsId(wsClientId);
-				const data = {
-					type: "UPDATE_ORG",
-					data: {
-						...result,
-						logo: result.logo ? ensureCdnUrl(result.logo) : null,
-						bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
-					},
-				};
-				broadcast(org_id, "admin", data, found?.socket);
-				broadcastPublic(org_id, { ...data, data: { ...data.data, privateId: null } });
-				const members = await getOrganizationMembers(org_id);
-				members.forEach((member) => {
-					const clients = findClientsByUserId(member.userId);
-					clients.forEach((c) => broadcastIndividual(c.socket, data));
-				});
-				return c.json({
-					success: true,
-					data: {
-						...result,
-						logo: result.logo ? ensureCdnUrl(result.logo) : null,
-						bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
-					},
-				});
-			}
+		if (role[0]?.role !== "owner") {
+			return c.json({ error: "UNAUTHORIZED" }, 401);
 		}
-		return c.json({ error: "UNAUTHORIZED" }, 401);
+		console.log("hasPermission fetch took", Date.now() - start, "ms");
+		const startNew = Date.now();
+		const [result] = await db
+			.update(schema.organization)
+			.set({ ...data, updatedAt: new Date() })
+			.where(eq(schema.organization.id, org_id))
+			.returning();
+		console.log("updateOrganization fetch took", Date.now() - startNew, "ms");
+		if (result) {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_ORG",
+				data: {
+					...result,
+					logo: result.logo ? ensureCdnUrl(result.logo) : null,
+					bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
+				},
+			};
+			broadcast(org_id, "admin", data, found?.socket);
+			broadcastPublic(org_id, { ...data, data: { ...data.data, privateId: null } });
+			const members = await getOrganizationMembers(org_id);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach((c) => broadcastIndividual(c.socket, data));
+			});
+			return c.json({
+				success: true,
+				data: {
+					...result,
+					logo: result.logo ? ensureCdnUrl(result.logo) : null,
+					bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
+				},
+			});
+		}
 		// biome-ignore lint/suspicious/noExplicitAny: <has to be any>
 	} catch (error: any) {
 		console.log("🚀 ~ error:", error);
@@ -173,6 +177,32 @@ apiRouteAdmin.put("/orgs/:orgId/banner", async (c) => {
 			image: imagebanner, // this should be the stored URL or object path
 		});
 		// biome-ignore lint/suspicious/noExplicitAny: <test>
+	} catch (err: any) {
+		console.error("Upload failed:", err.message);
+		return c.text("Upload failed", 500);
+	}
+});
+
+apiRouteAdmin.get("/test/:orgId", async (c) => {
+	try {
+		const session = c.get("session");
+		const orgId = c.req.param("orgId");
+
+		// 1. Verify membership + role
+		const role = await db
+			.select()
+			.from(schema.member)
+			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, orgId)));
+
+		if (role[0]?.role !== "owner" && role[0]?.role !== "admin") {
+			return c.json({ error: "UNAUTHORIZED" }, 401);
+		}
+		const data = await listFileObjectsWithMetadata(`organization/${orgId}`);
+		data.map((item) => {
+			item.name = ensureCdnUrl(item.name || "");
+		});
+		return c.json(data);
+		// biome-ignore lint/suspicious/noExplicitAny: <any>
 	} catch (err: any) {
 		console.error("Upload failed:", err.message);
 		return c.text("Upload failed", 500);
