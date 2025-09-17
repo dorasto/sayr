@@ -1,21 +1,20 @@
 "use client";
-import type { schema } from "@repo/database";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import Image from "next/image";
-import useWebSocketPublic from "@/app/lib/wsPublic";
+import { useLayoutDataOrganization } from "@/app/org/[slug]/Context";
 
-type Props = {
-	_organization: schema.organizationType;
-};
-
-export default function PublicOrgHomePage({ _organization }: Props) {
-	const { value: organization, setValue: setOrganization } = useStateManagement("organization", _organization);
-	useWebSocketPublic({ organization, setOrganization });
+export default function PublicOrgHomePage() {
+	const { organization } = useLayoutDataOrganization();
 	return (
 		<div className="">
 			<div className="relative rounded-2xl overflow-hidden">
 				<div className="aspect-[21/9] w-full">
-					<Image width={1260} height={540} src={organization.bannerImg || ""} alt={organization.name} />
+					<Image
+						width={1260}
+						height={540}
+						src={organization.bannerImg || ""}
+						alt={organization.name}
+						quality={100}
+					/>
 				</div>
 				<div className="absolute bottom-0 left-0 transform flex items-center gap-3 bg-background/50 backdrop-blur p-3 rounded-tr-xl rounded-bl-2xl">
 					<Image

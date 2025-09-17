@@ -2,6 +2,7 @@ import { getOrganizationPublic } from "@repo/database";
 import type { Metadata } from "next";
 import type React from "react";
 import Navigation from "@/app/components/org/layout/navigation";
+import { RootProviderOrganization } from "./Context";
 
 interface OrgLayoutProps {
 	params: Promise<{
@@ -66,9 +67,11 @@ export default async function OrgLayout({
 	}
 
 	return (
-		<div className="flex h-dvh flex-col overflow-hidden max-w-7xl mx-auto">
-			<Navigation organization={organization} />
-			<div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
-		</div>
+		<RootProviderOrganization organization={organization}>
+			<div className="flex h-dvh flex-col overflow-hidden max-w-7xl mx-auto">
+				<Navigation />
+				<div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
+			</div>
+		</RootProviderOrganization>
 	);
 }

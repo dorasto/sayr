@@ -1,25 +1,14 @@
 "use client";
 
-import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
-import {
-	NavigationMenu,
-	NavigationMenuContent,
-	NavigationMenuItem,
-	NavigationMenuLink,
-	NavigationMenuList,
-	NavigationMenuTrigger,
-} from "@repo/ui/components/navigation-menu";
-import { IconUsers } from "@tabler/icons-react";
-import { MicIcon, SearchIcon } from "lucide-react";
+import { SearchIcon } from "lucide-react";
+import { useLayoutDataOrganization } from "@/app/org/[slug]/Context";
 
-interface NavigationProps {
-	organization: schema.organizationType;
-}
-export default function Navigation({ organization }: NavigationProps) {
+export default function Navigation() {
+	const { organization } = useLayoutDataOrganization();
 	return (
 		// <nav className="bg-sidebar border-b border-b-sidebar-border flex items-center gap-3 h-[var(--header-height)] px-3">
 		// 	<div className="flex items-center gap-1">

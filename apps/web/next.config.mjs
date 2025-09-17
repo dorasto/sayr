@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
 	reactStrictMode: true,
 	output: process.env.IS_DOCKER ? 'standalone' : undefined,
-	transpilePackages: ['@repo/ui'],
+	transpilePackages: ['@repo/ui', '@repo/auth' ,'@repo/database'],
 	outputFileTracingRoot: path.join(__dirname, '../../'),
 	images: {
         remotePatterns: [new URL(`${process.env.FILE_CDN}/**`)],
