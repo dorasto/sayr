@@ -1,5 +1,6 @@
 import type { auth } from "@repo/auth";
 import { db, getOrganizationMembers, schema } from "@repo/database";
+import { uploadObject } from "@repo/storage";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
@@ -23,27 +24,38 @@ apiRouteAdmin.post("/update-org", async (c) => {
 		console.log("hasPermission fetch took", Date.now() - start, "ms");
 		if (role[0]?.role === "owner") {
 			const startNew = Date.now();
-			const result = await db
+			const [result] = await db
 				.update(schema.organization)
 				.set({ ...data, updatedAt: new Date() })
 				.where(eq(schema.organization.id, org_id))
 				.returning();
 			console.log("updateOrganization fetch took", Date.now() - startNew, "ms");
 
-			if (result[0]) {
+			if (result) {
 				const found = findClientByWsId(wsClientId);
 				const data = {
 					type: "UPDATE_ORG",
-					data: result[0],
+					data: {
+						...result,
+						logo: result.logo ? `${process.env.FILE_CDN}/${result.logo}` : null,
+						bannerImg: result.bannerImg ? `${process.env.FILE_CDN}/${result.bannerImg}` : null,
+					},
 				};
 				broadcast(org_id, "admin", data, found?.socket);
-				broadcastPublic(org_id, data);
+				broadcastPublic(org_id, { ...data, data: { ...data.data, privateId: null } });
 				const members = await getOrganizationMembers(org_id);
 				members.forEach((member) => {
 					const clients = findClientsByUserId(member.userId);
 					clients.forEach((c) => broadcastIndividual(c.socket, data));
 				});
-				return c.json({ success: true, data: result[0] });
+				return c.json({
+					success: true,
+					data: {
+						...result,
+						logo: result.logo ? `${process.env.FILE_CDN}/${result.logo}` : null,
+						bannerImg: result.bannerImg ? `${process.env.FILE_CDN}/${result.bannerImg}` : null,
+					},
+				});
 			}
 		}
 		return c.json({ error: "UNAUTHORIZED" }, 401);
@@ -57,5 +69,107 @@ apiRouteAdmin.post("/update-org", async (c) => {
 			},
 			error.statusCode
 		);
+	}
+});
+
+apiRouteAdmin.put("/orgs/:orgId/logo", async (c) => {
+	try {
+		const session = c.get("session");
+		const user = c.get("user");
+		const orgId = c.req.param("orgId");
+
+		// 1. Verify membership + role
+		const role = await db
+			.select()
+			.from(schema.member)
+			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, orgId)));
+
+		if (role[0]?.role !== "owner" && role[0]?.role !== "admin") {
+			return c.json({ error: "UNAUTHORIZED" }, 401);
+		}
+
+		// 2. Parse multipart body
+		const body = await c.req.parseBody();
+		const file = body.file;
+		if (!file || !(file instanceof File)) {
+			return c.text("No file uploaded", 400);
+		}
+
+		const buffer = Buffer.from(await file.arrayBuffer());
+
+		// Preserve the original extension based on file name or MIME
+		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
+		const objectName = `organization/${orgId}/logo.${ext}`;
+
+		// 3. Upload to storage
+		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
+			"Content-Type": file.type || "application/octet-stream",
+			"user-id": user?.id || "ANONYMOUS",
+			"org-id": orgId,
+			"original-name": file.name, // store as metadata
+		});
+
+		// 4. Build result payload
+		return c.json({
+			success: true,
+			orgId,
+			originalName: file.name,
+			image: imagelogo, // this should be the stored URL or object path
+		});
+		// biome-ignore lint/suspicious/noExplicitAny: <test>
+	} catch (err: any) {
+		console.error("Upload failed:", err.message);
+		return c.text("Upload failed", 500);
+	}
+});
+
+apiRouteAdmin.put("/orgs/:orgId/banner", async (c) => {
+	try {
+		const session = c.get("session");
+		const user = c.get("user");
+		const orgId = c.req.param("orgId");
+
+		// 1. Verify membership + role
+		const role = await db
+			.select()
+			.from(schema.member)
+			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, orgId)));
+
+		if (role[0]?.role !== "owner" && role[0]?.role !== "admin") {
+			return c.json({ error: "UNAUTHORIZED" }, 401);
+		}
+
+		// 2. Parse multipart body
+		const body = await c.req.parseBody();
+		const file = body.file;
+		if (!file || !(file instanceof File)) {
+			return c.text("No file uploaded", 400);
+		}
+
+		const buffer = Buffer.from(await file.arrayBuffer());
+
+		// Preserve the original extension based on file name or MIME
+		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
+		const objectName = `organization/${orgId}/banner.${ext}`;
+
+		// 3. Upload to storage
+		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
+			"Content-Type": file.type || "application/octet-stream",
+			"user-id": user?.id || "ANONYMOUS",
+			"org-id": orgId,
+			"original-name": file.name, // store as metadata
+		});
+
+		// 4. Build result payload
+		return c.json({
+			success: true,
+			orgId,
+			originalName: file.name,
+			image: imagebanner, // this should be the stored URL or object path
+		});
+		// biome-ignore lint/suspicious/noExplicitAny: <test>
+	} catch (err: any) {
+		console.error("Upload failed:", err.message);
+		return c.text("Upload failed", 500);
 	}
 });

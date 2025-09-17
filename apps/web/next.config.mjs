@@ -9,6 +9,9 @@ const nextConfig = {
 	output: process.env.IS_DOCKER ? 'standalone' : undefined,
 	transpilePackages: ['@repo/ui'],
 	outputFileTracingRoot: path.join(__dirname, '../../'),
+	images: {
+        remotePatterns: [new URL(`${process.env.FILE_CDN}/**`)],
+    },
 };
 
 export default nextConfig;

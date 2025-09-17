@@ -9,6 +9,7 @@
 	"dependencies": {
 		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",
+		"@repo/storage": "workspace:*",
 		"bun": "^1.2.21",
 		"drizzle-orm": "0.29.4",
 		"hono": "^4.8.4"

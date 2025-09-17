@@ -50,3 +50,79 @@ export async function updateOrganizationAction(
 	}).then(async (e) => await e.json());
 	return result;
 }
+
+/**
+ * Uploads an organization's logo to the external API
+ *
+ * @param organizationId - The ID of the org to upload logo for
+ * @param file - A File object (image) to upload
+ * @returns A promise resolving to { success, image, orgId, originalName }
+ *
+ * @example
+ * ```ts
+ * const fileInput = document.querySelector("input[type=file]") as HTMLInputElement;
+ * if (fileInput.files?.[0]) {
+ *   const result = await uploadOrganizationLogo("org_123", fileInput.files[0]);
+ *   console.log("Logo URL:", result.image);
+ * }
+ * ```
+ */
+export async function uploadOrganizationLogo(organizationId: string, file: File) {
+	const formData = new FormData();
+	formData.append("file", file);
+
+	const res = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/orgs/${organizationId}/logo`, {
+		method: "PUT",
+		body: formData,
+		credentials: "include", // ensure cookies/session
+	});
+
+	if (!res.ok) {
+		throw new Error("Logo upload failed");
+	}
+
+	return res.json() as Promise<{
+		success: boolean;
+		image: string; // CDN/Storage URL to the new logo
+		orgId: string; // orgId echoed back
+		originalName: string; // original filename
+	}>;
+}
+
+/**
+ * Uploads an organization's banner to the external API
+ *
+ * @param organizationId - The ID of the org to upload banner for
+ * @param file - A File object (image) to upload
+ * @returns A promise resolving to { success, image, orgId, originalName }
+ *
+ * @example
+ * ```ts
+ * const fileInput = document.querySelector("input[type=file]") as HTMLInputElement;
+ * if (fileInput.files?.[0]) {
+ *   const result = await uploadOrganizationBanner("org_123", fileInput.files[0]);
+ *   console.log("Logo URL:", result.image);
+ * }
+ * ```
+ */
+export async function uploadOrganizationBanner(organizationId: string, file: File) {
+	const formData = new FormData();
+	formData.append("file", file);
+
+	const res = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/orgs/${organizationId}/banner`, {
+		method: "PUT",
+		body: formData,
+		credentials: "include", // ensure cookies/session
+	});
+
+	if (!res.ok) {
+		throw new Error("Banner upload failed");
+	}
+
+	return res.json() as Promise<{
+		success: boolean;
+		image: string; // CDN/Storage URL to the new banner
+		orgId: string; // orgId echoed back
+		originalName: string; // original filename
+	}>;
+}

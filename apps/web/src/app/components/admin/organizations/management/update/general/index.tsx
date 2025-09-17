@@ -10,7 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
-import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/fetches";
+import { type UpdateOrganizationData, updateOrganizationAction, uploadOrganizationLogo } from "@/app/lib/fetches";
 import { handleFileValidation } from "../utils/file-validation";
 import type { FileWithPreview } from "../utils/types";
 import LogoUpload from "./logo-upload";
@@ -134,30 +134,38 @@ const GeneralSettings = forwardRef<GeneralSettingsRef, GeneralSettingsProps>(
 				}
 
 				try {
-					let logoBase64: string | undefined;
+					let logoUrl: string | undefined;
 
-					// Convert logo file to base64 if a new file is uploaded
+					// 🖼 Upload new logo if necessary
 					if (logoFiles[0] && logoFiles[0].id !== "current-logo") {
-						logoBase64 = logoFiles[0].preview; // Already base64 from cropping
-					} else if (logoFiles[0] && logoFiles[0].id === "current-logo") {
-						// Keep existing logo
-						logoBase64 = organization.logo || undefined;
+						const res = await fetch(logoFiles[0].preview);
+						const blob = await res.blob();
+						const file = new File([blob], logoFiles[0].name, { type: blob.type });
+
+						const uploadResult = await uploadOrganizationLogo(organization.id, file);
+						logoUrl = uploadResult.image;
+
+						console.log("✅ Logo uploaded for org:", uploadResult.orgId, "→", uploadResult.image);
+					} else if (logoFiles[0]?.id === "current-logo") {
+						logoUrl = organization.logo || undefined; // keep existing logo
 					}
 
+					// 📌 Update org record
 					const updateData: UpdateOrganizationData = {
 						name: name.trim(),
 						slug: slug.trim(),
-						logo: logoBase64,
+						logo: logoUrl,
 						description: description.trim(),
 					};
 
 					updateMutation.mutate(updateData);
-				} catch (error) {
-					console.error("🚀 ~ handleSubmit ~ error:", error);
-					toast.error("Failed to process logo");
+					// biome-ignore lint/suspicious/noExplicitAny: <any>
+				} catch (error: any) {
+					console.error("Upload/Update failed:", error);
+					toast.error(error.message || "Failed to update organization");
 				}
 			},
-			[name, slug, description, logoFiles, organization.logo, updateMutation]
+			[name, slug, description, logoFiles, organization, updateMutation]
 		);
 
 		// Expose submit function to parent via ref

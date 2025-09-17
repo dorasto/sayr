@@ -10,7 +10,7 @@ import { IconCircleFilled } from "@tabler/icons-react";
 import { useMutation } from "@tanstack/react-query";
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import { toast } from "sonner";
-import { type UpdateOrganizationData, updateOrganizationAction } from "@/app/lib/fetches";
+import { type UpdateOrganizationData, updateOrganizationAction, uploadOrganizationBanner } from "@/app/lib/fetches";
 import { handleFileValidation } from "../utils/file-validation";
 import type { FileWithPreview } from "../utils/types";
 import BannerUpload from "./banner-upload";
@@ -113,12 +113,9 @@ const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved
 
 	const saveBanner = useCallback(async () => {
 		try {
-			let bannerBase64: string | undefined;
-
-			// Check if banner was removed
+			// 🗑 Remove banner if no files left
 			if (bannerFiles.length === 0) {
-				// Remove banner by sending null/empty
-				bannerMutation.mutate("");
+				bannerMutation.mutate(""); // send empty string to clear
 				return;
 			}
 
@@ -127,24 +124,26 @@ const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved
 				return;
 			}
 
-			// Convert banner file to base64 if a new file is uploaded
-			if (bannerFiles[0] && bannerFiles[0].id !== "current-banner") {
-				bannerBase64 = bannerFiles[0].preview; // Already base64 from cropping
-			} else if (bannerFiles[0] && bannerFiles[0].id === "current-banner") {
-				// Keep existing banner - no changes to save
-				toast.info("No changes to save");
-				return;
-			}
+			// 🖼 If new banner is uploaded
+			if (bannerFiles[0].id !== "current-banner") {
+				const res = await fetch(bannerFiles[0].preview);
+				const blob = await res.blob();
+				const file = new File([blob], bannerFiles[0].name, { type: blob.type });
 
-			if (bannerBase64) {
-				bannerMutation.mutate(bannerBase64);
+				const uploadResult = await uploadOrganizationBanner(organization.id, file);
+
+				// Now update DB value with the banner CDN URL
+				bannerMutation.mutate(uploadResult.image);
+				toast.success("Banner updated");
+			} else {
+				// No changes → keep existing
+				toast.info("No changes to save");
 			}
 		} catch (error) {
 			console.error("🚀 ~ saveBanner ~ error:", error);
-			toast.error("Failed to process banner");
+			toast.error("Failed to upload banner");
 		}
-	}, [bannerFiles, bannerMutation]);
-
+	}, [bannerFiles, bannerMutation, organization.id]);
 	// Expose saveBanner function to parent via ref
 	useImperativeHandle(ref, () => ({
 		saveBanner,
