@@ -3,6 +3,7 @@ import { auth, db, type schema } from "..";
 
 export * from "./label";
 export * from "./organization";
+export * from "./project";
 
 /**
  * Fetches a single user by its unique id.

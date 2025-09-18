@@ -1,4 +1,4 @@
-import { ensureCdnUrl } from "@repo/storage";
+import { ensureCdnUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { db, type schema } from "..";
 

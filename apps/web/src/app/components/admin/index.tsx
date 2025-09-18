@@ -1,5 +1,4 @@
 "use client";
-import ColorPicker from "@repo/ui/components/tomui/color-picker";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useLayoutData } from "@/app/admin/Context";

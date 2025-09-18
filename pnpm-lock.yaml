@@ -29,6 +29,9 @@ importers:
       '@repo/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@repo/util':
+        specifier: workspace:*
+        version: link:../../packages/util
       drizzle-orm:
         specifier: 0.29.4
         version: 0.29.4(@types/react@19.1.8)(bun-types@1.2.21(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)(react@19.1.0)
@@ -63,6 +66,9 @@ importers:
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@repo/util':
+        specifier: workspace:*
+        version: link:../../packages/util
       '@tabler/icons-react':
         specifier: ^3.34.1
         version: 3.34.1(react@19.1.0)
@@ -155,6 +161,9 @@ importers:
       '@repo/storage':
         specifier: workspace:*
         version: link:../storage
+      '@repo/util':
+        specifier: workspace:*
+        version: link:../util
       drizzle-orm:
         specifier: 0.29.4
         version: 0.29.4(@types/react@19.1.8)(bun-types@1.2.21(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)(react@19.1.0)
@@ -379,6 +388,15 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.8.3
+
+  packages/util:
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
 
 packages:
 
