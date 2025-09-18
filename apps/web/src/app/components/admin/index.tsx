@@ -1,9 +1,12 @@
 "use client";
+import { Button } from "@repo/ui/components/button";
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconAlarm } from "@tabler/icons-react";
+import { toast } from "sonner";
 import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
-
 export default function AdminHomePage() {
 	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
@@ -12,6 +15,53 @@ export default function AdminHomePage() {
 	});
 	return (
 		<div className="">
+			<Button
+				onClick={() =>
+					headlessToast({
+						title: "Testing",
+					})
+				}
+			>
+				Basic
+			</Button>
+			<Button
+				onClick={() =>
+					headlessToast.success({
+						title: "Success",
+					})
+				}
+			>
+				Success
+			</Button>
+			<Button
+				onClick={() =>
+					headlessToast.error({
+						title: "Error",
+
+						description: "This is a warning",
+						action: {
+							label: "Retry",
+							onClick: () => alert("Retrying..."),
+						},
+					})
+				}
+			>
+				Error
+			</Button>
+			<Button
+				onClick={() =>
+					headlessToast.success({
+						title: "Headless Success",
+						description: "Fully custom JSX + Tailwind classes.",
+						action: {
+							label: "Close",
+							onClick: () => console.log("Closed headless toast"),
+						},
+					})
+				}
+			>
+				Headless Success
+			</Button>
 			<TabbedDialogExample />
 			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
 			<div className="flex items-center gap-2">
