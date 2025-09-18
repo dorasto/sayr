@@ -71,11 +71,5 @@ export async function createProject(orgId: string, name: string, description: st
 export async function getProjectById(orgId: string, projectId: string) {
 	return db.query.project.findFirst({
 		where: (p) => and(eq(p.organizationId, orgId), eq(p.id, projectId)),
-		with: {
-			tasks: true,
-			projectLabels: {
-				with: { label: true },
-			},
-		},
 	});
 }
