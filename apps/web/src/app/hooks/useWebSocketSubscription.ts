@@ -45,6 +45,17 @@ export function useWebSocketSubscription({
 				setOrganization({ ...organization, ...msg.data });
 			}
 		},
+		CREATE_PROJECT: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations) {
+				setOrganizations(
+					organizations.map((org) =>
+						org.id === msg.data.organizationId ? { ...org, projects: [...org.projects, msg.data] } : org
+					)
+				);
+			} else if (organization && setOrganization) {
+				setOrganization({ ...organization, projects: [...organization.projects, msg.data] });
+			}
+		},
 	};
 
 	// Stable handler for WebSocket `onmessage`

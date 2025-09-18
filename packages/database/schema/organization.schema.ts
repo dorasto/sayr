@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { member } from "./member.schema";
+import { project } from "./project.schema";
 
 export const organization = table("organization", {
 	id: v.text("id").primaryKey(),
@@ -22,4 +23,5 @@ export type organizationType = typeof organization.$inferSelect;
 
 export const organizationRelations = relations(organization, ({ many }) => ({
 	members: many(member),
+	projects: many(project),
 }));

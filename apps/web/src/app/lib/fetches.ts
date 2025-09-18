@@ -132,3 +132,51 @@ export async function uploadOrganizationBanner(organizationId: string, file: Fil
 		originalName: string; // original filename
 	}>;
 }
+
+/**
+ * Updates an organization's details by calling the external admin API.
+ *
+ * This action:
+ * - Sends a POST request with the updated organization data.
+ * - Includes the client WebSocket ID (`wsClientId`) to support broadcast updates
+ *   (ensuring events are sent to everyone except the caller).
+ *
+ * @param organizationId - The ID of the organization to update.
+ * @param data - The organization fields to update (name).
+ * @param wsClientId - A WebSocket client ID, used to broadcast changes to everyone except you.
+ * @returns A promise resolving to the JSON response returned by the external API.
+ *
+ * @example
+ * ```ts
+ * const result = await createProjectAction("org_123", {
+ *   name: "New Org Name",
+ *   slug: "new-org-slug",
+ *   description: "Updated description",
+ * }, "client_456");
+ *
+ * console.log(result.success ? "Organization updated!" : "Update failed");
+ * ```
+ */
+export async function createProjectAction(
+	organizationId: string,
+	data: {
+		name: string;
+		description: string;
+	},
+	wsClientId: string
+) {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/create-project`, {
+		method: "POST",
+		body: JSON.stringify({
+			org_id: organizationId,
+			wsClientId,
+			name: data.name,
+			description: data.description,
+		}),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 This ensures cookies are sent
+	}).then(async (e) => await e.json());
+	return result;
+}

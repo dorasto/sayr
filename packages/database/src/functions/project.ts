@@ -12,6 +12,7 @@ import { db, schema } from "..";
  * should be created.
  * @param name - The name of the project to create. Must be unique
  * within the organization.
+ * @param description - The description of the project to create
  * @returns A promise resolving to an object indicating success or failure.
  *
  * - On success:
@@ -31,7 +32,7 @@ import { db, schema } from "..";
  * }
  * ```
  */
-export async function createProject(orgId: string, name: string) {
+export async function createProject(orgId: string, name: string, description: string) {
 	// Step 1: Check if project already exists in this org
 	const foundProject = await db.query.project.findFirst({
 		where: (project) => and(eq(project.organizationId, orgId), eq(project.name, name)),
@@ -48,8 +49,9 @@ export async function createProject(orgId: string, name: string) {
 	const [project] = await db
 		.insert(schema.project)
 		.values({
-			name: name,
 			organizationId: orgId,
+			name: name,
+			description: description,
 		})
 		.returning();
 

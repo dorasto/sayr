@@ -21,7 +21,12 @@ import ColorPicker from "@repo/ui/components/tomui/color-picker";
 import LabelledInput from "@repo/ui/components/tomui/labeled-input";
 import OptionField from "@repo/ui/components/tomui/option-field";
 import { cn } from "@repo/ui/lib/utils";
+import { generateSlug } from "@repo/util";
 import { IconColorPicker, IconIcons, IconPlus } from "@tabler/icons-react";
+import { useMutation } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
+import { createProjectAction } from "@/app/lib/fetches";
 
 interface CreateProjectDialogProps {
 	organization: schema.OrganizationWithMembers;
@@ -29,6 +34,50 @@ interface CreateProjectDialogProps {
 	onOpenChange: (open: boolean) => void;
 }
 export default function CreateProjectDialog({ open, onOpenChange, organization }: CreateProjectDialogProps) {
+	const [name, setName] = useState("");
+	const [description, setDescription] = useState("");
+	// Mutation for updating organization
+	const updateMutation = useMutation({
+		mutationFn: async (data: { name: string; description: string }) => {
+			const result = await createProjectAction(organization.id, data, "");
+			if (!result.success) {
+				throw new Error(result.error);
+			}
+			return result.data;
+		},
+		onSuccess: () => {
+			toast.success("Created project");
+			onOpenChange(false);
+			setName("");
+			setDescription("");
+		},
+		onError: (error) => {
+			toast.error(error.message || "Failed to create project");
+		},
+	});
+
+	const handleSubmit = useCallback(
+		async (e?: React.FormEvent) => {
+			e?.preventDefault();
+
+			if (!name.trim()) {
+				toast.error("Name required");
+				return;
+			}
+
+			try {
+				updateMutation.mutate({
+					name,
+					description,
+				});
+				// biome-ignore lint/suspicious/noExplicitAny: <any>
+			} catch (error: any) {
+				console.error("Upload/Update failed:", error);
+				toast.error(error.message || "Failed to update organization");
+			}
+		},
+		[name, description, updateMutation]
+	);
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			{/* <DialogTrigger asChild>
@@ -105,11 +154,16 @@ export default function CreateProjectDialog({ open, onOpenChange, organization }
 							</PopoverContent>
 						</Popover>
 						<div className="flex flex-col gap-3 w-full">
-							<LabelledInput label={"Project name"} id="name" />
+							<LabelledInput label={"Project name"} id="name" value={name} setValue={setName} />
 							<Label variant={"description"}>
-								{organization.slug}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN}/slugify-project-name
+								{organization.slug}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN}/{generateSlug(name)}
 							</Label>
-							<LabelledInput label={"Description"} id="description" />
+							<LabelledInput
+								label={"Description"}
+								id="description"
+								value={description}
+								setValue={setDescription}
+							/>
 							<OptionField
 								title="Publicably visible"
 								description="Public projects are visible to everyone while still keeping certain content restricted based on permissions. Private projects are only visible to members you invite, and only useful if you never plan to have external access."
@@ -124,7 +178,7 @@ export default function CreateProjectDialog({ open, onOpenChange, organization }
 							Cancel
 						</Button>
 					</DialogClose>
-					<Button type="button" variant="success">
+					<Button type="button" variant="success" onClick={handleSubmit}>
 						Create
 					</Button>
 				</DialogFooter>

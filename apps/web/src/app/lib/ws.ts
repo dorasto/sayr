@@ -128,6 +128,10 @@ export type WSMessage =
 			data: schema.organizationType;
 	  })
 	| (BaseMessage & {
+			type: "CREATE_PROJECT";
+			data: schema.projectType;
+	  })
+	| (BaseMessage & {
 			type: "FIREHOSE";
 			data: {
 				channel: string;
