@@ -102,8 +102,9 @@ export function HeadlessToast(props: Required<Pick<HeadlessToastOptions, "id">> 
  * Accepts same options as component minus mandatory id.
  */
 export function headlessToast(opts: HeadlessToastOptions) {
-	const { duration, ...componentOptions } = opts;
-	return sonnerToast.custom((id) => <HeadlessToast id={id} {...componentOptions} />, {
+	const { id, duration, ...componentOptions } = opts;
+	return sonnerToast.custom((toastId) => <HeadlessToast id={toastId} {...componentOptions} />, {
+		id,
 		duration,
 	});
 }

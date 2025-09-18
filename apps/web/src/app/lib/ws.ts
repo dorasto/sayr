@@ -8,7 +8,6 @@ import { toast as sonnerToast } from "sonner";
 
 const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
 let webSocket: WebSocket | null = null;
-let wsToastId: string | number | null = null; // Track persistent toast ID
 
 const useWebSocket = () => {
 	const [ws, setWs] = useState<WebSocket | null>(null);
@@ -33,32 +32,26 @@ const useWebSocket = () => {
 									if (data.data.authenticated) {
 										setWSStatus("Connected");
 										setWSClientId(data.data.wsClientId);
-										// Update toast to connected success
-										if (wsToastId !== null) {
-											headlessToast.success({
-												id: wsToastId,
-												title: "WebSocket Connected",
-												description: "Successfully connected to server",
-											});
-											wsToastId = null; // Clear since this toast will auto-dismiss
-										}
+										headlessToast.success({
+											id: "ws-connection-status",
+											title: "WebSocket Connected",
+											description: "Successfully connected to server",
+										});
 									} else {
 										webSocket = null;
 										console.log("WebSocket disconnected. Attempting to reconnect...");
 										setWs(null);
 										setWSStatus("Reconnecting");
-										// Show persistent disconnected toast if not already shown
-										if (wsToastId === null) {
-											wsToastId = headlessToast.error({
-												title: "Connection failure",
-												description: "There appears to be a connection problem. ",
-												action: {
-													label: "Reload",
-													onClick: () => window.location.reload(),
-												},
-												duration: Infinity, // Make it persistent
-											});
-										}
+										headlessToast.error({
+											id: "ws-connection-status",
+											title: "Connection failure",
+											description: "There appears to be a connection problem. ",
+											action: {
+												label: "Reload",
+												onClick: () => window.location.reload(),
+											},
+											duration: Infinity, // Make it persistent
+										});
 										connectWebSocket();
 									}
 									return;
@@ -79,19 +72,16 @@ const useWebSocket = () => {
 					console.log("WebSocket disconnected. Attempting to reconnect...");
 					setWs(null);
 					setWSStatus("Reconnecting");
-					// Show persistent disconnected toast if not already shown
-					if (wsToastId === null) {
-						wsToastId = headlessToast.error({
-							title: "Connection failure",
-							description: "There appears to be a connection problem. ",
-
-							duration: Infinity, // Make it persistent
-							action: {
-								label: "Reload",
-								onClick: () => window.location.reload(),
-							},
-						});
-					}
+					headlessToast.error({
+						id: "ws-connection-status",
+						title: "Connection failure",
+						description: "There appears to be a connection problem. ",
+						duration: Infinity, // Make it persistent
+						action: {
+							label: "Reload",
+							onClick: () => window.location.reload(),
+						},
+					});
 					connectWebSocket();
 				};
 
@@ -103,18 +93,16 @@ const useWebSocket = () => {
 					webSocket = null;
 					setWs(null);
 					setWSStatus("Disconnected");
-					// Show persistent disconnected toast
-					if (wsToastId === null) {
-						wsToastId = headlessToast.error({
-							title: "Connection failure",
-							description: "There appears to be a connection problem. ",
-							action: {
-								label: "Reload",
-								onClick: () => window.location.reload(),
-							},
-							duration: Infinity, // Make it persistent
-						});
-					}
+					headlessToast.error({
+						id: "ws-connection-status",
+						title: "Connection failure",
+						description: "There appears to be a connection problem. ",
+						action: {
+							label: "Reload",
+							onClick: () => window.location.reload(),
+						},
+						duration: Infinity, // Make it persistent
+					});
 				};
 			}
 		};
@@ -129,10 +117,7 @@ const useWebSocket = () => {
 			webSocket?.close();
 			abortController.abort();
 			// Clean up any persistent toast
-			if (wsToastId !== null) {
-				sonnerToast.dismiss(wsToastId);
-				wsToastId = null;
-			}
+			sonnerToast.dismiss("ws-connection-status");
 		};
 	}, [setWSStatus, setWSClientId]);
 	return ws;
