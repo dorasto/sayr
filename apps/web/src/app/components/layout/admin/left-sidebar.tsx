@@ -130,7 +130,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 				{/* end */}
 				{/* </SidebarMenu> */}
 			</SidebarHeader>
-			<SidebarContent>
+			<SidebarContent className="overflow-x-hidden">
 				{navigation.map((section) => (
 					<SidebarGroup key={section.title}>
 						{section.title === "Overview" ? null : <SidebarGroupLabel>{section.title}</SidebarGroupLabel>}

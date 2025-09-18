@@ -12,12 +12,14 @@ interface LabelledInputProps {
 	className?: string;
 	labelClassName?: string;
 	inputClassName?: string;
+	valuePlaceholder?: string;
 }
 export default function LabelledInput({
 	id,
 	value,
 	setValue,
 	label,
+	valuePlaceholder,
 	className,
 	labelClassName,
 	inputClassName,
@@ -33,7 +35,8 @@ export default function LabelledInput({
 			<Input
 				id={id}
 				type="text"
-				placeholder=" "
+				placeholder=""
+				defaultValue={valuePlaceholder}
 				value={value}
 				onChange={(e) => setValue?.(e.target.value)}
 				required
