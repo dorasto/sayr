@@ -160,13 +160,10 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 				<SidebarGroup>
 					<SidebarGroupLabel>Organizations</SidebarGroupLabel>
 					<SidebarGroupContent>
-						<SidebarMenu className="org-sidebar-menu gap-2">
+						<SidebarMenu className={cn("org-sidebar-menu", sidebarIsOpen && "gap-2")}>
 							{organizations
 								.flatMap((org, index) => [
 									<OrgSection key={org.id} organization={org} closeMobileSidebar={closeMobileSidebar} />,
-									organizations.length > 1 && index < organizations.length - 1 && (
-										<SidebarSeparator key={`separator-${org.id}`} />
-									),
 								])
 								.filter(Boolean)}
 						</SidebarMenu>
