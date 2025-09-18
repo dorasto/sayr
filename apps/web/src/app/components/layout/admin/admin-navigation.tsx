@@ -13,7 +13,7 @@ export default function AdminNavigation() {
 	const isMobile = useIsMobile();
 
 	return (
-		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center border-b">
+		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center">
 			<div className="flex  w-full items-center gap-2 p-1">
 				<div className="flex items-center gap-1 font-bold">
 					{!sidebarIsOpen && !isMobile && (

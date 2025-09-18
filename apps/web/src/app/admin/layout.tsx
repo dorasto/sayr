@@ -29,13 +29,13 @@ export default async function RootLayout({
 	const { account } = await getAccess();
 	const organizations = await getOrganizations(account.id);
 	return (
-		<div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
+		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
 			<AdminNavigation />
 			{/* <div className="min-h-0 flex-1 overflow-y-auto"> */}
 			<RootProvider account={account} organizations={organizations}>
 				<Wrapper className="">
 					<AdminSubNavigation />
-					<div className="p-4">{children}</div>
+					<div className="p-4 container">{children}</div>
 				</Wrapper>
 			</RootProvider>
 			{/* </div> */}
