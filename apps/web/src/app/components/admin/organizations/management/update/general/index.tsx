@@ -41,9 +41,9 @@ const GeneralSettings = forwardRef<GeneralSettingsRef, GeneralSettingsProps>(
 		const initialLogoFiles: FileWithPreview[] = organization.logo
 			? [
 					{
-						name: "current-logo.jpg",
+						name: "current-logo.webp",
 						size: 0,
-						type: "image/jpeg",
+						type: "image/webp",
 						id: "current-logo",
 						preview: organization.logo,
 					},

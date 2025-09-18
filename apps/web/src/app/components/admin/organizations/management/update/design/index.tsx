@@ -35,9 +35,9 @@ const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved
 	const initialBannerFiles: FileWithPreview[] = organization.bannerImg
 		? [
 				{
-					name: "current-banner.jpg",
+					name: "current-banner.webp",
 					size: 0,
-					type: "image/jpeg",
+					type: "image/webp",
 					id: "current-banner",
 					preview: organization.bannerImg,
 				},

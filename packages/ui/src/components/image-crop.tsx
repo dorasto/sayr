@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import ReactCrop, { type Crop, centerCrop, makeAspectCrop, type PixelCrop } from "react-image-crop";
+import ReactCrop, { type Crop, centerCrop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { Button } from "./button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
@@ -19,16 +19,34 @@ interface ImageCropProps {
 }
 
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
-	return centerCrop(
-		makeAspectCrop(
+	const imageAspect = mediaWidth / mediaHeight;
+
+	// If the image is wider than the requested aspect, make the crop span the
+	// full height and compute the width needed to keep the requested aspect.
+	if (imageAspect > aspect) {
+		const heightPercent = 100;
+		const widthPercent = (aspect / imageAspect) * 100; // desiredWidthPx / mediaWidth * 100
+		return centerCrop(
 			{
 				unit: "%",
-				width: 90,
+				width: widthPercent,
+				height: heightPercent,
 			},
-			aspect,
 			mediaWidth,
 			mediaHeight
-		),
+		);
+	}
+
+	// Otherwise make the crop span the full width and compute the height that
+	// fits the requested aspect ratio.
+	const widthPercent = 100;
+	const heightPercent = (imageAspect / aspect) * 100; // desiredHeightPx / mediaHeight * 100
+	return centerCrop(
+		{
+			unit: "%",
+			width: widthPercent,
+			height: heightPercent,
+		},
 		mediaWidth,
 		mediaHeight
 	);
@@ -46,13 +64,28 @@ export function ImageCrop({
 	const imgRef = useRef<HTMLImageElement>(null);
 	const [crop, setCrop] = useState<Crop>();
 	const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-	const [scale, setScale] = useState(1);
-	const [rotate, setRotate] = useState(0);
+	const [scale] = useState(1);
+	const [rotate] = useState(0);
 
 	const onImageLoad = useCallback(
 		(e: React.SyntheticEvent<HTMLImageElement>) => {
 			const { width, height } = e.currentTarget;
-			setCrop(centerAspectCrop(width, height, aspectRatio));
+			// Create the centered percent-based crop and apply it to ReactCrop
+			const percentCrop = centerAspectCrop(width, height, aspectRatio);
+			setCrop(percentCrop);
+
+			// Convert the percent-based crop into a pixel-based crop so we have
+			// a `completedCrop` available even if the user doesn't interact with the
+			// crop box (ReactCrop only calls onComplete after user interaction).
+			if (percentCrop && typeof percentCrop.width === "number" && typeof percentCrop.height === "number") {
+				const pixelCrop: PixelCrop = {
+					x: Math.round(((percentCrop.x ?? 0) * width) / 100),
+					y: Math.round(((percentCrop.y ?? 0) * height) / 100),
+					width: Math.round((percentCrop.width * width) / 100),
+					height: Math.round((percentCrop.height * height) / 100),
+				};
+				setCompletedCrop(pixelCrop);
+			}
 		},
 		[aspectRatio]
 	);
@@ -113,7 +146,7 @@ export function ImageCrop({
 					const reader = new FileReader();
 					reader.onload = () => resolve(reader.result as string);
 					reader.readAsDataURL(blob);
-				}, "image/jpeg");
+				}, "image/webp");
 			});
 		},
 		[]
@@ -145,7 +178,7 @@ export function ImageCrop({
 
 				<div className="space-y-4">
 					{/* Crop Area */}
-					<div className="flex justify-center overflow-hidden rounded-lg border">
+					<div className="flex justify-center">
 						<ReactCrop
 							crop={crop}
 							onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -165,6 +198,7 @@ export function ImageCrop({
 									maxWidth: "100%",
 								}}
 								onLoad={onImageLoad}
+								className="bg-accent"
 							/>
 						</ReactCrop>
 					</div>
