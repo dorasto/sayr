@@ -83,7 +83,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	const { value: isOpen } = useLocalStorage("left-sidebar-state", !isMobile);
 	const [editOpen, setEditOpen] = useState(false);
 	const path = usePathname();
-	const isActive = path.includes(`/admin/${organization.id}`);
+	// const isActive = path.includes(`/admin/${organization.id}`);
 
 	// Desktop + Sidebar Open: Collapsible with full content
 	const renderCollapsibleView = () => (
@@ -93,7 +93,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 					<div
 						className={cn(
 							"flex items-center justify-center hover:bg-sidebar-accent rounded-md transition-all group/coltrig w-full text-sidebar-foreground",
-							isActive && "bg-sidebar-accent"
+							path === `/admin/${organization.id}` && "bg-sidebar-accent"
 						)}
 					>
 						<CollapsibleTrigger
@@ -113,8 +113,8 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						<Link href={`/admin/${organization.id}`} className="w-full cursor-pointer">
 							<SidebarMenuButton
 								className={cn(
-									"hover:bg-transparent font-semibold text-sidebar-foreground/70 group-hover/coltrig:text-sidebar-foreground cursor-pointer",
-									isActive && "text-sidebar-foreground"
+									"hover:bg-transparent font-semibold text-sidebar-foreground/70 group-hover/coltrig:text-sidebar-foreground cursor-pointer"
+									// isActive && "text-sidebar-foreground"
 								)}
 							>
 								<span>{organization.name}</span>
@@ -209,7 +209,11 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 										{organization.projects.length > 0 &&
 											organization.projects.map((project) => (
 												<SidebarMenuSubItem key={project.id}>
-													<SidebarMenuSubButton asChild className="">
+													<SidebarMenuSubButton
+														asChild
+														isActive={path === `/admin/${organization.id}/${project.id}`}
+														className=""
+													>
 														<a href={`/admin/${organization.id}/${project.id}`} className="">
 															<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
 																<IconProgress />
