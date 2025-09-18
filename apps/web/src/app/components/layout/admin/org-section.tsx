@@ -214,12 +214,12 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 														isActive={path.includes(`/admin/${organization.id}/${project.id}`)}
 														className=""
 													>
-														<a href={`/admin/${organization.id}/${project.id}`} className="">
+														<Link href={`/admin/${organization.id}/${project.id}`} className="">
 															<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
 																<IconProgress />
 															</div>
 															<span>{project.name}</span>
-														</a>
+														</Link>
 													</SidebarMenuSubButton>
 												</SidebarMenuSubItem>
 											))}
@@ -293,10 +293,10 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 							<DropdownMenuGroup className="p-1" key={project.id}>
 								<DropdownMenuLabel>Projects</DropdownMenuLabel>
 								<DropdownMenuItem asChild>
-									<a href={`/admin/${organization.id}/${project.id}`} className="flex items-center gap-2">
+									<Link href={`/admin/${organization.id}/${project.id}`} className="flex items-center gap-2">
 										<IconProgress className="h-4 w-4" />
 										<span>{project.name}</span>
-									</a>
+									</Link>
 								</DropdownMenuItem>
 							</DropdownMenuGroup>
 						))
