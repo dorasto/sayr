@@ -211,7 +211,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 												<SidebarMenuSubItem key={project.id}>
 													<SidebarMenuSubButton
 														asChild
-														isActive={path === `/admin/${organization.id}/${project.id}`}
+														isActive={path.includes(`/admin/${organization.id}/${project.id}`)}
 														className=""
 													>
 														<a href={`/admin/${organization.id}/${project.id}`} className="">
