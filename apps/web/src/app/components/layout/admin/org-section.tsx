@@ -88,151 +88,153 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	// Desktop + Sidebar Open: Collapsible with full content
 	const renderCollapsibleView = () => (
 		<Collapsible key={organization.id} defaultOpen={isActive} className="group/collapsible">
-			<SidebarMenuItem className="flex flex-col gap-0.5">
-				<div
-					className={cn(
-						"flex items-center justify-center pl-2 pr-1 hover:bg-sidebar-accent rounded-md transition-all group/coltrig",
-						isActive && "bg-sidebar-accent text-sidebar-foreground"
-					)}
-				>
-					<CollapsibleTrigger
-						asChild
-						className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer"
+			<SidebarGroup className={cn("flex flex-col gap-1")}>
+				<SidebarGroupLabel asChild>
+					<div
+						className={cn(
+							"flex items-center justify-center hover:bg-sidebar-accent rounded-md transition-all group/coltrig w-full text-sidebar-foreground",
+							isActive && "bg-sidebar-accent"
+						)}
 					>
-						<div className="h-4 w-4 aspect-square relative flex items-center justify-center">
-							<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
-							<Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0">
-								<AvatarImage src={organization.logo || ""} alt={organization.name} />
-								<AvatarFallback className="rounded-md uppercase text-xs">
-									<IconUsers className="h-4 w-4" />
-								</AvatarFallback>
-							</Avatar>
-						</div>
-					</CollapsibleTrigger>
-					<Link href={`/admin/${organization.id}`} className="w-full cursor-pointer">
-						<SidebarMenuButton
-							className={cn(
-								"hover:bg-transparent hover:text-sidebar-foreground group-hover/coltrig:text-sidebar-foreground cursor-pointer",
-								isActive && "text-sidebar-foreground"
-							)}
+						<CollapsibleTrigger
+							asChild
+							className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer text-sidebar-foreground"
 						>
-							<span>{organization.name}</span>
-						</SidebarMenuButton>
-					</Link>
-
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
+							<div className="h-4 w-4 aspect-square relative flex items-center justify-center">
+								<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
+								<Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0">
+									<AvatarImage src={organization.logo || ""} alt={organization.name} />
+									<AvatarFallback className="rounded-md uppercase text-xs">
+										<IconUsers className="h-4 w-4" />
+									</AvatarFallback>
+								</Avatar>
+							</div>
+						</CollapsibleTrigger>
+						<Link href={`/admin/${organization.id}`} className="w-full cursor-pointer">
+							<SidebarMenuButton
 								className={cn(
-									"text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border",
-									isMobile && "text-sidebar-foreground"
+									"hover:bg-transparent font-semibold text-sidebar-foreground/70 group-hover/coltrig:text-sidebar-foreground cursor-pointer",
+									isActive && "text-sidebar-foreground"
 								)}
 							>
-								<MoreHorizontal />
-								<span className="sr-only">More</span>
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent className="w-48 rounded-lg z-[999]" side="right" align="start">
-							<DropdownMenuItem onClick={openDialog}>
-								<IconPencil className="text-muted-foreground" />
-								<span>Update</span>
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
-				<CollapsibleContent>
-					<SidebarMenuSub className="pr-0 mr-0">
-						<SidebarMenuSubItem>
-							<SidebarMenuSubButton asChild className="transition-all">
-								<Link href={`/admin/${organization.id}`}>
-									<IconLibrary />
-									Tasks
-								</Link>
-							</SidebarMenuSubButton>
-						</SidebarMenuSubItem>
-						<Collapsible
-							// key={item.title}
-							// title={item.title}
-							defaultOpen
-							className="group/coltasks flex flex-col gap-0.5"
-						>
-							{/* start */}
-							<SidebarMenuSubItem className="flex flex-col gap-0.5">
-								<div
+								<span>{organization.name}</span>
+							</SidebarMenuButton>
+						</Link>
+
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
 									className={cn(
-										"flex items-center justify-center pl-2 pr-1 hover:bg-sidebar-accent rounded-md transition-all group/coltrig",
-										isActive && "bg-sidebar-accent text-sidebar-foreground"
+										"text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border",
+										isMobile && "text-sidebar-foreground"
 									)}
 								>
-									<CollapsibleTrigger
-										asChild
-										className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer"
+									<MoreHorizontal />
+									<span className="sr-only">More</span>
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent className="w-48 rounded-lg z-[999]" side="right" align="start">
+								<DropdownMenuItem onClick={openDialog}>
+									<IconPencil className="text-muted-foreground" />
+									<span>Update</span>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
+				</SidebarGroupLabel>
+				<CollapsibleContent className="test-content">
+					<SidebarGroupContent className="test">
+						<SidebarMenu className="">
+							{/* <SidebarMenuItem>
+								<SidebarMenuButton asChild className="transition-all">
+									<Link href={`/admin/${organization.id}`}>
+										<IconLibrary />
+										Your Tasks
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem> */}
+							<Collapsible
+								// key={item.title}
+								// title={item.title}
+								defaultOpen
+								className="group/coltasks flex flex-col gap-0.5"
+							>
+								{/* start */}
+								<SidebarMenuItem className="">
+									<div
+										className={cn(
+											"flex items-center justify-center pl-2 pr-1 hover:bg-sidebar-accent rounded-md transition-all group/coltrig"
+										)}
 									>
-										<div className="flex items-center w-full justify-start">
-											<div className="h-4 w-4 aspect-square relative flex items-center justify-center">
-												<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
-												<IconProgress className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0" />
-												{/* <Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0">
+										<CollapsibleTrigger
+											asChild
+											className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer"
+										>
+											<div className="flex items-center w-full justify-start">
+												<div className="h-4 w-4 aspect-square relative flex items-center justify-center">
+													<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
+													<IconProgress className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0" />
+													{/* <Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0">
 												<AvatarImage src={organization.logo || ""} alt={organization.name} />
 												<AvatarFallback className="rounded-md uppercase text-xs">
 													<IconUsers className="h-4 w-4" />
 												</AvatarFallback>
 											</Avatar> */}
+												</div>
+												<SidebarMenuButton
+													className={cn(
+														"hover:bg-transparent hover:text-sidebar-foreground group-hover/coltrig:text-sidebar-foreground cursor-pointer"
+													)}
+												>
+													<span>Projects</span>
+												</SidebarMenuButton>
 											</div>
-											<SidebarMenuSubButton
-												className={cn(
-													"hover:bg-transparent hover:text-sidebar-foreground group-hover/coltrig:text-sidebar-foreground cursor-pointer",
-													isActive && "text-sidebar-foreground"
-												)}
-											>
-												<span>Projects</span>
+										</CollapsibleTrigger>
+
+										<Button
+											className={cn(
+												"text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border",
+												isMobile && "text-sidebar-foreground"
+											)}
+											onClick={() => setIsProjectDialogOpen(true)}
+										>
+											<IconPlus />
+											<span className="sr-only">add</span>
+										</Button>
+									</div>
+								</SidebarMenuItem>
+
+								<CollapsibleContent className="content">
+									<SidebarMenuSub className="w-full pr-4">
+										{/* {item.items.map((item) => ( */}
+										<SidebarMenuSubItem>
+											<SidebarMenuSubButton asChild className="">
+												<a href={"item.url"} className="">
+													<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+														<IconProgress />
+													</div>
+													<span>Project 1 with a really long title for testing purposes</span>
+												</a>
 											</SidebarMenuSubButton>
-										</div>
-									</CollapsibleTrigger>
-
-									<Button
-										className={cn(
-											"text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border",
-											isMobile && "text-sidebar-foreground"
-										)}
-										onClick={() => setIsProjectDialogOpen(true)}
-									>
-										<IconPlus />
-										<span className="sr-only">add</span>
-									</Button>
-								</div>
-							</SidebarMenuSubItem>
-
-							<CollapsibleContent className="content">
-								<SidebarMenuSub className="w-full pr-4">
-									{/* {item.items.map((item) => ( */}
-									<SidebarMenuSubItem>
-										<SidebarMenuSubButton asChild className="">
-											<a href={"item.url"} className="">
-												<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-													<IconProgress />
-												</div>
-												<span>Project 1 with a really long title for testing purposes</span>
-											</a>
-										</SidebarMenuSubButton>
-									</SidebarMenuSubItem>
-									<SidebarMenuSubItem>
-										<SidebarMenuSubButton asChild className="">
-											<a href={"item.url"} className="">
-												<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-													<IconProgress />
-												</div>
-												<span>Project 2</span>
-											</a>
-										</SidebarMenuSubButton>
-									</SidebarMenuSubItem>
-								</SidebarMenuSub>
-								{/* ))} */}
-							</CollapsibleContent>
-						</Collapsible>
-					</SidebarMenuSub>
+										</SidebarMenuSubItem>
+										<SidebarMenuSubItem>
+											<SidebarMenuSubButton asChild className="">
+												<a href={"item.url"} className="">
+													<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+														<IconProgress />
+													</div>
+													<span>Project 2</span>
+												</a>
+											</SidebarMenuSubButton>
+										</SidebarMenuSubItem>
+									</SidebarMenuSub>
+									{/* ))} */}
+								</CollapsibleContent>
+							</Collapsible>
+						</SidebarMenu>
+					</SidebarGroupContent>
 				</CollapsibleContent>
-			</SidebarMenuItem>
+			</SidebarGroup>
 		</Collapsible>
 	);
 

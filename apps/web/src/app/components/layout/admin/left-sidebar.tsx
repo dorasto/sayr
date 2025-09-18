@@ -4,6 +4,7 @@ import {
 	SidebarContent,
 	SidebarFooter,
 	SidebarGroup,
+	SidebarGroupContent,
 	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
@@ -13,6 +14,7 @@ import {
 	SidebarMenuSubButton,
 	SidebarMenuSubItem,
 	SidebarProvider,
+	SidebarSeparator,
 	SidebarToggle,
 } from "@repo/ui/components/custom-sidebar-localstorage";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
@@ -156,12 +158,19 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 
 				{/* Organizations Section */}
 				<SidebarGroup>
-					<SidebarGroupLabel>
-						<span>Organizations</span>
-					</SidebarGroupLabel>
-					{organizations.map((org) => (
-						<OrgSection key={org.id} organization={org} closeMobileSidebar={closeMobileSidebar} />
-					))}
+					<SidebarGroupLabel>Organizations</SidebarGroupLabel>
+					<SidebarGroupContent>
+						<SidebarMenu className="org-sidebar-menu gap-2">
+							{organizations
+								.flatMap((org, index) => [
+									<OrgSection key={org.id} organization={org} closeMobileSidebar={closeMobileSidebar} />,
+									organizations.length > 1 && index < organizations.length - 1 && (
+										<SidebarSeparator key={`separator-${org.id}`} />
+									),
+								])
+								.filter(Boolean)}
+						</SidebarMenu>
+					</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>

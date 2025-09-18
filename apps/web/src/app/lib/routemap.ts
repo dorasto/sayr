@@ -10,18 +10,6 @@ export const heading = [
 				icon: Icon.IconHome,
 				activeIcon: Icon.IconHomeFilled,
 			},
-			{
-				title: "My Tasks",
-				url: "#",
-				icon: Icon.IconChecklist,
-				activeIcon: Icon.IconChecklist,
-			},
-			{
-				title: "Settings",
-				url: "#",
-				icon: Icon.IconSettings,
-				activeIcon: Icon.IconSettings,
-			},
 		],
 	},
 ];
@@ -31,18 +19,10 @@ export const navigation = [
 		icon: Icon.IconLayoutGrid,
 		items: [
 			{
-				title: "Dashboard",
-				url: "/admin",
-				icon: Icon.IconHome,
-				activeIcon: Icon.IconHomeFilled,
-			},
-			{
 				title: "My Tasks",
 				url: "#",
-			},
-			{
-				title: "Settings",
-				url: "#",
+				icon: Icon.IconChecklist,
+				activeIcon: Icon.IconChecklist,
 			},
 		],
 	},
