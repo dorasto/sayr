@@ -206,29 +206,19 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 								<CollapsibleContent className="content">
 									<SidebarMenuSub className="w-full pr-4">
-										{/* {item.items.map((item) => ( */}
-										<SidebarMenuSubItem>
-											<SidebarMenuSubButton asChild className="">
-												<a href={"item.url"} className="">
-													<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-														<IconProgress />
-													</div>
-													<span>Project 1 with a really long title for testing purposes</span>
-												</a>
-											</SidebarMenuSubButton>
-										</SidebarMenuSubItem>
-										<SidebarMenuSubItem>
-											<SidebarMenuSubButton asChild className="">
-												<a href={"item.url"} className="">
-													<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-														<IconProgress />
-													</div>
-													<span>Project 2</span>
-												</a>
-											</SidebarMenuSubButton>
-										</SidebarMenuSubItem>
+										{organization.projects.map((project) => (
+											<SidebarMenuSubItem key={project.id}>
+												<SidebarMenuSubButton asChild className="">
+													<a href={`/admin/${organization.id}/${project.id}`} className="">
+														<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+															<IconProgress />
+														</div>
+														<span>{project.name}</span>
+													</a>
+												</SidebarMenuSubButton>
+											</SidebarMenuSubItem>
+										))}
 									</SidebarMenuSub>
-									{/* ))} */}
 								</CollapsibleContent>
 							</Collapsible>
 						</SidebarMenu>
