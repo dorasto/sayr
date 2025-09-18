@@ -87,7 +87,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 	// Desktop + Sidebar Open: Collapsible with full content
 	const renderCollapsibleView = () => (
-		<Collapsible key={organization.id} defaultOpen={isActive} className="group/collapsible">
+		<Collapsible key={organization.id} defaultOpen className="group/collapsible">
 			<SidebarGroup className={cn("flex flex-col gap-1")}>
 				<SidebarGroupLabel asChild>
 					<div
@@ -206,18 +206,19 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 								<CollapsibleContent className="content">
 									<SidebarMenuSub className="w-full pr-4">
-										{organization.projects.map((project) => (
-											<SidebarMenuSubItem key={project.id}>
-												<SidebarMenuSubButton asChild className="">
-													<a href={`/admin/${organization.id}/${project.id}`} className="">
-														<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-															<IconProgress />
-														</div>
-														<span>{project.name}</span>
-													</a>
-												</SidebarMenuSubButton>
-											</SidebarMenuSubItem>
-										))}
+										{organization.projects.length > 0 &&
+											organization.projects.map((project) => (
+												<SidebarMenuSubItem key={project.id}>
+													<SidebarMenuSubButton asChild className="">
+														<a href={`/admin/${organization.id}/${project.id}`} className="">
+															<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+																<IconProgress />
+															</div>
+															<span>{project.name}</span>
+														</a>
+													</SidebarMenuSubButton>
+												</SidebarMenuSubItem>
+											))}
 									</SidebarMenuSub>
 								</CollapsibleContent>
 							</Collapsible>
@@ -275,14 +276,32 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 							<IconSettings className="h-4 w-4" />
 						</Button>
 					</DropdownMenuLabel>
-					<DropdownMenuGroup className="p-1">
+					{/* <DropdownMenuGroup className="p-1">
 						<DropdownMenuItem asChild>
 							<a href="/" className="flex items-center gap-2">
 								<IconLibrary className="h-4 w-4" />
 								<span>Tasks</span>
 							</a>
 						</DropdownMenuItem>
-					</DropdownMenuGroup>
+					</DropdownMenuGroup> */}
+					{organization.projects.length > 0 ? (
+						organization.projects.map((project) => (
+							<DropdownMenuGroup className="p-1" key={project.id}>
+								<DropdownMenuLabel>Projects</DropdownMenuLabel>
+								<DropdownMenuItem asChild>
+									<a href={`/admin/${organization.id}/${project.id}`} className="flex items-center gap-2">
+										<IconProgress className="h-4 w-4" />
+										<span>{project.name}</span>
+									</a>
+								</DropdownMenuItem>
+							</DropdownMenuGroup>
+						))
+					) : (
+						<DropdownMenuGroup className="p-1">
+							<DropdownMenuLabel>No projects</DropdownMenuLabel>
+							<DropdownMenuItem>Create</DropdownMenuItem>
+						</DropdownMenuGroup>
+					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</SidebarMenuItem>
