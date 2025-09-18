@@ -24,6 +24,8 @@ export interface HeadlessToastOptions {
 	variant?: HeadlessToastVariant;
 	/** Arbitrary className overrides root */
 	className?: string;
+	/** Duration in milliseconds. Set to Infinity for persistent toasts */
+	duration?: number;
 }
 
 export type HeadlessToastVariant = "default" | "success" | "error" | "warning" | "info" | "loading";
@@ -65,7 +67,7 @@ export function HeadlessToast(props: Required<Pick<HeadlessToastOptions, "id">> 
 	return (
 		<div
 			className={cn(
-				"flex md:max-w-96 w-80 items-start gap-3 rounded-lg p-4 shadow-md transition-colors", // base
+				"flex flex-col md:max-w-96 w-80 items-start gap-3 rounded-lg p-4 shadow-md transition-colors", // base
 				variantClasses[variant],
 				className
 			)}
@@ -100,7 +102,10 @@ export function HeadlessToast(props: Required<Pick<HeadlessToastOptions, "id">> 
  * Accepts same options as component minus mandatory id.
  */
 export function headlessToast(opts: HeadlessToastOptions) {
-	return sonnerToast.custom((id) => <HeadlessToast id={id} {...opts} />);
+	const { duration, ...componentOptions } = opts;
+	return sonnerToast.custom((id) => <HeadlessToast id={id} {...componentOptions} />, {
+		duration,
+	});
 }
 
 // Variant specific helpers (optional small sugar)
