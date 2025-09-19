@@ -54,11 +54,7 @@ export function ComboBoxResponsive({
 		return (
 			<Popover open={open} onOpenChange={setOpen}>
 				<PopoverTrigger asChild>
-					<Button
-						size={"sm"}
-						variant="accent"
-						className={`${buttonWidth}  items-center gap-1 h-auto justify-start`}
-					>
+					<Button size={"sm"} variant="accent" className={`${buttonWidth}  items-center gap-1 justify-start`}>
 						{selectedItem ? (
 							<>
 								<span>{selectedItem.icon}</span>

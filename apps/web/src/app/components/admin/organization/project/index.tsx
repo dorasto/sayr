@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
+import Labeller from "./issue/creator/labels";
 import { PrioritySelector } from "./issue/creator/priority";
 import { StatusSelector } from "./issue/creator/status";
 
@@ -84,13 +85,14 @@ export default function OrganizationProjectHomePage({ _organization, _project }:
 								<div className="w-full max-h-96 overflow-scroll">
 									<Editor language="en" />
 								</div>
+								<div className="flex items-center gap-3 w-full">
+									<StatusSelector />
+									<PrioritySelector />
+									<Labeller />
+								</div>
 							</div>
 						</div>
 						<AdaptiveDialogFooter className="mt-auto bg-background flex !flex-col gap-2">
-							<div className="flex items-center gap-3 w-full">
-								<StatusSelector />
-								<PrioritySelector />
-							</div>
 							<div className="flex items-center gap-2 ml-auto">
 								<Button variant={"accent"} onClick={() => {}}>
 									Create issue
