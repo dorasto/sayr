@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
+import { StatusSelector } from "./issue/creator/status";
 
 type Props = {
 	_organization: schema.OrganizationWithMembers;
@@ -84,13 +85,15 @@ export default function OrganizationProjectHomePage({ _organization, _project }:
 								</div>
 							</div>
 						</div>
-						<AdaptiveDialogFooter className="mt-auto bg-background">
-							<Button variant={"outline"} onClick={() => setOpen(false)}>
-								Cancel
-							</Button>
-							<Button variant={"accent"} onClick={() => {}}>
-								Create issue
-							</Button>
+						<AdaptiveDialogFooter className="mt-auto bg-background flex !flex-col gap-2">
+							<div className="flex items-center gap-3 w-full">
+								<StatusSelector />
+							</div>
+							<div className="flex items-center gap-2 ml-auto">
+								<Button variant={"accent"} onClick={() => {}}>
+									Create issue
+								</Button>
+							</div>
 						</AdaptiveDialogFooter>
 					</AdaptiveDialogContent>
 				</AdaptiveDialog>
