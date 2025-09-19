@@ -1,10 +1,12 @@
+
+
 .bn-editor {
     padding-inline: 0px;
     padding-block: 0px
 }
 .bn-container[data-theming-root][data-color-scheme] {
     --bn-colors-editor-background: "transparent";
-  /* --bn-colors-editor-text: #222222; */
+  --bn-colors-editor-text: var(--foreground);
   /* --bn-colors-menu-text: #ffffff;
   --bn-colors-menu-background: #9b0000;
   --bn-colors-tooltip-text: #ffffff;

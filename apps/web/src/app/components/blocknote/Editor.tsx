@@ -26,6 +26,7 @@ import {
 	vi,
 	zh,
 } from "@blocknote/core/locales";
+import { useTheme } from "next-themes";
 
 // Create a mapping of supported locales
 const localeMap = {
@@ -55,6 +56,7 @@ const localeMap = {
 type EditorProps = {
 	language?: keyof typeof localeMap;
 	placeholder?: string;
+
 	placeholders?: {
 		default?: string;
 		heading?: string;
@@ -69,6 +71,7 @@ type EditorProps = {
 
 // Our <Editor> component we can reuse later
 export default function Editor({ language = "en", placeholder, placeholders }: EditorProps) {
+	const { theme } = useTheme();
 	// Get the selected locale or fallback to English
 	const selectedLocale = localeMap[language] || localeMap.en;
 
@@ -85,6 +88,7 @@ export default function Editor({ language = "en", placeholder, placeholders }: E
 	// Creates a new editor instance.
 	const editor = useCreateBlockNote({
 		trailingBlock: false,
+
 		dictionary: customDictionary,
 
 		domAttributes: {
@@ -95,5 +99,13 @@ export default function Editor({ language = "en", placeholder, placeholders }: E
 	});
 
 	// Renders the editor instance using a React component.
-	return <BlockNoteView data-theming-root editor={editor} sideMenu={false} className=""></BlockNoteView>;
+	return (
+		<BlockNoteView
+			data-theming-root
+			editor={editor}
+			theme={theme === "dark" ? "dark" : "light"}
+			sideMenu={false}
+			className=""
+		></BlockNoteView>
+	);
 }
