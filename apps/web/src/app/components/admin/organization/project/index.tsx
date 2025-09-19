@@ -1,9 +1,22 @@
 "use client";
 import type { schema } from "@repo/database";
-import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
+import {
+	AdaptiveDialog,
+	AdaptiveDialogContent,
+	AdaptiveDialogDescription,
+	AdaptiveDialogFooter,
+	AdaptiveDialogHeader,
+	AdaptiveDialogTitle,
+	AdaptiveDialogTrigger,
+} from "@repo/ui/components/adaptive-dialog";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
+import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
+import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 
 type Props = {
@@ -46,71 +59,42 @@ export default function OrganizationProjectHomePage({ _organization, _project }:
 	// 		ws.removeEventListener("message", handleMessage);
 	// 	};
 	// }, [ws, organization, setOrganization]);
+	const [open, setOpen] = useState(false);
 	return (
 		<div className="">
-			<TabbedDialogExample />
-			<h1>org detail {organization.name}</h1>
-			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			<img src={organization.logo || ""} alt={organization.name} />
-			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			<img src={organization.bannerImg || ""} alt={organization.name} />
-			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
-			<div className="flex items-center gap-2">
-				<span className="font-medium">WebSocket Status:</span>
-				<span
-					className={`px-2 py-1 rounded text-sm ${
-						wsStatus === "Connected" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-					}`}
-				>
-					{wsStatus}
-				</span>
-			</div>
-			{wsSubscribedState ? (
-				<div className="text-green-600 font-medium">
-					✅ Subscribed to channel <code>{wsSubscribedState.channel}</code>
-				</div>
-			) : (
-				<div className="text-yellow-600">⏳ Waiting for subscription...</div>
-			)}
-			<div className="mt-4">
-				<h2 className="text-lg font-semibold mb-2">📩 Incoming Messages</h2>
-				{messages.length === 0 ? (
-					<div className="text-gray-500 italic">No messages yet...</div>
-				) : (
-					<ul className="space-y-2">
-						{messages.map((msg, i) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: <only for testing>
-							<li key={i} className="p-3 border rounded bg-gray-500 shadow-sm text-sm">
-								<div className="font-mono text-white">
-									{msg.type === "MESSAGE" ? (
-										<>
-											<span className="font-bold">[{msg.meta?.channel || ""}]</span> {msg.data.text}
-										</>
-									) : (
-										<pre>{JSON.stringify(msg, null, 2)}</pre>
-									)}
+			<div className="flex items-center gap-3 w-full">
+				<Button onClick={() => setOpen(true)}>New issue</Button>
+				<AdaptiveDialog open={open} onOpenChange={setOpen}>
+					<AdaptiveDialogContent className="">
+						<AdaptiveDialogHeader>
+							<AdaptiveDialogTitle asChild>
+								<>
+									<Label variant={"heading"} className="text-left mr-auto sr-only">
+										New issue
+									</Label>
+									<Input variant={"strong"} placeholder="Issue title" className="px-0" />
+								</>
+							</AdaptiveDialogTitle>
+							<AdaptiveDialogDescription className="sr-only">Create a new issue</AdaptiveDialogDescription>
+						</AdaptiveDialogHeader>
+						<div className="flex flex-col gap-3 w-full p-3">
+							<div className="flex flex-col gap-1 w-full">
+								<div className="w-full max-h-96 overflow-scroll">
+									<Editor language="en" />
 								</div>
-								{msg.type === "MESSAGE" && (
-									<div className="text-xs text-gray-200 mt-1">
-										{new Date(msg.meta?.ts || "").toLocaleTimeString()}
-									</div>
-								)}
-								{msg.type === "FIREHOSE" && (
-									<div className="text-xs text-gray-200 mt-1">
-										{new Date(msg.meta?.ts || "").toLocaleTimeString()}
-									</div>
-								)}
-								{msg.type === "PING" && (
-									<div className="text-xs text-gray-200 mt-1">
-										{new Date(msg.ts || "").toLocaleTimeString()}
-									</div>
-								)}
-							</li>
-						))}
-					</ul>
-				)}
+							</div>
+						</div>
+						<AdaptiveDialogFooter className="mt-auto bg-background">
+							<Button variant={"outline"} onClick={() => setOpen(false)}>
+								Cancel
+							</Button>
+							<Button variant={"accent"} onClick={() => {}}>
+								Create issue
+							</Button>
+						</AdaptiveDialogFooter>
+					</AdaptiveDialogContent>
+				</AdaptiveDialog>
 			</div>
-			test
 		</div>
 	);
 }
