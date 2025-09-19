@@ -38,7 +38,7 @@ export function StatusSelector({ value, onValueChange }: StatusSelectorProps) {
 			items={statusItems}
 			placeholder="Filter status..."
 			emptyText="No status found."
-			buttonText="Set status"
+			buttonText="Status"
 			value={value}
 			onValueChange={onValueChange}
 		/>

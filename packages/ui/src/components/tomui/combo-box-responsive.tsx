@@ -30,7 +30,7 @@ export function ComboBoxResponsive({
 	placeholder = "Filter items...",
 	emptyText = "No results found.",
 	buttonText = "Select item",
-	buttonWidth = "w-[150px]",
+	buttonWidth = "",
 	popoverWidth = "w-[200px]",
 	value,
 	onValueChange,
@@ -54,7 +54,11 @@ export function ComboBoxResponsive({
 		return (
 			<Popover open={open} onOpenChange={setOpen}>
 				<PopoverTrigger asChild>
-					<Button variant="accent" className={`${buttonWidth}  items-center gap-1 h-auto justify-start`}>
+					<Button
+						size={"sm"}
+						variant="accent"
+						className={`${buttonWidth}  items-center gap-1 h-auto justify-start`}
+					>
 						{selectedItem ? (
 							<>
 								<span>{selectedItem.icon}</span>
@@ -81,7 +85,7 @@ export function ComboBoxResponsive({
 	return (
 		<Drawer open={open} onOpenChange={setOpen}>
 			<DrawerTrigger asChild>
-				<Button variant="outline" className={`${buttonWidth}  items-center gap-1`}>
+				<Button size={"sm"} variant="outline" className={`${buttonWidth}  items-center gap-1`}>
 					{selectedItem ? (
 						<>
 							<span className="">{selectedItem.icon}</span>
