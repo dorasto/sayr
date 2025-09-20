@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
-import { label, taskLabelAssignment } from "./label.schema";
+import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { project } from "./project.schema";
 import { taskComment } from "./taskComment.schema";
@@ -25,7 +25,7 @@ export const task = table("task", {
 		.text("project_id")
 		.notNull()
 		.references(() => project.id, { onDelete: "cascade" }),
-	visible: visibleEnum("private"), // enum-like field
+	visible: visibleEnum("visible").default("public"), // enum-like field
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	title: v.text("title"),
