@@ -1,5 +1,6 @@
 "use client";
 
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useMemo, useState } from "react";
 import type { TaskType } from "../list";
 import { StatusSectionHeader } from "./status-section-header";
@@ -88,6 +89,13 @@ export function TaskList({ tasks }: TaskListProps) {
 											task={task}
 											isSelected={selectedTasks.has(task.id)}
 											onSelect={(selected) => handleTaskSelect(task.id, selected)}
+											onTaskClick={() =>
+												headlessToast({
+													title: "This will soon navigate",
+													description:
+														"Maybe open in a sheet, maybe go straight to a page, maybe the ability to do BOTH?!?!?!?!?!?!?. Oh Trent, try right clicking btw its cool.",
+												})
+											}
 										/>
 									))}
 								</div>
