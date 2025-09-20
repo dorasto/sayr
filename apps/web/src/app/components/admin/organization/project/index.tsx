@@ -7,6 +7,7 @@ import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import CreateIssueDialog from "./issue/creator";
+import ListProjectIssues from "./list";
 
 export default function OrganizationProjectHomePage() {
 	const { ws } = useLayoutData();
@@ -38,6 +39,7 @@ export default function OrganizationProjectHomePage() {
 	return (
 		<div className="">
 			<CreateIssueDialog />
+			<ListProjectIssues />
 			{JSON.stringify(tasks, null, 4)}
 		</div>
 	);
