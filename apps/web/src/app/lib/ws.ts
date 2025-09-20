@@ -171,6 +171,10 @@ export type WSMessage =
 			data: schema.projectType;
 	  })
 	| (BaseMessage & {
+			type: "CREATE_TASK";
+			data: schema.TaskWithLabels;
+	  })
+	| (BaseMessage & {
 			type: "FIREHOSE";
 			data: {
 				channel: string;

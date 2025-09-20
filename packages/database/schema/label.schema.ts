@@ -63,3 +63,29 @@ export const labelRelations = relations(label, ({ one, many }) => ({
 	projectAssignments: many(projectLabelAssignment),
 	taskAssignments: many(taskLabelAssignment),
 }));
+
+export const taskLabelRelations = relations(taskLabelAssignment, ({ one }) => ({
+	task: one(task, {
+		fields: [taskLabelAssignment.taskId],
+		references: [task.id],
+	}),
+	label: one(label, {
+		fields: [taskLabelAssignment.labelId],
+		references: [label.id],
+	}),
+	project: one(project, {
+		fields: [taskLabelAssignment.projectId],
+		references: [project.id],
+	}),
+}));
+
+export const projectLabelRelations = relations(projectLabelAssignment, ({ one }) => ({
+	project: one(project, {
+		fields: [projectLabelAssignment.projectId],
+		references: [project.id],
+	}),
+	label: one(label, {
+		fields: [projectLabelAssignment.labelId],
+		references: [label.id],
+	}),
+}));

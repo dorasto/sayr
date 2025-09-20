@@ -1,7 +1,7 @@
 "use client";
 
 import { type ComboBoxItem, ComboBoxResponsive } from "@repo/ui/components/tomui/combo-box-responsive";
-import { IconCircle0, IconCircleDashed } from "@tabler/icons-react";
+import { IconCircleDashed } from "@tabler/icons-react";
 
 const statusItems: ComboBoxItem[] = [
 	{
@@ -14,7 +14,7 @@ const statusItems: ComboBoxItem[] = [
 		label: "Todo",
 	},
 	{
-		value: "in progress",
+		value: "in-progress",
 		label: "In Progress",
 	},
 	{
@@ -28,7 +28,7 @@ const statusItems: ComboBoxItem[] = [
 ];
 
 export interface StatusSelectorProps {
-	value?: string;
+	value?: string | null;
 	onValueChange?: (value: string | null) => void;
 }
 
@@ -39,7 +39,7 @@ export function StatusSelector({ value, onValueChange }: StatusSelectorProps) {
 			placeholder="Filter status..."
 			emptyText="No status found."
 			buttonText="Status"
-			value={value}
+			value={value || ""}
 			onValueChange={onValueChange}
 		/>
 	);

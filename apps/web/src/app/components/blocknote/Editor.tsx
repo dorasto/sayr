@@ -1,9 +1,10 @@
 "use client"; // this registers <Editor> as a Client Component
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
-import { SideMenu, SideMenuController, useCreateBlockNote } from "@blocknote/react";
+import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/mantine/style.css";
 import "./style.css";
+import type { PartialBlock } from "@blocknote/core";
 import {
 	ar,
 	de,
@@ -27,6 +28,7 @@ import {
 	zh,
 } from "@blocknote/core/locales";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 // Create a mapping of supported locales
 const localeMap = {
@@ -67,11 +69,27 @@ type EditorProps = {
 		edit_comment?: string;
 		comment_reply?: string;
 	};
+	value?: PartialBlock[] | undefined;
+	onChange?: (value: PartialBlock[]) => void;
+	updateContent?: PartialBlock[] | undefined;
 };
 
 // Our <Editor> component we can reuse later
-export default function Editor({ language = "en", placeholder, placeholders }: EditorProps) {
+export default function Editor({
+	language = "en",
+	placeholder,
+	placeholders,
+	value,
+	onChange,
+	updateContent,
+}: EditorProps) {
 	const { theme } = useTheme();
+	const [initialContent, setInitialContent] = useState<PartialBlock[] | undefined>(value);
+	useEffect(() => {
+		if (updateContent) {
+			setInitialContent(updateContent);
+		}
+	}, [updateContent]);
 	// Get the selected locale or fallback to English
 	const selectedLocale = localeMap[language] || localeMap.en;
 
@@ -88,7 +106,7 @@ export default function Editor({ language = "en", placeholder, placeholders }: E
 	// Creates a new editor instance.
 	const editor = useCreateBlockNote({
 		trailingBlock: false,
-
+		initialContent: initialContent,
 		dictionary: customDictionary,
 
 		domAttributes: {
@@ -97,6 +115,14 @@ export default function Editor({ language = "en", placeholder, placeholders }: E
 			},
 		},
 	});
+	useEffect(() => {
+		if (editor) {
+			window.dispatchEvent(new CustomEvent("BlockNote-Editor-Ready"));
+			editor.onChange(() => {
+				onChange?.(editor.document);
+			});
+		}
+	}, [editor, onChange]);
 
 	// Renders the editor instance using a React component.
 	return (

@@ -1,30 +1,17 @@
 "use client";
-import type { schema } from "@repo/database";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useEffect } from "react";
+import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 
-type Props = {
-	_organization: schema.OrganizationWithMembers;
-};
-
-export default function OrganizationHomePage({ _organization }: Props) {
+export default function OrganizationHomePage() {
 	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
-	const { value: organization, setValue: setOrganization } = useStateManagement<schema.OrganizationWithMembers>(
-		"organization",
-		_organization,
-		30000
-	);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <only run on mount>
-	useEffect(() => {
-		setOrganization(_organization);
-	}, []);
+	const { organization, setOrganization } = useLayoutOrganization();
 	const { messages, wsSubscribedState } = useWebSocketSubscription({
 		ws,
-		orgId: _organization.id,
+		orgId: organization.id,
 		organization: organization,
 		channel: "admin",
 		setOrganization: setOrganization,

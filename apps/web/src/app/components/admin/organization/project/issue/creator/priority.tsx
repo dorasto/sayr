@@ -7,9 +7,6 @@ import {
 	IconAntennaBars2,
 	IconAntennaBars3,
 	IconAntennaBars5,
-	IconCircle0,
-	IconCircleDashed,
-	IconDots,
 } from "@tabler/icons-react";
 
 const priorityItems: ComboBoxItem[] = [
@@ -41,7 +38,7 @@ const priorityItems: ComboBoxItem[] = [
 ];
 
 export interface PrioritySelectorProps {
-	value?: string;
+	value?: string | null;
 	onValueChange?: (value: string | null) => void;
 }
 
@@ -52,7 +49,7 @@ export function PrioritySelector({ value, onValueChange }: PrioritySelectorProps
 			placeholder="Filter priority..."
 			emptyText="No priority found."
 			buttonText="Priority"
-			value={value}
+			value={value || ""}
 			onValueChange={onValueChange}
 		/>
 	);

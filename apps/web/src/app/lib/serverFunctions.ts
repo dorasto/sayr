@@ -1,6 +1,7 @@
 import { auth } from "@repo/auth";
 import type { schema } from "@repo/database";
 import { headers } from "next/headers";
+import { cache } from "react";
 import { redirectAuth } from "@/app/lib/redirectAuth";
 
 /**
@@ -18,7 +19,7 @@ import { redirectAuth } from "@/app/lib/redirectAuth";
  * console.log(account.email);
  * ```
  */
-export async function getAccess() {
+export const getAccess = cache(async () => {
 	try {
 		const session = await auth.api.getSession({
 			headers: await headers(),
@@ -33,7 +34,7 @@ export async function getAccess() {
 		console.log("🚀 ~ getAccess ~ error:", error.body);
 		return redirectAuth();
 	}
-}
+});
 
 /**
  * Fetches a paginated list of users from the authentication API.

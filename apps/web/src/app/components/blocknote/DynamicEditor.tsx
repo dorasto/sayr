@@ -1,5 +1,6 @@
 "use client";
 
+import type { PartialBlock } from "@blocknote/core";
 import dynamic from "next/dynamic";
 
 // Define the props type that will be passed to the Editor
@@ -37,6 +38,9 @@ type EditorProps = {
 		edit_comment?: string;
 		comment_reply?: string;
 	};
+	value?: PartialBlock[] | undefined;
+	onChange?: (value: PartialBlock[]) => void;
+	updateContent?: PartialBlock[] | undefined;
 };
 
 export const Editor = dynamic(() => import("./Editor"), { ssr: false }) as React.ComponentType<EditorProps>;

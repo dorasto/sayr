@@ -1,7 +1,9 @@
 import type { account, session, user, verification } from "./auth";
+import type { labelType } from "./label.schema";
 import type { memberType } from "./member.schema";
 import type { organizationType } from "./organization.schema";
 import type { projectType } from "./project.schema";
+import type { taskType } from "./task.schema";
 
 export * from "./label.schema";
 export * from "./member.schema";
@@ -14,6 +16,9 @@ export interface OrganizationWithMembers extends organizationType {
 	members: (memberType & { user: userType })[];
 	projects: projectType[];
 }
+export type TaskWithLabels = taskType & {
+	labels: labelType[];
+};
 /* -------------------------------------------------------------------------- */
 /*                               Auth Types                                   */
 /* -------------------------------------------------------------------------- */

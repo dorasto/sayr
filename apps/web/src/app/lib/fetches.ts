@@ -1,5 +1,7 @@
 "use client";
 
+import type { PartialBlock } from "@blocknote/core";
+
 export interface UpdateOrganizationData {
 	name: string;
 	slug: string;
@@ -172,6 +174,38 @@ export async function createProjectAction(
 			wsClientId,
 			name: data.name,
 			description: data.description,
+		}),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 This ensures cookies are sent
+	}).then(async (e) => await e.json());
+	return result;
+}
+
+export async function createTaskAction(
+	organizationId: string,
+	projectId: string,
+	data: {
+		title: string;
+		description: PartialBlock[] | undefined;
+		status: string | undefined | null;
+		priority: string | undefined | null;
+		labels: string[];
+	},
+	wsClientId: string
+) {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/create-task`, {
+		method: "POST",
+		body: JSON.stringify({
+			org_id: organizationId,
+			wsClientId,
+			project_id: projectId,
+			title: data.title,
+			description: data.description,
+			status: data.status,
+			priority: data.priority,
+			labels: data.labels,
 		}),
 		headers: {
 			"Content-Type": "application/json",

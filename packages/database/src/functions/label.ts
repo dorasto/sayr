@@ -43,6 +43,16 @@ async function getOrCreateLabel(orgId: string, name: string, color?: string) {
 	return created;
 }
 
+async function getLabel(orgId: string, labelId: string) {
+	const existing = await db.query.label.findFirst({
+		where: (label) => and(eq(label.organizationId, orgId), eq(label.id, labelId)),
+	});
+	if (existing) {
+		return existing;
+	}
+	return null;
+}
+
 /**
  * Assign a label to a task. If the label does not exist, it will be created.
  * This function is idempotent: if the task already has the label, no duplicate
@@ -51,8 +61,7 @@ async function getOrCreateLabel(orgId: string, name: string, color?: string) {
  * @param orgId - The organization ID the label belongs to.
  * @param taskId - The ID of the task to assign the label to.
  * @param projectId - The project ID the task is part of (needed for join table).
- * @param name - The label name (e.g. `"Frontend"`).
- * @param color - Optional hex color for the label (defaults to `#cccccc`).
+ * @param labelId - The ID of the lable you want to add
  * @returns The label row that was assigned, or `null` if label creation failed.
  *
  * @example
@@ -63,8 +72,8 @@ async function getOrCreateLabel(orgId: string, name: string, color?: string) {
  * }
  * ```
  */
-export async function addLabelToTask(orgId: string, taskId: string, projectId: string, name: string, color?: string) {
-	const tag = await getOrCreateLabel(orgId, name, color);
+export async function addLabelToTask(orgId: string, taskId: string, projectId: string, labelId: string) {
+	const tag = await getLabel(orgId, labelId);
 	if (!tag) {
 		return null;
 	}
@@ -244,4 +253,25 @@ export async function getLabelUsage(labelId: string) {
 			total: lbl.projectAssignments.length + lbl.taskAssignments.length,
 		},
 	};
+}
+
+/**
+ * Fetches all labels belonging to a given organization.
+ *
+ * @param orgId - The ID of the organization whose labels should be retrieved.
+ * @returns A promise that resolves to an array of label records from the database.
+ *
+ * @example
+ * ```ts
+ * const labels = await getLabels("org_123");
+ * labels.forEach(label => {
+ *   console.log(`${label.name} (${label.color})`);
+ * });
+ * ```
+ */
+export async function getLabels(orgId: string) {
+	const lbl = await db.query.label.findMany({
+		where: (label) => eq(label.organizationId, orgId),
+	});
+	return lbl;
 }

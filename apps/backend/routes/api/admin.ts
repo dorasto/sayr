@@ -1,5 +1,5 @@
 import type { auth } from "@repo/auth";
-import { createProject, db, getOrganizationMembers, schema } from "@repo/database";
+import { addLabelToTask, createProject, db, getOrganizationMembers, schema } from "@repo/database";
 import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { and, eq } from "drizzle-orm";
@@ -104,6 +104,78 @@ apiRouteAdmin.post("/create-project", async (c) => {
 				{
 					path: c.req.path,
 					error: result.error,
+				},
+				500
+			);
+		}
+		// biome-ignore lint/suspicious/noExplicitAny: <has to be any>
+	} catch (error: any) {
+		console.log("🚀 ~ error:", error);
+		return c.json(
+			{
+				path: c.req.path,
+				error: error.toString(),
+			},
+			error.statusCode
+		);
+	}
+});
+apiRouteAdmin.post("/create-task", async (c) => {
+	try {
+		const { org_id, wsClientId, project_id, title, description, status, priority, labels } = await c.req.json();
+		const session = c.get("session");
+		const role = await db
+			.select()
+			.from(schema.member)
+			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
+		if (role[0]?.role !== "owner") {
+			return c.json({ error: "UNAUTHORIZED" }, 401);
+		}
+		const [task] = await db
+			.insert(schema.task)
+			.values({
+				organizationId: org_id,
+				projectId: project_id,
+				title: title,
+				description: description,
+				status: status,
+				priority: priority,
+			})
+			.returning();
+		if (task && labels && labels.length > 0) {
+			for (const labelId of labels) {
+				await addLabelToTask(org_id, task.id, project_id, labelId);
+			}
+		}
+		// Refetch with full labels
+		if (task) {
+			const taskWithLabels = await db.query.task.findFirst({
+				where: (t) => and(eq(t.id, task.id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+				with: {
+					labels: { with: { label: true } },
+				},
+			});
+
+			const cleanTask = {
+				...taskWithLabels,
+				labels: taskWithLabels?.labels.map((l) => l.label),
+			};
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "CREATE_TASK",
+				data: cleanTask,
+			};
+			broadcast(org_id, `project-${project_id}`, data, found?.socket);
+			broadcastPublic(org_id, { ...data, data: data });
+			return c.json({
+				success: true,
+				data: cleanTask,
+			});
+		} else {
+			return c.json(
+				{
+					path: c.req.path,
+					error: "Failed to create task",
 				},
 				500
 			);
