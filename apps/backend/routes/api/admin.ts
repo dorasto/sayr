@@ -2,7 +2,7 @@ import type { auth } from "@repo/auth";
 import { addLabelToTask, createProject, db, getOrganizationMembers, schema } from "@repo/database";
 import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
 
@@ -131,11 +131,18 @@ apiRouteAdmin.post("/create-task", async (c) => {
 		if (role[0]?.role !== "owner") {
 			return c.json({ error: "UNAUTHORIZED" }, 401);
 		}
+		const [max] = (await db
+			.select({ max: sql<number>`MAX(${schema.task.shortId})` })
+			.from(schema.task)
+			.where(eq(schema.task.projectId, project_id))) || [{ max: 0 }];
+
+		const nextShortId = (max?.max ?? 0) + 1;
 		const [task] = await db
 			.insert(schema.task)
 			.values({
 				organizationId: org_id,
 				projectId: project_id,
+				shortId: nextShortId,
 				title: title,
 				description: description,
 				status: status,

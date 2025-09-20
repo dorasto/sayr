@@ -1,12 +1,11 @@
 "use client";
 
-import { Cross2Icon } from "@radix-ui/react-icons";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
+import { DataTableFacetedFilter } from "@repo/ui/components/tasks/data-table-faceted-filter";
+import { DataTableViewOptions } from "@repo/ui/components/tasks/data-table-view-options";
+import { IconX } from "@tabler/icons-react";
 import type { Table } from "@tanstack/react-table";
-
-import { Button } from "../button";
-import { Input } from "../input";
-import { DataTableFacetedFilter } from "./data-table-faceted-filter";
-import { DataTableViewOptions } from "./data-table-view-options";
 
 interface DataTableToolbarProps<TData> {
 	table: Table<TData>;
@@ -79,7 +78,7 @@ export function DataTableToolbar<TData>({ table }: DataTableToolbarProps<TData>)
 				{isFiltered && (
 					<Button variant="ghost" onClick={() => table.resetColumnFilters()} className="h-8 px-2 lg:px-3">
 						Reset
-						<Cross2Icon className="ml-2 h-4 w-4" />
+						<IconX className="ml-2 h-4 w-4" />
 					</Button>
 				)}
 			</div>

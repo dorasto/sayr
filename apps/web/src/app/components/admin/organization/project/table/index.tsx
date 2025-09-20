@@ -1,5 +1,7 @@
 "use client";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/table";
+import { DataTablePagination } from "@repo/ui/components/tasks/data-table-pagination";
 import {
 	type ColumnDef,
 	type ColumnFiltersState,
@@ -13,10 +15,6 @@ import {
 	type VisibilityState,
 } from "@tanstack/react-table";
 import * as React from "react";
-
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../table";
-
-import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
 
 interface DataTableProps<TData, TValue> {

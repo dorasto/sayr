@@ -39,8 +39,7 @@ export default function OrganizationProjectHomePage() {
 	return (
 		<div className="">
 			<CreateIssueDialog />
-			<ListProjectIssues />
-			{JSON.stringify(tasks, null, 4)}
+			<ListProjectIssues tasks={tasks} />
 		</div>
 	);
 }

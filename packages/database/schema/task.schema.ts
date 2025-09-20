@@ -25,6 +25,7 @@ export const task = table("task", {
 		.text("project_id")
 		.notNull()
 		.references(() => project.id, { onDelete: "cascade" }),
+	shortId: v.integer("short_id"),
 	visible: visibleEnum("visible").default("public"), // enum-like field
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
@@ -35,6 +36,8 @@ export const task = table("task", {
 });
 
 export type taskType = typeof task.$inferSelect;
+
+export const taskUniquePerProject = v.unique("task_project_shortid_unique").on(task.projectId, task.shortId);
 
 export const taskRelations = relations(task, ({ one, many }) => ({
 	organization: one(organization, {

@@ -1,4 +1,4 @@
-import { Input } from "../input";
+import { Input } from "@repo/ui/components/input";
 
 export function Search() {
 	return (
