@@ -37,7 +37,7 @@ export default function OrganizationProjectHomePage() {
 		};
 	}, [ws, handleMessage]);
 	return (
-		<div className="">
+		<div className="relative">
 			<CreateIssueDialog />
 			<ListProjectIssues tasks={tasks} />
 		</div>
