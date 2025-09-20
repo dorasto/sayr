@@ -1,9 +1,9 @@
 "use client";
 import Image from "next/image";
-import { useLayoutDataOrganization } from "@/app/org/[slug]/Context";
+import { useLayoutPublicDataOrganization } from "@/app/org/[slug]/Context";
 
 export default function PublicOrgHomePage() {
-	const { organization } = useLayoutDataOrganization();
+	const { organization } = useLayoutPublicDataOrganization();
 	return (
 		<div className="">
 			<div className="relative rounded-2xl overflow-hidden">

@@ -5,10 +5,10 @@ import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { SearchIcon } from "lucide-react";
-import { useLayoutDataOrganization } from "@/app/org/[slug]/Context";
+import { useLayoutPublicDataOrganization } from "@/app/org/[slug]/Context";
 
 export default function Navigation() {
-	const { organization } = useLayoutDataOrganization();
+	const { organization } = useLayoutPublicDataOrganization();
 	return (
 		// <nav className="bg-sidebar border-b border-b-sidebar-border flex items-center gap-3 h-[var(--header-height)] px-3">
 		// 	<div className="flex items-center gap-1">

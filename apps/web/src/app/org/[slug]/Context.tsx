@@ -28,10 +28,10 @@ export function RootProviderOrganization({
 	);
 }
 
-export function useLayoutDataOrganization() {
+export function useLayoutPublicDataOrganization() {
 	const context = useContext(RootContext);
 	if (context === undefined) {
-		throw new Error("useLayoutData must be used within a RootProvider");
+		throw new Error("useLayoutPublicDataOrganization must be used within a RootProviderOrganization");
 	}
 	return context;
 }
