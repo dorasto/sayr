@@ -17,6 +17,9 @@ export type TaskType = {
 		name: string;
 		color: string | null;
 	}>;
+	createdAt: Date;
+	updatedAt: Date;
+	visibility: "public" | "private";
 };
 
 export default function ListProjectIssues({ tasks }: Props) {
@@ -28,6 +31,9 @@ export default function ListProjectIssues({ tasks }: Props) {
 				status: task.status,
 				priority: task.priority,
 				labels: task.labels || [],
+				createdAt: task.createdAt,
+				updatedAt: task.updatedAt,
+				visibility: task.visible,
 			})),
 		[tasks]
 	);

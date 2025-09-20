@@ -2,7 +2,8 @@
 
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import { ChevronDown, ChevronRight, Circle, Plus } from "lucide-react";
+import StatusIcon from "@repo/ui/components/icons/status";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface StatusSectionHeaderProps {
 	status: string;
@@ -15,34 +16,33 @@ const statusConfig = {
 	backlog: {
 		label: "Backlog",
 		color: "",
-		icon: Circle,
+		icon: (className: string) => <StatusIcon status="backlog" className={className} />,
 	},
 	todo: {
 		label: "Todo",
 		color: "",
-		icon: Circle,
+		icon: (className: string) => <StatusIcon status="todo" className={className} />,
 	},
 	"in-progress": {
 		label: "In Progress",
 		color: "",
-		icon: Circle,
+		icon: (className: string) => <StatusIcon status="in-progress" className={className} />,
 	},
 	done: {
 		label: "Done",
 		color: "",
-		icon: Circle,
+		icon: (className: string) => <StatusIcon status="done" className={className} />,
 	},
 	canceled: {
 		label: "Canceled",
 		color: "",
-		icon: Circle,
+		icon: (className: string) => <StatusIcon status="canceled" className={className} />,
 	},
 };
 
 export function StatusSectionHeader({ status, count, isCollapsed, onToggleCollapse }: StatusSectionHeaderProps) {
 	const config = statusConfig[status as keyof typeof statusConfig];
 	const ChevronIcon = isCollapsed ? ChevronRight : ChevronDown;
-	const StatusIcon = config?.icon || Circle;
 
 	return (
 		<div className={`sticky top-0 z-10 bg-muted rounded select-none`}>
@@ -58,10 +58,7 @@ export function StatusSectionHeader({ status, count, isCollapsed, onToggleCollap
 					</Button>
 
 					<div className="flex items-center gap-2 pl-9">
-						<span className="text-sm font-medium">
-							{" "}
-							<StatusIcon className={`h-4 w-4 ${status || ""}`} />
-						</span>
+						<span className="text-sm font-medium"> {config?.icon(`h-4 w-4 ${status || ""}`)}</span>
 						<p className="text-sm font-medium">{config?.label || status}</p>
 						<Badge variant={"outline"} className="rounded pointer-events-none">
 							{count}

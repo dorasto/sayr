@@ -99,3 +99,32 @@ export function generateSlug(name: string): string {
 		.replace(/[^a-z0-9]+/g, "-") // replace all non-alphanumeric with "-"
 		.replace(/^-+|-+$/g, ""); // remove leading/trailing "-"
 }
+
+/**
+ * Formats a Date object or string into a compact format with contextual year display.
+ *
+ * - For current year: "Sep 20"
+ * - For other years: "Sep 20 2025"
+ *
+ * @param date - Date object or ISO string.
+ * @param locale - Locale for formatting (default: "en-US").
+ *
+ * @example
+ * ```ts
+ * const today = formatDateCompact(new Date()); // "Sep 20" if current year
+ * const oldDate = formatDateCompact("2023-09-18T17:00:00Z"); // "Sep 18 2023"
+ * ```
+ */
+export function formatDateCompact(date: Date | string, locale = "en-US"): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	const currentYear = new Date().getFullYear();
+	const dateYear = d.getFullYear();
+
+	if (dateYear === currentYear) {
+		// Current year: "Sep 20"
+		return `${d.toLocaleDateString(locale, { month: "short", day: "numeric" })}`;
+	} else {
+		// Other years: "Sep 20 2025"
+		return `${d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}`;
+	}
+}
