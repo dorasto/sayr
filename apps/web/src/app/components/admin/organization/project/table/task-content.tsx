@@ -76,7 +76,21 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 				<div className="flex flex-col gap-3">
 					<GlobalTaskCreatedAt task={task} />
 					<Separator />
-					<GlobalTaskStatus task={task} editable={true} />
+					<GlobalTaskStatus
+						task={task}
+						editable={true}
+						onChange={async (value) => {
+							await updateTaskAction(
+								task.organizationId,
+								task.projectId,
+								task.id,
+								{
+									status: value,
+								},
+								""
+							);
+						}}
+					/>
 					<GlobalTaskLabels task={task} editable={true} />
 					<GlobalTaskPriority
 						task={task}

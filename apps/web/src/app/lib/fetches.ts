@@ -167,7 +167,7 @@ export async function createProjectAction(
 	},
 	wsClientId: string
 ) {
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/create-project`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
@@ -183,6 +183,16 @@ export async function createProjectAction(
 	return result;
 }
 
+/**
+ * Calls the `/admin/project/task/create` API to update an existing task.
+ * Only the fields provided in `data` will be updated.
+ *
+ * @param organizationId - The ID of the task's organization.
+ * @param projectId - The ID of the project the task belongs to.
+ * @param data - Partial task fields to update.
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @returns The updated task (with labels, assignees, timeline, etc.)
+ */
 export async function createTaskAction(
 	organizationId: string,
 	projectId: string,
@@ -195,7 +205,7 @@ export async function createTaskAction(
 	},
 	wsClientId: string
 ) {
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/create-task`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
@@ -216,7 +226,7 @@ export async function createTaskAction(
 }
 
 /**
- * Calls the `/admin/update-task` API to update an existing task.
+ * Calls the `/admin/project/task/update` API to update an existing task.
  * Only the fields provided in `data` will be updated.
  *
  * @param organizationId - The ID of the task's organization.
@@ -254,14 +264,13 @@ export async function updateTaskAction(
 		...(data.assignees !== undefined ? { assignees: data.assignees } : {}),
 	};
 
-	const res = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/update-task`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/update`, {
 		method: "PATCH",
 		body: JSON.stringify(payload),
 		headers: {
 			"Content-Type": "application/json",
 		},
-		credentials: "include",
-	});
-
-	return res.json();
+		credentials: "include", // 👈 This ensures cookies are sent
+	}).then(async (e) => await e.json());
+	return result;
 }

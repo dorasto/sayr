@@ -15,31 +15,28 @@ import {
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
-import { priorityConfig, statusConfig } from "../../admin/organization/project/table/task-list-item";
+import { statusConfig } from "../../admin/organization/project/table/task-list-item";
 
 interface GlobalTaskStatusProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
-	onPriorityChange?: (priority: string) => void;
+	onChange?: (status: string) => void;
 }
 
-export default function GlobalTaskStatus({ task, editable = false, onPriorityChange }: GlobalTaskStatusProps) {
+export default function GlobalTaskStatus({ task, editable = false, onChange }: GlobalTaskStatusProps) {
 	const currentStatus = task.status || undefined;
 
-	// const handleStatusChange = (value: string | null) => {
-	// 	if (value && onPriorityChange) {
-	// 		onPriorityChange(value);
-	// 	}
-	// };
+	const handleStatusChange = (value: string | null) => {
+		if (value && onChange) {
+			onChange(value);
+		}
+	};
 
 	return (
 		<div className="flex flex-col gap-3">
 			<Label variant={"subheading"}>Status</Label>
 			<div className="flex flex-col gap-2">
-				<ComboBox
-					value={currentStatus}
-					// onValueChange={handleStatusChange}
-				>
+				<ComboBox value={currentStatus} onValueChange={handleStatusChange}>
 					<ComboBoxTrigger disabled={!editable} className="">
 						<ComboBoxValue placeholder="Status">
 							{currentStatus && (

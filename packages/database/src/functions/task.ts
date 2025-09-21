@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
-import { db } from "..";
+import { db, schema } from "..";
 
 /**
  * Retrieves all tasks for a given project including their full label information.
@@ -84,6 +84,69 @@ export async function getTasksByProjectId(orgId: string, projectId: string) {
 }
 
 /**
+ * Creates a new task in a project, automatically assigning
+ * the next available shortId scoped to that project.
+ *
+ * @param orgId - The organization ID the task belongs to.
+ * @param projectId - The project ID the task belongs to.
+ * @param createdBy - The user ID who is creating (or null for anonymous).
+ * @param data - The task properties (title, description, status, priority).
+ * @returns The newly created task row.
+ *
+ * @example
+ * ```ts
+ * const task = await createTaskWithShortId(
+ *   "org_1",
+ *   "proj_123",
+ *   user.id,
+ *   {
+ *     title: "Fix login bug",
+ *     description: [],
+ *     status: "todo",
+ *     priority: "high"
+ *   }
+ * );
+ * console.log(task.shortId); // 1, 2, 3, ...
+ * ```
+ */
+export async function createTask(
+	orgId: string,
+	projectId: string,
+	data: {
+		title: string;
+		description?: unknown;
+		status?: string | null;
+		priority?: string | null;
+	},
+	createdBy?: string | null
+) {
+	console.log("🚀 ~ createTask ~ createdBy:", createdBy);
+	// Get highest existing shortId for this project
+	const [max] = (await db
+		.select({ max: sql<number>`MAX(${schema.task.shortId})` })
+		.from(schema.task)
+		.where(eq(schema.task.projectId, projectId))) || [{ max: 0 }];
+
+	const nextShortId = (max?.max ?? 0) + 1;
+
+	// Insert the new task
+	const [task] = await db
+		.insert(schema.task)
+		.values({
+			organizationId: orgId,
+			projectId: projectId,
+			shortId: nextShortId,
+			title: data.title,
+			description: data.description ?? [],
+			status: data.status ?? "todo",
+			priority: data.priority ?? "none",
+			createdBy: createdBy, // nullable for ANONYMOUS
+		})
+		.returning();
+	return task;
+}
+
+/**
  * Logs a timeline event for a task.
  *
  * @param params - taskId, orgId, actorId, eventType, optional from/to values, comment
@@ -104,16 +167,7 @@ export async function logTaskEvent({
 	organizationId: string;
 	projectId: string;
 	actorId?: string | null;
-	eventType:
-		| "status_change"
-		| "priority_change"
-		| "comment"
-		| "label_added"
-		| "label_removed"
-		| "assignee_added"
-		| "assignee_removed"
-		| "created"
-		| "updated";
+	eventType: (typeof schema.timelineEventTypeEnum.enumValues)[number];
 	fromValue?: unknown;
 	toValue?: unknown;
 	comment?: string;
@@ -128,5 +182,33 @@ export async function logTaskEvent({
 		fromValue: fromValue ? JSON.stringify(fromValue) : null,
 		toValue: toValue ? JSON.stringify(toValue) : null,
 		comment: comment ?? null,
+	});
+}
+
+// helper to append timeline entries
+export async function addLogEventTask(
+	task_id: string,
+	project_id: string,
+	org_id: string,
+	type: (typeof schema.timelineEventTypeEnum.enumValues)[number],
+	fromValue?: unknown,
+	toValue?: unknown,
+	actorId?: string
+) {
+	const [timeline] = (await db
+		.select({ max: sql<number>`MAX(${schema.taskTimeline.timelineNumber})` })
+		.from(schema.taskTimeline)
+		.where(eq(schema.taskTimeline.taskId, task_id))) || [{ max: 0 }];
+	let nextNum = timeline?.max ?? 0;
+	nextNum++;
+	await logTaskEvent({
+		timelineNumber: nextNum,
+		taskId: task_id,
+		projectId: project_id,
+		organizationId: org_id,
+		actorId: actorId ?? null,
+		eventType: type,
+		fromValue,
+		toValue,
 	});
 }
