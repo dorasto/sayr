@@ -63,7 +63,7 @@ export function SplitDialog({
 				{description && <DialogDescription className="sr-only">{description}</DialogDescription>}
 
 				{/* Header - Always sticky and above both content areas */}
-				<div className="flex-shrink-0 p-4 w-full border-b bg-background">
+				<div className="flex-shrink-0 p-4 w-full border-b">
 					<div className="flex items-center gap-3">
 						{showTitle && <DialogTitle className="font-semibold text-base!">{title}</DialogTitle>}
 						{description && (
@@ -102,7 +102,9 @@ export function SplitDialog({
 					{sideComponent}
 
 					{/* Main Content */}
-					<div className="flex-1 overflow-y-auto">{contentComponent}</div>
+					<div className={cn("flex-1 overflow-y-auto", sidebarPosition === "left" ? "border-l" : "border-r")}>
+						{contentComponent}
+					</div>
 				</div>
 			</DialogContent>
 		</Dialog>
