@@ -7,6 +7,7 @@ import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
+import CreateIssueDialog from "./issue/creator";
 import ListProjectIssues from "./list";
 import { ProjectDropdown } from "./project-dropdown";
 
@@ -41,6 +42,7 @@ export default function OrganizationProjectHomePage() {
 		<div className="relative flex flex-col gap-6">
 			<div className="flex items-center gap-3 bg-card rounded p-3">
 				<Label variant={"heading"}>{project.name}</Label>
+				<CreateIssueDialog />
 				<ProjectDropdown />
 			</div>
 			<ListProjectIssues tasks={tasks} setTasks={setTasks} ws={ws} />
