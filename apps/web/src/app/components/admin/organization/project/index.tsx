@@ -39,7 +39,7 @@ export default function OrganizationProjectHomePage() {
 	return (
 		<div className="relative">
 			<CreateIssueDialog />
-			<ListProjectIssues tasks={tasks} />
+			<ListProjectIssues tasks={tasks} setTasks={setTasks} ws={ws} />
 		</div>
 	);
 }

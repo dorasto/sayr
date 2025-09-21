@@ -15,6 +15,7 @@ import GlobalTaskCreatedAt from "@/app/components/globals/tasks/created";
 import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 import GlobalTimeline from "@/app/components/globals/tasks/timeline";
+import { updateTaskAction } from "@/app/lib/fetches";
 import { priorityConfig, statusConfig } from "./task-list-item";
 
 interface TaskContentProps {
@@ -35,7 +36,7 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 						{task.title}
 					</Label>
 					<Label variant={"heading"} className={cn("text-left text-lg text-muted-foreground shrink-0")}>
-						{task.id}
+						#{task.shortId}
 					</Label>
 					<div className="ml-auto flex items-center gap-2 shrink-0">
 						<Badge
@@ -73,7 +74,21 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 				<div className="flex flex-col gap-3">
 					<GlobalTaskCreatedAt task={task} />
 					<GlobalTaskLabels task={task} editable={true} />
-					<GlobalTaskPriority task={task} editable={true} />
+					<GlobalTaskPriority
+						task={task}
+						editable={true}
+						onPriorityChange={async (value) => {
+							await updateTaskAction(
+								task.organizationId,
+								task.projectId,
+								task.id,
+								{
+									priority: value,
+								},
+								""
+							);
+						}}
+					/>
 				</div>
 			</SplitDialogSide>
 		</SplitDialog>

@@ -1,24 +1,53 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { useMemo, useState } from "react";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useEffect, useMemo, useState } from "react";
+import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
+import type { WSMessage } from "@/app/lib/ws";
 import { StatusSectionHeader } from "./status-section-header";
 import { TaskContent } from "./task-content";
 import { TaskListItem } from "./task-list-item";
 
 interface TaskListProps {
 	tasks: schema.TaskWithLabels[];
+	setTasks: (newValue: schema.TaskWithLabels[]) => void;
+	ws: WebSocket | null;
 }
 
 // Define the order of statuses
 const statusOrder = ["backlog", "todo", "in-progress", "done", "canceled"];
 
-export function TaskList({ tasks }: TaskListProps) {
+export function TaskList({ tasks, setTasks, ws }: TaskListProps) {
 	const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-	const [selectedTask, setSelectedTask] = useState<schema.TaskWithLabels | null>(null);
+	const { value: selectedTask, setValue: setSelectedTask } = useStateManagement<schema.TaskWithLabels | null>(
+		"task",
+		null,
+		3000
+	);
 	const [isTaskContentOpen, setIsTaskContentOpen] = useState(false);
-
+	const handlers: WSMessageHandler<WSMessage> = {
+		UPDATE_TASK: (msg) => {
+			const updatedTask = msg.data;
+			tasks = tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));
+			setTasks(tasks);
+			if (selectedTask && selectedTask.id === updatedTask.id) {
+				setSelectedTask({ ...selectedTask, ...updatedTask });
+			}
+		},
+	};
+	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
+	});
+	useEffect(() => {
+		if (!ws) return;
+		ws.addEventListener("message", handleMessage);
+		// Cleanup on unmount or dependency change
+		return () => {
+			ws.removeEventListener("message", handleMessage);
+		};
+	}, [ws, handleMessage]);
 	const handleTaskSelect = (taskId: string, selected: boolean) => {
 		const newSelected = new Set(selectedTasks);
 		if (selected) {
@@ -116,7 +145,16 @@ export function TaskList({ tasks }: TaskListProps) {
 				<div className="h-24 flex items-center justify-center text-gray-500 dark:text-gray-400">No results.</div>
 			)}
 			{selectedTask && (
-				<TaskContent task={selectedTask} open={isTaskContentOpen} onOpenChange={setIsTaskContentOpen} />
+				<TaskContent
+					task={selectedTask}
+					open={isTaskContentOpen}
+					onOpenChange={(value) => {
+						setIsTaskContentOpen(value);
+						if (!value) {
+							setSelectedTask(null);
+						}
+					}}
+				/>
 			)}
 		</div>
 	);

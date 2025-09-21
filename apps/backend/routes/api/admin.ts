@@ -264,6 +264,164 @@ apiRouteAdmin.post("/create-task", async (c) => {
 		);
 	}
 });
+apiRouteAdmin.patch("/update-task", async (c) => {
+	try {
+		const { org_id, wsClientId, project_id, task_id, ...updates } = await c.req.json();
+		const session = c.get("session");
+
+		// RBAC check
+		const role = await db
+			.select()
+			.from(schema.member)
+			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
+		if (role[0]?.role !== "owner") {
+			return c.json({ error: "UNAUTHORIZED" }, 401);
+		}
+
+		// Get the existing task
+		const existingTask = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+		});
+		if (!existingTask) {
+			return c.json({ error: "Task not found" }, 404);
+		}
+
+		// Step 1: Only update fields passed in
+		const allowedUpdates: Partial<schema.taskType> = {};
+		if (updates.title !== undefined) allowedUpdates.title = updates.title;
+		if (updates.description !== undefined) allowedUpdates.description = updates.description;
+		if (updates.status !== undefined) allowedUpdates.status = updates.status;
+		if (updates.priority !== undefined) allowedUpdates.priority = updates.priority;
+
+		let updatedTask: schema.taskType | undefined;
+
+		if (Object.keys(allowedUpdates).length > 0) {
+			const [u] = await db
+				.update(schema.task)
+				.set({ ...allowedUpdates, updatedAt: new Date() })
+				.where(eq(schema.task.id, task_id))
+				.returning();
+			updatedTask = u;
+		} else {
+			updatedTask = existingTask;
+		}
+
+		// Step 2: Log timeline events
+		const [max] = (await db
+			.select({ max: sql<number>`MAX(${schema.taskTimeline.timelineNumber})` })
+			.from(schema.taskTimeline)
+			.where(eq(schema.taskTimeline.taskId, task_id))) || [{ max: 0 }];
+		let timelineNumber = max?.max ?? 0;
+
+		if (updates.status && updates.status !== existingTask.status) {
+			timelineNumber++;
+			await logTaskEvent({
+				timelineNumber,
+				taskId: task_id,
+				projectId: project_id,
+				organizationId: org_id,
+				actorId: session?.userId ?? null,
+				eventType: "status_change",
+				fromValue: existingTask.status,
+				toValue: updates.status,
+			});
+		}
+		if (updates.priority && updates.priority !== existingTask.priority) {
+			timelineNumber++;
+			await logTaskEvent({
+				timelineNumber,
+				taskId: task_id,
+				projectId: project_id,
+				organizationId: org_id,
+				actorId: session?.userId ?? null,
+				eventType: "priority_change",
+				fromValue: existingTask.priority,
+				toValue: updates.priority,
+			});
+		}
+		if (updates.title && updates.title !== existingTask.title) {
+			timelineNumber++;
+			await logTaskEvent({
+				timelineNumber,
+				taskId: task_id,
+				projectId: project_id,
+				organizationId: org_id,
+				actorId: session?.userId ?? null,
+				eventType: "updated",
+				fromValue: existingTask.title,
+				toValue: updates.title,
+			});
+		}
+		if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
+			timelineNumber++;
+			await logTaskEvent({
+				timelineNumber,
+				taskId: task_id,
+				projectId: project_id,
+				organizationId: org_id,
+				actorId: session?.userId ?? null,
+				eventType: "updated",
+				fromValue: existingTask.description,
+				toValue: updates.description,
+			});
+		}
+
+		// Step 3: Handle labels
+		if (updates.labels && Array.isArray(updates.labels)) {
+			for (const labelId of updates.labels) {
+				await addLabelToTask(org_id, task_id, project_id, labelId);
+			}
+		}
+
+		// Step 4: Handle assignees
+		if (updates.assignees && Array.isArray(updates.assignees)) {
+			for (const userId of updates.assignees) {
+				await db
+					.insert(schema.taskAssignee)
+					.values({ taskId: task_id, projectId: project_id, userId })
+					.onConflictDoNothing();
+			}
+		}
+
+		// Step 5: Refetch with relations
+		const taskWithData = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+			with: {
+				labels: { with: { label: true } },
+				createdBy: {
+					columns: { id: true, name: true, image: true },
+				},
+				assignees: {
+					with: { user: { columns: { id: true, name: true, image: true } } },
+				},
+				timeline: {
+					with: { actor: { columns: { id: true, name: true, image: true } } },
+				},
+				comments: {
+					with: { createdBy: { columns: { id: true, name: true, image: true } } },
+				},
+			},
+		});
+
+		const cleanTask = {
+			...taskWithData,
+			labels: taskWithData?.labels.map((l) => l.label),
+			assignees: taskWithData?.assignees.map((a) => a.user),
+		};
+
+		// Broadcast updates
+		const found = findClientByWsId(wsClientId);
+		const data = { type: "UPDATE_TASK", data: cleanTask };
+		broadcast(org_id, `project-${project_id}`, data, found?.socket);
+		broadcastPublic(org_id, { ...data });
+
+		return c.json({ success: true, data: cleanTask });
+		// biome-ignore lint/suspicious/noExplicitAny: <any>
+	} catch (error: any) {
+		console.error("🚀 ~ error:", error);
+		return c.json({ path: c.req.path, error: error.toString() }, error.statusCode);
+	}
+});
 apiRouteAdmin.put("/orgs/:orgId/logo", async (c) => {
 	try {
 		const session = c.get("session");

@@ -1,26 +1,17 @@
 "use client";
 import type { schema } from "@repo/database";
-import { useMemo } from "react";
-import { Search } from "./table/search";
 import { TaskList } from "./table/task-list";
 
 interface Props {
 	tasks: schema.TaskWithLabels[];
+	setTasks: (newValue: schema.TaskWithLabels[]) => void;
+	ws: WebSocket | null;
 }
 
-export default function ListProjectIssues({ tasks }: Props) {
-	const items = useMemo(
-		() =>
-			tasks.map((task) => ({
-				...task,
-				id: `#${task.shortId}`,
-			})),
-		[tasks]
-	);
+export default function ListProjectIssues({ tasks, setTasks, ws }: Props) {
 	return (
 		<div className="">
-			{/* <Search /> */}
-			<TaskList tasks={items} />
+			<TaskList tasks={tasks} setTasks={setTasks} ws={ws} />
 		</div>
 	);
 }

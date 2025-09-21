@@ -159,7 +159,9 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 									{/* Task ID */}
 									<div className="flex-shrink-0 min-w-9 w-9 max-w-9">
 										<div className="flex items-center space-x-2">
-											<span className="text-xs font-medium text-muted-foreground truncate">{task.id}</span>
+											<span className="text-xs font-medium text-muted-foreground truncate">
+												#{task.shortId}
+											</span>
 										</div>
 									</div>
 								</div>

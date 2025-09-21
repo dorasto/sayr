@@ -214,3 +214,54 @@ export async function createTaskAction(
 	}).then(async (e) => await e.json());
 	return result;
 }
+
+/**
+ * Calls the `/admin/update-task` API to update an existing task.
+ * Only the fields provided in `data` will be updated.
+ *
+ * @param organizationId - The ID of the task's organization.
+ * @param projectId - The ID of the project the task belongs to.
+ * @param taskId - The ID of the task to update.
+ * @param data - Partial task fields to update.
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @returns The updated task (with labels, assignees, timeline, etc.)
+ */
+export async function updateTaskAction(
+	organizationId: string,
+	projectId: string,
+	taskId: string,
+	data: {
+		title?: string;
+		description?: PartialBlock[];
+		status?: string | null;
+		priority?: string | null;
+		labels?: string[];
+		assignees?: string[];
+	},
+	wsClientId: string
+) {
+	const payload = {
+		org_id: organizationId,
+		wsClientId,
+		project_id: projectId,
+		task_id: taskId,
+		// Merge only the fields passed in
+		...(data.title !== undefined ? { title: data.title } : {}),
+		...(data.description !== undefined ? { description: data.description } : {}),
+		...(data.status !== undefined ? { status: data.status } : {}),
+		...(data.priority !== undefined ? { priority: data.priority } : {}),
+		...(data.labels !== undefined ? { labels: data.labels } : {}),
+		...(data.assignees !== undefined ? { assignees: data.assignees } : {}),
+	};
+
+	const res = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/update-task`, {
+		method: "PATCH",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	});
+
+	return res.json();
+}
