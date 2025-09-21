@@ -91,7 +91,6 @@ export default function GlobalTimeline({ task }: GlobalTimelineProps) {
 		<Timeline>
 			{task.timeline?.map((item) => {
 				const itemType = itemTypes[item.eventType as keyof typeof itemTypes];
-				const IconComponent = itemType.icon;
 				return (
 					<TimelineItem
 						key={item.id}
@@ -109,16 +108,16 @@ export default function GlobalTimeline({ task }: GlobalTimelineProps) {
 							<TimelineIndicator className="bg-primary/10 group-data-completed/timeline-item:bg-primary group-data-completed/timeline-item:text-primary-foreground flex size-6 items-center justify-center border-none group-data-[orientation=vertical]/timeline:-left-7">
 								<Avatar className={cn("h-10 w-10 rounded-full", itemType.color)}>
 									<AvatarFallback className="rounded-full bg-transparent">
-										<IconComponent size={20} />
+										<itemType.icon size={20} />
 									</AvatarFallback>
 								</Avatar>
 							</TimelineIndicator>
 						</TimelineHeader>
-						{/* {item.comment ? (
-						<TimelineContent className="text-foreground mt-2 rounded-lg border px-4 py-3">
-							<Editor readonly={true} value={item.description as PartialBlock[]} />
-						</TimelineContent>
-					) : null} */}
+						{item.blockNote ? (
+							<TimelineContent className="text-foreground mt-2 rounded-lg border px-4 py-3">
+								<Editor readonly={true} value={item.blockNote as PartialBlock[]} />
+							</TimelineContent>
+						) : null}
 					</TimelineItem>
 				);
 			})}

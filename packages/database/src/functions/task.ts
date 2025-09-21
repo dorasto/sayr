@@ -160,7 +160,7 @@ export async function logTaskEvent({
 	eventType,
 	fromValue,
 	toValue,
-	comment,
+	blockNote,
 }: {
 	timelineNumber: number;
 	taskId: string;
@@ -170,7 +170,7 @@ export async function logTaskEvent({
 	eventType: (typeof schema.timelineEventTypeEnum.enumValues)[number];
 	fromValue?: unknown;
 	toValue?: unknown;
-	comment?: string;
+	blockNote?: unknown;
 }) {
 	await db.insert(taskTimeline).values({
 		timelineNumber: timelineNumber,
@@ -181,7 +181,7 @@ export async function logTaskEvent({
 		eventType: eventType,
 		fromValue: fromValue ? JSON.stringify(fromValue) : null,
 		toValue: toValue ? JSON.stringify(toValue) : null,
-		comment: comment ?? null,
+		blockNote: blockNote ?? null,
 	});
 }
 
@@ -193,7 +193,8 @@ export async function addLogEventTask(
 	type: (typeof schema.timelineEventTypeEnum.enumValues)[number],
 	fromValue?: unknown,
 	toValue?: unknown,
-	actorId?: string
+	actorId?: string,
+	blockNote?: unknown
 ) {
 	const [timeline] = (await db
 		.select({ max: sql<number>`MAX(${schema.taskTimeline.timelineNumber})` })
@@ -210,5 +211,6 @@ export async function addLogEventTask(
 		eventType: type,
 		fromValue,
 		toValue,
+		blockNote,
 	});
 }

@@ -37,7 +37,16 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		if (!task) {
 			return c.json({ path: c.req.path, error: "Failed to create task" }, 500);
 		}
-		await addLogEventTask(task.id, project_id, org_id, "created", null, { status, priority, title }, session?.userId);
+		await addLogEventTask(
+			task.id,
+			project_id,
+			org_id,
+			"created",
+			null,
+			{ status, priority, title, labels },
+			session?.userId,
+			description
+		);
 		if (labels && labels.length > 0) {
 			for (const labelId of labels) {
 				await addLabelToTask(org_id, task.id, project_id, labelId);

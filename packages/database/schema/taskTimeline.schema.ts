@@ -43,7 +43,7 @@ export const taskTimeline = table(
 		eventType: timelineEventTypeEnum("event_type").notNull(),
 		fromValue: v.jsonb("from_value"),
 		toValue: v.jsonb("to_value"),
-		comment: v.text("comment"),
+		blockNote: v.jsonb("block_note"),
 		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	},
 	(t) => ({
