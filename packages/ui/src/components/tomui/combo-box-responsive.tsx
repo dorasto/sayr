@@ -23,6 +23,7 @@ export interface ComboBoxResponsiveProps {
 	popoverWidth?: string;
 	value?: string;
 	onValueChange?: (value: string | null) => void;
+	disabled?: boolean;
 }
 
 export function ComboBoxResponsive({
@@ -34,6 +35,7 @@ export function ComboBoxResponsive({
 	popoverWidth = "w-[200px]",
 	value,
 	onValueChange,
+	disabled,
 }: ComboBoxResponsiveProps) {
 	const [open, setOpen] = React.useState(false);
 	const isDesktop = !useIsMobile();
@@ -54,7 +56,12 @@ export function ComboBoxResponsive({
 		return (
 			<Popover open={open} onOpenChange={setOpen}>
 				<PopoverTrigger asChild>
-					<Button size={"sm"} variant="accent" className={`${buttonWidth}  items-center gap-1 justify-start`}>
+					<Button
+						size={"sm"}
+						variant="accent"
+						className={`${buttonWidth}  items-center gap-1 justify-start`}
+						disabled={disabled}
+					>
 						{selectedItem ? (
 							<>
 								<span>{selectedItem.icon}</span>
