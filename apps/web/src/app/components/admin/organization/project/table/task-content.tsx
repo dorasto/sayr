@@ -18,7 +18,7 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
-				className="h-[90dvh] max-w-7xl flex flex-col gap-3 w-full overflow-auto p-6 pt-0"
+				className="h-[90dvh] max-w-[calc(var(--container-7xl)-3rem)] flex flex-col gap-3 w-[calc(100vw-3rem)] overflow-auto p-6 pt-0"
 				showClose={false}
 			>
 				<DialogHeader className="sticky top-0 bg-popover p-3">
