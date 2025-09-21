@@ -54,6 +54,11 @@ export default function GlobalTaskLabels({
 		<div className="flex flex-col gap-3">
 			<Label variant={"subheading"}>Labels</Label>
 			<div className="flex flex-col gap-2">
+				{task.labels.map((label) => (
+					<span key={label.id} className="text-sm">
+						{label.name}
+					</span>
+				))}
 				<ComboBox values={currentLabelIds} onValuesChange={handleLabelsChange}>
 					<ComboBoxTrigger disabled={!editable} className="h-auto min-h-9 py-2">
 						<ComboBoxSelected maxVisible={3}>

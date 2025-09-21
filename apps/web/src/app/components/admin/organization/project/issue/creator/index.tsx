@@ -93,7 +93,9 @@ export default function CreateIssueDialog() {
 	);
 	return (
 		<div className="flex items-center gap-3 w-full">
-			<Button onClick={() => setOpen(true)}>New issue</Button>
+			<Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
+				New issue
+			</Button>
 			<AdaptiveDialog open={open} onOpenChange={setOpen}>
 				<AdaptiveDialogContent className="">
 					<AdaptiveDialogHeader>
