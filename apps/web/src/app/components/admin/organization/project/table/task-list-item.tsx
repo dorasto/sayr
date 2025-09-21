@@ -33,6 +33,7 @@ import { IconAlertSquareFilled, IconPencil } from "@tabler/icons-react";
 import { Ellipsis, Users } from "lucide-react";
 import { useState } from "react";
 import type { TaskType } from "../list";
+import { TaskContent } from "./task-content";
 
 interface TaskListItemProps {
 	task: TaskType;
@@ -41,7 +42,7 @@ interface TaskListItemProps {
 	onTaskClick?: (taskId: string) => void;
 }
 
-const statusConfig = {
+export const statusConfig = {
 	backlog: {
 		label: "Backlog",
 		icon: (className: string) => <StatusIcon status="backlog" className={className} />,
@@ -69,7 +70,7 @@ const statusConfig = {
 	},
 };
 
-const priorityConfig = {
+export const priorityConfig = {
 	low: {
 		label: "Low",
 		icon: (className: string) => <PriorityIcon bars={1} className={className} />,

@@ -35,7 +35,7 @@ export default async function RootLayout({
 			<RootProvider account={account} organizations={organizations}>
 				<Wrapper className="">
 					<AdminSubNavigation />
-					<div className="p-4 container">{children}</div>
+					<div className="p-4">{children}</div>
 				</Wrapper>
 			</RootProvider>
 			{/* </div> */}

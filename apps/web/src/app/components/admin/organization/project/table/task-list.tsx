@@ -1,9 +1,9 @@
 "use client";
 
-import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useMemo, useState } from "react";
 import type { TaskType } from "../list";
 import { StatusSectionHeader } from "./status-section-header";
+import { TaskContent } from "./task-content";
 import { TaskListItem } from "./task-list-item";
 
 interface TaskListProps {
@@ -16,6 +16,8 @@ const statusOrder = ["backlog", "todo", "in-progress", "done", "canceled"];
 export function TaskList({ tasks }: TaskListProps) {
 	const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+	const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
+	const [isTaskContentOpen, setIsTaskContentOpen] = useState(false);
 
 	const handleTaskSelect = (taskId: string, selected: boolean) => {
 		const newSelected = new Set(selectedTasks);
@@ -25,6 +27,14 @@ export function TaskList({ tasks }: TaskListProps) {
 			newSelected.delete(taskId);
 		}
 		setSelectedTasks(newSelected);
+	};
+
+	const handleTaskClick = (taskId: string) => {
+		const task = tasks.find((t) => t.id === taskId);
+		if (task) {
+			setSelectedTask(task);
+			setIsTaskContentOpen(true);
+		}
 	};
 
 	const handleToggleSection = (status: string) => {
@@ -58,11 +68,14 @@ export function TaskList({ tasks }: TaskListProps) {
 		// Return only groups that have tasks, in the correct order
 		return statusOrder
 			.filter((status) => groups[status] && groups[status].length > 0)
-			.map((status) => ({
-				status,
-				tasks: groups[status],
-				count: groups[status].length,
-			}));
+			.map((status) => {
+				const statusTasks = groups[status] || [];
+				return {
+					status,
+					tasks: statusTasks,
+					count: statusTasks.length,
+				};
+			});
 	}, [tasks]);
 
 	return (
@@ -84,19 +97,15 @@ export function TaskList({ tasks }: TaskListProps) {
 							{!isCollapsed && statusTasks && (
 								<div className="py-1 flex flex-col gap-1">
 									{statusTasks.map((task) => (
-										<TaskListItem
-											key={task.id}
-											task={task}
-											isSelected={selectedTasks.has(task.id)}
-											onSelect={(selected) => handleTaskSelect(task.id, selected)}
-											onTaskClick={() =>
-												headlessToast({
-													title: "This will soon navigate",
-													description:
-														"Maybe open in a sheet, maybe go straight to a page, maybe the ability to do BOTH?!?!?!?!?!?!?. Oh Trent, try right clicking btw its cool.",
-												})
-											}
-										/>
+										<>
+											<TaskListItem
+												key={task.id}
+												task={task}
+												isSelected={selectedTasks.has(task.id)}
+												onSelect={(selected) => handleTaskSelect(task.id, selected)}
+												onTaskClick={handleTaskClick}
+											/>
+										</>
 									))}
 								</div>
 							)}
@@ -105,6 +114,9 @@ export function TaskList({ tasks }: TaskListProps) {
 				})
 			) : (
 				<div className="h-24 flex items-center justify-center text-gray-500 dark:text-gray-400">No results.</div>
+			)}
+			{selectedTask && (
+				<TaskContent task={selectedTask} open={isTaskContentOpen} onOpenChange={setIsTaskContentOpen} />
 			)}
 		</div>
 	);
