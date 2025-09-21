@@ -13,8 +13,8 @@ import { ProjectDropdown } from "./project-dropdown";
 
 export default function OrganizationProjectHomePage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization } = useLayoutOrganization();
-	const { project, tasks, setTasks } = useLayoutProject();
+	const { organization, setOrganization, labels, setLabels } = useLayoutOrganization();
+	const { project, setProject, tasks, setTasks } = useLayoutProject();
 	useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -25,6 +25,11 @@ export default function OrganizationProjectHomePage() {
 	const handlers: WSMessageHandler<WSMessage> = {
 		CREATE_TASK: (msg) => {
 			setTasks([...tasks, msg.data]);
+		},
+		CREATE_LABEL: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setLabels([...labels, msg.data]);
+			}
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
@@ -43,9 +48,9 @@ export default function OrganizationProjectHomePage() {
 			<div className="flex items-center gap-3 bg-card rounded p-3">
 				<Label variant={"heading"}>{project.name}</Label>
 				<CreateIssueDialog />
-				<ProjectDropdown />
+				<ProjectDropdown project={project} setProject={setProject} labels={labels} setLabels={setLabels} />
 			</div>
-			<ListProjectIssues tasks={tasks} setTasks={setTasks} ws={ws} />
+			<ListProjectIssues tasks={tasks} setTasks={setTasks} ws={ws} labels={labels} />
 		</div>
 	);
 }

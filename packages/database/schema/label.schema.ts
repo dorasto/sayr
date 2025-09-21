@@ -19,13 +19,19 @@ export const label = table("label", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	name: v.varchar("name", { length: 100 }).notNull(),
-	color: v.varchar("color", { length: 7 }).default("#cccccc"), // hex color (#RRGGBB)
+	color: v.varchar("color").default("#cccccc"), // hex color (#RRGGBB)
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 });
 
 export type labelType = typeof label.$inferSelect;
 
 export const projectLabelAssignment = table("project_labels", {
+	id: v
+		.text("id")
+		.primaryKey()
+		.$defaultFn(() => {
+			return randomUUID();
+		}),
 	projectId: v
 		.text("project_id")
 		.notNull()
@@ -39,6 +45,12 @@ export const projectLabelAssignment = table("project_labels", {
 export type projectLabelType = typeof projectLabelAssignment.$inferSelect;
 
 export const taskLabelAssignment = table("task_labels", {
+	id: v
+		.text("id")
+		.primaryKey()
+		.$defaultFn(() => {
+			return randomUUID();
+		}),
 	taskId: v
 		.text("task_id")
 		.notNull()

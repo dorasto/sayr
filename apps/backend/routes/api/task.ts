@@ -230,6 +230,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		if (updates.labels && Array.isArray(updates.labels)) {
 			for (const labelId of updates.labels) {
 				await addLabelToTask(org_id, task_id, project_id, labelId);
+				// await addLogEventTask(task_id, project_id, org_id, "label_added", null, labelId, session?.userId);
 			}
 		}
 

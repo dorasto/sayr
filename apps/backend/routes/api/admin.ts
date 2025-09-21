@@ -1,5 +1,5 @@
 import type { auth } from "@repo/auth";
-import { db, getOrganizationMembers, schema } from "@repo/database";
+import { db, getOrCreateLabel, getOrganizationMembers, schema } from "@repo/database";
 import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { and, eq } from "drizzle-orm";
@@ -205,4 +205,45 @@ apiRouteAdmin.get("/test/:orgId", async (c) => {
 	}
 });
 
+apiRouteAdmin.post("/create-label", async (c) => {
+	try {
+		const session = c.get("session");
+		const { org_id, name, color } = await c.req.json();
+		// 1. Verify membership + role
+		const role = await db
+			.select()
+			.from(schema.member)
+			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
+
+		if (role[0]?.role !== "owner" && role[0]?.role !== "admin") {
+			return c.json({ error: "UNAUTHORIZED" }, 401);
+		}
+		const label = await getOrCreateLabel(org_id, name, color);
+		const data = {
+			type: "CREATE_LABEL",
+			data: label,
+		};
+		broadcast(org_id, "admin", data);
+		broadcastPublic(org_id, { ...data, data: data });
+		const members = await getOrganizationMembers(org_id);
+		members.forEach((member) => {
+			const clients = findClientsByUserId(member.userId);
+			clients.forEach((c) => broadcastIndividual(c.socket, data));
+		});
+		return c.json({
+			success: true,
+			data: label,
+		});
+		// biome-ignore lint/suspicious/noExplicitAny: <any>
+	} catch (err: any) {
+		console.error("Create label failed:", err.message);
+		return c.json(
+			{
+				path: c.req.path,
+				error: err.toString(),
+			},
+			err.statusCode
+		);
+	}
+});
 apiRouteAdmin.route("/project", apiRouteAdminProject);

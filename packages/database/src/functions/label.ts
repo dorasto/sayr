@@ -23,7 +23,7 @@ import { db } from "..";
  * console.log(urgent1.id === urgent2.id); // true
  * ```
  */
-async function getOrCreateLabel(orgId: string, name: string, color?: string) {
+export async function getOrCreateLabel(orgId: string, name: string, color?: string) {
 	const existing = await db.query.label.findFirst({
 		where: (label) => and(eq(label.organizationId, orgId), eq(label.name, name)),
 	});
@@ -43,7 +43,7 @@ async function getOrCreateLabel(orgId: string, name: string, color?: string) {
 	return created;
 }
 
-async function getLabel(orgId: string, labelId: string) {
+export async function getLabel(orgId: string, labelId: string) {
 	const existing = await db.query.label.findFirst({
 		where: (label) => and(eq(label.organizationId, orgId), eq(label.id, labelId)),
 	});
@@ -87,11 +87,14 @@ export async function addLabelToTask(orgId: string, taskId: string, projectId: s
 		return tag; // Already assigned
 	}
 
-	await db.insert(taskLabelAssignment).values({
-		taskId,
-		projectId,
-		labelId: tag.id,
-	});
+	await db
+		.insert(taskLabelAssignment)
+		.values({
+			taskId,
+			projectId,
+			labelId: tag.id,
+		})
+		.onConflictDoNothing();
 
 	return tag;
 }

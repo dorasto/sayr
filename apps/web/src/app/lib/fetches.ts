@@ -274,3 +274,52 @@ export async function updateTaskAction(
 	}).then(async (e) => await e.json());
 	return result;
 }
+
+/**
+ * Calls the `/admin/label/create` API to create a new label in an organization.
+ *
+ * @param organizationId - The ID of the organization the label belongs to.
+ * @param data - The label properties (name and color).
+ * @returns The newly created label record.
+ *
+ * @example
+ * ```ts
+ * const label = await createLabelAction("org_123", {
+ *   name: "Bug",
+ *   color: "#ff0000",
+ * });
+ * if (label.success) {
+ *   console.log("Created label:", label.data);
+ * }
+ * ```
+ */
+export async function createLabelAction(
+	organizationId: string,
+	data: {
+		name: string;
+		color: string;
+	}
+) {
+	const payload = {
+		org_id: organizationId,
+		name: data.name,
+		color: data.color,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/create-label`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 ensures cookies/session are sent
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to create label");
+		}
+		return json;
+	});
+
+	return result;
+}

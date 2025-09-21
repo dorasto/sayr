@@ -1,14 +1,17 @@
 "use client";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useEffect } from "react";
 import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
+import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
+import type { WSMessage } from "@/app/lib/ws";
 
 export default function OrganizationHomePage() {
 	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
-	const { organization, setOrganization } = useLayoutOrganization();
+	const { organization, setOrganization, labels, setLabels } = useLayoutOrganization();
 	const { messages, wsSubscribedState } = useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -16,20 +19,22 @@ export default function OrganizationHomePage() {
 		channel: "admin",
 		setOrganization: setOrganization,
 	});
-	// useEffect(() => {
-	// 	if (!ws) return;
-	// 	const handleMessage = (event: MessageEvent) => {
-	// 		const data = JSON.parse(event.data) as WSMessage;
-	// 		if (data.type === "UPDATE_ORG") {
-	// 			setOrganization({ ...organization, ...data.data });
-	// 		}
-	// 	};
-	// 	ws.addEventListener("message", handleMessage);
-	// 	// Cleanup on unmount or dependency change
-	// 	return () => {
-	// 		ws.removeEventListener("message", handleMessage);
-	// 	};
-	// }, [ws, organization, setOrganization]);
+	const handlers: WSMessageHandler<WSMessage> = {
+		CREATE_LABEL: (msg) => {
+			setLabels([...labels, msg.data]);
+		},
+	};
+	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
+	});
+	useEffect(() => {
+		if (!ws) return;
+		ws.addEventListener("message", handleMessage);
+		// Cleanup on unmount or dependency change
+		return () => {
+			ws.removeEventListener("message", handleMessage);
+		};
+	}, [ws, handleMessage]);
 	return (
 		<div className="">
 			<TabbedDialogExample />

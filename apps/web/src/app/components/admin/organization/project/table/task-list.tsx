@@ -13,12 +13,13 @@ interface TaskListProps {
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: schema.TaskWithLabels[]) => void;
 	ws: WebSocket | null;
+	labels: schema.labelType[];
 }
 
 // Define the order of statuses
 const statusOrder = ["backlog", "todo", "in-progress", "done", "canceled"];
 
-export function TaskList({ tasks, setTasks, ws }: TaskListProps) {
+export function TaskList({ tasks, setTasks, ws, labels }: TaskListProps) {
 	const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 	const { value: selectedTask, setValue: setSelectedTask } = useStateManagement<schema.TaskWithLabels | null>(
@@ -152,6 +153,7 @@ export function TaskList({ tasks, setTasks, ws }: TaskListProps) {
 							setSelectedTask(null);
 						}
 					}}
+					labels={labels}
 				/>
 			)}
 		</div>

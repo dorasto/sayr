@@ -6,12 +6,13 @@ interface Props {
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: schema.TaskWithLabels[]) => void;
 	ws: WebSocket | null;
+	labels: schema.labelType[];
 }
 
-export default function ListProjectIssues({ tasks, setTasks, ws }: Props) {
+export default function ListProjectIssues({ tasks, setTasks, ws, labels }: Props) {
 	return (
 		<div className="">
-			<TaskList tasks={tasks} setTasks={setTasks} ws={ws} />
+			<TaskList tasks={tasks} setTasks={setTasks} ws={ws} labels={labels} />
 		</div>
 	);
 }

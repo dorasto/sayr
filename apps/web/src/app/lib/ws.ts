@@ -179,6 +179,10 @@ export type WSMessage =
 			data: schema.TaskWithLabels;
 	  })
 	| (BaseMessage & {
+			type: "CREATE_LABEL";
+			data: schema.labelType;
+	  })
+	| (BaseMessage & {
 			type: "FIREHOSE";
 			data: {
 				channel: string;

@@ -24,8 +24,9 @@ interface TaskContentProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	task: schema.TaskWithLabels;
+	labels: schema.labelType[];
 }
-export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
+export function TaskContent({ open, onOpenChange, task, labels }: TaskContentProps) {
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
 	return (
@@ -91,7 +92,22 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 							);
 						}}
 					/>
-					<GlobalTaskLabels task={task} editable={true} />
+					<GlobalTaskLabels
+						task={task}
+						editable={true}
+						availableLabels={labels}
+						onLabelsChange={async (value) => {
+							await updateTaskAction(
+								task.organizationId,
+								task.projectId,
+								task.id,
+								{
+									labels: value,
+								},
+								""
+							);
+						}}
+					/>
 					<GlobalTaskPriority
 						task={task}
 						editable={true}
