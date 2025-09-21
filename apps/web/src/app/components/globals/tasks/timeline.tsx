@@ -30,11 +30,10 @@ export default function GlobalTimeline({ task }: GlobalTimelineProps) {
 		},
 		{
 			id: 2,
-			date: "10 minutes ago",
-			title: "username",
-			action: "commented on",
-			description: task.description,
-			image: "/avatar.jpg",
+			date: formatDateTime(task.createdAt as Date),
+			title: task.createdBy.name,
+			action: "Added the label (create clicky logic and render later)",
+			image: task.createdBy.image || "/avatar.jpg",
 		},
 		{
 			id: 3,
@@ -78,9 +77,11 @@ export default function GlobalTimeline({ task }: GlobalTimelineProps) {
 							</Avatar>
 						</TimelineIndicator>
 					</TimelineHeader>
-					<TimelineContent className="text-foreground mt-2 rounded-lg border px-4 py-3">
-						<Editor readonly={true} value={item.description as PartialBlock[]} />
-					</TimelineContent>
+					{item.description ? (
+						<TimelineContent className="text-foreground mt-2 rounded-lg border px-4 py-3">
+							<Editor readonly={true} value={item.description as PartialBlock[]} />
+						</TimelineContent>
+					) : null}
 				</TimelineItem>
 			))}
 		</Timeline>
