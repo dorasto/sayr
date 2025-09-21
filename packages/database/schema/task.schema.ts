@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import { user } from "./auth";
 import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { project } from "./project.schema";
@@ -33,6 +34,7 @@ export const task = table("task", {
 	description: v.jsonb("description").default([]),
 	status: statusEnum("todo"),
 	priority: priorityEnum("none"),
+	createdBy: v.text("created_by").references(() => user.id),
 });
 
 export type taskType = typeof task.$inferSelect;
@@ -48,6 +50,38 @@ export const taskRelations = relations(task, ({ one, many }) => ({
 		fields: [task.projectId],
 		references: [project.id],
 	}),
+	createdBy: one(user, {
+		fields: [task.createdBy],
+		references: [user.id],
+	}),
 	comments: many(taskComment),
 	labels: many(taskLabelAssignment),
+	assignees: many(taskAssignee),
+}));
+
+// A join table to assign multiple users to a single task
+export const taskAssignee = table("task_assignee", {
+	taskId: v
+		.text("task_id")
+		.notNull()
+		.references(() => task.id, { onDelete: "cascade" }),
+
+	userId: v
+		.text("user_id")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+});
+
+export type taskAssigneeType = typeof taskAssignee.$inferSelect;
+
+// Relations
+export const taskAssigneeRelations = relations(taskAssignee, ({ one }) => ({
+	task: one(task, {
+		fields: [taskAssignee.taskId],
+		references: [task.id],
+	}),
+	user: one(user, {
+		fields: [taskAssignee.userId],
+		references: [user.id],
+	}),
 }));

@@ -122,7 +122,8 @@ apiRouteAdmin.post("/create-project", async (c) => {
 });
 apiRouteAdmin.post("/create-task", async (c) => {
 	try {
-		const { org_id, wsClientId, project_id, title, description, status, priority, labels } = await c.req.json();
+		const { org_id, wsClientId, project_id, title, description, status, priority, labels, assignees } =
+			await c.req.json();
 		const session = c.get("session");
 		const role = await db
 			.select()
@@ -147,11 +148,24 @@ apiRouteAdmin.post("/create-task", async (c) => {
 				description: description,
 				status: status,
 				priority: priority,
+				createdBy: session?.userId || null, // allow null = ANONYMOUS
 			})
 			.returning();
 		if (task && labels && labels.length > 0) {
 			for (const labelId of labels) {
 				await addLabelToTask(org_id, task.id, project_id, labelId);
+			}
+		}
+		// Attach assignees if provided
+		if (task && assignees?.length > 0) {
+			for (const userId of assignees) {
+				await db
+					.insert(schema.taskAssignee)
+					.values({
+						taskId: task.id,
+						userId,
+					})
+					.onConflictDoNothing(); // avoid duplicate assignments
 			}
 		}
 		// Refetch with full labels
@@ -160,12 +174,31 @@ apiRouteAdmin.post("/create-task", async (c) => {
 				where: (t) => and(eq(t.id, task.id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
 				with: {
 					labels: { with: { label: true } },
+					createdBy: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+					assignees: {
+						with: {
+							user: {
+								columns: {
+									id: true,
+									name: true,
+									image: true,
+								},
+							},
+						},
+					}, // 👈 pulls assignee user info
 				},
 			});
 
 			const cleanTask = {
 				...taskWithLabels,
 				labels: taskWithLabels?.labels.map((l) => l.label),
+				assignees: taskWithLabels?.assignees.map((a) => a.user),
 			};
 			const found = findClientByWsId(wsClientId);
 			const data = {

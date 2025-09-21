@@ -18,6 +18,8 @@ export interface OrganizationWithMembers extends organizationType {
 }
 export type TaskWithLabels = taskType & {
 	labels: labelType[];
+	assignees: userType[];
+	createdBy?: userType;
 };
 /* -------------------------------------------------------------------------- */
 /*                               Auth Types                                   */

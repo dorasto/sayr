@@ -31,6 +31,24 @@ export async function getTasksByProjectId(orgId: string, projectId: string) {
 					label: true, // 👈 eager load the real label object
 				},
 			},
+			createdBy: {
+				columns: {
+					id: true,
+					name: true,
+					image: true,
+				},
+			},
+			assignees: {
+				with: {
+					user: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
 		},
 	});
 
@@ -38,5 +56,6 @@ export async function getTasksByProjectId(orgId: string, projectId: string) {
 	return tasks.map((task) => ({
 		...task,
 		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
 	}));
 }
