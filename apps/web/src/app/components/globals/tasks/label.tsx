@@ -2,10 +2,21 @@
 
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
-import { type ComboBoxItem, ComboBoxResponsive } from "@repo/ui/components/tomui/combo-box-responsive";
-import { IconPlus } from "@tabler/icons-react";
+import {
+	ComboBox,
+	ComboBoxContent,
+	ComboBoxEmpty,
+	ComboBoxGroup,
+	ComboBoxIcon,
+	ComboBoxItem,
+	ComboBoxList,
+	ComboBoxSearch,
+	ComboBoxSelected,
+	ComboBoxTrigger,
+	ComboBoxValue,
+} from "@repo/ui/components/tomui/combo-box-unified";
+import { XIcon } from "lucide-react";
 import { useMemo } from "react";
 
 interface GlobalTaskLabelsProps {
@@ -21,73 +32,77 @@ export default function GlobalTaskLabels({
 	availableLabels = [],
 	onLabelsChange,
 }: GlobalTaskLabelsProps) {
-	// Convert available labels to combo box items
-	const labelItems: ComboBoxItem[] = useMemo(
-		() =>
-			availableLabels.map((label) => ({
-				value: label.id,
-				label: label.name,
-				icon: (
-					<span
-						className="h-2 w-2 flex-shrink-0 rounded-full"
-						style={{ backgroundColor: label.color || "#cccccc" }}
-					/>
-				),
-			})),
-		[availableLabels]
-	);
+	// Get current selected label IDs
+	const currentLabelIds = task.labels?.map((label) => label.id) || [];
 
-	// Get current selected label (just pick the first one for single select)
-	const currentLabelId = task.labels?.[0]?.id || undefined;
-
-	const handleLabelChange = (value: string | null) => {
+	const handleLabelsChange = (values: string[]) => {
 		if (onLabelsChange) {
-			onLabelsChange(value ? [value] : []);
+			onLabelsChange(values);
 		}
 	};
+
+	// Create a map for easy label lookup
+	const labelMap = useMemo(() => {
+		const map = new Map();
+		availableLabels.forEach((label) => {
+			map.set(label.id, label);
+		});
+		return map;
+	}, [availableLabels]);
 
 	return (
 		<div className="flex flex-col gap-3">
 			<Label variant={"subheading"}>Labels</Label>
-			<div className="flex flex-wrap gap-1">
-				{/* Display existing labels */}
-				{task.labels && task.labels.length > 0 && (
-					<div className="flex flex-wrap gap-1">
-						{task.labels.map((label) => (
-							<Badge
-								key={label.id}
-								variant="outline"
-								className="flex overflow-hidden justify-center flex-shrink-0 items-center rounded px-2.5 text-xs h-6"
-							>
-								<div className="flex items-center gap-1.5 overflow-hidden">
-									<span
-										className="h-2 w-2 flex-shrink-0 rounded-full"
-										style={{ backgroundColor: label.color || "#cccccc" }}
-									/>
-									<div className="line-clamp-1 inline-block w-auto max-w-[120px] truncate">{label.name}</div>
+			<div className="flex flex-col gap-2">
+				<ComboBox values={currentLabelIds} onValuesChange={handleLabelsChange}>
+					<ComboBoxTrigger disabled={!editable} className="h-auto min-h-9 py-2">
+						<ComboBoxSelected maxVisible={3}>
+							{(selectedIds) => (
+								<div className="flex flex-wrap gap-1 flex-1 min-w-0">
+									{selectedIds.map((id) => {
+										const label = labelMap.get(id);
+										if (!label) return null;
+										return (
+											<Badge key={id} variant="secondary" className="flex items-center gap-1 text-xs h-5">
+												<span
+													className="h-2 w-2 flex-shrink-0 rounded-full"
+													style={{ backgroundColor: label.color || "#cccccc" }}
+												/>
+												<span className="truncate">{label.name}</span>
+												<XIcon
+													className="h-3 w-3 cursor-pointer hover:bg-muted rounded-sm"
+													onClick={(e) => {
+														e.stopPropagation();
+														handleLabelsChange(currentLabelIds.filter((labelId) => labelId !== id));
+													}}
+												/>
+											</Badge>
+										);
+									})}
 								</div>
-							</Badge>
-						))}
-					</div>
-				)}
-
-				{/* Dropdown for selecting labels */}
-				<ComboBoxResponsive
-					items={labelItems}
-					value={currentLabelId}
-					onValueChange={handleLabelChange}
-					placeholder="Search labels..."
-					emptyText="No labels found."
-					buttonText="Select label"
-					buttonWidth="justify-start"
-					popoverWidth="w-[220px]"
-					disabled={editable === false}
-					customTrigger={
-						<Button size={"icon"} variant={"accent"} className="h-6 w-6">
-							<IconPlus />
-						</Button>
-					}
-				/>
+							)}
+						</ComboBoxSelected>
+						<ComboBoxValue placeholder="Select labels..." />
+						<ComboBoxIcon />
+					</ComboBoxTrigger>
+					<ComboBoxContent className="w-[220px]">
+						<ComboBoxList>
+							<ComboBoxSearch placeholder="Search labels..." />
+							<ComboBoxEmpty>No labels found.</ComboBoxEmpty>
+							<ComboBoxGroup>
+								{availableLabels.map((label) => (
+									<ComboBoxItem key={label.name} value={label.id}>
+										<span
+											className="h-2 w-2 flex-shrink-0 rounded-full mr-2"
+											style={{ backgroundColor: label.color || "#cccccc" }}
+										/>
+										<span className="flex-1">{label.name}</span>
+									</ComboBoxItem>
+								))}
+							</ComboBoxGroup>
+						</ComboBoxList>
+					</ComboBoxContent>
+				</ComboBox>
 			</div>
 		</div>
 	);

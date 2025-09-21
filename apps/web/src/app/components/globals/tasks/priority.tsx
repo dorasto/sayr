@@ -1,10 +1,19 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
-import { type ComboBoxItem, ComboBoxResponsive } from "@repo/ui/components/tomui/combo-box-responsive";
+import {
+	ComboBox,
+	ComboBoxContent,
+	ComboBoxEmpty,
+	ComboBoxGroup,
+	ComboBoxIcon,
+	ComboBoxItem,
+	ComboBoxList,
+	ComboBoxSearch,
+	ComboBoxTrigger,
+	ComboBoxValue,
+} from "@repo/ui/components/tomui/combo-box-unified";
 import { priorityConfig } from "../../admin/organization/project/table/task-list-item";
 
 interface GlobalTaskPriorityProps {
@@ -14,14 +23,7 @@ interface GlobalTaskPriorityProps {
 }
 
 export default function GlobalTaskPriority({ task, editable = false, onPriorityChange }: GlobalTaskPriorityProps) {
-	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
-
-	// Convert priority config to combo box items
-	const priorityItems: ComboBoxItem[] = Object.entries(priorityConfig).map(([key, config]) => ({
-		value: key,
-		label: config.label,
-		icon: config.icon("h-3.5 w-3.5"),
-	}));
+	const currentPriority = task.priority || undefined;
 
 	const handlePriorityChange = (value: string | null) => {
 		if (value && onPriorityChange) {
@@ -32,17 +34,35 @@ export default function GlobalTaskPriority({ task, editable = false, onPriorityC
 	return (
 		<div className="flex flex-col gap-3">
 			<Label variant={"subheading"}>Priority</Label>
-			<ComboBoxResponsive
-				items={priorityItems}
-				value={task.priority || undefined}
-				onValueChange={handlePriorityChange}
-				placeholder="Search priorities..."
-				emptyText="No priorities found."
-				buttonText="Select priority"
-				buttonWidth="justify-start"
-				popoverWidth="w-[180px]"
-				disabled={editable === false}
-			/>
+			<div className="flex flex-col gap-2">
+				<ComboBox value={currentPriority} onValueChange={handlePriorityChange}>
+					<ComboBoxTrigger disabled={!editable} className="">
+						<ComboBoxValue placeholder="Priority">
+							{currentPriority && (
+								<div className="flex items-center gap-2">
+									{priorityConfig[currentPriority as keyof typeof priorityConfig]?.icon("h-4 w-4")}
+									<span>{priorityConfig[currentPriority as keyof typeof priorityConfig]?.label}</span>
+								</div>
+							)}
+						</ComboBoxValue>
+						<ComboBoxIcon />
+					</ComboBoxTrigger>
+					<ComboBoxContent className="">
+						<ComboBoxList>
+							<ComboBoxSearch icon placeholder="Update priority to..." />
+							<ComboBoxEmpty>Not found</ComboBoxEmpty>
+							<ComboBoxGroup>
+								{Object.entries(priorityConfig).map(([key, config]) => (
+									<ComboBoxItem key={key} value={key}>
+										{config.icon("h-4 w-4")}
+										<span className="ml-2">{config.label}</span>
+									</ComboBoxItem>
+								))}
+							</ComboBoxGroup>
+						</ComboBoxList>
+					</ComboBoxContent>
+				</ComboBox>
+			</div>
 		</div>
 	);
 }

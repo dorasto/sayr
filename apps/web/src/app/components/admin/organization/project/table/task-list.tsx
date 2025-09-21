@@ -126,15 +126,13 @@ export function TaskList({ tasks, setTasks, ws }: TaskListProps) {
 							{!isCollapsed && statusTasks && (
 								<div className="py-1 flex flex-col gap-1">
 									{statusTasks.map((task) => (
-										<>
-											<TaskListItem
-												key={task.id}
-												task={task}
-												isSelected={selectedTasks.has(task.id)}
-												onSelect={(selected) => handleTaskSelect(task.id, selected)}
-												onTaskClick={handleTaskClick}
-											/>
-										</>
+										<TaskListItem
+											key={task.id}
+											task={task}
+											isSelected={selectedTasks.has(task.id)}
+											onSelect={(selected) => handleTaskSelect(task.id, selected)}
+											onTaskClick={handleTaskClick}
+										/>
 									))}
 								</div>
 							)}
