@@ -7,6 +7,7 @@ import { Label } from "@repo/ui/components/label";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { cn } from "@repo/ui/lib/utils";
 import { IconX } from "@tabler/icons-react";
+import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import type { TaskType } from "../list";
 import { priorityConfig, statusConfig } from "./task-list-item";
 
@@ -48,114 +49,39 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 		>
 			<SplitDialogContent>
 				<div className="flex flex-col gap-3">
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
+					<Editor readonly={true} />
 				</div>
 			</SplitDialogContent>
 			<SplitDialogSide>
 				<div className="flex flex-col gap-3">
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
-					<h1>{task.title}</h1>
+					<div className="flex flex-col gap-3">
+						<Label variant={"subheading"}>Labels</Label>
+						{task.labels && task.labels.length > 0 && (
+							<div className="flex gap-1">
+								{task.labels.map((label) => (
+									<Badge
+										key={label.id}
+										variant="outline"
+										className="flex overflow-hidden justify-center h-full flex-shrink-0 items-center rounded px-2.5 text-xs cursor-pointer"
+										onClick={(e) => {
+											e.stopPropagation();
+											// Add label click logic here
+										}}
+									>
+										<div className="flex items-center gap-1.5 overflow-hidden">
+											<span
+												className="h-2 w-2 flex-shrink-0 rounded-full"
+												style={{ backgroundColor: label.color || "#cccccc" }}
+											/>
+											<div className="line-clamp-1 inline-block w-auto max-w-[120px] truncate">
+												{label.name}
+											</div>
+										</div>
+									</Badge>
+								))}
+							</div>
+						)}
+					</div>
 				</div>
 			</SplitDialogSide>
 		</SplitDialog>

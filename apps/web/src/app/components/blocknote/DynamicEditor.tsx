@@ -41,6 +41,7 @@ type EditorProps = {
 	value?: PartialBlock[] | undefined;
 	onChange?: (value: PartialBlock[]) => void;
 	updateContent?: PartialBlock[] | undefined;
+	readonly?: boolean;
 };
 
 export const Editor = dynamic(() => import("./Editor"), { ssr: false }) as React.ComponentType<EditorProps>;

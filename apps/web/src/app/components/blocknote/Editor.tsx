@@ -72,6 +72,7 @@ type EditorProps = {
 	value?: PartialBlock[] | undefined;
 	onChange?: (value: PartialBlock[]) => void;
 	updateContent?: PartialBlock[] | undefined;
+	readonly?: boolean;
 };
 
 // Our <Editor> component we can reuse later
@@ -82,6 +83,7 @@ export default function Editor({
 	value,
 	onChange,
 	updateContent,
+	readonly,
 }: EditorProps) {
 	const { theme } = useTheme();
 	const [initialContent, setInitialContent] = useState<PartialBlock[] | undefined>(value);
@@ -108,7 +110,6 @@ export default function Editor({
 		trailingBlock: false,
 		initialContent: initialContent,
 		dictionary: customDictionary,
-
 		domAttributes: {
 			block: {
 				class: "test",
@@ -132,6 +133,7 @@ export default function Editor({
 			theme={theme === "dark" ? "dark" : "light"}
 			sideMenu={false}
 			className=""
+			contentEditable={!readonly}
 		></BlockNoteView>
 	);
 }
