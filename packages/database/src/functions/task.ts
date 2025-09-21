@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db } from "..";
 
 /**
@@ -49,6 +50,28 @@ export async function getTasksByProjectId(orgId: string, projectId: string) {
 					},
 				},
 			},
+			timeline: {
+				with: {
+					actor: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+			comments: {
+				with: {
+					createdBy: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
 		},
 	});
 
@@ -58,4 +81,52 @@ export async function getTasksByProjectId(orgId: string, projectId: string) {
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
 	}));
+}
+
+/**
+ * Logs a timeline event for a task.
+ *
+ * @param params - taskId, orgId, actorId, eventType, optional from/to values, comment
+ */
+export async function logTaskEvent({
+	timelineNumber,
+	taskId,
+	organizationId,
+	projectId,
+	actorId,
+	eventType,
+	fromValue,
+	toValue,
+	comment,
+}: {
+	timelineNumber: number;
+	taskId: string;
+	organizationId: string;
+	projectId: string;
+	actorId?: string | null;
+	eventType:
+		| "status_change"
+		| "priority_change"
+		| "comment"
+		| "label_added"
+		| "label_removed"
+		| "assignee_added"
+		| "assignee_removed"
+		| "created"
+		| "updated";
+	fromValue?: unknown;
+	toValue?: unknown;
+	comment?: string;
+}) {
+	await db.insert(taskTimeline).values({
+		timelineNumber: timelineNumber,
+		taskId: taskId,
+		organizationId: organizationId,
+		projectId: projectId,
+		actorId: actorId ?? null,
+		eventType: eventType,
+		fromValue: fromValue ? JSON.stringify(fromValue) : null,
+		toValue: toValue ? JSON.stringify(toValue) : null,
+		comment: comment ?? null,
+	});
 }

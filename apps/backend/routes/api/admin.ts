@@ -1,5 +1,5 @@
 import type { auth } from "@repo/auth";
-import { addLabelToTask, createProject, db, getOrganizationMembers, schema } from "@repo/database";
+import { addLabelToTask, createProject, db, getOrganizationMembers, logTaskEvent, schema } from "@repo/database";
 import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { and, eq, sql } from "drizzle-orm";
@@ -151,13 +151,32 @@ apiRouteAdmin.post("/create-task", async (c) => {
 				createdBy: session?.userId || null, // allow null = ANONYMOUS
 			})
 			.returning();
-		if (task && labels && labels.length > 0) {
+		if (!task) {
+			return c.json({ path: c.req.path, error: "Failed to create task" }, 500);
+		}
+		const [taskTimelineNext] = await db
+			.select({ max: sql<number>`MAX(${schema.taskTimeline.timelineNumber})` })
+			.from(schema.taskTimeline)
+			.where(eq(schema.taskTimeline.taskId, task.id));
+
+		const nextId = (taskTimelineNext?.max ?? 0) + 1;
+		// ⏺ Log timeline event: created
+		await logTaskEvent({
+			timelineNumber: nextId,
+			taskId: task.id,
+			projectId: project_id,
+			organizationId: org_id,
+			actorId: session?.userId ?? null,
+			eventType: "created",
+			toValue: { status, priority, title }, // Show initial values
+		});
+		if (labels && labels.length > 0) {
 			for (const labelId of labels) {
 				await addLabelToTask(org_id, task.id, project_id, labelId);
 			}
 		}
 		// Attach assignees if provided
-		if (task && assignees?.length > 0) {
+		if (assignees?.length > 0) {
 			for (const userId of assignees) {
 				await db
 					.insert(schema.taskAssignee)
@@ -170,57 +189,69 @@ apiRouteAdmin.post("/create-task", async (c) => {
 			}
 		}
 		// Refetch with full labels
-		if (task) {
-			const taskWithLabels = await db.query.task.findFirst({
-				where: (t) => and(eq(t.id, task.id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
-				with: {
-					labels: { with: { label: true } },
-					createdBy: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
+		const taskWithLabels = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, task.id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+			with: {
+				labels: { with: { label: true } },
+				createdBy: {
+					columns: {
+						id: true,
+						name: true,
+						image: true,
 					},
-					assignees: {
-						with: {
-							user: {
-								columns: {
-									id: true,
-									name: true,
-									image: true,
-								},
+				},
+				assignees: {
+					with: {
+						user: {
+							columns: {
+								id: true,
+								name: true,
+								image: true,
 							},
 						},
-					}, // 👈 pulls assignee user info
+					},
 				},
-			});
+				timeline: {
+					with: {
+						actor: {
+							columns: {
+								id: true,
+								name: true,
+								image: true,
+							},
+						},
+					},
+				},
+				comments: {
+					with: {
+						createdBy: {
+							columns: {
+								id: true,
+								name: true,
+								image: true,
+							},
+						},
+					},
+				},
+			},
+		});
 
-			const cleanTask = {
-				...taskWithLabels,
-				labels: taskWithLabels?.labels.map((l) => l.label),
-				assignees: taskWithLabels?.assignees.map((a) => a.user),
-			};
-			const found = findClientByWsId(wsClientId);
-			const data = {
-				type: "CREATE_TASK",
-				data: cleanTask,
-			};
-			broadcast(org_id, `project-${project_id}`, data, found?.socket);
-			broadcastPublic(org_id, { ...data, data: data });
-			return c.json({
-				success: true,
-				data: cleanTask,
-			});
-		} else {
-			return c.json(
-				{
-					path: c.req.path,
-					error: "Failed to create task",
-				},
-				500
-			);
-		}
+		const cleanTask = {
+			...taskWithLabels,
+			labels: taskWithLabels?.labels.map((l) => l.label),
+			assignees: taskWithLabels?.assignees.map((a) => a.user),
+		};
+		const found = findClientByWsId(wsClientId);
+		const data = {
+			type: "CREATE_TASK",
+			data: cleanTask,
+		};
+		broadcast(org_id, `project-${project_id}`, data, found?.socket);
+		broadcastPublic(org_id, { ...data, data: data });
+		return c.json({
+			success: true,
+			data: cleanTask,
+		});
 		// biome-ignore lint/suspicious/noExplicitAny: <has to be any>
 	} catch (error: any) {
 		console.log("🚀 ~ error:", error);

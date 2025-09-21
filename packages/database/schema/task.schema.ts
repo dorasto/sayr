@@ -6,7 +6,9 @@ import { user } from "./auth";
 import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { project } from "./project.schema";
+import { taskAssignee } from "./taskAssignee.schema";
 import { taskComment } from "./taskComment.schema";
+import { taskTimeline } from "./taskTimeline.schema";
 export const visibleEnum = v.pgEnum("visible", ["public", "private"]);
 export const statusEnum = v.pgEnum("status", ["backlog", "todo", "in-progress", "done", "canceled"]);
 export const priorityEnum = v.pgEnum("priority", ["none", "low", "medium", "high", "urgent"]);
@@ -57,38 +59,5 @@ export const taskRelations = relations(task, ({ one, many }) => ({
 	comments: many(taskComment),
 	labels: many(taskLabelAssignment),
 	assignees: many(taskAssignee),
-}));
-
-// A join table to assign multiple users to a single task
-export const taskAssignee = table("task_assignee", {
-	taskId: v
-		.text("task_id")
-		.notNull()
-		.references(() => task.id, { onDelete: "cascade" }),
-	projectId: v
-		.text("project_id")
-		.notNull()
-		.references(() => project.id, { onDelete: "cascade" }),
-	userId: v
-		.text("user_id")
-		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
-});
-
-export type taskAssigneeType = typeof taskAssignee.$inferSelect;
-
-// Relations
-export const taskAssigneeRelations = relations(taskAssignee, ({ one }) => ({
-	task: one(task, {
-		fields: [taskAssignee.taskId],
-		references: [task.id],
-	}),
-	project: one(project, {
-		fields: [taskAssignee.projectId],
-		references: [project.id],
-	}),
-	user: one(user, {
-		fields: [taskAssignee.userId],
-		references: [user.id],
-	}),
+	timeline: many(taskTimeline),
 }));
