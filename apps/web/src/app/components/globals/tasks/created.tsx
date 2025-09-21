@@ -1,11 +1,8 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
-import { formatDate, formatDateCompact, formatDateTime } from "@repo/util";
-import { priorityConfig } from "../../admin/organization/project/table/task-list-item";
+import { formatDateTime } from "@repo/util";
 
 interface GlobalTaskCreatedAtProps {
 	task: schema.TaskWithLabels;
@@ -13,8 +10,10 @@ interface GlobalTaskCreatedAtProps {
 export default function GlobalTaskCreatedAt({ task }: GlobalTaskCreatedAtProps) {
 	return (
 		<div className="flex flex-col gap-3">
-			<Label variant={"subheading"}>Created</Label>
-			<Label variant={"description"}>{formatDateTime(task.createdAt as Date)}</Label>
+			<Label variant={"subheading"}>Created at {formatDateTime(task.createdAt as Date)}</Label>
+			{(task.createdAt as Date) < (task.updatedAt as Date) && (
+				<Label variant={"description"}>Last updated at {formatDateTime(task.updatedAt as Date)}</Label>
+			)}
 		</div>
 	);
 }

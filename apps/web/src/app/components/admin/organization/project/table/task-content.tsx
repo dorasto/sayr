@@ -7,6 +7,7 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { DialogClose } from "@repo/ui/components/dialog";
 import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { cn } from "@repo/ui/lib/utils";
 import { IconX } from "@tabler/icons-react";
@@ -14,6 +15,7 @@ import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import GlobalTaskCreatedAt from "@/app/components/globals/tasks/created";
 import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
+import GlobalTaskStatus from "@/app/components/globals/tasks/status";
 import GlobalTimeline from "@/app/components/globals/tasks/timeline";
 import { updateTaskAction } from "@/app/lib/fetches";
 import { priorityConfig, statusConfig } from "./task-list-item";
@@ -73,6 +75,8 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 			<SplitDialogSide>
 				<div className="flex flex-col gap-3">
 					<GlobalTaskCreatedAt task={task} />
+					<Separator />
+					<GlobalTaskStatus task={task} editable={true} />
 					<GlobalTaskLabels task={task} editable={true} />
 					<GlobalTaskPriority
 						task={task}
