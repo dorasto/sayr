@@ -11,6 +11,9 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconX } from "@tabler/icons-react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { priorityConfig, statusConfig } from "./task-list-item";
+import GlobalTaskCreatedAt from "@/app/components/globals/tasks/created";
+import GlobalTaskLabels from "@/app/components/globals/tasks/label";
+import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 
 interface TaskContentProps {
 	open: boolean;
@@ -55,34 +58,9 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 			</SplitDialogContent>
 			<SplitDialogSide>
 				<div className="flex flex-col gap-3">
-					<div className="flex flex-col gap-3">
-						<Label variant={"subheading"}>Labels</Label>
-						{task.labels && task.labels.length > 0 && (
-							<div className="flex gap-1">
-								{task.labels.map((label) => (
-									<Badge
-										key={label.id}
-										variant="outline"
-										className="flex overflow-hidden justify-center h-full flex-shrink-0 items-center rounded px-2.5 text-xs cursor-pointer"
-										onClick={(e) => {
-											e.stopPropagation();
-											// Add label click logic here
-										}}
-									>
-										<div className="flex items-center gap-1.5 overflow-hidden">
-											<span
-												className="h-2 w-2 flex-shrink-0 rounded-full"
-												style={{ backgroundColor: label.color || "#cccccc" }}
-											/>
-											<div className="line-clamp-1 inline-block w-auto max-w-[120px] truncate">
-												{label.name}
-											</div>
-										</div>
-									</Badge>
-								))}
-							</div>
-						)}
-					</div>
+					<GlobalTaskCreatedAt task={task} />
+					<GlobalTaskLabels task={task} />
+					<GlobalTaskPriority task={task} />
 				</div>
 			</SplitDialogSide>
 		</SplitDialog>
