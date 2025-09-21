@@ -72,7 +72,7 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 			<SplitDialogSide>
 				<div className="flex flex-col gap-3">
 					<GlobalTaskCreatedAt task={task} />
-					<GlobalTaskLabels task={task} />
+					<GlobalTaskLabels task={task} editable={true} />
 					<GlobalTaskPriority task={task} editable={true} />
 				</div>
 			</SplitDialogSide>

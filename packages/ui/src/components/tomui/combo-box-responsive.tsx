@@ -19,11 +19,13 @@ export interface ComboBoxResponsiveProps {
 	placeholder?: string;
 	emptyText?: string;
 	buttonText?: string;
+	buttonIcon?: React.ReactNode;
 	buttonWidth?: string;
 	popoverWidth?: string;
 	value?: string;
 	onValueChange?: (value: string | null) => void;
 	disabled?: boolean;
+	customTrigger?: React.ReactNode;
 }
 
 export function ComboBoxResponsive({
@@ -31,11 +33,13 @@ export function ComboBoxResponsive({
 	placeholder = "Filter items...",
 	emptyText = "No results found.",
 	buttonText = "Select item",
+	buttonIcon,
 	buttonWidth = "",
 	popoverWidth = "w-[200px]",
 	value,
 	onValueChange,
 	disabled,
+	customTrigger,
 }: ComboBoxResponsiveProps) {
 	const [open, setOpen] = React.useState(false);
 	const isDesktop = !useIsMobile();
@@ -56,21 +60,28 @@ export function ComboBoxResponsive({
 		return (
 			<Popover open={open} onOpenChange={setOpen}>
 				<PopoverTrigger asChild>
-					<Button
-						size={"sm"}
-						variant="accent"
-						className={`${buttonWidth}  items-center gap-1 justify-start`}
-						disabled={disabled}
-					>
-						{selectedItem ? (
-							<>
-								<span>{selectedItem.icon}</span>
-								<Label variant={"default"}>{selectedItem.label}</Label>
-							</>
-						) : (
-							<>{buttonText}</>
-						)}
-					</Button>
+					{customTrigger ? (
+						customTrigger
+					) : (
+						<Button
+							size={"sm"}
+							variant="accent"
+							className={`${buttonWidth}  items-center gap-1 justify-start`}
+							disabled={disabled}
+						>
+							{selectedItem ? (
+								<>
+									<span>{selectedItem.icon}</span>
+									<Label variant={"default"}>{selectedItem.label}</Label>
+								</>
+							) : (
+								<>
+									{buttonIcon}
+									{buttonText}
+								</>
+							)}
+						</Button>
+					)}
 				</PopoverTrigger>
 				<PopoverContent className={`${popoverWidth} p-0`} align="start">
 					<ItemList
@@ -88,16 +99,23 @@ export function ComboBoxResponsive({
 	return (
 		<Drawer open={open} onOpenChange={setOpen}>
 			<DrawerTrigger asChild>
-				<Button size={"sm"} variant="outline" className={`${buttonWidth}  items-center gap-1`}>
-					{selectedItem ? (
-						<>
-							<span className="">{selectedItem.icon}</span>
-							{selectedItem.label}
-						</>
-					) : (
-						<>{buttonText}</>
-					)}
-				</Button>
+				{customTrigger ? (
+					customTrigger
+				) : (
+					<Button size={"sm"} variant="outline" className={`${buttonWidth}  items-center gap-1`}>
+						{selectedItem ? (
+							<>
+								<span className="">{selectedItem.icon}</span>
+								{selectedItem.label}
+							</>
+						) : (
+							<>
+								{buttonIcon}
+								{buttonText}
+							</>
+						)}
+					</Button>
+				)}
 			</DrawerTrigger>
 			<DrawerContent>
 				<div className="mt-4 border-t">

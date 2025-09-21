@@ -26,6 +26,7 @@ export interface ComboBoxMultiResponsiveProps {
 	maxVisible?: number; // How many selected pills to show before summarizing
 	summaryLabel?: (count: number) => string; // i.e. (n)=>`${n} labels`
 	clearOnSelectIfExists?: boolean; // If selecting an already-selected item removes it (toggle behavior)
+	disabled?: boolean; // Disable interaction
 }
 
 /*
@@ -47,6 +48,7 @@ export function ComboBoxMultiResponsive({
 	maxVisible = 3,
 	summaryLabel = (count) => `${count} selected`,
 	clearOnSelectIfExists = true,
+	disabled,
 }: ComboBoxMultiResponsiveProps) {
 	const [open, setOpen] = React.useState(false);
 	const isDesktop = !useIsMobile();
@@ -113,7 +115,7 @@ export function ComboBoxMultiResponsive({
 	if (isDesktop) {
 		return (
 			<Popover open={open} onOpenChange={setOpen}>
-				<PopoverTrigger asChild>
+				<PopoverTrigger asChild disabled={disabled}>
 					<Button
 						size={"sm"}
 						variant="accent"
