@@ -12,13 +12,30 @@ import {
 	TimelineTitle,
 } from "@repo/ui/components/tomui/timeline";
 import { formatDateTime } from "@repo/util";
+import { IconLabelFilled, IconPlus } from "@tabler/icons-react";
+import { color } from "motion";
 import type { PartialBlock } from "node_modules/@blocknote/core/types/src/blocks/defaultBlocks";
 import { Editor } from "../../blocknote/DynamicEditor";
+import RenderUser from "./render-user";
 
 interface GlobalTimelineProps {
 	task: schema.TaskWithLabels;
 }
 export default function GlobalTimeline({ task }: GlobalTimelineProps) {
+	const itemTypes = {
+		created: {
+			label: "created a task",
+			action: "created",
+			icon: IconPlus,
+			color: "bg-primary text-primary-foreground",
+		},
+		labelAdded: {
+			label: "added a label",
+			action: "labelAdded",
+			icon: IconLabelFilled,
+			color: "bg-muted text-muted-foreground",
+		},
+	};
 	const items = [
 		{
 			id: 1,
@@ -62,10 +79,8 @@ export default function GlobalTimeline({ task }: GlobalTimelineProps) {
 				>
 					<TimelineHeader>
 						<TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
-						<TimelineTitle className="mt-0.5">
-							<Label variant={"heading"} className="font-bold text-base">
-								{item.title}
-							</Label>{" "}
+						<TimelineTitle className="mt-0.5 flex items-center gap-1">
+							<RenderUser task={task} />{" "}
 							<Label variant={"heading"} className="text-sm font-normal">
 								<span>{item.action}</span> on {item.date}
 							</Label>
