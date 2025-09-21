@@ -163,6 +163,7 @@ apiRouteAdmin.post("/create-task", async (c) => {
 					.insert(schema.taskAssignee)
 					.values({
 						taskId: task.id,
+						projectId: project_id,
 						userId,
 					})
 					.onConflictDoNothing(); // avoid duplicate assignments
