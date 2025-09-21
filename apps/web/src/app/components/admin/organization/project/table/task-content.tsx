@@ -1,9 +1,12 @@
 "use client";
 
 import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { DialogClose } from "@repo/ui/components/dialog";
 import { Label } from "@repo/ui/components/label";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { cn } from "@repo/ui/lib/utils";
+import { IconX } from "@tabler/icons-react";
 import type { TaskType } from "../list";
 import { priorityConfig, statusConfig } from "./task-list-item";
 
@@ -20,17 +23,25 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 			isOpen={open}
 			onOpenChange={onOpenChange}
 			title={
-				<div className="flex items-center w-fit gap-4">
-					<Label variant={"heading"} className={cn("text-left text-xl")}>
+				<div className="flex items-center w-full gap-4">
+					<Label variant={"heading"} className={cn("text-left text-lg truncate")}>
 						{task.title}
 					</Label>
-					<Badge
-						variant={"outline"}
-						className="flex items-center flex-shrink-0 [&_svg]:size-5 gap-1 justify-start pl-1 ml-auto"
-					>
-						{status?.icon(`${status?.className || ""}`)}
-						{status.label}
-					</Badge>
+					<Label variant={"heading"} className={cn("text-left text-lg text-muted-foreground shrink-0")}>
+						{task.id}
+					</Label>
+					<div className="ml-auto flex items-center gap-2 shrink-0">
+						<Badge
+							variant={"outline"}
+							className="flex items-center flex-shrink-0 [&_svg]:size-5 gap-1 justify-start pl-1"
+						>
+							{status?.icon(`${status?.className || ""}`)}
+							{status.label}
+						</Badge>
+						<Button size={"icon"} variant={"ghost"} onClick={() => onOpenChange(false)}>
+							<IconX />
+						</Button>
+					</div>
 				</div>
 			}
 			sidebarPosition="right"

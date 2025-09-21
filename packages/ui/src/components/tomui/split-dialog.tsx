@@ -6,6 +6,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { CircleQuestionMark, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Children, isValidElement } from "react";
+import { Label } from "../label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
 
 interface SplitDialogProps {
@@ -64,8 +65,8 @@ export function SplitDialog({
 
 				{/* Header - Always sticky and above both content areas */}
 				<div className="flex-shrink-0 p-4 w-full border-b">
-					<div className="flex items-center gap-3">
-						{showTitle && <DialogTitle className="font-semibold text-base!">{title}</DialogTitle>}
+					<div className="flex items-center w-full gap-3">
+						<DialogTitle asChild>{title}</DialogTitle>
 						{description && (
 							<TooltipProvider delayDuration={0}>
 								<Tooltip>
@@ -83,11 +84,6 @@ export function SplitDialog({
 								</Tooltip>
 							</TooltipProvider>
 						)}
-						<DialogClose asChild>
-							<Button variant="ghost" className="ml-auto hover:bg-accent p-1 h-2 w-2 aspect-square ">
-								<XIcon />
-							</Button>
-						</DialogClose>
 					</div>
 				</div>
 
