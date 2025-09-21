@@ -2,6 +2,7 @@
 
 import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { DialogClose } from "@repo/ui/components/dialog";
@@ -10,10 +11,11 @@ import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/compo
 import { cn } from "@repo/ui/lib/utils";
 import { IconX } from "@tabler/icons-react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
-import { priorityConfig, statusConfig } from "./task-list-item";
 import GlobalTaskCreatedAt from "@/app/components/globals/tasks/created";
 import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
+import GlobalTimeline from "@/app/components/globals/tasks/timeline";
+import { priorityConfig, statusConfig } from "./task-list-item";
 
 interface TaskContentProps {
 	open: boolean;
@@ -52,9 +54,20 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 			sidebarPosition="right"
 		>
 			<SplitDialogContent>
-				<div className="flex flex-col gap-3">
-					<Editor readonly={true} value={task.description as PartialBlock[]} />
-				</div>
+				<GlobalTimeline task={task} />
+				{/* <div className="flex flex-col gap-3">
+					<div className="flex items-start gap-2">
+						<Avatar className="h-10 w-10 rounded-full bg-primary">
+							<AvatarImage src={"/"} alt={""} />
+							<AvatarFallback className="rounded-full bg-transparent uppercase">{"AA"}</AvatarFallback>
+						</Avatar>
+						<div className="border w-full rounded p-3">
+							<Editor readonly={true} value={task.description as PartialBlock[]} />
+						</div>
+					</div>
+					<Label variant={"heading"}>Activity</Label>
+					
+				</div> */}
 			</SplitDialogContent>
 			<SplitDialogSide>
 				<div className="flex flex-col gap-3">
