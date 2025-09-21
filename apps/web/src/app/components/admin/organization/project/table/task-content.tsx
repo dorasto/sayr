@@ -1,5 +1,7 @@
 "use client";
 
+import type { PartialBlock } from "@blocknote/core";
+import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { DialogClose } from "@repo/ui/components/dialog";
@@ -8,13 +10,12 @@ import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/compo
 import { cn } from "@repo/ui/lib/utils";
 import { IconX } from "@tabler/icons-react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
-import type { TaskType } from "../list";
 import { priorityConfig, statusConfig } from "./task-list-item";
 
 interface TaskContentProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	task: TaskType;
+	task: schema.TaskWithLabels;
 }
 export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 	const status = statusConfig[task.status as keyof typeof statusConfig];
@@ -49,7 +50,7 @@ export function TaskContent({ open, onOpenChange, task }: TaskContentProps) {
 		>
 			<SplitDialogContent>
 				<div className="flex flex-col gap-3">
-					<Editor readonly={true} />
+					<Editor readonly={true} value={task.description as PartialBlock[]} />
 				</div>
 			</SplitDialogContent>
 			<SplitDialogSide>

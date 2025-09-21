@@ -1,13 +1,13 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import { useMemo, useState } from "react";
-import type { TaskType } from "../list";
 import { StatusSectionHeader } from "./status-section-header";
 import { TaskContent } from "./task-content";
 import { TaskListItem } from "./task-list-item";
 
 interface TaskListProps {
-	tasks: TaskType[];
+	tasks: schema.TaskWithLabels[];
 }
 
 // Define the order of statuses
@@ -16,7 +16,7 @@ const statusOrder = ["backlog", "todo", "in-progress", "done", "canceled"];
 export function TaskList({ tasks }: TaskListProps) {
 	const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-	const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
+	const [selectedTask, setSelectedTask] = useState<schema.TaskWithLabels | null>(null);
 	const [isTaskContentOpen, setIsTaskContentOpen] = useState(false);
 
 	const handleTaskSelect = (taskId: string, selected: boolean) => {
@@ -49,7 +49,7 @@ export function TaskList({ tasks }: TaskListProps) {
 
 	// Group tasks by status
 	const groupedTasks = useMemo(() => {
-		const groups: Record<string, TaskType[]> = {};
+		const groups: Record<string, schema.TaskWithLabels[]> = {};
 
 		// Initialize groups for all statuses
 		statusOrder.forEach((status) => {

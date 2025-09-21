@@ -1,5 +1,6 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Checkbox } from "@repo/ui/components/checkbox";
@@ -32,11 +33,9 @@ import { formatDateCompact } from "@repo/util";
 import { IconAlertSquareFilled, IconPencil } from "@tabler/icons-react";
 import { Ellipsis, Users } from "lucide-react";
 import { useState } from "react";
-import type { TaskType } from "../list";
-import { TaskContent } from "./task-content";
 
 interface TaskListItemProps {
-	task: TaskType;
+	task: schema.TaskWithLabels;
 	isSelected: boolean;
 	onSelect: (selected: boolean) => void;
 	onTaskClick?: (taskId: string) => void;
@@ -219,7 +218,7 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 									</div>
 								)}
 								<span className="text-xs text-muted-foreground truncate">
-									{formatDateCompact(task.createdAt)}
+									{formatDateCompact(task.createdAt as Date)}
 								</span>
 							</div>
 							{/* Desktop menu */}

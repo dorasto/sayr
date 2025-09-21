@@ -133,7 +133,8 @@ export default function Editor({
 			theme={theme === "dark" ? "dark" : "light"}
 			sideMenu={false}
 			className=""
-			contentEditable={!readonly}
+			data-theming-readonly={readonly ? "true" : "false"}
+			editable={!readonly}
 		></BlockNoteView>
 	);
 }
