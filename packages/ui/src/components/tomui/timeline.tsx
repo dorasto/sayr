@@ -155,7 +155,7 @@ function TimelineSeparator({ className, ...props }: React.HTMLAttributes<HTMLDiv
 
 // TimelineTitle
 function TimelineTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-	return <p data-slot="timeline-title" className={cn("text-sm font-medium", className)} {...props} />;
+	return <div data-slot="timeline-title" className={cn("text-sm font-medium", className)} {...props} />;
 }
 
 export {
