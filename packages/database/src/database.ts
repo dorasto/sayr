@@ -40,7 +40,7 @@ const client =
 	global._db ??
 	drizzle(
 		postgres(process.env.DATABASE_URL || "", {
-			connect_timeout: 1000,
+			connect_timeout: 100,
 			idle_timeout: 20,
 			max: 15,
 			ssl: "require",
