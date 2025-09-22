@@ -25,8 +25,13 @@ export type TaskWithLabels = taskType & {
 	labels: labelType[];
 	assignees: userType[];
 	createdBy?: userType;
-	timeline: taskTimelineType[];
+	timeline: taskTimelineWithActor[];
 };
+
+export type taskTimelineWithActor = taskTimelineType & {
+	actor?: userType;
+};
+
 /* -------------------------------------------------------------------------- */
 /*                               Auth Types                                   */
 /* -------------------------------------------------------------------------- */

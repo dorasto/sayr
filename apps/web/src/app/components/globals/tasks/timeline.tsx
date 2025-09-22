@@ -100,7 +100,7 @@ export default function GlobalTimeline({ task }: GlobalTimelineProps) {
 						<TimelineHeader>
 							<TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
 							<TimelineTitle className="mt-0.5 flex items-center gap-1">
-								<RenderUser task={task} />{" "}
+								<RenderUser name={item.actor?.name || ""} image={item.actor?.image || ""} />{" "}
 								<Label variant={"heading"} className="text-sm font-normal">
 									<span>{itemType.label}</span> on {formatDateTime(item.createdAt as Date)}
 								</Label>
