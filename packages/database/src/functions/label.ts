@@ -99,6 +99,33 @@ export async function addLabelToTask(orgId: string, taskId: string, projectId: s
 	return tag;
 }
 
+export async function removeLabelFromTask(orgId: string, taskId: string, projectId: string, labelId: string) {
+	const tag = await getLabel(orgId, labelId);
+	if (!tag) {
+		return null;
+	}
+	// check if already assigned
+	const [existingAssignment] = await db
+		.select()
+		.from(taskLabelAssignment)
+		.where(and(eq(taskLabelAssignment.taskId, taskId), eq(taskLabelAssignment.labelId, tag.id)));
+
+	if (existingAssignment) {
+		await db
+			.delete(taskLabelAssignment)
+			.where(
+				and(
+					eq(taskLabelAssignment.taskId, taskId),
+					eq(taskLabelAssignment.projectId, projectId),
+					eq(taskLabelAssignment.labelId, tag.id)
+				)
+			);
+		return { success: true };
+	} else {
+		return { success: false, error: new Error("Label not assigned to task") };
+	}
+}
+
 /**
  * Assign a label to a project. If the label does not exist, it will be created.
  * This function is idempotent: if the project already has the label, no duplicate

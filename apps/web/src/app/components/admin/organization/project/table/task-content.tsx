@@ -18,7 +18,7 @@ import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 import GlobalTaskStatus from "@/app/components/globals/tasks/status";
 import GlobalTimeline from "@/app/components/globals/tasks/timeline";
-import { updateTaskAction } from "@/app/lib/fetches";
+import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { priorityConfig, statusConfig } from "./task-list-item";
 
 interface TaskContentProps {
@@ -106,14 +106,12 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 						task={task}
 						editable={true}
 						availableLabels={labels}
-						onLabelsChange={async (value) => {
-							const data = await updateTaskAction(
+						onLabelsChange={async (values) => {
+							const data = await updateLabelToTaskAction(
 								task.organizationId,
 								task.projectId,
 								task.id,
-								{
-									labels: value,
-								},
+								values,
 								wsClientId
 							);
 							tasks = tasks.map((task) => (task.id === data.data.id ? data.data : task));

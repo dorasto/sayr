@@ -1,5 +1,5 @@
 import type { auth } from "@repo/auth";
-import { addLabelToTask, addLogEventTask, createTask, db, schema } from "@repo/database";
+import { addLabelToTask, addLogEventTask, createTask, db, removeLabelFromTask, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { broadcast, broadcastPublic, findClientByWsId } from "../ws";
@@ -222,29 +222,30 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				"updated",
 				existingTask.description,
 				updates.description,
-				session?.userId
+				session?.userId,
+				updates.description
 			);
 		}
 
-		// 🏷 Step 3: Handle labels
-		if (updates.labels && Array.isArray(updates.labels)) {
-			for (const labelId of updates.labels) {
-				await addLabelToTask(org_id, task_id, project_id, labelId);
-				// await addLogEventTask(task_id, project_id, org_id, "label_added", null, labelId, session?.userId);
-			}
-		}
+		// // 🏷 Step 3: Handle labels
+		// if (updates.labels && Array.isArray(updates.labels)) {
+		// 	for (const labelId of updates.labels) {
+		// 		await addLabelToTask(org_id, task_id, project_id, labelId);
+		// 		// await addLogEventTask(task_id, project_id, org_id, "label_added", null, labelId, session?.userId);
+		// 	}
+		// }
 
-		// 👥 Step 4: Handle assignees
-		if (updates.assignees && Array.isArray(updates.assignees)) {
-			for (const userId of updates.assignees) {
-				await db
-					.insert(schema.taskAssignee)
-					.values({ taskId: task_id, projectId: project_id, userId })
-					.onConflictDoNothing();
-			}
-		}
+		// // 👥 Step 4: Handle assignees
+		// if (updates.assignees && Array.isArray(updates.assignees)) {
+		// 	for (const userId of updates.assignees) {
+		// 		await db
+		// 			.insert(schema.taskAssignee)
+		// 			.values({ taskId: task_id, projectId: project_id, userId })
+		// 			.onConflictDoNothing();
+		// 	}
+		// }
 
-		// 🔄 Step 5: Refetch task with relations
+		// 🔄 Step 3: Refetch task with relations
 		const taskWithData = await db.query.task.findFirst({
 			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
 			with: {
@@ -270,7 +271,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			assignees: taskWithData?.assignees.map((a) => a.user),
 		};
 
-		// 📢 Step 6: Broadcast one unified update
+		// 📢 Step 4: Broadcast one unified update
 		const found = findClientByWsId(wsClientId);
 		const data = { type: "UPDATE_TASK", data: cleanTask };
 
@@ -283,4 +284,90 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		console.error("🚀 ~ error:", error);
 		return c.json({ path: c.req.path, error: error.toString() }, error.statusCode);
 	}
+});
+
+apiRouteAdminProjectTask.post("/update-labels", async (c) => {
+	const { org_id, wsClientId, project_id, task_id, labels } = await c.req.json();
+	const session = c.get("session");
+
+	// 🔒 RBAC check: only org owner can update
+	const [membership] = await db
+		.select()
+		.from(schema.member)
+		.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
+
+	if (membership?.role !== "owner") {
+		return c.json({ error: "UNAUTHORIZED" }, 401);
+	}
+
+	// 🔎 Check task existence with labels
+	const existingTask = await db.query.task.findFirst({
+		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+		with: {
+			labels: { with: { label: true } },
+		},
+	});
+
+	if (!existingTask) {
+		return c.json({ error: "Task not found" }, 404);
+	}
+
+	// Normalize labels for the task
+	const Task = {
+		...existingTask,
+		labels: existingTask?.labels.map((l) => l.label),
+	};
+
+	const currentLabelIds = Task.labels?.map((l) => l.id) || [];
+	const incomingLabelIds = labels || [];
+
+	// 1️⃣ Add missing labels
+	for (const labelId of incomingLabelIds) {
+		if (!currentLabelIds.includes(labelId)) {
+			await addLabelToTask(org_id, task_id, project_id, labelId);
+			await addLogEventTask(task_id, project_id, org_id, "label_added", null, labelId, session?.userId);
+		}
+	}
+
+	// 2️⃣ Remove labels not in incoming list
+	for (const labelId of currentLabelIds) {
+		if (!incomingLabelIds.includes(labelId)) {
+			await removeLabelFromTask(org_id, task_id, project_id, labelId);
+			await addLogEventTask(task_id, project_id, org_id, "label_removed", null, labelId, session?.userId);
+		}
+	}
+
+	// 🔄 Fetch updated task with related data
+	const taskWithData = await db.query.task.findFirst({
+		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+		with: {
+			labels: { with: { label: true } },
+			createdBy: { columns: { id: true, name: true, image: true } },
+			assignees: {
+				with: { user: { columns: { id: true, name: true, image: true } } },
+			},
+			timeline: {
+				with: { actor: { columns: { id: true, name: true, image: true } } },
+			},
+			comments: {
+				with: {
+					createdBy: { columns: { id: true, name: true, image: true } },
+				},
+			},
+		},
+	});
+
+	const cleanTask = {
+		...taskWithData,
+		labels: taskWithData?.labels.map((l) => l.label),
+		assignees: taskWithData?.assignees.map((a) => a.user),
+	};
+
+	// 📡 Broadcast to WS + Public
+	const found = findClientByWsId(wsClientId);
+	const data = { type: "UPDATE_TASK", data: cleanTask };
+	broadcast(org_id, `project-${project_id}`, data, found?.socket);
+	broadcastPublic(org_id, { ...data });
+
+	return c.json({ success: true, data: cleanTask });
 });

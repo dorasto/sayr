@@ -245,8 +245,6 @@ export async function updateTaskAction(
 		description?: PartialBlock[];
 		status?: string | null;
 		priority?: string | null;
-		labels?: string[];
-		assignees?: string[];
 	},
 	wsClientId: string
 ) {
@@ -260,12 +258,47 @@ export async function updateTaskAction(
 		...(data.description !== undefined ? { description: data.description } : {}),
 		...(data.status !== undefined ? { status: data.status } : {}),
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
-		...(data.labels !== undefined ? { labels: data.labels } : {}),
-		...(data.assignees !== undefined ? { assignees: data.assignees } : {}),
 	};
 
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/update`, {
 		method: "PATCH",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 This ensures cookies are sent
+	}).then(async (e) => await e.json());
+	return result;
+}
+
+/**
+ * Calls the `/admin/project/task/add-label` API to update an existing task.
+ * Only the fields provided in `data` will be updated.
+ *
+ * @param organizationId - The ID of the task's organization.
+ * @param projectId - The ID of the project the task belongs to.
+ * @param taskId - The ID of the task to update.
+ * @param labels - Array of label IDs to set on the task (replaces existing labels).
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @returns The updated task (with labels, assignees, timeline, etc.)
+ */
+export async function updateLabelToTaskAction(
+	organizationId: string,
+	projectId: string,
+	taskId: string,
+	labels: string[],
+	wsClientId: string
+) {
+	const payload = {
+		org_id: organizationId,
+		wsClientId,
+		project_id: projectId,
+		task_id: taskId,
+		labels: labels,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/update-labels`, {
+		method: "POST",
 		body: JSON.stringify(payload),
 		headers: {
 			"Content-Type": "application/json",
