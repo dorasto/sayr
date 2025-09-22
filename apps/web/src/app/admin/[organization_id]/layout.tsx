@@ -4,7 +4,7 @@ import type React from "react";
 import { getAccess } from "@/app/lib/serverFunctions";
 import { RootProviderOrganization } from "./Context";
 
-export default async function RootLayout({
+export default async function RootLayoutOrganization({
 	children,
 	params,
 }: Readonly<{

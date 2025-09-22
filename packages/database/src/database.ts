@@ -41,9 +41,8 @@ const client =
 	drizzle(
 		postgres(process.env.DATABASE_URL || "", {
 			connect_timeout: 100,
-			idle_timeout: 20,
+			idle_timeout: 10,
 			max: 15,
-			ssl: "require",
 		}),
 		{ schema: combinedSchema }
 	);

@@ -1,8 +1,32 @@
 import { auth } from "@repo/auth";
 import type { schema } from "@repo/database";
+import { getSessionCookie } from "better-auth/cookies";
+import { unstable_cache } from "next/cache";
 import { headers } from "next/headers";
-import { cache } from "react";
 import { redirectAuth } from "@/app/lib/redirectAuth";
+
+const _getAccess = async (h: Headers) => {
+	const cookie = getSessionCookie(h) ?? "anon";
+
+	if (!cookie || cookie === "anon") {
+		return redirectAuth();
+	}
+
+	try {
+		// ✅ Use request.headers instead of headers()
+		const session = await auth.api.getSession({
+			headers: h,
+		});
+
+		if (session?.user) {
+			return { account: session.user as schema.userType };
+		}
+
+		return redirectAuth();
+	} catch {
+		return redirectAuth();
+	}
+};
 
 /**
  * Retrieves the current authenticated user's account from the session.
@@ -19,23 +43,18 @@ import { redirectAuth } from "@/app/lib/redirectAuth";
  * console.log(account.email);
  * ```
  */
-export const getAccess = cache(async () => {
-	try {
-		const session = await auth.api.getSession({
-			headers: await headers(),
-		});
-		if (session) {
-			return { account: session.user as schema.userType };
-		}
-		return redirectAuth();
-		// biome-ignore lint/suspicious/noExplicitAny: <tes>
-	} catch (error: any) {
-		console.error("🚀 ~ getAccess ~ error:", error);
-		console.error("🚀 ~ getAccess ~ error.body:", error?.body);
-		return redirectAuth();
-	}
-});
+export const getAccess = async () => {
+	const h = new Headers(await headers());
+	const cookie = getSessionCookie(h) ?? "anon";
+	console.log("🚀 ~ getAccess ~ cookie:", cookie);
 
+	const cachedFn = unstable_cache(() => _getAccess(h), [`getAccess-${cookie}`], {
+		revalidate: 600, // 10 mins
+		tags: ["auth-session"],
+	});
+
+	return cachedFn();
+};
 /**
  * Fetches a paginated list of users from the authentication API.
  * Requires a valid authenticated session (session cookies are sent automatically).
