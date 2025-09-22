@@ -21,9 +21,9 @@ export default function middleware(req: NextRequest) {
 	const hostname = req.headers.get("host") || "";
 	const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "";
 
-	console.log("🚀 Middleware - hostname:", hostname);
-	console.log("🚀 Middleware - rootDomain:", rootDomain);
-	console.log("🚀 Middleware - path:", path);
+	// console.log("🚀 Middleware - hostname:", hostname);
+	// console.log("🚀 Middleware - rootDomain:", rootDomain);
+	// console.log("🚀 Middleware - path:", path);
 
 	// Root domain logic
 	if (hostname === rootDomain) {
@@ -49,13 +49,13 @@ export default function middleware(req: NextRequest) {
 			if (path === "/admin") {
 				return NextResponse.rewrite(new URL(`/admin${search}`, req.url));
 			} else {
-				console.log("🚀 ~ middleware ~ path:", path);
+				// console.log("🚀 ~ middleware ~ path:", path);
 				return NextResponse.rewrite(new URL(`${path}${search}`, req.url));
 			}
 		}
 
 		// For root domain, serve the home routes (no rewrite needed as (home) is the default)
-		console.log("🏠 Serving root domain home page");
+		// console.log("🏠 Serving root domain home page");
 		return NextResponse.next();
 	}
 

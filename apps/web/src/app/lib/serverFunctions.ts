@@ -28,10 +28,10 @@ export const getAccess = cache(async () => {
 			return { account: session.user as schema.userType };
 		}
 		return redirectAuth();
-		// biome-ignore lint/suspicious/noExplicitAny: <da>
+		// biome-ignore lint/suspicious/noExplicitAny: <tes>
 	} catch (error: any) {
-		console.log("🚀 ~ getAccess ~ error:", error);
-		console.log("🚀 ~ getAccess ~ error:", error.body);
+		console.error("🚀 ~ getAccess ~ error:", error);
+		console.error("🚀 ~ getAccess ~ error.body:", error?.body);
 		return redirectAuth();
 	}
 });
