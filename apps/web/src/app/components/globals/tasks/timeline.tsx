@@ -111,7 +111,7 @@ function TimelineStatusChange({ item }: TimelineStatusChangeProps) {
 	};
 
 	return (
-		<TimelineItemWrapper item={item} icon={IconArrowRight} color="bg-primary text-primary-foreground items-end">
+		<TimelineItemWrapper item={item} icon={IconArrowRight} color="bg-accent text-primary-foreground">
 			{renderStatusChange()}
 		</TimelineItemWrapper>
 	);
@@ -119,7 +119,7 @@ function TimelineStatusChange({ item }: TimelineStatusChangeProps) {
 
 function TimelineCreated({ item }: { item: schema.taskTimelineWithActor }) {
 	return (
-		<TimelineItemWrapper item={item} icon={IconPlus} color="bg-primary text-primary-foreground">
+		<TimelineItemWrapper item={item} icon={IconPlus} color="bg-accent text-primary-foreground">
 			created a task
 		</TimelineItemWrapper>
 	);
@@ -191,7 +191,7 @@ function TimelineLabelAdded({ item }: { item: schema.taskTimelineWithActor }) {
 
 function TimelineLabelRemoved({ item }: { item: schema.taskTimelineWithActor }) {
 	return (
-		<TimelineItemWrapper item={item} icon={IconTagsOff} color="bg-primary text-primary-foreground">
+		<TimelineItemWrapper item={item} icon={IconTag} color="bg-accent text-primary-foreground">
 			removed a label
 		</TimelineItemWrapper>
 	);
