@@ -2,7 +2,7 @@
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
-
+import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import Balancer from "react-wrap-balancer";
 import LoginDialog from "../auth/login";
@@ -73,13 +73,13 @@ export function HeroSectionWithBeamsAndGrid() {
 				className="relative mx-auto max-w-7xl rounded-[32px] border border-accent bg-muted p-2 backdrop-blur-lg md:p-4"
 			>
 				<div className="rounded-[24px] border border-border bg-card p-2">
-					{/* <Image
+					<img
 						src="https://assets.aceternity.com/pro/aceternity-landing.webp"
 						alt="header"
 						width={1920}
 						height={1080}
 						className="rounded-[20px]"
-					/> */}
+					/>
 				</div>
 			</div>
 		</div>

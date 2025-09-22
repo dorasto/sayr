@@ -5,11 +5,6 @@ export default async function Home() {
 	return (
 		<div className="">
 			<HeroSectionWithBeamsAndGrid />
-			<HeroSectionWithBeamsAndGrid />
-			<HeroSectionWithBeamsAndGrid />
-			<HeroSectionWithBeamsAndGrid />
-			<HeroSectionWithBeamsAndGrid />
-			<HeroSectionWithBeamsAndGrid />
 		</div>
 	);
 }

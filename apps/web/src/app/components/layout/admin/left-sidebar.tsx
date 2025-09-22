@@ -20,7 +20,15 @@ import {
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowBack, IconExplicit, IconHome, IconShield, IconUsers } from "@tabler/icons-react";
+import {
+	IconArrowBack,
+	IconExplicit,
+	IconHome,
+	IconLayoutSidebarLeftCollapse,
+	IconLayoutSidebarLeftExpand,
+	IconShield,
+	IconUsers,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutData } from "@/app/admin/Context";
@@ -172,6 +180,14 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>
+					{!isMobile && (
+						<SidebarMenuItem>
+							<SidebarMenuButton onClick={() => toggleSidebar(!sidebarIsOpen)} tooltip="Toggle sidebar">
+								{sidebarIsOpen ? <IconLayoutSidebarLeftCollapse /> : <IconLayoutSidebarLeftExpand />}
+								Toggle
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					)}
 					{account.role === "admin" && (
 						<SidebarMenuItem>
 							<SidebarMenuButton asChild isActive={pathname === "/admin/console"} tooltip={"Admin console"}>

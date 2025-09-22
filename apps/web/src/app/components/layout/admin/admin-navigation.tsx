@@ -40,7 +40,6 @@ export default function AdminNavigation() {
 
 				<div className="flex items-center gap-1 ml-auto">
 					<AdminCommand />
-					<ThemeToggle />
 				</div>
 			</div>
 		</header>

@@ -1,5 +1,6 @@
 "use client";
 import { signInDoras } from "@repo/auth/client";
+import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import {
 	Dialog,
@@ -24,9 +25,10 @@ export default function LoginDialog({ trigger }: Props) {
 			<DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
 				<div className="flex flex-col items-center gap-2">
 					<div
-						className="flex size-11 shrink-0 items-center justify-center rounded-full border"
+						className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent border"
 						aria-hidden="true"
 					>
+						<TasqIcon className="text-primary" />
 						{/* <svg
 							className="stroke-zinc-800 dark:stroke-zinc-100"
 							xmlns="http://www.w3.org/2000/svg"
@@ -47,11 +49,11 @@ export default function LoginDialog({ trigger }: Props) {
 					<div className="group relative w-full">
 						<label
 							htmlFor={"email"}
-							className="bg-background text-foreground absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50"
+							className="bg-card text-foreground absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50"
 						>
 							Email address
 						</label>
-						<Input id={"email"} className="h-10" placeholder="hi@yourcompany.com" type="email" />
+						<Input id={"email"} className="h-10 bg-card" placeholder="hi@yourcompany.com" type="email" />
 					</div>
 					<Button type="button" size={"icon"} className="shrink-0">
 						<ArrowRight />
@@ -63,11 +65,15 @@ export default function LoginDialog({ trigger }: Props) {
 						<span className="w-full border-t border-border" />
 					</div>
 					<div className="relative flex justify-center text-xs uppercase">
-						<span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+						<span className="bg-card px-2 text-muted-foreground">Or continue with</span>
 					</div>
 				</div>
 
-				<Button variant="secondary" className="flex flex-col items-center gap-1 h-14 w-full" onClick={signInDoras}>
+				<Button
+					variant="accent"
+					className="bg-accent flex flex-col items-center gap-1 h-14 w-full"
+					onClick={signInDoras}
+				>
 					<Image
 						src={"https://cdn.doras.to/doras/icon-white.svg"}
 						alt="Doras logo"
