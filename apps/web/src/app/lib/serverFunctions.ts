@@ -46,7 +46,6 @@ const _getAccess = async (h: Headers) => {
 export const getAccess = async () => {
 	const h = new Headers(await headers());
 	const cookie = getSessionCookie(h) ?? "anon";
-	console.log("🚀 ~ getAccess ~ cookie:", cookie);
 
 	const cachedFn = unstable_cache(() => _getAccess(h), [`getAccess-${cookie}`], {
 		revalidate: 600, // 10 mins
