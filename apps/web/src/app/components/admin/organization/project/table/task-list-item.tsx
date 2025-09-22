@@ -18,21 +18,13 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@repo/ui/components/context-menu";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@repo/ui/components/dropdown-menu";
+
 import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
-import { IconAlertSquareFilled, IconPencil } from "@tabler/icons-react";
-import { Ellipsis, Users } from "lucide-react";
-import { useState } from "react";
+import { IconAlertSquareFilled } from "@tabler/icons-react";
+import { Users } from "lucide-react";
 
 interface TaskListItemProps {
 	task: schema.TaskWithLabels;
@@ -117,7 +109,7 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 				>
 					<div
 						className={cn(
-							"px-4 group/list-block h-11 max-h-11 relative flex flex-col gap-3 bg-transparent hover:bg-accent py-3 text-sm transition-colors lg:flex-row lg:items-center rounded data-[state=open]:bg-accent",
+							"px-4 group/list-block h-11 max-h-11 relative flex gap-3 bg-transparent hover:bg-accent py-3 text-sm transition-colors flex-row items-center rounded data-[state=open]:bg-accent",
 							isSelected && "bg-primary/10"
 						)}
 					>
@@ -126,8 +118,8 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 							<div className="flex flex-grow items-center gap-1 truncate">
 								<div className="flex items-center gap-1">
 									{/* Checkbox */}
-									<div className="flex-shrink-0 grid place-items-center">
-										<div className="relative flex-shrink-0 flex">
+									<div className="shrink-0 grid place-items-center">
+										<div className="relative shrink-0 flex">
 											<Checkbox
 												checked={isSelected}
 												onCheckedChange={(checked) => {
@@ -157,7 +149,7 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 									</Button>
 
 									{/* Task ID */}
-									<div className="flex-shrink-0 min-w-9 w-9 max-w-9">
+									<div className="shrink-0 min-w-9 w-9 max-w-9">
 										<div className="flex items-center space-x-2">
 											<span className="text-xs font-medium text-muted-foreground truncate">
 												#{task.shortId}
@@ -167,7 +159,7 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 								</div>
 
 								{/* Status icon */}
-								<div className="size-4 grid place-items-center flex-shrink-0">
+								<div className="size-4 grid place-items-center shrink-0">
 									{status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)}
 								</div>
 								{/* Title */}
@@ -175,10 +167,10 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 							</div>
 						</div>
 						{/* Right section with metadata and actions */}
-						<div className="flex flex-shrink-0 items-center gap-2">
-							<div className="relative flex flex-wrap lg:flex-grow lg:flex-shrink-0 items-center gap-2 whitespace-nowrap">
+						<div className="flex shrink-0 items-center gap-2">
+							<div className="relative flex flex-wrap flex-grow shrink-0 items-center gap-2 whitespace-nowrap">
 								{/* Assignee */}
-								<div className="h-5">
+								<div className="h-5 hidden md:flex">
 									<Button
 										variant="ghost"
 										size="sm"
@@ -188,19 +180,19 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 											// Add assignee change logic here
 										}}
 									>
-										<Users className="h-3 w-3 mx-[4px] flex-shrink-0" />
+										<Users className="h-3 w-3 mx-[4px] shrink-0" />
 										{/* replace with user icon */}
 									</Button>
 								</div>
 
 								{/* Labels */}
 								{task.labels && task.labels.length > 0 && (
-									<div className="flex h-5 gap-1 max-w-[400px] overflow-x-auto">
+									<div className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto">
 										{task.labels.map((label) => (
 											<Badge
 												key={label.id}
 												variant="outline"
-												className="flex overflow-hidden justify-center h-full flex-shrink-0 items-center rounded px-2.5 text-xs cursor-pointer"
+												className="flex overflow-hidden justify-center h-full shrink-0 items-center rounded px-2.5 text-xs cursor-pointer"
 												onClick={(e) => {
 													e.stopPropagation();
 													// Add label click logic here
@@ -208,7 +200,7 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 											>
 												<div className="flex items-center gap-1.5 overflow-hidden">
 													<span
-														className="h-2 w-2 flex-shrink-0 rounded-full"
+														className="h-2 w-2 shrink-0 rounded-full"
 														style={{ backgroundColor: label.color || "#cccccc" }}
 													/>
 													<div className="line-clamp-1 inline-block w-auto max-w-[120px] truncate">

@@ -19,6 +19,7 @@ interface ComboBoxContextValue {
 	onValueChange?: (value: string | null) => void;
 	onValuesChange?: (values: string[]) => void;
 	isMultiple: boolean;
+	isMobile: boolean;
 }
 
 const ComboBoxContext = React.createContext<ComboBoxContextValue | undefined>(undefined);
@@ -44,44 +45,40 @@ interface ComboBoxProps {
 
 function ComboBox({ children, value, onValueChange, values, onValuesChange }: ComboBoxProps) {
 	const [open, setOpen] = React.useState(false);
+	const [mounted, setMounted] = React.useState(false);
 	const isMultiple = values !== undefined || onValuesChange !== undefined;
-	const isDesktop = !useIsMobile();
+	const isMobile = useIsMobile();
 
-	if (isDesktop) {
-		return (
-			<ComboBoxContext.Provider
-				value={{
-					open,
-					setOpen,
-					value,
-					values,
-					onValueChange,
-					onValuesChange,
-					isMultiple,
-				}}
-			>
+	React.useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	const contextValue = {
+		open,
+		setOpen,
+		value,
+		values,
+		onValueChange,
+		onValuesChange,
+		isMultiple,
+		isMobile: mounted ? isMobile : false, // Default to desktop during SSR/initial render
+	};
+
+	// During SSR and initial render, always render as desktop to avoid hydration mismatch
+	// After mounting, render based on actual mobile detection
+	const shouldRenderMobile = mounted && isMobile;
+
+	return (
+		<ComboBoxContext.Provider value={contextValue}>
+			{!shouldRenderMobile ? (
 				<Popover open={open} onOpenChange={setOpen}>
 					{children}
 				</Popover>
-			</ComboBoxContext.Provider>
-		);
-	}
-
-	return (
-		<ComboBoxContext.Provider
-			value={{
-				open,
-				setOpen,
-				value,
-				values,
-				onValueChange,
-				onValuesChange,
-				isMultiple,
-			}}
-		>
-			<Drawer open={open} onOpenChange={setOpen}>
-				{children}
-			</Drawer>
+			) : (
+				<Drawer open={open} onOpenChange={setOpen}>
+					{children}
+				</Drawer>
+			)}
 		</ComboBoxContext.Provider>
 	);
 }
@@ -94,10 +91,9 @@ interface ComboBoxTriggerProps {
 }
 
 function ComboBoxTrigger({ children, className, disabled }: ComboBoxTriggerProps) {
-	const { open } = useComboBox();
-	const isDesktop = !useIsMobile();
+	const { open, isMobile } = useComboBox();
 
-	if (isDesktop) {
+	if (!isMobile) {
 		return (
 			<PopoverTrigger asChild>
 				<Button
@@ -136,9 +132,9 @@ interface ComboBoxContentProps {
 }
 
 function ComboBoxContent({ children, className, align = "start" }: ComboBoxContentProps) {
-	const isDesktop = !useIsMobile();
+	const { isMobile } = useComboBox();
 
-	if (isDesktop) {
+	if (!isMobile) {
 		return (
 			<PopoverContent className={cn("w-full p-0", className)} align={align}>
 				{children}
