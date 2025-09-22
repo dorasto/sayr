@@ -280,6 +280,7 @@ export async function updateTaskAction(
  *
  * @param organizationId - The ID of the organization the label belongs to.
  * @param data - The label properties (name and color).
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
  * @returns The newly created label record.
  *
  * @example
@@ -298,12 +299,14 @@ export async function createLabelAction(
 	data: {
 		name: string;
 		color: string;
-	}
+	},
+	wsClientId: string
 ) {
 	const payload = {
 		org_id: organizationId,
 		name: data.name,
 		color: data.color,
+		wsClientId,
 	};
 
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/create-label`, {

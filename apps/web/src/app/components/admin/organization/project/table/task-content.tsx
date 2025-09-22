@@ -9,6 +9,7 @@ import { DialogClose } from "@repo/ui/components/dialog";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconX } from "@tabler/icons-react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
@@ -25,8 +26,12 @@ interface TaskContentProps {
 	onOpenChange: (open: boolean) => void;
 	task: schema.TaskWithLabels;
 	labels: schema.labelType[];
+	tasks: schema.TaskWithLabels[];
+	setTasks: (newValue: schema.TaskWithLabels[]) => void;
+	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
 }
-export function TaskContent({ open, onOpenChange, task, labels }: TaskContentProps) {
+export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks, setSelectedTask }: TaskContentProps) {
+	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
 	return (
@@ -81,15 +86,20 @@ export function TaskContent({ open, onOpenChange, task, labels }: TaskContentPro
 						task={task}
 						editable={true}
 						onChange={async (value) => {
-							await updateTaskAction(
+							const data = await updateTaskAction(
 								task.organizationId,
 								task.projectId,
 								task.id,
 								{
 									status: value,
 								},
-								""
+								wsClientId
 							);
+							tasks = tasks.map((task) => (task.id === data.data.id ? data.data : task));
+							setTasks(tasks);
+							if (task && task.id === data.data.id) {
+								setSelectedTask({ ...task, ...data.data });
+							}
 						}}
 					/>
 					<GlobalTaskLabels
@@ -97,30 +107,40 @@ export function TaskContent({ open, onOpenChange, task, labels }: TaskContentPro
 						editable={true}
 						availableLabels={labels}
 						onLabelsChange={async (value) => {
-							await updateTaskAction(
+							const data = await updateTaskAction(
 								task.organizationId,
 								task.projectId,
 								task.id,
 								{
 									labels: value,
 								},
-								""
+								wsClientId
 							);
+							tasks = tasks.map((task) => (task.id === data.data.id ? data.data : task));
+							setTasks(tasks);
+							if (task && task.id === data.data.id) {
+								setSelectedTask({ ...task, ...data.data });
+							}
 						}}
 					/>
 					<GlobalTaskPriority
 						task={task}
 						editable={true}
 						onPriorityChange={async (value) => {
-							await updateTaskAction(
+							const data = await updateTaskAction(
 								task.organizationId,
 								task.projectId,
 								task.id,
 								{
 									priority: value,
 								},
-								""
+								wsClientId
 							);
+							tasks = tasks.map((task) => (task.id === data.data.id ? data.data : task));
+							setTasks(tasks);
+							if (task && task.id === data.data.id) {
+								setSelectedTask({ ...task, ...data.data });
+							}
 						}}
 					/>
 				</div>

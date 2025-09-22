@@ -12,6 +12,7 @@ import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { useLayoutProject } from "@/app/admin/[organization_id]/[project_id]/Context";
@@ -23,8 +24,9 @@ import { PrioritySelector } from "./priority";
 import { StatusSelector } from "./status";
 
 export default function CreateIssueDialog() {
+	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { organization } = useLayoutOrganization();
-	const { project } = useLayoutProject();
+	const { project, tasks, setTasks } = useLayoutProject();
 	const [open, setOpen] = useState(false);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState<undefined | PartialBlock[]>(undefined);
@@ -40,13 +42,18 @@ export default function CreateIssueDialog() {
 			priority: string | undefined | null;
 			labels: string[];
 		}) => {
-			const result = await createTaskAction(organization.id, project.id, data, "");
+			headlessToast.loading({
+				id: "create-issue",
+				title: "Creating issue...",
+				description: "Please wait while we create the issue.",
+			});
+			const result = await createTaskAction(organization.id, project.id, data, wsClientId);
 			if (!result.success) {
 				throw new Error(result.error);
 			}
 			return result.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			headlessToast.success({
 				id: "create-issue",
 				title: "Created issue",
@@ -58,6 +65,7 @@ export default function CreateIssueDialog() {
 			setStatus(undefined);
 			setPriority(undefined);
 			setLabels([]);
+			setTasks([...tasks, data]);
 		},
 		onError: (error) => {
 			headlessToast.error({

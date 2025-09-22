@@ -4,10 +4,11 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import ColorPicker from "@repo/ui/components/tomui/color-picker";
-import { cn } from "@repo/ui/lib/utils";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconCheck, IconCircleFilled } from "@tabler/icons-react";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 import { createLabelAction } from "@/app/lib/fetches";
 
 interface Props {
@@ -15,18 +16,27 @@ interface Props {
 }
 
 export default function CreateLabel({ orgId }: Props) {
+	const { labels, setLabels } = useLayoutOrganization();
+
+	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const [name, setName] = useState("");
 	const [color, setColor] = useState("#000000");
 	// Mutation for updating organization
 	const updateMutation = useMutation({
 		mutationFn: async (data: { name: string; color: string }) => {
-			const result = await createLabelAction(orgId, data);
+			headlessToast.loading({
+				id: "create-label",
+				title: "Creating label...",
+				description: "Please wait while we create the label.",
+			});
+			const result = await createLabelAction(orgId, data, wsClientId);
 			if (!result.success) {
 				throw new Error(result.error);
 			}
 			return result.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
+			setLabels([...labels, data]);
 			headlessToast.success({
 				id: "create-label",
 				title: "Created label",

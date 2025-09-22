@@ -208,7 +208,7 @@ apiRouteAdmin.get("/test/:orgId", async (c) => {
 apiRouteAdmin.post("/create-label", async (c) => {
 	try {
 		const session = c.get("session");
-		const { org_id, name, color } = await c.req.json();
+		const { org_id, wsClientId, name, color } = await c.req.json();
 		// 1. Verify membership + role
 		const role = await db
 			.select()
@@ -219,16 +219,17 @@ apiRouteAdmin.post("/create-label", async (c) => {
 			return c.json({ error: "UNAUTHORIZED" }, 401);
 		}
 		const label = await getOrCreateLabel(org_id, name, color);
+		const found = findClientByWsId(wsClientId);
 		const data = {
 			type: "CREATE_LABEL",
 			data: label,
 		};
-		broadcast(org_id, "admin", data);
+		broadcast(org_id, "admin", data, found?.socket);
 		broadcastPublic(org_id, { ...data, data: data });
 		const members = await getOrganizationMembers(org_id);
 		members.forEach((member) => {
 			const clients = findClientsByUserId(member.userId);
-			clients.forEach((c) => broadcastIndividual(c.socket, data));
+			clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
 		});
 		return c.json({
 			success: true,

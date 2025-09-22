@@ -154,6 +154,9 @@ export function TaskList({ tasks, setTasks, ws, labels }: TaskListProps) {
 						}
 					}}
 					labels={labels}
+					tasks={tasks}
+					setTasks={setTasks}
+					setSelectedTask={setSelectedTask}
 				/>
 			)}
 		</div>
