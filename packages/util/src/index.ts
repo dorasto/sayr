@@ -49,6 +49,31 @@ export function ensureCdnUrl(pathOrUrl: string, cdnBase = process.env.FILE_CDN |
 }
 
 /**
+ * Converts an HSLA color string to a new HSLA color with the specified opacity.
+ *
+ * @param hslaColor - An HSLA color string (e.g., "hsla(193, 100%, 50%, 1)")
+ * @param opacity - The desired opacity value (0-1)
+ * @returns A new HSLA color string with the updated opacity
+ *
+ * @example
+ * ```ts
+ * const lightBlue = getHslaWithOpacity("hsla(193, 100%, 50%, 1)", 0.1);
+ * // "hsla(193, 100%, 50%, 0.1)"
+ *
+ * const semiTransparent = getHslaWithOpacity("hsla(0, 80%, 60%, 1)", 0.5);
+ * // "hsla(0, 80%, 60%, 0.5)"
+ * ```
+ */
+export function getHslaWithOpacity(hslaColor: string, opacity: number): string {
+	if (!hslaColor || !hslaColor.startsWith("hsla(")) {
+		return hslaColor;
+	}
+
+	// Replace the alpha value with the new opacity
+	return hslaColor.replace(/,\s*[\d.]+\)$/, `, ${opacity})`);
+}
+
+/**
  * Formats a Date object or string into a human-readable format.
  *
  * @param date - Date object or ISO string.
