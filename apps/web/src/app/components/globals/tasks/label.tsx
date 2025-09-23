@@ -8,19 +8,14 @@ import {
 	ComboBoxContent,
 	ComboBoxEmpty,
 	ComboBoxGroup,
-	ComboBoxIcon,
 	ComboBoxItem,
 	ComboBoxList,
 	ComboBoxSearch,
-	ComboBoxSelected,
 	ComboBoxTrigger,
-	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
-import { getHslaWithOpacity } from "@repo/util";
 import { IconCircleFilled, IconPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
-import { useMemo } from "react";
 
 interface GlobalTaskLabelsProps {
 	task: schema.TaskWithLabels;
@@ -37,21 +32,11 @@ export default function GlobalTaskLabels({
 }: GlobalTaskLabelsProps) {
 	// Get current selected label IDs
 	const currentLabelIds = task.labels?.map((label) => label.id) || [];
-
 	const handleLabelsChange = (values: string[]) => {
 		if (onLabelsChange) {
 			onLabelsChange(values);
 		}
 	};
-
-	// Create a map for easy label lookup
-	const labelMap = useMemo(() => {
-		const map = new Map();
-		availableLabels.forEach((label) => {
-			map.set(label.id, label);
-		});
-		return map;
-	}, [availableLabels]);
 
 	return (
 		<div className="flex flex-col gap-3">
