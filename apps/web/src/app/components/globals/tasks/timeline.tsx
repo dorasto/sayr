@@ -12,9 +12,10 @@ import {
 	TimelineTitle,
 } from "@repo/ui/components/tomui/timeline";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDateTime } from "@repo/util";
+import { formatDateTime, getHslaWithOpacity } from "@repo/util";
 import {
 	IconArrowRight,
+	IconCircleFilled,
 	IconEdit,
 	IconFlag,
 	IconMessageDots,
@@ -181,18 +182,88 @@ function TimelineComment({ item }: { item: schema.taskTimelineWithActor }) {
 	);
 }
 
-function TimelineLabelAdded({ item }: { item: schema.taskTimelineWithActor }) {
+function TimelineLabelAdded({ item, labels }: { item: schema.taskTimelineWithActor; labels: schema.labelType[] }) {
+	const value = item.toValue as string;
+	const label = labels.find((label) => label.id === value.replaceAll('"', ""));
+	if (!label) {
+		return (
+			<TimelineItemWrapper item={item} icon={IconTag} color="bg-accent text-muted-foreground">
+				added a label
+			</TimelineItemWrapper>
+		);
+	}
 	return (
-		<TimelineItemWrapper item={item} icon={IconTag} color="bg-accent text-muted-foreground">
-			added a label
+		<TimelineItemWrapper item={item} icon={IconTag} color="bg-accent text-primary-foreground">
+			<Badge variant={"outline"} className="inline-flex items-center gap-1 px-1 pr-2 justify-start">
+				<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
+					<AvatarImage src={item.actor?.image || "/avatar.jpg"} alt={item.actor?.name} />
+					<AvatarFallback className="rounded-full bg-transparent uppercase">
+						{item.actor?.name.slice(0, 2)}
+					</AvatarFallback>
+				</Avatar>
+				<span>{item.actor?.name}</span>
+			</Badge>{" "}
+			added label{" "}
+			<Badge
+				key={label.id}
+				variant="secondary"
+				className="items-center gap-1 text-xs h-5 border border-border rounded"
+				style={{
+					backgroundColor: label.color ? getHslaWithOpacity(label.color, 0.1) : "var(--muted)",
+					borderColor: label.color ? getHslaWithOpacity(label.color, 0.5) : "var(--border)",
+				}}
+			>
+				<IconCircleFilled
+					className="h-3 w-3"
+					style={{
+						color: label.color || "var(--foreground)",
+					}}
+				/>
+				<span className="truncate">{label.name}</span>
+			</Badge>
 		</TimelineItemWrapper>
 	);
 }
 
-function TimelineLabelRemoved({ item }: { item: schema.taskTimelineWithActor }) {
+function TimelineLabelRemoved({ item, labels }: { item: schema.taskTimelineWithActor; labels: schema.labelType[] }) {
+	const value = item.toValue as string;
+	const label = labels.find((label) => label.id === value.replaceAll('"', ""));
+	if (!label) {
+		return (
+			<TimelineItemWrapper item={item} icon={IconTag} color="bg-accent text-muted-foreground">
+				removed a label
+			</TimelineItemWrapper>
+		);
+	}
 	return (
 		<TimelineItemWrapper item={item} icon={IconTag} color="bg-accent text-primary-foreground">
-			removed a label
+			<Badge variant={"outline"} className="inline-flex items-center gap-1 px-1 pr-2 justify-start">
+				<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
+					<AvatarImage src={item.actor?.image || "/avatar.jpg"} alt={item.actor?.name} />
+					<AvatarFallback className="rounded-full bg-transparent uppercase">
+						{item.actor?.name.slice(0, 2)}
+					</AvatarFallback>
+				</Avatar>
+				<span>{item.actor?.name}</span>
+			</Badge>{" "}
+			removed label{" "}
+			<Badge
+				key={label.id}
+				variant="secondary"
+				className="items-center gap-1 text-xs h-5 border border-border rounded"
+				style={{
+					backgroundColor: label.color ? getHslaWithOpacity(label.color, 0.1) : "var(--muted)",
+					borderColor: label.color ? getHslaWithOpacity(label.color, 0.5) : "var(--border)",
+				}}
+			>
+				<IconCircleFilled
+					className="h-3 w-3"
+					style={{
+						color: label.color || "var(--foreground)",
+					}}
+				/>
+				<span className="truncate">{label.name}</span>
+			</Badge>
 		</TimelineItemWrapper>
 	);
 }
@@ -223,9 +294,10 @@ function TimelineUpdated({ item }: { item: schema.taskTimelineWithActor }) {
 
 interface GlobalTimelineProps {
 	task: schema.TaskWithLabels;
+	labels: schema.labelType[];
 }
 
-export default function GlobalTimeline({ task }: GlobalTimelineProps) {
+export default function GlobalTimeline({ task, labels }: GlobalTimelineProps) {
 	const timelineComponents = {
 		created: TimelineCreated,
 		status_change: TimelineStatusChange,
@@ -247,7 +319,7 @@ export default function GlobalTimeline({ task }: GlobalTimelineProps) {
 					return null;
 				}
 
-				return <TimelineComponent key={item.id} item={item} />;
+				return <TimelineComponent key={item.id} item={item} labels={labels} />;
 			})}
 		</Timeline>
 	);

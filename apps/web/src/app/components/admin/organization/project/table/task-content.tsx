@@ -63,7 +63,7 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 			sidebarPosition="right"
 		>
 			<SplitDialogContent>
-				<GlobalTimeline task={task} />
+				<GlobalTimeline task={task} labels={labels} />
 				{/* <div className="flex flex-col gap-3">
 					<div className="flex items-start gap-2">
 						<Avatar className="h-10 w-10 rounded-full bg-primary">
