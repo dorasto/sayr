@@ -5,10 +5,13 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
+import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconX } from "@tabler/icons-react";
+import { IconArrowsHorizontal, IconCode, IconX } from "@tabler/icons-react";
+import Link from "next/link";
+import { useState } from "react";
 import GlobalTaskCreatedAt from "@/app/components/globals/tasks/created";
 import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
@@ -31,6 +34,7 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const { runWithToast } = useToastAction();
+	const [openData, onOpenDataChange] = useState(false);
 	return (
 		<SplitDialog
 			isOpen={open}
@@ -51,7 +55,20 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 							{status?.icon(`${status?.className || ""}`)}
 							{status.label}
 						</Badge>
-						<Button size={"icon"} variant={"ghost"} onClick={() => onOpenChange(false)}>
+						<Link href={`/admin/${task.organizationId}/${task.projectId}/task/${task.shortId}`}>
+							<Button size={"icon"} className="size-5" variant={"ghost"} onClick={() => onOpenChange(false)}>
+								<IconArrowsHorizontal className="rotate-45" />
+							</Button>
+						</Link>
+						<Button
+							size={"icon"}
+							className="size-5"
+							variant={openData ? "accent" : "ghost"}
+							onClick={() => onOpenDataChange(!openData)}
+						>
+							<IconCode />
+						</Button>
+						<Button size={"icon"} className="size-5" variant={"ghost"} onClick={() => onOpenChange(false)}>
 							<IconX />
 						</Button>
 					</div>
@@ -60,6 +77,8 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 			sidebarPosition="right"
 		>
 			<SplitDialogContent>
+				<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
+
 				<GlobalTimeline task={task} labels={labels} />
 			</SplitDialogContent>
 			<SplitDialogSide>

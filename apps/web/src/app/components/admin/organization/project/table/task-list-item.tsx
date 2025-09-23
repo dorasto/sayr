@@ -18,13 +18,13 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@repo/ui/components/context-menu";
-
 import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact, getHslaWithOpacity } from "@repo/util";
 import { IconAlertSquareFilled, IconCircleFilled } from "@tabler/icons-react";
 import { Users } from "lucide-react";
+import { RenderLabel } from "@/app/components/globals/tasks/label";
 
 interface TaskListItemProps {
 	task: schema.TaskWithLabels;
@@ -189,36 +189,19 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 								{task.labels && task.labels.length > 0 && (
 									<div className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto">
 										{task.labels.slice(0, 3).map((label) => (
-											<Badge
+											<RenderLabel
+												label={label}
 												key={label.id}
-												variant="secondary"
-												className="items-center gap-1 text-xs h-5 border border-border rounded"
-												style={{
-													backgroundColor: label.color
-														? getHslaWithOpacity(label.color, 0.1)
-														: "var(--muted)",
-													borderColor: label.color
-														? getHslaWithOpacity(label.color, 0.5)
-														: "var(--border)",
-												}}
 												onClick={(e) => {
 													e.stopPropagation();
-													// Add label click logic here
+													// Add assignee change logic here
 												}}
-											>
-												<IconCircleFilled
-													className="h-3 w-3"
-													style={{
-														color: label.color || "var(--foreground)",
-													}}
-												/>
-												<span className="truncate">{label.name}</span>
-											</Badge>
+											/>
 										))}
 										{task.labels.length > 3 && (
 											<Badge
 												variant="secondary"
-												className="items-center gap-1 text-xs h-5 border border-border rounded"
+												className="flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative"
 												onClick={(e) => {
 													e.stopPropagation();
 													// Add logic to show all labels here
