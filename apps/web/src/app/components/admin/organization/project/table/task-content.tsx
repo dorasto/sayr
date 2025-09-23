@@ -89,40 +89,33 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 						task={task}
 						editable={true}
 						onChange={async (value) => {
-							const data = await runWithToast(
+							tasks = tasks.map((t) =>
+								t.id === task.id ? { ...task, status: value as schema.TaskWithLabels["status"] } : t
+							);
+							setTasks(tasks);
+							if (task) {
+								setSelectedTask({ ...task, status: value as schema.TaskWithLabels["status"] });
+							}
+							await runWithToast(
 								"update-task-status",
 								{
 									loading: {
-										title: "Updating task status...",
-										description: "Please wait while we update the task status.",
+										title: "Updating task...",
+										description: "Updating your task... changes are already visible.",
 									},
 									success: {
-										title: "Task status updated",
-										description: "The task status has been successfully updated.",
+										title: "Task saved",
+										description: "Your changes have been saved successfully.",
 									},
 									error: {
-										title: "Failed to update task status",
-										description: "An error occurred while updating the task status.",
+										title: "Save failed",
+										description:
+											"Your changes are showing, but we couldn’t save them to the server. Please try again.",
 									},
 								},
 								() =>
-									updateTaskAction(
-										task.organizationId,
-										task.projectId,
-										task.id,
-										{
-											status: value,
-										},
-										wsClientId
-									)
+									updateTaskAction(task.organizationId, task.projectId, task.id, { status: value }, wsClientId)
 							);
-							if (data?.success && data.data) {
-								tasks = tasks.map((t) => (t.id === data.data.id ? data.data : t));
-								setTasks(tasks);
-								if (task && task.id === data.data.id) {
-									setSelectedTask({ ...task, ...data.data });
-								}
-							}
 						}}
 					/>
 					<GlobalTaskLabels
@@ -130,51 +123,63 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 						editable={true}
 						availableLabels={labels}
 						onLabelsChange={async (values) => {
-							const data = await runWithToast(
+							tasks = tasks.map((t) =>
+								t.id === task.id ? { ...task, labels: labels.filter((label) => values.includes(label.id)) } : t
+							);
+							setTasks(tasks);
+							if (task) {
+								setSelectedTask({
+									...task,
+									labels: labels.filter((label) => values.includes(label.id)),
+								});
+							}
+							await runWithToast(
 								"update-task-labels",
 								{
 									loading: {
-										title: "Updating task labels...",
-										description: "Please wait while we update the task labels.",
+										title: "Updating task...",
+										description: "Updating your task... changes are already visible.",
 									},
 									success: {
-										title: "Task labels updated",
-										description: "The task labels have been successfully updated.",
+										title: "Task saved",
+										description: "Your changes have been saved successfully.",
 									},
 									error: {
-										title: "Failed to update task labels",
-										description: "An error occurred while updating the task labels.",
+										title: "Save failed",
+										description:
+											"Your changes are showing, but we couldn’t save them to the server. Please try again.",
 									},
 								},
 								() => updateLabelToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
 							);
-							if (data?.success && data.data) {
-								tasks = tasks.map((t) => (t.id === data.data.id ? data.data : t));
-								setTasks(tasks);
-								if (task && task.id === data.data.id) {
-									setSelectedTask({ ...task, ...data.data });
-								}
-							}
 						}}
 					/>
 					<GlobalTaskPriority
 						task={task}
 						editable={true}
 						onPriorityChange={async (value) => {
-							const data = await runWithToast(
+							tasks = tasks.map((t) =>
+								t.id === task.id ? { ...task, priority: value as schema.TaskWithLabels["priority"] } : t
+							);
+							setTasks(tasks);
+							if (task) {
+								setSelectedTask({ ...task, priority: value as schema.TaskWithLabels["priority"] });
+							}
+							await runWithToast(
 								"update-task-priority",
 								{
 									loading: {
-										title: "Updating task priority...",
-										description: "Please wait while we update the task priority.",
+										title: "Updating task...",
+										description: "Updating your task... changes are already visible.",
 									},
 									success: {
-										title: "Task priority updated",
-										description: "The task priority has been successfully updated.",
+										title: "Task saved",
+										description: "Your changes have been saved successfully.",
 									},
 									error: {
-										title: "Failed to update task priority",
-										description: "An error occurred while updating the task priority.",
+										title: "Save failed",
+										description:
+											"Your changes are showing, but we couldn’t save them to the server. Please try again.",
 									},
 								},
 								() =>
@@ -188,13 +193,6 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 										wsClientId
 									)
 							);
-							if (data?.success && data.data) {
-								tasks = tasks.map((t) => (t.id === data.data.id ? data.data : t));
-								setTasks(tasks);
-								if (task && task.id === data.data.id) {
-									setSelectedTask({ ...task, ...data.data });
-								}
-							}
 						}}
 					/>
 				</div>
