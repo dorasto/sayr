@@ -1,16 +1,17 @@
 "use client";
 
 import type { schema } from "@repo/database";
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
 import ClipboardCopy from "@repo/ui/components/tomui/input-clipboard";
 import { TabbedDialogFooter } from "@repo/ui/components/tomui/tabbed-dialog";
-import { useMutation } from "@tanstack/react-query";
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
-import { type UpdateOrganizationData, updateOrganizationAction, uploadOrganizationLogo } from "@/app/lib/fetches";
+import { updateOrganizationAction, uploadOrganizationLogo } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
 import { handleFileValidation } from "../utils/file-validation";
 import type { FileWithPreview } from "../utils/types";
 import LogoUpload from "./logo-upload";
@@ -30,6 +31,7 @@ interface GeneralSettingsProps {
 
 const GeneralSettings = forwardRef<GeneralSettingsRef, GeneralSettingsProps>(
 	({ organization, onCloseDialog, onRequestCrop }, ref) => {
+		const { runWithToast, isFetching } = useToastAction();
 		const id = useId();
 		const logoFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,24 +108,6 @@ const GeneralSettings = forwardRef<GeneralSettingsRef, GeneralSettingsProps>(
 
 		const currentLogoImage = logoFiles[0]?.preview || null;
 
-		// Mutation for updating organization
-		const updateMutation = useMutation({
-			mutationFn: async (data: UpdateOrganizationData) => {
-				const result = await updateOrganizationAction(organization.id, data, "");
-				if (!result.success) {
-					throw new Error(result.error);
-				}
-				return result.data;
-			},
-			onSuccess: () => {
-				toast.success("Organization updated successfully");
-				onCloseDialog();
-			},
-			onError: (error) => {
-				toast.error(error.message || "Failed to update organization");
-			},
-		});
-
 		const handleSubmit = useCallback(
 			async (e?: React.FormEvent) => {
 				e?.preventDefault();
@@ -149,23 +133,48 @@ const GeneralSettings = forwardRef<GeneralSettingsRef, GeneralSettingsProps>(
 					} else if (logoFiles[0]?.id === "current-logo") {
 						logoUrl = organization.logo || undefined; // keep existing logo
 					}
-
-					// 📌 Update org record
-					const updateData: UpdateOrganizationData = {
-						name: name.trim(),
-						slug: slug.trim(),
-						logo: logoUrl,
-						description: description.trim(),
-					};
-
-					updateMutation.mutate(updateData);
+					const data = await runWithToast(
+						"update-organization",
+						{
+							loading: {
+								title: "Updating organization...",
+								description: "Please wait while we update the organization.",
+							},
+							success: {
+								title: "Updated organization",
+								description: "The organization has been successfully updated.",
+							},
+							error: {
+								title: "Failed to update organization",
+								description: "An error occurred while updating the organization.",
+							},
+						},
+						() =>
+							updateOrganizationAction(
+								organization.id,
+								{
+									name: name.trim(),
+									slug: slug.trim(),
+									logo: logoUrl,
+									description: description.trim(),
+								},
+								""
+							)
+					);
+					if (data?.success) {
+						onCloseDialog();
+					}
 					// biome-ignore lint/suspicious/noExplicitAny: <any>
 				} catch (error: any) {
-					console.error("Upload/Update failed:", error);
-					toast.error(error.message || "Failed to update organization");
+					console.error("🚀 ~ handleSubmit ~ error:", error);
+					headlessToast.error({
+						id: "update-organization",
+						title: "Failed to update organization",
+						description: error.message || "An error occurred while updating the organization.",
+					});
 				}
 			},
-			[name, slug, description, logoFiles, organization, updateMutation]
+			[name, slug, description, logoFiles, organization, runWithToast, onCloseDialog]
 		);
 
 		// Expose submit function to parent via ref
@@ -173,11 +182,11 @@ const GeneralSettings = forwardRef<GeneralSettingsRef, GeneralSettingsProps>(
 			ref,
 			() => ({
 				submit: handleSubmit,
-				isSubmitting: updateMutation.isPending,
+				isSubmitting: isFetching,
 				isValid: name.trim() !== "" && slug.trim() !== "",
 				setCroppedLogo,
 			}),
-			[handleSubmit, updateMutation.isPending, name, slug, setCroppedLogo]
+			[handleSubmit, isFetching, name, slug, setCroppedLogo]
 		);
 
 		return (

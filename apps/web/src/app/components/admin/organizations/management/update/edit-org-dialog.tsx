@@ -104,14 +104,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 					/>
 				</TabPanel>
 				<TabPanel tabId={"design"}>
-					<Design
-						ref={designRef}
-						organization={organization}
-						onRequestCrop={handleCropRequest}
-						onBannerSaved={() => {
-							toast.success("Banner updated successfully");
-						}}
-					/>
+					<Design ref={designRef} organization={organization} onRequestCrop={handleCropRequest} />
 				</TabPanel>
 				<TabPanel tabId={"members"}>
 					{/** biome-ignore lint/suspicious/noExplicitAny: <will look into this> */}

@@ -7,10 +7,10 @@ import ColorPicker from "@repo/ui/components/tomui/color-picker";
 import { TabbedDialogFooter } from "@repo/ui/components/tomui/tabbed-dialog";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCircleFilled } from "@tabler/icons-react";
-import { useMutation } from "@tanstack/react-query";
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import { toast } from "sonner";
-import { type UpdateOrganizationData, updateOrganizationAction, uploadOrganizationBanner } from "@/app/lib/fetches";
+import { updateOrganizationAction, uploadOrganizationBanner } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
 import { handleFileValidation } from "../utils/file-validation";
 import type { FileWithPreview } from "../utils/types";
 import BannerUpload from "./banner-upload";
@@ -30,6 +30,7 @@ interface DesignProps {
 const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved, onRequestCrop }, ref) => {
 	const [primary] = useState("#ff0000");
 	const bannerFileInputRef = useRef<HTMLInputElement>(null);
+	const { runWithToast, isFetching } = useToastAction();
 
 	// Initialize with existing banner if present
 	const initialBannerFiles: FileWithPreview[] = organization.bannerImg
@@ -89,33 +90,45 @@ const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved
 	}, []);
 
 	const currentBannerImage = bannerFiles[0]?.preview || null;
-
-	// Mutation for saving banner
-	const bannerMutation = useMutation({
-		mutationFn: async (bannerBase64: string) => {
-			const updateData: Partial<UpdateOrganizationData> = {
-				bannerImg: bannerBase64,
-			};
-			const result = await updateOrganizationAction(organization.id, updateData as UpdateOrganizationData, "");
-			if (!result.success) {
-				throw new Error(result.error);
+	const handleUpdate = useCallback(
+		async (newBannerImg: string) => {
+			const data = await runWithToast(
+				"update-organization",
+				{
+					loading: {
+						title: "Updating organization...",
+						description: "Please wait while we update the organization.",
+					},
+					success: {
+						title: "Updated organization",
+						description: "The organization has been successfully updated.",
+					},
+					error: {
+						title: "Failed to update organization",
+						description: "An error occurred while updating the organization.",
+					},
+				},
+				() =>
+					updateOrganizationAction(
+						organization.id,
+						{
+							bannerImg: newBannerImg,
+							name: organization.name,
+							slug: organization.slug,
+						},
+						""
+					)
+			);
+			if (data?.success) {
+				onBannerSaved?.();
 			}
-			return result.data;
 		},
-		onSuccess: () => {
-			toast.success("Banner updated successfully");
-			onBannerSaved?.();
-		},
-		onError: (error) => {
-			toast.error(error.message || "Failed to update banner");
-		},
-	});
-
+		[organization.id, organization.name, organization.slug, runWithToast, onBannerSaved]
+	);
 	const saveBanner = useCallback(async () => {
 		try {
 			// 🗑 Remove banner if no files left
 			if (bannerFiles.length === 0) {
-				bannerMutation.mutate(""); // send empty string to clear
 				return;
 			}
 
@@ -133,21 +146,19 @@ const Design = forwardRef<DesignRef, DesignProps>(({ organization, onBannerSaved
 				const uploadResult = await uploadOrganizationBanner(organization.id, file, organization.bannerImg);
 
 				// Now update DB value with the banner CDN URL
-				bannerMutation.mutate(uploadResult.image);
-				toast.success("Banner updated");
+				handleUpdate(uploadResult.image);
 			} else {
-				// No changes → keep existing
-				toast.info("No changes to save");
+				handleUpdate(organization.bannerImg || "");
 			}
 		} catch (error) {
 			console.error("🚀 ~ saveBanner ~ error:", error);
 			toast.error("Failed to upload banner");
 		}
-	}, [bannerFiles, bannerMutation, organization.id, organization.bannerImg]);
+	}, [bannerFiles, handleUpdate, organization.id, organization.bannerImg]);
 	// Expose saveBanner function to parent via ref
 	useImperativeHandle(ref, () => ({
 		saveBanner,
-		isSubmitting: bannerMutation.isPending,
+		isSubmitting: isFetching,
 		setCroppedBanner,
 	}));
 
