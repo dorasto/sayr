@@ -12,10 +12,9 @@ import {
 	TimelineTitle,
 } from "@repo/ui/components/tomui/timeline";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDateTime, getHslaWithOpacity } from "@repo/util";
+import { formatDateTime } from "@repo/util";
 import {
 	IconArrowRight,
-	IconCircleFilled,
 	IconEdit,
 	IconMessageDots,
 	IconPlus,
@@ -26,6 +25,7 @@ import {
 import type { PartialBlock } from "node_modules/@blocknote/core/types/src/blocks/defaultBlocks";
 import { priorityConfig, statusConfig } from "../../admin/organization/project/table/task-list-item";
 import { Editor } from "../../blocknote/DynamicEditor";
+import { RenderLabel } from "./label";
 
 interface TimelineItemWrapperProps {
 	item: schema.taskTimelineWithActor;
@@ -85,16 +85,8 @@ function TimelineStatusChange({ item }: TimelineStatusChangeProps) {
 
 		return (
 			<>
-				<Badge variant={"outline"} className="inline-flex items-center gap-1 px-1 pr-2 justify-start">
-					<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
-						<AvatarImage src={item.actor?.image || "/avatar.jpg"} alt={item.actor?.name} />
-						<AvatarFallback className="rounded-full bg-transparent uppercase">
-							{item.actor?.name.slice(0, 2)}
-						</AvatarFallback>
-					</Avatar>
-					<span>{item.actor?.name}</span>
-				</Badge>{" "}
-				changed the status from{" "}
+				<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the status
+				from{" "}
 				<Badge variant={"outline"} className="inline-flex items-center gap-1 justify-start">
 					{fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
 					<span>{fromConfig?.label || from.replaceAll('"', "")}</span>
@@ -141,16 +133,8 @@ function TimelinePriorityChange({ item }: TimelinePriorityChangeProps) {
 
 		return (
 			<>
-				<Badge variant={"outline"} className="inline-flex items-center gap-1 px-1 pr-2 justify-start">
-					<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
-						<AvatarImage src={item.actor?.image || "/avatar.jpg"} alt={item.actor?.name} />
-						<AvatarFallback className="rounded-full bg-transparent uppercase">
-							{item.actor?.name.slice(0, 2)}
-						</AvatarFallback>
-					</Avatar>
-					<span>{item.actor?.name}</span>
-				</Badge>{" "}
-				changed the priority from{" "}
+				<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the priority
+				from{" "}
 				<Badge variant={"outline"} className="inline-flex items-center gap-1 justify-start">
 					{fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
 					<span>{fromConfig?.label || from.replaceAll('"', "")}</span>
@@ -191,33 +175,8 @@ function TimelineLabelAdded({ item, labels }: { item: schema.taskTimelineWithAct
 	}
 	return (
 		<TimelineItemWrapper item={item} icon={IconTag} color="bg-accent text-primary-foreground">
-			<Badge variant={"outline"} className="inline-flex items-center gap-1 px-1 pr-2 justify-start">
-				<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
-					<AvatarImage src={item.actor?.image || "/avatar.jpg"} alt={item.actor?.name} />
-					<AvatarFallback className="rounded-full bg-transparent uppercase">
-						{item.actor?.name.slice(0, 2)}
-					</AvatarFallback>
-				</Avatar>
-				<span>{item.actor?.name}</span>
-			</Badge>{" "}
-			added label{" "}
-			<Badge
-				key={label.id}
-				variant="secondary"
-				className="items-center gap-1 text-xs h-5 border border-border rounded"
-				style={{
-					backgroundColor: label.color ? getHslaWithOpacity(label.color, 0.1) : "var(--muted)",
-					borderColor: label.color ? getHslaWithOpacity(label.color, 0.5) : "var(--border)",
-				}}
-			>
-				<IconCircleFilled
-					className="h-3 w-3"
-					style={{
-						color: label.color || "var(--foreground)",
-					}}
-				/>
-				<span className="truncate">{label.name}</span>
-			</Badge>
+			<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> added{" "}
+			<RenderLabel label={label} className="inline-flex" />
 		</TimelineItemWrapper>
 	);
 }
@@ -234,33 +193,8 @@ function TimelineLabelRemoved({ item, labels }: { item: schema.taskTimelineWithA
 	}
 	return (
 		<TimelineItemWrapper item={item} icon={IconTag} color="bg-accent text-primary-foreground">
-			<Badge variant={"outline"} className="inline-flex items-center gap-1 px-1 pr-2 justify-start">
-				<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
-					<AvatarImage src={item.actor?.image || "/avatar.jpg"} alt={item.actor?.name} />
-					<AvatarFallback className="rounded-full bg-transparent uppercase">
-						{item.actor?.name.slice(0, 2)}
-					</AvatarFallback>
-				</Avatar>
-				<span>{item.actor?.name}</span>
-			</Badge>{" "}
-			removed label{" "}
-			<Badge
-				key={label.id}
-				variant="secondary"
-				className="items-center gap-1 text-xs h-5 border border-border rounded"
-				style={{
-					backgroundColor: label.color ? getHslaWithOpacity(label.color, 0.1) : "var(--muted)",
-					borderColor: label.color ? getHslaWithOpacity(label.color, 0.5) : "var(--border)",
-				}}
-			>
-				<IconCircleFilled
-					className="h-3 w-3"
-					style={{
-						color: label.color || "var(--foreground)",
-					}}
-				/>
-				<span className="truncate">{label.name}</span>
-			</Badge>
+			<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> removed label{" "}
+			<RenderLabel label={label} className="inline-flex" />
 		</TimelineItemWrapper>
 	);
 }
@@ -319,5 +253,20 @@ export default function GlobalTimeline({ task, labels }: GlobalTimelineProps) {
 				return <TimelineComponent key={item.id} item={item} labels={labels} />;
 			})}
 		</Timeline>
+	);
+}
+
+export function AvatarWithName({ name, image }: { name: string; image: string }) {
+	return (
+		<Badge
+			variant={"secondary"}
+			className="inline-flex items-center gap-1 justify-center h-5 bg-accent border border-border"
+		>
+			<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
+				<AvatarImage src={image || "/avatar.jpg"} alt={name} />
+				<AvatarFallback className="rounded-full bg-transparent uppercase">{name.slice(0, 2)}</AvatarFallback>
+			</Avatar>
+			<span>{name}</span>
+		</Badge>
 	);
 }

@@ -16,6 +16,7 @@ import {
 	ComboBoxTrigger,
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
+import { cn } from "@repo/ui/lib/utils";
 import { getHslaWithOpacity } from "@repo/util";
 import { IconCircleFilled, IconPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
@@ -58,30 +59,14 @@ export default function GlobalTaskLabels({
 			<div className="flex flex-col gap-2">
 				<div className="flex flex-wrap gap-2">
 					{task.labels.map((label) => (
-						<Badge
+						<RenderLabel
 							key={label.id}
-							variant="secondary"
-							className="flex items-center gap-1 text-xs h-5 border border-border rounded"
-							style={{
-								backgroundColor: label.color ? getHslaWithOpacity(label.color, 0.1) : "var(--muted)",
-								borderColor: label.color ? getHslaWithOpacity(label.color, 0.5) : "var(--border)",
+							label={label}
+							showRemove={editable}
+							onRemove={(labelId) => {
+								handleLabelsChange(currentLabelIds.filter((id) => id !== labelId));
 							}}
-						>
-							<IconCircleFilled
-								className="h-3 w-3"
-								style={{
-									color: label.color || "var(--foreground)",
-								}}
-							/>
-							<span className="truncate">{label.name}</span>
-							<XIcon
-								className="h-3 w-3 cursor-pointer hover:bg-muted rounded-sm"
-								onClick={(e) => {
-									e.stopPropagation();
-									handleLabelsChange(currentLabelIds.filter((labelId) => labelId !== label.id));
-								}}
-							/>
-						</Badge>
+						/>
 					))}
 					<ComboBox values={currentLabelIds} onValuesChange={handleLabelsChange}>
 						<ComboBoxTrigger disabled={!editable} className="h-5 w-5 aspect-square p-0 justify-center">
@@ -108,5 +93,54 @@ export default function GlobalTaskLabels({
 				</div>
 			</div>
 		</div>
+	);
+}
+
+interface RenderLabelProps {
+	label: { id: string; name: string; color?: string | null };
+	showRemove?: boolean;
+	onRemove?: (labelId: string) => void;
+	onClick?: (e: React.MouseEvent, labelId: string) => void;
+	className?: string;
+}
+
+export function RenderLabel({ label, showRemove = false, onRemove, onClick, className = "" }: RenderLabelProps) {
+	return (
+		<Badge
+			key={label.id}
+			variant="secondary"
+			className={cn(
+				"flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative peer ps-5",
+				showRemove && "pe-5",
+				className
+			)}
+			// style={{
+			// 	backgroundColor: label.color ? getHslaWithOpacity(label.color, 0.1) : "var(--muted)",
+			// 	borderColor: label.color ? getHslaWithOpacity(label.color, 0.5) : "var(--border)",
+			// }}
+			onClick={onClick ? (e) => onClick(e, label.id) : undefined}
+		>
+			<div className="shrink-0 absolute inset-y-0 flex items-center justify-center start-0 ps-1">
+				<IconCircleFilled
+					size={12}
+					style={{
+						color: label.color || "var(--foreground)",
+					}}
+				/>
+			</div>
+			<span className="truncate">{label.name}</span>
+			{showRemove && onRemove && (
+				<div className="shrink-0 absolute inset-y-0 flex items-center justify-center end-0 pe-1">
+					<XIcon
+						size={12}
+						className="cursor-pointer hover:bg-muted rounded-sm shrink-0 opacity-0 group-hover/label:opacity-100"
+						onClick={(e) => {
+							e.stopPropagation();
+							onRemove(label.id);
+						}}
+					/>
+				</div>
+			)}
+		</Badge>
 	);
 }

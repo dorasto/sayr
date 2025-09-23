@@ -22,8 +22,8 @@ import {
 import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDateCompact } from "@repo/util";
-import { IconAlertSquareFilled } from "@tabler/icons-react";
+import { formatDateCompact, getHslaWithOpacity } from "@repo/util";
+import { IconAlertSquareFilled, IconCircleFilled } from "@tabler/icons-react";
 import { Users } from "lucide-react";
 
 interface TaskListItemProps {
@@ -188,27 +188,56 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 								{/* Labels */}
 								{task.labels && task.labels.length > 0 && (
 									<div className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto">
-										{task.labels.map((label) => (
+										{task.labels.slice(0, 3).map((label) => (
 											<Badge
 												key={label.id}
-												variant="outline"
-												className="flex overflow-hidden justify-center h-full shrink-0 items-center rounded px-2.5 text-xs cursor-pointer"
+												variant="secondary"
+												className="items-center gap-1 text-xs h-5 border border-border rounded"
+												style={{
+													backgroundColor: label.color
+														? getHslaWithOpacity(label.color, 0.1)
+														: "var(--muted)",
+													borderColor: label.color
+														? getHslaWithOpacity(label.color, 0.5)
+														: "var(--border)",
+												}}
 												onClick={(e) => {
 													e.stopPropagation();
 													// Add label click logic here
 												}}
 											>
-												<div className="flex items-center gap-1.5 overflow-hidden">
-													<span
-														className="h-2 w-2 shrink-0 rounded-full"
-														style={{ backgroundColor: label.color || "#cccccc" }}
-													/>
-													<div className="line-clamp-1 inline-block w-auto max-w-[120px] truncate">
-														{label.name}
-													</div>
-												</div>
+												<IconCircleFilled
+													className="h-3 w-3"
+													style={{
+														color: label.color || "var(--foreground)",
+													}}
+												/>
+												<span className="truncate">{label.name}</span>
 											</Badge>
 										))}
+										{task.labels.length > 3 && (
+											<Badge
+												variant="secondary"
+												className="items-center gap-1 text-xs h-5 border border-border rounded"
+												onClick={(e) => {
+													e.stopPropagation();
+													// Add logic to show all labels here
+												}}
+											>
+												<div className="flex -space-x-1.5">
+													{task.labels.slice(3).map((label) => (
+														<IconCircleFilled
+															key={label.id}
+															className="h-3 w-3"
+															style={{
+																color: label.color || "var(--foreground)",
+															}}
+														/>
+													))}
+												</div>
+												+{task.labels.length - 3} labels
+											</Badge>
+										)}
 									</div>
 								)}
 								<span className="text-xs text-muted-foreground truncate">
