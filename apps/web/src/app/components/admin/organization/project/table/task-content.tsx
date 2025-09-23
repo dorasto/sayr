@@ -96,7 +96,7 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 							if (task) {
 								setSelectedTask({ ...task, status: value as schema.TaskWithLabels["status"] });
 							}
-							await runWithToast(
+							const data = await runWithToast(
 								"update-task-status",
 								{
 									loading: {
@@ -116,6 +116,13 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 								() =>
 									updateTaskAction(task.organizationId, task.projectId, task.id, { status: value }, wsClientId)
 							);
+							if (data?.success && data.data) {
+								tasks = tasks.map((t) => (t.id === task.id ? data.data : t));
+								setTasks(tasks);
+								if (task && task.id === data.data.id) {
+									setSelectedTask(data.data);
+								}
+							}
 						}}
 					/>
 					<GlobalTaskLabels
@@ -133,7 +140,7 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 									labels: labels.filter((label) => values.includes(label.id)),
 								});
 							}
-							await runWithToast(
+							const data = await runWithToast(
 								"update-task-labels",
 								{
 									loading: {
@@ -152,6 +159,13 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 								},
 								() => updateLabelToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
 							);
+							if (data?.success && data.data) {
+								tasks = tasks.map((t) => (t.id === task.id ? data.data : t));
+								setTasks(tasks);
+								if (task && task.id === data.data.id) {
+									setSelectedTask(data.data);
+								}
+							}
 						}}
 					/>
 					<GlobalTaskPriority
@@ -165,7 +179,7 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 							if (task) {
 								setSelectedTask({ ...task, priority: value as schema.TaskWithLabels["priority"] });
 							}
-							await runWithToast(
+							const data = await runWithToast(
 								"update-task-priority",
 								{
 									loading: {
@@ -193,6 +207,13 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 										wsClientId
 									)
 							);
+							if (data?.success && data.data) {
+								tasks = tasks.map((t) => (t.id === task.id ? data.data : t));
+								setTasks(tasks);
+								if (task && task.id === data.data.id) {
+									setSelectedTask(data.data);
+								}
+							}
 						}}
 					/>
 				</div>
