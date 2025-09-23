@@ -83,6 +83,65 @@ export async function getTasksByProjectId(orgId: string, projectId: string) {
 	}));
 }
 
+export async function getTaskByShortId(orgId: string, projectId: string, shortId: number) {
+	const tasks = await db.query.task.findFirst({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.shortId, shortId)),
+		with: {
+			labels: {
+				with: {
+					label: true, // 👈 eager load the real label object
+				},
+			},
+			createdBy: {
+				columns: {
+					id: true,
+					name: true,
+					image: true,
+				},
+			},
+			assignees: {
+				with: {
+					user: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+			timeline: {
+				with: {
+					actor: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+			comments: {
+				with: {
+					createdBy: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+		},
+	});
+	if (!tasks) return null;
+	return {
+		...tasks,
+		labels: tasks.labels.map((assignment) => assignment.label),
+		assignees: tasks.assignees.map((assignment) => assignment.user),
+	};
+}
+
 /**
  * Creates a new task in a project, automatically assigning
  * the next available shortId scoped to that project.

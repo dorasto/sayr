@@ -9,16 +9,15 @@ import {
 	AdaptiveDialogTitle,
 } from "@repo/ui/components/adaptive-dialog";
 import { Button } from "@repo/ui/components/button";
-import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useMutation } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useLayoutProject } from "@/app/admin/[organization_id]/[project_id]/Context";
 import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { createTaskAction } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
 import Labeller from "./labels";
 import { PrioritySelector } from "./priority";
 import { StatusSelector } from "./status";
@@ -33,72 +32,39 @@ export default function CreateIssueDialog() {
 	const [status, setStatus] = useState<string | undefined | null>(undefined);
 	const [priority, setPriority] = useState<string | undefined | null>(undefined);
 	const [labels, setLabels] = useState<string[]>([]);
-	// Mutation for updating organization
-	const updateMutation = useMutation({
-		mutationFn: async (data: {
-			title: string;
-			description: PartialBlock[] | undefined;
-			status: string | undefined | null;
-			priority: string | undefined | null;
-			labels: string[];
-		}) => {
-			headlessToast.loading({
-				id: "create-issue",
-				title: "Creating issue...",
-				description: "Please wait while we create the issue.",
-			});
-			const result = await createTaskAction(organization.id, project.id, data, wsClientId);
-			if (!result.success) {
-				throw new Error(result.error);
-			}
-			return result.data;
-		},
-		onSuccess: (data) => {
-			headlessToast.success({
-				id: "create-issue",
-				title: "Created issue",
-				description: "The issue has been successfully created.",
-			});
+	const { runWithToast, isFetching } = useToastAction();
+	const handleUpdate = async () => {
+		const data = await runWithToast(
+			"create-task",
+			{
+				loading: { title: "Creating task...", description: "Please wait while we create the issue." },
+				success: { title: "Created issue", description: "The issue has been successfully created." },
+				error: { title: "Failed to create issue", description: "An error occurred while creating the issue." },
+			},
+			() =>
+				createTaskAction(
+					organization.id,
+					project.id,
+					{
+						title,
+						description,
+						status,
+						priority,
+						labels,
+					},
+					wsClientId
+				)
+		);
+		if (data?.success && data.data) {
 			setOpen(false);
 			setTitle("");
 			setDescription(undefined);
 			setStatus(undefined);
 			setPriority(undefined);
 			setLabels([]);
-			setTasks([...tasks, data]);
-		},
-		onError: (error) => {
-			headlessToast.error({
-				id: "create-issue",
-				title: "Failed to create issue",
-				description: error.message || "An error occurred while creating the issue.",
-			});
-		},
-	});
-	const handleSubmit = useCallback(
-		async (e?: React.FormEvent) => {
-			e?.preventDefault();
-
-			try {
-				updateMutation.mutate({
-					title,
-					description,
-					status,
-					priority,
-					labels,
-				});
-				// biome-ignore lint/suspicious/noExplicitAny: <any>
-			} catch (error: any) {
-				console.error("Upload/Update failed:", error);
-				headlessToast.error({
-					id: "create-issue",
-					title: "Failed to create issue",
-					description: error.message || "An error occurred while creating the issue.",
-				});
-			}
-		},
-		[title, description, status, priority, labels, updateMutation]
-	);
+			setTasks([...tasks, data.data]);
+		}
+	};
 	return (
 		<div className="flex items-center gap-3 w-full">
 			<Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
@@ -137,11 +103,7 @@ export default function CreateIssueDialog() {
 					</div>
 					<AdaptiveDialogFooter className="mt-auto bg-background flex !flex-col gap-2">
 						<div className="flex items-center gap-2 ml-auto">
-							<Button
-								variant={"accent"}
-								onClick={handleSubmit}
-								disabled={updateMutation.isPending || !title.trim()}
-							>
+							<Button variant={"accent"} onClick={handleUpdate} disabled={isFetching || !title.trim()}>
 								Create issue
 							</Button>
 						</div>
