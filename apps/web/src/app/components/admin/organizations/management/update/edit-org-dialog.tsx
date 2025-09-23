@@ -5,7 +5,6 @@ import { ImageCrop } from "@repo/ui/components/image-crop";
 import { TabbedDialog, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
 import { IconBrush, IconHome, IconUsers } from "@tabler/icons-react";
 import { useRef, useState } from "react";
-import { toast } from "sonner";
 import Design, { DesignFooter, type DesignRef } from "./design";
 import GeneralSettings, { GeneralSettingsFooter, type GeneralSettingsRef } from "./general";
 import OrganizationMembers from "./members";
