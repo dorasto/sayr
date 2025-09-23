@@ -17,18 +17,15 @@ import {
 	IconArrowRight,
 	IconCircleFilled,
 	IconEdit,
-	IconFlag,
 	IconMessageDots,
 	IconPlus,
 	IconTag,
-	IconTagsOff,
 	IconUserMinus,
 	IconUserPlus,
 } from "@tabler/icons-react";
 import type { PartialBlock } from "node_modules/@blocknote/core/types/src/blocks/defaultBlocks";
 import { priorityConfig, statusConfig } from "../../admin/organization/project/table/task-list-item";
 import { Editor } from "../../blocknote/DynamicEditor";
-import RenderUser from "./render-user";
 
 interface TimelineItemWrapperProps {
 	item: schema.taskTimelineWithActor;

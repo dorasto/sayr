@@ -1,77 +1,26 @@
 "use client";
+import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import ColorPicker from "@repo/ui/components/tomui/color-picker";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconCheck, IconCircleFilled } from "@tabler/icons-react";
-import { useMutation } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
-import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
+import { useState } from "react";
 import { createLabelAction } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
 
 interface Props {
 	orgId: string;
+	labels: schema.labelType[];
+	setLabels: (newValue: Props["labels"]) => void;
 }
 
-export default function CreateLabel({ orgId }: Props) {
-	const { labels, setLabels } = useLayoutOrganization();
-
+export default function CreateLabel({ orgId, labels, setLabels }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const [name, setName] = useState("");
 	const [color, setColor] = useState("#000000");
-	// Mutation for updating organization
-	const updateMutation = useMutation({
-		mutationFn: async (data: { name: string; color: string }) => {
-			headlessToast.loading({
-				id: "create-label",
-				title: "Creating label...",
-				description: "Please wait while we create the label.",
-			});
-			const result = await createLabelAction(orgId, data, wsClientId);
-			if (!result.success) {
-				throw new Error(result.error);
-			}
-			return result.data;
-		},
-		onSuccess: (data) => {
-			setLabels([...labels, data]);
-			headlessToast.success({
-				id: "create-label",
-				title: "Created label",
-				description: "The label has been successfully created.",
-			});
-		},
-		onError: (error) => {
-			headlessToast.error({
-				id: "create-label",
-				title: "Failed to create label",
-				description: error.message || "An error occurred while creating the label.",
-			});
-		},
-	});
-	const handleSubmit = useCallback(
-		async (e?: React.FormEvent) => {
-			e?.preventDefault();
-
-			try {
-				updateMutation.mutate({
-					name,
-					color,
-				});
-				// biome-ignore lint/suspicious/noExplicitAny: <any>
-			} catch (error: any) {
-				console.log("🚀 ~ CreateLabel ~ error:", error);
-				headlessToast.error({
-					id: "create-label",
-					title: "Failed to create label",
-					description: error.message || "An error occurred while creating the label.",
-				});
-			}
-		},
-		[name, color, updateMutation]
-	);
+	const { runWithToast, isFetching } = useToastAction();
 	return (
 		<div className="flex items-center gap-3 bg-accent border rounded p-1">
 			<Popover>
@@ -95,8 +44,40 @@ export default function CreateLabel({ orgId }: Props) {
 				variant="accent"
 				size={"icon"}
 				className="shrink-0"
-				onClick={() => handleSubmit()}
-				disabled={name.length === 0 || updateMutation.isPending}
+				onClick={async () => {
+					const data = await runWithToast(
+						"create-label",
+						{
+							loading: {
+								title: "Creating label...",
+								description: "Please wait while we create the label.",
+							},
+							success: {
+								title: "Label created",
+								description: "The label has been successfully created.",
+							},
+							error: {
+								title: "Failed to create label",
+								description: "An error occurred while creating the label.",
+							},
+						},
+						() =>
+							createLabelAction(
+								orgId,
+								{
+									name,
+									color,
+								},
+								wsClientId
+							)
+					);
+					if (data?.success && data.data) {
+						setLabels([...labels, data.data]);
+						setName("");
+						setColor("#000000");
+					}
+				}}
+				disabled={name.length === 0 || isFetching}
 			>
 				<IconCheck />
 			</Button>

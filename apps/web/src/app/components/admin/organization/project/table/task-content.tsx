@@ -1,25 +1,22 @@
 "use client";
 
-import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import { DialogClose } from "@repo/ui/components/dialog";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconX } from "@tabler/icons-react";
-import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import GlobalTaskCreatedAt from "@/app/components/globals/tasks/created";
 import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 import GlobalTaskStatus from "@/app/components/globals/tasks/status";
 import GlobalTimeline from "@/app/components/globals/tasks/timeline";
 import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
-import { priorityConfig, statusConfig } from "./task-list-item";
+import { useToastAction } from "@/app/lib/util";
+import { statusConfig } from "./task-list-item";
 
 interface TaskContentProps {
 	open: boolean;
@@ -33,7 +30,7 @@ interface TaskContentProps {
 export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks, setSelectedTask }: TaskContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const status = statusConfig[task.status as keyof typeof statusConfig];
-	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
+	const { runWithToast } = useToastAction();
 	return (
 		<SplitDialog
 			isOpen={open}
@@ -64,19 +61,6 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 		>
 			<SplitDialogContent>
 				<GlobalTimeline task={task} labels={labels} />
-				{/* <div className="flex flex-col gap-3">
-					<div className="flex items-start gap-2">
-						<Avatar className="h-10 w-10 rounded-full bg-primary">
-							<AvatarImage src={"/"} alt={""} />
-							<AvatarFallback className="rounded-full bg-transparent uppercase">{"AA"}</AvatarFallback>
-						</Avatar>
-						<div className="border w-full rounded p-3">
-							<Editor readonly={true} value={task.description as PartialBlock[]} />
-						</div>
-					</div>
-					<Label variant={"heading"}>Activity</Label>
-					
-				</div> */}
 			</SplitDialogContent>
 			<SplitDialogSide>
 				<div className="flex flex-col gap-3">
@@ -86,19 +70,39 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 						task={task}
 						editable={true}
 						onChange={async (value) => {
-							const data = await updateTaskAction(
-								task.organizationId,
-								task.projectId,
-								task.id,
+							const data = await runWithToast(
+								"update-task-status",
 								{
-									status: value,
+									loading: {
+										title: "Updating task status...",
+										description: "Please wait while we update the task status.",
+									},
+									success: {
+										title: "Task status updated",
+										description: "The task status has been successfully updated.",
+									},
+									error: {
+										title: "Failed to update task status",
+										description: "An error occurred while updating the task status.",
+									},
 								},
-								wsClientId
+								() =>
+									updateTaskAction(
+										task.organizationId,
+										task.projectId,
+										task.id,
+										{
+											status: value,
+										},
+										wsClientId
+									)
 							);
-							tasks = tasks.map((task) => (task.id === data.data.id ? data.data : task));
-							setTasks(tasks);
-							if (task && task.id === data.data.id) {
-								setSelectedTask({ ...task, ...data.data });
+							if (data?.success && data.data) {
+								tasks = tasks.map((t) => (t.id === data.data.id ? data.data : t));
+								setTasks(tasks);
+								if (task && task.id === data.data.id) {
+									setSelectedTask({ ...task, ...data.data });
+								}
 							}
 						}}
 					/>
@@ -107,17 +111,30 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 						editable={true}
 						availableLabels={labels}
 						onLabelsChange={async (values) => {
-							const data = await updateLabelToTaskAction(
-								task.organizationId,
-								task.projectId,
-								task.id,
-								values,
-								wsClientId
+							const data = await runWithToast(
+								"update-task-labels",
+								{
+									loading: {
+										title: "Updating task labels...",
+										description: "Please wait while we update the task labels.",
+									},
+									success: {
+										title: "Task labels updated",
+										description: "The task labels have been successfully updated.",
+									},
+									error: {
+										title: "Failed to update task labels",
+										description: "An error occurred while updating the task labels.",
+									},
+								},
+								() => updateLabelToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
 							);
-							tasks = tasks.map((task) => (task.id === data.data.id ? data.data : task));
-							setTasks(tasks);
-							if (task && task.id === data.data.id) {
-								setSelectedTask({ ...task, ...data.data });
+							if (data?.success && data.data) {
+								tasks = tasks.map((t) => (t.id === data.data.id ? data.data : t));
+								setTasks(tasks);
+								if (task && task.id === data.data.id) {
+									setSelectedTask({ ...task, ...data.data });
+								}
 							}
 						}}
 					/>
@@ -125,19 +142,39 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 						task={task}
 						editable={true}
 						onPriorityChange={async (value) => {
-							const data = await updateTaskAction(
-								task.organizationId,
-								task.projectId,
-								task.id,
+							const data = await runWithToast(
+								"update-task-priority",
 								{
-									priority: value,
+									loading: {
+										title: "Updating task priority...",
+										description: "Please wait while we update the task priority.",
+									},
+									success: {
+										title: "Task priority updated",
+										description: "The task priority has been successfully updated.",
+									},
+									error: {
+										title: "Failed to update task priority",
+										description: "An error occurred while updating the task priority.",
+									},
 								},
-								wsClientId
+								() =>
+									updateTaskAction(
+										task.organizationId,
+										task.projectId,
+										task.id,
+										{
+											priority: value,
+										},
+										wsClientId
+									)
 							);
-							tasks = tasks.map((task) => (task.id === data.data.id ? data.data : task));
-							setTasks(tasks);
-							if (task && task.id === data.data.id) {
-								setSelectedTask({ ...task, ...data.data });
+							if (data?.success && data.data) {
+								tasks = tasks.map((t) => (t.id === data.data.id ? data.data : t));
+								setTasks(tasks);
+								if (task && task.id === data.data.id) {
+									setSelectedTask({ ...task, ...data.data });
+								}
 							}
 						}}
 					/>

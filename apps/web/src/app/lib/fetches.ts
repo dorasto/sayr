@@ -1,6 +1,7 @@
 "use client";
 
 import type { PartialBlock } from "@blocknote/core";
+import type { schema } from "@repo/database";
 
 export interface UpdateOrganizationData {
 	name: string;
@@ -37,7 +38,7 @@ export async function updateOrganizationAction(
 	organizationId: string,
 	data: UpdateOrganizationData,
 	wsClientId: string
-) {
+): Promise<{ success: boolean; data: schema.organizationType; error?: string }> {
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/update-org`, {
 		method: "POST",
 		body: JSON.stringify({
@@ -166,7 +167,7 @@ export async function createProjectAction(
 		description: string;
 	},
 	wsClientId: string
-) {
+): Promise<{ success: boolean; data: schema.projectType; error?: string }> {
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/create`, {
 		method: "POST",
 		body: JSON.stringify({
@@ -184,14 +185,44 @@ export async function createProjectAction(
 }
 
 /**
- * Calls the `/admin/project/task/create` API to update an existing task.
- * Only the fields provided in `data` will be updated.
+ * Calls the `/admin/project/task/create` API to create a new task
+ * within a given project inside an organization.
  *
- * @param organizationId - The ID of the task's organization.
- * @param projectId - The ID of the project the task belongs to.
- * @param data - Partial task fields to update.
- * @param wsClientId - The WebSocket client ID (for pushing changes).
- * @returns The updated task (with labels, assignees, timeline, etc.)
+ * @param organizationId - The ID of the organization where the task will be created.
+ * @param projectId - The ID of the project to create the task in.
+ * @param data - The properties of the new task:
+ * - `title` (required) - The task title.
+ * - `description` (optional) - The task description (array of editor blocks).
+ * - `status` (optional) - The status ID of the task, or `null` if not set.
+ * - `priority` (optional) - The priority ID of the task, or `null` if not set.
+ * - `labels` (optional) - Array of label IDs to assign to the task.
+ * @param wsClientId - The WebSocket client ID (used for pushing live updates).
+ * @returns A promise resolving to:
+ * - `success` — Indicates whether the creation succeeded.
+ * - `data` — The newly created task record (with labels, assignees, timelines, etc).
+ * - `error` — An optional error message if creation failed.
+ *
+ * @example
+ * ```ts
+ * const result = await createTaskAction(
+ *   "org_123",
+ *   "proj_456",
+ *   {
+ *     title: "Implement new feature",
+ *     description: [{ type: "paragraph", content: "Build the dashboard UI" }],
+ *     status: "todo",
+ *     priority: "medium",
+ *     labels: ["label_bug", "label_priority"],
+ *   },
+ *   "ws_client_001"
+ * );
+ *
+ * if (result.success) {
+ *   console.log("Task created:", result.data);
+ * } else {
+ *   console.error("Failed to create:", result.error);
+ * }
+ * ```
  */
 export async function createTaskAction(
 	organizationId: string,
@@ -204,7 +235,7 @@ export async function createTaskAction(
 		labels: string[];
 	},
 	wsClientId: string
-) {
+): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/create`, {
 		method: "POST",
 		body: JSON.stringify({
@@ -229,12 +260,36 @@ export async function createTaskAction(
  * Calls the `/admin/project/task/update` API to update an existing task.
  * Only the fields provided in `data` will be updated.
  *
- * @param organizationId - The ID of the task's organization.
+ * @param organizationId - The ID of the organization the task belongs to.
  * @param projectId - The ID of the project the task belongs to.
  * @param taskId - The ID of the task to update.
- * @param data - Partial task fields to update.
- * @param wsClientId - The WebSocket client ID (for pushing changes).
- * @returns The updated task (with labels, assignees, timeline, etc.)
+ * @param data - The fields to update on the task:
+ * - `title` (optional) - The new task title.
+ * - `description` (optional) - The updated description (array of editor blocks).
+ * - `status` (optional) - The new status ID, or `null` to remove.
+ * - `priority` (optional) - The new priority ID, or `null` to remove.
+ * @param wsClientId - The WebSocket client ID (for pushing real-time updates).
+ * @returns A promise resolving to:
+ * - `success` — Indicates whether the update succeeded.
+ * - `data` — The updated task record (with labels, assignees, timelines, etc).
+ * - `error` — An optional error message if the update failed.
+ *
+ * @example
+ * ```ts
+ * const result = await updateTaskAction(
+ *   "org_123",
+ *   "proj_456",
+ *   "task_789",
+ *   { status: "done", priority: "high" },
+ *   "ws_client_001"
+ * );
+ *
+ * if (result.success) {
+ *   console.log("Task updated:", result.data);
+ * } else {
+ *   console.error("Failed to update task:", result.error);
+ * }
+ * ```
  */
 export async function updateTaskAction(
 	organizationId: string,
@@ -247,7 +302,7 @@ export async function updateTaskAction(
 		priority?: string | null;
 	},
 	wsClientId: string
-) {
+): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
@@ -272,15 +327,35 @@ export async function updateTaskAction(
 }
 
 /**
- * Calls the `/admin/project/task/add-label` API to update an existing task.
- * Only the fields provided in `data` will be updated.
+ * Calls the `/admin/project/task/update-labels` API to update the labels of an existing task.
+ * This replaces any existing labels on the task with the provided `labels` array.
  *
- * @param organizationId - The ID of the task's organization.
+ * @param organizationId - The ID of the organization the task belongs to.
  * @param projectId - The ID of the project the task belongs to.
- * @param taskId - The ID of the task to update.
- * @param labels - Array of label IDs to set on the task (replaces existing labels).
- * @param wsClientId - The WebSocket client ID (for pushing changes).
- * @returns The updated task (with labels, assignees, timeline, etc.)
+ * @param taskId - The ID of the task being updated.
+ * @param labels - Array of label IDs to assign to the task (replaces current labels).
+ * @param wsClientId - The WebSocket client ID (used for pushing live updates).
+ * @returns A promise resolving to an object containing:
+ * - `success`: Whether the update was successful.
+ * - `data`: The updated task record (with labels, assignees, timeline, etc.) on success.
+ * - `error`: An optional error message if the update failed.
+ *
+ * @example
+ * ```ts
+ * const result = await updateLabelToTaskAction(
+ *   "org_123",
+ *   "proj_456",
+ *   "task_789",
+ *   ["label_bug", "label_priority"],
+ *   "ws_client_001"
+ * );
+ *
+ * if (result.success) {
+ *   console.log("Updated task:", result.data);
+ * } else {
+ *   console.error("Failed to update labels:", result.error);
+ * }
+ * ```
  */
 export async function updateLabelToTaskAction(
 	organizationId: string,
@@ -288,7 +363,7 @@ export async function updateLabelToTaskAction(
 	taskId: string,
 	labels: string[],
 	wsClientId: string
-) {
+): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
@@ -305,7 +380,7 @@ export async function updateLabelToTaskAction(
 		},
 		credentials: "include", // 👈 This ensures cookies are sent
 	}).then(async (e) => await e.json());
-	return result;
+	return result as { success: boolean; data: schema.TaskWithLabels; error?: string };
 }
 
 /**
@@ -334,7 +409,7 @@ export async function createLabelAction(
 		color: string;
 	},
 	wsClientId: string
-) {
+): Promise<{ success: boolean; data: schema.labelType; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		name: data.name,

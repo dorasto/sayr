@@ -2,9 +2,9 @@
 
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { TabbedDialog, TabbedDialogFooter, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
-import { IconSettings, IconTag } from "@tabler/icons-react";
-import { Settings } from "lucide-react";
+import { Input } from "@repo/ui/components/input";
+import { TabbedDialog, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
+import { IconCircleFilled, IconSettings, IconTag } from "@tabler/icons-react";
 import { useState } from "react";
 import CreateLabel from "@/app/components/globals/project/create-label";
 
@@ -58,8 +58,21 @@ export function ProjectDropdown({ project, setProject, labels, setLabels }: Prop
 				</TabPanel>
 				<TabPanel tabId="labels">
 					<div className="p-4">
-						<CreateLabel orgId={project.organizationId || ""} />
-						{JSON.stringify(labels, null, 4)}
+						<CreateLabel orgId={project.organizationId || ""} labels={labels} setLabels={setLabels} />
+						{labels.map((label) => (
+							<div key={label.id} className="flex items-center gap-3 bg-accent border rounded p-1">
+								<div>
+									<IconCircleFilled style={{ color: label.color || "" }} />
+								</div>
+								<Input
+									variant={"ghost"}
+									placeholder="Label name"
+									className="bg-transparent"
+									value={label.name}
+									readOnly
+								/>
+							</div>
+						))}
 					</div>
 				</TabPanel>
 			</TabbedDialog>
