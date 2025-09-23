@@ -10,23 +10,19 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@repo/ui/components/dialog";
 import { Label } from "@repo/ui/components/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import { Slider } from "@repo/ui/components/slider";
 import { Switch } from "@repo/ui/components/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import ColorPicker from "@repo/ui/components/tomui/color-picker";
 import LabelledInput from "@repo/ui/components/tomui/labeled-input";
 import OptionField from "@repo/ui/components/tomui/option-field";
-import { cn } from "@repo/ui/lib/utils";
 import { generateSlug } from "@repo/util";
-import { IconColorPicker, IconIcons, IconPlus } from "@tabler/icons-react";
-import { useMutation } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
+import { IconColorPicker, IconIcons } from "@tabler/icons-react";
+import { useState } from "react";
 import { createProjectAction } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
 
 interface CreateProjectDialogProps {
 	organization: schema.OrganizationWithMembers;
@@ -36,48 +32,33 @@ interface CreateProjectDialogProps {
 export default function CreateProjectDialog({ open, onOpenChange, organization }: CreateProjectDialogProps) {
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-	// Mutation for updating organization
-	const updateMutation = useMutation({
-		mutationFn: async (data: { name: string; description: string }) => {
-			const result = await createProjectAction(organization.id, data, "");
-			if (!result.success) {
-				throw new Error(result.error);
-			}
-			return result.data;
-		},
-		onSuccess: () => {
-			toast.success("Created project");
+	const [visibility, setVisibility] = useState<"private" | "public">("public");
+	const { runWithToast, isFetching } = useToastAction();
+	const handleUpdate = async () => {
+		const data = await runWithToast(
+			"create-project",
+			{
+				loading: { title: "Creating project...", description: "Please wait while we create the project." },
+				success: { title: "Created project", description: "The project has been successfully created." },
+				error: { title: "Failed to create project", description: "An error occurred while creating the project." },
+			},
+			() =>
+				createProjectAction(
+					organization.id,
+					{
+						name,
+						description,
+						visibility,
+					},
+					""
+				)
+		);
+		if (data?.success && data.data) {
 			onOpenChange(false);
 			setName("");
 			setDescription("");
-		},
-		onError: (error) => {
-			toast.error(error.message || "Failed to create project");
-		},
-	});
-
-	const handleSubmit = useCallback(
-		async (e?: React.FormEvent) => {
-			e?.preventDefault();
-
-			if (!name.trim()) {
-				toast.error("Name required");
-				return;
-			}
-
-			try {
-				updateMutation.mutate({
-					name,
-					description,
-				});
-				// biome-ignore lint/suspicious/noExplicitAny: <any>
-			} catch (error: any) {
-				console.error("Upload/Update failed:", error);
-				toast.error(error.message || "Failed to update organization");
-			}
-		},
-		[name, description, updateMutation]
-	);
+		}
+	};
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			{/* <DialogTrigger asChild>
@@ -167,7 +148,12 @@ export default function CreateProjectDialog({ open, onOpenChange, organization }
 							<OptionField
 								title="Publicably visible"
 								description="Public projects are visible to everyone while still keeping certain content restricted based on permissions. Private projects are only visible to members you invite, and only useful if you never plan to have external access."
-								customSide={<Switch defaultChecked />}
+								customSide={
+									<Switch
+										checked={visibility === "public"}
+										onCheckedChange={(checked) => setVisibility(checked ? "public" : "private")}
+									/>
+								}
 							/>
 						</div>
 					</div>
@@ -178,7 +164,7 @@ export default function CreateProjectDialog({ open, onOpenChange, organization }
 							Cancel
 						</Button>
 					</DialogClose>
-					<Button type="button" variant="success" onClick={handleSubmit}>
+					<Button type="button" variant="success" onClick={handleUpdate} disabled={isFetching || !name.trim()}>
 						Create
 					</Button>
 				</DialogFooter>

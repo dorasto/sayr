@@ -13,7 +13,7 @@ export const apiRouteAdminProject = new Hono<{
 }>();
 apiRouteAdminProject.post("/create", async (c) => {
 	try {
-		const { org_id, wsClientId, name, description } = await c.req.json();
+		const { org_id, wsClientId, name, description, visibility } = await c.req.json();
 		const session = c.get("session");
 		const role = await db
 			.select()
@@ -22,7 +22,7 @@ apiRouteAdminProject.post("/create", async (c) => {
 		if (role[0]?.role !== "owner") {
 			return c.json({ error: "UNAUTHORIZED" }, 401);
 		}
-		const result = await createProject(org_id, name, description);
+		const result = await createProject(org_id, name, description, visibility);
 		if (result.success) {
 			const found = findClientByWsId(wsClientId);
 			const data = {

@@ -165,6 +165,7 @@ export async function createProjectAction(
 	data: {
 		name: string;
 		description: string;
+		visibility?: "private" | "public";
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.projectType; error?: string }> {
@@ -175,6 +176,7 @@ export async function createProjectAction(
 			wsClientId,
 			name: data.name,
 			description: data.description,
+			visibility: data.visibility,
 		}),
 		headers: {
 			"Content-Type": "application/json",
