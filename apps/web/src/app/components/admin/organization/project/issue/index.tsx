@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
-import { useLayoutProjectTask } from "@/app/admin/[organization_id]/[project_id]/task/[task_short_id]/Context";
 import { useLayoutProject } from "@/app/admin/[organization_id]/[project_id]/Context";
+import { useLayoutProjectTask } from "@/app/admin/[organization_id]/[project_id]/task/[task_short_id]/Context";
 import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
@@ -52,6 +52,7 @@ export default function OrganizationProjectTaskHomePage() {
 			onOpenChange={(open: boolean): void => {
 				throw new Error("Function not implemented.");
 			}}
+			availableUsers={organization.members.map((member) => member.user)}
 		/>
 	);
 }

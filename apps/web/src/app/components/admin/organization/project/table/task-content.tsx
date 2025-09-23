@@ -12,6 +12,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconArrowsHorizontal, IconCode, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { useState } from "react";
+import GlobalTaskAssignees from "@/app/components/globals/tasks/assignee";
 import GlobalTaskCreatedAt from "@/app/components/globals/tasks/created";
 import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
@@ -29,8 +30,18 @@ interface TaskContentProps {
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: schema.TaskWithLabels[]) => void;
 	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
+	availableUsers?: schema.userType[];
 }
-export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks, setSelectedTask }: TaskContentProps) {
+export function TaskContent({
+	open,
+	onOpenChange,
+	task,
+	labels,
+	tasks,
+	setTasks,
+	setSelectedTask,
+	availableUsers = [],
+}: TaskContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const { runWithToast } = useToastAction();
@@ -81,10 +92,11 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 
 				<GlobalTimeline task={task} labels={labels} />
 			</SplitDialogContent>
-			<SplitDialogSide>
+			<SplitDialogSide className="p-2">
 				<div className="flex flex-col gap-3">
-					<GlobalTaskCreatedAt task={task} />
-					<Separator />
+					{/* <GlobalTaskCreatedAt task={task} />
+					<Separator /> */}
+
 					<GlobalTaskStatus
 						task={task}
 						editable={true}
@@ -123,6 +135,53 @@ export function TaskContent({ open, onOpenChange, task, labels, tasks, setTasks,
 									setSelectedTask(data.data);
 								}
 							}
+						}}
+					/>
+					<GlobalTaskAssignees
+						task={task}
+						editable={true}
+						availableUsers={availableUsers}
+						onAssigneesChange={async (values) => {
+							// Update local state optimistically - preserve existing assignees that match the selected IDs
+							const updatedAssignees = task.assignees.filter((assignee) => values.includes(assignee.id));
+							// For now, we can only work with existing assignees since we don't have full user objects
+							// In a real implementation, you'd fetch the full user objects or have them available
+
+							tasks = tasks.map((t) => (t.id === task.id ? { ...task, assignees: updatedAssignees } : t));
+							setTasks(tasks);
+							if (task) {
+								setSelectedTask({
+									...task,
+									assignees: updatedAssignees,
+								});
+							}
+							// TODO: Add API call to update assignees when backend is ready
+							// const data = await runWithToast(
+							// 	"update-task-assignees",
+							// 	{
+							// 		loading: {
+							// 			title: "Updating task...",
+							// 			description: "Updating your task... changes are already visible.",
+							// 		},
+							// 		success: {
+							// 			title: "Task saved",
+							// 			description: "Your changes have been saved successfully.",
+							// 		},
+							// 		error: {
+							// 			title: "Save failed",
+							// 			description:
+							// 				"Your changes are showing, but we couldn't save them to the server. Please try again.",
+							// 		},
+							// 	},
+							// 	() => updateTaskAssigneesAction(task.organizationId, task.projectId, task.id, values, wsClientId)
+							// );
+							// if (data?.success && data.data) {
+							// 	tasks = tasks.map((t) => (t.id === task.id ? data.data : t));
+							// 	setTasks(tasks);
+							// 	if (task && task.id === data.data.id) {
+							// 		setSelectedTask(data.data);
+							// 	}
+							// }
 						}}
 					/>
 					<GlobalTaskLabels

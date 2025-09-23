@@ -1,6 +1,7 @@
 "use client";
 
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Checkbox } from "@repo/ui/components/checkbox";
@@ -22,7 +23,7 @@ import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact, getHslaWithOpacity } from "@repo/util";
-import { IconAlertSquareFilled, IconCircleFilled } from "@tabler/icons-react";
+import { IconAlertSquareFilled, IconCircleFilled, IconUser, IconUserOff } from "@tabler/icons-react";
 import { Users } from "lucide-react";
 import { RenderLabel } from "@/app/components/globals/tasks/label";
 
@@ -169,22 +170,6 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 						{/* Right section with metadata and actions */}
 						<div className="flex shrink-0 items-center gap-2">
 							<div className="relative flex flex-wrap flex-grow shrink-0 items-center gap-2 whitespace-nowrap">
-								{/* Assignee */}
-								<div className="h-5 hidden md:flex">
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-full flex items-center gap-1.5 rounded p-2 text-xs"
-										onClick={(e) => {
-											e.stopPropagation();
-											// Add assignee change logic here
-										}}
-									>
-										<Users className="h-3 w-3 mx-[4px] shrink-0" />
-										{/* replace with user icon */}
-									</Button>
-								</div>
-
 								{/* Labels */}
 								{task.labels && task.labels.length > 0 && (
 									<div className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto">
@@ -221,6 +206,49 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 												+{task.labels.length - 3} labels
 											</Badge>
 										)}
+									</div>
+								)}
+								{/* Assignees */}
+								{task.assignees && task.assignees.length > 0 ? (
+									<div className="flex items-center">
+										{task.assignees.length === 1 ? (
+											// Single assignee - full avatar
+											<Avatar className={cn("rounded-full h-5 w-5")}>
+												<AvatarImage
+													src={task.assignees[0]?.image || "/avatar.jpg"}
+													alt={task.assignees[0]?.name}
+												/>
+												<AvatarFallback className="rounded-full bg-accent uppercase text-xs">
+													{task.assignees[0]?.name.slice(0, 2)}
+												</AvatarFallback>
+											</Avatar>
+										) : (
+											// Multiple assignees - overlapping avatars
+											<div className="flex -space-x-2">
+												{task.assignees.slice(0, 3).map((assignee, index) => (
+													<Avatar
+														key={assignee.id}
+														className={cn("rounded-full h-5 w-5", index > 0 && "relative")}
+														style={{ zIndex: task.assignees.length - index }}
+													>
+														<AvatarImage src={assignee?.image || "/avatar.jpg"} alt={assignee?.name} />
+														<AvatarFallback className="rounded-full bg-accent uppercase text-xs">
+															{assignee?.name.slice(0, 2)}
+														</AvatarFallback>
+													</Avatar>
+												))}
+												{task.assignees.length > 3 && (
+													<div className="flex items-center justify-center rounded-full h-5 w-5 bg-muted border-2 border-background text-xs font-medium text-muted-foreground relative">
+														+{task.assignees.length - 3}
+													</div>
+												)}
+											</div>
+										)}
+									</div>
+								) : (
+									// No assignees
+									<div className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5">
+										<IconUserOff className="h-3 w-3 shrink-0" />
 									</div>
 								)}
 								<span className="text-xs text-muted-foreground truncate">

@@ -123,9 +123,5 @@ interface SplitDialogSideProps {
 }
 
 export function SplitDialogSide({ children, className, width = "w-52" }: SplitDialogSideProps) {
-	return (
-		<div className={cn("flex-shrink-0 bg-popover overflow-y-auto", width, className)}>
-			<div className="p-4">{children}</div>
-		</div>
-	);
+	return <div className={cn("flex-shrink-0 bg-popover overflow-y-auto p-4", width, className)}>{children}</div>;
 }

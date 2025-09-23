@@ -50,7 +50,13 @@ export default function OrganizationProjectHomePage() {
 				<CreateIssueDialog />
 				<ProjectDropdown project={project} setProject={setProject} labels={labels} setLabels={setLabels} />
 			</div>
-			<ListProjectIssues tasks={tasks} setTasks={setTasks} ws={ws} labels={labels} />
+			<ListProjectIssues
+				tasks={tasks}
+				setTasks={setTasks}
+				ws={ws}
+				labels={labels}
+				availableUsers={organization.members.map((member) => member.user)}
+			/>
 		</div>
 	);
 }
