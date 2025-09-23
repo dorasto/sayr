@@ -79,11 +79,11 @@ function TimelineStatusChange({ item }: TimelineStatusChangeProps) {
 		}
 
 		// Parse JSON strings if needed
-		const from = typeof item.fromValue === "string" ? JSON.parse(item.fromValue) : item.fromValue;
-		const to = typeof item.toValue === "string" ? JSON.parse(item.toValue) : item.toValue;
+		const from = item.fromValue as string;
+		const to = item.toValue as string;
 
-		const fromConfig = statusConfig[from as keyof typeof statusConfig];
-		const toConfig = statusConfig[to as keyof typeof statusConfig];
+		const fromConfig = statusConfig[from.replaceAll('"', "") as keyof typeof statusConfig];
+		const toConfig = statusConfig[to.replaceAll('"', "") as keyof typeof statusConfig];
 
 		return (
 			<>
@@ -99,12 +99,12 @@ function TimelineStatusChange({ item }: TimelineStatusChangeProps) {
 				changed the status from{" "}
 				<Badge variant={"outline"} className="inline-flex items-center gap-1 justify-start">
 					{fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
-					<span>{fromConfig?.label || from}</span>
+					<span>{fromConfig?.label || from.replaceAll('"', "")}</span>
 				</Badge>{" "}
 				to{" "}
 				<Badge variant={"outline"} className="inline-flex items-center gap-1 justify-start">
 					{toConfig?.icon(cn(toConfig?.className, "h-3 w-3"))}
-					<span>{toConfig?.label || to}</span>
+					<span>{toConfig?.label || to.replaceAll('"', "")}</span>
 				</Badge>
 			</>
 		);
@@ -135,11 +135,11 @@ function TimelinePriorityChange({ item }: TimelinePriorityChangeProps) {
 		}
 
 		// Parse JSON strings if needed
-		const from = typeof item.fromValue === "string" ? JSON.parse(item.fromValue) : item.fromValue;
-		const to = typeof item.toValue === "string" ? JSON.parse(item.toValue) : item.toValue;
+		const from = item.fromValue as string;
+		const to = item.toValue as string;
 
-		const fromConfig = priorityConfig[from as keyof typeof priorityConfig];
-		const toConfig = priorityConfig[to as keyof typeof priorityConfig];
+		const fromConfig = priorityConfig[from.replaceAll('"', "") as keyof typeof priorityConfig];
+		const toConfig = priorityConfig[to.replaceAll('"', "") as keyof typeof priorityConfig];
 
 		return (
 			<>
@@ -155,12 +155,12 @@ function TimelinePriorityChange({ item }: TimelinePriorityChangeProps) {
 				changed the priority from{" "}
 				<Badge variant={"outline"} className="inline-flex items-center gap-1 justify-start">
 					{fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
-					<span>{fromConfig?.label || from}</span>
+					<span>{fromConfig?.label || from.replaceAll('"', "")}</span>
 				</Badge>{" "}
 				to{" "}
 				<Badge variant={"outline"} className="inline-flex items-center gap-1 justify-start">
 					{toConfig?.icon(cn(toConfig?.className, "h-3 w-3"))}
-					<span>{toConfig?.label || to}</span>
+					<span>{toConfig?.label || to.replaceAll('"', "")}</span>
 				</Badge>
 			</>
 		);
