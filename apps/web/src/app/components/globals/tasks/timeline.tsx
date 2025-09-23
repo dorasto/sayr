@@ -110,7 +110,7 @@ function TimelineStatusChange({ item }: TimelineStatusChangeProps) {
 function TimelineCreated({ item }: { item: schema.taskTimelineWithActor }) {
 	return (
 		<TimelineItemWrapper item={item} icon={IconPlus} color="bg-accent text-primary-foreground">
-			created a task
+			Created by <AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} />
 		</TimelineItemWrapper>
 	);
 }

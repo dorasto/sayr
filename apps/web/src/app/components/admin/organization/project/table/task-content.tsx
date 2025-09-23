@@ -4,7 +4,6 @@ import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
-import { Separator } from "@repo/ui/components/separator";
 import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
@@ -13,7 +12,6 @@ import { IconArrowsHorizontal, IconCode, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { useState } from "react";
 import GlobalTaskAssignees from "@/app/components/globals/tasks/assignee";
-import GlobalTaskCreatedAt from "@/app/components/globals/tasks/created";
 import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 import GlobalTaskStatus from "@/app/components/globals/tasks/status";
@@ -32,6 +30,187 @@ interface TaskContentProps {
 	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
 	availableUsers?: schema.userType[];
 }
+
+interface TaskContentSideContentProps {
+	task: schema.TaskWithLabels;
+	labels: schema.labelType[];
+	tasks: schema.TaskWithLabels[];
+	setTasks: (newValue: schema.TaskWithLabels[]) => void;
+	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
+	availableUsers?: schema.userType[];
+	wsClientId: string;
+	runWithToast: typeof useToastAction extends () => { runWithToast: infer T } ? T : never;
+}
+
+export function TaskContentSideContent({
+	task,
+	labels,
+	tasks,
+	setTasks,
+	setSelectedTask,
+	availableUsers = [],
+	wsClientId,
+	runWithToast,
+}: TaskContentSideContentProps) {
+	return (
+		<div className="flex flex-col gap-3">
+			{/* <GlobalTaskCreatedAt task={task} />
+					<Separator /> */}
+
+			<GlobalTaskStatus
+				task={task}
+				editable={true}
+				onChange={async (value) => {
+					const updatedTasks = tasks.map((t) =>
+						t.id === task.id ? { ...task, status: value as schema.TaskWithLabels["status"] } : t
+					);
+					setTasks(updatedTasks);
+					if (task) {
+						setSelectedTask({ ...task, status: value as schema.TaskWithLabels["status"] });
+					}
+					const data = await runWithToast(
+						"update-task-status",
+						{
+							loading: {
+								title: "Updating task...",
+								description: "Updating your task... changes are already visible.",
+							},
+							success: {
+								title: "Task saved",
+								description: "Your changes have been saved successfully.",
+							},
+							error: {
+								title: "Save failed",
+								description:
+									"Your changes are showing, but we couldn't save them to the server. Please try again.",
+							},
+						},
+						() => updateTaskAction(task.organizationId, task.projectId, task.id, { status: value }, wsClientId)
+					);
+					if (data?.success && data.data) {
+						const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
+						setTasks(finalTasks);
+						if (task && task.id === data.data.id) {
+							setSelectedTask(data.data);
+						}
+					}
+				}}
+			/>
+			<GlobalTaskAssignees
+				task={task}
+				editable={true}
+				availableUsers={availableUsers}
+				onAssigneesChange={async (values) => {
+					// Update local state optimistically - preserve existing assignees that match the selected IDs
+					const updatedAssignees = task.assignees.filter((assignee) => values.includes(assignee.id));
+					// For now, we can only work with existing assignees since we don't have full user objects
+					// In a real implementation, you'd fetch the full user objects or have them available
+
+					const updatedTasks = tasks.map((t) => (t.id === task.id ? { ...task, assignees: updatedAssignees } : t));
+					setTasks(updatedTasks);
+					if (task) {
+						setSelectedTask({
+							...task,
+							assignees: updatedAssignees,
+						});
+					}
+				}}
+			/>
+			<GlobalTaskLabels
+				task={task}
+				editable={true}
+				availableLabels={labels}
+				onLabelsChange={async (values) => {
+					const updatedTasks = tasks.map((t) =>
+						t.id === task.id ? { ...task, labels: labels.filter((label) => values.includes(label.id)) } : t
+					);
+					setTasks(updatedTasks);
+					if (task) {
+						setSelectedTask({
+							...task,
+							labels: labels.filter((label) => values.includes(label.id)),
+						});
+					}
+					const data = await runWithToast(
+						"update-task-labels",
+						{
+							loading: {
+								title: "Updating task...",
+								description: "Updating your task... changes are already visible.",
+							},
+							success: {
+								title: "Task saved",
+								description: "Your changes have been saved successfully.",
+							},
+							error: {
+								title: "Save failed",
+								description:
+									"Your changes are showing, but we couldn't save them to the server. Please try again.",
+							},
+						},
+						() => updateLabelToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
+					);
+					if (data?.success && data.data) {
+						const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
+						setTasks(finalTasks);
+						if (task && task.id === data.data.id) {
+							setSelectedTask(data.data);
+						}
+					}
+				}}
+			/>
+			<GlobalTaskPriority
+				task={task}
+				editable={true}
+				onPriorityChange={async (value) => {
+					const updatedTasks = tasks.map((t) =>
+						t.id === task.id ? { ...task, priority: value as schema.TaskWithLabels["priority"] } : t
+					);
+					setTasks(updatedTasks);
+					if (task) {
+						setSelectedTask({ ...task, priority: value as schema.TaskWithLabels["priority"] });
+					}
+					const data = await runWithToast(
+						"update-task-priority",
+						{
+							loading: {
+								title: "Updating task...",
+								description: "Updating your task... changes are already visible.",
+							},
+							success: {
+								title: "Task saved",
+								description: "Your changes have been saved successfully.",
+							},
+							error: {
+								title: "Save failed",
+								description:
+									"Your changes are showing, but we couldn't save them to the server. Please try again.",
+							},
+						},
+						() =>
+							updateTaskAction(
+								task.organizationId,
+								task.projectId,
+								task.id,
+								{
+									priority: value,
+								},
+								wsClientId
+							)
+					);
+					if (data?.success && data.data) {
+						const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
+						setTasks(finalTasks);
+						if (task && task.id === data.data.id) {
+							setSelectedTask(data.data);
+						}
+					}
+				}}
+			/>
+		</div>
+	);
+}
+
 export function TaskContent({
 	open,
 	onOpenChange,
@@ -93,189 +272,16 @@ export function TaskContent({
 				<GlobalTimeline task={task} labels={labels} />
 			</SplitDialogContent>
 			<SplitDialogSide className="p-2">
-				<div className="flex flex-col gap-3">
-					{/* <GlobalTaskCreatedAt task={task} />
-					<Separator /> */}
-
-					<GlobalTaskStatus
-						task={task}
-						editable={true}
-						onChange={async (value) => {
-							tasks = tasks.map((t) =>
-								t.id === task.id ? { ...task, status: value as schema.TaskWithLabels["status"] } : t
-							);
-							setTasks(tasks);
-							if (task) {
-								setSelectedTask({ ...task, status: value as schema.TaskWithLabels["status"] });
-							}
-							const data = await runWithToast(
-								"update-task-status",
-								{
-									loading: {
-										title: "Updating task...",
-										description: "Updating your task... changes are already visible.",
-									},
-									success: {
-										title: "Task saved",
-										description: "Your changes have been saved successfully.",
-									},
-									error: {
-										title: "Save failed",
-										description:
-											"Your changes are showing, but we couldn’t save them to the server. Please try again.",
-									},
-								},
-								() =>
-									updateTaskAction(task.organizationId, task.projectId, task.id, { status: value }, wsClientId)
-							);
-							if (data?.success && data.data) {
-								tasks = tasks.map((t) => (t.id === task.id ? data.data : t));
-								setTasks(tasks);
-								if (task && task.id === data.data.id) {
-									setSelectedTask(data.data);
-								}
-							}
-						}}
-					/>
-					<GlobalTaskAssignees
-						task={task}
-						editable={true}
-						availableUsers={availableUsers}
-						onAssigneesChange={async (values) => {
-							// Update local state optimistically - preserve existing assignees that match the selected IDs
-							const updatedAssignees = task.assignees.filter((assignee) => values.includes(assignee.id));
-							// For now, we can only work with existing assignees since we don't have full user objects
-							// In a real implementation, you'd fetch the full user objects or have them available
-
-							tasks = tasks.map((t) => (t.id === task.id ? { ...task, assignees: updatedAssignees } : t));
-							setTasks(tasks);
-							if (task) {
-								setSelectedTask({
-									...task,
-									assignees: updatedAssignees,
-								});
-							}
-							// TODO: Add API call to update assignees when backend is ready
-							// const data = await runWithToast(
-							// 	"update-task-assignees",
-							// 	{
-							// 		loading: {
-							// 			title: "Updating task...",
-							// 			description: "Updating your task... changes are already visible.",
-							// 		},
-							// 		success: {
-							// 			title: "Task saved",
-							// 			description: "Your changes have been saved successfully.",
-							// 		},
-							// 		error: {
-							// 			title: "Save failed",
-							// 			description:
-							// 				"Your changes are showing, but we couldn't save them to the server. Please try again.",
-							// 		},
-							// 	},
-							// 	() => updateTaskAssigneesAction(task.organizationId, task.projectId, task.id, values, wsClientId)
-							// );
-							// if (data?.success && data.data) {
-							// 	tasks = tasks.map((t) => (t.id === task.id ? data.data : t));
-							// 	setTasks(tasks);
-							// 	if (task && task.id === data.data.id) {
-							// 		setSelectedTask(data.data);
-							// 	}
-							// }
-						}}
-					/>
-					<GlobalTaskLabels
-						task={task}
-						editable={true}
-						availableLabels={labels}
-						onLabelsChange={async (values) => {
-							tasks = tasks.map((t) =>
-								t.id === task.id ? { ...task, labels: labels.filter((label) => values.includes(label.id)) } : t
-							);
-							setTasks(tasks);
-							if (task) {
-								setSelectedTask({
-									...task,
-									labels: labels.filter((label) => values.includes(label.id)),
-								});
-							}
-							const data = await runWithToast(
-								"update-task-labels",
-								{
-									loading: {
-										title: "Updating task...",
-										description: "Updating your task... changes are already visible.",
-									},
-									success: {
-										title: "Task saved",
-										description: "Your changes have been saved successfully.",
-									},
-									error: {
-										title: "Save failed",
-										description:
-											"Your changes are showing, but we couldn’t save them to the server. Please try again.",
-									},
-								},
-								() => updateLabelToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
-							);
-							if (data?.success && data.data) {
-								tasks = tasks.map((t) => (t.id === task.id ? data.data : t));
-								setTasks(tasks);
-								if (task && task.id === data.data.id) {
-									setSelectedTask(data.data);
-								}
-							}
-						}}
-					/>
-					<GlobalTaskPriority
-						task={task}
-						editable={true}
-						onPriorityChange={async (value) => {
-							tasks = tasks.map((t) =>
-								t.id === task.id ? { ...task, priority: value as schema.TaskWithLabels["priority"] } : t
-							);
-							setTasks(tasks);
-							if (task) {
-								setSelectedTask({ ...task, priority: value as schema.TaskWithLabels["priority"] });
-							}
-							const data = await runWithToast(
-								"update-task-priority",
-								{
-									loading: {
-										title: "Updating task...",
-										description: "Updating your task... changes are already visible.",
-									},
-									success: {
-										title: "Task saved",
-										description: "Your changes have been saved successfully.",
-									},
-									error: {
-										title: "Save failed",
-										description:
-											"Your changes are showing, but we couldn’t save them to the server. Please try again.",
-									},
-								},
-								() =>
-									updateTaskAction(
-										task.organizationId,
-										task.projectId,
-										task.id,
-										{
-											priority: value,
-										},
-										wsClientId
-									)
-							);
-							if (data?.success && data.data) {
-								tasks = tasks.map((t) => (t.id === task.id ? data.data : t));
-								setTasks(tasks);
-								if (task && task.id === data.data.id) {
-									setSelectedTask(data.data);
-								}
-							}
-						}}
-					/>
-				</div>
+				<TaskContentSideContent
+					task={task}
+					labels={labels}
+					tasks={tasks}
+					setTasks={setTasks}
+					setSelectedTask={setSelectedTask}
+					availableUsers={availableUsers}
+					wsClientId={wsClientId}
+					runWithToast={runWithToast}
+				/>
 			</SplitDialogSide>
 		</SplitDialog>
 	);
