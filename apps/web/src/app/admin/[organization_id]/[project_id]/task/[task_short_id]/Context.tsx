@@ -17,7 +17,7 @@ export function RootProviderOrganizationProjectTask({
 	children: ReactNode;
 	task: ContextType["task"];
 }) {
-	const { value: newTask, setValue: setTask } = useStateManagement("task", task);
+	const { value: newTask, setValue: setTask } = useStateManagement("_task_", task, 1);
 	useEffect(() => setTask(task), [task, setTask]);
 	return <RootContext.Provider value={{ task: newTask, setTask }}>{children}</RootContext.Provider>;
 }
