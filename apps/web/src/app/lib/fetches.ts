@@ -385,6 +385,32 @@ export async function updateLabelToTaskAction(
 	return result as { success: boolean; data: schema.TaskWithLabels; error?: string };
 }
 
+export async function updateAssigneesToTaskAction(
+	organizationId: string,
+	projectId: string,
+	taskId: string,
+	assignees: string[],
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		wsClientId,
+		project_id: projectId,
+		task_id: taskId,
+		assignees: assignees,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/update-assignees`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 This ensures cookies are sent
+	}).then(async (e) => await e.json());
+	return result as { success: boolean; data: schema.TaskWithLabels; error?: string };
+}
+
 /**
  * Calls the `/admin/label/create` API to create a new label in an organization.
  *

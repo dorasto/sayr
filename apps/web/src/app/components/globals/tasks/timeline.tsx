@@ -199,18 +199,35 @@ function TimelineLabelRemoved({ item, labels }: { item: schema.taskTimelineWithA
 	);
 }
 
-function TimelineAssigneeAdded({ item }: { item: schema.taskTimelineWithActor }) {
+function TimelineAssigneeAdded({
+	item,
+	availableUsers,
+}: {
+	item: schema.taskTimelineWithActor;
+	availableUsers: schema.userType[];
+}) {
+	const uesr = availableUsers.find((user) => user.id === item.toValue);
 	return (
 		<TimelineItemWrapper item={item} icon={IconUserPlus} color="bg-primary text-primary-foreground">
-			assigned a user
+			<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} />
+			assigned
+			<AvatarWithName name={uesr?.name || "Unknown"} image={uesr?.image || ""} />
 		</TimelineItemWrapper>
 	);
 }
 
-function TimelineAssigneeRemoved({ item }: { item: schema.taskTimelineWithActor }) {
+function TimelineAssigneeRemoved({
+	item,
+	availableUsers,
+}: {
+	item: schema.taskTimelineWithActor;
+	availableUsers: schema.userType[];
+}) {
+	const uesr = availableUsers.find((user) => user.id === item.toValue);
 	return (
 		<TimelineItemWrapper item={item} icon={IconUserMinus} color="bg-primary text-primary-foreground">
-			unassigned a user
+			<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> removed
+			<AvatarWithName name={uesr?.name || "Unknown"} image={uesr?.image || ""} />
 		</TimelineItemWrapper>
 	);
 }
@@ -226,9 +243,10 @@ function TimelineUpdated({ item }: { item: schema.taskTimelineWithActor }) {
 interface GlobalTimelineProps {
 	task: schema.TaskWithLabels;
 	labels: schema.labelType[];
+	availableUsers: schema.userType[];
 }
 
-export default function GlobalTimeline({ task, labels }: GlobalTimelineProps) {
+export default function GlobalTimeline({ task, labels, availableUsers }: GlobalTimelineProps) {
 	const timelineComponents = {
 		created: TimelineCreated,
 		status_change: TimelineStatusChange,
@@ -250,7 +268,7 @@ export default function GlobalTimeline({ task, labels }: GlobalTimelineProps) {
 					return null;
 				}
 
-				return <TimelineComponent key={item.id} item={item} labels={labels} />;
+				return <TimelineComponent key={item.id} item={item} labels={labels} availableUsers={availableUsers} />;
 			})}
 		</Timeline>
 	);

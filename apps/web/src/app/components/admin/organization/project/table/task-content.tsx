@@ -16,7 +16,7 @@ import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 import GlobalTaskStatus from "@/app/components/globals/tasks/status";
 import GlobalTimeline from "@/app/components/globals/tasks/timeline";
-import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
+import { updateAssigneesToTaskAction, updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "./task-list-item";
 
@@ -101,18 +101,40 @@ export function TaskContentSideContent({
 				editable={true}
 				availableUsers={availableUsers}
 				onAssigneesChange={async (values) => {
-					// Update local state optimistically - preserve existing assignees that match the selected IDs
-					const updatedAssignees = task.assignees.filter((assignee) => values.includes(assignee.id));
-					// For now, we can only work with existing assignees since we don't have full user objects
-					// In a real implementation, you'd fetch the full user objects or have them available
-
-					const updatedTasks = tasks.map((t) => (t.id === task.id ? { ...task, assignees: updatedAssignees } : t));
+					const updatedTasks = tasks.map((t) =>
+						t.id === task.id
+							? { ...task, assignees: availableUsers.filter((user) => values.includes(user.id)) }
+							: t
+					);
 					setTasks(updatedTasks);
 					if (task) {
-						setSelectedTask({
-							...task,
-							assignees: updatedAssignees,
-						});
+						setSelectedTask({ ...task, assignees: availableUsers.filter((user) => values.includes(user.id)) });
+					}
+					const data = await runWithToast(
+						"update-task-assignees",
+						{
+							loading: {
+								title: "Updating task...",
+								description: "Updating your task... changes are already visible.",
+							},
+							success: {
+								title: "Task saved",
+								description: "Your changes have been saved successfully.",
+							},
+							error: {
+								title: "Save failed",
+								description:
+									"Your changes are showing, but we couldn't save them to the server. Please try again.",
+							},
+						},
+						() => updateAssigneesToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
+					);
+					if (data?.success && data.data) {
+						const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
+						setTasks(finalTasks);
+						if (task && task.id === data.data.id) {
+							setSelectedTask(data.data);
+						}
 					}
 				}}
 			/>
@@ -269,7 +291,7 @@ export function TaskContent({
 			<SplitDialogContent>
 				<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 
-				<GlobalTimeline task={task} labels={labels} />
+				<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
 			</SplitDialogContent>
 			<SplitDialogSide className="p-2">
 				<TaskContentSideContent

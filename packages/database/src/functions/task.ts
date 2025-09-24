@@ -23,7 +23,7 @@ import { db, schema } from "..";
  * });
  * ```
  */
-export async function getTasksByProjectId(orgId: string, projectId: string) {
+export async function getTasksByProjectId(orgId: string, projectId: string): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId)),
 		with: {
@@ -80,65 +80,130 @@ export async function getTasksByProjectId(orgId: string, projectId: string) {
 		...task,
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
+		timeline: task.timeline.map((entry) => ({
+			...entry,
+			actor: entry.actor ?? undefined, // convert null to undefined for actor
+		})),
 	}));
 }
 
-export async function getTaskByShortId(orgId: string, projectId: string, shortId: number) {
-	const tasks = await db.query.task.findFirst({
+/**
+ * Fetches a task by its short numeric identifier within a given project and organization.
+ *
+ * This query eagerly loads related entities:
+ * - `labels` (with the full label object)
+ * - `createdBy` (id, name, image only)
+ * - `assignees` (with basic user info)
+ * - `timeline` (with actor info)
+ * - `comments` (with creator info).
+ *
+ * The returned task object is normalized so that:
+ * - `labels` → an array of label objects (instead of assignment records).
+ * - `assignees` → an array of user objects (instead of assignment records).
+ *
+ * @param orgId - The ID of the organization the task belongs to.
+ * @param projectId - The ID of the project the task belongs to.
+ * @param shortId - The short numeric identifier of the task (e.g. project-scoped).
+ * @returns A promise that resolves to the task object with related data, or `null` if not found.
+ *
+ * @example
+ * ```ts
+ * const task = await getTaskByShortId("org_123", "proj_456", 42);
+ * if (task) {
+ *   console.log("Found task:", task.title, "labels:", task.labels);
+ * } else {
+ *   console.log("Task not found");
+ * }
+ * ```
+ */
+export async function getTaskByShortId(
+	orgId: string,
+	projectId: string,
+	shortId: number
+): Promise<schema.TaskWithLabels | null> {
+	const task = await db.query.task.findFirst({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.shortId, shortId)),
 		with: {
-			labels: {
-				with: {
-					label: true, // 👈 eager load the real label object
-				},
-			},
-			createdBy: {
-				columns: {
-					id: true,
-					name: true,
-					image: true,
-				},
-			},
+			labels: { with: { label: true } },
+			createdBy: { columns: { id: true, name: true, image: true } },
 			assignees: {
-				with: {
-					user: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
-					},
-				},
+				with: { user: { columns: { id: true, name: true, image: true } } },
 			},
 			timeline: {
-				with: {
-					actor: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
-					},
-				},
+				with: { actor: { columns: { id: true, name: true, image: true } } },
 			},
 			comments: {
 				with: {
-					createdBy: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
-					},
+					createdBy: { columns: { id: true, name: true, image: true } },
 				},
 			},
 		},
 	});
-	if (!tasks) return null;
+	if (!task) return null;
 	return {
-		...tasks,
-		labels: tasks.labels.map((assignment) => assignment.label),
-		assignees: tasks.assignees.map((assignment) => assignment.user),
+		...task,
+		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
+		timeline: task.timeline.map((entry) => ({
+			...entry,
+			actor: entry.actor ?? undefined, // convert null to undefined for actor
+		})),
+	};
+}
+
+/**
+ * Fetches a task by its unique string identifier within a given project and organization.
+ *
+ * This query eagerly loads related entities:
+ * - `labels` (with the full label object)
+ * - `createdBy` (id, name, image only)
+ * - `assignees` (with basic user info)
+ * - `timeline` (with actor info)
+ * - `comments` (with creator info).
+ *
+ * The returned task object is normalized so that:
+ * - `labels` → an array of label objects (instead of assignment records).
+ * - `assignees` → an array of user objects (instead of assignment records).
+ *
+ * @param orgId - The ID of the organization the task belongs to.
+ * @param projectId - The ID of the project the task belongs to.
+ * @param Id - The unique task ID.
+ * @returns A promise that resolves to the task object with related data, or `null` if not found.
+ *
+ * @example
+ * ```ts
+ * const task = await getTaskById("org_123", "proj_456", "task_abcdef");
+ * if (task) {
+ *   console.log("Found task:", task.title, "assignees:", task.assignees);
+ * } else {
+ *   console.log("Task not found");
+ * }
+ * ```
+ */
+export async function getTaskById(orgId: string, projectId: string, Id: string) {
+	const task = await db.query.task.findFirst({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.id, Id)),
+		with: {
+			labels: { with: { label: true } },
+			createdBy: { columns: { id: true, name: true, image: true } },
+			assignees: {
+				with: { user: { columns: { id: true, name: true, image: true } } },
+			},
+			timeline: {
+				with: { actor: { columns: { id: true, name: true, image: true } } },
+			},
+			comments: {
+				with: {
+					createdBy: { columns: { id: true, name: true, image: true } },
+				},
+			},
+		},
+	});
+	if (!task) return null;
+	return {
+		...task,
+		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
 	};
 }
 
@@ -174,12 +239,11 @@ export async function createTask(
 	data: {
 		title: string;
 		description?: unknown;
-		status?: string | null;
-		priority?: string | null;
+		status?: schema.taskType["status"];
+		priority?: schema.taskType["priority"];
 	},
 	createdBy?: string | null
 ) {
-	console.log("🚀 ~ createTask ~ createdBy:", createdBy);
 	// Get highest existing shortId for this project
 	const [max] = (await db
 		.select({ max: sql<number>`MAX(${schema.task.shortId})` })
@@ -200,6 +264,7 @@ export async function createTask(
 			status: data.status ?? "todo",
 			priority: data.priority ?? "none",
 			createdBy: createdBy, // nullable for ANONYMOUS
+			visible: "public",
 		})
 		.returning();
 	return task;

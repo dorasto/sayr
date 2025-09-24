@@ -1,5 +1,13 @@
 import type { auth } from "@repo/auth";
-import { addLabelToTask, addLogEventTask, createTask, db, removeLabelFromTask, schema } from "@repo/database";
+import {
+	addLabelToTask,
+	addLogEventTask,
+	createTask,
+	db,
+	getTaskById,
+	removeLabelFromTask,
+	schema,
+} from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { broadcast, broadcastPublic, findClientByWsId } from "../ws";
@@ -37,16 +45,6 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		if (!task) {
 			return c.json({ path: c.req.path, error: "Failed to create task" }, 500);
 		}
-		await addLogEventTask(
-			task.id,
-			project_id,
-			org_id,
-			"created",
-			null,
-			{ status, priority, title, labels },
-			session?.userId,
-			description
-		);
 		if (labels && labels.length > 0) {
 			for (const labelId of labels) {
 				await addLabelToTask(org_id, task.id, project_id, labelId);
@@ -65,69 +63,29 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 					.onConflictDoNothing(); // avoid duplicate assignments
 			}
 		}
+		await addLogEventTask(
+			task.id,
+			project_id,
+			org_id,
+			"created",
+			null,
+			{ status, priority, title, labels, assignees },
+			session?.userId,
+			description
+		);
 		// Refetch with full labels
-		const taskWithLabels = await db.query.task.findFirst({
-			where: (t) => and(eq(t.id, task.id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
-			with: {
-				labels: { with: { label: true } },
-				createdBy: {
-					columns: {
-						id: true,
-						name: true,
-						image: true,
-					},
-				},
-				assignees: {
-					with: {
-						user: {
-							columns: {
-								id: true,
-								name: true,
-								image: true,
-							},
-						},
-					},
-				},
-				timeline: {
-					with: {
-						actor: {
-							columns: {
-								id: true,
-								name: true,
-								image: true,
-							},
-						},
-					},
-				},
-				comments: {
-					with: {
-						createdBy: {
-							columns: {
-								id: true,
-								name: true,
-								image: true,
-							},
-						},
-					},
-				},
-			},
-		});
+		const taskWithData = await getTaskById(org_id, project_id, task.id);
 
-		const cleanTask = {
-			...taskWithLabels,
-			labels: taskWithLabels?.labels.map((l) => l.label),
-			assignees: taskWithLabels?.assignees.map((a) => a.user),
-		};
 		const found = findClientByWsId(wsClientId);
 		const data = {
 			type: "CREATE_TASK",
-			data: cleanTask,
+			data: taskWithData,
 		};
 		broadcast(org_id, `project-${project_id}`, data, found?.socket);
 		broadcastPublic(org_id, { ...data, data: data });
 		return c.json({
 			success: true,
-			data: cleanTask,
+			data: taskWithData,
 		});
 		// biome-ignore lint/suspicious/noExplicitAny: <has to be any>
 	} catch (error: any) {
@@ -227,14 +185,6 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			);
 		}
 
-		// // 🏷 Step 3: Handle labels
-		// if (updates.labels && Array.isArray(updates.labels)) {
-		// 	for (const labelId of updates.labels) {
-		// 		await addLabelToTask(org_id, task_id, project_id, labelId);
-		// 		// await addLogEventTask(task_id, project_id, org_id, "label_added", null, labelId, session?.userId);
-		// 	}
-		// }
-
 		// // 👥 Step 4: Handle assignees
 		// if (updates.assignees && Array.isArray(updates.assignees)) {
 		// 	for (const userId of updates.assignees) {
@@ -246,39 +196,16 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		// }
 
 		// 🔄 Step 3: Refetch task with relations
-		const taskWithData = await db.query.task.findFirst({
-			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
-			with: {
-				labels: { with: { label: true } },
-				createdBy: { columns: { id: true, name: true, image: true } },
-				assignees: {
-					with: { user: { columns: { id: true, name: true, image: true } } },
-				},
-				timeline: {
-					with: { actor: { columns: { id: true, name: true, image: true } } },
-				},
-				comments: {
-					with: {
-						createdBy: { columns: { id: true, name: true, image: true } },
-					},
-				},
-			},
-		});
-
-		const cleanTask = {
-			...taskWithData,
-			labels: taskWithData?.labels.map((l) => l.label),
-			assignees: taskWithData?.assignees.map((a) => a.user),
-		};
+		const taskWithData = await getTaskById(org_id, project_id, task_id);
 
 		// 📢 Step 4: Broadcast one unified update
 		const found = findClientByWsId(wsClientId);
-		const data = { type: "UPDATE_TASK", data: cleanTask };
+		const data = { type: "UPDATE_TASK", data: taskWithData };
 
 		broadcast(org_id, `project-${project_id}`, data, found?.socket);
 		broadcastPublic(org_id, { ...data });
 
-		return c.json({ success: true, data: cleanTask });
+		return c.json({ success: true, data: taskWithData });
 		// biome-ignore lint/suspicious/noExplicitAny: <needed for error shit>
 	} catch (error: any) {
 		console.error("🚀 ~ error:", error);
@@ -338,36 +265,83 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	}
 
 	// 🔄 Fetch updated task with related data
-	const taskWithData = await db.query.task.findFirst({
+	const taskWithData = await getTaskById(org_id, project_id, task_id);
+
+	// 📡 Broadcast to WS + Public
+	const found = findClientByWsId(wsClientId);
+	const data = { type: "UPDATE_TASK", data: taskWithData };
+	broadcast(org_id, `project-${project_id}`, data, found?.socket);
+	broadcastPublic(org_id, { ...data });
+
+	return c.json({ success: true, data: taskWithData });
+});
+
+apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
+	const { org_id, wsClientId, project_id, task_id, assignees } = await c.req.json();
+	const session = c.get("session");
+
+	// 🔒 RBAC check: only org owner can update
+	const [membership] = await db
+		.select()
+		.from(schema.member)
+		.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
+
+	if (membership?.role !== "owner") {
+		return c.json({ error: "UNAUTHORIZED" }, 401);
+	}
+
+	// 🔎 Check task existence with labels
+	const existingTask = await db.query.task.findFirst({
 		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
 		with: {
-			labels: { with: { label: true } },
-			createdBy: { columns: { id: true, name: true, image: true } },
 			assignees: {
 				with: { user: { columns: { id: true, name: true, image: true } } },
-			},
-			timeline: {
-				with: { actor: { columns: { id: true, name: true, image: true } } },
-			},
-			comments: {
-				with: {
-					createdBy: { columns: { id: true, name: true, image: true } },
-				},
 			},
 		},
 	});
 
-	const cleanTask = {
-		...taskWithData,
-		labels: taskWithData?.labels.map((l) => l.label),
-		assignees: taskWithData?.assignees.map((a) => a.user),
+	if (!existingTask) {
+		return c.json({ error: "Task not found" }, 404);
+	}
+	// Normalize assignees for the task
+	const Task = {
+		...existingTask,
+		assignees: existingTask.assignees.map((a) => a.user),
 	};
-
+	const currentAssigneeIds = Task.assignees?.map((a) => a.id) || [];
+	const incomingAssigneeIds = assignees || [];
+	// 1️⃣ Add missing assignees
+	for (const userId of incomingAssigneeIds) {
+		if (!currentAssigneeIds.includes(userId)) {
+			await db
+				.insert(schema.taskAssignee)
+				.values({ taskId: task_id, projectId: project_id, userId })
+				.onConflictDoNothing();
+			await addLogEventTask(task_id, project_id, org_id, "assignee_added", null, userId, session?.userId);
+		}
+	}
+	// 2️⃣ Remove assignees not in incoming list
+	for (const userId of currentAssigneeIds) {
+		if (!incomingAssigneeIds.includes(userId)) {
+			await db
+				.delete(schema.taskAssignee)
+				.where(
+					and(
+						eq(schema.taskAssignee.taskId, task_id),
+						eq(schema.taskAssignee.projectId, project_id),
+						eq(schema.taskAssignee.userId, userId)
+					)
+				);
+			await addLogEventTask(task_id, project_id, org_id, "assignee_removed", null, userId, session?.userId);
+		}
+	}
+	// 🔄 Fetch updated task with related data
+	const taskWithData = await getTaskById(org_id, project_id, task_id);
 	// 📡 Broadcast to WS + Public
 	const found = findClientByWsId(wsClientId);
-	const data = { type: "UPDATE_TASK", data: cleanTask };
+	const data = { type: "UPDATE_TASK", data: taskWithData };
 	broadcast(org_id, `project-${project_id}`, data, found?.socket);
 	broadcastPublic(org_id, { ...data });
 
-	return c.json({ success: true, data: cleanTask });
+	return c.json({ success: true, data: taskWithData });
 });

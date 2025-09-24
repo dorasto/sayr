@@ -23,13 +23,13 @@ export interface OrganizationWithMembers extends organizationType {
 export type TaskWithLabels = taskType & {
 	comments: taskCommentType[];
 	labels: labelType[];
-	assignees: userType[];
-	createdBy?: userType;
+	assignees: { id: string; name: string; image: string | null }[];
+	createdBy?: { id: string; name: string; image: string | null } | null | undefined;
 	timeline: taskTimelineWithActor[];
 };
 
 export type taskTimelineWithActor = taskTimelineType & {
-	actor?: userType;
+	actor?: { id: string; name: string; image: string | null };
 };
 
 /* -------------------------------------------------------------------------- */
