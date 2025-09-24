@@ -21,7 +21,7 @@ app.use(
 	cors({
 		origin: [process.env.NEXT_PUBLIC_URL_ROOT as string, process.env.NEXT_PUBLIC_API_SERVER as string],
 		allowHeaders: [],
-		allowMethods: ["POST", "GET", "PATCH", "OPTIONS", "PUT"],
+		allowMethods: ["POST", "GET", "PATCH", "PUT"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		maxAge: 600,
 		credentials: true,
@@ -29,7 +29,7 @@ app.use(
 );
 app.use("*", requestId());
 app.use("*", async (c, next) => {
-	c.header("X-Service-Name", "Project Management Tool");
+	c.header("X-Service-Name", "Sayr.io");
 	c.header("X-Organization-Name", "Doras Media Limited");
 	const session = await auth.api.getSession({ headers: c.req.raw.headers });
 	if (!session) {
@@ -60,7 +60,7 @@ const generateNotFoundResponse = (method: string, url: string) => ({
 	status: 404,
 });
 
-export async function getOrganization(orgId: string, userId: string) {
+export async function getOrganization(orgId: string, userId: string): Promise<schema.organizationType | null> {
 	// Check if the user is a member of this org
 	const membership = await db.query.member.findFirst({
 		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
@@ -76,5 +76,5 @@ export async function getOrganization(orgId: string, userId: string) {
 
 	if (!organization) return null;
 
-	return organization as schema.organizationType;
+	return organization;
 }

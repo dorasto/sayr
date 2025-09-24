@@ -185,16 +185,6 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			);
 		}
 
-		// // 👥 Step 4: Handle assignees
-		// if (updates.assignees && Array.isArray(updates.assignees)) {
-		// 	for (const userId of updates.assignees) {
-		// 		await db
-		// 			.insert(schema.taskAssignee)
-		// 			.values({ taskId: task_id, projectId: project_id, userId })
-		// 			.onConflictDoNothing();
-		// 	}
-		// }
-
 		// 🔄 Step 3: Refetch task with relations
 		const taskWithData = await getTaskById(org_id, project_id, task_id);
 

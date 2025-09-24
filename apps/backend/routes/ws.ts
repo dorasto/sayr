@@ -420,6 +420,11 @@ wsRoute.get(
 						if (organization) {
 							handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
 						} else {
+							broadcastIndividual(ws.raw, {
+								type: "ERROR",
+								data: { message: `You do not have access to this organization` },
+								meta: { ts: Date.now() },
+							});
 							ws.close();
 						}
 					}
@@ -446,6 +451,11 @@ wsRoute.get(
 		},
 
 		onClose: (_, ws) => {
+			broadcastIndividual(ws.raw, {
+				type: "DISCONNECTED",
+				data: { message: "You have been disconnected" },
+				meta: { ts: Date.now() },
+			});
 			unsubscribe(ws.raw);
 			wsClientIds.delete(ws.raw);
 			console.log("Connection closed");
