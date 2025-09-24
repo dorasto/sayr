@@ -3,7 +3,7 @@ import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import ColorPicker, { hslaStringToHex } from "@repo/ui/components/tomui/color-picker";
+import ColorPicker from "@repo/ui/components/tomui/color-picker";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconCheck, IconCircleFilled } from "@tabler/icons-react";
 import { useState } from "react";
@@ -19,18 +19,21 @@ interface Props {
 export default function CreateLabel({ orgId, labels, setLabels }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const [name, setName] = useState("");
-	const [color, setColor] = useState("#000000");
+	const [color, setColor] = useState({
+		hsla: "#000000",
+		hex: "#000000",
+	});
 	const { runWithToast, isFetching } = useToastAction();
 	return (
 		<div className="flex items-center gap-3 bg-accent border rounded p-1">
 			<Popover>
 				<PopoverTrigger asChild>
 					<Button variant="accent" size={"icon"} className="shrink-0">
-						<IconCircleFilled style={{ color: color }} />
+						<IconCircleFilled style={{ color: color.hsla }} />
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent>
-					<ColorPicker showDebugInfo onChange={setColor} defaultValue={hslaStringToHex(color)} />
+					<ColorPicker showDebugInfo onChange={setColor} defaultValue={color.hex} />
 				</PopoverContent>
 			</Popover>
 			<Input
@@ -66,7 +69,7 @@ export default function CreateLabel({ orgId, labels, setLabels }: Props) {
 								orgId,
 								{
 									name,
-									color,
+									color: color.hsla,
 								},
 								wsClientId
 							)
@@ -74,7 +77,10 @@ export default function CreateLabel({ orgId, labels, setLabels }: Props) {
 					if (data?.success && data.data) {
 						setLabels([...labels, data.data]);
 						setName("");
-						setColor("#000000");
+						setColor({
+							hsla: "#000000",
+							hex: "#000000",
+						});
 					}
 				}}
 				disabled={name.length === 0 || isFetching}

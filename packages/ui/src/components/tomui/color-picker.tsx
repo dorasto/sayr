@@ -11,28 +11,6 @@ type ColorValue = {
 	a: number;
 };
 
-export function hslaStringToHex(hslaString: string): string {
-	const match = hslaString.replace(/\s+/g, "").match(/^hsla?\((\d+),(\d+)%?,(\d+)%?,?([\d.]+)?\)$/i);
-	if (!match) return hslaString;
-	const h = parseInt(match[1] ?? "", 10);
-	const s = parseInt(match[2] ?? "", 10);
-	const l = parseInt(match[3] ?? "", 10);
-	const a = match[4] !== undefined ? parseFloat(match[4] ?? "1") : 1;
-	// Convert HSL → HSV
-	const lFrac = l / 100;
-	const sFrac = s / 100;
-	const v = lFrac + sFrac * Math.min(lFrac, 1 - lFrac);
-	const sv = v === 0 ? 0 : 2 * (1 - lFrac / v);
-
-	const hsva = {
-		h,
-		s: Math.round(sv * 100),
-		v: Math.round(v * 100),
-		a,
-	};
-	return hsvaToHex(hsva);
-}
-
 // Helper function to convert HSVA to HSLA string format
 const hsvaToHslaString = (hsva: ColorValue): string => {
 	const hsla = hsvaToHsla(hsva);
@@ -48,8 +26,12 @@ type Props = {
 	defaultValue?: string;
 	/** Controlled color value as hex string */
 	value?: string;
-	/** Callback when color changes - returns HSLA string like "hsla(120, 50%, 50%, 0.8)" */
-	onChange?: (hsla: string) => void;
+	/**
+	 * Callback fired when the color value changes.
+	 * @param hsla Color in HSLA format (e.g. "hsla(120, 50%, 50%, 0.8)").
+	 * @param hex  Color in HEX format (e.g. "#00ff00").
+	 */
+	onChange?: ({ hsla, hex }: { hsla: string; hex: string }) => void;
 	/** Custom className for the container */
 	className?: string;
 	/** Custom className for the color picker */
@@ -139,7 +121,7 @@ export default function ColorPicker({
 
 		// Call onChange with HSLA string
 		const hslaValue = hsvaToHslaString(newHsva);
-		onChange?.(hslaValue);
+		onChange?.({ hsla: hslaValue, hex: hexValue });
 	};
 
 	const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,7 +142,7 @@ export default function ColorPicker({
 
 				// Call onChange with HSLA string
 				const hslaValue = hsvaToHslaString(newHsva);
-				onChange?.(hslaValue);
+				onChange?.({ hsla: hslaValue, hex: inputValue });
 			} catch {
 				// Invalid hex value, ignore
 			}
@@ -181,7 +163,7 @@ export default function ColorPicker({
 
 			// Call onChange with HSLA string
 			const hslaValue = hsvaToHslaString(newHsva);
-			onChange?.(hslaValue);
+			onChange?.({ hsla: hslaValue, hex: color });
 		} catch {
 			// Invalid hex value, ignore
 		}
