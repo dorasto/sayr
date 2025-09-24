@@ -46,6 +46,8 @@ interface TaskContentProps {
 	setTasks: (newValue: schema.TaskWithLabels[]) => void;
 	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
 	availableUsers?: schema.userType[];
+	organization: schema.OrganizationWithMembers;
+	project: schema.projectType;
 }
 
 interface TaskContentSideContentProps {
@@ -260,6 +262,8 @@ export function TaskContent({
 	setSelectedTask,
 	availableUsers = [],
 	isDialog = true,
+	organization,
+	project,
 }: TaskContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const status = statusConfig[task.status as keyof typeof statusConfig];
@@ -273,12 +277,12 @@ export function TaskContent({
 					<Breadcrumb>
 						<BreadcrumbList>
 							<BreadcrumbItem>
-								<BreadcrumbLink href={`/admin/${task.organizationId}`}>{task.organizationId}</BreadcrumbLink>
+								<BreadcrumbLink href={`/admin/${task.organizationId}`}>{organization.name}</BreadcrumbLink>
 							</BreadcrumbItem>
 							<BreadcrumbSeparator />
 							<BreadcrumbItem>
 								<BreadcrumbLink href={`/admin/${task.organizationId}/${task.projectId}`}>
-									{task.projectId}
+									{project.name}
 								</BreadcrumbLink>
 							</BreadcrumbItem>
 							<BreadcrumbSeparator />

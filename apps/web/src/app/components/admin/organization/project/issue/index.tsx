@@ -52,6 +52,8 @@ export default function OrganizationProjectTaskHomePage() {
 			onOpenChange={(open: boolean): void => {
 				throw new Error("Function not implemented.");
 			}}
+			organization={organization}
+			project={project}
 			availableUsers={organization.members.map((member) => member.user)}
 			isDialog={false}
 		/>

@@ -8,12 +8,30 @@ interface Props {
 	ws: WebSocket | null;
 	labels: schema.labelType[];
 	availableUsers?: schema.userType[];
+	organization: schema.OrganizationWithMembers;
+	project: schema.projectType;
 }
 
-export default function ListProjectIssues({ tasks, setTasks, ws, labels, availableUsers }: Props) {
+export default function ListProjectIssues({
+	tasks,
+	setTasks,
+	ws,
+	labels,
+	availableUsers,
+	organization,
+	project,
+}: Props) {
 	return (
 		<div className="">
-			<TaskList tasks={tasks} setTasks={setTasks} ws={ws} labels={labels} availableUsers={availableUsers} />
+			<TaskList
+				tasks={tasks}
+				setTasks={setTasks}
+				ws={ws}
+				labels={labels}
+				availableUsers={availableUsers}
+				organization={organization}
+				project={project}
+			/>
 		</div>
 	);
 }

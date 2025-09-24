@@ -56,6 +56,8 @@ export default function OrganizationProjectHomePage() {
 				ws={ws}
 				labels={labels}
 				availableUsers={organization.members.map((member) => member.user)}
+				organization={organization}
+				project={project}
 			/>
 		</div>
 	);
