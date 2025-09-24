@@ -140,7 +140,10 @@ function TimelineItemWrapper({ item, icon: Icon, color, children }: TimelineItem
 			<TimelineHeader>
 				<TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
 				<TimelineTitle className="mt-0.5">
-					<Label variant={"heading"} className="text-sm font-normal leading-relaxed">
+					<Label
+						variant={"heading"}
+						className="text-sm font-normal leading-relaxed items-center flex flex-wrap gap-1"
+					>
 						{/* <RenderUser name={item.actor?.name || ""} image={item.actor?.image || ""} /> */}
 						{children}{" "}
 						<Tooltip>
