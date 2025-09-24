@@ -5,7 +5,8 @@ import { SidebarToggle } from "@repo/ui/components/custom-sidebar-localstorage";
 import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
-import { ThemeToggle } from "../../theme-toggle";
+import { cn } from "@repo/ui/lib/utils";
+import { IconPlus } from "@tabler/icons-react";
 import AdminCommand from "./admin-command";
 
 export default function AdminNavigation() {
@@ -14,8 +15,10 @@ export default function AdminNavigation() {
 
 	return (
 		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center">
-			<div className="flex  w-full items-center gap-2 p-1">
-				<div className="flex items-center gap-1 font-bold">
+			<div className="flex w-full items-center gap-2 p-1 pr-4">
+				<div
+					className={cn("flex items-center gap-1 font-bold  shrink-0", sidebarIsOpen && !isMobile && "w-[16rem]")}
+				>
 					{!sidebarIsOpen && !isMobile && (
 						<>
 							<SidebarToggle name="left-sidebar" />
@@ -37,8 +40,15 @@ export default function AdminNavigation() {
 						<span className="text-inherit">sayr.io</span>
 					</Button>
 				</div>
-
-				<div className="flex items-center gap-1 ml-auto">
+				{/* FEED CONTENT WHEN ON PROJECT PAGE */}
+				{/* EXAMPLE OF WHAT WE CAN FEED */}
+				<div className="flex items-center w-full">
+					<Button variant={"accent"} className="h-9">
+						<IconPlus />
+						<span className="text-inherit">New task</span>
+					</Button>
+				</div>
+				<div className="flex items-center gap-1 ml-auto shrink-0">
 					<AdminCommand />
 				</div>
 			</div>

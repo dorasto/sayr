@@ -219,7 +219,15 @@ export function LeftSidebarProvider() {
 	}, [isMobile]); // empty dependency array = run only once on mount
 
 	return (
-		<SidebarProvider name="left-sidebar" defaultOpen={isOpen} className="w-fit!">
+		<SidebarProvider
+			name="left-sidebar"
+			style={{
+				// @ts-ignore
+				"--sidebar-width": "16rem",
+			}}
+			defaultOpen={isOpen}
+			className="w-fit!"
+		>
 			<LeftSidebar isOpen={isOpen} />
 		</SidebarProvider>
 	);

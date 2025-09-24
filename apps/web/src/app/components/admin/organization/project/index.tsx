@@ -45,8 +45,10 @@ export default function OrganizationProjectHomePage() {
 	}, [ws, handleMessage]);
 	return (
 		<div className="relative flex flex-col gap-3 h-full max-h-full">
-			<div className="flex items-center gap-3 bg-card rounded p-3">
-				<Label variant={"heading"}>{project.name}</Label>
+			<div className="flex items-center gap-3 bg-card rounded p-3 w-full">
+				<Label variant={"heading"} className="truncate w-auto">
+					{project.name}
+				</Label>
 				<CreateIssueDialog />
 				<ProjectDropdown project={project} setProject={setProject} labels={labels} setLabels={setLabels} />
 			</div>

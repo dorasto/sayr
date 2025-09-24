@@ -66,7 +66,7 @@ export default function CreateIssueDialog() {
 		}
 	};
 	return (
-		<div className="flex items-center gap-3 w-full">
+		<div className="flex items-center gap-3">
 			<Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
 				New issue
 			</Button>
