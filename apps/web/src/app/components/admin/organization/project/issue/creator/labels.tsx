@@ -1,9 +1,16 @@
+import type { schema } from "@repo/database";
 import { ComboBoxMultiResponsive } from "@repo/ui/components/tomui/combo-box-multi-responsive";
 import React from "react";
-import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 
-export default function Labeller({ values, setValues }: { values: string[]; setValues: (values: string[]) => void }) {
-	const { labels } = useLayoutOrganization();
+export default function Labeller({
+	labels,
+	values,
+	setValues,
+}: {
+	labels: schema.labelType[];
+	values: string[];
+	setValues: (values: string[]) => void;
+}) {
 	// ✅ Memoize items so they only recalc when `labels` changes
 	const comboBoxItems = React.useMemo(
 		() =>

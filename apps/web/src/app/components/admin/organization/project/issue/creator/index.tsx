@@ -1,5 +1,7 @@
 "use client";
+
 import type { PartialBlock } from "@blocknote/core";
+import type { schema } from "@repo/database";
 import {
 	AdaptiveDialog,
 	AdaptiveDialogContent,
@@ -12,9 +14,8 @@ import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconPlus } from "@tabler/icons-react";
 import { useState } from "react";
-import { useLayoutProject } from "@/app/admin/[organization_id]/[project_id]/Context";
-import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { createTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
@@ -22,10 +23,16 @@ import Labeller from "./labels";
 import { PrioritySelector } from "./priority";
 import { StatusSelector } from "./status";
 
-export default function CreateIssueDialog() {
+interface Props {
+	organization: schema.OrganizationWithMembers;
+	project: schema.projectType;
+	tasks: schema.TaskWithLabels[];
+	setTasks: (newValue: schema.TaskWithLabels[]) => void;
+	_labels: schema.labelType[];
+}
+
+export default function CreateIssueDialog({ organization, project, tasks, setTasks, _labels }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const { organization } = useLayoutOrganization();
-	const { project, tasks, setTasks } = useLayoutProject();
 	const [open, setOpen] = useState(false);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState<undefined | PartialBlock[]>(undefined);
@@ -68,7 +75,8 @@ export default function CreateIssueDialog() {
 	return (
 		<div className="flex items-center gap-3">
 			<Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
-				New issue
+				<IconPlus />
+				<span className="text-inherit">New task</span>
 			</Button>
 			<AdaptiveDialog open={open} onOpenChange={setOpen}>
 				<AdaptiveDialogContent className="">
@@ -97,7 +105,7 @@ export default function CreateIssueDialog() {
 							<div className="flex items-center gap-3 w-full">
 								<StatusSelector value={status} onValueChange={setStatus} />
 								<PrioritySelector value={priority} onValueChange={setPriority} />
-								<Labeller values={labels} setValues={setLabels} />
+								<Labeller labels={_labels} values={labels} setValues={setLabels} />
 							</div>
 						</div>
 					</div>

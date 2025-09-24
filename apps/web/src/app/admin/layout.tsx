@@ -2,7 +2,6 @@ import { getOrganizations } from "@repo/database";
 import type { Metadata } from "next";
 import type React from "react";
 import AdminNavigation from "../components/layout/admin/admin-navigation";
-import AdminSubNavigation from "../components/layout/admin/admin-sub-navigation";
 import { Wrapper } from "../components/layout/wrapper";
 import { getAccess } from "../lib/serverFunctions";
 import { RootProvider } from "./Context";
@@ -30,9 +29,9 @@ export default async function RootLayoutRoot({
 	const organizations = await getOrganizations(account.id);
 	return (
 		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
-			<AdminNavigation />
 			{/* <div className="min-h-0 flex-1 overflow-y-auto"> */}
 			<RootProvider account={account} organizations={organizations}>
+				<AdminNavigation />
 				<Wrapper className="">
 					{/* <AdminSubNavigation /> */}
 					<div className="relative h-full max-h-full">{children}</div>
