@@ -100,6 +100,49 @@ export function formatDateTime(date: Date | string, locale = "en-US"): string {
 		minute: "numeric",
 	});
 }
+export function formatDateTimeFromNow(date: Date | string, locale = "en-US"): string {
+	// Convert input to Date object if it's a string, otherwise use as-is
+	const d = typeof date === "string" ? new Date(date) : date;
+
+	// Get current timestamp for comparison
+	const now = new Date();
+
+	// Calculate time difference in milliseconds between now and the input date
+	const diffInMs = now.getTime() - d.getTime();
+
+	// Convert milliseconds to minutes by dividing by (1000ms * 60s) and rounding down
+	const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+	// Convert milliseconds to hours by dividing by (1000ms * 60s * 60m) and rounding down
+	const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+
+	// Convert milliseconds to days by dividing by (1000ms * 60s * 60m * 24h) and rounding down
+	const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+	// Handle very recent times (less than 5 minutes ago)
+	if (diffInMinutes < 5) {
+		return "just now";
+	}
+	// Handle recent times (5-59 minutes ago) with proper pluralization
+	else if (diffInMinutes < 60) {
+		// Use ternary operator to add 's' for plural, nothing for singular
+		return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
+	}
+	// Handle times within the last 24 hours (1-23 hours ago) with proper pluralization
+	else if (diffInHours < 24) {
+		// Use ternary operator to add 's' for plural, nothing for singular
+		return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
+	}
+	// Handle times within the last week (1-6 days ago) with proper pluralization
+	else if (diffInDays < 7) {
+		// Use ternary operator to add 's' for plural, nothing for singular
+		return `${diffInDays} day${diffInDays === 1 ? "" : "s"} ago`;
+	}
+	// For times older than 1 week, fall back to compact date formatting
+	else {
+		return formatDateCompact(d, locale);
+	}
+}
 
 /**
  * Converts a string into a clean, URL‑safe slug.
