@@ -9,8 +9,10 @@ export const config = {
 		 * - _next/static (static files)
 		 * - _next/image (image optimization files)
 		 * - favicon.ico (favicon file)
+		 * - manifest.json (for SEO/PWA)
+		 * - public folder assets (images, text, xml)
 		 */
-		"/((?!api|_next/static|_next/image|favicon.ico).*)",
+		"/((?!api|_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:png|jpg|jpeg|gif|svg|ico|txt|xml)).*)",
 	],
 };
 
@@ -21,9 +23,9 @@ export default function middleware(req: NextRequest) {
 	const hostname = req.headers.get("host") || "";
 	const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "";
 
-	// console.log("🚀 Middleware - hostname:", hostname);
-	// console.log("🚀 Middleware - rootDomain:", rootDomain);
-	// console.log("🚀 Middleware - path:", path);
+	console.log("🚀 Middleware - hostname:", hostname);
+	console.log("🚀 Middleware - rootDomain:", rootDomain);
+	console.log("🚀 Middleware - path:", path);
 
 	// Root domain logic
 	if (hostname === rootDomain) {
