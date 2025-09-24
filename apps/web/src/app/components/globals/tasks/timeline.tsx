@@ -147,7 +147,9 @@ function TimelineItemWrapper({ item, icon: Icon, color, children }: TimelineItem
 						{/* <RenderUser name={item.actor?.name || ""} image={item.actor?.image || ""} /> */}
 						{children}{" "}
 						<Tooltip>
-							<TooltipTrigger>{formatDateTimeFromNow(item.createdAt as Date)}</TooltipTrigger>
+							<TooltipTrigger className="text-sm">
+								{formatDateTimeFromNow(item.createdAt as Date)}
+							</TooltipTrigger>
 							<TooltipContent>{formatDateTime(item.createdAt as Date)}</TooltipContent>
 						</Tooltip>
 					</Label>

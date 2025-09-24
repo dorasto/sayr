@@ -10,13 +10,15 @@ import {
 	ComboBoxContent,
 	ComboBoxEmpty,
 	ComboBoxGroup,
+	ComboBoxIcon,
 	ComboBoxItem,
 	ComboBoxList,
 	ComboBoxSearch,
 	ComboBoxTrigger,
+	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
-import { IconPlus } from "@tabler/icons-react";
+import { IconPlus, IconUserPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
 
 interface GlobalTaskAssigneesProps {
@@ -55,12 +57,28 @@ export default function GlobalTaskAssignees({
 					/>
 				))}
 				<ComboBox values={currentAssigneeIds} onValuesChange={handleAssigneesChange}>
-					<ComboBoxTrigger disabled={!editable} className="h-6 w-6 aspect-square p-0 justify-center">
-						<IconPlus size={14} />
-					</ComboBoxTrigger>
+					{currentAssigneeIds.length === 0 ? (
+						<ComboBoxTrigger disabled={!editable} className="">
+							<ComboBoxValue placeholder="Status">
+								<div className="flex items-center gap-2">
+									{/* {statusConfig[currentStatus as keyof typeof statusConfig]?.icon(
+										cn(statusConfig[currentStatus as keyof typeof statusConfig]?.className, "h-4 w-4")
+									)} */}
+									<IconUserPlus className="h-4 w-4" />
+									<span>Unassigned</span>
+								</div>
+							</ComboBoxValue>
+							<ComboBoxIcon />
+						</ComboBoxTrigger>
+					) : (
+						<ComboBoxTrigger disabled={!editable} className="h-6 w-6 aspect-square p-0 justify-center">
+							<IconPlus size={14} />
+						</ComboBoxTrigger>
+					)}
+
 					<ComboBoxContent className="">
 						<ComboBoxList>
-							<ComboBoxSearch placeholder="Search users..." />
+							<ComboBoxSearch placeholder="Assign to..." />
 							<ComboBoxEmpty>No users found.</ComboBoxEmpty>
 							<ComboBoxGroup>
 								{availableUsers.map((user) => (
