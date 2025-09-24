@@ -144,7 +144,7 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 					);
 				})
 			) : (
-				<div className="h-24 flex items-center justify-center text-gray-500 dark:text-gray-400">No results.</div>
+				<div className="flex items-center justify-center">No issues found</div>
 			)}
 			{selectedTask && (
 				<TaskContent
