@@ -3,7 +3,7 @@ import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import ColorPicker from "@repo/ui/components/tomui/color-picker";
+import ColorPicker, { hslaStringToHex } from "@repo/ui/components/tomui/color-picker";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconCheck, IconCircleFilled } from "@tabler/icons-react";
 import { useState } from "react";
@@ -30,7 +30,7 @@ export default function CreateLabel({ orgId, labels, setLabels }: Props) {
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent>
-					<ColorPicker showDebugInfo onChange={setColor} />
+					<ColorPicker showDebugInfo onChange={setColor} defaultValue={hslaStringToHex(color)} />
 				</PopoverContent>
 			</Popover>
 			<Input

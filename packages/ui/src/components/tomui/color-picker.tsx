@@ -11,6 +11,28 @@ type ColorValue = {
 	a: number;
 };
 
+export function hslaStringToHex(hslaString: string): string {
+	const match = hslaString.replace(/\s+/g, "").match(/^hsla?\((\d+),(\d+)%?,(\d+)%?,?([\d.]+)?\)$/i);
+	if (!match) return hslaString;
+	const h = parseInt(match[1] ?? "", 10);
+	const s = parseInt(match[2] ?? "", 10);
+	const l = parseInt(match[3] ?? "", 10);
+	const a = match[4] !== undefined ? parseFloat(match[4] ?? "1") : 1;
+	// Convert HSL → HSV
+	const lFrac = l / 100;
+	const sFrac = s / 100;
+	const v = lFrac + sFrac * Math.min(lFrac, 1 - lFrac);
+	const sv = v === 0 ? 0 : 2 * (1 - lFrac / v);
+
+	const hsva = {
+		h,
+		s: Math.round(sv * 100),
+		v: Math.round(v * 100),
+		a,
+	};
+	return hsvaToHex(hsva);
+}
+
 // Helper function to convert HSVA to HSLA string format
 const hsvaToHslaString = (hsva: ColorValue): string => {
 	const hsla = hsvaToHsla(hsva);
