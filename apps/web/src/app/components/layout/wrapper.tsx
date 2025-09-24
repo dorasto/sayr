@@ -14,7 +14,7 @@ export function Wrapper({ children, className }: Props) {
 				<LeftSidebarProvider />
 				<div
 					className={cn(
-						"h-full overflow-y-auto w-full mx-auto flex flex-col px-4 rounded-2xl bg-background",
+						"h-full overflow-y-auto w-full mx-auto flex flex-col px-4 pt-4 rounded-2xl bg-background",
 						className
 					)}
 				>

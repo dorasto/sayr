@@ -34,8 +34,8 @@ export default async function RootLayoutRoot({
 			{/* <div className="min-h-0 flex-1 overflow-y-auto"> */}
 			<RootProvider account={account} organizations={organizations}>
 				<Wrapper className="">
-					<AdminSubNavigation />
-					<div className="p-4">{children}</div>
+					{/* <AdminSubNavigation /> */}
+					<div className="relative h-full max-h-full">{children}</div>
 				</Wrapper>
 			</RootProvider>
 			{/* </div> */}

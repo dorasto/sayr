@@ -58,7 +58,7 @@ function TimelineItemWrapper({ item, icon: Icon, color, children }: TimelineItem
 				</TimelineIndicator>
 			</TimelineHeader>
 			{item.blockNote ? (
-				<TimelineContent className="text-foreground mt-2 rounded-lg border px-4 py-3">
+				<TimelineContent className="text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50">
 					<Editor readonly={true} value={item.blockNote as PartialBlock[]} />
 				</TimelineContent>
 			) : null}

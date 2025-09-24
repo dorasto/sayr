@@ -53,6 +53,7 @@ export default function OrganizationProjectTaskHomePage() {
 				throw new Error("Function not implemented.");
 			}}
 			availableUsers={organization.members.map((member) => member.user)}
+			isDialog={false}
 		/>
 	);
 }

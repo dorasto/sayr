@@ -2,13 +2,29 @@
 
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "@repo/ui/components/breadcrumb";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowsHorizontal, IconCode, IconX } from "@tabler/icons-react";
+import {
+	IconArrowsDiagonal2,
+	IconArrowsDiagonalMinimize2,
+	IconArrowsHorizontal,
+	IconCode,
+	IconX,
+} from "@tabler/icons-react";
+import { HomeIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import GlobalTaskAssignees from "@/app/components/globals/tasks/assignee";
@@ -21,6 +37,7 @@ import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "./task-list-item";
 
 interface TaskContentProps {
+	isDialog?: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	task: schema.TaskWithLabels;
@@ -242,12 +259,89 @@ export function TaskContent({
 	setTasks,
 	setSelectedTask,
 	availableUsers = [],
+	isDialog = true,
 }: TaskContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const { runWithToast } = useToastAction();
 	const [openData, onOpenDataChange] = useState(false);
-	return (
+	return !isDialog ? (
+		// FULL PAGE EXPERIENCE
+		<div className="flex flex-col gap-3 h-full max-h-full relative">
+			<div className="flex flex-col gap-1 max-w-3/4 relative">
+				<div className="flex items-center gap-2 shrink-0 rounded-2xl border px-2.5 py-0.5 h-7 shadow-xs w-fit">
+					<Breadcrumb>
+						<BreadcrumbList>
+							<BreadcrumbItem>
+								<BreadcrumbLink href={`/admin/${task.organizationId}`}>{task.organizationId}</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator />
+							<BreadcrumbItem>
+								<BreadcrumbLink href={`/admin/${task.organizationId}/${task.projectId}`}>
+									{task.projectId}
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator />
+							<BreadcrumbItem>
+								<BreadcrumbPage>#{task.shortId}</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
+					</Breadcrumb>
+					<Separator orientation="vertical" className="h-4" />
+					<div className="flex items-center gap-2 shrink-0">
+						<Button
+							size={"icon"}
+							className="size-5"
+							variant={openData ? "accent" : "ghost"}
+							onClick={() => onOpenDataChange(!openData)}
+						>
+							<IconCode />
+						</Button>
+						<Link
+							href={`/admin/${task.organizationId}/${task.projectId}`}
+							// WHEN WE ADD PARAMS TO OPEN A TASK ON THE PROJECT PAGE, MAKE THIS AUTO OPEN IT THERE LIKE /admin/${task.organizationId}/${task.projectId}?task=${task.shortId}
+							className="size-5"
+						>
+							<Button size={"icon"} className="size-5" variant={"ghost"}>
+								<IconArrowsDiagonalMinimize2 />
+							</Button>
+						</Link>
+					</div>
+				</div>
+				<div className="flex items-center w-full gap-3">
+					<Label variant={"heading"} className={cn("text-left text-xl truncate")}>
+						{task.title}
+					</Label>
+					<Badge
+						variant={"outline"}
+						className="flex items-center h-7 flex-shrink-0 [&_svg]:size-5 gap-1 justify-start pl-1"
+					>
+						{status?.icon(`${status?.className || ""}`)}
+						{status.label}
+					</Badge>
+				</div>
+			</div>
+			<div className="flex gap-3 overflow-scroll flex-1">
+				<div className="flex flex-col gap-3 w-full overflow-scroll overflow-x-visible p-4">
+					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
+					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
+				</div>
+				<div className="w-1/4 shrink-0 overflow-y-auto">
+					<TaskContentSideContent
+						task={task}
+						labels={labels}
+						tasks={tasks}
+						setTasks={setTasks}
+						setSelectedTask={setSelectedTask}
+						availableUsers={availableUsers}
+						wsClientId={wsClientId}
+						runWithToast={runWithToast}
+					/>
+				</div>
+			</div>
+		</div>
+	) : (
+		// DIALOG /DEFAULT EXPERIENCE
 		<SplitDialog
 			isOpen={open}
 			onOpenChange={onOpenChange}
@@ -269,7 +363,7 @@ export function TaskContent({
 						</Badge>
 						<Link href={`/admin/${task.organizationId}/${task.projectId}/task/${task.shortId}`}>
 							<Button size={"icon"} className="size-5" variant={"ghost"} onClick={() => onOpenChange(false)}>
-								<IconArrowsHorizontal className="rotate-45" />
+								<IconArrowsDiagonal2 />
 							</Button>
 						</Link>
 						<Button
