@@ -31,7 +31,7 @@ import GlobalTaskAssignees from "@/app/components/globals/tasks/assignee";
 import GlobalTaskLabels from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 import GlobalTaskStatus from "@/app/components/globals/tasks/status";
-import GlobalTimeline from "@/app/components/globals/tasks/timeline";
+import GlobalTimeline from "@/app/components/globals/tasks/timeline/root";
 import { updateAssigneesToTaskAction, updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "./task-list-item";
