@@ -6,13 +6,11 @@ export {
 	ConsolidatedTimelineItem,
 	ConsolidatedTimelineLabels,
 } from "./consolidated-timeline";
-export { TimelineAssigneeAdded } from "./timeline-assignee-added";
-export { TimelineAssigneeRemoved } from "./timeline-assignee-removed";
+export { TimelineAssigneeAdded, TimelineAssigneeRemoved } from "./timeline-assignee";
 export { TimelineComment } from "./timeline-comment";
 // Individual timeline components
 export { TimelineCreated } from "./timeline-created";
-export { TimelineLabelAdded } from "./timeline-label-added";
-export { TimelineLabelRemoved } from "./timeline-label-removed";
+export { TimelineLabelAdded, TimelineLabelRemoved } from "./timeline-label";
 export { TimelinePriorityChange } from "./timeline-priority-change";
 export { TimelineStatusChange } from "./timeline-status-change";
 export { TimelineUpdated } from "./timeline-updated";

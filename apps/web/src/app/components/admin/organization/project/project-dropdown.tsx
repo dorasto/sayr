@@ -13,10 +13,21 @@ interface Props {
 	setProject: (newValue: Props["project"]) => void;
 	labels: schema.labelType[];
 	setLabels: (newValue: Props["labels"]) => void;
+	isOpen?: boolean;
+	setIsOpen?: (open: boolean) => void;
 }
 
-export default function ProjectDropdown({ project, setProject, labels, setLabels }: Props) {
-	const [isOpen, setIsOpen] = useState(false);
+export default function ProjectDropdown({
+	project,
+	setProject,
+	labels,
+	setLabels,
+	isOpen = false,
+	setIsOpen = () => {
+		false;
+	},
+}: Props) {
+	// const [isOpen, setIsOpen] = useState(false);
 
 	// Simple side layout with one tab
 	const sideGroupedTabs = [
@@ -42,7 +53,7 @@ export default function ProjectDropdown({ project, setProject, labels, setLabels
 
 	return (
 		<div>
-			<Button onClick={() => setIsOpen(true)}>Project Settings</Button>
+			{/* <Button onClick={() => setIsOpen(true)}>Project Settings</Button> */}
 
 			<TabbedDialog
 				isOpen={isOpen}

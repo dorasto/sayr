@@ -29,11 +29,23 @@ interface Props {
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: schema.TaskWithLabels[]) => void;
 	_labels: schema.labelType[];
+	open?: boolean;
+	setOpen?: (open: boolean) => void;
 }
 
-export default function CreateIssueDialog({ organization, project, tasks, setTasks, _labels }: Props) {
+export default function CreateIssueDialog({
+	organization,
+	project,
+	tasks,
+	setTasks,
+	_labels,
+	open,
+	setOpen = () => {
+		false;
+	},
+}: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const [open, setOpen] = useState(false);
+	// const [open, setOpen] = useState(false);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState<undefined | PartialBlock[]>(undefined);
 	const [status, setStatus] = useState<string | undefined | null>(undefined);
@@ -44,9 +56,9 @@ export default function CreateIssueDialog({ organization, project, tasks, setTas
 		const data = await runWithToast(
 			"create-task",
 			{
-				loading: { title: "Creating task...", description: "Please wait while we create the issue." },
-				success: { title: "Created issue", description: "The issue has been successfully created." },
-				error: { title: "Failed to create issue", description: "An error occurred while creating the issue." },
+				loading: { title: "Creating task...", description: "Please wait while we create the task." },
+				success: { title: "Created task", description: "The task has been successfully created." },
+				error: { title: "Failed to create task", description: "An error occurred while creating the task." },
 			},
 			() =>
 				createTaskAction(
@@ -74,28 +86,28 @@ export default function CreateIssueDialog({ organization, project, tasks, setTas
 	};
 	return (
 		<div className="flex items-center gap-3">
-			<Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
+			{/* <Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
 				<IconPlus />
 				<span className="text-inherit">New task</span>
-			</Button>
+			</Button> */}
 			<AdaptiveDialog open={open} onOpenChange={setOpen}>
 				<AdaptiveDialogContent className="">
 					<AdaptiveDialogHeader>
 						<AdaptiveDialogTitle asChild>
 							<div>
 								<Label variant={"heading"} className="text-left mr-auto sr-only">
-									New issue
+									New task
 								</Label>
 								<Input
 									variant={"strong"}
-									placeholder="Issue title"
+									placeholder="Task title"
 									className="px-0"
 									value={title}
 									onChange={(e) => setTitle(e.target.value)}
 								/>
 							</div>
 						</AdaptiveDialogTitle>
-						<AdaptiveDialogDescription className="sr-only">Create a new issue</AdaptiveDialogDescription>
+						<AdaptiveDialogDescription className="sr-only">Create a new task</AdaptiveDialogDescription>
 					</AdaptiveDialogHeader>
 					<div className="flex flex-col gap-3 w-full p-3">
 						<div className="flex flex-col gap-1 w-full">
@@ -112,7 +124,7 @@ export default function CreateIssueDialog({ organization, project, tasks, setTas
 					<AdaptiveDialogFooter className="mt-auto bg-background flex !flex-col gap-2">
 						<div className="flex items-center gap-2 ml-auto">
 							<Button variant={"accent"} onClick={handleUpdate} disabled={isFetching || !title.trim()}>
-								Create issue
+								Create task
 							</Button>
 						</div>
 					</AdaptiveDialogFooter>
