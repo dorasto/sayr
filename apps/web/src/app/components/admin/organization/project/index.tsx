@@ -8,12 +8,11 @@ import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import ListProjectIssues from "./list";
-import { ProjectDropdown } from "./project-dropdown";
 
 export default function OrganizationProjectHomePage() {
 	const { ws } = useLayoutData();
 	const { organization, setOrganization, labels, setLabels } = useLayoutOrganization();
-	const { project, setProject, tasks, setTasks } = useLayoutProject();
+	const { project, tasks, setTasks } = useLayoutProject();
 	useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -48,7 +47,6 @@ export default function OrganizationProjectHomePage() {
 				<Label variant={"heading"} className="truncate w-auto">
 					{project.name}
 				</Label>
-				<ProjectDropdown project={project} setProject={setProject} labels={labels} setLabels={setLabels} />
 			</div>
 			<div className="flex-1 overflow-scroll pb-4">
 				<ListProjectIssues

@@ -15,7 +15,7 @@ interface Props {
 	setLabels: (newValue: Props["labels"]) => void;
 }
 
-export function ProjectDropdown({ project, setProject, labels, setLabels }: Props) {
+export default function ProjectDropdown({ project, setProject, labels, setLabels }: Props) {
 	const [isOpen, setIsOpen] = useState(false);
 
 	// Simple side layout with one tab
