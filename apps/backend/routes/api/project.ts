@@ -1,65 +1,59 @@
-import type { auth } from "@repo/auth";
-import { createProject, db, getOrganizationMembers, schema } from "@repo/database";
-import { and, eq } from "drizzle-orm";
+import { createProject, getOrganizationMembers } from "@repo/database";
 import { Hono } from "hono";
+import { type AppEnv, checkMembershipRole } from "@/index";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
 import { apiRouteAdminProjectTask } from "./task";
 
-export const apiRouteAdminProject = new Hono<{
-	Variables: {
-		user: typeof auth.$Infer.Session.user | null;
-		session: typeof auth.$Infer.Session.session | null;
-	};
-}>();
+export const apiRouteAdminProject = new Hono<AppEnv>();
 apiRouteAdminProject.post("/create", async (c) => {
-	try {
-		const { org_id, wsClientId, name, description, visibility } = await c.req.json();
-		const session = c.get("session");
-		const role = await db
-			.select()
-			.from(schema.member)
-			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
-		if (role[0]?.role !== "owner") {
-			return c.json({ error: "UNAUTHORIZED" }, 401);
-		}
-		const result = await createProject(org_id, name, description, visibility);
-		if (result.success) {
-			const found = findClientByWsId(wsClientId);
-			const data = {
-				type: "CREATE_PROJECT",
-				data: result.data,
-			};
-			broadcast(org_id, "admin", data, found?.socket);
-			broadcastPublic(org_id, { ...data, data: data });
-			const members = await getOrganizationMembers(org_id);
-			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
-				clients.forEach((c) => broadcastIndividual(c.socket, data));
-			});
-			return c.json({
-				success: true,
-				data: data,
-			});
-		} else {
-			return c.json(
-				{
-					path: c.req.path,
-					error: result.error,
-				},
-				500
-			);
-		}
-		// biome-ignore lint/suspicious/noExplicitAny: <has to be any>
-	} catch (error: any) {
-		console.log("🚀 ~ error:", error);
+	const { org_id, wsClientId, name, description, visibility } = await c.req.json();
+	const session = c.get("session");
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id, ["owner"]);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const result = await createProject(org_id, name, description, visibility);
+	if (result.success) {
+		const found = findClientByWsId(wsClientId);
+		const data = {
+			type: "CREATE_PROJECT",
+			data: result.data,
+		};
+		broadcast(org_id, "admin", data, found?.socket);
+		broadcastPublic(org_id, { ...data, data: data });
+		const members = await getOrganizationMembers(org_id);
+		members.forEach((member) => {
+			const clients = findClientsByUserId(member.userId);
+			clients.forEach((c) => broadcastIndividual(c.socket, data));
+		});
+		return c.json({
+			success: true,
+			data: data,
+		});
+	} else {
 		return c.json(
 			{
+				success: false,
 				path: c.req.path,
-				error: error.toString(),
+				error: result.error,
 			},
-			error.statusCode
+			500
 		);
 	}
+});
+
+apiRouteAdminProject.patch("/update", async (c) => {
+	const { org_id, wsClientId } = await c.req.json();
+	const session = c.get("session");
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const found = findClientByWsId(wsClientId);
+	return c.json({
+		success: true,
+		data: found,
+	});
 });
 
 apiRouteAdminProject.route("/task", apiRouteAdminProjectTask);

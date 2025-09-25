@@ -1,15 +1,9 @@
-import type { auth } from "@repo/auth";
 import type { ServerWebSocket } from "bun";
 import { Hono } from "hono";
 import { upgradeWebSocket } from "hono/bun";
-import { getOrganization } from "..";
+import { type AppEnv, getOrganization } from "..";
 
-export const wsRoute = new Hono<{
-	Variables: {
-		user: typeof auth.$Infer.Session.user | null;
-		session: typeof auth.$Infer.Session.session | null;
-	};
-}>();
+export const wsRoute = new Hono<AppEnv>();
 
 type ClientInfo = {
 	socket: ServerWebSocket;

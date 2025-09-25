@@ -1,4 +1,3 @@
-import type { auth } from "@repo/auth";
 import {
 	addLabelToTask,
 	addLogEventTask,
@@ -10,211 +9,168 @@ import {
 } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
+import { type AppEnv, checkMembershipRole } from "@/index";
 import { broadcast, broadcastPublic, findClientByWsId } from "../ws";
 
-export const apiRouteAdminProjectTask = new Hono<{
-	Variables: {
-		user: typeof auth.$Infer.Session.user | null;
-		session: typeof auth.$Infer.Session.session | null;
-	};
-}>();
+export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 apiRouteAdminProjectTask.post("/create", async (c) => {
-	try {
-		const { org_id, wsClientId, project_id, title, description, status, priority, labels, assignees } =
-			await c.req.json();
-		const session = c.get("session");
-		const role = await db
-			.select()
-			.from(schema.member)
-			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
-		if (role[0]?.role !== "owner") {
-			return c.json({ error: "UNAUTHORIZED" }, 401);
-		}
-		const task = await createTask(
-			org_id,
-			project_id,
-			{
-				title,
-				description,
-				status,
-				priority,
-			},
-			session?.userId
-		);
-
-		if (!task) {
-			return c.json({ path: c.req.path, error: "Failed to create task" }, 500);
-		}
-		if (labels && labels.length > 0) {
-			for (const labelId of labels) {
-				await addLabelToTask(org_id, task.id, project_id, labelId);
-			}
-		}
-		// Attach assignees if provided
-		if (assignees?.length > 0) {
-			for (const userId of assignees) {
-				await db
-					.insert(schema.taskAssignee)
-					.values({
-						taskId: task.id,
-						projectId: project_id,
-						userId,
-					})
-					.onConflictDoNothing(); // avoid duplicate assignments
-			}
-		}
-		await addLogEventTask(
-			task.id,
-			project_id,
-			org_id,
-			"created",
-			null,
-			{ status, priority, title, labels, assignees },
-			session?.userId,
-			description
-		);
-		// Refetch with full labels
-		const taskWithData = await getTaskById(org_id, project_id, task.id);
-
-		const found = findClientByWsId(wsClientId);
-		const data = {
-			type: "CREATE_TASK",
-			data: taskWithData,
-		};
-		broadcast(org_id, `project-${project_id}`, data, found?.socket);
-		broadcastPublic(org_id, { ...data, data: data });
-		return c.json({
-			success: true,
-			data: taskWithData,
-		});
-		// biome-ignore lint/suspicious/noExplicitAny: <has to be any>
-	} catch (error: any) {
-		console.log("🚀 ~ error:", error);
-		return c.json(
-			{
-				path: c.req.path,
-				error: error.toString(),
-			},
-			error.statusCode
-		);
+	const { org_id, wsClientId, project_id, title, description, status, priority, labels, assignees } =
+		await c.req.json();
+	const session = c.get("session");
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
+	const task = await createTask(
+		org_id,
+		project_id,
+		{
+			title,
+			description,
+			status,
+			priority,
+		},
+		session?.userId
+	);
+
+	if (!task) {
+		return c.json({ success: false, path: c.req.path, error: "Failed to create task" }, 500);
+	}
+	if (labels && labels.length > 0) {
+		for (const labelId of labels) {
+			await addLabelToTask(org_id, task.id, project_id, labelId);
+		}
+	}
+	// Attach assignees if provided
+	if (assignees?.length > 0) {
+		for (const userId of assignees) {
+			await db
+				.insert(schema.taskAssignee)
+				.values({
+					taskId: task.id,
+					projectId: project_id,
+					userId,
+				})
+				.onConflictDoNothing(); // avoid duplicate assignments
+		}
+	}
+	await addLogEventTask(
+		task.id,
+		project_id,
+		org_id,
+		"created",
+		null,
+		{ status, priority, title, labels, assignees },
+		session?.userId,
+		description
+	);
+	// Refetch with full labels
+	const taskWithData = await getTaskById(org_id, project_id, task.id);
+
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "CREATE_TASK",
+		data: taskWithData,
+	};
+	broadcast(org_id, `project-${project_id}`, data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	return c.json({
+		success: true,
+		data: taskWithData,
+	});
 });
 apiRouteAdminProjectTask.patch("/update", async (c) => {
-	try {
-		const { org_id, wsClientId, project_id, task_id, ...updates } = await c.req.json();
-		const session = c.get("session");
+	const { org_id, wsClientId, project_id, task_id, ...updates } = await c.req.json();
+	const session = c.get("session");
 
-		// 🔒 RBAC check: only org owner can update
-		const [membership] = await db
-			.select()
-			.from(schema.member)
-			.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
-		if (membership?.role !== "owner") {
-			return c.json({ error: "UNAUTHORIZED" }, 401);
-		}
-
-		// 🔎 Check task existence
-		const existingTask = await db.query.task.findFirst({
-			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
-		});
-		if (!existingTask) {
-			return c.json({ error: "Task not found" }, 404);
-		}
-
-		// 🎯 Pick only fields allowed for update
-		const allowed: Partial<schema.taskType> = {};
-		["title", "description", "status", "priority"].forEach((field) => {
-			if (updates[field] !== undefined) {
-				// @ts-expect-error because dynamic field assignment
-				allowed[field] = updates[field];
-			}
-		});
-
-		if (Object.keys(allowed).length > 0) {
-			await db
-				.update(schema.task)
-				.set({ ...allowed, updatedAt: new Date() })
-				.where(eq(schema.task.id, task_id))
-				.returning();
-		}
-
-		// 📝 Step 2: Log timeline changes
-		if (updates.status && updates.status !== existingTask.status) {
-			await addLogEventTask(
-				task_id,
-				project_id,
-				org_id,
-				"status_change",
-				existingTask.status,
-				updates.status,
-				session?.userId
-			);
-		}
-		if (updates.priority && updates.priority !== existingTask.priority) {
-			await addLogEventTask(
-				task_id,
-				project_id,
-				org_id,
-				"priority_change",
-				existingTask.priority,
-				updates.priority,
-				session?.userId
-			);
-		}
-		if (updates.title && updates.title !== existingTask.title) {
-			await addLogEventTask(
-				task_id,
-				project_id,
-				org_id,
-				"updated",
-				existingTask.title,
-				updates.title,
-				session?.userId
-			);
-		}
-		if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
-			await addLogEventTask(
-				task_id,
-				project_id,
-				org_id,
-				"updated",
-				existingTask.description,
-				updates.description,
-				session?.userId,
-				updates.description
-			);
-		}
-
-		// 🔄 Step 3: Refetch task with relations
-		const taskWithData = await getTaskById(org_id, project_id, task_id);
-
-		// 📢 Step 4: Broadcast one unified update
-		const found = findClientByWsId(wsClientId);
-		const data = { type: "UPDATE_TASK", data: taskWithData };
-
-		broadcast(org_id, `project-${project_id}`, data, found?.socket);
-		broadcastPublic(org_id, { ...data });
-
-		return c.json({ success: true, data: taskWithData });
-		// biome-ignore lint/suspicious/noExplicitAny: <needed for error shit>
-	} catch (error: any) {
-		console.error("🚀 ~ error:", error);
-		return c.json({ path: c.req.path, error: error.toString() }, error.statusCode);
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
+	// 🔎 Check task existence
+	const existingTask = await db.query.task.findFirst({
+		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+	});
+	if (!existingTask) {
+		return c.json({ success: false, error: "Task not found" }, 404);
+	}
+
+	// 🎯 Pick only fields allowed for update
+	const allowed: Partial<schema.taskType> = {};
+	["title", "description", "status", "priority"].forEach((field) => {
+		if (updates[field] !== undefined) {
+			// @ts-expect-error because dynamic field assignment
+			allowed[field] = updates[field];
+		}
+	});
+
+	if (Object.keys(allowed).length > 0) {
+		await db
+			.update(schema.task)
+			.set({ ...allowed, updatedAt: new Date() })
+			.where(eq(schema.task.id, task_id))
+			.returning();
+	}
+
+	// 📝 Step 2: Log timeline changes
+	if (updates.status && updates.status !== existingTask.status) {
+		await addLogEventTask(
+			task_id,
+			project_id,
+			org_id,
+			"status_change",
+			existingTask.status,
+			updates.status,
+			session?.userId
+		);
+	}
+	if (updates.priority && updates.priority !== existingTask.priority) {
+		await addLogEventTask(
+			task_id,
+			project_id,
+			org_id,
+			"priority_change",
+			existingTask.priority,
+			updates.priority,
+			session?.userId
+		);
+	}
+	if (updates.title && updates.title !== existingTask.title) {
+		await addLogEventTask(task_id, project_id, org_id, "updated", existingTask.title, updates.title, session?.userId);
+	}
+	if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
+		await addLogEventTask(
+			task_id,
+			project_id,
+			org_id,
+			"updated",
+			existingTask.description,
+			updates.description,
+			session?.userId,
+			updates.description
+		);
+	}
+
+	// 🔄 Step 3: Refetch task with relations
+	const taskWithData = await getTaskById(org_id, project_id, task_id);
+
+	// 📢 Step 4: Broadcast one unified update
+	const found = findClientByWsId(wsClientId);
+	const data = { type: "UPDATE_TASK", data: taskWithData };
+
+	broadcast(org_id, `project-${project_id}`, data, found?.socket);
+	broadcastPublic(org_id, { ...data });
+
+	return c.json({ success: true, data: taskWithData });
 });
 
 apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	const { org_id, wsClientId, project_id, task_id, labels } = await c.req.json();
 	const session = c.get("session");
 
-	// 🔒 RBAC check: only org owner can update
-	const [membership] = await db
-		.select()
-		.from(schema.member)
-		.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
-
-	if (membership?.role !== "owner") {
-		return c.json({ error: "UNAUTHORIZED" }, 401);
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 
 	// 🔎 Check task existence with labels
@@ -226,7 +182,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	});
 
 	if (!existingTask) {
-		return c.json({ error: "Task not found" }, 404);
+		return c.json({ success: false, error: "Task not found" }, 404);
 	}
 
 	// Normalize labels for the task
@@ -270,14 +226,9 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	const { org_id, wsClientId, project_id, task_id, assignees } = await c.req.json();
 	const session = c.get("session");
 
-	// 🔒 RBAC check: only org owner can update
-	const [membership] = await db
-		.select()
-		.from(schema.member)
-		.where(and(eq(schema.member.userId, session?.userId || ""), eq(schema.member.organizationId, org_id)));
-
-	if (membership?.role !== "owner") {
-		return c.json({ error: "UNAUTHORIZED" }, 401);
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 
 	// 🔎 Check task existence with labels
@@ -291,7 +242,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	});
 
 	if (!existingTask) {
-		return c.json({ error: "Task not found" }, 404);
+		return c.json({ success: false, error: "Task not found" }, 404);
 	}
 	// Normalize assignees for the task
 	const Task = {
