@@ -39,7 +39,7 @@ export async function updateOrganizationAction(
 	data: UpdateOrganizationData,
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.organizationType; error?: string }> {
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/update-org`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/update`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
@@ -74,7 +74,7 @@ export async function uploadOrganizationLogo(organizationId: string, file: File,
 	const formData = new FormData();
 	formData.append("file", file);
 
-	const res = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/orgs/${organizationId}/logo`, {
+	const res = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/${organizationId}/logo`, {
 		method: "PUT",
 		body: formData,
 		credentials: "include", // ensure cookies/session
@@ -115,7 +115,7 @@ export async function uploadOrganizationBanner(organizationId: string, file: Fil
 	const formData = new FormData();
 	formData.append("file", file);
 
-	const res = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/orgs/${organizationId}/banner`, {
+	const res = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/${organizationId}/banner`, {
 		method: "PUT",
 		body: formData,
 		credentials: "include", // ensure cookies/session
@@ -169,7 +169,7 @@ export async function createProjectAction(
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.projectType; error?: string }> {
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/create`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
@@ -238,7 +238,7 @@ export async function createTaskAction(
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/create`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
@@ -317,7 +317,7 @@ export async function updateTaskAction(
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
 	};
 
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/update`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/update`, {
 		method: "PATCH",
 		body: JSON.stringify(payload),
 		headers: {
@@ -374,14 +374,17 @@ export async function updateLabelToTaskAction(
 		labels: labels,
 	};
 
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/update-labels`, {
-		method: "POST",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include", // 👈 This ensures cookies are sent
-	}).then(async (e) => await e.json());
+	const result = await fetch(
+		`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/update-labels`,
+		{
+			method: "POST",
+			body: JSON.stringify(payload),
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include", // 👈 This ensures cookies are sent
+		}
+	).then(async (e) => await e.json());
 	return result as { success: boolean; data: schema.TaskWithLabels; error?: string };
 }
 
@@ -400,14 +403,17 @@ export async function updateAssigneesToTaskAction(
 		assignees: assignees,
 	};
 
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/project/task/update-assignees`, {
-		method: "POST",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include", // 👈 This ensures cookies are sent
-	}).then(async (e) => await e.json());
+	const result = await fetch(
+		`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/update-assignees`,
+		{
+			method: "POST",
+			body: JSON.stringify(payload),
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include", // 👈 This ensures cookies are sent
+		}
+	).then(async (e) => await e.json());
 	return result as { success: boolean; data: schema.TaskWithLabels; error?: string };
 }
 
@@ -445,7 +451,7 @@ export async function createLabelAction(
 		wsClientId,
 	};
 
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/create-label`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/create-label`, {
 		method: "POST",
 		body: JSON.stringify(payload),
 		headers: {

@@ -128,10 +128,10 @@ export async function checkMembershipRole(
 ): Promise<boolean> {
 	if (!userId) return false;
 
-	const role = await db
+	const [role] = await db
 		.select()
 		.from(schema.member)
 		.where(and(eq(schema.member.userId, userId), eq(schema.member.organizationId, orgId)));
 
-	return allowedRoles.includes(role[0]?.role || "");
+	return allowedRoles.includes(role?.role || "");
 }

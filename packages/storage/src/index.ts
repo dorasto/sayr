@@ -60,7 +60,7 @@ export async function uploadObject(
 	const size = typeof data === "string" || Buffer.isBuffer(data) ? Buffer.byteLength(data) : undefined;
 
 	await minioClient.putObject(
-		process.env.STORAGE_BUCKET || "",
+		BUCKET,
 		finalKey,
 		data,
 		size,
@@ -79,7 +79,7 @@ export async function uploadObject(
 export function listFileObjects(prefix = "", recursive = true): Promise<Minio.BucketItem[]> {
 	return new Promise((resolve, reject) => {
 		const items: Minio.BucketItem[] = [];
-		const stream = minioClient.listObjectsV2(process.env.STORAGE_BUCKET || "", prefix, recursive);
+		const stream = minioClient.listObjectsV2(BUCKET, prefix, recursive);
 
 		stream.on("data", (obj: Minio.BucketItem & { name?: string }) => {
 			if (obj.name) {
@@ -116,15 +116,18 @@ export function listFileObjects(prefix = "", recursive = true): Promise<Minio.Bu
  * });
  * ```
  */
-export async function listFileObjectsWithMetadata(prefix = "", recursive = true): Promise<Minio.BucketItem[]> {
+type BucketType = Minio.BucketItem & {
+	url: string;
+	originalName: string;
+};
+export async function listFileObjectsWithMetadata(prefix = "", recursive = true): Promise<BucketType[]> {
 	return new Promise((resolve, reject) => {
-		const items: Minio.BucketItem[] = [];
-		const bucket = process.env.STORAGE_BUCKET || "";
-		const stream = minioClient.listObjectsV2(bucket, prefix, recursive);
+		const items: BucketType[] = [];
+		const stream = minioClient.listObjectsV2(BUCKET, prefix, recursive);
 
-		stream.on("data", (obj: Minio.BucketItem & { name?: string }) => {
+		stream.on("data", (obj: BucketType & { name?: string }) => {
 			if (obj.name) {
-				items.push({ ...obj, name: obj.name } as Minio.BucketItem);
+				items.push({ ...obj, name: obj.name } as BucketType);
 			}
 		});
 
@@ -136,7 +139,7 @@ export async function listFileObjectsWithMetadata(prefix = "", recursive = true)
 				const stats = await Promise.all(
 					items.map(async (item) => {
 						if (!item.name) return null;
-						const stat = await minioClient.statObject(bucket, item.name);
+						const stat = await minioClient.statObject(BUCKET, item.name);
 						return { item, stat };
 					})
 				);
@@ -161,9 +164,9 @@ export async function listFileObjectsWithMetadata(prefix = "", recursive = true)
 						const userId = stat.metaData["user-id"];
 						return {
 							...item,
-							metaData: stat.metaData,
-							contentType: stat.metaData["content-type"],
+							url: item.url,
 							lastModified: stat.lastModified,
+							originalName: stat.metaData?.originalname,
 							user: userId
 								? {
 										id: userId,
@@ -171,6 +174,7 @@ export async function listFileObjectsWithMetadata(prefix = "", recursive = true)
 										image: userMap.get(userId)?.image,
 									}
 								: undefined,
+							contentType: stat.metaData["content-type"],
 						};
 					});
 

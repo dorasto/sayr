@@ -30,7 +30,9 @@ export default function ProjectPage() {
 	const { value: labels, setValue: setLabels } = useStateManagement<schema.labelType[]>("labels", [], 1);
 	const [openNew, setOpenNew] = useState(false);
 	const [openProjectSettings, setOpenProjectSettings] = useState(false);
-
+	if (!organization || !project || !tasks) {
+		return;
+	}
 	return (
 		<div className="flex items-center gap-3 w-full">
 			<div className="flex items-center gap-2 shrink-0 rounded bg-accent border px-3 py-0.5 h-9 shadow-xs w-fit justify-start">

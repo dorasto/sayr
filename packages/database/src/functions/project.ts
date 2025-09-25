@@ -32,7 +32,7 @@ import { db, schema } from "..";
  * }
  * ```
  */
-export async function createProject(orgId: string, name: string, description: string) {
+export async function createProject(orgId: string, name: string, description: string, visibility: string) {
 	// Step 1: Check if project already exists in this org
 	const foundProject = await db.query.project.findFirst({
 		where: (project) => and(eq(project.organizationId, orgId), eq(project.name, name)),
@@ -52,6 +52,7 @@ export async function createProject(orgId: string, name: string, description: st
 			organizationId: orgId,
 			name: name,
 			description: description,
+			visibility: visibility,
 		})
 		.returning();
 
@@ -72,4 +73,32 @@ export async function getProjectById(orgId: string, projectId: string) {
 	return db.query.project.findFirst({
 		where: (p) => and(eq(p.organizationId, orgId), eq(p.id, projectId)),
 	});
+}
+
+/**
+ * Fetches a single organization by its unique slug.
+ *
+ * @param org_slug - The unique slug identifier of the organization.
+ * @returns A promise that resolves to the organization's data if found,
+ * or `null` if no organization exists with the given slug.
+ *
+ * @example
+ * ```ts
+ * const org = await getOrganizationPublic("my-cool-org");
+ *
+ * if (org) {
+ *   console.log(`Organization: ${org.name} (${org.slug})`);
+ * } else {
+ *   console.log("Organization not found.");
+ * }
+ * ```
+ */
+export async function getProjectsByIdPublic(orgId: string) {
+	const projects = await db.query.project.findMany({
+		where: (project) => and(eq(project.organizationId, orgId), eq(project.visibility, "public")),
+	});
+	if (projects) {
+		return projects;
+	}
+	return null;
 }
