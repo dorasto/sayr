@@ -15,12 +15,7 @@ export type AppEnv = {
 	};
 };
 
-const app = new Hono<{
-	Variables: {
-		user: typeof auth.$Infer.Session.user | null;
-		session: typeof auth.$Infer.Session.session | null;
-	};
-}>();
+const app = new Hono<AppEnv>();
 app.use(logger());
 app.use(
 	"*",
@@ -50,7 +45,6 @@ app.route("/", wsRoute);
 app.route("/api", apiRoute);
 app.get("/ws", serveStatic({ path: "./public/ws.html" }));
 app.all("*", (c) => {
-	c.req.method;
 	const responseBody = generateNotFoundResponse(c.req.method, c.req.path);
 	return c.json(responseBody, 404);
 });
