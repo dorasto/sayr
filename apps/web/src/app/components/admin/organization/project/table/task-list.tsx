@@ -5,6 +5,8 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useMemo, useState } from "react";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
+import { applyFilters } from "../filters/filter-config";
+import type { FilterState } from "../filters/types";
 import { StatusSectionHeader } from "./status-section-header";
 import { TaskContent } from "./task-content";
 import { TaskListItem } from "./task-list-item";
@@ -30,12 +32,18 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 		null,
 		3000
 	);
+	const { value: filterState } = useStateManagement<FilterState>("task-filters", { groups: [], operator: "AND" }, 1);
 	const [isTaskContentOpen, setIsTaskContentOpen] = useState(false);
+
+	// Apply filters to tasks
+	const filteredTasks = useMemo(() => {
+		return applyFilters(tasks, filterState);
+	}, [tasks, filterState]);
 	const handlers: WSMessageHandler<WSMessage> = {
 		UPDATE_TASK: (msg) => {
 			const updatedTask = msg.data;
-			tasks = tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));
-			setTasks(tasks);
+			const updatedTasks = tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));
+			setTasks(updatedTasks);
 			if (selectedTask && selectedTask.id === updatedTask.id) {
 				setSelectedTask({ ...selectedTask, ...updatedTask });
 			}
@@ -63,7 +71,7 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 	};
 
 	const handleTaskClick = (taskId: string) => {
-		const task = tasks.find((t) => t.id === taskId);
+		const task = filteredTasks.find((t) => t.id === taskId);
 		if (task) {
 			setSelectedTask(task);
 			setIsTaskContentOpen(true);
@@ -89,8 +97,8 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 			groups[status] = [];
 		});
 
-		// Group tasks by status
-		tasks.forEach((task) => {
+		// Group filtered tasks by status
+		filteredTasks.forEach((task) => {
 			const status = task.status || "backlog";
 			if (!groups[status]) {
 				groups[status] = [];
@@ -109,7 +117,7 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 					count: statusTasks.length,
 				};
 			});
-	}, [tasks]);
+	}, [filteredTasks]);
 
 	return (
 		<div className="rounded h-full">

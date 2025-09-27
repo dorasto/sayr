@@ -1,18 +1,17 @@
 "use client";
+import { TaskFilterDropdown } from "@/app/components/admin/organization/project/filters/task-filter-dropdown";
 import type { schema } from "@repo/database";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
-	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@repo/ui/components/breadcrumb";
 import { Button } from "@repo/ui/components/button";
-import { Label } from "@repo/ui/components/label";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconMenu2, IconPlus, IconSettings, IconSlash } from "@tabler/icons-react";
+import { IconPlus, IconSettings, IconSlash } from "@tabler/icons-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
@@ -30,6 +29,9 @@ export default function ProjectPage() {
 	const { value: labels, setValue: setLabels } = useStateManagement<schema.labelType[]>("labels", [], 1);
 	const [openNew, setOpenNew] = useState(false);
 	const [openProjectSettings, setOpenProjectSettings] = useState(false);
+
+	// Extract users from organization members for filter dropdown
+	const availableUsers = organization?.members.map((member) => member.user) || [];
 	if (!organization || !project || !tasks) {
 		return (
 			<Skeleton className="flex items-center gap-2 shrink-0 rounded bg-accent border px-3 py-0.5 h-9 shadow-xs w-full justify-start" />
@@ -61,6 +63,10 @@ export default function ProjectPage() {
 					</BreadcrumbList>
 				</Breadcrumb>
 			</div>
+
+			{/* Task Filters */}
+			<TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers} />
+
 			<Button variant={"accent"} size={"sm"} className="h-9" onClick={() => setOpenNew(true)}>
 				<IconPlus />
 				<span className="text-inherit">New task</span>
