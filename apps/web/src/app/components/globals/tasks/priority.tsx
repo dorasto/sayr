@@ -18,7 +18,7 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
-import { priorityConfig } from "../../admin/organization/project/table/task-list-item";
+import { priorityConfig } from "../../admin/organization/project/shared/task-config";
 
 interface GlobalTaskPriorityProps {
 	task: schema.TaskWithLabels;

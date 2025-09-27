@@ -17,16 +17,9 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { Input } from "@repo/ui/components/input";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import {
-	IconChevronDown,
-	IconChevronUp,
-	IconCircleMinus,
-	IconFilter,
-	IconFlame,
-	IconSearch,
-	IconX,
-} from "@tabler/icons-react";
+import { IconFilter, IconSearch, IconX } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
+import { priorityConfig, statusConfig } from "../shared/task-config";
 import { FILTER_FIELD_CONFIGS } from "./filter-config";
 import type { FilterCondition, FilterField, FilterGroup, FilterOperator, FilterState } from "./types";
 
@@ -169,43 +162,27 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 			config.field.toLowerCase().includes(mainSearch.toLowerCase())
 	);
 
-	// Get available statuses from tasks
+	// Get available statuses from shared config
 	const getFilteredStatuses = () => {
-		const statusOptions = [
-			{ id: "backlog", name: "Backlog", value: "backlog", color: "#6b7280" },
-			{ id: "todo", name: "Todo", value: "todo", color: "#3b82f6" },
-			{ id: "in-progress", name: "In Progress", value: "in-progress", color: "#f59e0b" },
-			{ id: "done", name: "Done", value: "done", color: "#10b981" },
-			{ id: "canceled", name: "Canceled", value: "canceled", color: "#ef4444" },
-		];
+		const statusOptions = Object.entries(statusConfig).map(([value, config]) => ({
+			id: value,
+			name: config.label,
+			value,
+			color: config.color,
+			icon: config.icon("w-3 h-3"),
+		}));
 		return statusOptions.filter((status) => status.name.toLowerCase().includes(subSearch.toLowerCase()));
 	};
 
-	// Get available priorities
+	// Get available priorities from shared config
 	const getFilteredPriorities = () => {
-		const priorities = [
-			{ name: "Low", value: "low" },
-			{ name: "Medium", value: "medium" },
-			{ name: "High", value: "high" },
-			{ name: "Urgent", value: "urgent" },
-		];
+		const priorities = Object.entries(priorityConfig).map(([value, config]) => ({
+			name: config.label,
+			value,
+			color: config.color,
+			icon: config.icon("w-3 h-3"),
+		}));
 		return priorities.filter((priority) => priority.name.toLowerCase().includes(subSearch.toLowerCase()));
-	};
-
-	// Get priority icon
-	const getPriorityIcon = (priority: string) => {
-		switch (priority) {
-			case "Urgent":
-				return <IconFlame className="w-3 h-3 text-red-500" />;
-			case "High":
-				return <IconChevronUp className="w-3 h-3 text-orange-500" />;
-			case "Medium":
-				return <IconCircleMinus className="w-3 h-3 text-yellow-500" />;
-			case "Low":
-				return <IconChevronDown className="w-3 h-3 text-gray-500" />;
-			default:
-				return null;
-		}
 	};
 
 	// Get filtered members
@@ -227,7 +204,11 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 			{/* Filter Tags */}
 			{filterState.groups.map((group) =>
 				group.conditions.map((condition) => (
-					<Badge key={condition.id} variant="secondary" className="flex items-center gap-1 pr-1">
+					<Badge
+						key={condition.id}
+						variant="outline"
+						className="flex items-center gap-1 pr-1 h-9 rounded bg-accent"
+					>
 						<span className="text-xs flex items-center gap-1">
 							<span>{FILTER_FIELD_CONFIGS.find((c) => c.field === condition.field)?.label}</span>
 
@@ -243,8 +224,6 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent className="w-40">
-									<DropdownMenuLabel className="text-xs">Change operator</DropdownMenuLabel>
-									<DropdownMenuSeparator />
 									{getAvailableOperators(condition.field).map((operator) => (
 										<DropdownMenuItem
 											key={operator}
@@ -292,31 +271,22 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 				}}
 			>
 				<DropdownMenuTrigger asChild>
-					<Button
-						variant="outline"
-						size="sm"
-						className={`gap-2 ${activeFiltersCount > 0 ? "border-primary" : ""}`}
-					>
+					<Button variant="accent" size="icon" className={`gap-2 h-9 aspect-square`}>
 						<IconFilter className="w-4 h-4" />
-						<span>Filter</span>
-						{activeFiltersCount > 0 && (
-							<Badge variant="secondary" className="ml-1">
-								{activeFiltersCount}
-							</Badge>
-						)}
 					</Button>
 				</DropdownMenuTrigger>
 
 				<DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
 					{/* Main Search Input */}
-					<div className="p-2">
+					<div className="">
 						<div className="relative">
 							<IconSearch className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
 							<Input
 								placeholder="Search filters..."
 								value={mainSearch}
 								onChange={(e) => setMainSearch(e.target.value)}
-								className="pl-8 h-8"
+								className="pl-8 h-8 bg-transparent"
+								variant={"ghost"}
 							/>
 						</div>
 					</div>
@@ -360,14 +330,15 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 									</DropdownMenuSubTrigger>
 									<DropdownMenuSubContent className="w-56 max-h-80 overflow-y-auto">
 										{/* Sub-menu search */}
-										<div className="p-2">
+										<div className="">
 											<div className="relative">
 												<IconSearch className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
 												<Input
 													placeholder={`Search ${config.label.toLowerCase()}...`}
 													value={subSearch}
 													onChange={(e) => setSubSearch(e.target.value)}
-													className="pl-8 h-8"
+													className="pl-8 h-8 bg-transparent"
+													variant={"ghost"}
 												/>
 											</div>
 										</div>
@@ -382,10 +353,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 														className="flex items-center gap-2 cursor-pointer"
 														onClick={() => handleFilterAdd("status", "equals", status.value)}
 													>
-														<div
-															className="w-3 h-3 rounded-full border"
-															style={{ backgroundColor: status.color }}
-														/>
+														<div className="w-3 h-3">{status.icon}</div>
 														<span>{status.name}</span>
 													</DropdownMenuItem>
 												))}
@@ -401,7 +369,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 														className="flex items-center gap-2 cursor-pointer"
 														onClick={() => handleFilterAdd("priority", "equals", priority.value)}
 													>
-														<div className="w-3 h-3">{getPriorityIcon(priority.name)}</div>
+														<div className="w-3 h-3">{priority.icon}</div>
 														<span>{priority.name}</span>
 													</DropdownMenuItem>
 												))}
@@ -452,10 +420,10 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 														onClick={() => handleFilterAdd("label", "in", label.name)}
 													>
 														<div
-															className="w-3 h-3 rounded-sm"
+															className="w-3 h-3 rounded-full shrink-0"
 															style={{ backgroundColor: label.color || "#gray" }}
 														/>
-														<span>{label.name}</span>
+														<span className="truncate">{label.name}</span>
 													</DropdownMenuItem>
 												))}
 												<DropdownMenuSeparator />

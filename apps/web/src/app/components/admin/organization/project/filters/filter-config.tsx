@@ -1,36 +1,36 @@
 import type { schema } from "@repo/database";
-import { IconCalendar, IconCircle, IconFlag, IconTag, IconTextSize, IconUser } from "@tabler/icons-react";
+import { IconCalendar, IconTag, IconTextSize, IconUser } from "@tabler/icons-react";
+import { priorityConfig, statusConfig } from "../shared/task-config";
 import type { FilterCondition, FilterFieldConfig, FilterOperator, FilterState } from "./types";
 
-// Status options with colors matching your system
-const STATUS_OPTIONS = [
-	{ value: "backlog", label: "Backlog", color: "#6B7280" },
-	{ value: "todo", label: "Todo", color: "#3B82F6" },
-	{ value: "in-progress", label: "In Progress", color: "#F59E0B" },
-	{ value: "done", label: "Done", color: "#10B981" },
-	{ value: "canceled", label: "Canceled", color: "#EF4444" },
-];
+// Convert status config to filter options
+const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({
+	value,
+	label: config.label,
+	color: config.color,
+	icon: config.icon("w-4 h-4"),
+}));
 
-const PRIORITY_OPTIONS = [
-	{ value: "none", label: "No Priority", color: "#9CA3AF" },
-	{ value: "low", label: "Low", color: "#3B82F6" },
-	{ value: "medium", label: "Medium", color: "#F59E0B" },
-	{ value: "high", label: "High", color: "#EF4444" },
-	{ value: "urgent", label: "Urgent", color: "#DC2626" },
-];
+// Convert priority config to filter options
+const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(([value, config]) => ({
+	value,
+	label: config.label,
+	color: config.color,
+	icon: config.icon("w-4 h-4"),
+}));
 
 export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 	{
 		field: "status",
 		label: "Status",
-		icon: <IconCircle className="w-4 h-4" />,
+		icon: statusConfig.todo.icon("w-4 h-4"), // Use a representative status icon
 		operators: ["equals", "not_equals", "in", "not_in"],
 		getOptions: () => STATUS_OPTIONS,
 	},
 	{
 		field: "priority",
 		label: "Priority",
-		icon: <IconFlag className="w-4 h-4" />,
+		icon: priorityConfig.medium.icon("w-4 h-4"), // Use a representative priority icon
 		operators: ["equals", "not_equals", "in", "not_in"],
 		getOptions: () => PRIORITY_OPTIONS,
 	},

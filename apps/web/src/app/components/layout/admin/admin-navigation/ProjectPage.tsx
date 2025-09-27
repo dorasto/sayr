@@ -1,5 +1,4 @@
 "use client";
-import { TaskFilterDropdown } from "@/app/components/admin/organization/project/filters/task-filter-dropdown";
 import type { schema } from "@repo/database";
 import {
 	Breadcrumb,
@@ -14,6 +13,7 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconPlus, IconSettings, IconSlash } from "@tabler/icons-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { TaskFilterDropdown } from "@/app/components/admin/organization/project/filters/task-filter-dropdown";
 
 const CreateIssueDialog = dynamic(() => import("@/app/components/admin/organization/project/issue/creator"), {
 	ssr: false,
@@ -58,8 +58,6 @@ export default function ProjectPage() {
 								<IconSettings className="!size-4" /> {project?.name}
 							</Button>
 						</BreadcrumbItem>
-
-						{/* <BreadcrumbItem><BreadcrumbPage>#{task.shortId}</BreadcrumbPage></BreadcrumbItem> */}
 					</BreadcrumbList>
 				</Breadcrumb>
 			</div>

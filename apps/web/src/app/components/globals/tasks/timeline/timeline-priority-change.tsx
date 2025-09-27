@@ -1,7 +1,7 @@
 import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowRight } from "@tabler/icons-react";
-import { priorityConfig } from "../../../admin/organization/project/table/task-list-item";
+import { priorityConfig } from "@/app/components/admin/organization/project/shared/task-config";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 

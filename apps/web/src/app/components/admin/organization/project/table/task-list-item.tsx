@@ -18,16 +18,15 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@repo/ui/components/context-menu";
-import PriorityIcon from "@repo/ui/components/icons/priority";
-import StatusIcon from "@repo/ui/components/icons/status";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
-import { IconAlertSquareFilled, IconCircleFilled, IconUserOff } from "@tabler/icons-react";
+import { IconCircleFilled, IconUserOff } from "@tabler/icons-react";
 import { useRef, useState } from "react";
 import GlobalTaskAssignees from "@/app/components/globals/tasks/assignee";
 import { RenderLabel } from "@/app/components/globals/tasks/label";
 import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 import GlobalTaskStatus from "@/app/components/globals/tasks/status";
+import { priorityConfig, statusConfig } from "../shared/task-config";
 
 interface TaskListItemProps {
 	task: schema.TaskWithLabels;
@@ -40,62 +39,6 @@ interface TaskListItemProps {
 	setTasks?: (tasks: schema.TaskWithLabels[]) => void;
 	availableUsers?: schema.userType[];
 }
-
-export const statusConfig = {
-	backlog: {
-		label: "Backlog",
-		icon: (className: string) => <StatusIcon status="backlog" className={className} />,
-		className: "text-muted-foreground",
-	},
-	todo: {
-		label: "Todo",
-		icon: (className: string) => <StatusIcon status="todo" className={className} />,
-		className: "text-foreground",
-	},
-	"in-progress": {
-		label: "In Progress",
-		icon: (className: string) => <StatusIcon status="in-progress" className={className} />,
-		className: "text-primary fill-primary",
-	},
-	done: {
-		label: "Done",
-		icon: (className: string) => <StatusIcon status="done" className={className} />,
-		className: "text-success",
-	},
-	canceled: {
-		label: "Canceled",
-		icon: (className: string) => <StatusIcon status="canceled" className={className} />,
-		className: "text-desctructive",
-	},
-};
-
-export const priorityConfig = {
-	low: {
-		label: "Low",
-		icon: (className: string) => <PriorityIcon bars={1} className={className} />,
-		className: "text-gray-500",
-	},
-	medium: {
-		label: "Medium",
-		icon: (className: string) => <PriorityIcon bars={2} className={className} />,
-		className: "text-yellow-500",
-	},
-	high: {
-		label: "High",
-		icon: (className: string) => <PriorityIcon bars={3} className={className} />,
-		className: "text-red-500",
-	},
-	urgent: {
-		label: "Urgent",
-		icon: (className: string) => <IconAlertSquareFilled className={className} />,
-		className: " text-destructive",
-	},
-	none: {
-		label: "None",
-		icon: (className: string) => <PriorityIcon bars="none" className={className} />,
-		className: "text-gray-400",
-	},
-};
 
 export function TaskListItem({
 	task,
