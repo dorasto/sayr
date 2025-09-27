@@ -169,9 +169,7 @@ function ComboBoxContent({ children, className, align = "start", side = "bottom"
 					e.stopPropagation();
 				}}
 			>
-				<Command shouldFilter={false}>
-					{children}
-				</Command>
+				<Command shouldFilter={false}>{children}</Command>
 			</PopoverContent>
 		);
 	}
@@ -179,9 +177,7 @@ function ComboBoxContent({ children, className, align = "start", side = "bottom"
 	return (
 		<DrawerContent>
 			<div className="mt-4 border-t">
-				<Command shouldFilter={false}>
-					{children}
-				</Command>
+				<Command shouldFilter={false}>{children}</Command>
 			</div>
 		</DrawerContent>
 	);
@@ -238,9 +234,7 @@ interface ComboBoxListProps {
 }
 
 function ComboBoxList({ children, className }: ComboBoxListProps) {
-	return (
-		<CommandList className={className}>{children}</CommandList>
-	);
+	return <CommandList className={className}>{children}</CommandList>;
 }
 
 // Empty component
