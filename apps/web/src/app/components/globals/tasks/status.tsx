@@ -122,8 +122,8 @@ export default function GlobalTaskStatus({
 						</ComboBoxTrigger>
 					)}
 					<ComboBoxContent className="">
+						<ComboBoxSearch icon placeholder="Update status to..." />
 						<ComboBoxList>
-							<ComboBoxSearch icon placeholder="Update status to..." />
 							<ComboBoxEmpty>Not found</ComboBoxEmpty>
 							<ComboBoxGroup>
 								{Object.entries(statusConfig).map(([key, config]) => (

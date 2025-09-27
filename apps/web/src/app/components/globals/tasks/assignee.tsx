@@ -156,8 +156,8 @@ export default function GlobalTaskAssignees({
 					)}
 
 					<ComboBoxContent className="" align={align} side={side}>
+						<ComboBoxSearch placeholder="Assign to..." />
 						<ComboBoxList>
-							<ComboBoxSearch placeholder="Assign to..." />
 							<ComboBoxEmpty>No users found.</ComboBoxEmpty>
 							<ComboBoxGroup>
 								{availableUsers.map((user) => (

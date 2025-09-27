@@ -133,8 +133,8 @@ export default function GlobalTaskPriority({
 						</ComboBoxTrigger>
 					)}
 					<ComboBoxContent className="">
+						<ComboBoxSearch icon placeholder="Update priority to..." />
 						<ComboBoxList>
-							<ComboBoxSearch icon placeholder="Update priority to..." />
 							<ComboBoxEmpty>Not found</ComboBoxEmpty>
 							<ComboBoxGroup>
 								{Object.entries(priorityConfig).map(([key, config]) => (

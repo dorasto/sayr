@@ -57,9 +57,9 @@ export default function GlobalTaskLabels({
 						<ComboBoxTrigger disabled={!editable} className="h-5 w-5 aspect-square p-0 justify-center">
 							<IconPlus />
 						</ComboBoxTrigger>
-						<ComboBoxContent className="w-[220px]">
+						<ComboBoxContent className="">
+							<ComboBoxSearch placeholder="Search labels..." />
 							<ComboBoxList>
-								<ComboBoxSearch placeholder="Search labels..." />
 								<ComboBoxEmpty>No labels found.</ComboBoxEmpty>
 								<ComboBoxGroup>
 									{availableLabels.map((label) => (

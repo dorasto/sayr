@@ -163,17 +163,26 @@ function ComboBoxContent({ children, className, align = "start", side = "bottom"
 				className={cn("w-full p-0", className)}
 				align={align}
 				side={side}
-				onCloseAutoFocus={(e) => e.preventDefault()}
 				onOpenAutoFocus={(e) => e.preventDefault()}
+				onWheel={(e) => {
+					// Allow wheel events to bubble for scrolling
+					e.stopPropagation();
+				}}
 			>
-				{children}
+				<Command shouldFilter={false}>
+					{children}
+				</Command>
 			</PopoverContent>
 		);
 	}
 
 	return (
 		<DrawerContent>
-			<div className="mt-4 border-t">{children}</div>
+			<div className="mt-4 border-t">
+				<Command shouldFilter={false}>
+					{children}
+				</Command>
+			</div>
 		</DrawerContent>
 	);
 }
@@ -225,13 +234,12 @@ function ComboBoxSearch({ placeholder = "Search...", className, icon }: ComboBox
 // List component
 interface ComboBoxListProps {
 	children: React.ReactNode;
+	className?: string;
 }
 
-function ComboBoxList({ children }: ComboBoxListProps) {
+function ComboBoxList({ children, className }: ComboBoxListProps) {
 	return (
-		<Command>
-			<CommandList>{children}</CommandList>
-		</Command>
+		<CommandList className={className}>{children}</CommandList>
 	);
 }
 
@@ -250,7 +258,7 @@ interface ComboBoxGroupProps {
 }
 
 function ComboBoxGroup({ children }: ComboBoxGroupProps) {
-	return <CommandGroup>{children}</CommandGroup>;
+	return <CommandGroup className="flex-1">{children}</CommandGroup>;
 }
 
 // Item component
@@ -291,22 +299,7 @@ function ComboBoxItem({ value, children, disabled, onSelect }: ComboBoxItemProps
 	};
 
 	return (
-		<CommandItem
-			value={value}
-			disabled={disabled}
-			onSelect={handleSelect}
-			onMouseDown={(e) => {
-				// Prevent the mouse down from creating a synthetic click event
-				// that could bubble up to parent elements when the popover closes
-				e.preventDefault();
-				e.stopPropagation();
-			}}
-			onClick={(e) => {
-				// Extra safety: prevent any click events from bubbling
-				e.preventDefault();
-				e.stopPropagation();
-			}}
-		>
+		<CommandItem value={value} disabled={disabled} onSelect={handleSelect}>
 			{children}
 			{isSelected && <CheckIcon className="h-4 w-4 ml-auto" />}
 		</CommandItem>
