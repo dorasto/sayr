@@ -1,9 +1,9 @@
 "use client";
 
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import { Input } from "@repo/ui/components/input";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -15,12 +15,20 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Input } from "@repo/ui/components/input";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconFilter, IconSearch, IconX, IconFlame, IconCircleMinus, IconChevronUp, IconChevronDown } from "@tabler/icons-react";
+import {
+	IconChevronDown,
+	IconChevronUp,
+	IconCircleMinus,
+	IconFilter,
+	IconFlame,
+	IconSearch,
+	IconX,
+} from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { FILTER_FIELD_CONFIGS } from "./filter-config";
-import type { FilterCondition, FilterState, FilterOperator, FilterField, FilterGroup } from "./types";
+import type { FilterCondition, FilterField, FilterGroup, FilterOperator, FilterState } from "./types";
 
 interface TaskFilterDropdownProps {
 	tasks: schema.TaskWithLabels[];
@@ -54,18 +62,30 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 	// Get human-readable operator labels for badges
 	const getOperatorLabel = (operator: FilterOperator): string => {
 		switch (operator) {
-			case 'equals': return 'is';
-			case 'not_equals': return 'is not';
-			case 'in': return 'is any of';
-			case 'not_in': return 'is none of';
-			case 'contains': return 'contains';
-			case 'not_contains': return 'does not contain';
-			case 'before': return 'before';
-			case 'after': return 'after';
-			case 'between': return 'between';
-			case 'is_empty': return 'is empty';
-			case 'is_not_empty': return 'is not empty';
-			default: return operator;
+			case "equals":
+				return "is";
+			case "not_equals":
+				return "is not";
+			case "in":
+				return "is any of";
+			case "not_in":
+				return "is none of";
+			case "contains":
+				return "contains";
+			case "not_contains":
+				return "does not contain";
+			case "before":
+				return "before";
+			case "after":
+				return "after";
+			case "between":
+				return "between";
+			case "is_empty":
+				return "is empty";
+			case "is_not_empty":
+				return "is not empty";
+			default:
+				return operator;
 		}
 	};
 
@@ -74,20 +94,19 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 		const newGroup: FilterGroup = {
 			id: `group-${Date.now()}`,
 			conditions: [condition],
-			operator: "AND"
+			operator: "AND",
 		};
-		
+
 		const newFilterState: FilterState = {
 			...filterState,
-			groups: filterState.groups.length > 0
-				? filterState.groups.map((group, index) => 
-					index === 0 
-						? { ...group, conditions: [...group.conditions, condition] }
-						: group
-				)
-				: [newGroup]
+			groups:
+				filterState.groups.length > 0
+					? filterState.groups.map((group, index) =>
+							index === 0 ? { ...group, conditions: [...group.conditions, condition] } : group
+						)
+					: [newGroup],
 		};
-		
+
 		setFilterState(newFilterState);
 	};
 
@@ -95,12 +114,14 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 	const removeFilter = (filterId: string) => {
 		const newFilterState: FilterState = {
 			...filterState,
-			groups: filterState.groups.map(group => ({
-				...group,
-				conditions: group.conditions.filter(condition => condition.id !== filterId)
-			})).filter(group => group.conditions.length > 0)
+			groups: filterState.groups
+				.map((group) => ({
+					...group,
+					conditions: group.conditions.filter((condition) => condition.id !== filterId),
+				}))
+				.filter((group) => group.conditions.length > 0),
 		};
-		
+
 		setFilterState(newFilterState);
 	};
 
@@ -108,23 +129,21 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 	const updateFilterOperator = (filterId: string, newOperator: FilterOperator) => {
 		const newFilterState: FilterState = {
 			...filterState,
-			groups: filterState.groups.map(group => ({
+			groups: filterState.groups.map((group) => ({
 				...group,
-				conditions: group.conditions.map(condition => 
-					condition.id === filterId 
-						? { ...condition, operator: newOperator }
-						: condition
-				)
-			}))
+				conditions: group.conditions.map((condition) =>
+					condition.id === filterId ? { ...condition, operator: newOperator } : condition
+				),
+			})),
 		};
-		
+
 		setFilterState(newFilterState);
 	};
 
 	// Get available operators for a field
 	const getAvailableOperators = (fieldName: FilterField): FilterOperator[] => {
-		const config = FILTER_FIELD_CONFIGS.find(c => c.field === fieldName);
-		return config?.operators || ['equals'];
+		const config = FILTER_FIELD_CONFIGS.find((c) => c.field === fieldName);
+		return config?.operators || ["equals"];
 	};
 
 	// Clear all filters
@@ -144,62 +163,63 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 	};
 
 	// Filter configs based on search
-	const filteredConfigs = FILTER_FIELD_CONFIGS.filter(config =>
-		config.label.toLowerCase().includes(mainSearch.toLowerCase()) ||
-		config.field.toLowerCase().includes(mainSearch.toLowerCase())
+	const filteredConfigs = FILTER_FIELD_CONFIGS.filter(
+		(config) =>
+			config.label.toLowerCase().includes(mainSearch.toLowerCase()) ||
+			config.field.toLowerCase().includes(mainSearch.toLowerCase())
 	);
 
 	// Get available statuses from tasks
 	const getFilteredStatuses = () => {
 		const statusOptions = [
-			{ id: 'backlog', name: 'Backlog', value: 'backlog', color: '#6b7280' },
-			{ id: 'todo', name: 'Todo', value: 'todo', color: '#3b82f6' },
-			{ id: 'in-progress', name: 'In Progress', value: 'in-progress', color: '#f59e0b' },
-			{ id: 'done', name: 'Done', value: 'done', color: '#10b981' },
-			{ id: 'canceled', name: 'Canceled', value: 'canceled', color: '#ef4444' },
+			{ id: "backlog", name: "Backlog", value: "backlog", color: "#6b7280" },
+			{ id: "todo", name: "Todo", value: "todo", color: "#3b82f6" },
+			{ id: "in-progress", name: "In Progress", value: "in-progress", color: "#f59e0b" },
+			{ id: "done", name: "Done", value: "done", color: "#10b981" },
+			{ id: "canceled", name: "Canceled", value: "canceled", color: "#ef4444" },
 		];
-		return statusOptions.filter(status =>
-			status.name.toLowerCase().includes(subSearch.toLowerCase())
-		);
+		return statusOptions.filter((status) => status.name.toLowerCase().includes(subSearch.toLowerCase()));
 	};
 
 	// Get available priorities
 	const getFilteredPriorities = () => {
 		const priorities = [
-			{ name: 'Low', value: 'low' },
-			{ name: 'Medium', value: 'medium' },
-			{ name: 'High', value: 'high' },
-			{ name: 'Urgent', value: 'urgent' }
+			{ name: "Low", value: "low" },
+			{ name: "Medium", value: "medium" },
+			{ name: "High", value: "high" },
+			{ name: "Urgent", value: "urgent" },
 		];
-		return priorities.filter(priority =>
-			priority.name.toLowerCase().includes(subSearch.toLowerCase())
-		);
+		return priorities.filter((priority) => priority.name.toLowerCase().includes(subSearch.toLowerCase()));
 	};
 
 	// Get priority icon
 	const getPriorityIcon = (priority: string) => {
 		switch (priority) {
-			case 'Urgent': return <IconFlame className="w-3 h-3 text-red-500" />;
-			case 'High': return <IconChevronUp className="w-3 h-3 text-orange-500" />;
-			case 'Medium': return <IconCircleMinus className="w-3 h-3 text-yellow-500" />;
-			case 'Low': return <IconChevronDown className="w-3 h-3 text-gray-500" />;
-			default: return null;
+			case "Urgent":
+				return <IconFlame className="w-3 h-3 text-red-500" />;
+			case "High":
+				return <IconChevronUp className="w-3 h-3 text-orange-500" />;
+			case "Medium":
+				return <IconCircleMinus className="w-3 h-3 text-yellow-500" />;
+			case "Low":
+				return <IconChevronDown className="w-3 h-3 text-gray-500" />;
+			default:
+				return null;
 		}
 	};
 
 	// Get filtered members
 	const getFilteredMembers = () => {
-		return availableUsers.filter(user =>
-			user.name?.toLowerCase().includes(subSearch.toLowerCase()) ||
-			user.email?.toLowerCase().includes(subSearch.toLowerCase())
+		return availableUsers.filter(
+			(user) =>
+				user.name?.toLowerCase().includes(subSearch.toLowerCase()) ||
+				user.email?.toLowerCase().includes(subSearch.toLowerCase())
 		);
 	};
 
 	// Get filtered labels
 	const getFilteredLabels = () => {
-		return labels.filter(label =>
-			label.name.toLowerCase().includes(subSearch.toLowerCase())
-		);
+		return labels.filter((label) => label.name.toLowerCase().includes(subSearch.toLowerCase()));
 	};
 
 	return (
@@ -210,7 +230,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 					<Badge key={condition.id} variant="secondary" className="flex items-center gap-1 pr-1">
 						<span className="text-xs flex items-center gap-1">
 							<span>{FILTER_FIELD_CONFIGS.find((c) => c.field === condition.field)?.label}</span>
-							
+
 							{/* Clickable Operator */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -228,7 +248,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 									{getAvailableOperators(condition.field).map((operator) => (
 										<DropdownMenuItem
 											key={operator}
-											className={`text-xs ${operator === condition.operator ? 'bg-accent' : ''}`}
+											className={`text-xs ${operator === condition.operator ? "bg-accent" : ""}`}
 											onClick={() => updateFilterOperator(condition.id, operator)}
 										>
 											{getOperatorLabel(operator)}
@@ -236,17 +256,17 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 									))}
 								</DropdownMenuContent>
 							</DropdownMenu>
-							
-							{condition.value && condition.operator !== 'is_empty' && condition.operator !== 'is_not_empty' && (
-								<span>{
-									typeof condition.value === "string"
+
+							{condition.value && condition.operator !== "is_empty" && condition.operator !== "is_not_empty" && (
+								<span>
+									{typeof condition.value === "string"
 										? condition.label || condition.value
 										: Array.isArray(condition.value)
 											? condition.value.join(", ")
 											: condition.value instanceof Date
 												? condition.value.toLocaleDateString()
-												: ""
-								}</span>
+												: ""}
+								</span>
 							)}
 						</span>
 						<Button
@@ -262,13 +282,15 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 			)}
 
 			{/* Filter Dropdown */}
-			<DropdownMenu onOpenChange={(open) => {
-				if (!open) {
-					setMainSearch("");
-					setSubSearch("");
-					setOpenSubMenu(null);
-				}
-			}}>
+			<DropdownMenu
+				onOpenChange={(open) => {
+					if (!open) {
+						setMainSearch("");
+						setSubSearch("");
+						setOpenSubMenu(null);
+					}
+				}}
+			>
 				<DropdownMenuTrigger asChild>
 					<Button
 						variant="outline"
@@ -313,12 +335,15 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 
 					{/* Filter Options with Sub-menus */}
 					{Object.entries(
-						filteredConfigs.reduce((acc, config) => {
-							const category = 'Filters';
-							if (!acc[category]) acc[category] = [];
-							acc[category].push(config);
-							return acc;
-						}, {} as Record<string, typeof filteredConfigs>)
+						filteredConfigs.reduce(
+							(acc, config) => {
+								const category = "Filters";
+								if (!acc[category]) acc[category] = [];
+								acc[category].push(config);
+								return acc;
+							},
+							{} as Record<string, typeof filteredConfigs>
+						)
 					).map(([category, configs]) => (
 						<div key={category}>
 							<DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1">
@@ -326,7 +351,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 							</DropdownMenuLabel>
 							{configs.map((config) => (
 								<DropdownMenuSub key={config.field}>
-									<DropdownMenuSubTrigger 
+									<DropdownMenuSubTrigger
 										className="flex items-center gap-2"
 										onClick={() => handleSubMenuChange(config.field)}
 									>
@@ -347,18 +372,18 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 											</div>
 										</div>
 										<DropdownMenuSeparator />
-										
+
 										{/* Status Filters */}
-										{config.field === 'status' && (
+										{config.field === "status" && (
 											<>
 												{getFilteredStatuses().map((status) => (
 													<DropdownMenuItem
 														key={status.id}
 														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd('status', 'equals', status.value)}
+														onClick={() => handleFilterAdd("status", "equals", status.value)}
 													>
-														<div 
-															className="w-3 h-3 rounded-full border" 
+														<div
+															className="w-3 h-3 rounded-full border"
 															style={{ backgroundColor: status.color }}
 														/>
 														<span>{status.name}</span>
@@ -366,38 +391,42 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 												))}
 											</>
 										)}
-										
+
 										{/* Priority Filters */}
-										{config.field === 'priority' && (
+										{config.field === "priority" && (
 											<>
 												{getFilteredPriorities().map((priority) => (
 													<DropdownMenuItem
 														key={priority.value}
 														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd('priority', 'equals', priority.value)}
+														onClick={() => handleFilterAdd("priority", "equals", priority.value)}
 													>
-														<div className="w-3 h-3">
-															{getPriorityIcon(priority.name)}
-														</div>
+														<div className="w-3 h-3">{getPriorityIcon(priority.name)}</div>
 														<span>{priority.name}</span>
 													</DropdownMenuItem>
 												))}
 											</>
 										)}
-										
+
 										{/* Assignee Filters */}
-										{config.field === 'assignee' && (
+										{config.field === "assignee" && (
 											<>
 												{getFilteredMembers().map((user) => (
 													<DropdownMenuItem
 														key={user.id}
 														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd('assignee', 'equals', user.name || user.email || 'Unknown')}
+														onClick={() =>
+															handleFilterAdd("assignee", "equals", user.name || user.email || "Unknown")
+														}
 													>
 														<Avatar className="h-5 w-5">
 															<AvatarImage src={user.image || undefined} />
 															<AvatarFallback className="text-xs">
-																{(user.name || user.email || 'U')?.split(' ').map(n => n[0]).join('').toUpperCase()}
+																{(user.name || user.email || "U")
+																	?.split(" ")
+																	.map((n) => n[0])
+																	.join("")
+																	.toUpperCase()}
 															</AvatarFallback>
 														</Avatar>
 														<span>{user.name || user.email}</span>
@@ -406,25 +435,25 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 												<DropdownMenuSeparator />
 												<DropdownMenuItem
 													className="cursor-pointer text-muted-foreground"
-													onClick={() => handleFilterAdd('assignee', 'is_empty', '')}
+													onClick={() => handleFilterAdd("assignee", "is_empty", "")}
 												>
 													<span>Unassigned</span>
 												</DropdownMenuItem>
 											</>
 										)}
-										
+
 										{/* Label Filters */}
-										{config.field === 'label' && (
+										{config.field === "label" && (
 											<>
 												{getFilteredLabels().map((label) => (
 													<DropdownMenuItem
 														key={label.id}
 														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd('label', 'in', label.name)}
+														onClick={() => handleFilterAdd("label", "in", label.name)}
 													>
-														<div 
-															className="w-3 h-3 rounded-sm" 
-															style={{ backgroundColor: label.color || '#gray' }}
+														<div
+															className="w-3 h-3 rounded-sm"
+															style={{ backgroundColor: label.color || "#gray" }}
 														/>
 														<span>{label.name}</span>
 													</DropdownMenuItem>
@@ -432,7 +461,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 												<DropdownMenuSeparator />
 												<DropdownMenuItem
 													className="cursor-pointer text-muted-foreground"
-													onClick={() => handleFilterAdd('label', 'is_empty', '')}
+													onClick={() => handleFilterAdd("label", "is_empty", "")}
 												>
 													<span>No labels</span>
 												</DropdownMenuItem>
