@@ -115,6 +115,9 @@ export function TaskListItem({
 	const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
 	const preventClickRef = useRef(false);
 
+	// Check if any popover is currently open
+	const hasOpenPopover = statusPopoverOpen || priorityPopoverOpen || assigneePopoverOpen;
+
 	const handleTaskClick = (e: React.MouseEvent<HTMLDivElement>) => {
 		// Check if we should prevent this click
 		if (preventClickRef.current) {
@@ -227,7 +230,8 @@ export function TaskListItem({
 					<div
 						className={cn(
 							"px-4 group/list-block h-11 max-h-11 relative flex gap-3 bg-transparent hover:bg-accent py-3 text-sm transition-colors flex-row items-center rounded data-[state=open]:bg-accent",
-							isSelected && "bg-primary/10"
+							isSelected && "bg-primary/10",
+							hasOpenPopover && "bg-accent"
 						)}
 					>
 						{/* Left section with checkbox, task ID, and title */}
