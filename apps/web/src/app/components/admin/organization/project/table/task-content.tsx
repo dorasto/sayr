@@ -17,14 +17,7 @@ import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	IconArrowsDiagonal2,
-	IconArrowsDiagonalMinimize2,
-	IconArrowsHorizontal,
-	IconCode,
-	IconX,
-} from "@tabler/icons-react";
-import { HomeIcon } from "lucide-react";
+import { IconArrowsDiagonal2, IconArrowsDiagonalMinimize2, IconCode, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { useState } from "react";
 import GlobalTaskAssignees from "@/app/components/globals/tasks/assignee";
@@ -79,41 +72,10 @@ export function TaskContentSideContent({
 			<GlobalTaskStatus
 				task={task}
 				editable={true}
-				onChange={async (value) => {
-					const updatedTasks = tasks.map((t) =>
-						t.id === task.id ? { ...task, status: value as schema.TaskWithLabels["status"] } : t
-					);
-					setTasks(updatedTasks);
-					if (task) {
-						setSelectedTask({ ...task, status: value as schema.TaskWithLabels["status"] });
-					}
-					const data = await runWithToast(
-						"update-task-status",
-						{
-							loading: {
-								title: "Updating task...",
-								description: "Updating your task... changes are already visible.",
-							},
-							success: {
-								title: "Task saved",
-								description: "Your changes have been saved successfully.",
-							},
-							error: {
-								title: "Save failed",
-								description:
-									"Your changes are showing, but we couldn't save them to the server. Please try again.",
-							},
-						},
-						() => updateTaskAction(task.organizationId, task.projectId, task.id, { status: value }, wsClientId)
-					);
-					if (data?.success && data.data) {
-						const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
-						setTasks(finalTasks);
-						if (task && task.id === data.data.id) {
-							setSelectedTask(data.data);
-						}
-					}
-				}}
+				useInternalLogic={true}
+				tasks={tasks}
+				setTasks={setTasks}
+				setSelectedTask={setSelectedTask}
 			/>
 			<GlobalTaskAssignees
 				task={task}

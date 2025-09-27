@@ -24,13 +24,19 @@ import StatusIcon from "@repo/ui/components/icons/status";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
 import { IconAlertSquareFilled, IconCircleFilled, IconUserOff } from "@tabler/icons-react";
+import { useRef, useState } from "react";
 import { RenderLabel } from "@/app/components/globals/tasks/label";
+import GlobalTaskStatus from "@/app/components/globals/tasks/status";
 
 interface TaskListItemProps {
 	task: schema.TaskWithLabels;
 	isSelected: boolean;
 	onSelect: (selected: boolean) => void;
 	onTaskClick?: (taskId: string) => void;
+	onTaskUpdate?: (taskId: string, updates: Partial<schema.TaskWithLabels>) => void;
+	setSelectedTask?: (task: schema.TaskWithLabels | null) => void;
+	tasks?: schema.TaskWithLabels[];
+	setTasks?: (tasks: schema.TaskWithLabels[]) => void;
 }
 
 export const statusConfig = {
@@ -89,24 +95,79 @@ export const priorityConfig = {
 	},
 };
 
-export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskListItemProps) {
+export function TaskListItem({
+	task,
+	isSelected,
+	onSelect,
+	onTaskClick,
+	onTaskUpdate,
+	setSelectedTask,
+	tasks,
+	setTasks,
+}: TaskListItemProps) {
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
+	const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
+	const preventClickRef = useRef(false);
 
-	const handleTaskClick = () => {
+	const handleTaskClick = (e: React.MouseEvent<HTMLDivElement>) => {
+		// Check if we should prevent this click
+		if (preventClickRef.current) {
+			preventClickRef.current = false;
+			e.preventDefault();
+			e.stopPropagation();
+			return;
+		}
+
+		// Prevent click from propagating to parent if a specific element is clicked
+		if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
+			return;
+		}
+
 		onTaskClick?.(task.id);
+	};
+
+	const handleStatusChange = (newStatus: string) => {
+		// Set flag to prevent next click and close popover
+		preventClickRef.current = true;
+		setStatusPopoverOpen(false);
+
+		// Clear the flag after a longer delay to be safe
+		setTimeout(() => {
+			preventClickRef.current = false;
+		}, 500);
+
+		onTaskUpdate?.(task.id, { status: newStatus as schema.TaskWithLabels["status"] });
+	};
+
+	const handleStatusPopoverChange = (open: boolean) => {
+		setStatusPopoverOpen(open);
+		if (!open) {
+			// When popover closes, set prevent flag briefly
+			preventClickRef.current = true;
+			setTimeout(() => {
+				preventClickRef.current = false;
+			}, 200);
+		}
 	};
 
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger className="relative select-none group/context" asChild>
-				{/** biome-ignore lint/a11y/noStaticElementInteractions: need button in button, but no hydration/render error */}
-				{/** biome-ignore lint/a11y/useKeyWithClickEvents: need button in button, but no hydration/render error */}
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: need button in button, but no hydration/render error */}
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents: need button in button, but no hydration/render error */}
 				<div
 					className={cn(
 						"block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded"
 					)}
 					onClick={handleTaskClick}
+					onClickCapture={(e) => {
+						if (preventClickRef.current) {
+							e.preventDefault();
+							e.stopPropagation();
+							return;
+						}
+					}}
 				>
 					<div
 						className={cn(
@@ -126,7 +187,7 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 												onCheckedChange={(checked) => {
 													onSelect(checked as boolean);
 												}}
-												onClick={(e) => e.stopPropagation()}
+												data-no-propagate
 												className={cn(
 													"opacity-0 pointer-events-none group-hover/list-block:opacity-100 group-hover/list-block:pointer-events-auto transition-opacity shrink-0",
 													isSelected && "opacity-100",
@@ -135,16 +196,12 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 											/>
 										</div>
 									</div>
-									{/* priority */}
-
+									{/* Priority */}
 									<Button
 										variant="ghost"
 										size="sm"
 										className="h-4 flex items-center gap-1.5 rounded text-xs p-0.5 "
-										onClick={(e) => {
-											e.stopPropagation();
-											// Add priority change logic here
-										}}
+										data-no-propagate
 									>
 										{priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)}
 									</Button>
@@ -159,10 +216,31 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 									</div>
 								</div>
 
-								{/* Status icon */}
-								<div className="size-4 grid place-items-center shrink-0">
-									{status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)}
-								</div>
+								{/* Status icon - clickable */}
+								{/* Status dropdown - controlled externally */}
+								<GlobalTaskStatus
+									task={task}
+									editable={true}
+									onChange={handleStatusChange}
+									useInternalLogic={true}
+									tasks={tasks}
+									setTasks={setTasks}
+									setSelectedTask={setSelectedTask}
+									open={statusPopoverOpen}
+									setOpen={handleStatusPopoverChange}
+									data-no-propagate
+									customTrigger={
+										<button
+											type="button"
+											className="size-4 grid place-items-center shrink-0 cursor-pointer"
+											data-no-propagate
+											// No onClick needed, ComboBoxTrigger handles it
+										>
+											{status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)}
+										</button>
+									}
+								/>
+
 								{/* Title */}
 								<p className="truncate cursor-pointer text-base text-foreground w-full">{task.title}</p>
 							</div>
@@ -177,10 +255,11 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 											<RenderLabel
 												label={label}
 												key={label.id}
-												onClick={(e) => {
-													e.stopPropagation();
+												onClick={() => {
+													// e.stopPropagation();
 													// Add assignee change logic here
 												}}
+												data-no-propagate
 											/>
 										))}
 										{task.labels.length > 3 && (

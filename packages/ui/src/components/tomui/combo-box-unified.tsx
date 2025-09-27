@@ -41,13 +41,28 @@ interface ComboBoxProps {
 	// Multiple selection
 	values?: string[];
 	onValuesChange?: (values: string[]) => void;
+	// External control of open state
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
 }
 
-function ComboBox({ children, value, onValueChange, values, onValuesChange }: ComboBoxProps) {
-	const [open, setOpen] = React.useState(false);
+function ComboBox({
+	children,
+	value,
+	onValueChange,
+	values,
+	onValuesChange,
+	open: externalOpen,
+	onOpenChange,
+}: ComboBoxProps) {
+	const [internalOpen, setInternalOpen] = React.useState(false);
 	const [mounted, setMounted] = React.useState(false);
 	const isMultiple = values !== undefined || onValuesChange !== undefined;
 	const isMobile = useIsMobile();
+
+	// Use external open state if provided, otherwise use internal state
+	const open = externalOpen !== undefined ? externalOpen : internalOpen;
+	const setOpen = onOpenChange || setInternalOpen;
 
 	React.useEffect(() => {
 		setMounted(true);
@@ -88,12 +103,16 @@ interface ComboBoxTriggerProps {
 	children: React.ReactNode;
 	className?: string;
 	disabled?: boolean;
+	asChild?: boolean;
 }
 
-function ComboBoxTrigger({ children, className, disabled }: ComboBoxTriggerProps) {
+function ComboBoxTrigger({ children, className, disabled, asChild = false }: ComboBoxTriggerProps) {
 	const { open, isMobile } = useComboBox();
 
 	if (!isMobile) {
+		if (asChild) {
+			return <PopoverTrigger asChild>{children}</PopoverTrigger>;
+		}
 		return (
 			<PopoverTrigger asChild>
 				<Button
@@ -108,6 +127,9 @@ function ComboBoxTrigger({ children, className, disabled }: ComboBoxTriggerProps
 		);
 	}
 
+	if (asChild) {
+		return <DrawerTrigger asChild>{children}</DrawerTrigger>;
+	}
 	return (
 		<DrawerTrigger asChild>
 			<Button
@@ -136,7 +158,12 @@ function ComboBoxContent({ children, className, align = "start" }: ComboBoxConte
 
 	if (!isMobile) {
 		return (
-			<PopoverContent className={cn("w-full p-0", className)} align={align}>
+			<PopoverContent
+				className={cn("w-full p-0", className)}
+				align={align}
+				onCloseAutoFocus={(e) => e.preventDefault()}
+				onOpenAutoFocus={(e) => e.preventDefault()}
+			>
 				{children}
 			</PopoverContent>
 		);
@@ -262,7 +289,22 @@ function ComboBoxItem({ value, children, disabled, onSelect }: ComboBoxItemProps
 	};
 
 	return (
-		<CommandItem value={value} disabled={disabled} onSelect={handleSelect}>
+		<CommandItem
+			value={value}
+			disabled={disabled}
+			onSelect={handleSelect}
+			onMouseDown={(e) => {
+				// Prevent the mouse down from creating a synthetic click event
+				// that could bubble up to parent elements when the popover closes
+				e.preventDefault();
+				e.stopPropagation();
+			}}
+			onClick={(e) => {
+				// Extra safety: prevent any click events from bubbling
+				e.preventDefault();
+				e.stopPropagation();
+			}}
+		>
 			{children}
 			{isSelected && <CheckIcon className="h-4 w-4 ml-auto" />}
 		</CommandItem>
@@ -307,8 +349,7 @@ function ComboBoxSelected({ children, maxVisible = 3, onRemove }: ComboBoxSelect
 					<span className="truncate">{value}</span>
 					<XIcon
 						className="h-3 w-3 cursor-pointer hover:bg-muted rounded-sm"
-						onClick={(e) => {
-							e.stopPropagation();
+						onClick={() => {
 							handleRemove(value);
 						}}
 					/>

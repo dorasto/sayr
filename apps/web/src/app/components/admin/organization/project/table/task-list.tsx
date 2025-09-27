@@ -136,6 +136,9 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 											isSelected={selectedTasks.has(task.id)}
 											onSelect={(selected) => handleTaskSelect(task.id, selected)}
 											onTaskClick={handleTaskClick}
+											tasks={tasks}
+											setTasks={setTasks}
+											setSelectedTask={setSelectedTask}
 										/>
 									))}
 								</div>
