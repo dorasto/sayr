@@ -30,6 +30,7 @@ export default async function RootLayoutRoot({
 	return (
 		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
 			{/* <div className="min-h-0 flex-1 overflow-y-auto"> */}
+
 			<RootProvider account={account} organizations={organizations}>
 				<AdminNavigation />
 				<Wrapper className="">
@@ -37,6 +38,7 @@ export default async function RootLayoutRoot({
 					<div className="relative h-full max-h-full">{children}</div>
 				</Wrapper>
 			</RootProvider>
+
 			{/* </div> */}
 		</div>
 	);
