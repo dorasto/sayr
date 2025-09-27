@@ -22,9 +22,8 @@ import {
 import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDateCompact, getHslaWithOpacity } from "@repo/util";
-import { IconAlertSquareFilled, IconCircleFilled, IconUser, IconUserOff } from "@tabler/icons-react";
-import { Users } from "lucide-react";
+import { formatDateCompact } from "@repo/util";
+import { IconAlertSquareFilled, IconCircleFilled, IconUserOff } from "@tabler/icons-react";
 import { RenderLabel } from "@/app/components/globals/tasks/label";
 
 interface TaskListItemProps {
@@ -101,8 +100,9 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger className="relative select-none group/context" asChild>
-				<button
-					type="button"
+				{/** biome-ignore lint/a11y/noStaticElementInteractions: need button in button, but no hydration/render error */}
+				{/** biome-ignore lint/a11y/useKeyWithClickEvents: need button in button, but no hydration/render error */}
+				<div
 					className={cn(
 						"block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded"
 					)}
@@ -279,7 +279,7 @@ export function TaskListItem({ task, isSelected, onSelect, onTaskClick }: TaskLi
 						</div> */}
 						</div>
 					</div>
-				</button>
+				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent className="w-52">
 				<ContextMenuItem inset>Back</ContextMenuItem>

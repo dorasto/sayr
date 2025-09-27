@@ -204,7 +204,6 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 	);
 }
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
 import { useEffect } from "react";
 
 export function LeftSidebarProvider() {

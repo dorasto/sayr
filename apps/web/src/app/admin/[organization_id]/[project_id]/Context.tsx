@@ -1,6 +1,8 @@
 "use client";
 import type { schema } from "@repo/database";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconLoader2 } from "@tabler/icons-react";
 import { createContext, type ReactNode, useContext, useEffect } from "react";
 
 interface ContextType {
@@ -25,6 +27,13 @@ export function RootProviderOrganizationProject({
 	const { value: newTasks, setValue: setTasks } = useStateManagement("tasks", tasks);
 	useEffect(() => setProject(project), [project, setProject]);
 	useEffect(() => setTasks(tasks), [tasks, setTasks]);
+	if (!project || !tasks) {
+		return (
+			<div className="flex items-center h-full mx-auto place-items-center">
+				<IconLoader2 className="animate-spin" />
+			</div>
+		);
+	}
 	return (
 		<RootContext.Provider value={{ project: NewProject, setProject, tasks: newTasks, setTasks }}>
 			{children}

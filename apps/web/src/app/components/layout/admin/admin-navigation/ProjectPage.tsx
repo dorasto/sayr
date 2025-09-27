@@ -31,7 +31,9 @@ export default function ProjectPage() {
 	const [openNew, setOpenNew] = useState(false);
 	const [openProjectSettings, setOpenProjectSettings] = useState(false);
 	if (!organization || !project || !tasks) {
-		return;
+		return (
+			<Skeleton className="flex items-center gap-2 shrink-0 rounded bg-accent border px-3 py-0.5 h-9 shadow-xs w-full justify-start" />
+		);
 	}
 	return (
 		<div className="flex items-center gap-3 w-full">
