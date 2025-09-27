@@ -12,7 +12,7 @@ interface Props {
 	project: schema.projectType;
 }
 
-export default function ListProjectIssues({
+export default function ListProjectTasks({
 	tasks,
 	setTasks,
 	ws,

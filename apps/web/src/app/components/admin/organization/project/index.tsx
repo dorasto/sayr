@@ -7,7 +7,7 @@ import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
-import ListProjectIssues from "./list";
+import ListProjectTasks from "./list";
 
 export default function OrganizationProjectHomePage() {
 	const { ws } = useLayoutData();
@@ -49,7 +49,7 @@ export default function OrganizationProjectHomePage() {
 				</Label>
 			</div> */}
 			<div className="flex-1 overflow-scroll pb-4">
-				<ListProjectIssues
+				<ListProjectTasks
 					tasks={tasks}
 					setTasks={setTasks}
 					ws={ws}
