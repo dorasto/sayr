@@ -139,6 +139,7 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 											tasks={tasks}
 											setTasks={setTasks}
 											setSelectedTask={setSelectedTask}
+											availableUsers={availableUsers}
 										/>
 									))}
 								</div>

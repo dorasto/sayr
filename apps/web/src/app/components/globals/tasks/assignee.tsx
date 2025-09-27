@@ -2,7 +2,6 @@
 
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import {
@@ -17,53 +16,133 @@ import {
 	ComboBoxTrigger,
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconPlus, IconUserPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
+import { updateAssigneesToTaskAction } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
 
 interface GlobalTaskAssigneesProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
 	availableUsers?: schema.userType[];
+	onChange?: (userIds: string[]) => void;
+	// New props for internal logic
+	tasks?: schema.TaskWithLabels[];
+	setTasks?: (newValue: schema.TaskWithLabels[]) => void;
+	setSelectedTask?: (newValue: schema.TaskWithLabels | null) => void;
+	// If you want to use custom logic instead of internal logic, use onChange
+	useInternalLogic?: boolean;
+	open?: boolean;
+	setOpen?: (open: boolean) => void;
+	customTrigger?: React.ReactNode;
+	// Legacy prop for backward compatibility
 	onAssigneesChange?: (userIds: string[]) => void;
+	align?: "start" | "center" | "end";
+	side?: "top" | "right" | "bottom" | "left";
 }
 
 export default function GlobalTaskAssignees({
 	task,
 	editable = false,
 	availableUsers = [],
-	onAssigneesChange,
+	onChange,
+	tasks = [],
+	setTasks,
+	setSelectedTask,
+	useInternalLogic = false,
+	open,
+	setOpen,
+	customTrigger,
+	onAssigneesChange, // Legacy prop support
+	side,
+	align,
 }: GlobalTaskAssigneesProps) {
+	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { runWithToast } = useToastAction();
+
 	// Get current selected assignee IDs
 	const currentAssigneeIds = task.assignees?.map((assignee) => assignee.id) || [];
-	const handleAssigneesChange = (values: string[]) => {
+
+	const handleAssigneesChange = async (values: string[]) => {
+		// Always call onChange first if provided (for external side effects like preventClick)
+		if (onChange) {
+			onChange(values);
+		}
+
+		// Support legacy prop
 		if (onAssigneesChange) {
 			onAssigneesChange(values);
+		}
+
+		if (useInternalLogic && tasks && setTasks && setSelectedTask) {
+			// Internal logic - same pattern as status and priority
+			const updatedTasks = tasks.map((t) =>
+				t.id === task.id ? { ...task, assignees: availableUsers.filter((user) => values.includes(user.id)) } : t
+			);
+			setTasks(updatedTasks);
+			if (task) {
+				setSelectedTask({ ...task, assignees: availableUsers.filter((user) => values.includes(user.id)) });
+			}
+
+			const data = await runWithToast(
+				"update-task-assignees",
+				{
+					loading: {
+						title: "Updating task...",
+						description: "Updating your task... changes are already visible.",
+					},
+					success: {
+						title: "Task saved",
+						description: "Your changes have been saved successfully.",
+					},
+					error: {
+						title: "Save failed",
+						description: "Your changes are showing, but we couldn't save them to the server. Please try again.",
+					},
+				},
+				() => updateAssigneesToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
+			);
+
+			if (data?.success && data.data) {
+				const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
+				setTasks(finalTasks);
+				if (task && task.id === data.data.id) {
+					setSelectedTask(data.data);
+				}
+			}
 		}
 	};
 
 	return (
 		<div className="flex flex-col gap-3">
-			<Label variant={"subheading"}>Assigned</Label>
+			{!customTrigger && <Label variant={"subheading"}>Assigned</Label>}
 			<div className="flex flex-col gap-2">
-				{task.assignees.map((assignee) => (
-					<RenderAssignee
-						key={assignee.id}
-						assignee={assignee}
-						showRemove={editable}
-						onRemove={(assigneeId) => {
-							handleAssigneesChange(currentAssigneeIds.filter((id) => id !== assigneeId));
-						}}
-					/>
-				))}
-				<ComboBox values={currentAssigneeIds} onValuesChange={handleAssigneesChange}>
-					{currentAssigneeIds.length === 0 ? (
+				{!customTrigger &&
+					task.assignees.map((assignee) => (
+						<RenderAssignee
+							key={assignee.id}
+							assignee={assignee as schema.userType}
+							showRemove={editable}
+							onRemove={(assigneeId) => {
+								handleAssigneesChange(currentAssigneeIds.filter((id) => id !== assigneeId));
+							}}
+						/>
+					))}
+				<ComboBox
+					values={currentAssigneeIds}
+					onValuesChange={handleAssigneesChange}
+					open={open}
+					onOpenChange={setOpen}
+				>
+					{customTrigger ? (
+						// Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
+						<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
+					) : currentAssigneeIds.length === 0 ? (
 						<ComboBoxTrigger disabled={!editable} className="">
 							<ComboBoxValue placeholder="Status">
 								<div className="flex items-center gap-2">
-									{/* {statusConfig[currentStatus as keyof typeof statusConfig]?.icon(
-										cn(statusConfig[currentStatus as keyof typeof statusConfig]?.className, "h-4 w-4")
-									)} */}
 									<IconUserPlus className="h-4 w-4" />
 									<span>Unassigned</span>
 								</div>
@@ -76,7 +155,7 @@ export default function GlobalTaskAssignees({
 						</ComboBoxTrigger>
 					)}
 
-					<ComboBoxContent className="">
+					<ComboBoxContent className="" align={align} side={side}>
 						<ComboBoxList>
 							<ComboBoxSearch placeholder="Assign to..." />
 							<ComboBoxEmpty>No users found.</ComboBoxEmpty>

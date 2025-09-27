@@ -3,7 +3,6 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
 import { Checkbox } from "@repo/ui/components/checkbox";
 import {
 	ContextMenu,
@@ -25,7 +24,9 @@ import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
 import { IconAlertSquareFilled, IconCircleFilled, IconUserOff } from "@tabler/icons-react";
 import { useRef, useState } from "react";
+import GlobalTaskAssignees from "@/app/components/globals/tasks/assignee";
 import { RenderLabel } from "@/app/components/globals/tasks/label";
+import GlobalTaskPriority from "@/app/components/globals/tasks/priority";
 import GlobalTaskStatus from "@/app/components/globals/tasks/status";
 
 interface TaskListItemProps {
@@ -37,6 +38,7 @@ interface TaskListItemProps {
 	setSelectedTask?: (task: schema.TaskWithLabels | null) => void;
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (tasks: schema.TaskWithLabels[]) => void;
+	availableUsers?: schema.userType[];
 }
 
 export const statusConfig = {
@@ -104,10 +106,13 @@ export function TaskListItem({
 	setSelectedTask,
 	tasks,
 	setTasks,
+	availableUsers = [],
 }: TaskListItemProps) {
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
 	const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
+	const [priorityPopoverOpen, setPriorityPopoverOpen] = useState(false);
+	const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
 	const preventClickRef = useRef(false);
 
 	const handleTaskClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -142,6 +147,56 @@ export function TaskListItem({
 
 	const handleStatusPopoverChange = (open: boolean) => {
 		setStatusPopoverOpen(open);
+		if (!open) {
+			// When popover closes, set prevent flag briefly
+			preventClickRef.current = true;
+			setTimeout(() => {
+				preventClickRef.current = false;
+			}, 200);
+		}
+	};
+
+	const handlePriorityChange = (newPriority: string) => {
+		// Set flag to prevent next click and close popover
+		preventClickRef.current = true;
+		setPriorityPopoverOpen(false);
+
+		// Clear the flag after a longer delay to be safe
+		setTimeout(() => {
+			preventClickRef.current = false;
+		}, 500);
+
+		onTaskUpdate?.(task.id, { priority: newPriority as schema.TaskWithLabels["priority"] });
+	};
+
+	const handlePriorityPopoverChange = (open: boolean) => {
+		setPriorityPopoverOpen(open);
+		if (!open) {
+			// When popover closes, set prevent flag briefly
+			preventClickRef.current = true;
+			setTimeout(() => {
+				preventClickRef.current = false;
+			}, 200);
+		}
+	};
+
+	const handleAssigneeChange = (userIds: string[]) => {
+		// Set flag to prevent next click and close popover
+		preventClickRef.current = true;
+		setAssigneePopoverOpen(false);
+
+		// Clear the flag after a longer delay to be safe
+		setTimeout(() => {
+			preventClickRef.current = false;
+		}, 500);
+
+		// Update task with new assignees
+		const updatedAssignees = availableUsers.filter((user) => userIds.includes(user.id));
+		onTaskUpdate?.(task.id, { assignees: updatedAssignees });
+	};
+
+	const handleAssigneePopoverChange = (open: boolean) => {
+		setAssigneePopoverOpen(open);
 		if (!open) {
 			// When popover closes, set prevent flag briefly
 			preventClickRef.current = true;
@@ -197,14 +252,27 @@ export function TaskListItem({
 										</div>
 									</div>
 									{/* Priority */}
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-4 flex items-center gap-1.5 rounded text-xs p-0.5 "
-										data-no-propagate
-									>
-										{priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)}
-									</Button>
+									<GlobalTaskPriority
+										task={task}
+										editable={true}
+										onChange={handlePriorityChange}
+										useInternalLogic={true}
+										tasks={tasks}
+										setTasks={setTasks}
+										setSelectedTask={setSelectedTask}
+										open={priorityPopoverOpen}
+										setOpen={handlePriorityPopoverChange}
+										customTrigger={
+											<button
+												type="button"
+												className="h-4 flex items-center gap-1.5 rounded text-xs p-0.5 cursor-pointer"
+												data-no-propagate
+												// No onClick needed, ComboBoxTrigger handles it
+											>
+												{priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)}
+											</button>
+										}
+									/>
 
 									{/* Task ID */}
 									<div className="shrink-0 min-w-9 w-9 max-w-9">
@@ -288,48 +356,69 @@ export function TaskListItem({
 									</div>
 								)}
 								{/* Assignees */}
-								{task.assignees && task.assignees.length > 0 ? (
-									<div className="flex items-center">
-										{task.assignees.length === 1 ? (
-											// Single assignee - full avatar
-											<Avatar className={cn("rounded-full h-5 w-5")}>
-												<AvatarImage
-													src={task.assignees[0]?.image || "/avatar.jpg"}
-													alt={task.assignees[0]?.name}
-												/>
-												<AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-													{task.assignees[0]?.name.slice(0, 2)}
-												</AvatarFallback>
-											</Avatar>
-										) : (
-											// Multiple assignees - overlapping avatars
-											<div className="flex -space-x-2">
-												{task.assignees.slice(0, 3).map((assignee, index) => (
-													<Avatar
-														key={assignee.id}
-														className={cn("rounded-full h-5 w-5", index > 0 && "relative")}
-														style={{ zIndex: task.assignees.length - index }}
-													>
-														<AvatarImage src={assignee?.image || "/avatar.jpg"} alt={assignee?.name} />
+								<GlobalTaskAssignees
+									task={task}
+									editable={true}
+									availableUsers={availableUsers}
+									onChange={handleAssigneeChange}
+									useInternalLogic={true}
+									tasks={tasks}
+									setTasks={setTasks}
+									setSelectedTask={setSelectedTask}
+									open={assigneePopoverOpen}
+									setOpen={handleAssigneePopoverChange}
+									side="left"
+									customTrigger={
+										task.assignees && task.assignees.length > 0 ? (
+											<div className="flex items-center cursor-pointer" data-no-propagate>
+												{task.assignees.length === 1 ? (
+													// Single assignee - full avatar
+													<Avatar className={cn("rounded-full h-5 w-5")}>
+														<AvatarImage
+															src={task.assignees[0]?.image || "/avatar.jpg"}
+															alt={task.assignees[0]?.name}
+														/>
 														<AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-															{assignee?.name.slice(0, 2)}
+															{task.assignees[0]?.name.slice(0, 2)}
 														</AvatarFallback>
 													</Avatar>
-												))}
-												{task.assignees.length > 3 && (
-													<div className="flex items-center justify-center rounded-full h-5 w-5 bg-muted border-2 border-background text-xs font-medium text-muted-foreground relative">
-														+{task.assignees.length - 3}
+												) : (
+													// Multiple assignees - overlapping avatars
+													<div className="flex -space-x-2">
+														{task.assignees.slice(0, 3).map((assignee, index) => (
+															<Avatar
+																key={assignee.id}
+																className={cn("rounded-full h-5 w-5", index > 0 && "relative")}
+																style={{ zIndex: task.assignees.length - index }}
+															>
+																<AvatarImage
+																	src={assignee?.image || "/avatar.jpg"}
+																	alt={assignee?.name}
+																/>
+																<AvatarFallback className="rounded-full bg-accent uppercase text-xs">
+																	{assignee?.name.slice(0, 2)}
+																</AvatarFallback>
+															</Avatar>
+														))}
+														{task.assignees.length > 3 && (
+															<div className="flex items-center justify-center rounded-full h-5 w-5 bg-muted border-2 border-background text-xs font-medium text-muted-foreground relative">
+																+{task.assignees.length - 3}
+															</div>
+														)}
 													</div>
 												)}
 											</div>
-										)}
-									</div>
-								) : (
-									// No assignees
-									<div className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5">
-										<IconUserOff className="h-3 w-3 shrink-0" />
-									</div>
-								)}
+										) : (
+											// No assignees
+											<div
+												className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5 cursor-pointer"
+												data-no-propagate
+											>
+												<IconUserOff className="h-3 w-3 shrink-0" />
+											</div>
+										)
+									}
+								/>
 								<span className="text-xs text-muted-foreground truncate">
 									{formatDateCompact(task.createdAt as Date)}
 								</span>

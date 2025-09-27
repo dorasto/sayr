@@ -151,9 +151,10 @@ interface ComboBoxContentProps {
 	children: React.ReactNode;
 	className?: string;
 	align?: "start" | "center" | "end";
+	side?: "top" | "right" | "bottom" | "left";
 }
 
-function ComboBoxContent({ children, className, align = "start" }: ComboBoxContentProps) {
+function ComboBoxContent({ children, className, align = "start", side = "bottom" }: ComboBoxContentProps) {
 	const { isMobile } = useComboBox();
 
 	if (!isMobile) {
@@ -161,6 +162,7 @@ function ComboBoxContent({ children, className, align = "start" }: ComboBoxConte
 			<PopoverContent
 				className={cn("w-full p-0", className)}
 				align={align}
+				side={side}
 				onCloseAutoFocus={(e) => e.preventDefault()}
 				onOpenAutoFocus={(e) => e.preventDefault()}
 			>
