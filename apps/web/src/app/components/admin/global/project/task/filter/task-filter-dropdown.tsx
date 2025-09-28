@@ -52,6 +52,114 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 		}
 	};
 
+	// Helper function to render filter value with icons
+	const renderFilterValue = (condition: FilterCondition) => {
+		switch (condition.field) {
+			case "status": {
+				const statusValue = condition.value as keyof typeof statusConfig;
+				const statusData = statusConfig[statusValue];
+				return statusData ? (
+					<>
+						<div className="w-3 h-3">{statusData.icon("w-3 h-3")}</div>
+						<span>{statusData.label}</span>
+					</>
+				) : (
+					<span>{String(condition.value)}</span>
+				);
+			}
+			case "priority": {
+				const priorityValue = condition.value as keyof typeof priorityConfig;
+				const priorityData = priorityConfig[priorityValue];
+				return priorityData ? (
+					<>
+						<div className="w-3 h-3">{priorityData.icon("w-3 h-3")}</div>
+						<span>{priorityData.label}</span>
+					</>
+				) : (
+					<span>{String(condition.value)}</span>
+				);
+			}
+			case "assignee": {
+				const user = availableUsers.find(u => (u.name || u.email) === condition.value);
+				return user ? (
+					<>
+						<Avatar className="h-3 w-3">
+							<AvatarImage src={user.image || undefined} />
+							<AvatarFallback className="text-[8px]">
+								{(user.name || user.email || "U")
+									?.split(" ")
+									.map((n) => n[0])
+									.join("")
+									.toUpperCase()}
+							</AvatarFallback>
+						</Avatar>
+						<span>{user.name || user.email}</span>
+					</>
+				) : (
+					<span>{String(condition.value)}</span>
+				);
+			}
+			case "label": {
+				const label = labels.find(l => l.name === condition.value);
+				return label ? (
+					<>
+						<div
+							className="w-3 h-3 rounded-full shrink-0"
+							style={{ backgroundColor: label.color || "#gray" }}
+						/>
+						<span>{label.name}</span>
+					</>
+				) : (
+					<span>{String(condition.value)}</span>
+				);
+			}
+			case "creator": {
+				const creator = availableUsers.find(u => (u.name || u.email) === condition.value);
+				return creator ? (
+					<>
+						<Avatar className="h-3 w-3">
+							<AvatarImage src={creator.image || undefined} />
+							<AvatarFallback className="text-[8px]">
+								{(creator.name || creator.email || "U")
+									?.split(" ")
+									.map((n) => n[0])
+									.join("")
+									.toUpperCase()}
+							</AvatarFallback>
+						</Avatar>
+						<span>{creator.name || creator.email}</span>
+					</>
+				) : (
+					<span>{String(condition.value)}</span>
+				);
+			}
+			case "title": {
+				return <span>{typeof condition.value === "string" ? condition.value : String(condition.value)}</span>;
+			}
+			case "created_at":
+			case "updated_at": {
+				const dateValue = condition.value instanceof Date 
+					? condition.value.toLocaleDateString()
+					: typeof condition.value === "string"
+						? new Date(condition.value).toLocaleDateString()
+						: String(condition.value);
+				return <span>{dateValue}</span>;
+			}
+			default: {
+				if (typeof condition.value === "string") {
+					return <span>{condition.label || condition.value}</span>;
+				}
+				if (Array.isArray(condition.value)) {
+					return <span>{condition.value.join(", ")}</span>;
+				}
+				if (condition.value instanceof Date) {
+					return <span>{condition.value.toLocaleDateString()}</span>;
+				}
+				return <span>{String(condition.value)}</span>;
+			}
+		}
+	};
+
 	// Get human-readable operator labels for badges
 	const getOperatorLabel = (operator: FilterOperator): string => {
 		switch (operator) {
@@ -237,14 +345,8 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 							</DropdownMenu>
 
 							{condition.value && condition.operator !== "is_empty" && condition.operator !== "is_not_empty" && (
-								<span>
-									{typeof condition.value === "string"
-										? condition.label || condition.value
-										: Array.isArray(condition.value)
-											? condition.value.join(", ")
-											: condition.value instanceof Date
-												? condition.value.toLocaleDateString()
-												: ""}
+								<span className="flex items-center gap-1">
+									{renderFilterValue(condition)}
 								</span>
 							)}
 						</span>
