@@ -80,7 +80,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 				);
 			}
 			case "assignee": {
-				const user = availableUsers.find(u => (u.name || u.email) === condition.value);
+				const user = availableUsers.find((u) => (u.name || u.email) === condition.value);
 				return user ? (
 					<>
 						<Avatar className="h-3 w-3">
@@ -100,13 +100,10 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 				);
 			}
 			case "label": {
-				const label = labels.find(l => l.name === condition.value);
+				const label = labels.find((l) => l.name === condition.value);
 				return label ? (
 					<>
-						<div
-							className="w-3 h-3 rounded-full shrink-0"
-							style={{ backgroundColor: label.color || "#gray" }}
-						/>
+						<div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: label.color || "#gray" }} />
 						<span>{label.name}</span>
 					</>
 				) : (
@@ -114,7 +111,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 				);
 			}
 			case "creator": {
-				const creator = availableUsers.find(u => (u.name || u.email) === condition.value);
+				const creator = availableUsers.find((u) => (u.name || u.email) === condition.value);
 				return creator ? (
 					<>
 						<Avatar className="h-3 w-3">
@@ -138,11 +135,12 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 			}
 			case "created_at":
 			case "updated_at": {
-				const dateValue = condition.value instanceof Date 
-					? condition.value.toLocaleDateString()
-					: typeof condition.value === "string"
-						? new Date(condition.value).toLocaleDateString()
-						: String(condition.value);
+				const dateValue =
+					condition.value instanceof Date
+						? condition.value.toLocaleDateString()
+						: typeof condition.value === "string"
+							? new Date(condition.value).toLocaleDateString()
+							: String(condition.value);
 				return <span>{dateValue}</span>;
 			}
 			default: {
@@ -345,9 +343,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 							</DropdownMenu>
 
 							{condition.value && condition.operator !== "is_empty" && condition.operator !== "is_not_empty" && (
-								<span className="flex items-center gap-1">
-									{renderFilterValue(condition)}
-								</span>
+								<span className="flex items-center gap-1">{renderFilterValue(condition)}</span>
 							)}
 						</span>
 						<Button

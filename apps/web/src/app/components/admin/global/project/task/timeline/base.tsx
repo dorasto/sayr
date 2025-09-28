@@ -28,14 +28,14 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children }: Timel
 				<TimelineTitle className="mt-0.5">
 					<Label
 						variant={"heading"}
-						className="text-sm font-normal leading-relaxed items-center flex flex-wrap gap-1"
+						className="text-sm font-normal leading-relaxed items-center flex flex-wrap gap-2"
 					>
-						{children}{" "}
-						<Tooltip>
-							<TooltipTrigger className="text-sm">
-								{formatDateTimeFromNow(item.createdAt as Date)}
+						<span>{children}</span>
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								<span className="text-sm">{formatDateTimeFromNow(item.createdAt as Date)}</span>
 							</TooltipTrigger>
-							<TooltipContent>{formatDateTime(item.createdAt as Date)}</TooltipContent>
+							<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
 						</Tooltip>
 					</Label>
 				</TimelineTitle>

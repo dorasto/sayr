@@ -26,8 +26,8 @@ import {
 import type { PartialBlock } from "node_modules/@blocknote/core/types/src/blocks/defaultBlocks";
 import type React from "react";
 import { Fragment } from "react";
+import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { priorityConfig, statusConfig } from "../shared/task-config";
-import { Editor } from "../../../blocknote/DynamicEditor";
 import { RenderLabel } from "./label";
 
 // Types for consolidated timeline items
@@ -146,11 +146,11 @@ function TimelineItemWrapper({ item, icon: Icon, color, children }: TimelineItem
 					>
 						{/* <RenderUser name={item.actor?.name || ""} image={item.actor?.image || ""} /> */}
 						{children}{" "}
-						<Tooltip>
+						<Tooltip delayDuration={1000}>
 							<TooltipTrigger className="text-sm">
 								{formatDateTimeFromNow(item.createdAt as Date)}
 							</TooltipTrigger>
-							<TooltipContent>{formatDateTime(item.createdAt as Date)}</TooltipContent>
+							<TooltipContent side="bottom">{formatDateTime(item.createdAt as Date)}</TooltipContent>
 						</Tooltip>
 					</Label>
 				</TimelineTitle>

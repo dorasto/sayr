@@ -6,8 +6,7 @@ export function TimelineAssigneeAdded({ item, availableUsers = [] }: TimelineIte
 	const user = availableUsers.find((user) => user.id === item.toValue);
 	return (
 		<TimelineItemWrapper item={item} icon={IconUserPlus} color="bg-primary text-primary-foreground">
-			<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} />
-			assigned
+			<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> assigned{" "}
 			<AvatarWithName name={user?.name || "Unknown"} image={user?.image || ""} />
 		</TimelineItemWrapper>
 	);
