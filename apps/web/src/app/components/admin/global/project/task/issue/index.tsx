@@ -7,7 +7,7 @@ import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
-import { TaskContent } from "../table/task-content";
+import { TaskContent } from "../views/table/task-content";
 
 export default function OrganizationProjectTaskHomePage() {
 	const { ws } = useLayoutData();

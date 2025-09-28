@@ -26,7 +26,7 @@ import GlobalTaskAssignees from "../../assignee";
 import { RenderLabel } from "../../label";
 import GlobalTaskPriority from "../../priority";
 import GlobalTaskStatus from "../../status";
-import { priorityConfig, statusConfig } from "../shared/task-config";
+import { priorityConfig, statusConfig } from "../../../shared/task-config";
 
 interface TaskListItemProps {
 	task: schema.TaskWithLabels;

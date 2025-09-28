@@ -1,6 +1,6 @@
 "use client";
 import type { schema } from "@repo/database";
-import { TaskList } from "./table/task-list";
+import { TaskList } from "./task/views/table/task-list";
 
 interface Props {
 	tasks: schema.TaskWithLabels[];

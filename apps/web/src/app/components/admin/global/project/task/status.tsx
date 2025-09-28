@@ -18,7 +18,7 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
-import { statusConfig } from "../../admin/organization/project/shared/task-config";
+import { statusConfig } from "../shared/task-config";
 
 interface GlobalTaskStatusProps {
 	task: schema.TaskWithLabels;

@@ -1,6 +1,6 @@
 import type { schema } from "@repo/database";
 import { IconCalendar, IconTag, IconTextSize, IconUser } from "@tabler/icons-react";
-import { priorityConfig, statusConfig } from "../shared/task-config";
+import { priorityConfig, statusConfig } from "../../shared/task-config";
 import type { FilterCondition, FilterFieldConfig, FilterOperator, FilterState } from "./types";
 
 // Convert status config to filter options

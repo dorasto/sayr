@@ -27,7 +27,7 @@ import GlobalTaskStatus from "../../status";
 import GlobalTimeline from "../../timeline/root";
 import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
-import { statusConfig } from "../shared/task-config";
+import { statusConfig } from "../../../shared/task-config";
 
 interface TaskContentProps {
 	isDialog?: boolean;

@@ -13,7 +13,9 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
-import type { TaskType } from "../list";
+import type { schema } from "@repo/database";
+
+type TaskType = schema.TaskWithLabels;
 
 const labels = [
 	{

@@ -26,8 +26,8 @@ import {
 import type { PartialBlock } from "node_modules/@blocknote/core/types/src/blocks/defaultBlocks";
 import type React from "react";
 import { Fragment } from "react";
-import { priorityConfig, statusConfig } from "../../admin/organization/project/shared/task-config";
-import { Editor } from "../../blocknote/DynamicEditor";
+import { priorityConfig, statusConfig } from "../shared/task-config";
+import { Editor } from "../../../blocknote/DynamicEditor";
 import { RenderLabel } from "./label";
 
 // Types for consolidated timeline items

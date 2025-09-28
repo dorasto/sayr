@@ -19,7 +19,7 @@ import { Input } from "@repo/ui/components/input";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconFilter, IconSearch, IconX } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
-import { priorityConfig, statusConfig } from "../shared/task-config";
+import { priorityConfig, statusConfig } from "../../shared/task-config";
 import { FILTER_FIELD_CONFIGS } from "./filter-config";
 import type { FilterCondition, FilterField, FilterGroup, FilterOperator, FilterState } from "./types";
 
