@@ -1,0 +1,174 @@
+"use client";
+
+import type { schema } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@repo/ui/components/dialog";
+import { Label } from "@repo/ui/components/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
+import { Switch } from "@repo/ui/components/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
+import ColorPicker from "@repo/ui/components/tomui/color-picker";
+import LabelledInput from "@repo/ui/components/tomui/labeled-input";
+import OptionField from "@repo/ui/components/tomui/option-field";
+import { generateSlug } from "@repo/util";
+import { IconColorPicker, IconIcons } from "@tabler/icons-react";
+import { useState } from "react";
+import { createProjectAction } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
+
+interface CreateProjectDialogProps {
+	organization: schema.OrganizationWithMembers;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+}
+export default function CreateProjectDialog({ open, onOpenChange, organization }: CreateProjectDialogProps) {
+	const [name, setName] = useState("");
+	const [description, setDescription] = useState("");
+	const [visibility, setVisibility] = useState<"private" | "public">("public");
+	const { runWithToast, isFetching } = useToastAction();
+	const handleUpdate = async () => {
+		const data = await runWithToast(
+			"create-project",
+			{
+				loading: { title: "Creating project...", description: "Please wait while we create the project." },
+				success: { title: "Created project", description: "The project has been successfully created." },
+				error: { title: "Failed to create project", description: "An error occurred while creating the project." },
+			},
+			() =>
+				createProjectAction(
+					organization.id,
+					{
+						name,
+						description,
+						visibility,
+					},
+					""
+				)
+		);
+		if (data?.success && data.data) {
+			onOpenChange(false);
+			setName("");
+			setDescription("");
+		}
+	};
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			{/* <DialogTrigger asChild>
+											<Button
+												className={cn(
+													"text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/collapsible:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border",
+													isMobile && "text-sidebar-foreground"
+												)}
+											>
+												<IconPlus />
+												<span className="sr-only">add</span>
+											</Button>
+										</DialogTrigger> */}
+			<DialogContent className="bg-popover">
+				<DialogHeader>
+					<DialogTitle asChild>
+						<Label variant={"heading"} className="text-left mr-auto">
+							New Project
+						</Label>
+					</DialogTitle>
+					<DialogDescription className="sr-only">Create a new project</DialogDescription>
+				</DialogHeader>
+				<div className="flex flex-col items-center gap-3 w-full">
+					<div className="flex items-start gap-3 w-full">
+						<Popover>
+							<PopoverTrigger>
+								<Button className="" variant={"accent"} size={"icon"}>
+									<IconIcons />
+									{/* This changes to whatever the icon/image is set to */}
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent>
+								<Tabs defaultValue="icon" className="items-start w-full">
+									<TabsList className="h-auto rounded-none border-b bg-transparent p-0 w-full justify-start">
+										<TabsTrigger
+											value="icon"
+											className="data-[state=active]:after:bg-primary relative rounded-none py-2 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+										>
+											Icon
+										</TabsTrigger>
+										<TabsTrigger
+											value="image"
+											className="data-[state=active]:after:bg-primary relative rounded-none py-2 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+										>
+											Upload
+										</TabsTrigger>
+									</TabsList>
+									<TabsContent value="icon">
+										{/* icons/images... Simpler than Doras, showcase icons but allow an
+																		image upload here too in a 1:1 ratio. This will be what's shown on
+																		the sidebar. */}
+										<div className="flex items-center gap-2">
+											<LabelledInput label={"Icon"} id="icon" />
+											<Popover>
+												<PopoverTrigger>
+													<Button className="" variant={"accent"} size={"icon"}>
+														<IconColorPicker />
+													</Button>
+												</PopoverTrigger>
+												<PopoverContent>
+													<ColorPicker
+														showDebugInfo
+														// value={primary}
+														// onChange={setPrimary}
+													/>
+												</PopoverContent>
+											</Popover>
+										</div>
+									</TabsContent>
+									<TabsContent value="image">
+										<p className="text-muted-foreground text-center text-xs">Content for Tab 2</p>
+									</TabsContent>
+								</Tabs>
+							</PopoverContent>
+						</Popover>
+						<div className="flex flex-col gap-3 w-full">
+							<LabelledInput label={"Project name"} id="name" value={name} setValue={setName} />
+							<Label variant={"description"}>
+								{organization.slug}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN}/{generateSlug(name)}
+							</Label>
+							<LabelledInput
+								label={"Description"}
+								id="description"
+								value={description}
+								setValue={setDescription}
+							/>
+							<OptionField
+								title="Publicably visible"
+								description="Public projects are visible to everyone while still keeping certain content restricted based on permissions. Private projects are only visible to members you invite, and only useful if you never plan to have external access."
+								customSide={
+									<Switch
+										checked={visibility === "public"}
+										onCheckedChange={(checked) => setVisibility(checked ? "public" : "private")}
+									/>
+								}
+							/>
+						</div>
+					</div>
+				</div>
+				<DialogFooter>
+					<DialogClose asChild>
+						<Button type="button" variant="outline">
+							Cancel
+						</Button>
+					</DialogClose>
+					<Button type="button" variant="success" onClick={handleUpdate} disabled={isFetching || !name.trim()}>
+						Create
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}
