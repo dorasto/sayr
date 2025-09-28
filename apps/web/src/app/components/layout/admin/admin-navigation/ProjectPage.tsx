@@ -13,12 +13,12 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconPlus, IconSettings, IconSlash } from "@tabler/icons-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { TaskFilterDropdown } from "@/app/components/admin/organization/project/filters/task-filter-dropdown";
+import { TaskFilterDropdown } from "@/app/components/admin/global/project/task/filter/task-filter-dropdown";
 
-const CreateIssueDialog = dynamic(() => import("@/app/components/admin/organization/project/issue/creator"), {
+const CreateIssueDialog = dynamic(() => import("@/app/components/admin/global/project/task/issue/creator"), {
 	ssr: false,
 });
-const ProjectDropdown = dynamic(() => import("@/app/components/admin/organization/project/project-dropdown"), {
+const ProjectDropdown = dynamic(() => import("@/app/components/admin/global/project/project-dropdown"), {
 	ssr: false,
 });
 

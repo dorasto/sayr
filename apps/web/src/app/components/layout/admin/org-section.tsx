@@ -67,9 +67,9 @@ import { ChevronRight, Command, Minus, MoreHorizontal, Plus } from "lucide-react
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import UpdateOrgDialog from "@/app/components/admin/organizations/management/update/edit-org-dialog";
+import UpdateOrgDialog from "@/app/components/admin/global/org/management/update/edit-org-dialog";
 import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog";
-import CreateProjectDialog from "../../admin/organizations/projects/create-project-dialog";
+import CreateProjectDialog from "../../admin/global/project/create-project-dialog";
 
 interface OrgSectionProps {
 	organization: schema.OrganizationWithMembers;
