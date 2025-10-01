@@ -55,9 +55,13 @@ const useWebSocket = () => {
 										connectWebSocket();
 									}
 									return;
-								case "PING":
-									webSocket?.send(JSON.stringify({ type: "PONG", ts: Date.now() } as WSMessage));
+								case "PING": {
+									const rtt = data.meta ? Date.now() - data.meta.ts : "";
+									webSocket?.send(
+										JSON.stringify({ type: "PONG", meta: { ts: Date.now(), latency: rtt } } as WSMessage)
+									);
 									return;
+								}
 								default:
 									break;
 							}
@@ -132,6 +136,7 @@ export type BaseMessage = {
 		ts: number; // timestamp
 		channel?: string;
 		orgId?: string;
+		latency?: string | number;
 	};
 };
 
@@ -146,7 +151,6 @@ export type WSMessage =
 	  })
 	| (BaseMessage & {
 			type: "PING" | "PONG";
-			ts: number;
 	  })
 	| (BaseMessage & {
 			type: "MESSAGE";
@@ -188,14 +192,19 @@ export type WSMessage =
 				channel: string;
 				payload: WSMessage;
 			};
+	  })
+	| (BaseMessage & {
+			type: "CONNECTIONS_SNAPSHOT";
+			data: FirehoseClient[];
 	  });
 
-// Messages the client can send to the server
-export type WSMessageSend =
-	| BaseMessage
-	| (BaseMessage & {
-			type: "SUBSCRIBE";
-			orgId: string;
-			channel: string;
-			timestamp: string;
-	  });
+export type FirehoseClient = {
+	wsClientId: string;
+	clientId: string;
+	orgId: string;
+	channel: string;
+	lastPong: number;
+	lastLatency: number;
+	connectedAt: number;
+	authenticated: boolean;
+};

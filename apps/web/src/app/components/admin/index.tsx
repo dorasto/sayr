@@ -98,21 +98,9 @@ export default function AdminHomePage() {
 										<pre>{JSON.stringify(msg, null, 2)}</pre>
 									)}
 								</div>
-								{msg.type === "MESSAGE" && (
-									<div className="text-xs text-gray-200 mt-1">
-										{new Date(msg.meta?.ts || "").toLocaleTimeString()}
-									</div>
-								)}
-								{msg.type === "FIREHOSE" && (
-									<div className="text-xs text-gray-200 mt-1">
-										{new Date(msg.meta?.ts || "").toLocaleTimeString()}
-									</div>
-								)}
-								{msg.type === "PING" && (
-									<div className="text-xs text-gray-200 mt-1">
-										{new Date(msg.ts || "").toLocaleTimeString()}
-									</div>
-								)}
+								<div className="text-xs text-gray-200 mt-1">
+									{new Date(msg.meta?.ts || "").toLocaleTimeString()}
+								</div>
 							</li>
 						))}
 					</ul>

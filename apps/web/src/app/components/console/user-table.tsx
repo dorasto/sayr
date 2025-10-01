@@ -73,6 +73,8 @@ import {
 } from "lucide-react";
 import { useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useLayoutData } from "@/app/admin/Context";
+import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { changeUserRoleAction } from "../../lib/actions";
 
 // User type based on your auth schema
@@ -269,6 +271,10 @@ const columns: ColumnDef<User>[] = [
 ];
 
 export default function UserTable({ initialData }: UserTableProps) {
+	const { ws } = useLayoutData();
+	useWebSocketSubscription({
+		ws,
+	});
 	const id = useId();
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});

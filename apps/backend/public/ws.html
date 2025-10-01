@@ -112,7 +112,8 @@
                     // ✅ Handle PING from server
                     if (data.type === "PING") {
                         logMessage("📡 Received PING, sending PONG...");
-                        socket.send(JSON.stringify({ type: "PONG", ts: Date.now() }));
+                        const rtt = data.meta ? Date.now() - data.meta.ts : "";
+                        socket.send(JSON.stringify({ type: "PONG", ts: Date.now(), meta: { latency: rtt } }));
                         return;
                     }
 

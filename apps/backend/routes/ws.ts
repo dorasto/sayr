@@ -11,7 +11,9 @@ type ClientInfo = {
 	clientId: string;
 	orgId: string;
 	channel: string;
-	lastPong: number; // ✅ track last pong here
+	lastPong: number; // ✅ last pong received from heartbeat
+	lastLatency: number; // ✅ last measured RTT
+	connectedAt: number; // ✅ when this connection was first established
 };
 // Base message type
 type WSBaseMessage = {
@@ -34,6 +36,9 @@ const wsClientIds = new Map<ServerWebSocket, string>();
 const WAITING_ORG = "WAITING_ROOM";
 const WAITING_CHANNEL = "main";
 
+const ADMIN_ORG = "__ADMIN__";
+const CONNECTIONS_CHANNEL = "__CONNECTIONS__"; // roster of connected clients
+// const EVENTS_CHANNEL = "__EVENTS__"; // real-time firehose
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
@@ -218,6 +223,63 @@ export function findClientsByUserId(userId: string): ClientInfo[] {
 	return results;
 }
 
+/**
+ * Retrieve a snapshot of all currently connected WebSocket clients across all
+ * organizations and channels.
+ *
+ * Each connected client is represented by an object that contains the
+ * connection's WebSocket client ID (`wsClientId`), the logical user ID
+ * (`clientId`), the organization and channel they are subscribed to, and the
+ * latest recorded `lastPong` timestamp (used for heartbeat/latency monitoring).
+ *
+ * This is primarily useful for administrative or monitoring purposes, such as
+ * populating a firehose snapshot when an admin connects.
+ *
+ * @returns An array of objects describing each active WebSocket connection.
+ *
+ * @example
+ * ```ts
+ * const snapshot = getAllConnectedClients();
+ * console.log(`Currently ${snapshot.length} active connections:`);
+ *
+ * snapshot.forEach(client => {
+ *   console.log(
+ *     `- user=${client.clientId}, wsId=${client.wsClientId}, ` +
+ *     `org=${client.orgId}, channel=${client.channel}, ` +
+ *     `authenticated=${client.authenticated}`
+ *   );
+ * });
+ * ```
+ */
+function getAllConnectedClients() {
+	const connected: Array<{
+		wsClientId: string;
+		clientId: string;
+		orgId: string;
+		channel: string;
+		lastPong: number;
+		lastLatency: number;
+		connectedAt: number;
+		authenticated?: boolean;
+	}> = [];
+
+	for (const clients of rooms.values()) {
+		for (const c of clients) {
+			connected.push({
+				wsClientId: c.wsClientId,
+				clientId: c.clientId,
+				orgId: c.orgId,
+				channel: c.channel,
+				lastPong: c.lastPong,
+				lastLatency: c.lastLatency,
+				connectedAt: c.connectedAt,
+				authenticated: c.clientId !== "ANONYMOUS",
+			});
+		}
+	}
+
+	return connected;
+}
 // ------------------------------------------------------------------
 // Subscription Helpers
 // ------------------------------------------------------------------
@@ -272,6 +334,8 @@ function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		orgId,
 		channel,
 		lastPong: Date.now(),
+		lastLatency: -1,
+		connectedAt: Date.now(),
 	};
 	rooms.set(key, [...(rooms.get(key) || []), info]);
 	broadcastIndividual(ws, {
@@ -296,6 +360,8 @@ function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		orgId: WAITING_ORG,
 		channel: WAITING_CHANNEL,
 		lastPong: Date.now(),
+		lastLatency: -1,
+		connectedAt: Date.now(),
 	};
 	rooms.set(waitingKey, [...(rooms.get(waitingKey) || []), info]);
 
@@ -375,7 +441,10 @@ wsRoute.get(
 
 				// PONG
 				if (msg.type === "PONG") {
-					if (client) client.lastPong = Date.now();
+					if (client) {
+						client.lastPong = Date.now();
+						client.lastLatency = msg.meta.latency;
+					}
 					return;
 				}
 
@@ -391,7 +460,26 @@ wsRoute.get(
 				}
 
 				// SUBSCRIBE
-				if (msg.type === "SUBSCRIBE") {
+				if (msg.type === "SUBSCRIBE" && msg.orgId === ADMIN_ORG && msg.channel === CONNECTIONS_CHANNEL) {
+					if (user.role !== "admin") {
+						broadcastIndividual(ws.raw, {
+							type: "ERROR",
+							data: { message: "Unauthorized for CONNECTIONS_SNAPSHOT" },
+							meta: { ts: Date.now() },
+						});
+						ws.close();
+						return;
+					}
+					handleSubscribe(ws.raw, wsClientId, user.id, ADMIN_ORG, CONNECTIONS_CHANNEL);
+					// ✅ Send snapshot of connected clients to *this admin only*
+					const snapshot = getAllConnectedClients();
+					broadcastIndividual(ws.raw, {
+						type: "CONNECTIONS_SNAPSHOT",
+						data: snapshot,
+						meta: { ts: Date.now() },
+					});
+					return;
+				} else if (msg.type === "SUBSCRIBE") {
 					const { orgId, channel } = msg;
 					if (!orgId || !channel) {
 						return broadcastIndividual(ws.raw, {
@@ -472,7 +560,7 @@ setInterval(() => {
 			unsubscribe(socket);
 		} else {
 			try {
-				socket.send(JSON.stringify({ type: "PING", scope: "INDIVIDUAL", ts: now }));
+				socket.send(JSON.stringify({ type: "PING", scope: "INDIVIDUAL", meta: { ts: Date.now() } }));
 			} catch {
 				console.log("Failed to ping, closing", wsClientId);
 				socket.close();
@@ -481,3 +569,12 @@ setInterval(() => {
 		}
 	}
 }, 30_000);
+
+setInterval(() => {
+	const snapshot = getAllConnectedClients();
+	broadcast(ADMIN_ORG, CONNECTIONS_CHANNEL, {
+		type: "CONNECTIONS_SNAPSHOT",
+		data: snapshot,
+		meta: { ts: Date.now() },
+	});
+}, 60_000);
