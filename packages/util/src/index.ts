@@ -206,3 +206,21 @@ export function formatDateCompact(date: Date | string, locale = "en-US"): string
 		return `${d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}`;
 	}
 }
+
+/**
+ * Parse a channel string of format "key:value;key:value"
+ * into an object.
+ *
+ * @example
+ * parseChannel("project:123;task:456")
+ * // { project: "123", task: "456" }
+ */
+export function parseChannel(channel: string): Record<string, string> {
+	return channel.split(";").reduce<Record<string, string>>((acc, part) => {
+		const [key, value] = part.split(":");
+		if (key && value) {
+			acc[key] = value;
+		}
+		return acc;
+	}, {});
+}

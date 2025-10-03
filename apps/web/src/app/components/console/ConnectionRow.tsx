@@ -2,6 +2,7 @@
 
 import { Badge } from "@repo/ui/components/badge";
 import { TableCell, TableRow } from "@repo/ui/components/table";
+import { parseChannel } from "@repo/util";
 import type { UserWithRole } from "better-auth/plugins";
 import { memo, useEffect, useState } from "react";
 import type { FirehoseClient } from "@/app/lib/ws";
@@ -46,7 +47,7 @@ export const ConnectionRow = memo(function ConnectionRow({ client, account }: Co
 			</TableCell>
 			<TableCell className="font-mono text-xs">{client.wsClientId}</TableCell>
 			<TableCell>{client.orgId}</TableCell>
-			<TableCell>{client.channel}</TableCell>
+			<TableCell>{JSON.stringify(parseChannel(client.channel), null, 4)}</TableCell>
 			<TableCell>{client.lastLatency ?? "-"}</TableCell>
 			<TableCell>{formatTime(client.lastPong)}</TableCell>
 			<TableCell>{client.connectedAt ? formatDuration(now - client.connectedAt) : "–"}</TableCell>
