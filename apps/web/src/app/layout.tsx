@@ -5,7 +5,26 @@ import type React from "react";
 import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
 import { IconAlertCircle, IconAlertCircleFilled, IconCheck, IconInfoCircle, IconLoader2 } from "@tabler/icons-react";
+import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import { QueryClientProvider } from "./components/layout/query-provider";
+
+const inter = Inter({
+	subsets: ["latin"],
+	variable: "--font-sans",
+	display: "swap",
+});
+
+const sourceSerif = Source_Serif_4({
+	subsets: ["latin"],
+	variable: "--font-serif",
+	display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+	subsets: ["latin"],
+	variable: "--font-mono",
+	display: "swap",
+});
 
 const name = process.env.NEXT_PUBLIC_PROJECT_NAME;
 export const metadata: Metadata = {
@@ -31,7 +50,11 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html
+			lang="en"
+			suppressHydrationWarning
+			className={`${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable}`}
+		>
 			<body className="relative">
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
 					<QueryClientProvider>

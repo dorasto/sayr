@@ -64,9 +64,9 @@
   --sidebar-accent-foreground: oklch(0.4732 0.1247 46.2007);
   --sidebar-border: oklch(0.9276 0.0058 264.5313);
   --sidebar-ring: oklch(0.7686 0.1647 70.0804);
-  --font-sans: Inter, sans-serif;
-  --font-serif: Source Serif 4, serif;
-  --font-mono: JetBrains Mono, monospace;
+  --font-sans: var(--font-sans), Inter, sans-serif;
+  --font-serif: var(--font-serif), Source Serif 4, serif;
+  --font-mono: var(--font-mono), JetBrains Mono, monospace;
   --radius: 0.375rem;
   --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
@@ -115,9 +115,9 @@
   --sidebar-accent-foreground: oklch(0.8822 0 0);
   --sidebar-border: oklch(0.3715 0 0);
   --sidebar-ring: oklch(0.7686 0.1647 70.0804);
-  --font-sans: Inter, sans-serif;
-  --font-serif: Source Serif 4, serif;
-  --font-mono: JetBrains Mono, monospace;
+  --font-sans: var(--font-sans), Inter, sans-serif;
+  --font-serif: var(--font-serif), Source Serif 4, serif;
+  --font-mono: var(--font-mono), JetBrains Mono, monospace;
   --radius: 0.375rem;
   --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
