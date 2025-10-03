@@ -17,7 +17,7 @@ export default function OrganizationProjectHomePage() {
 		ws,
 		orgId: organization.id,
 		organization: organization,
-		channel: `project-${project.id}`,
+		channel: `project:${project.id}`,
 		setOrganization: setOrganization,
 	});
 	const handlers: WSMessageHandler<WSMessage> = {

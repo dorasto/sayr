@@ -440,7 +440,7 @@ wsRoute.get(
 				handleSubscribe(ws.raw, wsClientId, user.id, orgId, "public");
 			} else {
 				// Authenticated but no org/channel yet → place in waiting room
-				joinWaitingRoom(ws.raw, wsClientId, user?.id);
+				// joinWaitingRoom(ws.raw, wsClientId, user?.id);
 			}
 		},
 
@@ -453,7 +453,7 @@ wsRoute.get(
 				const client = findClient(ws.raw);
 				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE
 				if (client?.orgId === WAITING_ORG && client.channel === WAITING_CHANNEL) {
-					if (!["SUBSCRIBE", "UNSUBSCRIBE"].includes(msg.type)) {
+					if (!["SUBSCRIBE", "UNSUBSCRIBE", "PONG"].includes(msg.type)) {
 						return broadcastIndividual(ws.raw, {
 							type: "ERROR",
 							data: { message: "You are in waiting room. Please SUBSCRIBE to an org/channel" },

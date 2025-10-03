@@ -72,7 +72,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		type: "CREATE_TASK" as WSBaseMessage["type"],
 		data: taskWithData,
 	};
-	broadcast(org_id, `project-${project_id}`, data, found?.socket);
+	broadcast(org_id, `project:${project_id}`, data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
 	return c.json({
 		success: true,
@@ -158,7 +158,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
 
-	broadcast(org_id, `project-${project_id}`, data, found?.socket);
+	broadcast(org_id, `project:${project_id}`, data, found?.socket);
 	broadcastPublic(org_id, { ...data });
 
 	return c.json({ success: true, data: taskWithData });
@@ -216,7 +216,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	// 📡 Broadcast to WS + Public
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-	broadcast(org_id, `project-${project_id}`, data, found?.socket);
+	broadcast(org_id, `project:${project_id}`, data, found?.socket);
 	broadcastPublic(org_id, { ...data });
 
 	return c.json({ success: true, data: taskWithData });
@@ -281,7 +281,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	// 📡 Broadcast to WS + Public
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-	broadcast(org_id, `project-${project_id}`, data, found?.socket);
+	broadcast(org_id, `project:${project_id}`, data, found?.socket);
 	broadcastPublic(org_id, { ...data });
 
 	return c.json({ success: true, data: taskWithData });
