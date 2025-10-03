@@ -4,7 +4,14 @@ import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { type AppEnv, checkMembershipRole } from "@/index";
-import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
+import {
+	broadcast,
+	broadcastIndividual,
+	broadcastPublic,
+	findClientByWsId,
+	findClientsByUserId,
+	type WSBaseMessage,
+} from "../ws";
 import { apiRouteAdminProject } from "./project";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 apiRouteAdminOrganization.post("/update", async (c) => {
@@ -22,7 +29,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	if (result) {
 		const found = findClientByWsId(wsClientId);
 		const data = {
-			type: "UPDATE_ORG",
+			type: "UPDATE_ORG" as WSBaseMessage["type"],
 			data: {
 				...result,
 				logo: result.logo ? ensureCdnUrl(result.logo) : null,
@@ -165,7 +172,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	const label = await getOrCreateLabel(org_id, name, color);
 	const found = findClientByWsId(wsClientId);
 	const data = {
-		type: "CREATE_LABEL",
+		type: "CREATE_LABEL" as WSBaseMessage["type"],
 		data: label,
 	};
 	broadcast(org_id, "admin", data, found?.socket);

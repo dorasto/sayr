@@ -10,7 +10,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { type AppEnv, checkMembershipRole } from "@/index";
-import { broadcast, broadcastPublic, findClientByWsId } from "../ws";
+import { broadcast, broadcastPublic, findClientByWsId, type WSBaseMessage } from "../ws";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 apiRouteAdminProjectTask.post("/create", async (c) => {
@@ -69,7 +69,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 
 	const found = findClientByWsId(wsClientId);
 	const data = {
-		type: "CREATE_TASK",
+		type: "CREATE_TASK" as WSBaseMessage["type"],
 		data: taskWithData,
 	};
 	broadcast(org_id, `project-${project_id}`, data, found?.socket);
@@ -156,7 +156,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 
 	// 📢 Step 4: Broadcast one unified update
 	const found = findClientByWsId(wsClientId);
-	const data = { type: "UPDATE_TASK", data: taskWithData };
+	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
 
 	broadcast(org_id, `project-${project_id}`, data, found?.socket);
 	broadcastPublic(org_id, { ...data });
@@ -215,7 +215,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 
 	// 📡 Broadcast to WS + Public
 	const found = findClientByWsId(wsClientId);
-	const data = { type: "UPDATE_TASK", data: taskWithData };
+	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
 	broadcast(org_id, `project-${project_id}`, data, found?.socket);
 	broadcastPublic(org_id, { ...data });
 
@@ -280,7 +280,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	const taskWithData = await getTaskById(org_id, project_id, task_id);
 	// 📡 Broadcast to WS + Public
 	const found = findClientByWsId(wsClientId);
-	const data = { type: "UPDATE_TASK", data: taskWithData };
+	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
 	broadcast(org_id, `project-${project_id}`, data, found?.socket);
 	broadcastPublic(org_id, { ...data });
 

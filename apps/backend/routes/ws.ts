@@ -6,27 +6,49 @@ import { type AppEnv, getOrganization } from "..";
 export const wsRoute = new Hono<AppEnv>();
 
 type ClientInfo = {
-	socket: ServerWebSocket;
-	wsClientId: string;
-	clientId: string;
-	orgId: string;
-	channel: string;
+	socket: ServerWebSocket; // raw WebSocket connection
+	wsClientId: string; // unique per connection
+	clientId: string; // logical user ID (can have multiple connections)
+	orgId: string; // org subscription
+	channel: string; // channel subscription
+	// Heartbeat info
 	lastPong: number; // ✅ last pong received from heartbeat
 	lastLatency: number; // ✅ last measured RTT
 	connectedAt: number; // ✅ when this connection was first established
 };
 // Base message type
-type WSBaseMessage = {
-	type: string;
+export type WSBaseMessage = {
+	type:
+		| "CONNECTION_STATUS"
+		| "SERVER_MESSAGE"
+		| "ERROR"
+		| "PING"
+		| "PONG"
+		| "MESSAGE"
+		| "SUBSCRIBED"
+		| "SUBSCRIBE"
+		| "UNSUBSCRIBE"
+		| "USER_UNSUBSCRIBED"
+		| "USER_SUBSCRIBED"
+		| "UPDATE_ORG"
+		| "CREATE_PROJECT"
+		| "CREATE_TASK"
+		| "UPDATE_TASK"
+		| "CREATE_LABEL"
+		| "FIREHOSE"
+		| "CONNECTIONS_SNAPSHOT"
+		| "WAITING_ROOM"
+		| "DISCONNECTED";
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	data?: any;
+	orgId?: string;
+	channel?: string;
 	scope: "INDIVIDUAL" | "CHANNEL" | "PUBLIC";
 	meta?: {
 		ts: number;
 		channel?: string;
 		orgId?: string;
-		// biome-ignore lint/suspicious/noExplicitAny: <any>
-		[key: string]: any;
+		[key: string]: string | number | undefined | null;
 	};
 };
 const rooms = new Map<string, ClientInfo[]>(); // `${orgId}:${channel}`
@@ -36,9 +58,11 @@ const wsClientIds = new Map<ServerWebSocket, string>();
 const WAITING_ORG = "WAITING_ROOM";
 const WAITING_CHANNEL = "main";
 
+// Admin constants
 const ADMIN_ORG = "__ADMIN__";
 const CONNECTIONS_CHANNEL = "__CONNECTIONS__"; // roster of connected clients
 // const EVENTS_CHANNEL = "__EVENTS__"; // real-time firehose
+
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
@@ -155,16 +179,6 @@ export function broadcastPublic(orgId: string, message: Omit<WSBaseMessage, "sco
 	};
 	// Send to the org's public channel
 	sendToClients(rooms.get(`${orgId}:public`), fullMsg, orgId, "public", exclude);
-
-	// // Send to firehose listeners, include channel info
-	// const firehoseMsg = {
-	// 	type: "FIREHOSE",
-	// 	data: {
-	// 		channel: "public",
-	// 		payload: message,
-	// 	},
-	// };
-	// sendToClients(rooms.get(`${orgId}:*`), firehoseMsg, exclude);
 }
 
 /**
@@ -280,6 +294,7 @@ function getAllConnectedClients() {
 
 	return connected;
 }
+
 // ------------------------------------------------------------------
 // Subscription Helpers
 // ------------------------------------------------------------------
@@ -389,8 +404,8 @@ wsRoute.get(
 			const user = c.get("user");
 			const wsClientId = crypto.randomUUID();
 			wsClientIds.set(ws.raw, wsClientId);
-
 			const orgId = c.req.query("orgId");
+
 			if (!session) {
 				broadcastIndividual(ws.raw, {
 					type: "CONNECTION_STATUS",
@@ -410,9 +425,6 @@ wsRoute.get(
 				}
 				return;
 			}
-
-			// Authenticated but no org/channel yet → place in waiting room
-
 			broadcastIndividual(ws.raw, {
 				type: "CONNECTION_STATUS",
 				data: {
@@ -424,30 +436,21 @@ wsRoute.get(
 					ts: Date.now(),
 				},
 			});
-			if (!orgId) {
-				joinWaitingRoom(ws.raw, wsClientId, user?.id);
-			} else {
+			if (orgId) {
 				handleSubscribe(ws.raw, wsClientId, user.id, orgId, "public");
+			} else {
+				// Authenticated but no org/channel yet → place in waiting room
+				joinWaitingRoom(ws.raw, wsClientId, user?.id);
 			}
 		},
 
 		onMessage: async (event, ws) => {
 			try {
-				const msg = JSON.parse(event.data as string);
+				const msg: WSBaseMessage = JSON.parse(event.data as string);
 				const wsClientId = wsClientIds.get(ws.raw) as string;
 				const session = c.get("session");
 				const user = c.get("user");
 				const client = findClient(ws.raw);
-
-				// PONG
-				if (msg.type === "PONG") {
-					if (client) {
-						client.lastPong = Date.now();
-						client.lastLatency = msg.meta.latency;
-					}
-					return;
-				}
-
 				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE
 				if (client?.orgId === WAITING_ORG && client.channel === WAITING_CHANNEL) {
 					if (!["SUBSCRIBE", "UNSUBSCRIBE"].includes(msg.type)) {
@@ -458,70 +461,81 @@ wsRoute.get(
 						});
 					}
 				}
-
-				// SUBSCRIBE
-				if (msg.type === "SUBSCRIBE" && msg.orgId === ADMIN_ORG && msg.channel === CONNECTIONS_CHANNEL) {
-					if (user.role !== "admin") {
-						broadcastIndividual(ws.raw, {
-							type: "ERROR",
-							data: { message: "Unauthorized for CONNECTIONS_SNAPSHOT" },
-							meta: { ts: Date.now() },
-						});
-						ws.close();
+				switch (msg.type) {
+					case "PONG":
+						if (client) {
+							client.lastPong = Date.now();
+							client.lastLatency = msg.meta ? (msg.meta.latency as number) : -1;
+						}
 						return;
-					}
-					handleSubscribe(ws.raw, wsClientId, user.id, ADMIN_ORG, CONNECTIONS_CHANNEL);
-					// ✅ Send snapshot of connected clients to *this admin only*
-					const snapshot = getAllConnectedClients();
-					broadcastIndividual(ws.raw, {
-						type: "CONNECTIONS_SNAPSHOT",
-						data: snapshot,
-						meta: { ts: Date.now() },
-					});
-					return;
-				} else if (msg.type === "SUBSCRIBE") {
-					const { orgId, channel } = msg;
-					if (!orgId || !channel) {
-						return broadcastIndividual(ws.raw, {
-							type: "ERROR",
-							data: { message: "Need orgId+channel" },
-							meta: { ts: Date.now() },
-						});
-					}
-					// ✅ enforce session: only allow "public" channel if unauthenticated
-					if (!session && channel !== "public") {
-						return broadcastIndividual(ws.raw, {
-							type: "ERROR",
-							data: { message: "Auth required for private channels" },
-							meta: { ts: Date.now() },
-						});
-					} else if (channel === "public" && !session) {
-						handleSubscribe(ws.raw, wsClientId, crypto.randomUUID(), orgId, channel);
-					} else {
-						const organization = await getOrganization(orgId, user.id);
-						if (organization) {
-							handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
-						} else {
+					case "SUBSCRIBE":
+						if (msg.orgId === ADMIN_ORG && msg.channel === CONNECTIONS_CHANNEL) {
+							if (user.role !== "admin") {
+								broadcastIndividual(ws.raw, {
+									type: "ERROR",
+									data: { message: "Unauthorized for CONNECTIONS_SNAPSHOT" },
+									meta: { ts: Date.now() },
+								});
+								ws.close();
+								return;
+							}
+							handleSubscribe(ws.raw, wsClientId, user.id, ADMIN_ORG, CONNECTIONS_CHANNEL);
+							// ✅ Send snapshot of connected clients to *this admin only*
+							const snapshot = getAllConnectedClients();
 							broadcastIndividual(ws.raw, {
-								type: "ERROR",
-								data: { message: `You do not have access to this organization` },
+								type: "CONNECTIONS_SNAPSHOT",
+								data: snapshot,
 								meta: { ts: Date.now() },
 							});
-							ws.close();
+							return;
 						}
-					}
-					return;
-				}
-				// ✅ Handle UNSUBSCRIBE (auth only)
-				if (msg.type === "UNSUBSCRIBE") {
-					if (!session) {
-						return broadcastIndividual(ws.raw, {
-							type: "ERROR",
-							data: { message: "Anonymous users cannot unsubscribe" },
-							meta: { ts: Date.now() },
-						});
-					}
-					joinWaitingRoom(ws.raw, wsClientId, user?.id);
+						if (msg.type === "SUBSCRIBE") {
+							const { orgId, channel } = msg;
+							if (!orgId || !channel) {
+								return broadcastIndividual(ws.raw, {
+									type: "ERROR",
+									data: { message: "Need orgId+channel" },
+									meta: { ts: Date.now() },
+								});
+							}
+							// ✅ enforce session: only allow "public" channel if unauthenticated
+							if (!session && channel !== "public") {
+								return broadcastIndividual(ws.raw, {
+									type: "ERROR",
+									data: { message: "Auth required for private channels" },
+									meta: { ts: Date.now() },
+								});
+							} else if (channel === "public" && !session) {
+								handleSubscribe(ws.raw, wsClientId, crypto.randomUUID(), orgId, channel);
+							} else {
+								const organization = await getOrganization(orgId, user.id);
+								if (organization) {
+									handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
+								} else {
+									broadcastIndividual(ws.raw, {
+										type: "ERROR",
+										data: { message: `You do not have access to this organization` },
+										meta: { ts: Date.now() },
+									});
+									ws.close();
+								}
+							}
+							return;
+						}
+						return;
+					case "UNSUBSCRIBE":
+						if (!session) {
+							return broadcastIndividual(ws.raw, {
+								type: "ERROR",
+								data: { message: "Anonymous users cannot unsubscribe" },
+								meta: { ts: Date.now() },
+							});
+						}
+						joinWaitingRoom(ws.raw, wsClientId, user?.id);
+						return;
+					default:
+						joinWaitingRoom(ws.raw, wsClientId, user?.id);
+						break;
 				}
 			} catch (err) {
 				broadcastIndividual(ws.raw, {
@@ -541,6 +555,12 @@ wsRoute.get(
 			unsubscribe(ws.raw);
 			wsClientIds.delete(ws.raw);
 			console.log("Connection closed");
+		},
+		onError(_, ws) {
+			unsubscribe(ws.raw);
+			wsClientIds.delete(ws.raw);
+			ws.close();
+			console.log("Connection closed error");
 		},
 	}))
 );
@@ -570,6 +590,9 @@ setInterval(() => {
 	}
 }, 30_000);
 
+// ✅ Admin broadcast of connections snapshot
+// Every 90 seconds, send a snapshot of all connected clients
+// This allows admin UIs to get a real-time view of connected clients
 setInterval(() => {
 	const snapshot = getAllConnectedClients();
 	broadcast(ADMIN_ORG, CONNECTIONS_CHANNEL, {
@@ -577,4 +600,4 @@ setInterval(() => {
 		data: snapshot,
 		meta: { ts: Date.now() },
 	});
-}, 60_000);
+}, 90_000);

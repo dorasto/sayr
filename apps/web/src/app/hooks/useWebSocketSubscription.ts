@@ -1,6 +1,6 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLayoutData } from "../admin/Context";
 import type { WSMessage } from "../lib/ws";
 import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandler";
@@ -13,8 +13,6 @@ interface UseWebSocketSubscriptionOptions {
 	setOrganization?: (newValue: schema.OrganizationWithMembers) => void;
 }
 interface UseWebSocketSubscriptionReturn {
-	messages: WSMessage[];
-	clearMessages: () => void;
 	wsSubscribedState: { orgId: string; channel: string } | null;
 }
 export function useWebSocketSubscription({
@@ -25,7 +23,6 @@ export function useWebSocketSubscription({
 	setOrganization,
 }: UseWebSocketSubscriptionOptions): UseWebSocketSubscriptionReturn {
 	const { organizations, setOrganizations } = useLayoutData();
-	const [messages, setMessages] = useState<WSMessage[]>([]);
 	const { value: wsSubscribedState, setValue: setWSSubscribedState } = useStateManagement<{
 		orgId: string;
 		channel: string;
@@ -60,7 +57,6 @@ export function useWebSocketSubscription({
 
 	// Stable handler for WebSocket `onmessage`
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onEach: (msg) => setMessages((prev) => [...prev, msg]),
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
 	});
 	useEffect(() => {
@@ -93,7 +89,5 @@ export function useWebSocketSubscription({
 		};
 	}, [ws, orgId, channel, handleMessage, setWSSubscribedState]);
 
-	const clearMessages = () => setMessages([]);
-
-	return { messages, clearMessages, wsSubscribedState };
+	return { wsSubscribedState };
 }

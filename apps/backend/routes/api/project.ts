@@ -1,7 +1,14 @@
 import { createProject, getOrganizationMembers } from "@repo/database";
 import { Hono } from "hono";
 import { type AppEnv, checkMembershipRole } from "@/index";
-import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
+import {
+	broadcast,
+	broadcastIndividual,
+	broadcastPublic,
+	findClientByWsId,
+	findClientsByUserId,
+	type WSBaseMessage,
+} from "../ws";
 import { apiRouteAdminProjectTask } from "./task";
 
 export const apiRouteAdminProject = new Hono<AppEnv>();
@@ -16,7 +23,7 @@ apiRouteAdminProject.post("/create", async (c) => {
 	if (result.success) {
 		const found = findClientByWsId(wsClientId);
 		const data = {
-			type: "CREATE_PROJECT",
+			type: "CREATE_PROJECT" as WSBaseMessage["type"],
 			data: result.data,
 		};
 		broadcast(org_id, "admin", data, found?.socket);
