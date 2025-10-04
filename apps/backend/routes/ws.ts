@@ -160,6 +160,51 @@ export function broadcast(
 }
 
 /**
+ * Broadcast to a room and optionally its parent room.
+ *
+ * @param orgId - organization identifier
+ * @param channel - current room key, e.g. "channel:123;subChannel:456"
+ * @param message - message payload (scope auto-set)
+ * @param exclude - optional socket to skip
+ * @param includeParent - whether to also send to the parent channel
+ */
+export function broadcastToRoom(
+	orgId: string,
+	channel: string,
+	message: Omit<WSBaseMessage, "scope">,
+	exclude?: ServerWebSocket,
+	includeParent = false
+) {
+	const fullMsg: WSBaseMessage = { ...message, scope: "CHANNEL" };
+	const seen = new Set<ServerWebSocket>();
+	const targets: ClientInfo[] = [];
+
+	const addRoom = (key: string) => {
+		const clients = rooms.get(`${orgId}:${key}`);
+		if (!clients) return;
+		for (const c of clients) {
+			if (exclude && c.socket === exclude) continue;
+			if (seen.has(c.socket)) continue;
+			seen.add(c.socket);
+			targets.push(c);
+		}
+	};
+
+	// always to the specific channel
+	addRoom(channel);
+
+	// optionally include parent
+	if (includeParent && channel.includes(";")) {
+		const parent = channel.split(";")[0];
+		parent && addRoom(parent);
+	}
+
+	if (targets.length > 0) {
+		sendToClients(targets, fullMsg, orgId, channel, exclude);
+	}
+}
+
+/**
  * Broadcast a message to a specific org's public channel.
  *
  * @param orgId - The organization ID to which the message is broadcasted.

@@ -27,6 +27,14 @@ export default function OrganizationProjectTaskHomePage() {
 				setLabels([...labels, msg.data]);
 			}
 		},
+		UPDATE_TASK: (msg) => {
+			const updatedTask = msg.data;
+			const updatedTasks = tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));
+			setTasks(updatedTasks);
+			if (task && task.id === updatedTask.id) {
+				setTask({ ...task, ...updatedTask });
+			}
+		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),

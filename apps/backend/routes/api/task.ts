@@ -10,7 +10,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { type AppEnv, checkMembershipRole } from "@/index";
-import { broadcast, broadcastPublic, findClientByWsId, type WSBaseMessage } from "../ws";
+import { broadcast, broadcastPublic, broadcastToRoom, findClientByWsId, type WSBaseMessage } from "../ws";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 apiRouteAdminProjectTask.post("/create", async (c) => {
@@ -157,8 +157,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	// 📢 Step 4: Broadcast one unified update
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-
-	broadcast(org_id, `project:${project_id}`, data, found?.socket);
+	broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
 	broadcastPublic(org_id, { ...data });
 
 	return c.json({ success: true, data: taskWithData });
@@ -216,7 +215,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	// 📡 Broadcast to WS + Public
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-	broadcast(org_id, `project:${project_id}`, data, found?.socket);
+	broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
 	broadcastPublic(org_id, { ...data });
 
 	return c.json({ success: true, data: taskWithData });
@@ -281,7 +280,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	// 📡 Broadcast to WS + Public
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-	broadcast(org_id, `project:${project_id}`, data, found?.socket);
+	broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
 	broadcastPublic(org_id, { ...data });
 
 	return c.json({ success: true, data: taskWithData });
