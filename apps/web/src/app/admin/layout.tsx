@@ -1,5 +1,5 @@
 import { getOrganizations } from "@repo/database";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type React from "react";
 import AdminNavigation from "../components/layout/admin/admin-navigation";
 import { Wrapper } from "../components/layout/wrapper";
@@ -9,15 +9,17 @@ import { RootProvider } from "./Context";
 export const metadata: Metadata = {
 	title: "Admin",
 	description: "A starter template for Next.js, Tailwind CSS, and Turborepo",
-	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "white" },
-		{ media: "(prefers-color-scheme: dark)", color: "black" },
-	],
 	icons: {
 		icon: "/favicon.ico",
 		shortcut: "/favicon-16x16.png",
 		apple: "/apple-touch-icon.png",
 	},
+};
+export const viewport: Viewport = {
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: "cyan" },
+		{ media: "(prefers-color-scheme: dark)", color: "black" },
+	],
 };
 
 export default async function RootLayoutRoot({

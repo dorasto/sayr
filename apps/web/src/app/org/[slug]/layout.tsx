@@ -1,5 +1,5 @@
 import { getOrganizationPublic } from "@repo/database";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type React from "react";
 import Navigation from "@/app/components/org/layout/navigation";
 import { RootProviderOrganization } from "./Context";
@@ -47,7 +47,12 @@ export async function generateMetadata({ params }: OrgLayoutProps): Promise<Meta
 		},
 	};
 }
-
+export const viewport: Viewport = {
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: "cyan" },
+		{ media: "(prefers-color-scheme: dark)", color: "black" },
+	],
+};
 export default async function OrgLayout({
 	children,
 	params,

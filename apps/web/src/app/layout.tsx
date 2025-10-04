@@ -1,6 +1,6 @@
 import { HeadlessToastConfig } from "@repo/ui/components/headless-toast";
 import { Toaster } from "@repo/ui/components/sonner";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type React from "react";
 import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
@@ -33,17 +33,18 @@ export const metadata: Metadata = {
 		default: `${name}`,
 	},
 	description: "A starter template for Next.js, Tailwind CSS, and Turborepo",
-	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "white" },
-		{ media: "(prefers-color-scheme: dark)", color: "black" },
-	],
 	icons: {
 		icon: "/favicon.ico",
 		shortcut: "/favicon-16x16.png",
 		apple: "/apple-touch-icon.png",
 	},
 };
-
+export const viewport: Viewport = {
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: "cyan" },
+		{ media: "(prefers-color-scheme: dark)", color: "black" },
+	],
+};
 export default function RootLayout({
 	children,
 }: Readonly<{
