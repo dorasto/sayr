@@ -92,6 +92,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 					</SidebarGroup>
 				</SidebarContent>
 				<SidebarFooter>
+					{account.role === "admin" && <StatusBar layout="sidebar" sidebarCollapsed={!sidebarIsOpen} />}
 					<SidebarMenu>
 						<SidebarMenuItem>
 							<SidebarMenuButton asChild isActive={pathname === "/admin"}>
