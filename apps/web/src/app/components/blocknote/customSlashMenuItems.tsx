@@ -4,7 +4,6 @@ import type { BlockNoteEditor } from "@blocknote/core";
 import { filterSuggestionItems, insertOrUpdateBlock } from "@blocknote/core";
 import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { getDefaultReactSlashMenuItems } from "@blocknote/react";
-import { IconHeading } from "@tabler/icons-react";
 import {
 	CheckSquare,
 	Code,
