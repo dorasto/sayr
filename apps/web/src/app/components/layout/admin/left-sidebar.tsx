@@ -72,7 +72,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 						<SidebarMenu>
 							<SidebarMenuItem>
 								<SidebarMenuButton asChild>
-									<Link href={""} prefetch={false} onClick={closeMobileSidebar}>
+									<Link href={"/admin/console"} prefetch={false} onClick={closeMobileSidebar}>
 										<IconUsers />
 										<span>Users</span>
 									</Link>

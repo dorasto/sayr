@@ -50,11 +50,13 @@ export type WSBaseMessage = {
 type wsClientsType = {
 	id: string;
 	connectedAt: number; // ✅ when this connection was first established
+	lastMessageAt: number;
+	offenceCount: number;
 	// Heartbeat info
 	lastPong: number; // ✅ last pong received from heartbeat
 	lastLatency: number; // ✅ last measured RTT
 };
-const rooms = new Map<string, ClientInfo[]>(); // `${orgId}:${channel}`
+const rooms = new Map<string, Set<ClientInfo>>();
 const wsClients = new Map<ServerWebSocket, wsClientsType>();
 
 // ✅ waiting room constants
@@ -66,33 +68,46 @@ const ADMIN_ORG = "__ADMIN__";
 const CONNECTIONS_CHANNEL = "__CONNECTIONS__"; // roster of connected clients
 // const EVENTS_CHANNEL = "__EVENTS__"; // real-time firehose
 
+const MIN_MESSAGE_INTERVAL = 100; // ms between messages (~10 msgs/sec)
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
 
 function sendToClients(
-	clients: ClientInfo[] = [],
+	clients: Iterable<ClientInfo> = [],
 	message: WSBaseMessage,
 	orgId: string,
 	channel: string,
 	exclude?: ServerWebSocket
 ) {
 	for (const c of clients) {
-		if (exclude && c.socket === exclude) continue;
-		// Always clone + attach meta
-		const msgWithMeta: WSBaseMessage = {
-			...message,
-			meta: {
-				ts: Date.now(),
-				channel,
-				orgId,
-				...(message.meta || {}),
-			},
-		};
 		try {
-			c.socket.send(JSON.stringify(msgWithMeta));
+			const sock = c.socket;
+
+			// Skip sender or invalid sockets
+			if (!sock || (exclude && sock === exclude)) continue;
+			if (sock.readyState !== 1) continue; // 1 = OPEN
+
+			// Clone + attach meta
+			const msgWithMeta: WSBaseMessage = {
+				...message,
+				meta: {
+					ts: Date.now(),
+					channel,
+					orgId,
+					...(message.meta || {}),
+				},
+			};
+
+			sock.send(JSON.stringify(msgWithMeta));
 		} catch (err) {
-			console.error("Send failed", c.wsClientId, err);
+			// biome-ignore lint/suspicious/noExplicitAny: <needed>
+			console.error("Send failed:", (c as any).wsClientId, err);
+			// Optionally remove closed/broken sockets
+			try {
+				c.socket.close();
+			} catch {}
+			unsubscribe(c.socket);
 		}
 	}
 }
@@ -244,10 +259,9 @@ export function broadcastPublic(orgId: string, message: Omit<WSBaseMessage, "sco
  * }
  * ```
  */
-export function findClientByWsId(clientId: string) {
+export function findClientByWsId(socket: ServerWebSocket) {
 	for (const clients of rooms.values()) {
-		const found = clients.find((c) => c.wsClientId === clientId);
-		if (found) return found;
+		for (const c of clients) if (c.socket === socket) return c;
 	}
 }
 
@@ -351,38 +365,33 @@ function getAllConnectedClients() {
 function unsubscribe(socket: ServerWebSocket) {
 	const wsClientId = wsClients.get(socket);
 	for (const [key, clients] of rooms) {
-		const filtered = clients.filter((c) => c.socket !== socket);
-		if (filtered.length < clients.length) {
+		if (!clients) continue;
+		const before = clients.size;
+		for (const c of Array.from(clients)) {
+			if (c.socket === socket) clients.delete(c);
+		}
+		if (clients.size < before) {
 			const [orgId, channel] = key.split(":");
 			if (orgId && channel && orgId !== WAITING_ORG) {
 				const id = wsClientId?.id;
-				broadcast(
-					orgId,
-					channel,
-					{
-						type: "USER_UNSUBSCRIBED",
-						data: { id, orgId, channel },
-					},
-					socket
-				);
+				broadcast(orgId, channel, { type: "USER_UNSUBSCRIBED", data: { id, orgId, channel } }, socket);
 			}
+			if (clients.size === 0) rooms.delete(key);
 		}
-		filtered.length ? rooms.set(key, filtered) : rooms.delete(key);
-	}
-}
-
-// Find client subscription
-function findClient(socket: ServerWebSocket) {
-	for (const clients of rooms.values()) {
-		const found = clients.find((c) => c.socket === socket);
-		if (found) return found;
 	}
 }
 
 // Handle subscription
 function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: string, orgId: string, channel: string) {
 	const key = `${orgId}:${channel}`;
-	if ((rooms.get(key) || []).some((c) => c.socket === ws)) {
+	let set = rooms.get(key);
+	if (!set) {
+		set = new Set<ClientInfo>();
+		rooms.set(key, set);
+	}
+
+	// already subscribed?
+	if (Array.from(set).some((c) => c.socket === ws)) {
 		broadcastIndividual(ws, {
 			type: "ERROR",
 			data: { message: `Already subscribed to ${orgId}:${channel}` },
@@ -390,31 +399,28 @@ function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		return;
 	}
 
+	// remove from any previous
 	unsubscribe(ws);
 
-	const info: ClientInfo = {
-		socket: ws,
-		wsClientId,
-		clientId,
-		orgId,
-		channel,
-	};
-	rooms.set(key, [...(rooms.get(key) || []), info]);
+	const info: ClientInfo = { socket: ws, wsClientId, clientId, orgId, channel };
+	set.add(info);
+
 	broadcastIndividual(ws, {
 		type: "SUBSCRIBED",
-		data: {
-			orgId,
-			channel,
-		},
+		data: { orgId, channel },
 	});
+
 	broadcast(orgId, channel, { type: "USER_SUBSCRIBED", data: { wsClientId, clientId, orgId, channel } }, ws);
 }
 
 function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: string, reason?: string) {
-	// Clear any existing rooms first
 	unsubscribe(ws);
-
 	const waitingKey = `${WAITING_ORG}:${WAITING_CHANNEL}`;
+	let set = rooms.get(waitingKey);
+	if (!set) {
+		set = new Set<ClientInfo>();
+		rooms.set(waitingKey, set);
+	}
 	const info: ClientInfo = {
 		socket: ws,
 		wsClientId,
@@ -422,7 +428,7 @@ function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		orgId: WAITING_ORG,
 		channel: WAITING_CHANNEL,
 	};
-	rooms.set(waitingKey, [...(rooms.get(waitingKey) || []), info]);
+	set.add(info);
 
 	broadcastIndividual(ws, {
 		type: "WAITING_ROOM",
@@ -435,7 +441,6 @@ function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		meta: { ts: Date.now() },
 	});
 }
-
 // ------------------------------------------------------------------
 // WebSocket Route
 // ------------------------------------------------------------------
@@ -452,6 +457,8 @@ wsRoute.get(
 				connectedAt: Date.now(),
 				lastPong: Date.now(),
 				lastLatency: -1,
+				lastMessageAt: 0,
+				offenceCount: 0,
 			});
 			const orgId = c.req.query("orgId");
 
@@ -492,25 +499,48 @@ wsRoute.get(
 
 		onMessage: async (event, ws) => {
 			try {
+				const now = Date.now();
 				const msg: WSBaseMessage = JSON.parse(event.data as string);
 				const wsClient = wsClients.get(ws.raw) as wsClientsType;
 				const session = c.get("session");
 				const user = c.get("user");
-				const client = findClient(ws.raw);
+				const client = findClientByWsId(ws.raw);
+				if (wsClient.lastMessageAt && now - wsClient.lastMessageAt < MIN_MESSAGE_INTERVAL) {
+					wsClient.offenceCount = (wsClient.offenceCount || 0) + 1;
+					if (wsClient.offenceCount > 5) {
+						broadcastIndividual(ws.raw, {
+							type: "ERROR",
+							data: { message: "Rate limit exceeded. Disconnecting." },
+							meta: { ts: now },
+						});
+						const client = findClientByWsId(ws.raw);
+						console.warn("Rate‑limited / closing flooder", wsClient.id, client?.clientId);
+						ws.close();
+						unsubscribe(ws.raw);
+						return;
+					}
+					broadcastIndividual(ws.raw, {
+						type: "ERROR",
+						data: { message: "You are sending messages too quickly. Please slow down." },
+						meta: { ts: now },
+					});
+					return;
+				}
+				wsClient.lastMessageAt = now;
 				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE/PONG
 				if (client?.orgId === WAITING_ORG && client.channel === WAITING_CHANNEL) {
 					if (!["SUBSCRIBE", "UNSUBSCRIBE", "PONG"].includes(msg.type)) {
 						return broadcastIndividual(ws.raw, {
 							type: "ERROR",
 							data: { message: "You are in waiting room. Please SUBSCRIBE to an org/channel" },
-							meta: { ts: Date.now() },
+							meta: { ts: now },
 						});
 					}
 				}
 				switch (msg.type) {
 					case "PONG":
 						if (client) {
-							wsClient.lastPong = Date.now();
+							wsClient.lastPong = now;
 							wsClient.lastLatency = msg.meta ? (msg.meta.latency as number) : -9999;
 						}
 						return;
@@ -520,7 +550,7 @@ wsRoute.get(
 								broadcastIndividual(ws.raw, {
 									type: "ERROR",
 									data: { message: "Unauthorized for CONNECTIONS_SNAPSHOT" },
-									meta: { ts: Date.now() },
+									meta: { ts: now },
 								});
 								ws.close();
 								return;
@@ -573,6 +603,9 @@ wsRoute.get(
 							});
 						}
 						joinWaitingRoom(ws.raw, wsClient.id, user?.id);
+						return;
+					case "MESSAGE":
+						console.log(msg);
 						return;
 					default:
 						joinWaitingRoom(ws.raw, wsClient.id, user?.id);
@@ -637,3 +670,17 @@ setInterval(() => {
 		meta: { ts: Date.now() },
 	});
 }, 90_000);
+
+setInterval(() => {
+	console.log(`[Stats] rooms=${rooms.size} sockets=${wsClients.size}`);
+}, 60_000);
+
+process.on("SIGTERM", () => {
+	console.log("Closing all sockets for graceful shutdown...");
+	for (const ws of wsClients.keys()) {
+		try {
+			ws.close();
+		} catch {}
+	}
+	process.exit(0);
+});
