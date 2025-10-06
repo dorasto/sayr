@@ -1,8 +1,13 @@
 "use client";
 
+import { Badge } from "@repo/ui/components/badge";
 import { Card } from "@repo/ui/components/card";
+import { Label } from "@repo/ui/components/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { cn } from "@repo/ui/lib/utils";
 import { parseChannel } from "@repo/util";
+import { IconLoader2, IconWebhook } from "@tabler/icons-react";
 import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 
 interface StatusBarProps {
@@ -22,20 +27,20 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 	const states = {
 		Disconnected: {
 			icon: <XCircle className="w-3.5 h-3.5" />,
-			color: "bg-red-500",
-			text: "text-red-400",
+			color: "bg-destructive",
+			text: "text-destructive",
 			label: "Disconnected",
 		},
 		Connecting: {
 			icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
-			color: "bg-amber-500",
-			text: "text-amber-400",
+			color: "bg-muted-foreground",
+			text: "text-muted-foreground",
 			label: "Connecting…",
 		},
 		Connected: {
 			icon: <CheckCircle2 className="w-3.5 h-3.5" />,
-			color: "bg-emerald-500",
-			text: "text-emerald-400",
+			color: "bg-success",
+			text: "text-success",
 			label: "Connected",
 		},
 	} as const;
@@ -130,20 +135,64 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 
 	// --- Default layout (main card) ---
 	return (
-		<Card
-			className="
-				p-3 md:p-4 flex flex-wrap md:flex-nowrap items-center 
-				justify-between gap-4 md:gap-6 bg-slate-800/60 
-				text-gray-200 border border-slate-700 shadow-md 
-				rounded-lg backdrop-blur-sm
-			"
-		>
-			<div className="flex flex-col gap-1 w-full">
-				{/* WebSocket */}
+		<div className="flex items-center gap-2 px-3 py-0.5 h-9 shadow-xs w-fit">
+			<div className="flex items-center gap-0.5 w-full">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge variant={"secondary"} className="font-mono h-9 rounded gap-1">
+							<span className={cn("", ws.text)}>{ws.icon}</span> {ws.label}
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent>
+						{wsSubscribedState ? (
+							<div className="flex flex-col gap-3">
+								<div className="flex items-center gap-3">
+									<Label variant={"subheading"} className="font-mono w-1/5">
+										Websocket:
+									</Label>
+									<Label
+										variant={"default"}
+										className={cn("font-mono w-full text-right flex items-center gap-2 justify-end", ws.text)}
+									>
+										{ws.icon}
+										{ws.label}
+									</Label>
+								</div>
+								<div className="flex items-center gap-1">
+									<Label variant={"subheading"} className="font-mono w-1/5">
+										Org:
+									</Label>
+									<Label variant={"default"} className="font-mono w-full text-right">
+										{wsSubscribedState.orgId}
+									</Label>
+								</div>
+
+								{parsedEntries?.map(({ key, val }) => (
+									<div key={key} className="flex items-center gap-3">
+										<Label variant={"subheading"} className="font-mono w-1/5">
+											{key}:
+										</Label>
+										<Label variant={"default"} className="font-mono w-full text-right">
+											{val}
+										</Label>
+									</div>
+									// <div key={key} className="font-mono" title={`${key}: ${val}`}>
+									// 	{key}: <span className="line-clamp-1">{val}</span>
+									// </div>
+								))}
+							</div>
+						) : (
+							<IconLoader2 className="w-3.5 h-3.5 animate-spin" />
+						)}
+					</TooltipContent>
+				</Tooltip>
+			</div>
+			{/* <div className="flex flex-col gap-1 w-full">
+				
 				<div className="flex items-center justify-between">
 					<span className="flex items-center gap-1.5">
 						<span className={`inline-block w-2 h-2 rounded-full ${ws.color}`} />
-						<span className="text-sm text-gray-300">WebSocket:</span>
+						{wsSubscribedState ? <span className="text-sm text-gray-300">WebSocket:</span> : null}
 					</span>
 					<span className={`${ws.text} flex items-center gap-1`}>
 						{ws.icon}
@@ -151,7 +200,7 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 					</span>
 				</div>
 
-				{/* Org + Channel */}
+				
 				{wsSubscribedState ? (
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
 						<span className="text-xs text-gray-400">
@@ -181,9 +230,9 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 						Pending…
 					</span>
 				)}
-			</div>
+			</div> */}
 
 			{children && <div className="ml-auto flex items-center gap-2">{children}</div>}
-		</Card>
+		</div>
 	);
 }
