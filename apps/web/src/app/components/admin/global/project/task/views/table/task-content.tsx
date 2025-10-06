@@ -2,32 +2,33 @@
 
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@repo/ui/components/breadcrumb";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
+import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowsDiagonal2, IconArrowsDiagonalMinimize2, IconCode, IconX } from "@tabler/icons-react";
+import {
+	IconArrowsDiagonal2,
+	IconArrowsDiagonalMinimize2,
+	IconCode,
+	IconCopy,
+	IconLink,
+	IconX,
+} from "@tabler/icons-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
+import { statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
 import GlobalTaskLabels from "../../label";
 import GlobalTaskPriority from "../../priority";
 import GlobalTaskStatus from "../../status";
 import GlobalTimeline from "../../timeline/root";
-import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
-import { useToastAction } from "@/app/lib/util";
-import { statusConfig } from "../../../shared/task-config";
 
 interface TaskContentProps {
 	isDialog?: boolean;
@@ -52,6 +53,7 @@ interface TaskContentSideContentProps {
 	availableUsers?: schema.userType[];
 	wsClientId: string;
 	runWithToast: typeof useToastAction extends () => { runWithToast: infer T } ? T : never;
+	fullPage?: boolean;
 }
 
 export function TaskContentSideContent({
@@ -63,6 +65,7 @@ export function TaskContentSideContent({
 	availableUsers = [],
 	wsClientId,
 	runWithToast,
+	fullPage = false,
 }: TaskContentSideContentProps) {
 	return (
 		<div className="flex flex-col gap-3">
@@ -198,68 +201,34 @@ export function TaskContent({
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const { runWithToast } = useToastAction();
 	const [openData, onOpenDataChange] = useState(false);
+	const pathname = usePathname();
 	return !isDialog ? (
 		// FULL PAGE EXPERIENCE
-		<div className="flex flex-col gap-3 h-full max-h-full relative">
-			<div className="flex flex-col gap-1 max-w-3/4 relative">
-				<div className="flex items-center gap-2 shrink-0 rounded-2xl border px-2.5 py-0.5 h-7 shadow-xs w-fit">
-					<Breadcrumb>
-						<BreadcrumbList>
-							<BreadcrumbItem>
-								<BreadcrumbLink href={`/admin/${task.organizationId}`}>{organization.name}</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator />
-							<BreadcrumbItem>
-								<BreadcrumbLink href={`/admin/${task.organizationId}/${task.projectId}`}>
-									{project.name}
-								</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator />
-							<BreadcrumbItem>
-								<BreadcrumbPage>#{task.shortId}</BreadcrumbPage>
-							</BreadcrumbItem>
-						</BreadcrumbList>
-					</Breadcrumb>
-					<Separator orientation="vertical" className="h-4" />
-					<div className="flex items-center gap-2 shrink-0">
-						<Button
-							size={"icon"}
-							className="size-5"
-							variant={openData ? "accent" : "ghost"}
-							onClick={() => onOpenDataChange(!openData)}
-						>
-							<IconCode />
-						</Button>
-						<Link
-							href={`/admin/${task.organizationId}/${task.projectId}`}
-							// WHEN WE ADD PARAMS TO OPEN A TASK ON THE PROJECT PAGE, MAKE THIS AUTO OPEN IT THERE LIKE /admin/${task.organizationId}/${task.projectId}?task=${task.shortId}
-							className="size-5"
-						>
-							<Button size={"icon"} className="size-5" variant={"ghost"}>
+		<div className="flex flex-col h-full max-h-full relative">
+			{/* Body of content */}
+			<div className="flex gap-3 overflow-scroll">
+				<div className="flex flex-col gap-3 w-full overflow-scroll overflow-x-visible p-4">
+					<Label variant={"heading"} className={cn("text-left text-2xl font-bold ")}>
+						{task.title}
+					</Label>
+					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
+					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
+				</div>
+				<div className="w-[18rem] shrink-0 overflow-y-auto p-3 ml-0 rounded-r-2xl rounded bg-card">
+					<div className="flex items-center gap-2 shrink-0 w-full">
+						<SimpleClipboard
+							textToCopy={pathname}
+							variant={"ghost"}
+							className="size-5 ml-auto"
+							copyIcon={<IconLink />}
+							showTooltip={false}
+						/>
+						<Link href={`/admin/${organization.id}/${project.id}`} className="">
+							<Button size="icon" className="size-5" variant="ghost">
 								<IconArrowsDiagonalMinimize2 />
 							</Button>
 						</Link>
 					</div>
-				</div>
-				<div className="flex items-center w-full gap-3">
-					<Label variant={"heading"} className={cn("text-left text-xl truncate")}>
-						{task.title}
-					</Label>
-					<Badge
-						variant={"outline"}
-						className="flex items-center h-7 flex-shrink-0 [&_svg]:size-5 gap-1 justify-start pl-1"
-					>
-						{status?.icon(`${status?.className || ""}`)}
-						{status.label}
-					</Badge>
-				</div>
-			</div>
-			<div className="flex gap-3 overflow-scroll flex-1">
-				<div className="flex flex-col gap-3 w-full overflow-scroll overflow-x-visible p-4">
-					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
-					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
-				</div>
-				<div className="w-1/4 shrink-0 overflow-y-auto">
 					<TaskContentSideContent
 						task={task}
 						labels={labels}
