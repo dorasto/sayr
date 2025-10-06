@@ -11,10 +11,6 @@ type ClientInfo = {
 	clientId: string; // logical user ID (can have multiple connections)
 	orgId: string; // org subscription
 	channel: string; // channel subscription
-	// Heartbeat info
-	lastPong: number; // ✅ last pong received from heartbeat
-	lastLatency: number; // ✅ last measured RTT
-	connectedAt: number; // ✅ when this connection was first established
 };
 // Base message type
 export type WSBaseMessage = {
@@ -51,8 +47,15 @@ export type WSBaseMessage = {
 		[key: string]: string | number | undefined | null;
 	};
 };
+type wsClientsType = {
+	id: string;
+	connectedAt: number; // ✅ when this connection was first established
+	// Heartbeat info
+	lastPong: number; // ✅ last pong received from heartbeat
+	lastLatency: number; // ✅ last measured RTT
+};
 const rooms = new Map<string, ClientInfo[]>(); // `${orgId}:${channel}`
-const wsClientIds = new Map<ServerWebSocket, string>();
+const wsClients = new Map<ServerWebSocket, wsClientsType>();
 
 // ✅ waiting room constants
 const WAITING_ORG = "WAITING_ROOM";
@@ -324,14 +327,15 @@ function getAllConnectedClients() {
 
 	for (const clients of rooms.values()) {
 		for (const c of clients) {
+			const wsClientId = wsClients.get(c.socket) as wsClientsType;
 			connected.push({
 				wsClientId: c.wsClientId,
 				clientId: c.clientId,
 				orgId: c.orgId,
 				channel: c.channel,
-				lastPong: c.lastPong,
-				lastLatency: c.lastLatency,
-				connectedAt: c.connectedAt,
+				lastPong: wsClientId.lastPong,
+				lastLatency: wsClientId.lastLatency,
+				connectedAt: wsClientId.connectedAt,
 				authenticated: c.clientId !== "ANONYMOUS",
 			});
 		}
@@ -345,18 +349,19 @@ function getAllConnectedClients() {
 // ------------------------------------------------------------------
 
 function unsubscribe(socket: ServerWebSocket) {
-	const wsClientId = wsClientIds.get(socket);
+	const wsClientId = wsClients.get(socket);
 	for (const [key, clients] of rooms) {
 		const filtered = clients.filter((c) => c.socket !== socket);
 		if (filtered.length < clients.length) {
 			const [orgId, channel] = key.split(":");
 			if (orgId && channel && orgId !== WAITING_ORG) {
+				const id = wsClientId?.id;
 				broadcast(
 					orgId,
 					channel,
 					{
 						type: "USER_UNSUBSCRIBED",
-						data: { wsClientId, orgId, channel },
+						data: { id, orgId, channel },
 					},
 					socket
 				);
@@ -393,9 +398,6 @@ function handleSubscribe(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		clientId,
 		orgId,
 		channel,
-		lastPong: Date.now(),
-		lastLatency: -1,
-		connectedAt: Date.now(),
 	};
 	rooms.set(key, [...(rooms.get(key) || []), info]);
 	broadcastIndividual(ws, {
@@ -419,9 +421,6 @@ function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: stri
 		clientId,
 		orgId: WAITING_ORG,
 		channel: WAITING_CHANNEL,
-		lastPong: Date.now(),
-		lastLatency: -1,
-		connectedAt: Date.now(),
 	};
 	rooms.set(waitingKey, [...(rooms.get(waitingKey) || []), info]);
 
@@ -448,7 +447,12 @@ wsRoute.get(
 			const session = c.get("session");
 			const user = c.get("user");
 			const wsClientId = crypto.randomUUID();
-			wsClientIds.set(ws.raw, wsClientId);
+			wsClients.set(ws.raw, {
+				id: wsClientId,
+				connectedAt: Date.now(),
+				lastPong: Date.now(),
+				lastLatency: -1,
+			});
 			const orgId = c.req.query("orgId");
 
 			if (!session) {
@@ -483,20 +487,17 @@ wsRoute.get(
 			});
 			if (orgId) {
 				handleSubscribe(ws.raw, wsClientId, user.id, orgId, "public");
-			} else {
-				// Authenticated but no org/channel yet → place in waiting room
-				// joinWaitingRoom(ws.raw, wsClientId, user?.id);
 			}
 		},
 
 		onMessage: async (event, ws) => {
 			try {
 				const msg: WSBaseMessage = JSON.parse(event.data as string);
-				const wsClientId = wsClientIds.get(ws.raw) as string;
+				const wsClient = wsClients.get(ws.raw) as wsClientsType;
 				const session = c.get("session");
 				const user = c.get("user");
 				const client = findClient(ws.raw);
-				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE
+				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE/PONG
 				if (client?.orgId === WAITING_ORG && client.channel === WAITING_CHANNEL) {
 					if (!["SUBSCRIBE", "UNSUBSCRIBE", "PONG"].includes(msg.type)) {
 						return broadcastIndividual(ws.raw, {
@@ -509,8 +510,8 @@ wsRoute.get(
 				switch (msg.type) {
 					case "PONG":
 						if (client) {
-							client.lastPong = Date.now();
-							client.lastLatency = msg.meta ? (msg.meta.latency as number) : -1;
+							wsClient.lastPong = Date.now();
+							wsClient.lastLatency = msg.meta ? (msg.meta.latency as number) : -9999;
 						}
 						return;
 					case "SUBSCRIBE":
@@ -524,13 +525,12 @@ wsRoute.get(
 								ws.close();
 								return;
 							}
-							handleSubscribe(ws.raw, wsClientId, user.id, ADMIN_ORG, CONNECTIONS_CHANNEL);
+							handleSubscribe(ws.raw, wsClient.id, user.id, ADMIN_ORG, CONNECTIONS_CHANNEL);
 							// ✅ Send snapshot of connected clients to *this admin only*
 							const snapshot = getAllConnectedClients();
 							broadcastIndividual(ws.raw, {
 								type: "CONNECTIONS_SNAPSHOT",
 								data: snapshot,
-								meta: { ts: Date.now() },
 							});
 							return;
 						}
@@ -540,7 +540,6 @@ wsRoute.get(
 								return broadcastIndividual(ws.raw, {
 									type: "ERROR",
 									data: { message: "Need orgId+channel" },
-									meta: { ts: Date.now() },
 								});
 							}
 							// ✅ enforce session: only allow "public" channel if unauthenticated
@@ -548,19 +547,17 @@ wsRoute.get(
 								return broadcastIndividual(ws.raw, {
 									type: "ERROR",
 									data: { message: "Auth required for private channels" },
-									meta: { ts: Date.now() },
 								});
 							} else if (channel === "public" && !session) {
-								handleSubscribe(ws.raw, wsClientId, crypto.randomUUID(), orgId, channel);
+								handleSubscribe(ws.raw, wsClient.id, crypto.randomUUID(), orgId, channel);
 							} else {
 								const organization = await getOrganization(orgId, user.id);
 								if (organization) {
-									handleSubscribe(ws.raw, wsClientId, user.id, orgId, channel);
+									handleSubscribe(ws.raw, wsClient.id, user.id, orgId, channel);
 								} else {
 									broadcastIndividual(ws.raw, {
 										type: "ERROR",
 										data: { message: `You do not have access to this organization` },
-										meta: { ts: Date.now() },
 									});
 									ws.close();
 								}
@@ -573,20 +570,18 @@ wsRoute.get(
 							return broadcastIndividual(ws.raw, {
 								type: "ERROR",
 								data: { message: "Anonymous users cannot unsubscribe" },
-								meta: { ts: Date.now() },
 							});
 						}
-						joinWaitingRoom(ws.raw, wsClientId, user?.id);
+						joinWaitingRoom(ws.raw, wsClient.id, user?.id);
 						return;
 					default:
-						joinWaitingRoom(ws.raw, wsClientId, user?.id);
+						joinWaitingRoom(ws.raw, wsClient.id, user?.id);
 						break;
 				}
 			} catch (err) {
 				broadcastIndividual(ws.raw, {
 					type: "ERROR",
 					data: { error: err instanceof Error ? err.message : String(err) },
-					meta: { ts: Date.now() },
 				});
 			}
 		},
@@ -595,15 +590,14 @@ wsRoute.get(
 			broadcastIndividual(ws.raw, {
 				type: "DISCONNECTED",
 				data: { message: "You have been disconnected" },
-				meta: { ts: Date.now() },
 			});
 			unsubscribe(ws.raw);
-			wsClientIds.delete(ws.raw);
+			wsClients.delete(ws.raw);
 			console.log("Connection closed");
 		},
 		onError(_, ws) {
 			unsubscribe(ws.raw);
-			wsClientIds.delete(ws.raw);
+			wsClients.delete(ws.raw);
 			ws.close();
 			console.log("Connection closed error");
 		},
@@ -615,19 +609,16 @@ wsRoute.get(
 // Close dead sockets after 60 seconds of no PONG
 setInterval(() => {
 	const now = Date.now();
-	for (const [socket, wsClientId] of wsClientIds) {
-		const client = findClient(socket);
-		if (!client) continue;
-
-		if (now - client.lastPong > 60_000) {
-			console.log("Closing dead socket", wsClientId);
+	for (const [socket, wsClient] of wsClients) {
+		if (now - wsClient.lastPong > 60_000) {
+			console.log("Closing dead socket", wsClient);
 			socket.close();
 			unsubscribe(socket);
 		} else {
 			try {
 				socket.send(JSON.stringify({ type: "PING", scope: "INDIVIDUAL", meta: { ts: Date.now() } }));
 			} catch {
-				console.log("Failed to ping, closing", wsClientId);
+				console.log("Failed to ping, closing", wsClient);
 				socket.close();
 				unsubscribe(socket);
 			}

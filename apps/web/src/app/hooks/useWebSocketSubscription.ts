@@ -70,8 +70,8 @@ export function useWebSocketSubscription({
 		if (!orgId || !channel) {
 			if (ws.readyState === WebSocket.OPEN) {
 				ws.send(JSON.stringify({ type: "UNSUBSCRIBE" }));
+				setWSSubscribedState({ orgId: "WAITING_ROOM", channel: "main" });
 			}
-			setWSSubscribedState({ orgId: "WAITING_ROOM", channel: "main" });
 			return () => {
 				ws.removeEventListener("message", handleMessage);
 				setWSSubscribedState(null);
