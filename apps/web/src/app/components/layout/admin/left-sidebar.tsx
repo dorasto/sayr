@@ -10,11 +10,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-	SidebarMenuSub,
-	SidebarMenuSubButton,
-	SidebarMenuSubItem,
 	SidebarProvider,
-	SidebarSeparator,
 	SidebarToggle,
 } from "@repo/ui/components/custom-sidebar-localstorage";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
@@ -22,10 +18,9 @@ import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
 	IconArrowBack,
-	IconExplicit,
-	IconHome,
 	IconLayoutSidebarLeftCollapse,
 	IconLayoutSidebarLeftExpand,
+	IconPlug,
 	IconShield,
 	IconUsers,
 } from "@tabler/icons-react";
@@ -80,6 +75,14 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 									<Link href={""} prefetch={false} onClick={closeMobileSidebar}>
 										<IconUsers />
 										<span>Users</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild isActive={pathname === "/admin/console/connections"}>
+									<Link href={"/admin/console/connections"} prefetch={false} onClick={closeMobileSidebar}>
+										<IconPlug />
+										<span>Connections</span>
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
@@ -170,7 +173,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 					<SidebarGroupContent>
 						<SidebarMenu className={cn("org-sidebar-menu", sidebarIsOpen && "gap-2")}>
 							{organizations
-								.flatMap((org, index) => [
+								.flatMap((org) => [
 									<OrgSection key={org.id} organization={org} closeMobileSidebar={closeMobileSidebar} />,
 								])
 								.filter(Boolean)}
