@@ -1,10 +1,10 @@
 "use client"; // this registers <Editor> as a Client Component
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
-import { useCreateBlockNote } from "@blocknote/react";
+import { SuggestionMenuController, useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/mantine/style.css";
 import "./style.css";
-import type { PartialBlock } from "@blocknote/core";
+import type { BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import {
 	ar,
 	de,
@@ -27,8 +27,11 @@ import {
 	vi,
 	zh,
 } from "@blocknote/core/locales";
+import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { CustomSlashMenu } from "./CustomSlashMenu";
+import { getFilteredSlashMenuItems } from "./customSlashMenuItems";
 
 // Create a mapping of supported locales
 const localeMap = {
@@ -73,6 +76,15 @@ type EditorProps = {
 	onChange?: (value: PartialBlock[]) => void;
 	updateContent?: PartialBlock[] | undefined;
 	readonly?: boolean;
+	/**
+	 * Optional function to provide custom slash menu items
+	 * If not provided, the default slash menu items will be used
+	 * @example
+	 * getSlashMenuItems={async (editor, query) =>
+	 *   filterSuggestionItems(getCustomSlashMenuItems(editor), query)
+	 * }
+	 */
+	getSlashMenuItems?: (editor: BlockNoteEditor, query: string) => Promise<DefaultReactSuggestionItem[]>;
 };
 
 // Our <Editor> component we can reuse later
@@ -84,6 +96,7 @@ export default function Editor({
 	onChange,
 	updateContent,
 	readonly,
+	getSlashMenuItems,
 }: EditorProps) {
 	const { theme } = useTheme();
 	const [initialContent, setInitialContent] = useState<PartialBlock[] | undefined>(value);
@@ -135,6 +148,19 @@ export default function Editor({
 			className=""
 			data-theming-readonly={readonly ? "true" : "false"}
 			editable={!readonly}
-		></BlockNoteView>
+			slashMenu={false}
+		>
+			<SuggestionMenuController
+				triggerCharacter={"/"}
+				suggestionMenuComponent={CustomSlashMenu}
+				getItems={async (query) => {
+					// Use custom items if provided, otherwise use default reorganized items
+					if (getSlashMenuItems) {
+						return getSlashMenuItems(editor, query);
+					}
+					return getFilteredSlashMenuItems(editor, query);
+				}}
+			/>
+		</BlockNoteView>
 	);
 }

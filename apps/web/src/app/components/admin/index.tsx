@@ -5,6 +5,7 @@ import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-exa
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
+import { Editor } from "../blocknote/DynamicEditor";
 
 export default function AdminHomePage() {
 	const { account, ws } = useLayoutData();
@@ -73,6 +74,7 @@ export default function AdminHomePage() {
 					{wsStatus}
 				</span>
 			</div>
+			<Editor language="en" />
 			{wsSubscribedState ? (
 				<div className="text-green-600 font-medium">
 					✅ Subscribed to channel <code>{wsSubscribedState.channel}</code>
