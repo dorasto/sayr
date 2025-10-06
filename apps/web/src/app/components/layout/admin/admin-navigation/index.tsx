@@ -2,6 +2,7 @@
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { StatusBar } from "@/app/components/admin/global/status";
 import AdminCommand from "../admin-command";
 import OrganizationPage from "./OrganizationPage";
 import ProjectPage from "./ProjectPage";
@@ -25,6 +26,7 @@ export default function AdminNavigation() {
 				<div className="flex items-center w-full">
 					{isOrgPage && <OrganizationPage />}
 					{isProjectPage && <ProjectPage />}
+					<StatusBar />
 				</div>
 
 				<div className="flex items-center gap-1 ml-auto shrink-0">

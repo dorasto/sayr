@@ -211,15 +211,30 @@ export function formatDateCompact(date: Date | string, locale = "en-US"): string
  * Parse a channel string of format "key:value;key:value"
  * into an object.
  *
+ * Handles single-word channels like "admin" gracefully.
+ *
  * @example
  * parseChannel("project:123;task:456")
  * // { project: "123", task: "456" }
+ *
+ * @example
+ * parseChannel("admin")
+ * // { channel: "admin" }
  */
 export function parseChannel(channel: string): Record<string, string> {
-	return channel.split(";").reduce<Record<string, string>>((acc, part) => {
+	const trimmed = channel.trim();
+	if (!trimmed) return {};
+
+	// Handle simple channel with no ":" or ";"
+	if (!trimmed.includes(":") && !trimmed.includes(";")) {
+		return { channel: trimmed };
+	}
+
+	// Parse "key:value;key:value" format
+	return trimmed.split(";").reduce<Record<string, string>>((acc, part) => {
 		const [key, value] = part.split(":");
 		if (key && value) {
-			acc[key] = value;
+			acc[key.trim()] = value.trim();
 		}
 		return acc;
 	}, {});

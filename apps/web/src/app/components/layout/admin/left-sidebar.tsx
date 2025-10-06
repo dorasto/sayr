@@ -26,8 +26,10 @@ import {
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { heading, navigation } from "@/app/lib/routemap";
+import { StatusBar } from "../../admin/global/status";
 import OrgSection from "./org-section";
 import UserDropdown from "./user-dropdown";
 
@@ -200,14 +202,13 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					)}
+					{account.role === "admin" && <StatusBar layout="sidebar" sidebarCollapsed={!sidebarIsOpen} />}
 					<UserDropdown />
 				</SidebarMenu>
 			</SidebarFooter>
 		</Sidebar>
 	);
 }
-
-import { useEffect } from "react";
 
 export function LeftSidebarProvider() {
 	const isMobile = useIsMobile();
