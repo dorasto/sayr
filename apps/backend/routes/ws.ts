@@ -336,6 +336,7 @@ function getAllConnectedClients() {
 		lastPong: number;
 		lastLatency: number;
 		connectedAt: number;
+		lastMessageAt: number;
 		authenticated?: boolean;
 	}> = [];
 
@@ -350,6 +351,7 @@ function getAllConnectedClients() {
 				lastPong: wsClientId.lastPong,
 				lastLatency: wsClientId.lastLatency,
 				connectedAt: wsClientId.connectedAt,
+				lastMessageAt: wsClientId.lastMessageAt,
 				authenticated: c.clientId !== "ANONYMOUS",
 			});
 		}
@@ -526,7 +528,9 @@ wsRoute.get(
 					});
 					return;
 				}
-				wsClient.lastMessageAt = now;
+				if (!["PONG"].includes(msg.type)) {
+					wsClient.lastMessageAt = now;
+				}
 				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE/PONG
 				if (client?.orgId === WAITING_ORG && client.channel === WAITING_CHANNEL) {
 					if (!["SUBSCRIBE", "UNSUBSCRIBE", "PONG"].includes(msg.type)) {

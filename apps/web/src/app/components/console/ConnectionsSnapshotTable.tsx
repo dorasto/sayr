@@ -30,6 +30,7 @@ export function ConnectionsSnapshotTable({
 							<TableHead>Channel</TableHead>
 							<TableHead>Latency</TableHead>
 							<TableHead>Last Pong</TableHead>
+							<TableHead>Last Message</TableHead>
 							<TableHead>Connected For</TableHead>
 							<TableHead>Auth</TableHead>
 						</TableRow>

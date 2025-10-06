@@ -50,6 +50,7 @@ export const ConnectionRow = memo(function ConnectionRow({ client, account }: Co
 			<TableCell>{JSON.stringify(parseChannel(client.channel), null, 4)}</TableCell>
 			<TableCell>{client.lastLatency ?? "-"}</TableCell>
 			<TableCell>{formatTime(client.lastPong)}</TableCell>
+			<TableCell>{formatTime(client.lastMessageAt)}</TableCell>
 			<TableCell>{client.connectedAt ? formatDuration(now - client.connectedAt) : "–"}</TableCell>
 			<TableCell>
 				{client.authenticated ? (

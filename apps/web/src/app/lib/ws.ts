@@ -205,6 +205,7 @@ export type FirehoseClient = {
 	channel: string;
 	lastPong: number;
 	lastLatency: number;
+	lastMessageAt: number;
 	connectedAt: number;
 	authenticated: boolean;
 };
