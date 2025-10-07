@@ -1,21 +1,10 @@
 "use client";
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
-import {
-	GridSuggestionMenuController,
-	LinkToolbarController,
-	SuggestionMenuController,
-	useCreateBlockNote,
-} from "@blocknote/react";
+import { GridSuggestionMenuController, SuggestionMenuController, useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/mantine/style.css";
 import "./style.css";
-import {
-	type BlockNoteEditor,
-	BlockNoteSchema,
-	createCodeBlockSpec,
-	defaultInlineContentSpecs,
-	type PartialBlock,
-} from "@blocknote/core";
+import { type BlockNoteEditor, BlockNoteSchema, createCodeBlockSpec, type PartialBlock } from "@blocknote/core";
 import {
 	ar,
 	de,
@@ -42,7 +31,6 @@ import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { createHighlighter } from "../../shiki.bundle";
-import { CustomLink } from "./CustomLinkRenderer";
 import { CustomSlashMenu } from "./CustomSlashMenu";
 import { CustomEmojiPicker } from "./custom/emoji";
 import { getFilteredSlashMenuItems } from "./customSlashMenuItems";
@@ -187,9 +175,8 @@ export default function Editor({
 			editable={!readonly}
 			slashMenu={false}
 			emojiPicker={false}
-			linkToolbar={false}
+			linkToolbar={true}
 		>
-			<LinkToolbarController />
 			<GridSuggestionMenuController
 				triggerCharacter={":"}
 				gridSuggestionMenuComponent={CustomEmojiPicker}
