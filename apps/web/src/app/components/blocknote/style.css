@@ -24,3 +24,60 @@
   --bn-border-radius: 4px;
   --bn-font-family: Helvetica Neue, sans-serif; */
 }
+[data-color-scheme="light"] [data-content-type="codeBlock"]{
+    background: var(--muted) !important;
+}
+[data-color-scheme="dark"] [data-content-type="codeBlock"]{
+    background: var(--muted) !important;
+}
+
+/* Style links to be clearly visible as links */
+.bn-inline-content a,
+.bn-custom-link {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    position: relative;
+    transition: all 0.2s ease;
+    display: inline;
+}
+
+.bn-inline-content a:hover,
+.bn-custom-link:hover {
+    text-decoration-thickness: 2px;
+}
+
+/* Add external link icon before each link using SVG */
+.bn-inline-content a::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 0.25em;
+    vertical-align: middle;
+    opacity: 0.7;
+    /* External link SVG icon */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'%3E%3C/path%3E%3Cpolyline points='15 3 21 3 21 9'%3E%3C/polyline%3E%3Cline x1='10' y1='14' x2='21' y2='3'%3E%3C/line%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Prevent links from being clickable in edit mode (when not readonly) */
+[data-theming-readonly="false"] .bn-inline-content a,
+[data-theming-readonly="false"] .bn-custom-link {
+    pointer-events: none;
+    cursor: text;
+}
+
+/* In readonly mode, links should be clickable */
+[data-theming-readonly="true"] .bn-inline-content a,
+[data-theming-readonly="true"] .bn-custom-link {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+[data-theming-readonly="true"] .bn-inline-content a:hover,
+[data-theming-readonly="true"] .bn-custom-link:hover {
+    text-decoration-thickness: 2px;
+}

@@ -1,10 +1,21 @@
-"use client"; // this registers <Editor> as a Client Component
+"use client";
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
-import { SuggestionMenuController, useCreateBlockNote } from "@blocknote/react";
+import {
+	GridSuggestionMenuController,
+	LinkToolbarController,
+	SuggestionMenuController,
+	useCreateBlockNote,
+} from "@blocknote/react";
 import "@blocknote/mantine/style.css";
 import "./style.css";
-import type { BlockNoteEditor, PartialBlock } from "@blocknote/core";
+import {
+	type BlockNoteEditor,
+	BlockNoteSchema,
+	createCodeBlockSpec,
+	defaultInlineContentSpecs,
+	type PartialBlock,
+} from "@blocknote/core";
 import {
 	ar,
 	de,
@@ -30,7 +41,10 @@ import {
 import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { createHighlighter } from "../../shiki.bundle";
+import { CustomLink } from "./CustomLinkRenderer";
 import { CustomSlashMenu } from "./CustomSlashMenu";
+import { CustomEmojiPicker } from "./custom/emoji";
 import { getFilteredSlashMenuItems } from "./customSlashMenuItems";
 
 // Create a mapping of supported locales
@@ -120,14 +134,37 @@ export default function Editor({
 
 	// Creates a new editor instance.
 	const editor = useCreateBlockNote({
-		trailingBlock: false,
+		schema: BlockNoteSchema.create().extend({
+			blockSpecs: {
+				codeBlock: createCodeBlockSpec({
+					indentLineWithTab: true,
+
+					defaultLanguage: "typescript",
+					supportedLanguages: {
+						typescript: {
+							name: "TypeScript",
+							aliases: ["ts"],
+						},
+						javascript: {
+							name: "JavaScript",
+							aliases: ["js"],
+						},
+						vue: {
+							name: "Vue",
+						},
+					},
+					// This creates a highlighter, it can be asynchronous to load it afterwards
+					createHighlighter: () =>
+						createHighlighter({
+							themes: [theme === "dark" ? "github-dark-default" : "github-light-default"],
+							langs: [],
+						}),
+				}),
+			},
+		}),
+		trailingBlock: true,
 		initialContent: initialContent,
 		dictionary: customDictionary,
-		domAttributes: {
-			block: {
-				class: "test",
-			},
-		},
 	});
 	useEffect(() => {
 		if (editor) {
@@ -149,7 +186,16 @@ export default function Editor({
 			data-theming-readonly={readonly ? "true" : "false"}
 			editable={!readonly}
 			slashMenu={false}
+			emojiPicker={false}
+			linkToolbar={false}
 		>
+			<LinkToolbarController />
+			<GridSuggestionMenuController
+				triggerCharacter={":"}
+				gridSuggestionMenuComponent={CustomEmojiPicker}
+				columns={6}
+				minQueryLength={2}
+			/>
 			<SuggestionMenuController
 				triggerCharacter={"/"}
 				suggestionMenuComponent={CustomSlashMenu}
