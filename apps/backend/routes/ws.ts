@@ -68,7 +68,7 @@ const ADMIN_ORG = "__ADMIN__";
 const CONNECTIONS_CHANNEL = "__CONNECTIONS__"; // roster of connected clients
 // const EVENTS_CHANNEL = "__EVENTS__"; // real-time firehose
 
-const MIN_MESSAGE_INTERVAL = 100; // ms between messages (~10 msgs/sec)
+const MIN_MESSAGE_INTERVAL = 200; // ms between messages (~10 msgs/sec)
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
@@ -507,28 +507,30 @@ wsRoute.get(
 				const session = c.get("session");
 				const user = c.get("user");
 				const client = findClientByWsId(ws.raw);
-				if (wsClient.lastMessageAt && now - wsClient.lastMessageAt < MIN_MESSAGE_INTERVAL) {
-					wsClient.offenceCount = (wsClient.offenceCount || 0) + 1;
-					if (wsClient.offenceCount > 5) {
-						broadcastIndividual(ws.raw, {
-							type: "ERROR",
-							data: { message: "Rate limit exceeded. Disconnecting." },
-							meta: { ts: now },
-						});
-						const client = findClientByWsId(ws.raw);
-						console.warn("Rate‑limited / closing flooder", wsClient.id, client?.clientId);
-						ws.close();
-						unsubscribe(ws.raw);
-						return;
+				// Rate limit messages (except PING/PONG)
+				if (!["PING", "PONG"].includes(msg.type)) {
+					const elapsed = now - wsClient.lastMessageAt;
+					if (elapsed < MIN_MESSAGE_INTERVAL) {
+						wsClient.offenceCount++;
+						if (wsClient.offenceCount <= 3) {
+							broadcastIndividual(ws.raw, {
+								type: "ERROR",
+								data: { message: "Please slow down — you’re sending requests too quickly." },
+								meta: { ts: now },
+							});
+						} else if (wsClient.offenceCount > 5) {
+							broadcastIndividual(ws.raw, {
+								type: "ERROR",
+								data: { message: "Rate limit exceeded. Disconnecting." },
+								meta: { ts: now },
+							});
+							console.warn("Rate‑limited / closing flooder", wsClient.id);
+							ws.close();
+							unsubscribe(ws.raw);
+							return;
+						}
+						return; // drop this fast message
 					}
-					broadcastIndividual(ws.raw, {
-						type: "ERROR",
-						data: { message: "You are sending messages too quickly. Please slow down." },
-						meta: { ts: now },
-					});
-					return;
-				}
-				if (!["PONG"].includes(msg.type)) {
 					wsClient.lastMessageAt = now;
 				}
 				// Block waiting room users except SUBSCRIBE/UNSUBSCRIBE/PONG
@@ -674,10 +676,12 @@ setInterval(() => {
 		meta: { ts: Date.now() },
 	});
 }, 90_000);
-
-setInterval(() => {
-	console.log(`[Stats] rooms=${rooms.size} sockets=${wsClients.size}`);
-}, 60_000);
+if (process.env.npm_lifecycle_event === "dev") {
+	console.log("WS stats every 60 seconds (in dev mode)");
+	setInterval(() => {
+		console.log(`[Stats] rooms=${rooms.size} sockets=${wsClients.size}`);
+	}, 60_000);
+}
 
 process.on("SIGTERM", () => {
 	console.log("Closing all sockets for graceful shutdown...");
