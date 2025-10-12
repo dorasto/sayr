@@ -16,13 +16,49 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { Input } from "@repo/ui/components/input";
+import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconFilter, IconFilter2, IconSearch, IconX } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { IconFilter, IconFilter2, IconSearch, IconShare2, IconX } from "@tabler/icons-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+// --- Serialization helpers (module scope so hooks ignore them as deps) ---
+import type { FilterCondition, FilterGroup, FilterOperator, FilterState } from "./types";
+
+const serializeFilters = (state: FilterState): string => {
+	try {
+		const minimal = state.groups.map((g) => g.conditions.map((c) => [c.field, c.operator, c.value]));
+		const json = JSON.stringify(minimal);
+		return encodeURIComponent(Buffer.from(json, "utf-8").toString("base64"));
+	} catch {
+		return "";
+	}
+};
+
+const deserializeFilters = (value: string): FilterState | null => {
+	try {
+		const decoded = Buffer.from(decodeURIComponent(value), "base64").toString("utf-8");
+		const minimal: [string, FilterOperator, unknown][][] = JSON.parse(decoded);
+		const groups: FilterGroup[] = minimal.map((conditions, gi) => ({
+			id: `group-${gi}`,
+			operator: "AND",
+			conditions: conditions.map(([field, operator, val], ci) => ({
+				id: `${field}-${operator}-${ci}-${Date.now()}`,
+				field: field as FilterField,
+				operator,
+				value: val as FilterCondition["value"],
+			})),
+		}));
+		return { groups, operator: "AND" };
+	} catch {
+		return null;
+	}
+};
+
 import { priorityConfig, statusConfig } from "../../shared/task-config";
 import { FILTER_FIELD_CONFIGS } from "./filter-config";
-import type { FilterCondition, FilterField, FilterGroup, FilterOperator, FilterState } from "./types";
+import type { FilterField } from "./types";
 
 interface TaskFilterDropdownProps {
 	tasks: schema.TaskWithLabels[];
@@ -30,12 +66,52 @@ interface TaskFilterDropdownProps {
 	availableUsers: schema.userType[];
 }
 
-export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilterDropdownProps) {
+export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: TaskFilterDropdownProps) {
 	const { value: filterState, setValue: setFilterState } = useStateManagement<FilterState>(
 		"task-filters",
 		{ groups: [], operator: "AND" },
 		1
 	);
+
+	// URL query param integration ("views")
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const pathname = usePathname();
+	const isInitializingFromQuery = useRef(false);
+	const lastSerializedRef = useRef<string | null>(null);
+
+	// Initialize from URL (runs once)
+	useEffect(() => {
+		if (isInitializingFromQuery.current) return;
+		const urlValue = searchParams.get("filters");
+		if (urlValue) {
+			const deserialized = deserializeFilters(urlValue);
+			if (deserialized) {
+				isInitializingFromQuery.current = true;
+				setFilterState(deserialized);
+				lastSerializedRef.current = serializeFilters(deserialized);
+			}
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		// We intentionally only want this to run once on mount.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [searchParams, setFilterState]);
+
+	// Sync state -> URL (debounced) whenever filters change (skip during initial sync)
+	useEffect(() => {
+		// If we're in the middle of initial load we already set it
+		const serialized = serializeFilters(filterState);
+		if (serialized === lastSerializedRef.current) return; // no change
+		lastSerializedRef.current = serialized;
+		const timeout = setTimeout(() => {
+			const current = new URLSearchParams(Array.from(searchParams.entries()));
+			if (serialized) current.set("filters", serialized);
+			else current.delete("filters");
+			router.replace(`${pathname}?${current.toString()}`);
+		}, 300); // debounce to reduce URL churn while user rapidly clicks
+		return () => clearTimeout(timeout);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filterState, pathname, router, searchParams]);
 
 	const [mainSearch, setMainSearch] = useState("");
 	const [subSearch, setSubSearch] = useState("");
@@ -251,6 +327,13 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 		setFilterState({ groups: [], operator: "AND" });
 	};
 
+	// Shareable view URL (memoized for clipboard component)
+	const shareUrl = useMemo(() => {
+		const serialized = serializeFilters(filterState);
+		if (typeof window === "undefined") return "";
+		return `${window.location.origin}${pathname}${serialized ? `?filters=${serialized}` : ""}`;
+	}, [filterState, pathname]);
+
 	// Helper function to add a simple filter
 	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
 		const condition: FilterCondition = {
@@ -362,6 +445,7 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 					))
 				)}
 			</div>
+
 			{/* Filter Dropdown */}
 			<DropdownMenu
 				onOpenChange={(open) => {
@@ -548,6 +632,17 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 					))}
 				</DropdownMenuContent>
 			</DropdownMenu>
+			{/* Share / Copy View Button (only show if filters active) */}
+			{activeFiltersCount > 0 && (
+				<SimpleClipboard
+					textToCopy={shareUrl}
+					variant="accent"
+					size="sm"
+					tooltipText="Copy view URL"
+					tooltipCopiedText="View URL copied"
+					className="gap-1 h-6 w-6 bg-accent border-transparent p-1 relative"
+				/>
+			)}
 		</div>
 	);
 }
