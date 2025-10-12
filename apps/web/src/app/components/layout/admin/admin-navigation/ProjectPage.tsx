@@ -63,7 +63,7 @@ export default function ProjectPage() {
 			</div>
 
 			{/* Task Filters */}
-			<TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers} />
+			{/* <TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers} /> */}
 
 			<Button variant={"accent"} size={"sm"} className="h-9" onClick={() => setOpenNew(true)}>
 				<IconPlus />

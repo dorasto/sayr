@@ -1,5 +1,6 @@
 "use client";
 import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 import { useEffect } from "react";
 import { useLayoutProject } from "@/app/admin/[organization_id]/[project_id]/Context";
 import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
@@ -8,6 +9,7 @@ import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import ListProjectTasks from "./list";
+import { TaskFilterDropdown } from "./task/filter/task-filter-dropdown";
 
 export default function OrganizationProjectHomePage() {
 	const { ws } = useLayoutData();
@@ -41,14 +43,23 @@ export default function OrganizationProjectHomePage() {
 			ws.removeEventListener("message", handleMessage);
 		};
 	}, [ws, handleMessage]);
+
+	const availableUsers = organization?.members.map((member) => member.user) || [];
 	return (
-		<div className="relative flex flex-col gap-3 h-full max-h-full">
+		<div className="relative flex flex-col h-full max-h-full">
 			{/* <div className="flex items-center gap-3 bg-card rounded p-3 w-full">
 				<Label variant={"heading"} className="truncate w-auto">
 					{project.name}
 				</Label>
 			</div> */}
-			<div className="flex-1 overflow-scroll pb-4">
+			<div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
+				<TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers} />
+				<div className="flex items-center gap-2 shrink-0 ml-auto">
+					<Separator orientation="vertical" className="h-3" />
+					test
+				</div>
+			</div>
+			<div className="flex-1 overflow-scroll flex flex-col relative">
 				<ListProjectTasks
 					tasks={tasks}
 					setTasks={setTasks}

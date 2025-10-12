@@ -17,7 +17,8 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { Input } from "@repo/ui/components/input";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconFilter, IconSearch, IconX } from "@tabler/icons-react";
+import { cn } from "@repo/ui/lib/utils";
+import { IconFilter, IconFilter2, IconSearch, IconX } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { priorityConfig, statusConfig } from "../../shared/task-config";
 import { FILTER_FIELD_CONFIGS } from "./filter-config";
@@ -306,58 +307,61 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 	};
 
 	return (
-		<div className="flex items-center gap-2 flex-wrap">
-			{/* Filter Tags */}
-			{filterState.groups.map((group) =>
-				group.conditions.map((condition) => (
-					<Badge
-						key={condition.id}
-						variant="outline"
-						className="flex items-center gap-1 pr-1 h-9 rounded bg-accent"
-					>
-						<span className="text-xs flex items-center gap-1">
-							<span>{FILTER_FIELD_CONFIGS.find((c) => c.field === condition.field)?.label}</span>
-
-							{/* Clickable Operator */}
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-4 px-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
-									>
-										{getOperatorLabel(condition.operator)}
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent className="w-40">
-									{getAvailableOperators(condition.field).map((operator) => (
-										<DropdownMenuItem
-											key={operator}
-											className={`text-xs ${operator === condition.operator ? "bg-accent" : ""}`}
-											onClick={() => updateFilterOperator(condition.id, operator)}
-										>
-											{getOperatorLabel(operator)}
-										</DropdownMenuItem>
-									))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-
-							{condition.value && condition.operator !== "is_empty" && condition.operator !== "is_not_empty" && (
-								<span className="flex items-center gap-1">{renderFilterValue(condition)}</span>
-							)}
-						</span>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => removeFilter(condition.id)}
-							className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+		<div className="flex items-center gap-2">
+			<div className="flex items-center gap-2 flex-wrap">
+				{/* Filter Tags */}
+				{filterState.groups.map((group) =>
+					group.conditions.map((condition) => (
+						<Badge
+							key={condition.id}
+							variant="outline"
+							className="flex items-center gap-1 bg-accent border-transparent rounded group h-6 relative pe-6"
 						>
-							<IconX className="w-3 h-3" />
-						</Button>
-					</Badge>
-				))
-			)}
+							<span className="text-xs flex items-center gap-1">
+								<span className="">{FILTER_FIELD_CONFIGS.find((c) => c.field === condition.field)?.label}</span>
 
+								{/* Clickable Operator */}
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-4 px-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
+										>
+											{getOperatorLabel(condition.operator)}
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent className="w-40">
+										{getAvailableOperators(condition.field).map((operator) => (
+											<DropdownMenuItem
+												key={operator}
+												className={`text-xs ${operator === condition.operator ? "bg-accent" : ""}`}
+												onClick={() => updateFilterOperator(condition.id, operator)}
+											>
+												{getOperatorLabel(operator)}
+											</DropdownMenuItem>
+										))}
+									</DropdownMenuContent>
+								</DropdownMenu>
+
+								{condition.value &&
+									condition.operator !== "is_empty" &&
+									condition.operator !== "is_not_empty" && (
+										<span className="flex items-center gap-1 truncate">{renderFilterValue(condition)}</span>
+									)}
+							</span>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => removeFilter(condition.id)}
+								className="absolute inset-y-0 right-0.5 my-auto h-4 w-4 p-0 hover:text-destructive-foreground transition-all"
+							>
+								<IconX className="!w-3 !h-3" />
+							</Button>
+						</Badge>
+					))
+				)}
+			</div>
 			{/* Filter Dropdown */}
 			<DropdownMenu
 				onOpenChange={(open) => {
@@ -369,8 +373,12 @@ export function TaskFilterDropdown({ tasks, labels, availableUsers }: TaskFilter
 				}}
 			>
 				<DropdownMenuTrigger asChild>
-					<Button variant="accent" size="icon" className={`gap-2 h-9 aspect-square`}>
-						<IconFilter className="w-4 h-4" />
+					<Button
+						variant="accent"
+						className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1", activeFiltersCount > 0 && "w-6")}
+					>
+						<IconFilter2 className="w-4 h-4" />
+						{activeFiltersCount <= 0 && <span className="text-xs">Filter</span>}
 					</Button>
 				</DropdownMenuTrigger>
 

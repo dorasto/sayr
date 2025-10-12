@@ -8,30 +8,35 @@ export const statusConfig = {
 		icon: (className: string) => <StatusIcon status="backlog" className={className} />,
 		className: "text-muted-foreground",
 		color: "#6B7280",
+		var: "muted-foreground",
 	},
 	todo: {
 		label: "Todo",
 		icon: (className: string) => <StatusIcon status="todo" className={className} />,
 		className: "text-foreground",
 		color: "#3B82F6",
+		var: "foreground",
 	},
 	"in-progress": {
 		label: "In Progress",
 		icon: (className: string) => <StatusIcon status="in-progress" className={className} />,
 		className: "text-primary fill-primary",
 		color: "#F59E0B",
+		var: "primary",
 	},
 	done: {
 		label: "Done",
 		icon: (className: string) => <StatusIcon status="done" className={className} />,
 		className: "text-success",
 		color: "#10B981",
+		var: "success",
 	},
 	canceled: {
 		label: "Canceled",
 		icon: (className: string) => <StatusIcon status="canceled" className={className} />,
 		className: "text-desctructive",
 		color: "#EF4444",
+		var: "destructive",
 	},
 } as const;
 
