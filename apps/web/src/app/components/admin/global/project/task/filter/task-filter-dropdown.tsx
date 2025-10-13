@@ -19,9 +19,10 @@ import { Input } from "@repo/ui/components/input";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconFilter, IconFilter2, IconSearch, IconShare2, IconX } from "@tabler/icons-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { IconFilter2, IconSearch, IconX } from "@tabler/icons-react";
+import { usePathname } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
+import { useEffect, useMemo, useState } from "react";
 
 // --- Serialization helpers (module scope so hooks ignore them as deps) ---
 import type { FilterCondition, FilterGroup, FilterOperator, FilterState } from "./types";
@@ -29,6 +30,9 @@ import type { FilterCondition, FilterGroup, FilterOperator, FilterState } from "
 const serializeFilters = (state: FilterState): string => {
 	try {
 		const minimal = state.groups.map((g) => g.conditions.map((c) => [c.field, c.operator, c.value]));
+		if (minimal.length <= 0) {
+			return "";
+		}
 		const json = JSON.stringify(minimal);
 		return encodeURIComponent(Buffer.from(json, "utf-8").toString("base64"));
 	} catch {
@@ -67,51 +71,19 @@ interface TaskFilterDropdownProps {
 }
 
 export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: TaskFilterDropdownProps) {
+	const [filters, setFilters] = useQueryState("filters", parseAsString.withDefault(""));
 	const { value: filterState, setValue: setFilterState } = useStateManagement<FilterState>(
 		"task-filters",
-		{ groups: [], operator: "AND" },
+		deserializeFilters(filters) || { groups: [], operator: "AND" },
 		1
 	);
 
-	// URL query param integration ("views")
-	const router = useRouter();
-	const searchParams = useSearchParams();
 	const pathname = usePathname();
-	const isInitializingFromQuery = useRef(false);
-	const lastSerializedRef = useRef<string | null>(null);
 
-	// Initialize from URL (runs once)
 	useEffect(() => {
-		if (isInitializingFromQuery.current) return;
-		const urlValue = searchParams.get("filters");
-		if (urlValue) {
-			const deserialized = deserializeFilters(urlValue);
-			if (deserialized) {
-				isInitializingFromQuery.current = true;
-				setFilterState(deserialized);
-				lastSerializedRef.current = serializeFilters(deserialized);
-			}
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-		// We intentionally only want this to run once on mount.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [searchParams, setFilterState]);
-
-	// Sync state -> URL (debounced) whenever filters change (skip during initial sync)
-	useEffect(() => {
-		// If we're in the middle of initial load we already set it
 		const serialized = serializeFilters(filterState);
-		if (serialized === lastSerializedRef.current) return; // no change
-		lastSerializedRef.current = serialized;
-		const timeout = setTimeout(() => {
-			const current = new URLSearchParams(Array.from(searchParams.entries()));
-			if (serialized) current.set("filters", serialized);
-			else current.delete("filters");
-			router.replace(`${pathname}?${current.toString()}`);
-		}, 300); // debounce to reduce URL churn while user rapidly clicks
-		return () => clearTimeout(timeout);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, pathname, router, searchParams]);
+		setFilters(serialized);
+	}, [filterState, setFilters]);
 
 	const [mainSearch, setMainSearch] = useState("");
 	const [subSearch, setSubSearch] = useState("");
@@ -157,7 +129,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 				);
 			}
 			case "assignee": {
-				const user = availableUsers.find((u) => (u.name || u.email) === condition.value);
+				const user = availableUsers.find((u) => u.id === condition.value);
 				return user ? (
 					<>
 						<Avatar className="h-3 w-3">
@@ -177,7 +149,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 				);
 			}
 			case "label": {
-				const label = labels.find((l) => l.name === condition.value);
+				const label = labels.find((l) => l.id === condition.value);
 				return label ? (
 					<>
 						<div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: label.color || "#gray" }} />
@@ -536,6 +508,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 
 										{/* Status Filters */}
 										{config.field === "status" && (
+											// biome-ignore lint/complexity/noUselessFragments: <needed>
 											<>
 												{getFilteredStatuses().map((status) => (
 													<DropdownMenuItem
@@ -552,6 +525,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 
 										{/* Priority Filters */}
 										{config.field === "priority" && (
+											// biome-ignore lint/complexity/noUselessFragments: <needed>
 											<>
 												{getFilteredPriorities().map((priority) => (
 													<DropdownMenuItem
@@ -573,9 +547,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 													<DropdownMenuItem
 														key={user.id}
 														className="flex items-center gap-2 cursor-pointer"
-														onClick={() =>
-															handleFilterAdd("assignee", "equals", user.name || user.email || "Unknown")
-														}
+														onClick={() => handleFilterAdd("assignee", "equals", user.id || "Unknown")}
 													>
 														<Avatar className="h-5 w-5">
 															<AvatarImage src={user.image || undefined} />
@@ -607,7 +579,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 													<DropdownMenuItem
 														key={label.id}
 														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd("label", "in", label.name)}
+														onClick={() => handleFilterAdd("label", "in", label.id)}
 													>
 														<div
 															className="w-3 h-3 rounded-full shrink-0"

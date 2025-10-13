@@ -114,6 +114,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      nuqs:
+        specifier: ^2.7.1
+        version: 2.7.1(next@15.4.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -202,7 +205,7 @@ importers:
         version: link:../util
       drizzle-orm:
         specifier: ^0.44.5
-        version: 0.44.5(bun-types@1.2.23(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)
+        version: 0.44.5(bun-types@1.2.23)(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)
       pg:
         specifier: ^8.11.3
         version: 8.16.3
@@ -2305,6 +2308,9 @@ packages:
     resolution: {integrity: sha512-VwoDfvLXSCaRiD+xCIuyslU0HLxVggeE5BL06+GbsP2l1fGf5op8e0c3ZtKoi+vSg1q4ikjtAghC23ze2Q3H9g==}
     engines: {node: '>=20.0.0'}
 
+  '@standard-schema/spec@1.0.0':
+    resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
+
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
 
@@ -3875,6 +3881,27 @@ packages:
   normalize-range@0.1.2:
     resolution: {integrity: sha512-bdok/XvKII3nUpklnV6P2hxtMNrCboOjAcyBuQnWEhO665FwrSNRxU+AqpsyvO6LgGYPspN+lu5CLtw4jPRKNA==}
     engines: {node: '>=0.10.0'}
+
+  nuqs@2.7.1:
+    resolution: {integrity: sha512-3WDgrOZWat0QyOheyljTlXK4TGFh1JKSLvXMgusMDcTyMJXe1xL8+q3zuQ6ke1vyeGnpJwztlZl2aDkMW2eIUg==}
+    peerDependencies:
+      '@remix-run/react': '>=2'
+      '@tanstack/react-router': ^1
+      next: '>=14.2.0'
+      react: '>=18.2.0 || ^19.0.0-0'
+      react-router: ^6 || ^7
+      react-router-dom: ^6 || ^7
+    peerDependenciesMeta:
+      '@remix-run/react':
+        optional: true
+      '@tanstack/react-router':
+        optional: true
+      next:
+        optional: true
+      react-router:
+        optional: true
+      react-router-dom:
+        optional: true
 
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
@@ -6675,6 +6702,8 @@ snapshots:
       '@peculiar/asn1-schema': 2.4.0
       '@peculiar/asn1-x509': 2.4.0
 
+  '@standard-schema/spec@1.0.0': {}
+
   '@standard-schema/utils@0.3.0': {}
 
   '@swc/helpers@0.5.15':
@@ -7422,7 +7451,7 @@ snapshots:
       pg: 8.16.3
       postgres: 3.4.3
 
-  drizzle-orm@0.44.5(bun-types@1.2.23(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3):
+  drizzle-orm@0.44.5(bun-types@1.2.23)(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3):
     optionalDependencies:
       bun-types: 1.2.23(@types/react@19.1.8)
       kysely: 0.28.5
@@ -8440,6 +8469,13 @@ snapshots:
   node-releases@2.0.21: {}
 
   normalize-range@0.1.2: {}
+
+  nuqs@2.7.1(next@15.4.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0):
+    dependencies:
+      '@standard-schema/spec': 1.0.0
+      react: 19.1.0
+    optionalDependencies:
+      next: 15.4.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
   object-assign@4.1.1: {}
 

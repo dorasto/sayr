@@ -6,6 +6,7 @@ import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
 import { IconAlertCircle, IconAlertCircleFilled, IconCheck, IconInfoCircle, IconLoader2 } from "@tabler/icons-react";
 import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryClientProvider } from "./components/layout/query-provider";
 
 const inter = Inter({
@@ -67,9 +68,8 @@ export default function RootLayout({
 								error: <IconAlertCircleFilled className="text-destructive" />,
 								loading: <IconLoader2 className="animate-spin text-primary" />,
 							}}
-						/>
-						{children}
-
+						/>{" "}
+						<NuqsAdapter>{children}</NuqsAdapter>
 						<Toaster
 							icons={{
 								success: <IconCheck />,
