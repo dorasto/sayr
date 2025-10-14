@@ -8,15 +8,14 @@ const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({
 	value,
 	label: config.label,
 	color: config.color,
-	icon: config.icon("w-4 h-4"),
+	icon: config.icon("w-3 h-3"),
 }));
 
-// Convert priority config to filter options
 const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(([value, config]) => ({
 	value,
 	label: config.label,
 	color: config.color,
-	icon: config.icon("w-4 h-4"),
+	icon: config.icon("w-3 h-3"),
 }));
 
 export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
@@ -25,31 +24,40 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		label: "Status",
 		icon: statusConfig.todo.icon("w-4 h-4"), // Use a representative status icon
 		operators: ["equals", "not_equals", "in", "not_in"],
-		getOptions: () => STATUS_OPTIONS,
+		filterDefault: "equals",
+		getOptions: (_tasks, _labels, _users, subSearch) => {
+			return STATUS_OPTIONS.filter((option) => option.label.toLowerCase().includes(subSearch?.toLowerCase() || ""));
+		},
 	},
 	{
 		field: "priority",
 		label: "Priority",
 		icon: priorityConfig.medium.icon("w-4 h-4"), // Use a representative priority icon
 		operators: ["equals", "not_equals", "in", "not_in"],
-		getOptions: () => PRIORITY_OPTIONS,
+		filterDefault: "equals",
+		getOptions: (_tasks, _labels, _users, subSearch) => {
+			return PRIORITY_OPTIONS.filter((option) =>
+				option.label.toLowerCase().includes(subSearch?.toLowerCase() || "")
+			);
+		},
 	},
 	{
 		field: "assignee",
 		label: "Assignee",
 		icon: <IconUser className="w-4 h-4" />,
 		operators: ["equals", "not_equals", "in", "not_in", "is_empty", "is_not_empty"],
-		getOptions: (tasks, _labels, users) => {
-			const uniqueAssignees = new Set<string>();
-			tasks.forEach((task) => {
-				task.assignees?.forEach((assignee) => uniqueAssignees.add(assignee.id));
-			});
-
+		filterDefault: "equals",
+		empty: "Unassigned",
+		getOptions: (tasks, _labels, users, subSearch) => {
+			const ids = new Set<string>();
+			tasks.forEach((t) => t.assignees?.forEach((a) => ids.add(a.id)));
+			const q = subSearch.toLowerCase();
 			return users
-				.filter((user) => uniqueAssignees.has(user.id))
-				.map((user) => ({
-					value: user.id,
-					label: user.name || "Unknown User",
+				.filter((u) => ids.has(u.id) && (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)))
+				.map((u) => ({
+					value: u.id,
+					label: u.name || "Unknown User",
+					image: u.image || "",
 				}));
 		},
 	},
@@ -58,30 +66,33 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		label: "Label",
 		icon: <IconTag className="w-4 h-4" />,
 		operators: ["equals", "not_equals", "in", "not_in", "is_empty", "is_not_empty"],
-		getOptions: (_tasks, labels) => {
-			return labels.map((label) => ({
-				value: label.id,
-				label: label.name,
-				color: label.color || "#cccccc",
-			}));
+		filterDefault: "in",
+		empty: "No labels",
+		getOptions: (_tasks, labels, _users, subSearch) => {
+			const q = subSearch.toLowerCase();
+			return labels
+				.filter((f) => f.name?.toLowerCase().includes(q))
+				.map((label) => ({
+					value: label.id,
+					label: label.name,
+					color: label.color || "#cccccc",
+				}));
 		},
 	},
 	{
 		field: "creator",
 		label: "Creator",
 		icon: <IconUser className="w-4 h-4" />,
-		operators: ["equals", "not_equals", "in", "not_in"],
-		getOptions: (tasks, _labels, users) => {
-			const uniqueCreators = new Set<string>();
-			tasks.forEach((task) => {
-				if (task.createdBy?.id) uniqueCreators.add(task.createdBy.id);
-			});
-
+		operators: ["equals", "not_equals", "in", "not_in", "is_empty", "is_not_empty"],
+		filterDefault: "equals",
+		getOptions: (_tasks, _labels, users, subSearch) => {
+			const q = subSearch.toLowerCase();
 			return users
-				.filter((user) => uniqueCreators.has(user.id))
-				.map((user) => ({
-					value: user.id,
-					label: user.name || "Unknown User",
+				.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
+				.map((u) => ({
+					value: u.id,
+					label: u.name || "Unknown User",
+					image: u.image || "",
 				}));
 		},
 	},
@@ -90,18 +101,34 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		label: "Created",
 		icon: <IconCalendar className="w-4 h-4" />,
 		operators: ["before", "after", "between"],
+		filterDefault: "between",
 	},
 	{
 		field: "updated_at",
 		label: "Updated",
 		icon: <IconCalendar className="w-4 h-4" />,
 		operators: ["before", "after", "between"],
+		filterDefault: "between",
 	},
 	{
 		field: "title",
 		label: "Title",
 		icon: <IconTextSize className="w-4 h-4" />,
-		operators: ["contains", "not_contains", "equals", "not_equals"],
+		operators: ["contains", "not_contains"],
+		filterDefault: "contains",
+		getOptions(tasks, _labels, _users, subSearch) {
+			const q = subSearch.toLowerCase();
+			const uniqueTitle = new Set<string>();
+			tasks
+				.filter((task) => task.title?.toLowerCase().includes(q))
+				.forEach((task) => {
+					if (task.title) uniqueTitle.add(task.title.toLowerCase());
+				});
+			return Array.from(uniqueTitle).map((title) => ({
+				value: title,
+				label: title,
+			}));
+		},
 	},
 ];
 

@@ -48,6 +48,7 @@ export interface FilterOption {
 	icon?: React.ReactNode;
 	color?: string;
 	description?: string;
+	image?: string;
 }
 
 export interface FilterFieldConfig {
@@ -55,10 +56,13 @@ export interface FilterFieldConfig {
 	label: string;
 	icon?: React.ReactNode;
 	operators: FilterOperator[];
+	filterDefault: FilterOperator;
+	empty?: string;
 	getOptions?: (
 		tasks: schema.TaskWithLabels[],
 		labels: schema.labelType[],
-		users: schema.userType[]
+		users: schema.userType[],
+		subSearch: string
 	) => FilterOption[];
 	renderValue?: (condition: FilterCondition) => React.ReactNode;
 }

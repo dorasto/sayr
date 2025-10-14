@@ -160,7 +160,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 				);
 			}
 			case "creator": {
-				const creator = availableUsers.find((u) => (u.name || u.email) === condition.value);
+				const creator = availableUsers.find((u) => u.id === condition.value);
 				return creator ? (
 					<>
 						<Avatar className="h-3 w-3">
@@ -294,6 +294,14 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 		return config?.operators || ["equals"];
 	};
 
+	// Get available options for a field
+	const getAvailableOptions = (fieldName: FilterField) => {
+		const config = FILTER_FIELD_CONFIGS.find((c) => c.field === fieldName);
+		return typeof config?.getOptions === "function"
+			? config.getOptions(_tasks, labels, availableUsers, subSearch)
+			: [];
+	};
+
 	// Clear all filters
 	const clearFilters = () => {
 		setFilterState({ groups: [], operator: "AND" });
@@ -323,43 +331,6 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 			config.label.toLowerCase().includes(mainSearch.toLowerCase()) ||
 			config.field.toLowerCase().includes(mainSearch.toLowerCase())
 	);
-
-	// Get available statuses from shared config
-	const getFilteredStatuses = () => {
-		const statusOptions = Object.entries(statusConfig).map(([value, config]) => ({
-			id: value,
-			name: config.label,
-			value,
-			color: config.color,
-			icon: config.icon("w-3 h-3"),
-		}));
-		return statusOptions.filter((status) => status.name.toLowerCase().includes(subSearch.toLowerCase()));
-	};
-
-	// Get available priorities from shared config
-	const getFilteredPriorities = () => {
-		const priorities = Object.entries(priorityConfig).map(([value, config]) => ({
-			name: config.label,
-			value,
-			color: config.color,
-			icon: config.icon("w-3 h-3"),
-		}));
-		return priorities.filter((priority) => priority.name.toLowerCase().includes(subSearch.toLowerCase()));
-	};
-
-	// Get filtered members
-	const getFilteredMembers = () => {
-		return availableUsers.filter(
-			(user) =>
-				user.name?.toLowerCase().includes(subSearch.toLowerCase()) ||
-				user.email?.toLowerCase().includes(subSearch.toLowerCase())
-		);
-	};
-
-	// Get filtered labels
-	const getFilteredLabels = () => {
-		return labels.filter((label) => label.name.toLowerCase().includes(subSearch.toLowerCase()));
-	};
 
 	return (
 		<div className="flex items-center gap-2">
@@ -505,95 +476,44 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 											</div>
 										</div>
 										<DropdownMenuSeparator />
-
-										{/* Status Filters */}
-										{config.field === "status" && (
-											// biome-ignore lint/complexity/noUselessFragments: <needed>
+										{/* Filters SubMenu */}
+										{getAvailableOptions(config.field).map((item, index) => (
+											<DropdownMenuItem
+												// biome-ignore lint/suspicious/noArrayIndexKey: <needed>
+												key={`${item}-${index}`}
+												className="flex items-center gap-2 cursor-pointer"
+												onClick={() => handleFilterAdd(config.field, config.filterDefault, item.value)}
+											>
+												{item.image && (
+													<Avatar className="h-5 w-5">
+														<AvatarImage src={item.image || undefined} />
+														<AvatarFallback className="text-xs">
+															{(item.label || "U")
+																?.split(" ")
+																.map((n) => n[0])
+																.join("")
+																.toUpperCase()}
+														</AvatarFallback>
+													</Avatar>
+												)}
+												{item.icon && <div className="w-3 h-3">{item.icon}</div>}
+												{item.color && !item.icon && (
+													<div
+														className="w-3 h-3 rounded-full shrink-0"
+														style={{ backgroundColor: item.color || "#gray" }}
+													/>
+												)}
+												<span className="truncate">{item.label}</span>
+											</DropdownMenuItem>
+										))}
+										{config.empty && (
 											<>
-												{getFilteredStatuses().map((status) => (
-													<DropdownMenuItem
-														key={status.id}
-														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd("status", "equals", status.value)}
-													>
-														<div className="w-3 h-3">{status.icon}</div>
-														<span>{status.name}</span>
-													</DropdownMenuItem>
-												))}
-											</>
-										)}
-
-										{/* Priority Filters */}
-										{config.field === "priority" && (
-											// biome-ignore lint/complexity/noUselessFragments: <needed>
-											<>
-												{getFilteredPriorities().map((priority) => (
-													<DropdownMenuItem
-														key={priority.value}
-														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd("priority", "equals", priority.value)}
-													>
-														<div className="w-3 h-3">{priority.icon}</div>
-														<span>{priority.name}</span>
-													</DropdownMenuItem>
-												))}
-											</>
-										)}
-
-										{/* Assignee Filters */}
-										{config.field === "assignee" && (
-											<>
-												{getFilteredMembers().map((user) => (
-													<DropdownMenuItem
-														key={user.id}
-														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd("assignee", "equals", user.id || "Unknown")}
-													>
-														<Avatar className="h-5 w-5">
-															<AvatarImage src={user.image || undefined} />
-															<AvatarFallback className="text-xs">
-																{(user.name || user.email || "U")
-																	?.split(" ")
-																	.map((n) => n[0])
-																	.join("")
-																	.toUpperCase()}
-															</AvatarFallback>
-														</Avatar>
-														<span>{user.name || user.email}</span>
-													</DropdownMenuItem>
-												))}
 												<DropdownMenuSeparator />
 												<DropdownMenuItem
 													className="cursor-pointer text-muted-foreground"
-													onClick={() => handleFilterAdd("assignee", "is_empty", "")}
+													onClick={() => handleFilterAdd(config.field, "is_empty", "")}
 												>
-													<span>Unassigned</span>
-												</DropdownMenuItem>
-											</>
-										)}
-
-										{/* Label Filters */}
-										{config.field === "label" && (
-											<>
-												{getFilteredLabels().map((label) => (
-													<DropdownMenuItem
-														key={label.id}
-														className="flex items-center gap-2 cursor-pointer"
-														onClick={() => handleFilterAdd("label", "in", label.id)}
-													>
-														<div
-															className="w-3 h-3 rounded-full shrink-0"
-															style={{ backgroundColor: label.color || "#gray" }}
-														/>
-														<span className="truncate">{label.name}</span>
-													</DropdownMenuItem>
-												))}
-												<DropdownMenuSeparator />
-												<DropdownMenuItem
-													className="cursor-pointer text-muted-foreground"
-													onClick={() => handleFilterAdd("label", "is_empty", "")}
-												>
-													<span>No labels</span>
+													<span>{config.empty}</span>
 												</DropdownMenuItem>
 											</>
 										)}
