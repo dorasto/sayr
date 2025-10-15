@@ -23,13 +23,16 @@ export function StatusSectionHeader({ status, count, isCollapsed, onToggleCollap
 			<div className="flex items-center justify-between px-4 py-2 relative">
 				<div className="flex items-center gap-2">
 					<Button variant="ghost" size="sm" onClick={onToggleCollapse} className="h-3 w-3 p-0 ">
-						<IconChevronDown className={cn("h-3 w-3 transition-all", isCollapsed && "-rotate-90")} />
+						<IconChevronDown className={cn("h-3 w-3 transition-all duration-300", isCollapsed && "-rotate-90")} />
 					</Button>
 
 					<div className="flex items-center gap-2">
 						<span className="text-sm font-medium">{config?.icon(`h-3.5 w-3.5 ${config?.className || ""}`)}</span>
 						<p className="text-sm font-medium">{config?.label || status}</p>
-						<Badge variant={"outline"} className="rounded pointer-events-none">
+						<Badge
+							variant={"outline"}
+							className="rounded pointer-events-none border-transparent text-muted-foreground"
+						>
 							{count}
 						</Badge>
 					</div>

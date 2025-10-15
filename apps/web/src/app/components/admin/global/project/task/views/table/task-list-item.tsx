@@ -281,7 +281,7 @@ export function TaskListItem({
 										{task.labels.length > 3 && (
 											<Badge
 												variant="secondary"
-												className="flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative"
+												className="flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative shrink-0"
 												onClick={(e) => {
 													e.stopPropagation();
 													// Add logic to show all labels here
@@ -298,7 +298,7 @@ export function TaskListItem({
 														/>
 													))}
 												</div>
-												+{task.labels.length - 3} labels
+												+{task.labels.length - 3} more
 											</Badge>
 										)}
 									</div>
