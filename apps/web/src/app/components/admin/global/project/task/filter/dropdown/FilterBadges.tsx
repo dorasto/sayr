@@ -119,6 +119,58 @@ export function FilterBadges(props: FilterBadgesProps) {
 							);
 						}
 					}
+					if (condition.field === "assignee") {
+						const userObjs = values
+							.map((id) => availableUsers.find((u) => u.id === id))
+							.filter((u): u is (typeof availableUsers)[number] => !!u);
+						if (userObjs.length <= 2) {
+							displayNode = (
+								<span
+									className="flex items-center gap-1 truncate"
+									title={userObjs.map((u) => u.name || u.email || "").join(", ")}
+								>
+									{userObjs.map((u) => (
+										<span key={u.id} className="flex items-center gap-1">
+											<Avatar className="h-4 w-4">
+												<AvatarImage src={u.image || undefined} />
+												<AvatarFallback className="text-[10px]">
+													{(u.name || u.email || "?")
+														.split(" ")
+														.map((n) => n[0])
+														.join("")
+														.toUpperCase()}
+												</AvatarFallback>
+											</Avatar>
+											<span className="truncate max-w-[80px]">{u.name || u.email || u.id}</span>
+										</span>
+									))}
+								</span>
+							);
+						} else if (userObjs.length > 2) {
+							const maxAvatars = 5;
+							const shown = userObjs.slice(0, maxAvatars);
+							displayNode = (
+								<span
+									className="flex items-center truncate -space-x-1"
+									title={userObjs.map((u) => u.name || u.email || "").join(", ")}
+								>
+									{shown.map((u) => (
+										<Avatar key={u.id} className="h-4 w-4">
+											<AvatarImage src={u.image || undefined} />
+											<AvatarFallback className="text-[10px]">
+												{(u.name || u.email || "?")
+													.split(" ")
+													.map((n) => n[0])
+													.join("")
+													.toUpperCase()}
+											</AvatarFallback>
+										</Avatar>
+									))}
+									<span className="truncate max-w-56 pl-2">{userObjs.length} assignees</span>
+								</span>
+							);
+						}
+					}
 				}
 
 				const commonButtonClasses =
@@ -218,15 +270,41 @@ export function FilterBadges(props: FilterBadgesProps) {
 						{!multi &&
 							condition.value &&
 							condition.operator !== "is_empty" &&
-							condition.operator !== "is_not_empty" && (
-								<Button
-									variant="accent"
-									size="sm"
-									className={`${commonButtonClasses} pointer-events-none max-w-56 truncate text-muted-foreground`}
-								>
-									{renderFilterValue(condition)}
-								</Button>
-							)}
+							condition.operator !== "is_not_empty" &&
+							(() => {
+								if (condition.field === "assignee" && typeof condition.value === "string") {
+									const user = availableUsers.find((u) => u.id === condition.value);
+									return (
+										<Button
+											variant="accent"
+											size="sm"
+											className={`${commonButtonClasses} pointer-events-none max-w-56 truncate text-muted-foreground`}
+										>
+											<Avatar className="h-4 w-4 mr-1">
+												<AvatarImage src={user?.image || undefined} />
+												<AvatarFallback className="text-[10px]">
+													{(user?.name || user?.email || "?")
+														.split(" ")
+														.map((n) => n[0])
+														.join("")
+														.toUpperCase()}
+												</AvatarFallback>
+											</Avatar>
+											<span className="truncate">{user?.name || condition.value}</span>
+										</Button>
+									);
+								}
+								// Fallback default rendering
+								return (
+									<Button
+										variant="accent"
+										size="sm"
+										className={`${commonButtonClasses} pointer-events-none max-w-56 truncate text-muted-foreground`}
+									>
+										{renderFilterValue(condition)}
+									</Button>
+								);
+							})()}
 
 						{/* Remove filter */}
 						<Button
