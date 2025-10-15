@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@repo/ui/components/radio-group";
 import { Switch } from "@repo/ui/components/switch";
 import OptionField from "@repo/ui/components/tomui/option-field";
 import { cn } from "@repo/ui/lib/utils";
-import { IconAdjustmentsHorizontal, IconLayoutList, IconLayoutRows } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconEyeOff, IconLayoutList, IconLayoutRows } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "./config";
 import type { TaskGroupingId } from "./types";
@@ -61,12 +61,12 @@ export function TaskViewDropdown() {
 					))}
 				</RadioGroup>
 				<OptionField
-					title="Grouping"
+					title="Group by"
 					icon={<IconLayoutRows className="h-4 w-4" />}
 					customSide={
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button variant="accent" className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}>
+								<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
 									{activeGrouping.icon}
 									<span className="text-xs">{activeGrouping.label}</span>
 								</Button>
@@ -105,6 +105,7 @@ export function TaskViewDropdown() {
 				/>
 				<OptionField
 					title="Show empty groups"
+					icon={<IconEyeOff className="h-4 w-4" />}
 					customSide={
 						<Switch
 							checked={viewState.showEmptyGroups}
