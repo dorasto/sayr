@@ -1,4 +1,4 @@
-import { IconCircleCheck, IconCircleCheckFilled } from "@tabler/icons-react";
+import { IconCircleCheck, IconCircleCheckFilled, IconCircleX, IconCircleXFilled, IconX } from "@tabler/icons-react";
 import { CircleCheck, CircleX } from "lucide-react";
 
 interface StatusIconProps {
@@ -10,11 +10,11 @@ interface StatusIconProps {
 export default function StatusIcon({ status, className = "", size = 16 }: StatusIconProps) {
 	// For done and canceled, use the existing lucide icons
 	if (status === "done") {
-		return <IconCircleCheckFilled size={size} className={`text-success ${className}`} />;
+		return <IconCircleCheck size={size} className={`text-success ${className}`} />;
 	}
 
 	if (status === "canceled") {
-		return <CircleX size={size} className={className} />;
+		return <IconCircleX size={size} className={`text-muted-foreground ${className}`} />;
 	}
 
 	// For other statuses, use custom SVG with circle-in-circle design

@@ -9,20 +9,25 @@ interface OptionFieldProps {
 	buttonText?: React.ReactNode;
 	onButtonClick?: () => void;
 	customSide?: React.ReactNode;
+	icon?: React.ReactNode;
 }
 
 export default function OptionField({
 	title = "Default sadf sadf asdf asdf",
-	description = "Default Description sadf asdf asdf asdf sadf sadfsadf asd fasd fasd fdsa f asdf asdf asdf asdf asdf  sadf sadf asdf asdf asdf l;kasdjf l;askdf jjslkjlskdjflskdjf",
+	description,
 	buttonText = "Default Button Text",
 	onButtonClick,
 	customSide,
+	icon,
 }: OptionFieldProps) {
 	return (
 		<div className="flex items-center gap-8 w-full">
 			<div className="flex flex-col gap-1">
-				<Label variant={"subheading"}>{title}</Label>
-				<Label variant={"description"}>{description}</Label>
+				<div className="flex items-center gap-2">
+					{icon && icon}
+					<Label variant={"subheading"}>{title}</Label>
+				</div>
+				{description && <Label variant={"description"}>{description}</Label>}
 			</div>
 			<div className="ml-auto">
 				{customSide || (

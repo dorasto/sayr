@@ -7,7 +7,9 @@ import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMes
 import type { WSMessage } from "@/app/lib/ws";
 import { applyFilters } from "../../filter/filter-config";
 import type { FilterState } from "../../filter/types";
-import { StatusSectionHeader } from "./status-section-header";
+import { TASK_GROUPINGS } from "../../grouping/config";
+import { TaskGroupSectionHeader } from "../../grouping/task-group-section-header";
+import { useTaskViewState } from "../../grouping/use-task-view-state";
 import { TaskContent } from "./task-content";
 import { TaskListItem } from "./task-list-item";
 
@@ -21,9 +23,6 @@ interface TaskListProps {
 	project: schema.projectType;
 }
 
-// Define the order of statuses
-const statusOrder = ["backlog", "todo", "in-progress", "done", "canceled"];
-
 export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], organization, project }: TaskListProps) {
 	const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -34,6 +33,15 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 	);
 	const { value: filterState } = useStateManagement<FilterState>("task-filters", { groups: [], operator: "AND" }, 1);
 	const [isTaskContentOpen, setIsTaskContentOpen] = useState(false);
+	const { viewState } = useTaskViewState();
+	const { grouping, showEmptyGroups } = viewState;
+
+	useEffect(() => {
+		setCollapsedSections(new Set());
+		return () => {
+			void grouping;
+		};
+	}, [grouping]);
 
 	// Apply filters to tasks
 	const filteredTasks = useMemo(() => {
@@ -78,78 +86,62 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 		}
 	};
 
-	const handleToggleSection = (status: string) => {
+	const handleToggleSection = (groupId: string) => {
 		const newCollapsed = new Set(collapsedSections);
-		if (newCollapsed.has(status)) {
-			newCollapsed.delete(status);
+		if (newCollapsed.has(groupId)) {
+			newCollapsed.delete(groupId);
 		} else {
-			newCollapsed.add(status);
+			newCollapsed.add(groupId);
 		}
 		setCollapsedSections(newCollapsed);
 	};
 
-	// Group tasks by status
+	const groupingDefinition = useMemo(() => {
+		return TASK_GROUPINGS[grouping] ?? TASK_GROUPINGS.status;
+	}, [grouping]);
+
 	const groupedTasks = useMemo(() => {
-		const groups: Record<string, schema.TaskWithLabels[]> = {};
-
-		// Initialize groups for all statuses
-		statusOrder.forEach((status) => {
-			groups[status] = [];
+		return groupingDefinition.group({
+			tasks: filteredTasks,
+			availableUsers,
+			showEmptyGroups,
 		});
-
-		// Group filtered tasks by status
-		filteredTasks.forEach((task) => {
-			const status = task.status || "backlog";
-			if (!groups[status]) {
-				groups[status] = [];
-			}
-			groups[status].push(task);
-		});
-
-		// Return only groups that have tasks, in the correct order
-		return statusOrder
-			.filter((status) => groups[status] && groups[status].length > 0)
-			.map((status) => {
-				const statusTasks = groups[status] || [];
-				return {
-					status,
-					tasks: statusTasks,
-					count: statusTasks.length,
-				};
-			});
-	}, [filteredTasks]);
+	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition]);
 
 	return (
 		<div className="rounded h-full">
 			{/* Grouped task list */}
 			{groupedTasks.length > 0 ? (
-				groupedTasks.map(({ status, tasks: statusTasks, count }) => {
-					const isCollapsed = collapsedSections.has(status);
+				groupedTasks.map((group) => {
+					const isCollapsed = collapsedSections.has(group.id);
 
 					return (
-						<div key={status} className="">
-							<StatusSectionHeader
-								status={status}
-								count={count}
+						<div key={group.id} className="">
+							<TaskGroupSectionHeader
+								group={group}
 								isCollapsed={isCollapsed}
-								onToggleCollapse={() => handleToggleSection(status)}
+								onToggleCollapse={() => handleToggleSection(group.id)}
 							/>
 
-							{!isCollapsed && statusTasks && (
+							{!isCollapsed && (
 								<div className="py-1 flex flex-col gap-1">
-									{statusTasks.map((task) => (
-										<TaskListItem
-											key={task.id}
-											task={task}
-											isSelected={selectedTasks.has(task.id)}
-											onSelect={(selected) => handleTaskSelect(task.id, selected)}
-											onTaskClick={handleTaskClick}
-											tasks={tasks}
-											setTasks={setTasks}
-											setSelectedTask={setSelectedTask}
-											availableUsers={availableUsers}
-										/>
-									))}
+									{group.tasks.length > 0 ? (
+										group.tasks.map((task) => (
+											<TaskListItem
+												key={`${group.id}:${task.id}`}
+												task={task}
+												isSelected={selectedTasks.has(task.id)}
+												onSelect={(selected) => handleTaskSelect(task.id, selected)}
+												onTaskClick={handleTaskClick}
+												tasks={tasks}
+												setTasks={setTasks}
+												setSelectedTask={setSelectedTask}
+												availableUsers={availableUsers}
+											/>
+										))
+									) : (
+										<div className="px-4 py-3 text-xs text-muted-foreground">No tasks in this group</div>
+									)}
 								</div>
 							)}
 						</div>

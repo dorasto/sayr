@@ -9,6 +9,7 @@ import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMes
 import type { WSMessage } from "@/app/lib/ws";
 import ListProjectTasks from "./list";
 import { TaskFilterDropdown } from "./task/filter/task-filter-dropdown";
+import { TaskViewDropdown } from "./task/grouping/task-view-dropdown";
 
 export default function OrganizationProjectHomePage() {
 	const { ws } = useLayoutData();
@@ -54,8 +55,8 @@ export default function OrganizationProjectHomePage() {
 			<div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
 				<TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers} />
 				<div className="flex items-center gap-2 shrink-0 ml-auto">
-					<Separator orientation="vertical" className="h-3" />
-					test
+					<Separator orientation="vertical" className="h-5" />
+					<TaskViewDropdown />
 				</div>
 			</div>
 			<div className="flex-1 overflow-scroll flex flex-col relative">
