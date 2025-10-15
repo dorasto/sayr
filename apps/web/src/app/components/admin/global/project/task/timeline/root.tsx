@@ -28,7 +28,9 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 	};
 
 	// Consolidate timeline items
-	const consolidatedItems = consolidateTimelineItems(task.timeline || []);
+	const consolidatedItems = consolidateTimelineItems(task.timeline || []).sort(
+		(a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
+	);
 
 	return (
 		<Timeline>

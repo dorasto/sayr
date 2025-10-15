@@ -1,4 +1,5 @@
 import { IconTag, IconUserMinus, IconUserPlus } from "@tabler/icons-react";
+import { nanoid } from "nanoid";
 import { Fragment } from "react";
 import { RenderLabel } from "../label";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
@@ -32,7 +33,7 @@ export function ConsolidatedTimelineLabels({
 					<>
 						{" added "}
 						{addedLabels.map((label, index) => (
-							<Fragment key={label.id}>
+							<Fragment key={label.id + nanoid(5)}>
 								<RenderLabel label={label} className="inline-flex" />
 								{index < addedLabels.length - 1 && " "}
 							</Fragment>
@@ -44,7 +45,7 @@ export function ConsolidatedTimelineLabels({
 					<>
 						{" removed "}
 						{removedLabels.map((label, index) => (
-							<Fragment key={label.id}>
+							<Fragment key={label.id + nanoid(5)}>
 								<RenderLabel label={label} className="inline-flex" />
 								{index < removedLabels.length - 1 && " "}
 							</Fragment>
@@ -95,7 +96,7 @@ export function ConsolidatedTimelineAssignees({
 					<>
 						{" assigned "}
 						{addedAssignees.map((user, index) => (
-							<Fragment key={user.id}>
+							<Fragment key={user.id + nanoid(5)}>
 								<AvatarWithName name={user.name || "Unknown"} image={user.image || ""} />
 								{index < addedAssignees.length - 1 && " "}
 							</Fragment>
@@ -107,7 +108,7 @@ export function ConsolidatedTimelineAssignees({
 					<>
 						{" removed "}
 						{removedAssignees.map((user, index) => (
-							<Fragment key={user.id}>
+							<Fragment key={user.id + nanoid(5)}>
 								<AvatarWithName name={user.name || "Unknown"} image={user.image || ""} />
 								{index < removedAssignees.length - 1 && " "}
 							</Fragment>
