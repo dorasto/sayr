@@ -1,21 +1,12 @@
 "use client";
 
 import { Button } from "@repo/ui/components/button";
-import { Checkbox } from "@repo/ui/components/checkbox";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuPortal,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
-	DropdownMenuSeparator,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { Label } from "@repo/ui/components/label";
@@ -24,17 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@repo/ui/components/radio-group";
 import { Switch } from "@repo/ui/components/switch";
 import OptionField from "@repo/ui/components/tomui/option-field";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	IconAdjustments,
-	IconAdjustmentsAlt,
-	IconAdjustmentsHorizontal,
-	IconLayout,
-	IconLayout2,
-	IconLayoutColumns,
-	IconLayoutList,
-	IconLayoutRows,
-	IconSquareRoundedCheck,
-} from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconLayoutList, IconLayoutRows } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "./config";
 import type { TaskGroupingId } from "./types";
@@ -54,7 +35,7 @@ export function TaskViewDropdown() {
 	const groupingOptions = useMemo(() => TASK_GROUPING_OPTIONS, []);
 
 	return (
-		<Popover defaultOpen>
+		<Popover>
 			<PopoverTrigger asChild>
 				<Button variant="accent" className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}>
 					<IconAdjustmentsHorizontal className="w-4 h-4" />
@@ -111,17 +92,6 @@ export function TaskViewDropdown() {
 										</DropdownMenuRadioItem>
 									))}
 								</DropdownMenuRadioGroup>
-								{/* <DropdownMenuLabel className="text-xs uppercase text-muted-foreground">Mode</DropdownMenuLabel>
-								{VIEW_MODE_OPTIONS.map((option) => (
-									<DropdownMenuItem key={option.id} className="text-sm" disabled>
-										<span className="flex items-center gap-2 text-muted-foreground">
-											{option.icon}
-											<span>{option.label}</span>
-										</span>
-										{option.id === activeViewMode && <IconSquareRoundedCheck className="ml-auto h-4 w-4" />}
-									</DropdownMenuItem>
-								))}
-								<DropdownMenuSeparator /> */}
 
 								<DropdownMenuCheckboxItem
 									checked={viewState.showEmptyGroups}
@@ -143,69 +113,6 @@ export function TaskViewDropdown() {
 					}
 				/>
 			</PopoverContent>
-			{/* <div>
-		<DropdownMenu defaultOpen>
-			<DropdownMenuTrigger asChild>
-				<Button variant="accent" className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}>
-					<IconAdjustmentsHorizontal className="w-4 h-4" />
-					<span className="text-xs">View</span>
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent className="w-64" side="bottom" align="end">
-				<DropdownMenuLabel className="text-xs uppercase text-muted-foreground">Mode</DropdownMenuLabel>
-				{VIEW_MODE_OPTIONS.map((option) => (
-					<DropdownMenuItem key={option.id} className="text-sm" disabled>
-						<span className="flex items-center gap-2 text-muted-foreground">
-							{option.icon}
-							<span>{option.label}</span>
-						</span>
-						{option.id === activeViewMode && <IconSquareRoundedCheck className="ml-auto h-4 w-4" />}
-					</DropdownMenuItem>
-				))}
-				<DropdownMenuSeparator />
-
-				<DropdownMenuSub>
-					<DropdownMenuSubTrigger hideIcon>
-						<IconLayoutList className="h-4 w-4" />
-						Grouped by:
-						<Label className="ml-auto">{activeGrouping.label}</Label>
-					</DropdownMenuSubTrigger>
-					<DropdownMenuPortal>
-						<DropdownMenuSubContent>
-							<DropdownMenuRadioGroup
-								value={viewState.grouping}
-								onValueChange={(value) => setGrouping(value as TaskGroupingId)}
-							>
-								{groupingOptions.map((grouping) => (
-									<DropdownMenuRadioItem key={grouping.id} value={grouping.id} className="pl-8">
-										<span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
-											{grouping.icon}
-										</span>
-										<span
-											className={cn(
-												"text-sm",
-												grouping.id === viewState.grouping && "text-foreground font-medium"
-											)}
-										>
-											{grouping.label}
-										</span>
-									</DropdownMenuRadioItem>
-								))}
-							</DropdownMenuRadioGroup>
-						</DropdownMenuSubContent>
-					</DropdownMenuPortal>
-				</DropdownMenuSub>
-
-				<DropdownMenuSeparator />
-				<DropdownMenuCheckboxItem
-					checked={viewState.showEmptyGroups}
-					onCheckedChange={(checked) => setShowEmptyGroups(Boolean(checked))}
-				>
-					Show empty groups
-				</DropdownMenuCheckboxItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
-        </div> */}
 		</Popover>
 	);
 }
