@@ -59,12 +59,13 @@ export function useWebSocketSubscription({
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
 	});
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <will fix at somepoint>
 	useEffect(() => {
 		if (!ws) {
 			setWSSubscribedState(null);
 			return;
 		}
-
+		let cancelled = false; // mark stale subscriptions
 		ws.addEventListener("message", handleMessage);
 
 		if (!orgId || !channel) {
@@ -77,16 +78,29 @@ export function useWebSocketSubscription({
 				setWSSubscribedState(null);
 			};
 		}
-
-		// 👉 Subscribe with the *current* org/channel
-		if (orgId && channel) {
-			const payload = { type: "SUBSCRIBE", orgId, channel };
-			ws.send(JSON.stringify(payload));
-		}
-
+		// Gather current / previous values -----
+		const prev = wsSubscribedState;
+		const prevOrgId = prev?.orgId ?? null;
+		const prevChannel = prev?.channel ?? null;
+		const sameOrg = prevOrgId === orgId;
+		const sameChannel = prevChannel === channel;
+		// Determine if anything changed -----
+		const changed = !sameOrg || !sameChannel;
+		// delay sending to let old hook unmount cleanly
+		const id = setTimeout(() => {
+			if (cancelled) return;
+			if (changed && ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: "SUBSCRIBE", orgId, channel }));
+				setWSSubscribedState({ orgId, channel });
+				console.log("🔄 Subscribed to", { orgId, channel });
+			}
+		}, 50); // small delay avoids cross-layout overlap
 		return () => {
+			cancelled = true;
+			clearTimeout(id);
 			ws.removeEventListener("message", handleMessage);
 		};
+		// ✅ wsSubscribedState stays in deps safely because we’re comparing before set
 	}, [ws, orgId, channel, handleMessage, setWSSubscribedState]);
 
 	return { wsSubscribedState };

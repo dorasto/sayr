@@ -1,5 +1,4 @@
 "use client";
-import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { useEffect } from "react";
 import { useLayoutProject } from "@/app/admin/[organization_id]/[project_id]/Context";
@@ -33,7 +32,7 @@ export default function OrganizationProjectHomePage() {
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
 	});
 	useEffect(() => {
 		if (!ws) return;
