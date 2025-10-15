@@ -134,7 +134,7 @@ function TimelineItemWrapper({ item, icon: Icon, color, children }: TimelineItem
 	return (
 		<TimelineItem
 			key={item.id}
-			step={item.timelineNumber}
+			step={2}
 			className="group-data-[orientation=vertical]/timeline:ms-10 group-data-[orientation=vertical]/timeline:not-last:pb-8"
 		>
 			<TimelineHeader>

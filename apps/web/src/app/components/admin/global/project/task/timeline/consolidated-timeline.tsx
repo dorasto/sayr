@@ -143,20 +143,21 @@ export function ConsolidatedTimelineItem({ consolidatedItem, labels, availableUs
 		(type) => type === "assignee_added" || type === "assignee_removed"
 	);
 
-	// Prioritize label events if both exist
-	if (hasLabelEvents) {
-		return <ConsolidatedTimelineLabels consolidatedItem={consolidatedItem} labels={labels} />;
-	}
-
-	if (hasAssigneeEvents) {
-		return <ConsolidatedTimelineAssignees consolidatedItem={consolidatedItem} availableUsers={availableUsers} />;
-	}
-
-	// Fallback - shouldn't happen with current logic, but render first item individually
 	const firstItem = consolidatedItem.items[0];
-	if (firstItem) {
-		return <TimelineUpdated item={firstItem} />;
-	}
+	const hasOtherEvents = !hasLabelEvents && !hasAssigneeEvents && !!firstItem;
 
-	return null;
+	return (
+		<>
+			{/* 🔖 Labels */}
+			{hasLabelEvents && <ConsolidatedTimelineLabels consolidatedItem={consolidatedItem} labels={labels} />}
+
+			{/* 👤 Assignees */}
+			{hasAssigneeEvents && (
+				<ConsolidatedTimelineAssignees consolidatedItem={consolidatedItem} availableUsers={availableUsers} />
+			)}
+
+			{/* 🧩 Fallback */}
+			{hasOtherEvents && <TimelineUpdated item={firstItem} />}
+		</>
+	);
 }

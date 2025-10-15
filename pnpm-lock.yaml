@@ -7,10 +7,17 @@ settings:
 importers:
 
   .:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.44.5
+        version: 0.44.5(bun-types@1.2.23)(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.1.1
         version: 2.1.1
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
       turbo:
         specifier: ^2.5.4
         version: 2.5.4
@@ -32,9 +39,6 @@ importers:
       '@repo/util':
         specifier: workspace:*
         version: link:../../packages/util
-      drizzle-orm:
-        specifier: ^0.44.5
-        version: 0.44.5(bun-types@1.2.21(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)
       hono:
         specifier: ^4.8.4
         version: 4.9.4
@@ -49,7 +53,7 @@ importers:
         specifier: ^1.2.23
         version: 1.2.23(@types/react@19.1.8)
       '@types/node':
-        specifier: ^24.0.13
+        specifier: ^24.0.14
         version: 24.0.14
       bun-types:
         specifier: ^1.2.21
@@ -203,9 +207,6 @@ importers:
       '@repo/util':
         specifier: workspace:*
         version: link:../util
-      drizzle-orm:
-        specifier: ^0.44.5
-        version: 0.44.5(bun-types@1.2.23)(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)
       pg:
         specifier: ^8.11.3
         version: 8.16.3
@@ -216,9 +217,6 @@ importers:
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
-      '@types/node':
-        specifier: ^24.0.14
-        version: 24.0.14
       drizzle-kit:
         specifier: ^0.31.4
         version: 0.31.4
@@ -7443,13 +7441,6 @@ snapshots:
       esbuild-register: 3.6.0(esbuild@0.25.10)
     transitivePeerDependencies:
       - supports-color
-
-  drizzle-orm@0.44.5(bun-types@1.2.21(@types/react@19.1.8))(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3):
-    optionalDependencies:
-      bun-types: 1.2.21(@types/react@19.1.8)
-      kysely: 0.28.5
-      pg: 8.16.3
-      postgres: 3.4.3
 
   drizzle-orm@0.44.5(bun-types@1.2.23)(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3):
     optionalDependencies:

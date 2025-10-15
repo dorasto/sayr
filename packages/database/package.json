@@ -11,10 +11,9 @@
     },
     "scripts": {
         "db:studio": "drizzle-kit studio",
-        "db:push": "drizzle-kit push:pg"
+        "db:push": "drizzle-kit push"
     },
     "dependencies": {
-        "drizzle-orm": "^0.44.5",
         "pg": "^8.11.3",
         "postgres": "3.4.3",
 		"@repo/storage": "workspace:*",
@@ -22,7 +21,6 @@
     },
     "devDependencies": {
         "@repo/typescript-config": "workspace:*",
-        "drizzle-kit": "^0.31.4",
-        "@types/node": "^24.0.14"
+        "drizzle-kit": "^0.31.4"
     }
 }

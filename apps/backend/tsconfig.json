@@ -1,13 +1,13 @@
 {
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
-		"baseUrl": ".",
 		"paths": {
 			"@/routes*": ["./routes/*"],
 			"@/public*": ["./public/*"],
-			"@/index": ["./index.ts"]
+			"@/index": ["./index.ts"],
+			"@/queue": ["./queue.ts"]
 		}
 	},
-	"include": ["routes", "public", "index.ts"],
+	"include": ["routes", "public", "index.ts","queue.ts"],
 	"exclude": ["node_modules"]
 }

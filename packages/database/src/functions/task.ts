@@ -275,41 +275,6 @@ export async function createTask(
  *
  * @param params - taskId, orgId, actorId, eventType, optional from/to values, comment
  */
-export async function logTaskEvent({
-	timelineNumber,
-	taskId,
-	organizationId,
-	projectId,
-	actorId,
-	eventType,
-	fromValue,
-	toValue,
-	blockNote,
-}: {
-	timelineNumber: number;
-	taskId: string;
-	organizationId: string;
-	projectId: string;
-	actorId?: string | null;
-	eventType: (typeof schema.timelineEventTypeEnum.enumValues)[number];
-	fromValue?: unknown;
-	toValue?: unknown;
-	blockNote?: unknown;
-}) {
-	await db.insert(taskTimeline).values({
-		timelineNumber: timelineNumber,
-		taskId: taskId,
-		organizationId: organizationId,
-		projectId: projectId,
-		actorId: actorId ?? null,
-		eventType: eventType,
-		fromValue: fromValue ? JSON.stringify(fromValue) : null,
-		toValue: toValue ? JSON.stringify(toValue) : null,
-		blockNote: blockNote ?? null,
-	});
-}
-
-// helper to append timeline entries
 export async function addLogEventTask(
 	task_id: string,
 	project_id: string,
@@ -320,21 +285,14 @@ export async function addLogEventTask(
 	actorId?: string,
 	blockNote?: unknown
 ) {
-	const [timeline] = (await db
-		.select({ max: sql<number>`MAX(${schema.taskTimeline.timelineNumber})` })
-		.from(schema.taskTimeline)
-		.where(eq(schema.taskTimeline.taskId, task_id))) || [{ max: 0 }];
-	let nextNum = timeline?.max ?? 0;
-	nextNum++;
-	await logTaskEvent({
-		timelineNumber: nextNum,
+	return await db.insert(taskTimeline).values({
 		taskId: task_id,
 		projectId: project_id,
 		organizationId: org_id,
 		actorId: actorId ?? null,
 		eventType: type,
-		fromValue,
-		toValue,
-		blockNote,
+		fromValue: fromValue ? JSON.stringify(fromValue) : null,
+		toValue: toValue ? JSON.stringify(toValue) : null,
+		blockNote: blockNote ?? null,
 	});
 }

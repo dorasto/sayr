@@ -247,22 +247,58 @@ export function broadcastPublic(orgId: string, message: Omit<WSBaseMessage, "sco
 /**
  * Find a connected WebSocket client by its unique WebSocket client ID.
  *
- * @param clientId - The unique WebSocket client ID to search for.
- * @return The ClientInfo object if found, otherwise undefined.
+ * Searches through all active rooms and returns the first matching client
+ * whose `wsClientId` matches the provided ID.
+ *
+ * @param wsClientId - The unique identifier assigned to the WebSocket client.
+ * @returns The {@link ClientInfo} object if found, otherwise `undefined`.
+ *
  * @example
  * ```ts
- * const client = findClientByWsId("some-unique-ws-client-id");
- * if (client) {
- *   console.log("Client found:", client);
- * } else {
- *  console.log("Client not found");
- * }
+ * const client = findClientByWsId("abc123");
+ * if (client) console.log("Found:", client.socket.data);
  * ```
  */
-export function findClientByWsId(socket: ServerWebSocket) {
+export function findClientByWsId(wsClientId: string): ClientInfo | undefined {
 	for (const clients of rooms.values()) {
-		for (const c of clients) if (c.socket === socket) return c;
+		for (const c of clients) {
+			if (c.wsClientId === wsClientId) {
+				return c;
+			}
+		}
 	}
+	return undefined;
+}
+
+/**
+ * Find a connected WebSocket client by its raw WebSocket instance.
+ *
+ * This is useful when you have an active {@link ServerWebSocket} object and
+ * want to look up the associated client information (for example, inside an
+ * incoming message or close event).
+ *
+ * @param socket - The raw {@link ServerWebSocket} instance associated with the client.
+ * @returns The {@link ClientInfo} object if found, otherwise `undefined`.
+ *
+ * @example
+ * ```ts
+ * server.ws("/ws", {
+ *   message(ws, message) {
+ *     const client = findClientBySocket(ws);
+ *     if (client) console.log("Message from client:", client.wsClientId);
+ *   }
+ * });
+ * ```
+ */
+export function findClientBySocket(socket: ServerWebSocket): ClientInfo | undefined {
+	for (const clients of rooms.values()) {
+		for (const c of clients) {
+			if (c.socket === socket) {
+				return c;
+			}
+		}
+	}
+	return undefined;
 }
 
 /**
@@ -506,7 +542,7 @@ wsRoute.get(
 				const wsClient = wsClients.get(ws.raw) as wsClientsType;
 				const session = c.get("session");
 				const user = c.get("user");
-				const client = findClientByWsId(ws.raw);
+				const client = findClientBySocket(ws.raw);
 				// Rate limit messages (except PING/PONG)
 				if (!["PING", "PONG"].includes(msg.type)) {
 					const elapsed = now - wsClient.lastMessageAt;

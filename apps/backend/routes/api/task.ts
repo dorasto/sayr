@@ -10,6 +10,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { type AppEnv, checkMembershipRole } from "@/index";
+import { enqueueJob } from "@/queue";
 import { broadcast, broadcastPublic, broadcastToRoom, findClientByWsId, type WSBaseMessage } from "../ws";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
@@ -171,54 +172,70 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
+	const key = `${org_id}:${project_id}:${task_id}`;
 
-	// 🔎 Check task existence with labels
-	const existingTask = await db.query.task.findFirst({
-		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
-		with: {
-			labels: { with: { label: true } },
-		},
-	});
+	try {
+		const taskWithData = await enqueueJob(key, async () => {
+			// 🔎 Check task existence with labels
+			const existingTask = await db.query.task.findFirst({
+				where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+				with: {
+					labels: { with: { label: true } },
+				},
+			});
 
-	if (!existingTask) {
-		return c.json({ success: false, error: "Task not found" }, 404);
-	}
+			if (!existingTask) {
+				return c.json({ success: false, error: "Task not found" }, 404);
+			}
 
-	// Normalize labels for the task
-	const Task = {
-		...existingTask,
-		labels: existingTask?.labels.map((l) => l.label),
-	};
+			// Normalize labels for the task
+			const Task = {
+				...existingTask,
+				labels: existingTask?.labels.map((l) => l.label),
+			};
 
-	const currentLabelIds = Task.labels?.map((l) => l.id) || [];
-	const incomingLabelIds = labels || [];
+			const currentLabelIds = Task.labels?.map((l) => l.id) || [];
+			const incomingLabelIds = labels || [];
 
-	// 1️⃣ Add missing labels
-	for (const labelId of incomingLabelIds) {
-		if (!currentLabelIds.includes(labelId)) {
-			await addLabelToTask(org_id, task_id, project_id, labelId);
-			await addLogEventTask(task_id, project_id, org_id, "label_added", null, labelId, session?.userId);
+			// 1️⃣ Add missing labels
+			for (const labelId of incomingLabelIds) {
+				if (!currentLabelIds.includes(labelId)) {
+					await addLabelToTask(org_id, task_id, project_id, labelId);
+					await addLogEventTask(task_id, project_id, org_id, "label_added", null, labelId, session?.userId);
+				}
+			}
+
+			// 2️⃣ Remove labels not in incoming list
+			for (const labelId of currentLabelIds) {
+				if (!incomingLabelIds.includes(labelId)) {
+					await removeLabelFromTask(org_id, task_id, project_id, labelId);
+					await addLogEventTask(task_id, project_id, org_id, "label_removed", null, labelId, session?.userId);
+				}
+			}
+
+			const taskWithData = await getTaskById(org_id, project_id, task_id);
+			return taskWithData;
+		});
+
+		// undefined means this wasn’t the latest — skip returning older state
+		if (taskWithData === undefined) {
+			return c.json({ success: true, skipped: true }, 202);
 		}
+
+		const found = findClientByWsId(wsClientId);
+		const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
+		broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
+		broadcastPublic(org_id, { ...data });
+
+		return c.json({ success: true, data: taskWithData });
+	} catch (err) {
+		console.error("update-labels error:", err);
+		const errorMessage =
+			typeof err === "object" && err !== null && "message" in err
+				? String((err as { message?: unknown }).message)
+				: String(err);
+		return c.json({ success: false, error: errorMessage }, 500);
 	}
-
-	// 2️⃣ Remove labels not in incoming list
-	for (const labelId of currentLabelIds) {
-		if (!incomingLabelIds.includes(labelId)) {
-			await removeLabelFromTask(org_id, task_id, project_id, labelId);
-			await addLogEventTask(task_id, project_id, org_id, "label_removed", null, labelId, session?.userId);
-		}
-	}
-
-	// 🔄 Fetch updated task with related data
-	const taskWithData = await getTaskById(org_id, project_id, task_id);
-
-	// 📡 Broadcast to WS + Public
-	const found = findClientByWsId(wsClientId);
-	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-	broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
-	broadcastPublic(org_id, { ...data });
-
-	return c.json({ success: true, data: taskWithData });
 });
 
 apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
@@ -229,59 +246,77 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
+	const key = `${org_id}:${project_id}:${task_id}`;
+	try {
+		const taskWithData = await enqueueJob(key, async () => {
+			// 🔎 Check task existence with labels
+			const existingTask = await db.query.task.findFirst({
+				where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+				with: {
+					assignees: {
+						with: { user: { columns: { id: true, name: true, image: true } } },
+					},
+				},
+			});
 
-	// 🔎 Check task existence with labels
-	const existingTask = await db.query.task.findFirst({
-		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
-		with: {
-			assignees: {
-				with: { user: { columns: { id: true, name: true, image: true } } },
-			},
-		},
-	});
+			if (!existingTask) {
+				return c.json({ success: false, error: "Task not found" }, 404);
+			}
+			// Normalize assignees for the task
+			const Task = {
+				...existingTask,
+				assignees: existingTask.assignees.map((a) => a.user),
+			};
+			const currentAssigneeIds = Task.assignees?.map((a) => a.id) || [];
+			const incomingAssigneeIds = assignees || [];
+			// 1️⃣ Add missing assignees
+			for (const userId of incomingAssigneeIds) {
+				if (!currentAssigneeIds.includes(userId)) {
+					await db
+						.insert(schema.taskAssignee)
+						.values({ taskId: task_id, projectId: project_id, userId })
+						.onConflictDoNothing();
+					await addLogEventTask(task_id, project_id, org_id, "assignee_added", null, userId, session?.userId);
+				}
+			}
+			// 2️⃣ Remove assignees not in incoming list
+			for (const userId of currentAssigneeIds) {
+				if (!incomingAssigneeIds.includes(userId)) {
+					await db
+						.delete(schema.taskAssignee)
+						.where(
+							and(
+								eq(schema.taskAssignee.taskId, task_id),
+								eq(schema.taskAssignee.projectId, project_id),
+								eq(schema.taskAssignee.userId, userId)
+							)
+						);
+					await addLogEventTask(task_id, project_id, org_id, "assignee_removed", null, userId, session?.userId);
+				}
+			}
 
-	if (!existingTask) {
-		return c.json({ success: false, error: "Task not found" }, 404);
-	}
-	// Normalize assignees for the task
-	const Task = {
-		...existingTask,
-		assignees: existingTask.assignees.map((a) => a.user),
-	};
-	const currentAssigneeIds = Task.assignees?.map((a) => a.id) || [];
-	const incomingAssigneeIds = assignees || [];
-	// 1️⃣ Add missing assignees
-	for (const userId of incomingAssigneeIds) {
-		if (!currentAssigneeIds.includes(userId)) {
-			await db
-				.insert(schema.taskAssignee)
-				.values({ taskId: task_id, projectId: project_id, userId })
-				.onConflictDoNothing();
-			await addLogEventTask(task_id, project_id, org_id, "assignee_added", null, userId, session?.userId);
+			// 🔄 Fetch updated task with related data
+			const taskWithData = await getTaskById(org_id, project_id, task_id);
+			return taskWithData;
+		});
+
+		// undefined means this wasn’t the latest — skip returning older state
+		if (taskWithData === undefined) {
+			return c.json({ success: true, skipped: true }, 202);
 		}
-	}
-	// 2️⃣ Remove assignees not in incoming list
-	for (const userId of currentAssigneeIds) {
-		if (!incomingAssigneeIds.includes(userId)) {
-			await db
-				.delete(schema.taskAssignee)
-				.where(
-					and(
-						eq(schema.taskAssignee.taskId, task_id),
-						eq(schema.taskAssignee.projectId, project_id),
-						eq(schema.taskAssignee.userId, userId)
-					)
-				);
-			await addLogEventTask(task_id, project_id, org_id, "assignee_removed", null, userId, session?.userId);
-		}
-	}
-	// 🔄 Fetch updated task with related data
-	const taskWithData = await getTaskById(org_id, project_id, task_id);
-	// 📡 Broadcast to WS + Public
-	const found = findClientByWsId(wsClientId);
-	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-	broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
-	broadcastPublic(org_id, { ...data });
 
-	return c.json({ success: true, data: taskWithData });
+		const found = findClientByWsId(wsClientId);
+		const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
+		broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
+		broadcastPublic(org_id, { ...data });
+
+		return c.json({ success: true, data: taskWithData });
+	} catch (err) {
+		console.error("update-assignees error:", err);
+		const errorMessage =
+			typeof err === "object" && err !== null && "message" in err
+				? String((err as { message?: unknown }).message)
+				: String(err);
+		return c.json({ success: false, error: errorMessage }, 500);
+	}
 });

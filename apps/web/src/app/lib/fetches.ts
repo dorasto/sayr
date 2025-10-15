@@ -365,7 +365,7 @@ export async function updateLabelToTaskAction(
 	taskId: string,
 	labels: string[],
 	wsClientId: string
-): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
+): Promise<{ success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
@@ -385,7 +385,7 @@ export async function updateLabelToTaskAction(
 			credentials: "include", // 👈 This ensures cookies are sent
 		}
 	).then(async (e) => await e.json());
-	return result as { success: boolean; data: schema.TaskWithLabels; error?: string };
+	return result as { success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string };
 }
 
 export async function updateAssigneesToTaskAction(
@@ -394,7 +394,7 @@ export async function updateAssigneesToTaskAction(
 	taskId: string,
 	assignees: string[],
 	wsClientId: string
-): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
+): Promise<{ success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
@@ -414,7 +414,7 @@ export async function updateAssigneesToTaskAction(
 			credentials: "include", // 👈 This ensures cookies are sent
 		}
 	).then(async (e) => await e.json());
-	return result as { success: boolean; data: schema.TaskWithLabels; error?: string };
+	return result as { success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string };
 }
 
 /**

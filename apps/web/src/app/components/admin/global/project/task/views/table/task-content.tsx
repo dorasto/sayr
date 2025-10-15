@@ -123,7 +123,7 @@ export function TaskContentSideContent({
 						},
 						() => updateLabelToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
 					);
-					if (data?.success && data.data) {
+					if (data?.success && data.data && !data.skipped) {
 						const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
 						setTasks(finalTasks);
 						if (task && task.id === data.data.id) {

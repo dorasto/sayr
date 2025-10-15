@@ -53,7 +53,7 @@ export function useToastAction() {
 				success: { title: string; description?: string };
 				error: { title: string; description?: string };
 			},
-			fn: () => Promise<T & { success?: boolean; error?: string }>
+			fn: () => Promise<T & { success?: boolean; skipped?: boolean; error?: string }>
 		): Promise<T | null> => {
 			headlessToast.loading({
 				id: actionId,
@@ -65,7 +65,10 @@ export function useToastAction() {
 
 			try {
 				const result = await fn();
-
+				if (result?.skipped) {
+					setIsFetching(true);
+					return result;
+				}
 				if (result?.success) {
 					headlessToast.success({
 						id: actionId,
@@ -79,7 +82,7 @@ export function useToastAction() {
 						description: result?.error || messages.error.description || "Unknown error",
 					});
 				}
-
+				setIsFetching(false);
 				return result;
 				// biome-ignore lint/suspicious/noExplicitAny: <ignore>
 			} catch (err: any) {
@@ -88,9 +91,8 @@ export function useToastAction() {
 					title: messages.error.title,
 					description: err.message || messages.error.description,
 				});
-				return null;
-			} finally {
 				setIsFetching(false);
+				return null;
 			}
 		},
 		[]
