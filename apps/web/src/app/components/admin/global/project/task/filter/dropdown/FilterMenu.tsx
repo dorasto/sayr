@@ -137,7 +137,7 @@ export function FilterMenu(props: FilterMenuProps) {
 											<DropdownMenuSeparator />
 											<DropdownMenuItem
 												className="cursor-pointer text-muted-foreground"
-												onClick={() => handleFilterAdd(config.field, "is_empty", "")}
+												onClick={() => handleFilterAdd(config.field, "empty", "")}
 											>
 												<span>{config.empty}</span>
 											</DropdownMenuItem>

@@ -75,7 +75,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 
 	const getAvailableOperators = (field: FilterField): FilterOperator[] => {
 		const config = FILTER_FIELD_CONFIGS.find((c) => c.field === field);
-		return config?.operators || ["equals"];
+		return config?.operators || ["any"];
 	};
 
 	const getAvailableOptions = (field: FilterField) => {

@@ -269,8 +269,8 @@ export function FilterBadges(props: FilterBadgesProps) {
 						{/* Single value (non-interactive) */}
 						{!multi &&
 							condition.value &&
-							condition.operator !== "is_empty" &&
-							condition.operator !== "is_not_empty" &&
+							condition.operator !== "empty" &&
+							condition.operator !== "not_empty" &&
 							(() => {
 								if (condition.field === "assignee" && typeof condition.value === "string") {
 									const user = availableUsers.find((u) => u.id === condition.value);

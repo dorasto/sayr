@@ -43,16 +43,21 @@ const serializeFilters = (state: FilterState): string => {
 const deserializeFilters = (value: string): FilterState | null => {
 	try {
 		const decoded = Buffer.from(decodeURIComponent(value), "base64").toString("utf-8");
-		const minimal: [string, FilterOperator, unknown][][] = JSON.parse(decoded);
+		const minimal: [string, string, unknown][][] = JSON.parse(decoded);
 		const groups: FilterGroup[] = minimal.map((conditions, gi) => ({
 			id: `group-${gi}`,
 			operator: "AND",
-			conditions: conditions.map(([field, operator, val], ci) => ({
-				id: `${field}-${operator}-${ci}-${Date.now()}`,
-				field: field as FilterField,
-				operator,
-				value: val as FilterCondition["value"],
-			})),
+			conditions: conditions.map(([field, rawOperator, val], ci) => {
+				let operator = rawOperator as FilterOperator;
+				if (rawOperator === "is") operator = "any" as FilterOperator;
+				else if (rawOperator === "is_not") operator = "none" as FilterOperator;
+				return {
+					id: `${field}-${operator}-${ci}-${Date.now()}`,
+					field: field as FilterField,
+					operator,
+					value: val as FilterCondition["value"],
+				};
+			}),
 		}));
 		return { groups, operator: "AND" };
 	} catch {
@@ -210,28 +215,28 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 	// Get human-readable operator labels for badges
 	const getOperatorLabel = (operator: FilterOperator): string => {
 		switch (operator) {
-			case "equals":
-				return "is";
-			case "not_equals":
-				return "not";
-			case "in":
-				return "any of";
-			case "not_in":
-				return "none of";
+			case "any":
+				return "Has";
+			case "all":
+				return "Has all";
+			case "none":
+				return "Has none";
+			case "exact":
+				return "Exactly";
 			case "contains":
-				return "has";
+				return "Contains";
 			case "not_contains":
-				return "lacks";
+				return "Does not contain";
 			case "before":
-				return "before";
+				return "Before";
 			case "after":
-				return "after";
+				return "After";
 			case "between":
-				return "between";
-			case "is_empty":
-				return "empty";
-			case "is_not_empty":
-				return "not empty";
+				return "Between";
+			case "empty":
+				return "Is empty";
+			case "not_empty":
+				return "Is not empty";
 			default:
 				return operator;
 		}
@@ -241,14 +246,14 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 	const getFieldConfig = (field: FilterField) => FILTER_FIELD_CONFIGS.find((c) => c.field === field);
 	const isMultiCondition = (c: FilterCondition) => {
 		const cfg = getFieldConfig(c.field);
-		return !!cfg?.multi && (c.operator === "in" || c.operator === "not_in");
+		return !!cfg?.multi && ["any", "all", "none", "exact"].includes(c.operator);
 	};
 
 	// Add / merge filter function (supports multi conditions)
 	const addFilter = (condition: FilterCondition) => {
 		const cfg = getFieldConfig(condition.field);
 		// Try to merge into existing condition if multi
-		if (cfg?.multi && (condition.operator === "in" || condition.operator === "not_in")) {
+		if (cfg?.multi && ["any", "all", "none", "exact"].includes(condition.operator)) {
 			let merged = false;
 			const newGroups = filterState.groups.map((g, gi) => {
 				if (gi !== 0) return g; // only merge into first group for simplicity
@@ -315,7 +320,9 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 				conditions: group.conditions.map((condition) => {
 					if (condition.id !== filterId) return condition;
 					// If switching away from multi operator collapse array to first value
-					if (!(newOperator === "in" || newOperator === "not_in") && Array.isArray(condition.value)) {
+					const newIsMulti = ["any", "all", "none", "exact"].includes(newOperator);
+					const currentIsMulti = isMultiCondition(condition);
+					if (!newIsMulti && currentIsMulti && Array.isArray(condition.value)) {
 						return { ...condition, operator: newOperator, value: condition.value[0] ?? "" };
 					}
 					return { ...condition, operator: newOperator };
@@ -356,7 +363,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 	// Get available operators for a field
 	const getAvailableOperators = (fieldName: FilterField): FilterOperator[] => {
 		const config = FILTER_FIELD_CONFIGS.find((c) => c.field === fieldName);
-		return config?.operators || ["equals"];
+		return config?.operators || ["any"];
 	};
 
 	// Get available options for a field
@@ -560,8 +567,8 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 
 									{!multi &&
 										condition.value &&
-										condition.operator !== "is_empty" &&
-										condition.operator !== "is_not_empty" && (
+										condition.operator !== "empty" &&
+										condition.operator !== "not_empty" && (
 											<span className="flex items-center gap-1 truncate">
 												{renderFilterValue(condition)}
 											</span>
@@ -702,7 +709,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 												<DropdownMenuSeparator />
 												<DropdownMenuItem
 													className="cursor-pointer text-muted-foreground"
-													onClick={() => handleFilterAdd(config.field, "is_empty", "")}
+													onClick={() => handleFilterAdd(config.field, "empty", "")}
 												>
 													<span>{config.empty}</span>
 												</DropdownMenuItem>

@@ -16,16 +16,22 @@ export const serializeFilters = (state: FilterState): string => {
 export const deserializeFilters = (value: string): FilterState | null => {
 	try {
 		const decoded = Buffer.from(decodeURIComponent(value), "base64").toString("utf-8");
-		const minimal: [string, FilterOperator, unknown][][] = JSON.parse(decoded);
+		const minimal: [string, string, unknown][][] = JSON.parse(decoded);
 		const groups: FilterGroup[] = minimal.map((conditions, gi) => ({
 			id: `group-${gi}`,
 			operator: "AND",
-			conditions: conditions.map(([field, operator, val], ci) => ({
-				id: `${field}-${operator}-${ci}-${Date.now()}`,
-				field: field as FilterField,
-				operator,
-				value: val as FilterCondition["value"],
-			})),
+			conditions: conditions.map(([field, rawOperator, val], ci) => {
+				// Backward compatibility mapping
+				let operator = rawOperator as FilterOperator;
+				if (rawOperator === "is") operator = "any";
+				else if (rawOperator === "is_not") operator = "none";
+				return {
+					id: `${field}-${operator}-${ci}-${Date.now()}`,
+					field: field as FilterField,
+					operator,
+					value: val as FilterCondition["value"],
+				};
+			}),
 		}));
 		return { groups, operator: "AND" };
 	} catch {

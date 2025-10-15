@@ -1,7 +1,14 @@
 import type { schema } from "@repo/database";
 import { IconCalendar, IconTag, IconTextSize, IconUser } from "@tabler/icons-react";
 import { priorityConfig, statusConfig } from "../../shared/task-config";
-import type { FilterCondition, FilterFieldConfig, FilterOperator, FilterState } from "./types";
+import type {
+	DateRangeValue,
+	FilterCondition,
+	FilterFieldConfig,
+	FilterOperator,
+	FilterState,
+	FilterValue,
+} from "./types";
 
 // Convert status config to filter options
 const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({
@@ -17,38 +24,35 @@ const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(([value, config]) =>
 	color: config.color,
 	icon: config.icon("w-3 h-3"),
 }));
-
 export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
+	// Single-value enumerations (status, priority) – only any/none + empties if ever needed
 	{
 		field: "status",
 		label: "Status",
-		icon: statusConfig.todo.icon("w-4 h-4"), // Use a representative status icon
-		operators: ["equals", "not_equals", "in", "not_in"],
-		filterDefault: "equals",
+		icon: statusConfig.todo.icon("w-4 h-4"),
+		operators: ["any", "none", "empty", "not_empty"],
+		filterDefault: "any",
 		multi: true,
-		getOptions: (_tasks, _labels, _users, subSearch) => {
-			return STATUS_OPTIONS.filter((option) => option.label.toLowerCase().includes(subSearch?.toLowerCase() || ""));
-		},
+		getOptions: (_t, _l, _u, subSearch) =>
+			STATUS_OPTIONS.filter((o) => o.label.toLowerCase().includes(subSearch?.toLowerCase() || "")),
 	},
 	{
 		field: "priority",
 		label: "Priority",
-		icon: priorityConfig.medium.icon("w-4 h-4"), // Use a representative priority icon
-		operators: ["equals", "not_equals", "in", "not_in"],
-		filterDefault: "equals",
+		icon: priorityConfig.medium.icon("w-4 h-4"),
+		operators: ["any", "none", "empty", "not_empty"],
+		filterDefault: "any",
 		multi: true,
-		getOptions: (_tasks, _labels, _users, subSearch) => {
-			return PRIORITY_OPTIONS.filter((option) =>
-				option.label.toLowerCase().includes(subSearch?.toLowerCase() || "")
-			);
-		},
+		getOptions: (_t, _l, _u, subSearch) =>
+			PRIORITY_OPTIONS.filter((o) => o.label.toLowerCase().includes(subSearch?.toLowerCase() || "")),
 	},
+	// Multi-value relations
 	{
 		field: "assignee",
 		label: "Assignee",
 		icon: <IconUser className="w-4 h-4" />,
-		operators: ["in", "not_in", "is_empty", "is_not_empty"],
-		filterDefault: "in",
+		operators: ["any", "all", "none", "empty", "not_empty", "exact"],
+		filterDefault: "any",
 		multi: true,
 		empty: "Unassigned",
 		getOptions: (tasks, _labels, users, subSearch) => {
@@ -57,49 +61,39 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 			const q = subSearch.toLowerCase();
 			return users
 				.filter((u) => ids.has(u.id) && (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)))
-				.map((u) => ({
-					value: u.id,
-					label: u.name || "Unknown User",
-					image: u.image || "",
-				}));
+				.map((u) => ({ value: u.id, label: u.name || "Unknown User", image: u.image || "" }));
 		},
 	},
 	{
 		field: "label",
 		label: "Label",
 		icon: <IconTag className="w-4 h-4" />,
-		operators: ["equals", "not_equals", "in", "not_in", "is_empty", "is_not_empty"],
-		filterDefault: "in",
+		operators: ["any", "all", "none", "empty", "not_empty", "exact"],
+		filterDefault: "any",
 		multi: true,
 		empty: "No labels",
-		getOptions: (_tasks, labels, _users, subSearch) => {
+		getOptions: (_t, labels, _u, subSearch) => {
 			const q = subSearch.toLowerCase();
 			return labels
 				.filter((f) => f.name?.toLowerCase().includes(q))
-				.map((label) => ({
-					value: label.id,
-					label: label.name,
-					color: label.color || "#cccccc",
-				}));
+				.map((label) => ({ value: label.id, label: label.name, color: label.color || "#cccccc" }));
 		},
 	},
 	{
 		field: "creator",
 		label: "Creator",
 		icon: <IconUser className="w-4 h-4" />,
-		operators: ["equals", "not_equals", "in", "not_in", "is_empty", "is_not_empty"],
-		filterDefault: "equals",
-		getOptions: (_tasks, _labels, users, subSearch) => {
+		operators: ["any", "none", "empty", "not_empty"],
+		filterDefault: "any",
+		multi: true,
+		getOptions: (_t, _l, users, subSearch) => {
 			const q = subSearch.toLowerCase();
 			return users
 				.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
-				.map((u) => ({
-					value: u.id,
-					label: u.name || "Unknown User",
-					image: u.image || "",
-				}));
+				.map((u) => ({ value: u.id, label: u.name || "Unknown User", image: u.image || "" }));
 		},
 	},
+	// Dates
 	{
 		field: "created_at",
 		label: "Created",
@@ -114,11 +108,12 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		operators: ["before", "after", "between"],
 		filterDefault: "between",
 	},
+	// Text
 	{
 		field: "title",
 		label: "Title",
 		icon: <IconTextSize className="w-4 h-4" />,
-		operators: ["contains", "not_contains"],
+		operators: ["contains", "not_contains", "any", "none", "empty", "not_empty"],
 		filterDefault: "contains",
 		getOptions(tasks, _labels, _users, subSearch) {
 			const q = subSearch.toLowerCase();
@@ -128,10 +123,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 				.forEach((task) => {
 					if (task.title) uniqueTitle.add(task.title.toLowerCase());
 				});
-			return Array.from(uniqueTitle).map((title) => ({
-				value: title,
-				label: title,
-			}));
+			return Array.from(uniqueTitle).map((title) => ({ value: title, label: title }));
 		},
 	},
 ];
@@ -157,120 +149,108 @@ export function applyFilters(tasks: schema.TaskWithLabels[], filterState: Filter
 	});
 }
 
-function evaluateCondition(task: schema.TaskWithLabels, condition: FilterCondition): boolean {
-	const { field, operator, value } = condition;
+// --- Evaluation (new unified handlers) ---
 
+function parseDateInput(val: FilterValue): Date | null {
+	if (!val) return null;
+	if (typeof val === "string") return new Date(val);
+	if (Array.isArray(val)) return val.length > 0 ? new Date(val[0] as string) : null; // not expected but fallback
+	if (typeof val === "object" && "start" in val) return new Date(val.start);
+	return null;
+}
+// Handlers for each operator. All treat single raw values as length-1 arrays for uniformity.
+const operatorHandlers: Record<FilterOperator, (raw: unknown, fv: FilterValue) => boolean> = {
+	any: (raw, fv) => {
+		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
+		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
+		if (sel.length === 0) return true; // no selections -> no restriction
+		return sel.some((v) => rawArr.includes(v));
+	},
+	none: (raw, fv) => {
+		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
+		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
+		if (sel.length === 0) return true; // treat empty as no-op
+		return sel.every((v) => !rawArr.includes(v));
+	},
+	all: (raw, fv) => {
+		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
+		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
+		if (sel.length === 0) return true;
+		return sel.every((v) => rawArr.includes(v));
+	},
+	exact: (raw, fv) => {
+		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
+		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
+		if (sel.length === 0) return rawArr.length === 0; // empty exact -> only pass if field empty
+		if (rawArr.length !== sel.length) return false;
+		return sel.every((v) => rawArr.includes(v));
+	},
+	contains: (raw, fv) =>
+		String(raw || "")
+			.toLowerCase()
+			.includes(String(fv || "").toLowerCase()),
+	not_contains: (raw, fv) => !operatorHandlers.contains(raw, fv),
+	empty: (raw) => {
+		if (raw == null) return true;
+		if (Array.isArray(raw)) return raw.length === 0;
+		if (typeof raw === "string") return raw.trim() === "";
+		return false;
+	},
+	not_empty: (raw, fv) => !operatorHandlers.empty(raw, fv),
+	before: (raw, fv) => {
+		if (!raw || !fv) return false;
+		const rawDate = new Date(raw as string).getTime();
+		const cmpDate = parseDateInput(fv);
+		if (!cmpDate) return false;
+		return rawDate < cmpDate.getTime();
+	},
+	after: (raw, fv) => {
+		if (!raw || !fv) return false;
+		const rawDate = new Date(raw as string).getTime();
+		const cmpDate = parseDateInput(fv);
+		if (!cmpDate) return false;
+		return rawDate > cmpDate.getTime();
+	},
+	between: (raw, fv) => {
+		if (!raw || !fv) return false;
+		if (typeof fv !== "object" || fv === null) return false;
+		const { start, end } = fv as DateRangeValue;
+		if (!start || !end) return false;
+		const d = new Date(raw as string).getTime();
+		const s = new Date(start).getTime();
+		const e = new Date(end).getTime();
+		const min = Math.min(s, e);
+		const max = Math.max(s, e);
+		return d >= min && d <= max;
+	},
+};
+
+function extractFieldValue(task: schema.TaskWithLabels, field: string): unknown {
 	switch (field) {
 		case "status":
-			return evaluateStringField(task.status, operator, value);
-
+			return task.status || null;
 		case "priority":
-			return evaluateStringField(task.priority, operator, value);
-
-		case "assignee": {
-			const assigneeIds = task.assignees?.map((a) => a.id) || [];
-			return evaluateArrayField(assigneeIds, operator, value);
-		}
-
-		case "label": {
-			const labelIds = task.labels?.map((l) => l.id) || [];
-			return evaluateArrayField(labelIds, operator, value);
-		}
-
+			return task.priority || null;
+		case "assignee":
+			return (task.assignees || []).map((a) => a.id);
+		case "label":
+			return (task.labels || []).map((l) => l.id);
 		case "creator":
-			return evaluateStringField(task.createdBy?.id, operator, value);
-
+			return task.createdBy?.id || null;
 		case "created_at":
-			return evaluateDateField(task.createdAt, operator, value);
-
+			return task.createdAt;
 		case "updated_at":
-			return evaluateDateField(task.updatedAt, operator, value);
-
+			return task.updatedAt;
 		case "title":
-			return evaluateStringField(task.title, operator, value);
-
+			return task.title || "";
 		default:
-			return true;
+			return null;
 	}
 }
 
-function evaluateStringField(
-	fieldValue: string | null | undefined,
-	operator: FilterOperator,
-	filterValue: string | string[] | Date | null
-): boolean {
-	const val = fieldValue || "";
-	const filterVal = filterValue as string;
-	const filterVals = Array.isArray(filterValue) ? filterValue : [filterValue];
-
-	switch (operator) {
-		case "equals":
-			return val === filterVal;
-		case "not_equals":
-			return val !== filterVal;
-		case "contains":
-			return val.toLowerCase().includes(filterVal?.toLowerCase() || "");
-		case "not_contains":
-			return !val.toLowerCase().includes(filterVal?.toLowerCase() || "");
-		case "in":
-			return filterVals.includes(val);
-		case "not_in":
-			return !filterVals.includes(val);
-		case "is_empty":
-			return !val || val.trim() === "";
-		case "is_not_empty":
-			return !!(val && val.trim() !== "");
-		default:
-			return true;
-	}
-}
-
-function evaluateArrayField(
-	fieldArray: string[],
-	operator: FilterOperator,
-	filterValue: string | string[] | Date | null
-): boolean {
-	const filterVals = Array.isArray(filterValue) ? filterValue : filterValue ? [filterValue as string] : [];
-
-	switch (operator) {
-		case "equals":
-			return fieldArray.length === 1 && fieldArray[0] === filterValue;
-		case "not_equals":
-			return fieldArray.length !== 1 || fieldArray[0] !== filterValue;
-		case "in":
-			return filterVals.some((val) => fieldArray.includes(val));
-		case "not_in":
-			return !filterVals.some((val) => fieldArray.includes(val));
-		case "is_empty":
-			return fieldArray.length === 0;
-		case "is_not_empty":
-			return fieldArray.length > 0;
-		default:
-			return true;
-	}
-}
-
-function evaluateDateField(
-	fieldValue: Date | string | null | undefined,
-	operator: FilterOperator,
-	filterValue: string | string[] | Date | null
-): boolean {
-	if (!fieldValue) return false;
-
-	const fieldDate = fieldValue instanceof Date ? fieldValue : new Date(fieldValue);
-	const filterDate = filterValue instanceof Date ? filterValue : filterValue ? new Date(filterValue as string) : null;
-
-	if (!filterDate) return false;
-
-	switch (operator) {
-		case "before":
-			return fieldDate < filterDate;
-		case "after":
-			return fieldDate > filterDate;
-		case "equals":
-			return fieldDate.toDateString() === filterDate.toDateString();
-		// Add between logic here if needed
-		default:
-			return true;
-	}
+function evaluateCondition(task: schema.TaskWithLabels, condition: FilterCondition): boolean {
+	const raw = extractFieldValue(task, condition.field);
+	const handler = operatorHandlers[condition.operator];
+	if (!handler) return true;
+	return handler(raw, condition.value);
 }

@@ -1,17 +1,18 @@
 import type { schema } from "@repo/database";
 
+// Clean-slate operator set
 export type FilterOperator =
-	| "equals"
-	| "not_equals"
-	| "contains"
-	| "not_contains"
-	| "in"
-	| "not_in"
+	| "any" // overlap (selected ∩ field != ∅)
+	| "all" // selected ⊆ field
+	| "none" // disjoint
+	| "exact" // sets identical
+	| "contains" // text substring
+	| "not_contains" // text substring negation
 	| "before"
 	| "after"
 	| "between"
-	| "is_empty"
-	| "is_not_empty";
+	| "empty"
+	| "not_empty";
 
 export type FilterField =
 	| "status"
@@ -23,11 +24,18 @@ export type FilterField =
 	| "updated_at"
 	| "title";
 
+export interface DateRangeValue {
+	start: string;
+	end: string;
+}
+
+export type FilterValue = string | string[] | DateRangeValue | null;
+
 export interface FilterCondition {
 	id: string;
 	field: FilterField;
 	operator: FilterOperator;
-	value: string | string[] | Date | null;
+	value: FilterValue;
 	label?: string; // Display label for the filter
 }
 
@@ -55,10 +63,10 @@ export interface FilterFieldConfig {
 	field: FilterField;
 	label: string;
 	icon?: React.ReactNode;
-	operators: FilterOperator[];
-	filterDefault: FilterOperator;
-	multi?: boolean; // Whether multiple values can be managed inside a single condition (uses value as string[] for in/not_in)
-	empty?: string;
+	operators: FilterOperator[]; // Allowed operators
+	filterDefault: FilterOperator; // Default operator when user adds a condition
+	multi?: boolean; // If true, value may become string[] for (any, all, none, exact)
+	empty?: string; // Human label for empty option
 	getOptions?: (
 		tasks: schema.TaskWithLabels[],
 		labels: schema.labelType[],

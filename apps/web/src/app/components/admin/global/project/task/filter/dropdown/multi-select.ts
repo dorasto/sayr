@@ -6,12 +6,12 @@ export const getFieldConfig = (field: FilterField): FilterFieldConfig | undefine
 
 export const isMultiCondition = (c: FilterCondition): boolean => {
 	const cfg = getFieldConfig(c.field);
-	return !!cfg?.multi && (c.operator === "in" || c.operator === "not_in");
+	return !!cfg?.multi && ["any", "all", "none", "exact"].includes(c.operator);
 };
 
 export function mergeOrAppendCondition(filterState: FilterState, condition: FilterCondition): FilterState {
 	const cfg = getFieldConfig(condition.field);
-	if (cfg?.multi && (condition.operator === "in" || condition.operator === "not_in")) {
+	if (cfg?.multi && ["any", "all", "none", "exact"].includes(condition.operator)) {
 		let merged = false;
 		const groups = filterState.groups.map((g, gi) => {
 			if (gi !== 0) return g;
@@ -84,7 +84,9 @@ export function updateConditionOperator(
 			...g,
 			conditions: g.conditions.map((c) => {
 				if (c.id !== filterId) return c;
-				if (!(newOperator === "in" || newOperator === "not_in") && Array.isArray(c.value)) {
+				const newIsMulti = ["any", "all", "none", "exact"].includes(newOperator);
+				const currentIsMulti = isMultiCondition(c);
+				if (!newIsMulti && currentIsMulti && Array.isArray(c.value)) {
 					return { ...c, operator: newOperator, value: c.value[0] ?? "" };
 				}
 				return { ...c, operator: newOperator };

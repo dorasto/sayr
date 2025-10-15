@@ -2,28 +2,28 @@ import type { FilterOperator } from "../types";
 
 export const getOperatorLabel = (operator: FilterOperator): string => {
 	switch (operator) {
-		case "equals":
-			return "is";
-		case "not_equals":
-			return "not";
-		case "in":
-			return "includes";
-		case "not_in":
-			return "excludes";
+		case "any":
+			return "Includes";
+		case "all":
+			return "Is";
+		case "none":
+			return "Doesn't have";
+		case "exact":
+			return "Exactly";
 		case "contains":
-			return "has";
+			return "Contains";
 		case "not_contains":
-			return "lacks";
+			return "Doesn't contain";
 		case "before":
-			return "before";
+			return "Before";
 		case "after":
-			return "after";
+			return "After";
 		case "between":
-			return "between";
-		case "is_empty":
-			return "empty";
-		case "is_not_empty":
-			return "not empty";
+			return "Between";
+		case "empty":
+			return "Is empty";
+		case "not_empty":
+			return "Is not empty";
 		default:
 			return operator;
 	}
