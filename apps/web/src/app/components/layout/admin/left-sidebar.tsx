@@ -203,7 +203,7 @@ export function LeftSidebar({ isOpen, ...props }: Props & React.ComponentProps<t
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					)}
-					{account.role === "admin" && <StatusBar layout="sidebar" sidebarCollapsed={!sidebarIsOpen} />}
+
 					<UserDropdown />
 				</SidebarMenu>
 			</SidebarFooter>
