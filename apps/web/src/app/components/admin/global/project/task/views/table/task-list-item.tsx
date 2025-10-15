@@ -21,12 +21,13 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
 import { IconCircleFilled, IconUserOff } from "@tabler/icons-react";
+import { nanoid } from "nanoid";
 import { useRef, useState } from "react";
+import { priorityConfig, statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
 import { RenderLabel } from "../../label";
 import GlobalTaskPriority from "../../priority";
 import GlobalTaskStatus from "../../status";
-import { priorityConfig, statusConfig } from "../../../shared/task-config";
 
 interface TaskListItemProps {
 	task: schema.TaskWithLabels;
@@ -269,7 +270,7 @@ export function TaskListItem({
 										{task.labels.slice(0, 3).map((label) => (
 											<RenderLabel
 												label={label}
-												key={label.id}
+												key={label.id + nanoid(5)}
 												onClick={() => {
 													// e.stopPropagation();
 													// Add assignee change logic here
@@ -289,7 +290,7 @@ export function TaskListItem({
 												<div className="flex -space-x-1.5">
 													{task.labels.slice(3).map((label) => (
 														<IconCircleFilled
-															key={label.id}
+															key={label.id + nanoid(5)}
 															className="h-3 w-3"
 															style={{
 																color: label.color || "var(--foreground)",
@@ -334,7 +335,7 @@ export function TaskListItem({
 													<div className="flex -space-x-2">
 														{task.assignees.slice(0, 3).map((assignee, index) => (
 															<Avatar
-																key={assignee.id}
+																key={assignee.id + nanoid(5)}
 																className={cn("rounded-full h-5 w-5", index > 0 && "relative")}
 																style={{ zIndex: task.assignees.length - index }}
 															>
