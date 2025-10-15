@@ -376,7 +376,8 @@ function ConsolidatedTimelineLabels({
 					<>
 						{" added "}
 						{addedLabels.map((label, index) => (
-							<Fragment key={label.id}>
+							// biome-ignore lint/suspicious/noArrayIndexKey: <>
+							<Fragment key={index}>
 								<RenderLabel label={label} className="inline-flex" />
 								{index < addedLabels.length - 1 && " "}
 							</Fragment>
@@ -388,7 +389,8 @@ function ConsolidatedTimelineLabels({
 					<>
 						{" removed "}
 						{removedLabels.map((label, index) => (
-							<Fragment key={label.id}>
+							// biome-ignore lint/suspicious/noArrayIndexKey: <>
+							<Fragment key={index}>
 								<RenderLabel label={label} className="inline-flex" />
 								{index < removedLabels.length - 1 && " "}
 							</Fragment>
@@ -442,7 +444,8 @@ function ConsolidatedTimelineAssignees({
 					<>
 						{" assigned "}
 						{addedAssignees.map((user, index) => (
-							<Fragment key={user.id}>
+							// biome-ignore lint/suspicious/noArrayIndexKey: <>
+							<Fragment key={index}>
 								<AvatarWithName name={user.name || "Unknown"} image={user.image || ""} />
 								{index < addedAssignees.length - 1 && " "}
 							</Fragment>
@@ -454,7 +457,8 @@ function ConsolidatedTimelineAssignees({
 					<>
 						{" removed "}
 						{removedAssignees.map((user, index) => (
-							<Fragment key={user.id}>
+							// biome-ignore lint/suspicious/noArrayIndexKey: <>
+							<Fragment key={index}>
 								<AvatarWithName name={user.name || "Unknown"} image={user.image || ""} />
 								{index < removedAssignees.length - 1 && " "}
 							</Fragment>
