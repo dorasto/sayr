@@ -8,7 +8,7 @@ import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import ListProjectTasks from "./list";
-import { TaskFilterDropdown } from "./task/filter/task-filter-dropdown";
+import { TaskFilterDropdown } from "./task/filter/dropdown/TaskFilterDropdown";
 import { TaskViewDropdown } from "./task/grouping/task-view-dropdown";
 
 export default function OrganizationProjectHomePage() {

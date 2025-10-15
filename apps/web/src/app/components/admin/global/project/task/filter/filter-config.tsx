@@ -25,6 +25,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		icon: statusConfig.todo.icon("w-4 h-4"), // Use a representative status icon
 		operators: ["equals", "not_equals", "in", "not_in"],
 		filterDefault: "equals",
+		multi: true,
 		getOptions: (_tasks, _labels, _users, subSearch) => {
 			return STATUS_OPTIONS.filter((option) => option.label.toLowerCase().includes(subSearch?.toLowerCase() || ""));
 		},
@@ -35,6 +36,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		icon: priorityConfig.medium.icon("w-4 h-4"), // Use a representative priority icon
 		operators: ["equals", "not_equals", "in", "not_in"],
 		filterDefault: "equals",
+		multi: true,
 		getOptions: (_tasks, _labels, _users, subSearch) => {
 			return PRIORITY_OPTIONS.filter((option) =>
 				option.label.toLowerCase().includes(subSearch?.toLowerCase() || "")
@@ -45,8 +47,9 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		field: "assignee",
 		label: "Assignee",
 		icon: <IconUser className="w-4 h-4" />,
-		operators: ["equals", "not_equals", "in", "not_in", "is_empty", "is_not_empty"],
-		filterDefault: "equals",
+		operators: ["in", "not_in", "is_empty", "is_not_empty"],
+		filterDefault: "in",
+		multi: true,
 		empty: "Unassigned",
 		getOptions: (tasks, _labels, users, subSearch) => {
 			const ids = new Set<string>();
@@ -67,6 +70,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		icon: <IconTag className="w-4 h-4" />,
 		operators: ["equals", "not_equals", "in", "not_in", "is_empty", "is_not_empty"],
 		filterDefault: "in",
+		multi: true,
 		empty: "No labels",
 		getOptions: (_tasks, labels, _users, subSearch) => {
 			const q = subSearch.toLowerCase();

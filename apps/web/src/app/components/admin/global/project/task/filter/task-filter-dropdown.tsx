@@ -19,7 +19,7 @@ import { Input } from "@repo/ui/components/input";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconFilter2, IconSearch, IconX } from "@tabler/icons-react";
+import { IconCheck, IconFilter2, IconSearch, IconX } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
@@ -213,15 +213,15 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 			case "equals":
 				return "is";
 			case "not_equals":
-				return "is not";
+				return "not";
 			case "in":
-				return "is any of";
+				return "any of";
 			case "not_in":
-				return "is none of";
+				return "none of";
 			case "contains":
-				return "contains";
+				return "has";
 			case "not_contains":
-				return "does not contain";
+				return "lacks";
 			case "before":
 				return "before";
 			case "after":
@@ -229,22 +229,56 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 			case "between":
 				return "between";
 			case "is_empty":
-				return "is empty";
+				return "empty";
 			case "is_not_empty":
-				return "is not empty";
+				return "not empty";
 			default:
 				return operator;
 		}
 	};
 
-	// Add filter function
+	// Utility helpers for multi-select
+	const getFieldConfig = (field: FilterField) => FILTER_FIELD_CONFIGS.find((c) => c.field === field);
+	const isMultiCondition = (c: FilterCondition) => {
+		const cfg = getFieldConfig(c.field);
+		return !!cfg?.multi && (c.operator === "in" || c.operator === "not_in");
+	};
+
+	// Add / merge filter function (supports multi conditions)
 	const addFilter = (condition: FilterCondition) => {
+		const cfg = getFieldConfig(condition.field);
+		// Try to merge into existing condition if multi
+		if (cfg?.multi && (condition.operator === "in" || condition.operator === "not_in")) {
+			let merged = false;
+			const newGroups = filterState.groups.map((g, gi) => {
+				if (gi !== 0) return g; // only merge into first group for simplicity
+				return {
+					...g,
+					conditions: g.conditions.map((c) => {
+						if (c.field === condition.field && c.operator === condition.operator) {
+							merged = true;
+							const existingValues = Array.isArray(c.value) ? c.value : c.value ? [c.value as string] : [];
+							if (!existingValues.includes(condition.value as string)) {
+								return { ...c, value: [...existingValues, condition.value as string] };
+							}
+							return c; // no change if duplicate
+						}
+						return c;
+					}),
+				};
+			});
+			if (merged) {
+				setFilterState({ ...filterState, groups: newGroups });
+				return;
+			}
+		}
+
+		// Otherwise add new condition as before
 		const newGroup: FilterGroup = {
 			id: `group-${Date.now()}`,
 			conditions: [condition],
 			operator: "AND",
 		};
-
 		const newFilterState: FilterState = {
 			...filterState,
 			groups:
@@ -254,7 +288,6 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 						)
 					: [newGroup],
 		};
-
 		setFilterState(newFilterState);
 	};
 
@@ -279,12 +312,44 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 			...filterState,
 			groups: filterState.groups.map((group) => ({
 				...group,
-				conditions: group.conditions.map((condition) =>
-					condition.id === filterId ? { ...condition, operator: newOperator } : condition
-				),
+				conditions: group.conditions.map((condition) => {
+					if (condition.id !== filterId) return condition;
+					// If switching away from multi operator collapse array to first value
+					if (!(newOperator === "in" || newOperator === "not_in") && Array.isArray(condition.value)) {
+						return { ...condition, operator: newOperator, value: condition.value[0] ?? "" };
+					}
+					return { ...condition, operator: newOperator };
+				}),
 			})),
 		};
+		setFilterState(newFilterState);
+	};
 
+	// Toggle a value inside an existing multi condition
+	const toggleMultiValue = (conditionId: string, value: string) => {
+		const newFilterState: FilterState = {
+			...filterState,
+			groups: filterState.groups
+				.map((group) => ({
+					...group,
+					conditions: group.conditions.map((c) => {
+						if (c.id !== conditionId) return c;
+						if (!isMultiCondition(c)) return c;
+						const current = Array.isArray(c.value) ? c.value : c.value ? [c.value as string] : [];
+						const exists = current.includes(value);
+						const next = exists ? current.filter((v) => v !== value) : [...current, value];
+						if (next.length === 0) {
+							return { ...c, value: [] };
+						}
+						return { ...c, value: next };
+					}),
+				}))
+				.map((g) => ({
+					...g,
+					conditions: g.conditions.filter((c) => !(Array.isArray(c.value) && c.value.length === 0)),
+				}))
+				.filter((g) => g.conditions.length > 0),
+		};
 		setFilterState(newFilterState);
 	};
 
@@ -314,7 +379,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 		return `${window.location.origin}${pathname}${serialized ? `?filters=${serialized}` : ""}`;
 	}, [filterState, pathname]);
 
-	// Helper function to add a simple filter
+	// Helper function to add a simple filter (merges for multi fields)
 	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
 		const condition: FilterCondition = {
 			id: `${field}-${operator}-${value}-${Date.now()}`,
@@ -336,57 +401,183 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 		<div className="flex items-center gap-2">
 			<div className="flex items-center gap-2 flex-wrap">
 				{/* Filter Tags */}
-				{filterState.groups.map((group) =>
-					group.conditions.map((condition) => (
-						<Badge
-							key={condition.id}
-							variant="outline"
-							className="flex items-center gap-1 bg-accent border-transparent rounded group h-6 relative pe-6"
-						>
-							<span className="text-xs flex items-center gap-1">
-								<span className="">{FILTER_FIELD_CONFIGS.find((c) => c.field === condition.field)?.label}</span>
+				{filterState.groups
+					.flatMap((g) => g.conditions)
+					.map((condition) => {
+						const cfg = getFieldConfig(condition.field);
+						const multi = isMultiCondition(condition);
+						let multiDisplay: string | null = null;
+						let displayNode: React.ReactNode = null;
+						if (multi) {
+							const rawValues = Array.isArray(condition.value)
+								? condition.value
+								: condition.value
+									? [condition.value as string]
+									: [];
+							if (rawValues.length <= 2) {
+								multiDisplay = rawValues
+									.map((v) => {
+										if (condition.field === "label") {
+											const l = labels.find((x) => x.id === v);
+											return l?.name || v;
+										}
+										if (condition.field === "status")
+											return statusConfig[v as keyof typeof statusConfig]?.label || v;
+										if (condition.field === "priority")
+											return priorityConfig[v as keyof typeof priorityConfig]?.label || v;
+										if (condition.field === "assignee") {
+											const u = availableUsers.find((u) => u.id === v);
+											return u?.name || u?.email || v;
+										}
+										return v;
+									})
+									.join(", ");
+							} else {
+								multiDisplay = `${rawValues.length} selected`;
+							}
+							if (condition.field === "label") {
+								const labelObjs = rawValues
+									.map((id) => labels.find((l) => l.id === id))
+									.filter((l): l is (typeof labels)[number] => !!l);
 
-								{/* Clickable Operator */}
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-4 px-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
+								if (labelObjs.length === 0) {
+									displayNode = null;
+								} else if (labelObjs.length <= 2) {
+									displayNode = (
+										<span
+											className="flex items-center gap-1 truncate"
+											title={labelObjs.map((l) => l.name).join(", ")}
 										>
-											{getOperatorLabel(condition.operator)}
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent className="w-40">
-										{getAvailableOperators(condition.field).map((operator) => (
-											<DropdownMenuItem
-												key={operator}
-												className={`text-xs ${operator === condition.operator ? "bg-accent" : ""}`}
-												onClick={() => updateFilterOperator(condition.id, operator)}
-											>
-												{getOperatorLabel(operator)}
-											</DropdownMenuItem>
-										))}
-									</DropdownMenuContent>
-								</DropdownMenu>
+											{labelObjs.map((l) => (
+												<span key={l.id} className="flex items-center gap-1">
+													<span
+														className="w-2 h-2 rounded-full"
+														style={{ backgroundColor: l.color || "#ccc" }}
+													/>
+													<span className="truncate max-w-[60px]">{l.name}</span>
+												</span>
+											))}
+										</span>
+									);
+								} else {
+									// >2 labels: show up to 5 colored dots + count
+									const maxDots = 5;
+									const shown = labelObjs.slice(0, maxDots);
+									displayNode = (
+										<span
+											className="flex items-center gap-1 truncate"
+											title={labelObjs.map((l) => l.name).join(", ")}
+										>
+											{shown.map((l) => (
+												<span
+													key={l.id}
+													className="w-2.5 h-2.5 rounded-full border border-border/50"
+													style={{ backgroundColor: l.color || "#ccc" }}
+												/>
+											))}
+											{labelObjs.length > maxDots && (
+												<span className="text-[10px] leading-none px-1 rounded bg-muted text-muted-foreground">
+													+{labelObjs.length - maxDots}
+												</span>
+											)}
+										</span>
+									);
+								}
+							}
+						}
 
-								{condition.value &&
-									condition.operator !== "is_empty" &&
-									condition.operator !== "is_not_empty" && (
-										<span className="flex items-center gap-1 truncate">{renderFilterValue(condition)}</span>
-									)}
-							</span>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => removeFilter(condition.id)}
-								className="absolute inset-y-0 right-0.5 my-auto h-4 w-4 p-0 hover:text-destructive-foreground transition-all"
+						return (
+							<Badge
+								key={condition.id}
+								variant="outline"
+								className="flex items-center gap-1 bg-accent border-transparent rounded group h-6 relative pe-6"
 							>
-								<IconX className="!w-3 !h-3" />
-							</Button>
-						</Badge>
-					))
-				)}
+								<span className="text-xs flex items-center gap-1">
+									<span className="">{cfg?.label}</span>
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-4 px-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
+											>
+												{getOperatorLabel(condition.operator)}
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent className="w-40">
+											{getAvailableOperators(condition.field).map((operator) => (
+												<DropdownMenuItem
+													key={operator}
+													className={`text-xs ${operator === condition.operator ? "bg-accent" : ""}`}
+													onClick={() => updateFilterOperator(condition.id, operator)}
+												>
+													{getOperatorLabel(operator)}
+												</DropdownMenuItem>
+											))}
+										</DropdownMenuContent>
+									</DropdownMenu>
+
+									{multi && (
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button
+													variant="ghost"
+													size="sm"
+													className="h-4 px-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 max-w-[120px] truncate"
+												>
+													{displayNode || multiDisplay}
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent className="w-56 max-h-80 overflow-y-auto">
+												{getAvailableOptions(condition.field).map((item) => {
+													const selected = Array.isArray(condition.value)
+														? condition.value.includes(item.value)
+														: condition.value === item.value;
+													return (
+														<DropdownMenuItem
+															key={item.value}
+															className="flex items-center gap-2 text-xs cursor-pointer"
+															onClick={(e) => {
+																e.preventDefault();
+																toggleMultiValue(condition.id, item.value);
+															}}
+														>
+															{item.icon && <div className="w-3 h-3">{item.icon}</div>}
+															{item.color && !item.icon && (
+																<div
+																	className="w-3 h-3 rounded-full shrink-0"
+																	style={{ backgroundColor: item.color || "#gray" }}
+																/>
+															)}
+															<span className="flex-1 truncate">{item.label}</span>
+															{selected && <IconCheck className="w-3 h-3" />}
+														</DropdownMenuItem>
+													);
+												})}
+											</DropdownMenuContent>
+										</DropdownMenu>
+									)}
+
+									{!multi &&
+										condition.value &&
+										condition.operator !== "is_empty" &&
+										condition.operator !== "is_not_empty" && (
+											<span className="flex items-center gap-1 truncate">
+												{renderFilterValue(condition)}
+											</span>
+										)}
+								</span>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => removeFilter(condition.id)}
+									className="absolute inset-y-0 right-0.5 my-auto h-4 w-4 p-0 hover:text-destructive-foreground transition-all"
+								>
+									<IconX className="!w-3 !h-3" />
+								</Button>
+							</Badge>
+						);
+					})}
 			</div>
 
 			{/* Filter Dropdown */}

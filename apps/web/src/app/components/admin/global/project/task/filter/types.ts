@@ -57,6 +57,7 @@ export interface FilterFieldConfig {
 	icon?: React.ReactNode;
 	operators: FilterOperator[];
 	filterDefault: FilterOperator;
+	multi?: boolean; // Whether multiple values can be managed inside a single condition (uses value as string[] for in/not_in)
 	empty?: string;
 	getOptions?: (
 		tasks: schema.TaskWithLabels[],
