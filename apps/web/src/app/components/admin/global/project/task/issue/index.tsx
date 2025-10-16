@@ -57,7 +57,7 @@ export default function OrganizationProjectTaskHomePage() {
 			setSelectedTask={(task) => {
 				if (task) setTask(task);
 			}}
-			onOpenChange={(open: boolean): void => {
+			onOpenChange={(): void => {
 				throw new Error("Function not implemented.");
 			}}
 			organization={organization}

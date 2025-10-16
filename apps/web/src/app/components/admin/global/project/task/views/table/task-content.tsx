@@ -1,28 +1,18 @@
 "use client";
 
-import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
-import { Separator } from "@repo/ui/components/separator";
 import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	IconArrowsDiagonal2,
-	IconArrowsDiagonalMinimize2,
-	IconCode,
-	IconCopy,
-	IconLink,
-	IconX,
-} from "@tabler/icons-react";
+import { IconArrowsDiagonal2, IconArrowsDiagonalMinimize2, IconCode, IconLink, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "../../../shared/task-config";
@@ -57,7 +47,6 @@ interface TaskContentSideContentProps {
 	availableUsers?: schema.userType[];
 	wsClientId: string;
 	runWithToast: typeof useToastAction extends () => { runWithToast: infer T } ? T : never;
-	fullPage?: boolean;
 }
 
 export function TaskContentSideContent({
@@ -69,7 +58,6 @@ export function TaskContentSideContent({
 	availableUsers = [],
 	wsClientId,
 	runWithToast,
-	fullPage = false,
 }: TaskContentSideContentProps) {
 	return (
 		<div className="flex flex-col gap-3">
