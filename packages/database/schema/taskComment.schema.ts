@@ -27,7 +27,7 @@ export const taskComment = table("task_comment", {
 	}),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
-	content: v.jsonb("content").default([]),
+	blockNote: v.jsonb("block_note"),
 	createdBy: v.text("created_by").references(() => user.id),
 });
 

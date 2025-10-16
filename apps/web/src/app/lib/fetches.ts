@@ -417,6 +417,35 @@ export async function updateAssigneesToTaskAction(
 	return result as { success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string };
 }
 
+export async function CreateTaskCommentAction(
+	organizationId: string,
+	projectId: string,
+	taskId: string,
+	blockNote: PartialBlock[] | undefined,
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		wsClientId,
+		project_id: projectId,
+		task_id: taskId,
+		blocknote: blockNote,
+	};
+
+	const result = await fetch(
+		`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/create-comment`,
+		{
+			method: "POST",
+			body: JSON.stringify(payload),
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include", // 👈 This ensures cookies are sent
+		}
+	).then(async (e) => await e.json());
+	return result as { success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string };
+}
+
 /**
  * Calls the `/admin/label/create` API to create a new label in an organization.
  *

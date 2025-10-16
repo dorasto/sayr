@@ -1,4 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
+import { taskComment } from "../../schema/taskComment.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db, schema } from "..";
 
@@ -294,5 +295,21 @@ export async function addLogEventTask(
 		fromValue: fromValue ? JSON.stringify(fromValue) : null,
 		toValue: toValue ? JSON.stringify(toValue) : null,
 		blockNote: blockNote ?? null,
+	});
+}
+
+export async function createComment(
+	org_id: string,
+	project_id: string,
+	task_id: string,
+	blockNote: unknown,
+	createdBy?: string
+) {
+	return await db.insert(taskComment).values({
+		organizationId: org_id,
+		projectId: project_id,
+		taskId: task_id,
+		blockNote: blockNote,
+		createdBy: createdBy,
 	});
 }

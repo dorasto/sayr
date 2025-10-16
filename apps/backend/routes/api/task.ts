@@ -1,6 +1,7 @@
 import {
 	addLabelToTask,
 	addLogEventTask,
+	createComment,
 	createTask,
 	db,
 	getTaskById,
@@ -319,4 +320,24 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 				: String(err);
 		return c.json({ success: false, error: errorMessage }, 500);
 	}
+});
+
+apiRouteAdminProjectTask.post("create-comment", async (c) => {
+	const { org_id, wsClientId, project_id, task_id, blocknote } = await c.req.json();
+	const session = c.get("session");
+
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const key = `${org_id}:${project_id}:${task_id}`;
+	console.log("key:", key);
+	await createComment(org_id, project_id, task_id, blocknote, session?.userId);
+	const taskWithData = await getTaskById(org_id, project_id, task_id);
+	const found = findClientByWsId(wsClientId);
+	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
+	broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
+	broadcastPublic(org_id, { ...data });
+
+	return c.json({ success: true, data: taskWithData });
 });

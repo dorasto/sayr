@@ -1,5 +1,6 @@
 "use client";
 
+import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
@@ -21,11 +22,14 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
+import { TaskCommentsContent } from "../../comments";
 import GlobalTaskLabels from "../../label";
+import { TaskNewCommentContent } from "../../new-comment";
 import GlobalTaskPriority from "../../priority";
 import GlobalTaskStatus from "../../status";
 import GlobalTimeline from "../../timeline/root";
@@ -213,6 +217,8 @@ export function TaskContent({
 					</Label>
 					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
+					<TaskCommentsContent task={task} />
+					<TaskNewCommentContent task={task} tasks={tasks} setSelectedTask={setSelectedTask} setTasks={setTasks} />
 				</div>
 				<div className="w-[18rem] shrink-0 overflow-y-auto p-3 ml-0 rounded-r-2xl rounded bg-card">
 					<div className="flex items-center gap-2 shrink-0 w-full">

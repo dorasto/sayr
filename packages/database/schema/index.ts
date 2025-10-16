@@ -21,10 +21,12 @@ export interface OrganizationWithMembers extends organizationType {
 	projects: projectType[];
 }
 export type TaskWithLabels = taskType & {
-	comments: taskCommentType[];
+	comments: (taskCommentType & {
+		createdBy?: { id: string; name: string; image: string | null } | null;
+	})[];
 	labels: labelType[];
 	assignees: { id: string; name: string; image: string | null }[];
-	createdBy?: { id: string; name: string; image: string | null } | null | undefined;
+	createdBy?: { id: string; name: string; image: string | null } | null;
 	timeline: taskTimelineWithActor[];
 };
 

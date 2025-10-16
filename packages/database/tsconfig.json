@@ -2,7 +2,6 @@
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
 		"esModuleInterop": true,
-		"baseUrl": ".",
 		"paths": {
 			"@repo/database/*": ["./src/*"]
 		}
