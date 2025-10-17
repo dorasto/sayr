@@ -133,11 +133,6 @@ export async function getTaskByShortId(
 			timeline: {
 				with: { actor: { columns: { id: true, name: true, image: true } } },
 			},
-			comments: {
-				with: {
-					createdBy: { columns: { id: true, name: true, image: true } },
-				},
-			},
 		},
 	});
 	if (!task) return null;
@@ -312,4 +307,70 @@ export async function createComment(
 		blockNote: blockNote,
 		createdBy: createdBy,
 	});
+}
+
+/**
+ * Fetches paginated comments for a given task.
+ *
+ * Performs two queries:
+ * 1. Retrieves paginated comments for the specified task
+ *    (including basic creator info).
+ * 2. Counts the total number of comments for pagination metadata.
+ *
+ * This does **not** fetch task metadata like title or ID.
+ *
+ * @param orgId - The organization ID the task belongs to.
+ * @param projectId - The project ID the task belongs to.
+ * @param taskId - The unique task ID.
+ * @param options - Pagination settings (`offset`, `limit`).
+ * @returns An object containing comments and total count, or `null` if no comments exist.
+ *
+ * @example
+ * ```ts
+ * import { getTaskComments } from "@/db/tasks";
+ *
+ * const result = await getTaskComments(
+ *   "org_123",
+ *   "proj_456",
+ *   "task_789",
+ *   { offset: 0, limit: 5 }
+ * );
+ *
+ * if (result) {
+ *   console.log(`Showing ${result.comments.length} of ${result.totalComments} comments`);
+ *   result.comments.forEach(c => {
+ *     console.log(`${c.createdBy.name}: ${c.content}`);
+ *   });
+ * } else {
+ *   console.log("No comments found");
+ * }
+ * ```
+ */
+export async function getTaskComments(
+	orgId: string,
+	projectId: string,
+	taskId: string,
+	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {}
+) {
+	// Step 1: Paginated comments
+	const comments = await db.query.taskComment.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.taskId, taskId)),
+		with: {
+			createdBy: { columns: { id: true, name: true, image: true } },
+		},
+		orderBy: (c, { desc }) => [desc(c.createdAt)],
+		limit,
+		offset,
+	});
+
+	// Step 2: Count total comments (for pagination UI)
+	const totalCommentsResult = await db.query.taskComment.findMany({
+		where: (c) => and(eq(c.organizationId, orgId), eq(c.projectId, projectId), eq(c.taskId, taskId)),
+		columns: { id: true },
+	});
+	const totalComments = totalCommentsResult.length;
+
+	if (comments.length === 0) return null;
+
+	return { comments, totalComments };
 }

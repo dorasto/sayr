@@ -183,6 +183,12 @@ export type WSMessage =
 			data: schema.TaskWithLabels;
 	  })
 	| (BaseMessage & {
+			type: "UPDATE_TASK_COMMENTS";
+			data: {
+				id: string;
+			};
+	  })
+	| (BaseMessage & {
 			type: "CREATE_LABEL";
 			data: schema.labelType;
 	  })

@@ -167,6 +167,7 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 					availableUsers={availableUsers}
 					organization={organization}
 					project={project}
+					ws={ws}
 				/>
 			)}
 		</div>

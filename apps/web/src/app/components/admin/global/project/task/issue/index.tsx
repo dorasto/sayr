@@ -64,6 +64,7 @@ export default function OrganizationProjectTaskHomePage() {
 			project={project}
 			availableUsers={organization.members.map((member) => member.user)}
 			isDialog={false}
+			ws={ws}
 		/>
 	);
 }

@@ -19,7 +19,6 @@ import { statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
 import { TaskCommentsContent } from "../../comments";
 import GlobalTaskLabels from "../../label";
-import { TaskNewCommentContent } from "../../new-comment";
 import GlobalTaskPriority from "../../priority";
 import GlobalTaskStatus from "../../status";
 import GlobalTimeline from "../../timeline/root";
@@ -36,6 +35,7 @@ interface TaskContentProps {
 	availableUsers?: schema.userType[];
 	organization: schema.OrganizationWithMembers;
 	project: schema.projectType;
+	ws: WebSocket | null;
 }
 
 interface TaskContentSideContentProps {
@@ -188,6 +188,7 @@ export function TaskContent({
 	isDialog = true,
 	organization,
 	project,
+	ws,
 }: TaskContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const status = statusConfig[task.status as keyof typeof statusConfig];
@@ -205,8 +206,7 @@ export function TaskContent({
 					</Label>
 					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
-					<TaskCommentsContent task={task} />
-					<TaskNewCommentContent task={task} tasks={tasks} setSelectedTask={setSelectedTask} setTasks={setTasks} />
+					<TaskCommentsContent org_id={organization.id} project_id={project.id} task={task} ws={ws} />
 				</div>
 				<div className="w-[18rem] shrink-0 overflow-y-auto p-3 ml-0 rounded-r-2xl rounded bg-card">
 					<div className="flex items-center gap-2 shrink-0 w-full">
@@ -282,6 +282,7 @@ export function TaskContent({
 				<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 
 				<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
+				<TaskCommentsContent org_id={organization.id} project_id={project.id} task={task} ws={ws} />
 			</SplitDialogContent>
 			<SplitDialogSide className="p-2">
 				<TaskContentSideContent

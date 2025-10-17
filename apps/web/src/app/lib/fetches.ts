@@ -423,7 +423,7 @@ export async function CreateTaskCommentAction(
 	taskId: string,
 	blockNote: PartialBlock[] | undefined,
 	wsClientId: string
-): Promise<{ success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string }> {
+): Promise<{ success: boolean; data: { id: string }; skipped: boolean; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
@@ -443,7 +443,7 @@ export async function CreateTaskCommentAction(
 			credentials: "include", // 👈 This ensures cookies are sent
 		}
 	).then(async (e) => await e.json());
-	return result as { success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string };
+	return result as { success: boolean; data: { id: string }; skipped: boolean; error?: string };
 }
 
 /**

@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <allow any> */
-import { type UseQueryResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type UseQueryResult, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 export interface UseStateManagementResult<T> {
 	value: T;
 	setValue: (newValue: T) => void;
@@ -227,4 +227,160 @@ export function useStateManagementFetch<TypeFetch, TypeMutate = any>({
 	}
 
 	return result;
+}
+
+/**
+ * React Query powered infinite‑pagination state management hook.
+ *
+ * Mirrors `useStateManagementFetch` structure, adding full pagination support.
+ *
+ * Supports cursor‑ or page‑based pagination, plus optional mutation.
+ *
+ * @example
+ * ```tsx
+ * type Comment = { id: string; content: string };
+ *
+ * const {
+ *   value,
+ *   fetchNextPage,
+ *   hasNextPage,
+ *   isFetchingNextPage,
+ * } = useStateManagementInfiniteFetch<Comment[], Partial<Comment>>({
+ *   key: ["comments", taskId],
+ *   fetch: {
+ *     url: `/api/comments?task_id=${taskId}`,
+ *     // Your API can return { items: Comment[], nextCursor?: string }
+ *     custom: async (url, cursor) => {
+ *       const fullUrl = cursor ? `${url}&cursor=${cursor}` : url;
+ *       const res = await fetch(fullUrl);
+ *       if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
+ *       return res.json();
+ *     },
+ *     getNextPageParam: (lastPage) => lastPage?.nextCursor,
+ *   },
+ *   mutate: { url: "/api/comments" },
+ *   staleTime: 1000 * 30,
+ * });
+ *
+ * if (value.isLoading) return <Spinner />;
+ *
+ * return (
+ *   <>
+ *     {value.data?.flatMap((page) => page.items).map((c) => (
+ *       <div key={c.id}>{c.content}</div>
+ *     ))}
+ *     {hasNextPage && (
+ *       <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+ *         {isFetchingNextPage ? "Loading..." : "Load more"}
+ *       </button>
+ *     )}
+ *   </>
+ * );
+ * ```
+ */
+export function useStateManagementInfiniteFetch<TypePage, TypeMutate = any>({
+	key,
+	fetch,
+	mutate,
+	staleTime,
+	gcTime,
+	retry,
+	enabled,
+}: {
+	key: (string | number)[];
+	fetch: {
+		url: string;
+		custom?: (url: string, pageParam?: any) => Promise<TypePage>;
+		getNextPageParam?: (lastPage: TypePage, allPages: TypePage[]) => any;
+	};
+	mutate?: {
+		url?: string;
+		custom?: (url: string, newValue: TypeMutate) => Promise<any>;
+		options?: {
+			onSuccess?: (data: any, variables: TypeMutate, context: any) => void;
+			onError?: (error: any, variables: TypeMutate, context: any) => void;
+		};
+	};
+	staleTime?: number;
+	gcTime?: number;
+	retry?: boolean | number;
+	enabled?: boolean;
+}) {
+	const queryClient = useQueryClient();
+
+	// --- Infinite Query (paging/cursor-based) ---
+	const fetchingData = useInfiniteQuery<TypePage, Error>({
+		queryKey: key,
+		queryFn: async ({ pageParam }) => {
+			if (fetch.custom) {
+				return fetch.custom(fetch.url, pageParam);
+			}
+
+			const urlWithParam = pageParam
+				? `${fetch.url}${fetch.url.includes("?") ? "&" : "?"}cursor=${pageParam}`
+				: fetch.url;
+
+			return defaultFetcher<TypePage>(urlWithParam);
+		},
+		initialPageParam: undefined, // ✅ Required in React Query v5
+		getNextPageParam: fetch.getNextPageParam ?? (() => undefined),
+		staleTime,
+		gcTime,
+		retry,
+		enabled,
+	});
+
+	// --- Mutation (if provided) ---
+	const mutation = useMutation<any, Error, TypeMutate>({
+		mutationFn: async (newValue) => {
+			const mutatorFunc = mutate?.custom ?? defaultMutator;
+			const mutationUrl = mutate?.url ?? fetch.url;
+			return mutatorFunc(mutationUrl, newValue);
+		},
+		onSuccess: (data, variables, context) => {
+			queryClient.invalidateQueries({ queryKey: key });
+			mutate?.options?.onSuccess?.(data, variables, context);
+		},
+		onError: (error, variables, context) => {
+			mutate?.options?.onError?.(error, variables, context);
+			if (!mutate?.options?.onError) {
+				console.error(`Mutation failed for query key ${key}:`, error);
+			}
+		},
+	});
+
+	// --- Unified Return (mirrors useStateManagementFetch) ---
+	const result = {
+		value: {
+			data: fetchingData.data?.pages ?? [],
+			isLoading: fetchingData.isLoading,
+			isError: fetchingData.isError,
+			isFetching: fetchingData.isFetching,
+			isFetchingNextPage: fetchingData.isFetchingNextPage,
+			error: fetchingData.error,
+			status: fetchingData.status,
+			fetchStatus: fetchingData.fetchStatus,
+			refetch: fetchingData.refetch,
+			fetchNextPage: fetchingData.fetchNextPage,
+			hasNextPage: fetchingData.hasNextPage,
+		},
+	};
+
+	// Conditionally include mutation fields
+	if (mutate) {
+		(result as any).mutate = mutation.mutate;
+		(result as any).mutationPending = mutation.isPending;
+		(result as any).mutationError = mutation.error;
+		(result as any).mutationSuccess = mutation.isSuccess;
+		(result as any).mutationStatus = mutation.status;
+	}
+
+	return result as {
+		value: typeof result.value;
+		mutate?: typeof mutation.mutate;
+		mutationPending?: boolean;
+		mutationError?: Error | null;
+		mutationSuccess?: boolean;
+		mutationStatus?: ReturnType<typeof useMutation>["status"];
+	};
 }
