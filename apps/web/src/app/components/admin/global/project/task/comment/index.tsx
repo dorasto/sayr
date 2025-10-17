@@ -3,13 +3,16 @@
 import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
+import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
-import { TaskNewCommentContent } from "./new-comment";
-import RenderUser from "./render-user";
+import RenderUser from "../render-user";
+import { TaskNewCommentContent } from "./new";
 
 interface TaskNewCommentContentProps {
 	org_id: string;
@@ -18,9 +21,11 @@ interface TaskNewCommentContentProps {
 	ws: WebSocket | null;
 }
 
-export function TaskCommentsContent({ org_id, project_id, task, ws }: TaskNewCommentContentProps) {
+export function TaskComments({ org_id, project_id, task, ws }: TaskNewCommentContentProps) {
 	const [pageIndex, setPageIndex] = useState(0);
-
+	const [pendingComment, setPendingComment] = useState<{
+		blockNote: PartialBlock[] | undefined;
+	} | null>(null);
 	const { value } = useStateManagementInfiniteFetch<{
 		comments: schema.CommentsWithAuthor;
 		pagination: { page: number; totalPages: number };
@@ -41,6 +46,7 @@ export function TaskCommentsContent({ org_id, project_id, task, ws }: TaskNewCom
 				lastPage.pagination.page < lastPage.pagination.totalPages ? lastPage.pagination.page + 1 : undefined,
 		},
 		staleTime: 1000,
+		refetchOnWindowFocus: false,
 	});
 
 	const handleGoToPage = async (direction: "next" | "prev") => {
@@ -57,9 +63,9 @@ export function TaskCommentsContent({ org_id, project_id, task, ws }: TaskNewCom
 	const currentPage = value.data[pageIndex];
 	const handlers: WSMessageHandler<WSMessage> = {
 		UPDATE_TASK_COMMENTS: async (msg) => {
-			console.log("🚀 ~ TaskCommentsContent ~ msg:", msg);
 			if (msg.data.id === task.id) {
 				await value.refetch();
+				setPendingComment(null);
 			}
 		},
 	};
@@ -75,20 +81,38 @@ export function TaskCommentsContent({ org_id, project_id, task, ws }: TaskNewCom
 		};
 	}, [ws, handleMessage]);
 	return (
-		<div className="mx-auto w-full max-w-2xl space-y-6">
+		<div className="w-full space-y-6">
 			{/* Comments */}
 			<div className="space-y-4">
-				{currentPage?.comments?.map((e) => (
+				{pendingComment && (
+					<div className="rounded-md border border-neutral-700 bg-neutral-900/50 p-4 shadow-sm opacity-70">
+						<div className="flex items-center gap-2 mb-3">
+							<RenderUser name="You" image="" />
+							<span className="text-sm text-neutral-400 flex items-center gap-1">
+								<Loader2 className="animate-spin w-4 h-4" /> Sending…
+							</span>
+						</div>
+						<div className="ml-8 border-l border-neutral-800 pl-3">
+							<Editor readonly value={pendingComment.blockNote} />
+						</div>
+					</div>
+				)}
+				{currentPage?.comments?.slice(0, pendingComment ? 4 : currentPage.comments.length).map((comment) => (
 					<div
-						key={e.id}
+						key={comment.id}
 						className="rounded-md border border-neutral-700 bg-neutral-900/50 p-4 shadow-sm transition hover:bg-neutral-900"
 					>
 						<div className="flex items-center gap-2 mb-3">
-							<RenderUser name={e.createdBy?.name || ""} image={e.createdBy?.image || ""} />
-							<span className="text-xs text-neutral-400">{new Date(e.createdAt || 0).toLocaleString()}</span>
+							<RenderUser name={comment.createdBy?.name || ""} image={comment.createdBy?.image || ""} />
+							<Tooltip delayDuration={500}>
+								<TooltipTrigger asChild>
+									<span className="text-sm">{formatDateTimeFromNow(comment.createdAt as Date)}</span>
+								</TooltipTrigger>
+								<TooltipContent side="top">{formatDateTime(comment.createdAt as Date)}</TooltipContent>
+							</Tooltip>
 						</div>
 						<div className="ml-8 border-l border-neutral-800 pl-3">
-							<Editor readonly value={e.blockNote as PartialBlock[]} />
+							<Editor readonly value={comment.blockNote as PartialBlock[]} />
 						</div>
 					</div>
 				))}
@@ -122,7 +146,12 @@ export function TaskCommentsContent({ org_id, project_id, task, ws }: TaskNewCom
 
 			{/* Comment Composer */}
 			<div className="border-t border-neutral-800 pt-4">
-				<TaskNewCommentContent task={task} refetch={value.refetch} />
+				<TaskNewCommentContent
+					task={task}
+					onPending={(draft) => setPendingComment({ blockNote: draft })}
+					refetch={value.refetch}
+					onFinish={() => setPendingComment(null)}
+				/>
 			</div>
 		</div>
 	);

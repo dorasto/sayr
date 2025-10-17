@@ -17,7 +17,7 @@ import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
-import { TaskCommentsContent } from "../../comments";
+import { TaskComments } from "../../comment";
 import GlobalTaskLabels from "../../label";
 import GlobalTaskPriority from "../../priority";
 import GlobalTaskStatus from "../../status";
@@ -206,7 +206,7 @@ export function TaskContent({
 					</Label>
 					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
-					<TaskCommentsContent org_id={organization.id} project_id={project.id} task={task} ws={ws} />
+					<TaskComments org_id={organization.id} project_id={project.id} task={task} ws={ws} />
 				</div>
 				<div className="w-[18rem] shrink-0 overflow-y-auto p-3 ml-0 rounded-r-2xl rounded bg-card">
 					<div className="flex items-center gap-2 shrink-0 w-full">
@@ -282,7 +282,7 @@ export function TaskContent({
 				<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 
 				<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
-				<TaskCommentsContent org_id={organization.id} project_id={project.id} task={task} ws={ws} />
+				<TaskComments org_id={organization.id} project_id={project.id} task={task} ws={ws} />
 			</SplitDialogContent>
 			<SplitDialogSide className="p-2">
 				<TaskContentSideContent

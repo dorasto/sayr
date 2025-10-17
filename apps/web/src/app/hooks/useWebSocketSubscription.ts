@@ -57,7 +57,7 @@ export function useWebSocketSubscription({
 
 	// Stable handler for WebSocket `onmessage`
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE useWebSocketSubscription]", msg),
 	});
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <will fix at somepoint>
 	useEffect(() => {

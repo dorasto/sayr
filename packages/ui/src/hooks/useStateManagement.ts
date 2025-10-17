@@ -282,6 +282,7 @@ export function useStateManagementInfiniteFetch<TypePage, TypeMutate = any>({
 	key,
 	fetch,
 	mutate,
+	refetchOnWindowFocus,
 	staleTime,
 	gcTime,
 	retry,
@@ -301,6 +302,7 @@ export function useStateManagementInfiniteFetch<TypePage, TypeMutate = any>({
 			onError?: (error: any, variables: TypeMutate, context: any) => void;
 		};
 	};
+	refetchOnWindowFocus?: boolean;
 	staleTime?: number;
 	gcTime?: number;
 	retry?: boolean | number;
@@ -324,6 +326,7 @@ export function useStateManagementInfiniteFetch<TypePage, TypeMutate = any>({
 		},
 		initialPageParam: undefined, // ✅ Required in React Query v5
 		getNextPageParam: fetch.getNextPageParam ?? (() => undefined),
+		refetchOnWindowFocus,
 		staleTime,
 		gcTime,
 		retry,

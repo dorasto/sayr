@@ -27,8 +27,10 @@ interface TaskNewCommentContentProps {
 			Error
 		>
 	>;
+	onPending?: (blockNote: undefined | PartialBlock[]) => void;
+	onFinish?: () => void;
 }
-export function TaskNewCommentContent({ task, refetch }: TaskNewCommentContentProps) {
+export function TaskNewCommentContent({ task, refetch, onPending, onFinish }: TaskNewCommentContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
 	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(undefined);
@@ -38,6 +40,7 @@ export function TaskNewCommentContent({ task, refetch }: TaskNewCommentContentPr
 			<Button
 				disabled={isFetching}
 				onClick={async () => {
+					onPending?.(newComment);
 					const data = await runWithToast(
 						"update-task-comments",
 						{
@@ -60,6 +63,7 @@ export function TaskNewCommentContent({ task, refetch }: TaskNewCommentContentPr
 					if (data?.success && data.data) {
 						if (task && task.id === data.data.id) {
 							await refetch();
+							onFinish?.();
 						}
 					}
 				}}

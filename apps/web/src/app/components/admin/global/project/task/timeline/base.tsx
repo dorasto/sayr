@@ -1,3 +1,4 @@
+import type { PartialBlock } from "@blocknote/core";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Label } from "@repo/ui/components/label";
@@ -12,7 +13,6 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
-import type { PartialBlock } from "node_modules/@blocknote/core/types/src/blocks/defaultBlocks";
 import { Editor } from "../../../../../blocknote/DynamicEditor";
 import type { TimelineItemWrapperProps } from "./types";
 
