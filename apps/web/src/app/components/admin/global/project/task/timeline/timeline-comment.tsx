@@ -1,12 +1,12 @@
 import { IconMessageDots } from "@tabler/icons-react";
 import RenderUser from "../render-user";
-import { TimelineItemWrapper } from "./base";
+import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 
 export function TimelineComment({ item }: TimelineItemProps) {
 	return (
-		<TimelineItemWrapper item={item} icon={IconMessageDots} color="bg-primary text-primary-foreground">
-			commented <RenderUser name={item.actor?.name || ""} image={item.actor?.image || ""} />
+		<TimelineItemWrapper item={item} icon={IconMessageDots} color="bg-accent text-primary-foreground">
+			<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> commented
 		</TimelineItemWrapper>
 	);
 }
