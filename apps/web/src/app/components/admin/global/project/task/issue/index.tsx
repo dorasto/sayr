@@ -1,4 +1,5 @@
 "use client";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect } from "react";
 import { useLayoutProject } from "@/app/admin/[organization_id]/[project_id]/Context";
 import { useLayoutProjectTask } from "@/app/admin/[organization_id]/[project_id]/task/[task_short_id]/Context";
@@ -33,6 +34,26 @@ export default function OrganizationProjectTaskHomePage() {
 			setTasks(updatedTasks);
 			if (task && task.id === updatedTask.id) {
 				setTask({ ...task, ...updatedTask });
+				sendWindowMessage(
+					window,
+					{
+						type: "timeline-update",
+						payload: updatedTask.id,
+					},
+					"*"
+				);
+			}
+		},
+		UPDATE_TASK_COMMENTS: async (msg) => {
+			if (msg.data.id === task.id) {
+				sendWindowMessage(
+					window,
+					{
+						type: "timeline-update",
+						payload: msg.data.id,
+					},
+					"*"
+				);
 			}
 		},
 	};

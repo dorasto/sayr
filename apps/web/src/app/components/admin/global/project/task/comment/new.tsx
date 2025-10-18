@@ -4,7 +4,6 @@ import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import type { InfiniteData, QueryObserverResult, RefetchOptions } from "@tanstack/react-query";
 import { useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { CreateTaskCommentAction } from "@/app/lib/fetches";
@@ -12,25 +11,9 @@ import { useToastAction } from "@/app/lib/util";
 
 interface TaskNewCommentContentProps {
 	task: schema.TaskWithLabels;
-	refetch: (options?: RefetchOptions | undefined) => Promise<
-		QueryObserverResult<
-			InfiniteData<
-				{
-					comments: schema.CommentsWithAuthor;
-					pagination: {
-						page: number;
-						totalPages: number;
-					};
-				},
-				unknown
-			>,
-			Error
-		>
-	>;
-	onPending?: (blockNote: undefined | PartialBlock[]) => void;
 	onFinish?: () => void;
 }
-export function TaskNewCommentContent({ task, refetch, onPending, onFinish }: TaskNewCommentContentProps) {
+export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
 	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(undefined);
@@ -40,7 +23,6 @@ export function TaskNewCommentContent({ task, refetch, onPending, onFinish }: Ta
 			<Button
 				disabled={isFetching}
 				onClick={async () => {
-					onPending?.(newComment);
 					const data = await runWithToast(
 						"update-task-comments",
 						{
@@ -62,7 +44,6 @@ export function TaskNewCommentContent({ task, refetch, onPending, onFinish }: Ta
 					);
 					if (data?.success && data.data) {
 						if (task && task.id === data.data.id) {
-							await refetch();
 							onFinish?.();
 						}
 					}

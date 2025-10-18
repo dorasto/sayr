@@ -1,4 +1,9 @@
+import type { schema } from "@repo/database";
 import { Timeline } from "@repo/ui/components/tomui/timeline";
+import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
+import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { useEffect } from "react";
+import { TaskNewCommentContent } from "../comment/new";
 import {
 	ConsolidatedTimelineItem,
 	TimelineAssigneeAdded,
@@ -26,37 +31,65 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 		assignee_removed: TimelineAssigneeRemoved,
 		updated: TimelineUpdated,
 	};
+	const { value } = useStateManagementFetch<schema.taskTimelineWithActor[], Partial<schema.taskTimelineWithActor>>({
+		key: ["timeline", task.id],
+		fetch: {
+			url: `${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/timeline?org_id=${task.organizationId}&project_id=${task.projectId}&task_id=${task.id}`,
+			custom: async (url) => {
+				const res = await fetch(url, { credentials: "include" });
+				if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
+				const data = await res.json();
+				return data.data; // { comments, pagination }
+			},
+		},
+		staleTime: 1000 * 60, // 1 min
+		gcTime: 2000 * 60, // 2 min
+	});
 
+	useEffect(() => {
+		const unsubscribe = onWindowMessage<{
+			type: string;
+			payload: string;
+		}>("*", (msg) => {
+			if (msg.type === "timeline-update" && msg.payload === task.id) {
+				value.refetch();
+			}
+		});
+		return unsubscribe;
+	}, [value.refetch, task.id]);
 	// Consolidate timeline items
-	const consolidatedItems = consolidateTimelineItems(task.timeline || []).sort(
+	const consolidatedItems = consolidateTimelineItems(value.data || []).sort(
 		(a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
 	);
 
 	return (
-		<Timeline>
-			{consolidatedItems.map((item) => {
-				// Check if it's a consolidated item
-				if ("items" in item) {
-					return (
-						<ConsolidatedTimelineItem
-							key={item.id}
-							consolidatedItem={item}
-							labels={labels}
-							availableUsers={availableUsers}
-						/>
-					);
-				}
+		<>
+			<Timeline>
+				{consolidatedItems.map((item) => {
+					// Check if it's a consolidated item
+					if ("items" in item) {
+						return (
+							<ConsolidatedTimelineItem
+								key={item.id}
+								consolidatedItem={item}
+								labels={labels}
+								availableUsers={availableUsers}
+							/>
+						);
+					}
 
-				// Handle individual items
-				const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
+					// Handle individual items
+					const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
 
-				if (!TimelineComponent) {
-					return null;
-				}
+					if (!TimelineComponent) {
+						return null;
+					}
 
-				return <TimelineComponent key={item.id} item={item} labels={labels} availableUsers={availableUsers} />;
-			})}
-		</Timeline>
+					return <TimelineComponent key={item.id} item={item} labels={labels} availableUsers={availableUsers} />;
+				})}
+			</Timeline>
+			<TaskNewCommentContent task={task} onFinish={() => value.refetch()} />
+		</>
 	);
 }
 

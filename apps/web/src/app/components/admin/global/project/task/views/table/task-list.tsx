@@ -2,6 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect, useMemo, useState } from "react";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
@@ -54,6 +55,26 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 			setTasks(updatedTasks);
 			if (selectedTask && selectedTask.id === updatedTask.id) {
 				setSelectedTask({ ...selectedTask, ...updatedTask });
+				sendWindowMessage(
+					window,
+					{
+						type: "timeline-update",
+						payload: updatedTask.id,
+					},
+					"*"
+				);
+			}
+		},
+		UPDATE_TASK_COMMENTS: async (msg) => {
+			if (selectedTask && selectedTask.id === msg.data.id) {
+				sendWindowMessage(
+					window,
+					{
+						type: "timeline-update",
+						payload: msg.data.id,
+					},
+					"*"
+				);
 			}
 		},
 	};

@@ -8,6 +8,7 @@ import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowsDiagonal2, IconArrowsDiagonalMinimize2, IconCode, IconLink, IconX } from "@tabler/icons-react";
 import Link from "next/link";
@@ -17,7 +18,6 @@ import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
-import { TaskComments } from "../../comment";
 import GlobalTaskLabels from "../../label";
 import GlobalTaskPriority from "../../priority";
 import GlobalTaskStatus from "../../status";
@@ -120,6 +120,14 @@ export function TaskContentSideContent({
 						setTasks(finalTasks);
 						if (task && task.id === data.data.id) {
 							setSelectedTask(data.data);
+							sendWindowMessage(
+								window,
+								{
+									type: "timeline-update",
+									payload: data.data.id,
+								},
+								"*"
+							);
 						}
 					}
 				}}
@@ -168,6 +176,14 @@ export function TaskContentSideContent({
 						setTasks(finalTasks);
 						if (task && task.id === data.data.id) {
 							setSelectedTask(data.data);
+							sendWindowMessage(
+								window,
+								{
+									type: "timeline-update",
+									payload: data.data.id,
+								},
+								"*"
+							);
 						}
 					}
 				}}
@@ -206,7 +222,6 @@ export function TaskContent({
 					</Label>
 					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
-					<TaskComments org_id={organization.id} project_id={project.id} task={task} ws={ws} />
 				</div>
 				<div className="w-[18rem] shrink-0 overflow-y-auto p-3 ml-0 rounded-r-2xl rounded bg-card">
 					<div className="flex items-center gap-2 shrink-0 w-full">
@@ -280,9 +295,7 @@ export function TaskContent({
 		>
 			<SplitDialogContent>
 				<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
-
 				<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
-				<TaskComments org_id={organization.id} project_id={project.id} task={task} ws={ws} />
 			</SplitDialogContent>
 			<SplitDialogSide className="p-2">
 				<TaskContentSideContent

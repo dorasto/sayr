@@ -17,6 +17,7 @@ import {
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconPlus, IconUserPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
@@ -110,6 +111,14 @@ export default function GlobalTaskAssignees({
 				setTasks(finalTasks);
 				if (task && task.id === data.data.id) {
 					setSelectedTask(data.data);
+					sendWindowMessage(
+						window,
+						{
+							type: "timeline-update",
+							payload: data.data.id,
+						},
+						"*"
+					);
 				}
 			}
 		}

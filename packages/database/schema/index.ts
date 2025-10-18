@@ -24,7 +24,6 @@ export type TaskWithLabels = taskType & {
 	labels: labelType[];
 	assignees: { id: string; name: string; image: string | null }[];
 	createdBy?: { id: string; name: string; image: string | null } | null;
-	timeline: taskTimelineWithActor[];
 };
 
 export type CommentsWithAuthor = Array<

@@ -51,17 +51,6 @@ export async function getTasksByProjectId(orgId: string, projectId: string): Pro
 					},
 				},
 			},
-			timeline: {
-				with: {
-					actor: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
-					},
-				},
-			},
 		},
 	});
 
@@ -70,10 +59,6 @@ export async function getTasksByProjectId(orgId: string, projectId: string): Pro
 		...task,
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
-		timeline: task.timeline.map((entry) => ({
-			...entry,
-			actor: entry.actor ?? undefined, // convert null to undefined for actor
-		})),
 	}));
 }
 
@@ -118,9 +103,6 @@ export async function getTaskByShortId(
 			assignees: {
 				with: { user: { columns: { id: true, name: true, image: true } } },
 			},
-			timeline: {
-				with: { actor: { columns: { id: true, name: true, image: true } } },
-			},
 		},
 	});
 	if (!task) return null;
@@ -128,10 +110,6 @@ export async function getTaskByShortId(
 		...task,
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
-		timeline: task.timeline.map((entry) => ({
-			...entry,
-			actor: entry.actor ?? undefined, // convert null to undefined for actor
-		})),
 	};
 }
 
@@ -171,9 +149,6 @@ export async function getTaskById(orgId: string, projectId: string, Id: string) 
 			createdBy: { columns: { id: true, name: true, image: true } },
 			assignees: {
 				with: { user: { columns: { id: true, name: true, image: true } } },
-			},
-			timeline: {
-				with: { actor: { columns: { id: true, name: true, image: true } } },
 			},
 		},
 	});
@@ -366,4 +341,46 @@ export async function getTaskTimeline(orgId: string, projectId: string, taskId: 
 		orderBy: (c, { asc }) => [asc(c.createdAt)],
 	});
 	return timeline;
+}
+
+export async function getMergedTaskActivity(orgId: string, projectId: string, taskId: string) {
+	// Fetch both datasets in parallel for efficiency
+	const [timeline, comments] = await Promise.all([
+		getTaskTimeline(orgId, projectId, taskId),
+		await db.query.taskComment.findMany({
+			where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.taskId, taskId)),
+			with: {
+				createdBy: { columns: { id: true, name: true, image: true } },
+			},
+			orderBy: (c, { desc }) => [desc(c.createdAt)],
+		}),
+	]);
+
+	// Normalize data into a consistent format
+	const normalizedTimeline = timeline.map((item) => ({
+		id: item.id,
+		createdAt: item.createdAt,
+		actor: item.actor,
+		eventType: item.eventType,
+		fromValue: item.fromValue,
+		toValue: item.toValue,
+		blockNote: item.blockNote,
+	}));
+
+	const normalizedComments = comments.map((comment) => ({
+		id: comment.id,
+		createdAt: comment.createdAt,
+		actor: comment.createdBy,
+		eventType: "comment" as const,
+		blockNote: comment.blockNote,
+	}));
+
+	// Merge and sort chronologically (oldest → newest)
+	const merged = [...normalizedTimeline, ...normalizedComments].sort((a, b) => {
+		const timeA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+		const timeB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+		return timeA - timeB;
+	});
+
+	return merged;
 }

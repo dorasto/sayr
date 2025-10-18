@@ -4,9 +4,9 @@ import {
 	createComment,
 	createTask,
 	db,
+	getMergedTaskActivity,
 	getTaskById,
 	getTaskComments,
-	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
 } from "@repo/database";
@@ -434,7 +434,7 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	}
 
 	// --- Fetch task & comments ---
-	const timeline = await getTaskTimeline(org_id || "", project_id || "", task_id || "");
+	const timeline = await getMergedTaskActivity(org_id || "", project_id || "", task_id || "");
 
 	return c.json({
 		success: true,

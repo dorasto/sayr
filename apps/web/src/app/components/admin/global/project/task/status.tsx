@@ -15,6 +15,7 @@ import {
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
@@ -93,6 +94,14 @@ export default function GlobalTaskStatus({
 				setTasks(finalTasks);
 				if (task && task.id === data.data.id) {
 					setSelectedTask(data.data);
+					sendWindowMessage(
+						window,
+						{
+							type: "timeline-update",
+							payload: data.data.id,
+						},
+						"*"
+					);
 				}
 			}
 		}
