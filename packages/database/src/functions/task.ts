@@ -62,17 +62,6 @@ export async function getTasksByProjectId(orgId: string, projectId: string): Pro
 					},
 				},
 			},
-			comments: {
-				with: {
-					createdBy: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
-					},
-				},
-			},
 		},
 	});
 
@@ -96,7 +85,6 @@ export async function getTasksByProjectId(orgId: string, projectId: string): Pro
  * - `createdBy` (id, name, image only)
  * - `assignees` (with basic user info)
  * - `timeline` (with actor info)
- * - `comments` (with creator info).
  *
  * The returned task object is normalized so that:
  * - `labels` → an array of label objects (instead of assignment records).
@@ -155,7 +143,6 @@ export async function getTaskByShortId(
  * - `createdBy` (id, name, image only)
  * - `assignees` (with basic user info)
  * - `timeline` (with actor info)
- * - `comments` (with creator info).
  *
  * The returned task object is normalized so that:
  * - `labels` → an array of label objects (instead of assignment records).
@@ -187,11 +174,6 @@ export async function getTaskById(orgId: string, projectId: string, Id: string) 
 			},
 			timeline: {
 				with: { actor: { columns: { id: true, name: true, image: true } } },
-			},
-			comments: {
-				with: {
-					createdBy: { columns: { id: true, name: true, image: true } },
-				},
 			},
 		},
 	});
@@ -373,4 +355,15 @@ export async function getTaskComments(
 	if (comments.length === 0) return null;
 
 	return { comments, totalComments };
+}
+
+export async function getTaskTimeline(orgId: string, projectId: string, taskId: string) {
+	const timeline = await db.query.taskTimeline.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.taskId, taskId)),
+		with: {
+			actor: { columns: { id: true, name: true, image: true } },
+		},
+		orderBy: (c, { asc }) => [asc(c.createdAt)],
+	});
+	return timeline;
 }

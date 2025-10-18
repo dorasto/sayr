@@ -7,7 +7,6 @@ import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { project } from "./project.schema";
 import { taskAssignee } from "./taskAssignee.schema";
-import { taskComment } from "./taskComment.schema";
 import { taskTimeline } from "./taskTimeline.schema";
 export const visibleEnum = v.pgEnum("visible", ["public", "private"]);
 export const statusEnum = v.pgEnum("status", ["backlog", "todo", "in-progress", "done", "canceled"]);
@@ -56,7 +55,6 @@ export const taskRelations = relations(task, ({ one, many }) => ({
 		fields: [task.createdBy],
 		references: [user.id],
 	}),
-	comments: many(taskComment),
 	labels: many(taskLabelAssignment),
 	assignees: many(taskAssignee),
 	timeline: many(taskTimeline),

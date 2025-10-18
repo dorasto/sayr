@@ -6,6 +6,7 @@ import {
 	db,
 	getTaskById,
 	getTaskComments,
+	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
 } from "@repo/database";
@@ -398,5 +399,45 @@ apiRouteAdminProjectTask.get("/comments", async (c) => {
 				totalComments: commentsData.totalComments,
 			},
 		},
+	});
+});
+
+apiRouteAdminProjectTask.get("/timeline", async (c) => {
+	const query = c.req.query();
+	const org_id = query.org_id;
+	const project_id = query.project_id;
+	const task_id = query.task_id;
+
+	// --- Validate required parameters ---
+	const missingParams = [];
+	if (!org_id) missingParams.push("org_id");
+	if (!project_id) missingParams.push("project_id");
+	if (!task_id) missingParams.push("task_id");
+
+	if (missingParams.length > 0) {
+		return c.json(
+			{
+				success: false,
+				error: "MISSING_PARAMETERS",
+				message: `The following parameters are required: ${missingParams.join(", ")}`,
+			},
+			400
+		);
+	}
+
+	const session = c.get("session");
+
+	// --- Authorization ---
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id || "");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	// --- Fetch task & comments ---
+	const timeline = await getTaskTimeline(org_id || "", project_id || "", task_id || "");
+
+	return c.json({
+		success: true,
+		data: timeline,
 	});
 });

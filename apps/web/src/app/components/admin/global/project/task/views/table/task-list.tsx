@@ -58,7 +58,7 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE]", msg),
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE TaskList]", msg),
 	});
 	useEffect(() => {
 		if (!ws) return;
