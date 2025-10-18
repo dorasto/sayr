@@ -28,6 +28,8 @@ type EditorProps = {
 		| "vi"
 		| "zh-tw";
 	placeholder?: string;
+	emptyDocumentPlaceholder?: string;
+	trailing?: boolean;
 	placeholders?: {
 		default?: string;
 		heading?: string;

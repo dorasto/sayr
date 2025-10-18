@@ -63,7 +63,8 @@ const localeMap = {
 type EditorProps = {
 	language?: keyof typeof localeMap;
 	placeholder?: string;
-
+	emptyDocumentPlaceholder?: string;
+	trailing?: boolean;
 	placeholders?: {
 		default?: string;
 		heading?: string;
@@ -94,11 +95,13 @@ export default function Editor({
 	language = "en",
 	placeholder,
 	placeholders,
+	emptyDocumentPlaceholder,
 	value,
 	onChange,
 	updateContent,
 	readonly,
 	getSlashMenuItems,
+	trailing = true,
 }: EditorProps) {
 	const { theme } = useTheme();
 	const [initialContent, setInitialContent] = useState<PartialBlock[] | undefined>(value);
@@ -116,6 +119,7 @@ export default function Editor({
 		placeholders: {
 			...selectedLocale.placeholders,
 			...(placeholder && { default: placeholder }),
+			emptyDocument: emptyDocumentPlaceholder,
 			...placeholders,
 		},
 	};
@@ -150,7 +154,7 @@ export default function Editor({
 				}),
 			},
 		}),
-		trailingBlock: true,
+		trailingBlock: trailing,
 		initialContent: initialContent,
 		dictionary: customDictionary,
 	});

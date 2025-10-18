@@ -18,39 +18,47 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 	const { runWithToast, isFetching } = useToastAction();
 	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(undefined);
 	return (
-		<div>
-			<Editor language="en" value={newComment} onChange={setNewComment} />
-			<Button
-				disabled={isFetching}
-				onClick={async () => {
-					const data = await runWithToast(
-						"update-task-comments",
-						{
-							loading: {
-								title: "Updating task...",
-								description: "Updating your task... changes are already visible.",
+		<div className="text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col">
+			<Editor
+				emptyDocumentPlaceholder="Leave a comment"
+				trailing={false}
+				language="en"
+				value={newComment}
+				onChange={setNewComment}
+			/>
+			<div className="flex items-center gap-2 ml-auto">
+				<Button
+					disabled={isFetching}
+					onClick={async () => {
+						const data = await runWithToast(
+							"update-task-comments",
+							{
+								loading: {
+									title: "Updating task...",
+									description: "Updating your task... changes are already visible.",
+								},
+								success: {
+									title: "Task saved",
+									description: "Your changes have been saved successfully.",
+								},
+								error: {
+									title: "Save failed",
+									description:
+										"Your changes are showing, but we couldn't save them to the server. Please try again.",
+								},
 							},
-							success: {
-								title: "Task saved",
-								description: "Your changes have been saved successfully.",
-							},
-							error: {
-								title: "Save failed",
-								description:
-									"Your changes are showing, but we couldn't save them to the server. Please try again.",
-							},
-						},
-						() => CreateTaskCommentAction(task.organizationId, task.projectId, task.id, newComment, wsClientId)
-					);
-					if (data?.success && data.data) {
-						if (task && task.id === data.data.id) {
-							onFinish?.();
+							() => CreateTaskCommentAction(task.organizationId, task.projectId, task.id, newComment, wsClientId)
+						);
+						if (data?.success && data.data) {
+							if (task && task.id === data.data.id) {
+								onFinish?.();
+							}
 						}
-					}
-				}}
-			>
-				Create
-			</Button>
+					}}
+				>
+					Comment
+				</Button>
+			</div>
 		</div>
 	);
 }
