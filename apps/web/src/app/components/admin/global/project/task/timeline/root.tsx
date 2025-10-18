@@ -63,7 +63,7 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 	);
 
 	return (
-		<>
+		<div>
 			<Timeline>
 				{consolidatedItems.map((item) => {
 					// Check if it's a consolidated item
@@ -88,8 +88,9 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 					return <TimelineComponent key={item.id} item={item} labels={labels} availableUsers={availableUsers} />;
 				})}
 			</Timeline>
+
 			<TaskNewCommentContent task={task} onFinish={() => value.refetch()} />
-		</>
+		</div>
 	);
 }
 

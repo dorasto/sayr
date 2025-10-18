@@ -293,7 +293,7 @@ export function TaskContent({
 			}
 			sidebarPosition="right"
 		>
-			<SplitDialogContent>
+			<SplitDialogContent className="">
 				<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 				<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
 			</SplitDialogContent>

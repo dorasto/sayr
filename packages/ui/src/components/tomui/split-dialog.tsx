@@ -3,9 +3,10 @@
 import { Button } from "@repo/ui/components/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@repo/ui/components/dialog";
 import { cn } from "@repo/ui/lib/utils";
+import { IconArrowDown } from "@tabler/icons-react";
 import { CircleQuestionMark, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Children, isValidElement } from "react";
+import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import { Label } from "../label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
 
@@ -34,6 +35,38 @@ export function SplitDialog({
 	let contentComponent: ReactNode = null;
 	let sideComponent: ReactNode = null;
 
+	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const [isScrolled, setIsScrolled] = useState(false);
+	const [isAtBottom, setIsAtBottom] = useState(true);
+
+	useEffect(() => {
+		const scrollContainer = scrollContainerRef.current;
+		if (!scrollContainer) return;
+
+		const checkScroll = () => {
+			const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+			setIsScrolled(scrollHeight > clientHeight);
+			setIsAtBottom(Math.abs(scrollHeight - scrollTop - clientHeight) < 1);
+		};
+
+		checkScroll();
+
+		scrollContainer.addEventListener("scroll", checkScroll);
+		const resizeObserver = new ResizeObserver(checkScroll);
+		resizeObserver.observe(scrollContainer);
+
+		return () => {
+			scrollContainer.removeEventListener("scroll", checkScroll);
+			resizeObserver.unobserve(scrollContainer);
+		};
+	}, []);
+
+	const scrollToBottom = () => {
+		if (scrollContainerRef.current) {
+			scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+		}
+	};
+
 	Children.forEach(children, (child) => {
 		if (isValidElement(child)) {
 			if (child.type === SplitDialogContent) {
@@ -54,6 +87,7 @@ export function SplitDialog({
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
 			<DialogContent
+				onOpenAutoFocus={(e) => e.preventDefault()}
 				showClose={false}
 				className={cn(
 					"flex h-[90dvh] max-w-[calc(var(--container-7xl)-3rem)] w-[calc(100vw-3rem)] p-0 gap-0 flex-col",
@@ -98,8 +132,17 @@ export function SplitDialog({
 					{sideComponent}
 
 					{/* Main Content */}
-					<div className={cn("flex-1 overflow-y-auto", sidebarPosition === "left" ? "border-l" : "border-r")}>
-						{contentComponent}
+					<div className="flex-1 min-h-0 relative">
+						<div
+							ref={scrollContainerRef}
+							className={cn("overflow-y-auto h-full", sidebarPosition === "left" ? "border-l" : "border-r")}
+						>
+							{contentComponent}
+						</div>
+
+						<Button size="icon" className="absolute bottom-4 right-4 rounded-full" onClick={scrollToBottom}>
+							<IconArrowDown />
+						</Button>
 					</div>
 				</div>
 			</DialogContent>
