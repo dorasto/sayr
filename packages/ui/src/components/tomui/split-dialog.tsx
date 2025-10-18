@@ -87,7 +87,6 @@ export function SplitDialog({
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
 			<DialogContent
-				onOpenAutoFocus={(e) => e.preventDefault()}
 				showClose={false}
 				className={cn(
 					"flex h-[90dvh] max-w-[calc(var(--container-7xl)-3rem)] w-[calc(100vw-3rem)] p-0 gap-0 flex-col",
