@@ -22,6 +22,8 @@ interface GlobalTaskLabelsProps {
 	editable?: boolean;
 	availableLabels?: Array<{ id: string; name: string; color?: string | null }>;
 	onLabelsChange?: (labelIds: string[]) => void;
+	customTrigger?: React.ReactNode;
+	customChildren?: React.ReactNode;
 }
 
 export default function GlobalTaskLabels({
@@ -29,6 +31,8 @@ export default function GlobalTaskLabels({
 	editable = false,
 	availableLabels = [],
 	onLabelsChange,
+	customTrigger,
+	customChildren,
 }: GlobalTaskLabelsProps) {
 	// Get current selected label IDs
 	const currentLabelIds = task.labels?.map((label) => label.id) || [];
@@ -40,23 +44,30 @@ export default function GlobalTaskLabels({
 
 	return (
 		<div className="flex flex-col gap-3">
-			<Label variant={"subheading"}>Labels</Label>
+			{!customTrigger && <Label variant={"subheading"}>Labels</Label>}
 			<div className="flex flex-col gap-2">
 				<div className="flex flex-wrap gap-2">
-					{task.labels.map((label) => (
-						<RenderLabel
-							key={label.id}
-							label={label}
-							showRemove={editable}
-							onRemove={(labelId) => {
-								handleLabelsChange(currentLabelIds.filter((id) => id !== labelId));
-							}}
-						/>
-					))}
+					{customChildren
+						? customChildren
+						: task.labels.map((label) => (
+								<RenderLabel
+									key={label.id}
+									label={label}
+									showRemove={editable}
+									onRemove={(labelId) => {
+										handleLabelsChange(currentLabelIds.filter((id) => id !== labelId));
+									}}
+								/>
+							))}
 					<ComboBox values={currentLabelIds} onValuesChange={handleLabelsChange}>
-						<ComboBoxTrigger disabled={!editable} className="h-5 w-5 aspect-square p-0 justify-center">
-							<IconPlus />
-						</ComboBoxTrigger>
+						{customTrigger ? (
+							// Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
+							<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
+						) : (
+							<ComboBoxTrigger disabled={!editable} className="h-5 w-5 aspect-square p-0 justify-center">
+								<IconPlus />
+							</ComboBoxTrigger>
+						)}
 						<ComboBoxContent className="">
 							<ComboBoxSearch placeholder="Search labels..." />
 							<ComboBoxList>

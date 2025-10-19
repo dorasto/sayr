@@ -50,7 +50,7 @@ export default function GlobalTaskStatus({
 }: GlobalTaskStatusProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast } = useToastAction();
-	const currentStatus = task.status || undefined;
+	const currentStatus = (task.status ?? "backlog") || "backlog";
 
 	const handleStatusChange = async (value: string | null) => {
 		if (!value) return;

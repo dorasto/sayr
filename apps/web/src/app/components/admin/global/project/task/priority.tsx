@@ -52,7 +52,7 @@ export default function GlobalTaskPriority({
 }: GlobalTaskPriorityProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast } = useToastAction();
-	const currentPriority = task.priority || undefined;
+	const currentPriority = (task.priority ?? "none") || "none";
 
 	const handlePriorityChange = async (value: string | null) => {
 		if (!value) return;
