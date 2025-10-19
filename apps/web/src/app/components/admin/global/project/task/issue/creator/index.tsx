@@ -91,7 +91,7 @@ export default function CreateIssueDialog({
 				<span className="text-inherit">New task</span>
 			</Button> */}
 			<AdaptiveDialog open={open} onOpenChange={setOpen}>
-				<AdaptiveDialogContent className="">
+				<AdaptiveDialogContent className="z-50">
 					<AdaptiveDialogHeader>
 						<AdaptiveDialogTitle asChild>
 							<div>
