@@ -74,7 +74,7 @@ export default function GlobalTaskLabels({
 								<ComboBoxEmpty>No labels found.</ComboBoxEmpty>
 								<ComboBoxGroup>
 									{availableLabels.map((label) => (
-										<ComboBoxItem key={label.name} value={label.id}>
+										<ComboBoxItem key={label.id} value={label.id} searchValue={label.name}>
 											<span
 												className="h-2 w-2 flex-shrink-0 rounded-full mr-2"
 												style={{ backgroundColor: label.color || "#cccccc" }}

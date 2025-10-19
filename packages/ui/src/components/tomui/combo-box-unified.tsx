@@ -163,13 +163,13 @@ function ComboBoxContent({ children, className, align = "start", side = "bottom"
 				className={cn("w-full p-0", className)}
 				align={align}
 				side={side}
-				onOpenAutoFocus={(e) => e.preventDefault()}
+				// onOpenAutoFocus={(e) => e.preventDefault()}
 				onWheel={(e) => {
 					// Allow wheel events to bubble for scrolling
 					e.stopPropagation();
 				}}
 			>
-				<Command shouldFilter={false}>{children}</Command>
+				<Command>{children}</Command>
 			</PopoverContent>
 		);
 	}
@@ -177,7 +177,7 @@ function ComboBoxContent({ children, className, align = "start", side = "bottom"
 	return (
 		<DrawerContent>
 			<div className="mt-4 border-t">
-				<Command shouldFilter={false}>{children}</Command>
+				<Command>{children}</Command>
 			</div>
 		</DrawerContent>
 	);
@@ -261,9 +261,10 @@ interface ComboBoxItemProps {
 	children: React.ReactNode;
 	disabled?: boolean;
 	onSelect?: (value: string) => void;
+	searchValue?: string;
 }
 
-function ComboBoxItem({ value, children, disabled, onSelect }: ComboBoxItemProps) {
+function ComboBoxItem({ value, children, disabled, onSelect, searchValue }: ComboBoxItemProps) {
 	const {
 		value: selectedValue,
 		values: selectedValues,
@@ -274,6 +275,7 @@ function ComboBoxItem({ value, children, disabled, onSelect }: ComboBoxItemProps
 	} = useComboBox();
 
 	const isSelected = isMultiple ? selectedValues?.includes(value) || false : selectedValue === value;
+	const itemValue = searchValue ? `${searchValue} ${value}` : value;
 
 	const handleSelect = () => {
 		if (onSelect) {
@@ -293,7 +295,7 @@ function ComboBoxItem({ value, children, disabled, onSelect }: ComboBoxItemProps
 	};
 
 	return (
-		<CommandItem value={value} disabled={disabled} onSelect={handleSelect}>
+		<CommandItem value={itemValue} disabled={disabled} onSelect={handleSelect}>
 			{children}
 			{isSelected && <CheckIcon className="h-4 w-4 ml-auto" />}
 		</CommandItem>
