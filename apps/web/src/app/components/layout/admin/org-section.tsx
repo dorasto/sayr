@@ -15,16 +15,7 @@ import {
 	SidebarMenuSubButton,
 	SidebarMenuSubItem,
 } from "@repo/ui/components/custom-sidebar-localstorage";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@repo/ui/components/dialog";
+
 import {
 	Drawer,
 	DrawerContent,
@@ -41,29 +32,12 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import { Input } from "@repo/ui/components/input";
-import { Label } from "@repo/ui/components/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
-import ColorPicker from "@repo/ui/components/tomui/color-picker";
-import LabelledInput from "@repo/ui/components/tomui/labeled-input";
+
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	IconChevronRight,
-	IconColorPicker,
-	IconIcons,
-	IconLibrary,
-	IconList,
-	IconListDetails,
-	IconPencil,
-	IconPlus,
-	IconProgress,
-	IconSettings,
-	IconUsers,
-} from "@tabler/icons-react";
-import { ChevronRight, Command, Minus, MoreHorizontal, Plus } from "lucide-react";
+import { IconChevronRight, IconPencil, IconPlus, IconProgress, IconSettings, IconUsers } from "@tabler/icons-react";
+import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -142,25 +116,13 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						</DropdownMenu>
 					</div>
 				</SidebarGroupLabel>
-				<CollapsibleContent className="test-content">
-					<SidebarGroupContent className="test">
+				<CollapsibleContent className="">
+					<SidebarGroupContent className="">
 						<SidebarMenu className="">
-							{/* <SidebarMenuItem>
-								<SidebarMenuButton asChild className="transition-all">
-									<Link href={`/admin/${organization.id}`}>
-										<IconLibrary />
-										Your Tasks
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem> */}
-							<Collapsible
-								// key={item.title}
-								// title={item.title}
-								defaultOpen
-								className="group/coltasks flex flex-col gap-0.5"
-							>
+							<Collapsible defaultOpen className="group/coltasks flex flex-col gap-0.5">
 								{/* start */}
-								<SidebarMenuItem className="">
+
+								<SidebarMenuItem className="mb-0.5">
 									<div
 										className={cn(
 											"flex items-center justify-center pl-2 pr-1 hover:bg-sidebar-accent rounded-md transition-all group/coltrig"
@@ -168,18 +130,12 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 									>
 										<CollapsibleTrigger
 											asChild
-											className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer"
+											className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer pl-2"
 										>
 											<div className="flex items-center w-full justify-start">
 												<div className="h-4 w-4 aspect-square relative flex items-center justify-center">
 													<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
 													<IconProgress className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0" />
-													{/* <Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0">
-												<AvatarImage src={organization.logo || ""} alt={organization.name} />
-												<AvatarFallback className="rounded-md uppercase text-xs">
-													<IconUsers className="h-4 w-4" />
-												</AvatarFallback>
-											</Avatar> */}
 												</div>
 												<SidebarMenuButton
 													className={cn(
@@ -205,14 +161,14 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 								</SidebarMenuItem>
 
 								<CollapsibleContent className="content">
-									<SidebarMenuSub className="w-full pr-4">
+									<SidebarMenu className="">
 										{organization.projects.length > 0 &&
 											organization.projects.map((project) => (
-												<SidebarMenuSubItem key={project.id}>
-													<SidebarMenuSubButton
+												<SidebarMenuItem key={project.id} className="">
+													<SidebarMenuButton
 														asChild
 														isActive={path.includes(`/admin/${organization.id}/${project.id}`)}
-														className=""
+														className="pl-6"
 													>
 														<Link href={`/admin/${organization.id}/${project.id}`} className="">
 															<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
@@ -220,10 +176,10 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 															</div>
 															<span>{project.name}</span>
 														</Link>
-													</SidebarMenuSubButton>
-												</SidebarMenuSubItem>
+													</SidebarMenuButton>
+												</SidebarMenuItem>
 											))}
-									</SidebarMenuSub>
+									</SidebarMenu>
 								</CollapsibleContent>
 							</Collapsible>
 						</SidebarMenu>
