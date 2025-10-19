@@ -10,11 +10,32 @@ import {
 	AdaptiveDialogHeader,
 	AdaptiveDialogTitle,
 } from "@repo/ui/components/adaptive-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
+import { ButtonGroup } from "@repo/ui/components/button-group";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconPlus } from "@tabler/icons-react";
+import { IconChevronDown, IconPlus, IconProgress, IconSlash, IconUsers } from "@tabler/icons-react";
+import {
+	AlertTriangleIcon,
+	CheckIcon,
+	ChevronDownIcon,
+	CopyIcon,
+	ShareIcon,
+	TrashIcon,
+	UserRoundXIcon,
+	VolumeOffIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { createTaskAction } from "@/app/lib/fetches";
@@ -94,25 +115,63 @@ export default function CreateIssueDialog({
 				<AdaptiveDialogContent className="z-50">
 					<AdaptiveDialogHeader>
 						<AdaptiveDialogTitle asChild>
-							<div>
-								<Label variant={"heading"} className="text-left mr-auto sr-only">
-									New task
-								</Label>
-								<Input
-									variant={"strong"}
-									placeholder="Task title"
-									className="px-0"
-									value={title}
-									onChange={(e) => setTitle(e.target.value)}
-								/>
-							</div>
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button variant={"accent"} className="w-fit text-xs h-7" size={"sm"}>
+										<div className="flex items-center gap-1">
+											<Avatar className="h-4 w-4 rounded-md duration-200 transition-none select-none group-hover/coltrig:h-0 bg-accent">
+												<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
+												<AvatarFallback className="rounded-md uppercase text-xs">
+													<IconUsers className="h-4 w-4" />
+												</AvatarFallback>
+											</Avatar>
+											{organization.name}
+										</div>
+										<IconSlash />
+										<div className="flex items-center gap-1">
+											<IconProgress className="!h-4 !w-4" />
+											{project.name}
+										</div>
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="w-56 p-0" align="start">
+									<Button variant={"accent"} className="justify-start w-full text-xs" size={"sm"}>
+										<div className="flex items-center gap-1">
+											<Avatar className="h-4 w-4 rounded-md duration-200 transition-none select-none group-hover/coltrig:h-0 bg-accent">
+												<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
+												<AvatarFallback className="rounded-md uppercase text-xs">
+													<IconUsers className="h-4 w-4" />
+												</AvatarFallback>
+											</Avatar>
+											{organization.name}
+										</div>
+										<IconSlash />
+										<div className="flex items-center gap-1">
+											<IconProgress className="!h-4 !w-4" />
+											{project.name}
+										</div>
+									</Button>
+								</PopoverContent>
+							</Popover>
 						</AdaptiveDialogTitle>
 						<AdaptiveDialogDescription className="sr-only">Create a new task</AdaptiveDialogDescription>
 					</AdaptiveDialogHeader>
 					<div className="flex flex-col gap-3 w-full p-3">
 						<div className="flex flex-col gap-1 w-full">
+							<Input
+								variant={"strong"}
+								placeholder="Task title"
+								className="px-0 p-0"
+								value={title}
+								onChange={(e) => setTitle(e.target.value)}
+							/>
 							<div className="w-full max-h-96 overflow-scroll">
-								<Editor language="en" value={description} onChange={setDescription} />
+								<Editor
+									language="en"
+									emptyDocumentPlaceholder="Add a description..."
+									value={description}
+									onChange={setDescription}
+								/>
 							</div>
 							<div className="flex items-center gap-3 w-full">
 								<StatusSelector value={status} onValueChange={setStatus} />
