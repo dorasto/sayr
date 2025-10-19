@@ -2,6 +2,7 @@ import type { schema } from "@repo/database";
 import { Timeline } from "@repo/ui/components/tomui/timeline";
 import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { IconLoader2 } from "@tabler/icons-react";
 import { useEffect } from "react";
 import { TaskNewCommentContent } from "../comment/new";
 import {
@@ -46,6 +47,9 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 		gcTime: 2000 * 60, // 2 min
 	});
 
+	const hasTimelineData = Boolean(value.data?.length);
+	const showInitialLoading = value.isLoading && !hasTimelineData;
+
 	useEffect(() => {
 		const unsubscribe = onWindowMessage<{
 			type: string;
@@ -63,33 +67,44 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 	);
 
 	return (
-		<div>
-			<Timeline>
-				{consolidatedItems.map((item) => {
-					// Check if it's a consolidated item
-					if ("items" in item) {
-						return (
-							<ConsolidatedTimelineItem
-								key={item.id}
-								consolidatedItem={item}
-								labels={labels}
-								availableUsers={availableUsers}
-							/>
-						);
-					}
+		<div className="relative h-full w-full">
+			{showInitialLoading ? (
+				<div className="flex min-h-full items-center justify-center py-6">
+					<IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+				</div>
+			) : (
+				<>
+					<Timeline>
+						{consolidatedItems.map((item) => {
+							// Check if it's a consolidated item
+							if ("items" in item) {
+								return (
+									<ConsolidatedTimelineItem
+										key={item.id}
+										consolidatedItem={item}
+										labels={labels}
+										availableUsers={availableUsers}
+									/>
+								);
+							}
 
-					// Handle individual items
-					const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
+							// Handle individual items
+							const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
 
-					if (!TimelineComponent) {
-						return null;
-					}
+							if (!TimelineComponent) {
+								return null;
+							}
 
-					return <TimelineComponent key={item.id} item={item} labels={labels} availableUsers={availableUsers} />;
-				})}
-			</Timeline>
-
-			<TaskNewCommentContent task={task} onFinish={() => value.refetch()} />
+							return (
+								<TimelineComponent key={item.id} item={item} labels={labels} availableUsers={availableUsers} />
+							);
+						})}
+					</Timeline>
+					<div className="py-4">
+						<TaskNewCommentContent task={task} onFinish={() => value.refetch()} />
+					</div>
+				</>
+			)}
 		</div>
 	);
 }
