@@ -17,9 +17,11 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
 	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(undefined);
+	const [editorKey, setEditorKey] = useState(0);
 	return (
 		<div className="text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col">
 			<Editor
+				key={editorKey} // 👈 force rerender when the key changes
 				emptyDocumentPlaceholder="Leave a comment"
 				trailing={false}
 				language="en"
@@ -51,6 +53,8 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 						);
 						if (data?.success && data.data) {
 							if (task && task.id === data.data.id) {
+								setNewComment(undefined);
+								setEditorKey((prev) => prev + 1); // 👈 triggers new Editor instance
 								onFinish?.();
 							}
 						}

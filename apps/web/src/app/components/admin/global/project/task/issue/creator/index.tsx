@@ -178,6 +178,7 @@ export default function CreateIssueDialog({
 									emptyDocumentPlaceholder="Add a description..."
 									value={description}
 									onChange={setDescription}
+									trailing={false}
 								/>
 							</div>
 							<div className="flex items-center gap-3 w-full">

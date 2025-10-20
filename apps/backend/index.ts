@@ -67,6 +67,7 @@ export default {
 	port: 5468,
 	fetch: app.fetch,
 	websocket,
+	idleTimeout: 20, // seconds (default is 10)
 };
 
 const generateNotFoundResponse = (method: string, url: string) => ({

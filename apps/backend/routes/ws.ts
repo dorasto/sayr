@@ -713,42 +713,6 @@ setInterval(() => {
 	});
 }, 90_000);
 
-if (process.env.npm_lifecycle_event === "dev") {
-	console.log("WS stats every 60 seconds (dev mode)");
-
-	// Connections / rooms overview
-	setInterval(() => {
-		const roomCount = rooms.size;
-		let totalMembers = 0;
-		let largest = "";
-		let max = 0;
-		for (const [name, set] of rooms) {
-			totalMembers += set.size;
-			if (set.size > max) {
-				max = set.size;
-				largest = name;
-			}
-		}
-		const avg = roomCount ? (totalMembers / roomCount).toFixed(1) : 0;
-
-		console.log(`
-[WS Stats @ ${new Date().toISOString()}]
-  Sockets:     ${wsClients.size}
-  Rooms:       ${roomCount}
-  Avg/room:    ${avg}
-  Largest room:${largest || "n/a"} (${max})
-`);
-	}, 60_000);
-
-	// Show heap usage
-	setInterval(() => {
-		const m = process.memoryUsage();
-		console.log(
-			`[Memory] rss=${(m.rss / 1_048_576).toFixed(1)} MB, heapUsed=${(m.heapUsed / 1_048_576).toFixed(1)} MB`
-		);
-	}, 60_000);
-}
-
 process.on("SIGTERM", () => {
 	console.log("Closing all sockets for graceful shutdown...");
 	for (const ws of wsClients.keys()) {

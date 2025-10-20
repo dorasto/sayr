@@ -43,7 +43,7 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 				return data.data; // { comments, pagination }
 			},
 		},
-		staleTime: 1000 * 60, // 1 min
+		staleTime: 1000,
 		gcTime: 2000 * 60, // 2 min
 	});
 
