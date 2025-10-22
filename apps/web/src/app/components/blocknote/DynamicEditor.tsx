@@ -2,6 +2,7 @@
 
 import type { PartialBlock } from "@blocknote/core";
 import dynamic from "next/dynamic";
+import type { KeyboardEventHandler } from "react";
 
 // Define the props type that will be passed to the Editor
 type EditorProps = {
@@ -44,6 +45,7 @@ type EditorProps = {
 	onChange?: (value: PartialBlock[]) => void;
 	updateContent?: PartialBlock[] | undefined;
 	readonly?: boolean;
+	onKeyDown?: KeyboardEventHandler<HTMLDivElement> | undefined;
 };
 
 export const Editor = dynamic(() => import("./Editor"), { ssr: false }) as React.ComponentType<EditorProps>;

@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: <needed dont ask> */
+import type { PartialBlock } from "@blocknote/core";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useCallback, useState } from "react";
 
@@ -84,7 +86,6 @@ export function useToastAction() {
 				}
 				setIsFetching(false);
 				return result;
-				// biome-ignore lint/suspicious/noExplicitAny: <ignore>
 			} catch (err: any) {
 				headlessToast.error({
 					id: actionId,
@@ -100,3 +101,59 @@ export function useToastAction() {
 
 	return { runWithToast, isFetching };
 }
+
+export const extractTextContent = (blocks: PartialBlock[] | undefined): string => {
+	const getTextFromContent = (content: unknown): string => {
+		if (Array.isArray(content)) {
+			return content.map((item: any) => (typeof item.text === "string" ? item.text : "")).join(" ");
+		} else if (content && typeof content === "object" && "rows" in content && Array.isArray((content as any).rows)) {
+			// Handle table content (rows → cells → text)
+			return (content as any).rows
+				.map((row: any) => row.cells.map((cell: any) => getTextFromContent(cell.content ?? [])).join(" • "))
+				.join(" | ");
+		}
+		return "";
+	};
+
+	const extractFromBlock = (block: PartialBlock): string => {
+		switch (block.type) {
+			case "paragraph":
+			case "heading":
+			case "quote":
+			case "checkListItem":
+			case "bulletListItem":
+			case "numberedListItem":
+			case "toggleListItem":
+				return getTextFromContent(block.content);
+
+			case "image": {
+				const src = typeof (block.props as any)?.url === "string" ? (block.props as any).url : "";
+				const caption = getTextFromContent(block.content) || "Image";
+				return `[Image: ${caption}${src ? ` • ${src}` : ""}]`;
+			}
+
+			case "video": {
+				const url = typeof (block.props as any)?.url === "string" ? (block.props as any).url : "";
+				return `[Video: ${url}]`;
+			}
+
+			case "codeBlock": {
+				const codeText = getTextFromContent(block.content);
+				return `[Code block: ${codeText.slice(0, 50)}${codeText.length > 50 ? "…" : ""}]`;
+			}
+
+			case "table": {
+				const tableText = getTextFromContent(block.content);
+				return `[Table: ${tableText}]`;
+			}
+
+			default:
+				if (Array.isArray(block.children) && block.children.length > 0) {
+					return block.children.map(extractFromBlock).join(" ");
+				}
+				return "";
+		}
+	};
+
+	return blocks?.map(extractFromBlock).join(" ").trim() || "";
+};

@@ -32,7 +32,7 @@ import {
 } from "@blocknote/core/locales";
 import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { type KeyboardEventHandler, useEffect, useState } from "react";
 import { createHighlighter } from "../../shiki.bundle";
 import { CustomSlashMenu } from "./CustomSlashMenu";
 import { CustomEmojiPicker } from "./custom/emoji";
@@ -91,6 +91,7 @@ type EditorProps = {
 	 * }
 	 */
 	getSlashMenuItems?: (editor: BlockNoteEditor, query: string) => Promise<DefaultReactSuggestionItem[]>;
+	onKeyDown?: KeyboardEventHandler<HTMLDivElement> | undefined;
 };
 
 // Our <Editor> component we can reuse later
@@ -105,6 +106,7 @@ export default function Editor({
 	readonly,
 	getSlashMenuItems,
 	trailing = true,
+	onKeyDown,
 }: EditorProps) {
 	const { theme } = useTheme();
 	const [initialContent, setInitialContent] = useState<PartialBlock[] | undefined>(value);
@@ -183,6 +185,7 @@ export default function Editor({
 			slashMenu={false}
 			emojiPicker={false}
 			linkToolbar={true}
+			onKeyDown={onKeyDown}
 		>
 			<GridSuggestionMenuController
 				triggerCharacter={":"}
