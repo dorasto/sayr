@@ -646,6 +646,18 @@ wsRoute.get(
 						}
 						joinWaitingRoom(ws.raw, wsClient.id, user?.id);
 						return;
+					case "CONNECTIONS_SNAPSHOT":
+						if (user.role !== "admin") {
+							return;
+						} else {
+							// ✅ Send snapshot of connected clients to *this admin only*
+							const snapshot = getAllConnectedClients();
+							broadcastIndividual(ws.raw, {
+								type: "CONNECTIONS_SNAPSHOT",
+								data: snapshot,
+							});
+							return;
+						}
 					case "MESSAGE":
 						console.log(msg);
 						return;
@@ -700,18 +712,6 @@ setInterval(() => {
 		}
 	}
 }, 30_000);
-
-// ✅ Admin broadcast of connections snapshot
-// Every 90 seconds, send a snapshot of all connected clients
-// This allows admin UIs to get a real-time view of connected clients
-setInterval(() => {
-	const snapshot = getAllConnectedClients();
-	broadcast(ADMIN_ORG, CONNECTIONS_CHANNEL, {
-		type: "CONNECTIONS_SNAPSHOT",
-		data: snapshot,
-		meta: { ts: Date.now() },
-	});
-}, 90_000);
 
 process.on("SIGTERM", () => {
 	console.log("Closing all sockets for graceful shutdown...");

@@ -4,7 +4,8 @@
 	"private": true,
 	"scripts": {
 		"dev": "bun --watch run index.ts",
-		"build": "bun build index.ts --target=bun --outdir ./dist"
+		"build": "bun build index.ts --target=bun --outdir ./dist",
+		"start": "bun ./dist/index.js"
 	},
 	"dependencies": {
 		"@repo/auth": "workspace:*",

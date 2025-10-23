@@ -341,66 +341,6 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	return c.json({ success: true, data: { id: task_id } });
 });
 
-apiRouteAdminProjectTask.get("/comments", async (c) => {
-	const query = c.req.query();
-	const org_id = query.org_id;
-	const project_id = query.project_id;
-	const task_id = query.task_id;
-	const page = Math.max(Number(query.page ?? 1), 1);
-	const limit = Math.min(Math.max(Number(query.limit ?? 10), 1), 50); // Cap limit to 50
-
-	// --- Validate required parameters ---
-	const missingParams = [];
-	if (!org_id) missingParams.push("org_id");
-	if (!project_id) missingParams.push("project_id");
-	if (!task_id) missingParams.push("task_id");
-
-	if (missingParams.length > 0) {
-		return c.json(
-			{
-				success: false,
-				error: "MISSING_PARAMETERS",
-				message: `The following parameters are required: ${missingParams.join(", ")}`,
-			},
-			400
-		);
-	}
-
-	const session = c.get("session");
-
-	// --- Authorization ---
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id || "");
-	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-	}
-
-	// --- Pagination offset ---
-	const offset = (page - 1) * limit;
-
-	// --- Fetch task & comments ---
-	const commentsData = await getTaskComments(org_id || "", project_id || "", task_id || "", {
-		offset,
-		limit,
-	});
-
-	if (!commentsData) {
-		return c.json({ success: true, data: { comments: [], pagination: { totalComments: 0 } } });
-	}
-
-	return c.json({
-		success: true,
-		data: {
-			comments: commentsData.comments,
-			pagination: {
-				page,
-				limit,
-				totalPages: Math.ceil(commentsData.totalComments / limit),
-				totalComments: commentsData.totalComments,
-			},
-		},
-	});
-});
-
 apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	const query = c.req.query();
 	const org_id = query.org_id;

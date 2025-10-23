@@ -20,7 +20,6 @@ export default function AdminConnectionsPage({ accounts }: Props) {
 		channel: "__CONNECTIONS__",
 		ws,
 	});
-
 	const [snapshot, setSnapshot] = useState<FirehoseClient[]>([]);
 
 	const handlers: WSMessageHandler<WSMessage> = {
@@ -35,6 +34,22 @@ export default function AdminConnectionsPage({ accounts }: Props) {
 		ws.addEventListener("message", handleMessage);
 		return () => ws.removeEventListener("message", handleMessage);
 	}, [ws, handleMessage]);
+	// 🕒 Every 90 s send a "ping" or heartbeat
+	useEffect(() => {
+		if (!ws) return;
+
+		const sendHeartbeat = () => {
+			if (ws.readyState === WebSocket.OPEN) {
+				const message = JSON.stringify({
+					type: "CONNECTIONS_SNAPSHOT",
+				});
+				ws.send(message);
+				console.log("📡 Sent admin heartbeat");
+			}
+		};
+		const interval = setInterval(sendHeartbeat, 90_000);
+		return () => clearInterval(interval);
+	}, [ws]);
 
 	return (
 		<div className="space-y-4">
