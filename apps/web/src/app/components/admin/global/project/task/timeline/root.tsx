@@ -45,6 +45,7 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 		},
 		staleTime: 1000,
 		gcTime: 2000 * 60, // 2 min
+		refetchOnWindowFocus: false,
 	});
 
 	const hasTimelineData = Boolean(value.data?.length);

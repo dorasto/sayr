@@ -21,6 +21,7 @@ import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconPlus, IconUserPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
+import { useDebounceAsync } from "@/app/hooks/useDebounceAsync";
 import { updateAssigneesToTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 
@@ -61,6 +62,30 @@ export default function GlobalTaskAssignees({
 	align,
 }: GlobalTaskAssigneesProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const debouncedUpdate = useDebounceAsync(
+		async (values: string[], wsClientId: string) => {
+			const data = await runWithToast(
+				"update-task-assignees",
+				{
+					loading: {
+						title: "Updating task...",
+						description: "Updating your task... changes are already visible.",
+					},
+					success: {
+						title: "Task saved",
+						description: "Your changes have been saved successfully.",
+					},
+					error: {
+						title: "Save failed",
+						description: "Your changes are showing, but we couldn't save them to the server. Please try again.",
+					},
+				},
+				() => updateAssigneesToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
+			);
+			return data;
+		},
+		1500 // debounce delay
+	);
 	const { runWithToast } = useToastAction();
 
 	// Get current selected assignee IDs
@@ -87,24 +112,7 @@ export default function GlobalTaskAssignees({
 				setSelectedTask({ ...task, assignees: availableUsers.filter((user) => values.includes(user.id)) });
 			}
 
-			const data = await runWithToast(
-				"update-task-assignees",
-				{
-					loading: {
-						title: "Updating task...",
-						description: "Updating your task... changes are already visible.",
-					},
-					success: {
-						title: "Task saved",
-						description: "Your changes have been saved successfully.",
-					},
-					error: {
-						title: "Save failed",
-						description: "Your changes are showing, but we couldn't save them to the server. Please try again.",
-					},
-				},
-				() => updateAssigneesToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
-			);
+			const data = await debouncedUpdate(values, wsClientId);
 
 			if (data?.success && data.data && !data.skipped) {
 				const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));

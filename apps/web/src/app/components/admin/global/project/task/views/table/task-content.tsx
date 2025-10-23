@@ -14,6 +14,7 @@ import { IconArrowsDiagonal2, IconArrowsDiagonalMinimize2, IconCode, IconLink, I
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useDebounceAsync } from "@/app/hooks/useDebounceAsync";
 import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "../../../shared/task-config";
@@ -59,6 +60,30 @@ export function TaskContentSideContent({
 	wsClientId,
 	runWithToast,
 }: TaskContentSideContentProps) {
+	const debouncedUpdateLabels = useDebounceAsync(
+		async (values: string[], wsClientId: string) => {
+			const data = await runWithToast(
+				"update-task-labels",
+				{
+					loading: {
+						title: "Updating task...",
+						description: "Updating your task... changes are already visible.",
+					},
+					success: {
+						title: "Task saved",
+						description: "Your changes have been saved successfully.",
+					},
+					error: {
+						title: "Save failed",
+						description: "Your changes are showing, but we couldn't save them to the server. Please try again.",
+					},
+				},
+				() => updateLabelToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
+			);
+			return data;
+		},
+		1500 // debounce delay
+	);
 	return (
 		<div className="flex flex-col gap-3">
 			{/* <GlobalTaskCreatedAt task={task} />
@@ -96,25 +121,7 @@ export function TaskContentSideContent({
 							labels: labels.filter((label) => values.includes(label.id)),
 						});
 					}
-					const data = await runWithToast(
-						"update-task-labels",
-						{
-							loading: {
-								title: "Updating task...",
-								description: "Updating your task... changes are already visible.",
-							},
-							success: {
-								title: "Task saved",
-								description: "Your changes have been saved successfully.",
-							},
-							error: {
-								title: "Save failed",
-								description:
-									"Your changes are showing, but we couldn't save them to the server. Please try again.",
-							},
-						},
-						() => updateLabelToTaskAction(task.organizationId, task.projectId, task.id, values, wsClientId)
-					);
+					const data = await debouncedUpdateLabels(values, wsClientId);
 					if (data?.success && data.data && !data.skipped) {
 						const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
 						setTasks(finalTasks);
