@@ -1,10 +1,8 @@
 import { auth } from "@repo/auth/index";
-import { db, schema } from "@repo/database";
-import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun"; // Or 'hono/bun' for Bun
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
+// import { logger } from "hono/logger";
 import { requestId } from "hono/request-id";
 import { apiRoute } from "./routes/api";
 import { wsRoute } from "./routes/ws";
@@ -16,7 +14,7 @@ export type AppEnv = {
 };
 
 const app = new Hono<AppEnv>();
-app.use(logger());
+// app.use(logger());
 app.use(
 	"*",
 	cors({
@@ -28,6 +26,8 @@ app.use(
 		credentials: true,
 	})
 );
+
+app.get("/health", (c) => c.text("OK"));
 app.use("*", requestId());
 app.use("*", async (c, next) => {
 	c.header("X-Service-Name", "Sayr.io");
@@ -41,7 +41,7 @@ app.use("*", async (c, next) => {
 	return next();
 });
 app.get("/", serveStatic({ path: "./public/index.html" }));
-app.route("/", wsRoute);
+app.route("/ws", wsRoute);
 app.route("/api", apiRoute);
 app.get("/ws", serveStatic({ path: "./public/ws.html" }));
 app.all("*", (c) => {
@@ -75,64 +75,3 @@ const generateNotFoundResponse = (method: string, url: string) => ({
 	error: "Not Found",
 	status: 404,
 });
-
-export async function getOrganization(orgId: string, userId: string): Promise<{ id: string } | null> {
-	// Check if the user is a member of this org
-	const membership = await db.query.member.findFirst({
-		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
-	});
-
-	// If no membership found, deny access
-	if (!membership) {
-		return null; // or throw new Error("Unauthorized");
-	}
-
-	// Fetch the organization itself
-	const [organization] = await db
-		.select({ id: schema.organization.id })
-		.from(schema.organization)
-		.where(eq(schema.organization.id, orgId));
-
-	if (!organization) return null;
-
-	return organization;
-}
-
-/**
- * Verifies a user's membership role within an organization.
- *
- * @param userId - The ID of the user (from session)
- * @param orgId - The ID of the organization
- * @param allowedRoles - Array of roles allowed to pass authorization
- *                       (default: ["owner", "admin"])
- * @returns A promise that resolves to a boolean indicating whether the user
- *          is authorized
- *
- * @example
- * ```ts
- * const canManage = await checkMembershipRole(session?.userId, "org_123");
- * if (!canManage) {
- *   throw new Error("UNAUTHORIZED");
- * }
- *
- * // With custom roles
- * const canEdit = await checkMembershipRole(session?.userId, "org_123", [
- *   "editor",
- *   "moderator",
- * ]);
- * ```
- */
-export async function checkMembershipRole(
-	userId: string | undefined,
-	orgId: string,
-	allowedRoles: string[] = ["owner", "admin"]
-): Promise<boolean> {
-	if (!userId) return false;
-
-	const [role] = await db
-		.select()
-		.from(schema.member)
-		.where(and(eq(schema.member.userId, userId), eq(schema.member.organizationId, orgId)));
-
-	return allowedRoles.includes(role?.role || "");
-}

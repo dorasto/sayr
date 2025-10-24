@@ -2,10 +2,11 @@
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
 		"paths": {
-			"@/routes*": ["./routes/*"],
-			"@/public*": ["./public/*"],
+			"@/routes/*": ["./routes/*"],
+			"@/public/*": ["./public/*"],
 			"@/index": ["./index.ts"],
-			"@/queue": ["./queue.ts"]
+			"@/queue": ["./queue.ts"],
+			"@/util": ["./util.ts"]
 		}
 	},
 	"include": ["routes", "public", "index.ts","queue.ts"],

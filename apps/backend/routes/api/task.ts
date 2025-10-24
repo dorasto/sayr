@@ -6,15 +6,16 @@ import {
 	db,
 	getMergedTaskActivity,
 	getTaskById,
-	getTaskComments,
 	removeLabelFromTask,
 	schema,
 } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { type AppEnv, checkMembershipRole } from "@/index";
+import type { AppEnv } from "@/index";
+import type { WSBaseMessage } from "@/routes/ws/types";
+import { checkMembershipRole } from "@/util";
 // import { enqueueJob } from "@/queue";
-import { broadcast, broadcastPublic, broadcastToRoom, findClientByWsId, type WSBaseMessage } from "../ws";
+import { broadcast, broadcastPublic, broadcastToRoom, findClientByWsId } from "../ws";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 apiRouteAdminProjectTask.post("/create", async (c) => {

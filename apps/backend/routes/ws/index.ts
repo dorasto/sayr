@@ -1,61 +1,13 @@
 import type { ServerWebSocket } from "bun";
 import { Hono } from "hono";
 import { upgradeWebSocket } from "hono/bun";
-import { type AppEnv, getOrganization } from "..";
+import type { AppEnv } from "@/index";
+import { safeGetOrganization } from "@/util";
+import { DISCONNECTED_TEMPLATE, PING_TEMPLATE, WAITING_ROOM_TEMPLATE } from "./templates";
+import type { ClientInfo, WSBaseMessage, wsClientsType } from "./types";
 
 export const wsRoute = new Hono<AppEnv>();
 
-type ClientInfo = {
-	socket: ServerWebSocket; // raw WebSocket connection
-	wsClientId: string; // unique per connection
-	clientId: string; // logical user ID (can have multiple connections)
-	orgId: string; // org subscription
-	channel: string; // channel subscription
-};
-// Base message type
-export type WSBaseMessage = {
-	type:
-		| "CONNECTION_STATUS"
-		| "SERVER_MESSAGE"
-		| "ERROR"
-		| "PING"
-		| "PONG"
-		| "MESSAGE"
-		| "SUBSCRIBED"
-		| "SUBSCRIBE"
-		| "UNSUBSCRIBE"
-		| "USER_UNSUBSCRIBED"
-		| "USER_SUBSCRIBED"
-		| "UPDATE_ORG"
-		| "CREATE_PROJECT"
-		| "CREATE_TASK"
-		| "UPDATE_TASK"
-		| "CREATE_LABEL"
-		| "FIREHOSE"
-		| "CONNECTIONS_SNAPSHOT"
-		| "WAITING_ROOM"
-		| "DISCONNECTED";
-	// biome-ignore lint/suspicious/noExplicitAny: <any>
-	data?: any;
-	orgId?: string;
-	channel?: string;
-	scope: "INDIVIDUAL" | "CHANNEL" | "PUBLIC";
-	meta?: {
-		ts: number;
-		channel?: string;
-		orgId?: string;
-		[key: string]: string | number | undefined | null;
-	};
-};
-type wsClientsType = {
-	id: string;
-	connectedAt: number; // ✅ when this connection was first established
-	lastMessageAt: number;
-	offenceCount: number;
-	// Heartbeat info
-	lastPong: number; // ✅ last pong received from heartbeat
-	lastLatency: number; // ✅ last measured RTT
-};
 const rooms = new Map<string, Set<ClientInfo>>();
 const wsClients = new Map<ServerWebSocket, wsClientsType>();
 
@@ -127,15 +79,42 @@ function sendToClients(
  * ```
  */
 export function broadcastIndividual(ws: ServerWebSocket, message: Omit<WSBaseMessage, "scope">) {
-	const msgWithMeta: WSBaseMessage = {
-		...message,
-		scope: "INDIVIDUAL",
-		meta: {
-			ts: Date.now(),
-			...(message.meta || {}),
-		},
-	};
-	ws.send(JSON.stringify(msgWithMeta));
+	// skip closed sockets
+	if (!ws || ws.readyState !== 1) return;
+
+	// Common frequent message optimisations
+	switch (message.type) {
+		case "PING":
+			// already has a constant template if you want
+			ws.send(PING_TEMPLATE);
+			return;
+		case "DISCONNECTED":
+			ws.send(DISCONNECTED_TEMPLATE);
+			return;
+		case "WAITING_ROOM":
+			ws.send(WAITING_ROOM_TEMPLATE);
+			return;
+	}
+
+	// everything else: minimal object build + fast JSON encode
+	// pre‑attach timestamp (cheap inline)
+	const ts = Date.now();
+
+	// Instead of copying the whole meta & message, build fast and reuse small string concat
+	if (typeof message.data === "string") {
+		// handle cheap string case
+		ws.send(`{"type":"${message.type}","scope":"INDIVIDUAL","data":"${message.data}","meta":{"ts":${ts}}}`);
+		return;
+	}
+
+	// fallback — JSON stringify for complex objects, but only once
+	ws.send(
+		JSON.stringify({
+			...message,
+			scope: "INDIVIDUAL",
+			meta: { ts, ...(message.meta || {}) },
+		})
+	);
 }
 
 /**
@@ -302,6 +281,38 @@ export function findClientBySocket(socket: ServerWebSocket): ClientInfo | undefi
 }
 
 /**
+ * Retrieves the connection metadata for a given {@link ServerWebSocket} instance.
+ *
+ * This provides access to connection lifecycle information such as
+ * `connectedAt`, `lastMessageAt`, and heartbeat data (e.g. `lastPong`).
+ *
+ * @param socket - The raw {@link ServerWebSocket} instance associated with the client.
+ * @returns The {@link wsClientsType} metadata object if found, otherwise `undefined`.
+ *
+ * @example
+ * ```ts
+ * const info = getWsClientMeta(ws);
+ * if (info) {
+ *   console.log(`Client ${info.id} pinged last at`, new Date(info.lastPong));
+ * } else {
+ *   console.warn("Unknown or expired websocket");
+ * }
+ * ```
+ *
+ * @remarks
+ * This function safely wraps access to the global {@link wsClients} map and
+ * guards against potential race conditions where a socket may have been
+ * removed by a cleanup interval or disconnect event.
+ */
+export function getWsClientMeta(socket: ServerWebSocket): wsClientsType | undefined {
+	const client = wsClients.get(socket);
+	if (!client) {
+		return undefined;
+	}
+	return client;
+}
+
+/**
  * Find all connected WebSocket clients for a given user ID.
  *
  * Since a user can have multiple WebSocket connections (e.g., across different
@@ -378,18 +389,22 @@ function getAllConnectedClients() {
 
 	for (const clients of rooms.values()) {
 		for (const c of clients) {
-			const wsClientId = wsClients.get(c.socket) as wsClientsType;
-			connected.push({
-				wsClientId: c.wsClientId,
-				clientId: c.clientId,
-				orgId: c.orgId,
-				channel: c.channel,
-				lastPong: wsClientId.lastPong,
-				lastLatency: wsClientId.lastLatency,
-				connectedAt: wsClientId.connectedAt,
-				lastMessageAt: wsClientId.lastMessageAt,
-				authenticated: c.clientId !== "ANONYMOUS",
-			});
+			const wsClientId = getWsClientMeta(c.socket);
+			if (wsClientId) {
+				connected.push({
+					wsClientId: c.wsClientId,
+					clientId: c.clientId,
+					orgId: c.orgId,
+					channel: c.channel,
+					lastPong: wsClientId.lastPong,
+					lastLatency: wsClientId.lastLatency,
+					connectedAt: wsClientId.connectedAt,
+					lastMessageAt: wsClientId.lastMessageAt,
+					authenticated: c.clientId !== "ANONYMOUS",
+				});
+			} else {
+				console.log("🚀 ~ getAllConnectedClients ~ wsClientId:", wsClientId);
+			}
 		}
 	}
 
@@ -401,20 +416,37 @@ function getAllConnectedClients() {
 // ------------------------------------------------------------------
 
 function unsubscribe(socket: ServerWebSocket) {
-	const wsClientId = wsClients.get(socket);
-	for (const [key, clients] of rooms) {
-		if (!clients) continue;
-		const before = clients.size;
-		for (const c of Array.from(clients)) {
-			if (c.socket === socket) clients.delete(c);
+	const wsMeta = getWsClientMeta(socket);
+	const id = wsMeta?.id ?? "unknown";
+
+	for (const [roomKey, members] of rooms.entries()) {
+		if (!members || members.size === 0) continue;
+
+		// Skip the global waiting-room key entirely
+		if (roomKey === `${WAITING_ORG}:${WAITING_CHANNEL}`) continue;
+
+		const before = members.size;
+		for (const member of members) {
+			if (member.socket === socket) members.delete(member);
 		}
-		if (clients.size < before) {
-			const [orgId, channel] = key.split(":");
+
+		// if someone was removed
+		if (members.size < before) {
+			const [orgId, channel] = roomKey.split(":");
+
+			// send unsub notice only for real orgs
 			if (orgId && channel && orgId !== WAITING_ORG) {
-				const id = wsClientId?.id;
-				broadcast(orgId, channel, { type: "USER_UNSUBSCRIBED", data: { id, orgId, channel } }, socket);
+				try {
+					broadcast(orgId, channel, { type: "USER_UNSUBSCRIBED", data: { id, orgId, channel } }, socket);
+				} catch (err) {
+					console.warn("unsubscribe broadcast failed:", err);
+				}
 			}
-			if (clients.size === 0) rooms.delete(key);
+
+			// delete empty non-waiting rooms
+			if (members.size === 0) {
+				rooms.delete(roomKey);
+			}
 		}
 	}
 }
@@ -484,7 +516,7 @@ function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: stri
 // ------------------------------------------------------------------
 
 wsRoute.get(
-	"/ws",
+	"/",
 	upgradeWebSocket((c) => ({
 		onOpen: (_, ws) => {
 			const session = c.get("session");
@@ -539,7 +571,11 @@ wsRoute.get(
 			try {
 				const now = Date.now();
 				const msg: WSBaseMessage = JSON.parse(event.data as string);
-				const wsClient = wsClients.get(ws.raw) as wsClientsType;
+				const wsClient = getWsClientMeta(ws.raw);
+				if (!wsClient) {
+					console.warn("Unknown wsClient in onMessage");
+					return;
+				}
 				const session = c.get("session");
 				const user = c.get("user");
 				const client = findClientBySocket(ws.raw);
@@ -623,7 +659,7 @@ wsRoute.get(
 							} else if (channel === "public" && !session) {
 								handleSubscribe(ws.raw, wsClient.id, crypto.randomUUID(), orgId, channel);
 							} else {
-								const organization = await getOrganization(orgId, user.id);
+								const organization = await safeGetOrganization(orgId, user.id);
 								if (organization) {
 									handleSubscribe(ws.raw, wsClient.id, user.id, orgId, channel);
 								} else {
@@ -674,23 +710,30 @@ wsRoute.get(
 		},
 
 		onClose: (_, ws) => {
-			broadcastIndividual(ws.raw, {
-				type: "DISCONNECTED",
-				data: { message: "You have been disconnected" },
-			});
+			broadcastIndividual(ws.raw, { type: "DISCONNECTED" });
 			unsubscribe(ws.raw);
 			wsClients.delete(ws.raw);
 			console.log("Connection closed");
 		},
 		onError(_, ws) {
 			unsubscribe(ws.raw);
-			wsClients.delete(ws.raw);
 			ws.close();
+			wsClients.delete(ws.raw);
 			console.log("Connection closed error");
 		},
 	}))
 );
 
+wsRoute.get("/health", (c) => c.json({ ok: true }));
+
+wsRoute.get("/metrics", (c) => {
+	return c.json({
+		rooms: rooms.size,
+		sockets: wsClients.size,
+		memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+		uptimeMin: Math.round(process.uptime() / 60),
+	});
+});
 // ✅ Heartbeat interval
 // Send a PING every 30 seconds
 // Close dead sockets after 60 seconds of no PONG
@@ -703,7 +746,7 @@ setInterval(() => {
 			unsubscribe(socket);
 		} else {
 			try {
-				socket.send(JSON.stringify({ type: "PING", scope: "INDIVIDUAL", meta: { ts: Date.now() } }));
+				socket.send(`{"type":"PING","scope":"INDIVIDUAL","meta":{"ts":${Date.now()}}}`);
 			} catch {
 				console.log("Failed to ping, closing", wsClient);
 				socket.close();
