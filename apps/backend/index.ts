@@ -51,7 +51,7 @@ function getSessionToken(headers: Headers): string {
 async function safeGetSession(
 	headers: Headers,
 	ms = 10_000,
-	ttl = 10 * 60 * 1000 // cache duration: 10 minutes by default
+	ttl = 1 * 60 * 1000 // cache duration: 1 minute by default
 ): Promise<SessionValue | null> {
 	const key = getSessionToken(headers);
 	const now = Date.now();
@@ -87,9 +87,9 @@ setInterval(
 			if (expiresAt < now) sessionCache.delete(key);
 		}
 	},
-	10 * 60 * 1000
+	1 * 60 * 1000
 ).unref(); // unref() ensures it won't keep process alive
-// 10 minutes
+// 1 minute
 
 // -----------------------------------------------------------------------------
 // Core Middleware chain
