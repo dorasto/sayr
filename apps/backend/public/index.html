@@ -4,26 +4,29 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Sayr.io" />
-    <meta name="keywords" content="Project Management, Task Management, Collaboration, Productivity" />
-    <meta name="author" content="doras.to" />
+    <meta name="description"
+        content="Sayr.io — Open project management platform for transparent collaboration (public + private workflows)." />
+    <meta name="keywords" content="Open project management, transparent collaboration, tasks, issues, public/private" />
+    <meta name="author" content="Doras" />
     <meta name="robots" content="index, follow" />
 
     <!-- Open Graph meta tags for social media -->
-    <meta property="og:title" content="Welcome to Sayr.io" />
-    <meta property="og:description" content="Sayr.io" />
+    <meta property="og:title" content="Sayr.io — Open Project Management Platform" />
+    <meta property="og:description"
+        content="Transparent project management: public + private fields, role-based permissions, threading, and an open API." />
     <meta property="og:image" content="/favicon.ico" />
-    <meta property="og:url" content="https://sayr.io" />
+    <meta property="og:url" content="/" />
     <meta property="og:type" content="website" />
 
     <!-- Twitter meta tags for Twitter Cards -->
-    <meta name="twitter:title" content="Welcome to Sayr.io" />
-    <meta name="twitter:description" content="Sayr.io" />
+    <meta name="twitter:title" content="Sayr.io — Open Project Management Platform" />
+    <meta name="twitter:description"
+        content="Public and private workflows for teams and external contributors. Build transparent collaboration into your projects." />
     <meta name="twitter:image" content="https://cdn.doras.to/doras/icon-128.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/x-icon" href="https://cdn.doras.to/doras/icon-128.webp" />
 
-    <title>Welcome to Sayr.io</title>
+    <title>Sayr.io — Open Project Management Platform</title>
     <style>
         :root {
             --background: oklch(0.2046 0 0);
@@ -82,17 +85,17 @@
 
         .logo {
             width: 150px;
-            margin-bottom: 30px;
-        }
-
-        h1 {
-            font-size: 50px;
-            color: var(--primary);
             margin-bottom: 20px;
         }
 
+        h1 {
+            font-size: 36px;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
         p {
-            font-size: 18px;
+            font-size: 16px;
             color: var(--muted-foreground);
         }
 
@@ -109,14 +112,21 @@
 
 <body>
     <div class="container">
-        <img src="https://cdn.doras.to/doras/icon-128.webp" alt="Doras.to API Logo" class="logo" />
-        <h1>Welcome to Sayr.io</h1>
-        <p class="welcome-message">
-            Integrate powerful features into your applications using the Doras.to API.
-        </p>
+        <img src="https://cdn.doras.to/doras/icon-128.webp" alt="Sayr.io Logo" class="logo" />
+        <h1>Sayr.io — Open Project Management</h1>
 
-        <p>Explore the full API documentation and start building:</p>
-        <p><a href="https://doras.to/documentation?blog=core-api">View API Documentation</a></p>
+        <p class="welcome-message">A modern platform for transparent collaboration. Public and private fields,
+            role-based permissions, and a single timeline for public/internal threads.</p>
+
+        <h3>Key features</h3>
+        <ul style="text-align:left; margin: 12px auto; max-width:420px; color:var(--card-foreground);">
+            <li>Granular visibility: toggle public/private per field, label, or comment</li>
+            <li>Role-based permissions: separate external submitters from org members</li>
+            <li>Dual discussions: unified timeline with public and internal comments</li>
+            <li>Labels, votes, and metadata with visibility controls</li>
+            <li>Open API and OAuth-ready authentication</li>
+        </ul>
+
     </div>
 </body>
 
