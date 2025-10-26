@@ -1,5 +1,5 @@
 import type { auth } from "@repo/auth/index";
-import { type Context, Hono, type Next } from "hono";
+import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
