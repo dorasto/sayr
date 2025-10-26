@@ -6,7 +6,8 @@
 			"@/public/*": ["./public/*"],
 			"@/index": ["./index.ts"],
 			"@/queue": ["./queue.ts"],
-			"@/util": ["./util.ts"]
+			"@/util": ["./util.ts"],
+			"@/getSession": ["./getSession.ts"],
 		}
 	},
 	"include": ["routes", "public", "index.ts","queue.ts"],

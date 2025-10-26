@@ -1,12 +1,12 @@
 import type { ServerWebSocket } from "bun";
 import { Hono } from "hono";
 import { upgradeWebSocket } from "hono/bun";
-import type { AppEnv } from "@/index";
+import { safeGetSession } from "@/getSession";
 import { safeGetOrganization } from "@/util";
 import { DISCONNECTED_TEMPLATE, PING_TEMPLATE, WAITING_ROOM_TEMPLATE } from "./templates";
 import type { ClientInfo, WSBaseMessage, wsClientsType } from "./types";
 
-export const wsRoute = new Hono<AppEnv>();
+export const wsRoute = new Hono();
 
 const rooms = new Map<string, Set<ClientInfo>>();
 const wsClients = new Map<ServerWebSocket, wsClientsType>();
@@ -421,10 +421,6 @@ function unsubscribe(socket: ServerWebSocket) {
 
 	for (const [roomKey, members] of rooms.entries()) {
 		if (!members || members.size === 0) continue;
-
-		// Skip the global waiting-room key entirely
-		if (roomKey === `${WAITING_ORG}:${WAITING_CHANNEL}`) continue;
-
 		const before = members.size;
 		for (const member of members) {
 			if (member.socket === socket) members.delete(member);
@@ -442,7 +438,6 @@ function unsubscribe(socket: ServerWebSocket) {
 					console.warn("unsubscribe broadcast failed:", err);
 				}
 			}
-
 			// delete empty non-waiting rooms
 			if (members.size === 0) {
 				rooms.delete(roomKey);
@@ -518,9 +513,8 @@ function joinWaitingRoom(ws: ServerWebSocket, wsClientId: string, clientId: stri
 wsRoute.get(
 	"/",
 	upgradeWebSocket((c) => ({
-		onOpen: (_, ws) => {
-			const session = c.get("session");
-			const user = c.get("user");
+		onOpen: async (_, ws) => {
+			const sessionData = await safeGetSession(c.req.raw.headers);
 			const wsClientId = crypto.randomUUID();
 			wsClients.set(ws.raw, {
 				id: wsClientId,
@@ -532,7 +526,7 @@ wsRoute.get(
 			});
 			const orgId = c.req.query("orgId");
 
-			if (!session) {
+			if (!sessionData) {
 				broadcastIndividual(ws.raw, {
 					type: "CONNECTION_STATUS",
 					data: {
@@ -563,7 +557,7 @@ wsRoute.get(
 				},
 			});
 			if (orgId) {
-				handleSubscribe(ws.raw, wsClientId, user.id, orgId, "public");
+				handleSubscribe(ws.raw, wsClientId, sessionData.user.id, orgId, "public");
 			}
 		},
 
@@ -576,8 +570,6 @@ wsRoute.get(
 					console.warn("Unknown wsClient in onMessage");
 					return;
 				}
-				const session = c.get("session");
-				const user = c.get("user");
 				const client = findClientBySocket(ws.raw);
 				// Rate limit messages (except PING/PONG)
 				if (!["PING", "PONG"].includes(msg.type)) {
@@ -624,7 +616,8 @@ wsRoute.get(
 						return;
 					case "SUBSCRIBE":
 						if (msg.orgId === ADMIN_ORG && msg.channel === CONNECTIONS_CHANNEL) {
-							if (user.role !== "admin") {
+							const sessionData = await safeGetSession(c.req.raw.headers);
+							if (sessionData?.user.role !== "admin") {
 								broadcastIndividual(ws.raw, {
 									type: "ERROR",
 									data: { message: "Unauthorized for CONNECTIONS_SNAPSHOT" },
@@ -633,7 +626,7 @@ wsRoute.get(
 								ws.close();
 								return;
 							}
-							handleSubscribe(ws.raw, wsClient.id, user.id, ADMIN_ORG, CONNECTIONS_CHANNEL);
+							handleSubscribe(ws.raw, wsClient.id, sessionData?.user.id, ADMIN_ORG, CONNECTIONS_CHANNEL);
 							// ✅ Send snapshot of connected clients to *this admin only*
 							const snapshot = getAllConnectedClients();
 							broadcastIndividual(ws.raw, {
@@ -643,6 +636,7 @@ wsRoute.get(
 							return;
 						}
 						if (msg.type === "SUBSCRIBE") {
+							const sessionData = await safeGetSession(c.req.raw.headers);
 							const { orgId, channel } = msg;
 							if (!orgId || !channel) {
 								return broadcastIndividual(ws.raw, {
@@ -651,17 +645,17 @@ wsRoute.get(
 								});
 							}
 							// ✅ enforce session: only allow "public" channel if unauthenticated
-							if (!session && channel !== "public") {
+							if (!sessionData?.session && channel !== "public") {
 								return broadcastIndividual(ws.raw, {
 									type: "ERROR",
 									data: { message: "Auth required for private channels" },
 								});
-							} else if (channel === "public" && !session) {
+							} else if (channel === "public" && !sessionData?.session) {
 								handleSubscribe(ws.raw, wsClient.id, crypto.randomUUID(), orgId, channel);
 							} else {
-								const organization = await safeGetOrganization(orgId, user.id);
+								const organization = await safeGetOrganization(orgId, sessionData?.user.id || "");
 								if (organization) {
-									handleSubscribe(ws.raw, wsClient.id, user.id, orgId, channel);
+									handleSubscribe(ws.raw, wsClient.id, sessionData?.user.id || "", orgId, channel);
 								} else {
 									broadcastIndividual(ws.raw, {
 										type: "ERROR",
@@ -673,17 +667,20 @@ wsRoute.get(
 							return;
 						}
 						return;
-					case "UNSUBSCRIBE":
-						if (!session) {
+					case "UNSUBSCRIBE": {
+						const sessionData = await safeGetSession(c.req.raw.headers);
+						if (!sessionData?.session) {
 							return broadcastIndividual(ws.raw, {
 								type: "ERROR",
 								data: { message: "Anonymous users cannot unsubscribe" },
 							});
 						}
-						joinWaitingRoom(ws.raw, wsClient.id, user?.id);
+						joinWaitingRoom(ws.raw, wsClient.id, sessionData.user?.id);
 						return;
-					case "CONNECTIONS_SNAPSHOT":
-						if (user.role !== "admin") {
+					}
+					case "CONNECTIONS_SNAPSHOT": {
+						const sessionData = await safeGetSession(c.req.raw.headers);
+						if (sessionData?.user.role !== "admin") {
 							return;
 						} else {
 							// ✅ Send snapshot of connected clients to *this admin only*
@@ -694,12 +691,15 @@ wsRoute.get(
 							});
 							return;
 						}
+					}
 					case "MESSAGE":
 						console.log(msg);
 						return;
-					default:
-						joinWaitingRoom(ws.raw, wsClient.id, user?.id);
+					default: {
+						const sessionData = await safeGetSession(c.req.raw.headers);
+						joinWaitingRoom(ws.raw, wsClient.id, sessionData?.user?.id || "");
 						break;
+					}
 				}
 			} catch (err) {
 				broadcastIndividual(ws.raw, {
