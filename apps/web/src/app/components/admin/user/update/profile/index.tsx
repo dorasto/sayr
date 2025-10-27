@@ -36,6 +36,17 @@ export default function ProfileUpdate() {
 				</div>
 				<OptionField title="Theme" description="Choose your colour settings" customSide={<ThemeToggle full />} />
 			</div>
+			<Separator />
+			<div className="flex flex-col gap-6">
+				<div>
+					<Label variant={"heading"}>Tasks</Label>
+				</div>
+				<OptionField
+					title="Dialog or full page experience"
+					description="When you click on a task, would you prefer it open in a dialog or take you to a full page?"
+					customSide={<ThemeToggle full />}
+				/>
+			</div>
 		</div>
 	);
 }

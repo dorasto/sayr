@@ -20,9 +20,11 @@ import {
 } from "@repo/ui/components/context-menu";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
-import { IconCircleFilled, IconUserOff } from "@tabler/icons-react";
+import { IconAppWindow, IconCircleFilled, IconLink, IconUserOff, IconWindow } from "@tabler/icons-react";
 import { nanoid } from "nanoid";
+import Link from "next/link";
 import { useRef, useState } from "react";
+import { organization, project } from "../../../../../../../../../../../packages/database/schema";
 import { priorityConfig, statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
 import { RenderLabel } from "../../label";
@@ -398,10 +400,16 @@ export function TaskListItem({
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent className="w-52">
-				<ContextMenuItem inset>Back</ContextMenuItem>
-				<ContextMenuItem inset disabled>
-					Forward
+				<ContextMenuItem inset onClick={handleTaskClick} className="gap-1 w-full">
+					<IconAppWindow className="size-4" />
+					Open
 				</ContextMenuItem>
+				<Link href={``}>
+					<ContextMenuItem inset className="gap-1 w-full">
+						<IconLink className="size-4" />
+						Full page
+					</ContextMenuItem>
+				</Link>
 				<ContextMenuItem inset>Reload</ContextMenuItem>
 				<ContextMenuSub>
 					<ContextMenuSubTrigger inset>Status</ContextMenuSubTrigger>
