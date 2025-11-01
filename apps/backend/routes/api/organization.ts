@@ -1,4 +1,4 @@
-import { db, getOrCreateLabel, getOrganizationMembers, schema } from "@repo/database";
+import { db, getOrCreateLabel, getOrganizationMembers, getUsersByIds, schema } from "@repo/database";
 import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
@@ -18,7 +18,12 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	}
 	const [result] = await db
 		.update(schema.organization)
-		.set({ ...data, updatedAt: new Date() })
+		.set({
+			...data,
+			logo: data.logo && `organization/${org_id}/${getFileNameFromUrl(data.logo)}`,
+			bannerImg: data.bannerImg && `organization/${org_id}/${getFileNameFromUrl(data.bannerImg)}`,
+			updatedAt: new Date(),
+		})
 		.where(eq(schema.organization.id, org_id))
 		.returning();
 	if (result) {
@@ -151,8 +156,24 @@ apiRouteAdminOrganization.get("/:orgId/assets", async (c) => {
 		return c.json({ error: "UNAUTHORIZED" }, 401);
 	}
 	const data = await listFileObjectsWithMetadata(`organization/${orgId}`);
+	// Collect ALL userIds present in metadata
+	const userIds = [
+		...new Set(
+			data
+				.map((s) => s.userId)
+				.filter(Boolean) // drop undefined/null
+		),
+	];
+
+	// Batch load all users at once
+	const users = await getUsersByIds(userIds);
+	const userMap = new Map(users.map((u) => [u.id, u]));
 	data.map((item) => {
 		item.url = ensureCdnUrl(item.name || "");
+		item.user = {
+			name: userMap.get(item.userId)?.name || "",
+			image: userMap.get(item.userId)?.image || "",
+		};
 	});
 	return c.json(data);
 });

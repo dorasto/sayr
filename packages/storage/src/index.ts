@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 import type { Readable } from "node:stream";
 import * as Minio from "minio";
-import { getUsersByIds } from "../../database/src/functions";
 
 const minioClient = new Minio.Client({
 	endPoint: process.env.STORAGE_URL || "",
@@ -119,73 +118,48 @@ export function listFileObjects(prefix = "", recursive = true): Promise<Minio.Bu
 type BucketType = Minio.BucketItem & {
 	url: string;
 	originalName: string;
+	userId: string;
+	user?: {
+		name: string;
+		image: string;
+	};
 };
 export async function listFileObjectsWithMetadata(prefix = "", recursive = true): Promise<BucketType[]> {
-	return new Promise((resolve, reject) => {
-		const items: BucketType[] = [];
-		const stream = minioClient.listObjectsV2(BUCKET, prefix, recursive);
+	const items: BucketType[] = [];
+	const stream = minioClient.listObjectsV2(BUCKET, prefix, recursive);
 
-		stream.on("data", (obj: BucketType & { name?: string }) => {
-			if (obj.name) {
-				items.push({ ...obj, name: obj.name } as BucketType);
-			}
-		});
+	// Collect stream results using async iterator
+	for await (const obj of stream) {
+		if (obj.name) items.push(obj as BucketType);
+	}
 
-		stream.on("error", (err) => reject(err));
+	// Fire off metadata lookups in parallel
+	const enriched = (
+		await Promise.all(
+			items.map(async (item) => {
+				if (!item.name) return null;
 
-		stream.on("end", async () => {
-			try {
-				// Fetch all stats in parallel
-				const stats = await Promise.all(
-					items.map(async (item) => {
-						if (!item.name) return null;
-						const stat = await minioClient.statObject(BUCKET, item.name);
-						return { item, stat };
-					})
-				);
+				try {
+					const stat = await minioClient.statObject(BUCKET, item.name);
 
-				// Collect ALL userIds present in metadata
-				const userIds = [
-					...new Set(
-						stats
-							.map((s) => s?.stat.metaData["user-id"])
-							.filter(Boolean) // drop undefined/null
-					),
-				];
+					return {
+						...item,
+						lastModified: stat.lastModified,
+						originalName: stat.metaData?.originalname,
+						userId: stat.metaData?.["user-id"],
+						contentType: stat.metaData?.["content-type"],
+					} as BucketType;
+				} catch (err) {
+					// Optionally log and skip items that fail
+					console.warn(`Failed to stat object: ${item.name}`, err);
+					return null;
+				}
+			})
+		)
+	).filter(Boolean) as BucketType[];
 
-				// Batch load all users at once
-				const users = await getUsersByIds(userIds);
-				const userMap = new Map(users.map((u) => [u.id, u]));
-
-				// Merge everything back
-				const enriched = stats
-					.filter((s): s is NonNullable<typeof s> => !!s)
-					.map(({ item, stat }) => {
-						const userId = stat.metaData["user-id"];
-						return {
-							...item,
-							url: item.url,
-							lastModified: stat.lastModified,
-							originalName: stat.metaData?.originalname,
-							user: userId
-								? {
-										id: userId,
-										name: userMap.get(userId)?.name,
-										image: userMap.get(userId)?.image,
-									}
-								: undefined,
-							contentType: stat.metaData["content-type"],
-						};
-					});
-
-				resolve(enriched);
-			} catch (err) {
-				reject(err);
-			}
-		});
-	});
+	return enriched;
 }
-
 /**
  * Removes a single object from the configured MinIO bucket.
  *
