@@ -27,6 +27,7 @@ export function useWebSocketSubscription({
 		orgId: string;
 		channel: string;
 	} | null>("ws-subscribe-state", null);
+	const { value: WSClientId } = useStateManagement<string>("ws-clientId", "");
 	// Define handlers for message types
 	const handlers: WSMessageHandler<WSMessage> = {
 		SUBSCRIBED: (msg) => {
@@ -89,7 +90,7 @@ export function useWebSocketSubscription({
 		// delay sending to let old hook unmount cleanly
 		const id = setTimeout(() => {
 			if (cancelled) return;
-			if (changed && ws.readyState === WebSocket.OPEN) {
+			if (changed && ws.readyState === WebSocket.OPEN && WSClientId) {
 				ws.send(JSON.stringify({ type: "SUBSCRIBE", orgId, channel }));
 				setWSSubscribedState({ orgId, channel });
 				console.log("🔄 Subscribed to", { orgId, channel });
@@ -101,7 +102,7 @@ export function useWebSocketSubscription({
 			ws.removeEventListener("message", handleMessage);
 		};
 		// ✅ wsSubscribedState stays in deps safely because we’re comparing before set
-	}, [ws, orgId, channel, handleMessage, setWSSubscribedState]);
+	}, [ws, orgId, channel, handleMessage, setWSSubscribedState, WSClientId]);
 
 	return { wsSubscribedState };
 }

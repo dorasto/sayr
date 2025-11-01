@@ -75,6 +75,7 @@ const useWebSocket = () => {
 					webSocket = null;
 					console.log("WebSocket disconnected. Attempting to reconnect...");
 					setWs(null);
+					setWSClientId("");
 					setWSStatus("Reconnecting");
 					headlessToast.error({
 						id: "ws-connection-status",
@@ -96,6 +97,7 @@ const useWebSocket = () => {
 					}
 					webSocket = null;
 					setWs(null);
+					setWSClientId("");
 					setWSStatus("Disconnected");
 					headlessToast.error({
 						id: "ws-connection-status",
