@@ -92,29 +92,6 @@ export function listFileObjects(prefix = "", recursive = true): Promise<Minio.Bu
 		stream.on("end", () => resolve(items));
 	});
 }
-
-/**
- * Lists file objects from the configured MinIO bucket, including enriched metadata.
- *
- * @param prefix - Optional prefix (folder path) to filter objects. Defaults to `""` (all objects).
- * @param recursive - Whether to list objects recursively (include subfolders). Defaults to `true`.
- * @returns A promise that resolves to an array of enriched objects. Each object includes:
- * - `name`: The file name (object key).
- * - `size`, `etag`, `lastModified`: Standard MinIO object attributes.
- * - `metaData`: Object metadata set during upload.
- * - `contentType`: Content type of the object.
- * - `userId`: The uploader's user ID (from metadata).
- * - `user`: An object with the uploader's `name` and `image`, if available.
- *
- * @example
- * ```ts
- * const objects = await listFileObjectsWithMetadata("organization/123/", true);
- *
- * objects.forEach(obj => {
- *   console.log(`${obj.name} (${obj.contentType}) uploaded by ${obj.user?.name}`);
- * });
- * ```
- */
 type BucketType = Minio.BucketItem & {
 	url: string;
 	originalName: string;
@@ -124,24 +101,92 @@ type BucketType = Minio.BucketItem & {
 		image: string;
 	};
 };
-export async function listFileObjectsWithMetadata(prefix = "", recursive = true): Promise<BucketType[]> {
+type ListResult = {
+	objects: BucketType[];
+	nextStartAfter?: string;
+	hasMore?: boolean;
+};
+/**
+ * Lists file objects from the configured MinIO bucket, including enriched metadata.
+ *
+ * Supports simple pagination using the `startAfter` parameter and a configurable `pageSize`.
+ *
+ * @param prefix - Optional object key prefix (e.g., folder path) used to filter results.
+ * Defaults to an empty string (`""`), which lists all objects.
+ *
+ * @param pageSize - The maximum number of items to return per call. Defaults to `20`.
+ *
+ * @param startAfter - The name (object key) of the last item from the previous page.
+ * When provided, the listing will start *after* this key.
+ *
+ * @returns A promise resolving to an object containing:
+ * - `objects`: An array of enriched bucket items. Each item includes:
+ *   - `name`: The object key (file name).
+ *   - `size`, `etag`, `lastModified`: Standard MinIO object attributes.
+ *   - `metaData`: Metadata that was set during upload.
+ *   - `contentType`: The MIME type of the file.
+ *   - `userId`: The uploader’s user ID (from metadata, if available).
+ *   - `user`: An optional object containing the uploader’s `name` and `image`, if available.
+ * - `nextStartAfter`: The key of the last object in the current page, to use as the
+ *   `startAfter` value for the next page (undefined if there are no more results).
+ *
+ * @example
+ * ```ts
+ * // Get first page (20 objects)
+ * const { objects, nextStartAfter } = await listFileObjectsWithMetadata("organization/123/", true, 20);
+ *
+ * console.log("Page 1:", objects.length, "files");
+ *
+ * // Fetch next page
+ * if (nextStartAfter) {
+ *   const nextPage = await listFileObjectsWithMetadata("organization/123/", true, 20, nextStartAfter);
+ *   console.log("Page 2:", nextPage.objects.length, "files");
+ * }
+ * ```
+ */
+export async function listFileObjectsWithMetadata(
+	prefix = "",
+	pageSize = 50,
+	startAfter?: string
+): Promise<ListResult> {
 	const items: BucketType[] = [];
-	const stream = minioClient.listObjectsV2(BUCKET, prefix, recursive);
+	const stream = minioClient.listObjectsV2(BUCKET, prefix, false, startAfter);
 
-	// Collect stream results using async iterator
+	let seenCount = 0;
+
 	for await (const obj of stream) {
-		if (obj.name) items.push(obj as BucketType);
+		if (!obj.name) continue;
+
+		items.push(obj as BucketType);
+		seenCount++;
+
+		if (seenCount >= pageSize) break; // stop early after reaching page limit
 	}
 
-	// Fire off metadata lookups in parallel
+	// The next cursor is the name of the LAST returned item
+	const nextStartAfter = items.length > 0 ? items[items.length - 1]?.name : undefined;
+
+	// Determine if there might be more (true if stream didn’t end yet)
+	// Try to peek one item beyond by checking if stream ended early
+	let hasMore = false;
+
+	// Only run the stream check if we stopped due to reaching pageSize
+	if (seenCount >= pageSize) {
+		const nextStream = minioClient.listObjectsV2(BUCKET, prefix, false, nextStartAfter);
+		// Peek one next item without consuming much
+		for await (const _ of nextStream) {
+			hasMore = true;
+			break;
+		}
+	}
+
+	// Fetch metadata concurrently for current page
 	const enriched = (
 		await Promise.all(
 			items.map(async (item) => {
 				if (!item.name) return null;
-
 				try {
 					const stat = await minioClient.statObject(BUCKET, item.name);
-
 					return {
 						...item,
 						lastModified: stat.lastModified,
@@ -150,7 +195,6 @@ export async function listFileObjectsWithMetadata(prefix = "", recursive = true)
 						contentType: stat.metaData?.["content-type"],
 					} as BucketType;
 				} catch (err) {
-					// Optionally log and skip items that fail
 					console.warn(`Failed to stat object: ${item.name}`, err);
 					return null;
 				}
@@ -158,7 +202,11 @@ export async function listFileObjectsWithMetadata(prefix = "", recursive = true)
 		)
 	).filter(Boolean) as BucketType[];
 
-	return enriched;
+	return {
+		objects: enriched,
+		nextStartAfter,
+		hasMore,
+	};
 }
 /**
  * Removes a single object from the configured MinIO bucket.

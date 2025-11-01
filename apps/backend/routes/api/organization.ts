@@ -1,10 +1,10 @@
 import { db, getOrCreateLabel, getOrganizationMembers, getUsersByIds, schema } from "@repo/database";
 import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
-import { eq } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { checkMembershipRole } from "@/util";
+import { checkMembershipRole, decodeCursor, encodeCursor } from "@/util";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProject } from "./project";
@@ -148,34 +148,128 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 	}
 });
 
-apiRouteAdminOrganization.get("/:orgId/assets", async (c) => {
+apiRouteAdminOrganization.get("/:orgId/assets-test", async (c) => {
 	const session = c.get("session");
 	const orgId = c.req.param("orgId");
+
+	// Authorization
 	const isAuthorized = await checkMembershipRole(session?.userId, orgId);
 	if (!isAuthorized) {
 		return c.json({ error: "UNAUTHORIZED" }, 401);
 	}
-	const data = await listFileObjectsWithMetadata(`organization/${orgId}`);
-	// Collect ALL userIds present in metadata
-	const userIds = [
-		...new Set(
-			data
-				.map((s) => s.userId)
-				.filter(Boolean) // drop undefined/null
-		),
-	];
 
-	// Batch load all users at once
+	// Pagination params
+	const pageSize = Number(c.req.query("limit") ?? 5);
+	const encodedCursor = c.req.query("cursor");
+	const decodedCursor = decodeCursor<{ startAfter?: string }>(encodedCursor);
+
+	// Fetch page from MinIO
+	const {
+		objects: data,
+		nextStartAfter,
+		hasMore,
+	} = await listFileObjectsWithMetadata(`organization/${orgId}/`, pageSize, decodedCursor?.startAfter);
+
+	// Collect and map users
+	const userIds = Array.from(new Set(data.map((s) => s.userId).filter(Boolean)));
 	const users = await getUsersByIds(userIds);
 	const userMap = new Map(users.map((u) => [u.id, u]));
-	data.map((item) => {
-		item.url = ensureCdnUrl(item.name || "");
-		item.user = {
-			name: userMap.get(item.userId)?.name || "",
-			image: userMap.get(item.userId)?.image || "",
-		};
+
+	const assets = data.map((item) => ({
+		...item,
+		url: ensureCdnUrl(item.name || ""),
+		user: item.userId
+			? {
+					name: userMap.get(item.userId)?.name ?? "",
+					image: userMap.get(item.userId)?.image ?? "",
+				}
+			: undefined,
+	}));
+
+	// Encode the next cursor safely
+	const nextCursor = nextStartAfter ? encodeCursor({ startAfter: nextStartAfter }) : undefined;
+
+	return c.json({
+		data: assets,
+		nextCursor,
+		pageSize,
+		hasMore,
 	});
-	return c.json(data);
+});
+
+apiRouteAdminOrganization.get("/:orgId/assets", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+
+	// Authorization
+	const isAuthorized = await checkMembershipRole(session?.userId, orgId);
+	if (!isAuthorized) {
+		return c.json({ error: "UNAUTHORIZED" }, 401);
+	}
+
+	// --- Pagination params ---
+	const pageSize = Math.min(Number(c.req.query("limit") ?? 10), 200);
+	const encodedCursor = c.req.query("cursor");
+	const decodedCursor = decodeCursor<{ id?: string; index?: number }>(encodedCursor);
+
+	const cursorId = decodedCursor?.id;
+	const cursorIndex = decodedCursor?.index ?? 0;
+
+	// --- Total count query ---
+	const [count] = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(schema.asset)
+		.where(eq(schema.asset.organizationId, orgId));
+
+	// --- Where clause ---
+	// IDs descend. Show items "older than" the cursor for next pages.
+	const whereClause = cursorId
+		? and(eq(schema.asset.organizationId, orgId), lt(schema.asset.id, cursorId))
+		: eq(schema.asset.organizationId, orgId);
+
+	// --- Fetch one extra to check for next page ---
+	const assets = await db.query.asset.findMany({
+		where: whereClause,
+		with: {
+			user: { columns: { id: true, name: true, image: true } },
+		},
+		orderBy: (a, { desc }) => desc(a.id),
+		limit: pageSize + 1,
+	});
+
+	// --- Handle pagination / cursors ---
+	const hasMore = assets.length > pageSize;
+	const visibleAssets = hasMore ? assets.slice(0, pageSize) : assets;
+
+	const nextCursor =
+		hasMore && visibleAssets.length > 0
+			? encodeCursor({
+					id: visibleAssets[visibleAssets.length - 1]?.id,
+					index: cursorIndex + 1, // page index increment
+				})
+			: undefined;
+
+	// --- Transform / enrich ---
+	const data = visibleAssets.map((asset) => ({
+		...asset,
+		url: ensureCdnUrl(asset.url),
+	}));
+
+	// --- Compute "page" stats ---
+	const currentPage = cursorIndex + 1;
+	const totalPages = count?.count && count.count > 0 ? Math.ceil(count.count / pageSize) : currentPage;
+
+	return c.json({
+		data,
+		pagination: {
+			pageSize,
+			currentPage,
+			totalItems: Number(count?.count || 0),
+			totalPages,
+			hasMore,
+			nextCursor,
+		},
+	});
 });
 
 apiRouteAdminOrganization.post("/create-label", async (c) => {

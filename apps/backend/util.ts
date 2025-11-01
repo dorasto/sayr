@@ -74,3 +74,19 @@ export async function checkMembershipRole(
 
 	return allowedRoles.includes(role?.role || "");
 }
+
+// biome-ignore lint/suspicious/noExplicitAny: <need for the cursor>
+export function encodeCursor(obj: Record<string, any>): string {
+	return Buffer.from(JSON.stringify(obj)).toString("base64url");
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: <need for the cursor>
+export function decodeCursor<T = any>(cursor?: string): T | undefined {
+	if (!cursor) return undefined;
+	try {
+		const str = Buffer.from(cursor, "base64url").toString("utf8");
+		return JSON.parse(str);
+	} catch {
+		return undefined;
+	}
+}
