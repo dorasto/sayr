@@ -1,7 +1,14 @@
 "use client";
 import type { schema } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { Input } from "@repo/ui/components/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { cn } from "@repo/ui/lib/utils";
+import { IconDeviceFloppy, IconFilter2, IconSettings } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
@@ -161,6 +168,21 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 					className="gap-1 h-6 w-6 bg-accent border-transparent p-1 relative"
 				/>
 			)}
+			<Popover>
+				<PopoverTrigger asChild>
+					<Button variant="accent" className={cn("gap-2 h-6 bg-accent border-transparent p-1 w-fit")}>
+						Save
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent className="p-0 border-0" align="start">
+					<InputGroup>
+						<InputGroupInput placeholder="View name..." />
+						<InputGroupAddon align="inline-end">
+							<InputGroupButton variant="secondary">Save</InputGroupButton>
+						</InputGroupAddon>
+					</InputGroup>
+				</PopoverContent>
+			</Popover>
 		</div>
 	);
 }

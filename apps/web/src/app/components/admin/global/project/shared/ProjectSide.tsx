@@ -21,6 +21,7 @@ import {
 	IconSettings,
 	IconSlash,
 	IconStack2,
+	IconStackForward,
 	IconUser,
 	IconUserCheck,
 } from "@tabler/icons-react";
@@ -115,7 +116,7 @@ export default function ProjectSide() {
 					</TabsTrigger>
 				</TabsList>
 				<TabsContent value="views" className="mt-0">
-					<div className="flex flex-col gap-2 max-h-64 overflow-scroll">
+					<div className="flex flex-col gap-0.5 max-h-64 overflow-scroll">
 						{/* Example tile, replace with actual views */}
 						<Tile className="bg-card md:w-full">
 							<TileHeader>
@@ -124,6 +125,16 @@ export default function ProjectSide() {
 										<IconStack2 />
 									</TileIcon>
 									Default
+								</TileTitle>
+							</TileHeader>
+						</Tile>
+						<Tile className="bg-card md:w-full">
+							<TileHeader>
+								<TileTitle className="flex items-center gap-2">
+									<TileIcon>
+										<IconStackForward />
+									</TileIcon>
+									New
 								</TileTitle>
 							</TileHeader>
 						</Tile>
