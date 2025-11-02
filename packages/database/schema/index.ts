@@ -25,6 +25,8 @@ export type TaskWithLabels = taskType & {
 	labels: labelType[];
 	assignees: { id: string; name: string; image: string | null }[];
 	createdBy?: { id: string; name: string; image: string | null } | null;
+	organization?: { id: string; name: string; slug: string };
+	project?: { id: string; name: string };
 };
 
 export type CommentsWithAuthor = Array<

@@ -20,7 +20,7 @@ export const navigation = [
 		items: [
 			{
 				title: "My Tasks",
-				url: "#",
+				url: "/admin/mine",
 				icon: Icon.IconChecklist,
 				activeIcon: Icon.IconChecklist,
 			},

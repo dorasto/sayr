@@ -4,6 +4,7 @@ import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { StatusBar } from "@/app/components/admin/global/status";
 import AdminCommand from "../admin-command";
+import MinePage from "./MinePage";
 import OrganizationPage from "./OrganizationPage";
 import ProjectPage from "./ProjectPage";
 import SidebarSection from "./SidebarSection";
@@ -13,7 +14,7 @@ import { useAdminRoute } from "./useAdminRoute";
 export default function AdminNavigation() {
 	const { value: sidebarIsOpen } = useLocalStorage("left-sidebar-state", false);
 	const isMobile = useIsMobile();
-	const { isOrgPage, isProjectPage, isTaskPage } = useAdminRoute();
+	const { isOrgPage, isProjectPage, isTaskPage, isMinePage } = useAdminRoute();
 
 	return (
 		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center">
@@ -36,6 +37,7 @@ export default function AdminNavigation() {
 					{isTaskPage && <TaskPage />}
 					{isOrgPage && <OrganizationPage />}
 					{isProjectPage && <ProjectPage />}
+					{isMinePage && <MinePage />}
 					<StatusBar />
 
 					{/* )} */}

@@ -497,3 +497,38 @@ export async function createLabelAction(
 
 	return result;
 }
+
+/**
+ * Fetches all tasks assigned to the current logged-in user across all projects and organizations.
+ *
+ * @returns A promise resolving to { success: boolean; data: TaskWithLabels[]; error?: string }
+ *
+ * @example
+ * ```ts
+ * const result = await getMyTasksAction();
+ * if (result.success) {
+ *   console.log("My tasks:", result.data);
+ * }
+ * ```
+ */
+export async function getMyTasksAction(): Promise<{
+	success: boolean;
+	data?: schema.TaskWithLabels[];
+	error?: string;
+}> {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/tasks/mine`, {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 ensures cookies/session are sent
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to fetch tasks");
+		}
+		return json;
+	});
+
+	return result;
+}

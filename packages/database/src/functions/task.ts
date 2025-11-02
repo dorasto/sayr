@@ -384,3 +384,74 @@ export async function getMergedTaskActivity(orgId: string, projectId: string, ta
 
 	return merged;
 }
+
+/**
+ * Retrieves all tasks assigned to a specific user across all organizations and projects.
+ *
+ * @param userId - The ID of the user to fetch tasks for.
+ * @returns An array of tasks assigned to the user, each enriched with their associated labels, assignees, organization and project info.
+ *
+ * @example
+ * ```ts
+ * const myTasks = await getTasksByUserId("user_123");
+ * myTasks.forEach(task => {
+ *   console.log("Task:", task.title, "Project:", task.project?.name);
+ * });
+ * ```
+ */
+export async function getTasksByUserId(userId: string): Promise<schema.TaskWithLabels[]> {
+	const tasks = await db.query.task.findMany({
+		where: (t) =>
+			sql`EXISTS (
+				SELECT 1 FROM task_assignee 
+				WHERE task_assignee.task_id = ${t.id} 
+				AND task_assignee.user_id = ${userId}
+			)`,
+		with: {
+			labels: {
+				with: {
+					label: true,
+				},
+			},
+			createdBy: {
+				columns: {
+					id: true,
+					name: true,
+					image: true,
+				},
+			},
+			assignees: {
+				with: {
+					user: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+			organization: {
+				columns: {
+					id: true,
+					name: true,
+					slug: true,
+				},
+			},
+			project: {
+				columns: {
+					id: true,
+					name: true,
+				},
+			},
+		},
+		orderBy: (t, { desc }) => [desc(t.createdAt)],
+	});
+
+	// 🧹 map join rows into clean labels and assignees arrays
+	return tasks.map((task) => ({
+		...task,
+		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
+	}));
+}

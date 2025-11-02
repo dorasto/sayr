@@ -40,6 +40,7 @@ interface TaskListItemProps {
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (tasks: schema.TaskWithLabels[]) => void;
 	availableUsers?: schema.userType[];
+	personal?: boolean;
 }
 
 export function TaskListItem({
@@ -52,6 +53,7 @@ export function TaskListItem({
 	tasks,
 	setTasks,
 	availableUsers = [],
+	personal = false,
 }: TaskListItemProps) {
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
@@ -259,7 +261,23 @@ export function TaskListItem({
 								/>
 
 								{/* Title */}
-								<p className="truncate cursor-pointer text-base text-foreground w-full">{task.title}</p>
+
+								<p className="truncate cursor-pointer text-base text-foreground w-fit">{task.title} </p>
+								{personal && task.organization && task.project && (
+									<a
+										href={`/admin/${task.organization.id}/${task.project.id}`}
+										onClick={(e) => e.stopPropagation()}
+									>
+										<Badge
+											variant={"secondary"}
+											className="flex items-center gap-1 shrink-0 text-muted-foreground hover:text-primary-foreground"
+										>
+											<span className="text-xs truncate max-w-[150px]">{task.organization.name}</span>
+											<span className="text-xs">/</span>
+											<span className="text-xs truncate max-w-[150px]">{task.project.name}</span>
+										</Badge>
+									</a>
+								)}
 							</div>
 						</div>
 						{/* Right section with metadata and actions */}

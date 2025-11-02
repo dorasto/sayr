@@ -1,6 +1,7 @@
 "use client";
 
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
@@ -37,6 +38,7 @@ interface TaskContentProps {
 	organization: schema.OrganizationWithMembers;
 	project: schema.projectType;
 	ws: WebSocket | null;
+	personal?: boolean;
 }
 
 interface TaskContentSideContentProps {
@@ -88,7 +90,6 @@ export function TaskContentSideContent({
 		<div className="flex flex-col gap-3">
 			{/* <GlobalTaskCreatedAt task={task} />
 					<Separator /> */}
-
 			<GlobalTaskStatus
 				task={task}
 				editable={true}
@@ -211,6 +212,7 @@ export function TaskContent({
 	isDialog = true,
 	organization,
 	project,
+	personal = false,
 	ws,
 }: TaskContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
@@ -265,12 +267,23 @@ export function TaskContent({
 			onOpenChange={onOpenChange}
 			title={
 				<div className="flex items-center w-full gap-4">
-					<Label variant={"heading"} className={cn("text-left text-lg truncate")}>
-						{task.title}
-					</Label>
-					<Label variant={"heading"} className={cn("text-left text-lg text-muted-foreground shrink-0")}>
-						#{task.shortId}
-					</Label>
+					<div className="flex items-center gap-4 truncate">
+						<Label variant={"heading"} className={cn("text-left text-lg truncate")}>
+							{task.title}
+						</Label>
+						<Label variant={"heading"} className={cn("text-left text-sm text-muted-foreground shrink-0")}>
+							#{task.shortId}
+						</Label>
+						{personal && (
+							<a href={`/admin/${task.organizationId}/${task.projectId}`} onClick={(e) => e.stopPropagation()}>
+								<Badge variant={"outline"} className="flex items-center gap-1 w-full justify-start shrink-0">
+									<span className="text-xs truncate max-w-[150px]">{task.organization?.name}</span>
+									<span className="text-xs">/</span>
+									<span className="text-xs truncate max-w-[150px]">{task.project?.name}</span>
+								</Badge>
+							</a>
+						)}
+					</div>
 					<div className="ml-auto flex items-center gap-2 shrink-0">
 						<Badge
 							variant={"outline"}

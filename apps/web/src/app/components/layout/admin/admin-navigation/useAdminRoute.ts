@@ -44,9 +44,10 @@ import { usePathname } from "next/navigation";
 export function useAdminRoute() {
 	const pathname = usePathname();
 
+	const isMinePage = /^\/admin\/mine$/.test(pathname); // /admin/mine
 	const isOrgPage = /^\/admin\/[^/]+$/.test(pathname); // /admin/:orgId
 	const isProjectPage = /^\/admin\/[^/]+\/[^/]+$/.test(pathname); // /admin/:orgId/:projectId
 	const isTaskPage = /^\/admin\/[^/]+\/[^/]+\/task\/[^/]+$/.test(pathname); // /admin/:orgId/:projectId/task/:taskId
 
-	return { isOrgPage, isProjectPage, isTaskPage };
+	return { isMinePage, isOrgPage, isProjectPage, isTaskPage };
 }
