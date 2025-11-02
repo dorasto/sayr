@@ -101,13 +101,12 @@ export default function ProjectSide() {
 					</TileHeader>
 				</Tile>
 			</div>
-			<Separator />
-			<Tabs defaultValue="views" className="w-full bg-card">
+			<Tabs defaultValue="views" className="w-full p-1">
 				<TabsList className="justify-start bg-transparent px-0">
 					<TabsTrigger asChild value="views">
 						<Button
 							variant={"accent"}
-							className="data-[state=active]:bg-accent bg-card rounded-lg border-transparent"
+							className="data-[state=active]:bg-card bg-transparent rounded-lg border-transparent"
 							size={"sm"}
 						>
 							<IconStack2 className="w-4 h-4" />
@@ -115,10 +114,10 @@ export default function ProjectSide() {
 						</Button>
 					</TabsTrigger>
 				</TabsList>
-				<TabsContent value="views" className="mt-0 p-1">
+				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-2 max-h-64 overflow-scroll">
 						{/* Example tile, replace with actual views */}
-						<Tile className="bg-accent md:w-full">
+						<Tile className="bg-card md:w-full">
 							<TileHeader>
 								<TileTitle className="flex items-center gap-2">
 									<TileIcon>
