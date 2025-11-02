@@ -13,6 +13,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
+import { IconCircle, IconDog } from "@tabler/icons-react";
 import { Editor } from "../../../../../blocknote/DynamicEditor";
 import type { TimelineItemWrapperProps } from "./types";
 
@@ -21,7 +22,7 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children }: Timel
 		<TimelineItem
 			key={item.id}
 			step={2}
-			className="group-data-[orientation=vertical]/timeline:ms-10 group-data-[orientation=vertical]/timeline:not-last:pb-8"
+			className="group-data-[orientation=vertical]/timeline:ms-10 group-data-[orientation=vertical]/timeline:not-last:pb-4"
 		>
 			<TimelineHeader>
 				<TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
@@ -33,16 +34,16 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children }: Timel
 						<span>{children}</span>
 						<Tooltip delayDuration={500}>
 							<TooltipTrigger asChild>
-								<span className="text-sm">{formatDateTimeFromNow(item.createdAt as Date)}</span>
+								<span className="text-sm"> {formatDateTimeFromNow(item.createdAt as Date)}</span>
 							</TooltipTrigger>
 							<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
 						</Tooltip>
 					</Label>
 				</TimelineTitle>
 				<TimelineIndicator className="bg-primary/10 group-data-completed/timeline-item:bg-primary group-data-completed/timeline-item:text-primary-foreground flex size-6 items-center justify-center border-none group-data-[orientation=vertical]/timeline:-left-7">
-					<Avatar className={cn("h-10 w-10 rounded-full", color)}>
+					<Avatar className={cn("h-6 w-6 rounded-full", color)}>
 						<AvatarFallback className="rounded-full bg-transparent">
-							<Icon size={20} />
+							<Icon size={16} />
 						</AvatarFallback>
 					</Avatar>
 				</TimelineIndicator>
@@ -58,10 +59,7 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children }: Timel
 
 export function AvatarWithName({ name, image }: { name: string; image: string }) {
 	return (
-		<Badge
-			variant={"secondary"}
-			className="inline-flex items-center gap-1 justify-center h-5 bg-accent border border-border"
-		>
+		<Badge variant={"secondary"} className="inline-flex items-center gap-1 justify-center h-5 border border-border">
 			<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
 				<AvatarImage src={image || "/avatar.jpg"} alt={name} />
 				<AvatarFallback className="rounded-full bg-transparent uppercase">{name.slice(0, 2)}</AvatarFallback>

@@ -34,7 +34,7 @@ export function ConsolidatedTimelineLabels({
 						{" added "}
 						{addedLabels.map((label, index) => (
 							<Fragment key={label.id + nanoid(5)}>
-								<RenderLabel label={label} className="inline-flex" />
+								<RenderLabel label={label} className="inline-flex !bg-transparent" />
 								{index < addedLabels.length - 1 && " "}
 							</Fragment>
 						))}
@@ -46,7 +46,7 @@ export function ConsolidatedTimelineLabels({
 						{" removed "}
 						{removedLabels.map((label, index) => (
 							<Fragment key={label.id + nanoid(5)}>
-								<RenderLabel label={label} className="inline-flex" />
+								<RenderLabel label={label} className="inline-flex !bg-transparent" />
 								{index < removedLabels.length - 1 && " "}
 							</Fragment>
 						))}
@@ -130,7 +130,7 @@ export function ConsolidatedTimelineAssignees({
 	const icon = addedAssignees.length > 0 ? IconUserPlus : IconUserMinus;
 
 	return (
-		<TimelineItemWrapper item={mockItem} icon={icon} color="bg-primary text-primary-foreground">
+		<TimelineItemWrapper item={mockItem} icon={icon} color="bg-accent text-primary-foreground">
 			{renderContent()}
 		</TimelineItemWrapper>
 	);
