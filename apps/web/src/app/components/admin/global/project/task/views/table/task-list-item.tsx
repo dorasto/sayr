@@ -20,11 +20,10 @@ import {
 } from "@repo/ui/components/context-menu";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
-import { IconAppWindow, IconCircleFilled, IconLink, IconUserOff, IconWindow } from "@tabler/icons-react";
+import { IconAppWindow, IconCircleFilled, IconLink, IconUserOff } from "@tabler/icons-react";
 import { nanoid } from "nanoid";
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { organization, project } from "../../../../../../../../../../../packages/database/schema";
 import { priorityConfig, statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
 import { RenderLabel } from "../../label";
@@ -157,7 +156,7 @@ export function TaskListItem({
 
 	return (
 		<ContextMenu>
-			<ContextMenuTrigger className="relative select-none group/context" asChild>
+			<ContextMenuTrigger className="relative select-none group/context data-[state=open]:bg-accent" asChild>
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: need button in button, but no hydration/render error */}
 				{/* biome-ignore lint/a11y/useKeyWithClickEvents: need button in button, but no hydration/render error */}
 				<div
@@ -399,7 +398,11 @@ export function TaskListItem({
 					</div>
 				</div>
 			</ContextMenuTrigger>
-			<ContextMenuContent className="w-52">
+			<ContextMenuContent className="w-56">
+				<ContextMenuLabel className="truncate">
+					#{task.shortId} - {task.title}
+				</ContextMenuLabel>
+				<ContextMenuSeparator />
 				<ContextMenuItem onClick={handleTaskClick} className="gap-3 w-full">
 					<IconAppWindow className="size-4" />
 					Open
@@ -413,30 +416,122 @@ export function TaskListItem({
 				<ContextMenuSeparator />
 				<ContextMenuSub>
 					<ContextMenuSubTrigger className="gap-3 w-full">
-						{priority?.icon(`h-3.5 w-3.5`)} Priority
+						{priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)} Priority
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-44">
-						<ContextMenuItem>...</ContextMenuItem>
+						<ContextMenuLabel>Set Priority</ContextMenuLabel>
+						<ContextMenuSeparator />
+						<ContextMenuRadioGroup
+							value={task.priority || "none"}
+							onValueChange={(value) => handlePriorityChange(value)}
+						>
+							{Object.entries(priorityConfig).map(([key, config]) => (
+								<ContextMenuRadioItem key={key} value={key} showDot={false}>
+									<div className="flex items-center gap-2">
+										{config?.icon(`h-3.5 w-3.5 ${config?.className || ""}`)}
+										<span>{config.label}</span>
+									</div>
+								</ContextMenuRadioItem>
+							))}
+						</ContextMenuRadioGroup>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 				<ContextMenuSub>
 					<ContextMenuSubTrigger className="gap-3 w-full">
-						{status?.icon(`h-3.5 w-3.5`)} Status
+						{status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)} Status
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-44">
-						<ContextMenuItem>...</ContextMenuItem>
+						<ContextMenuLabel>Set Status</ContextMenuLabel>
+						<ContextMenuSeparator />
+						<ContextMenuRadioGroup
+							value={task.status || "backlog"}
+							onValueChange={(value) => handleStatusChange(value)}
+						>
+							{Object.entries(statusConfig).map(([key, config]) => (
+								<ContextMenuRadioItem key={key} value={key} showDot={false}>
+									<div className="flex items-center gap-2">
+										{config?.icon(`h-3.5 w-3.5 ${config?.className || ""}`)}
+										<span>{config.label}</span>
+									</div>
+								</ContextMenuRadioItem>
+							))}
+						</ContextMenuRadioGroup>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 				<ContextMenuSub>
 					<ContextMenuSubTrigger className="gap-3 w-full">Assigned</ContextMenuSubTrigger>
-					<ContextMenuSubContent className="w-44">
-						<ContextMenuItem>...</ContextMenuItem>
+					<ContextMenuSubContent className="w-52">
+						<ContextMenuLabel>Assign to</ContextMenuLabel>
+						<ContextMenuSeparator />
+						{availableUsers.length > 0 ? (
+							availableUsers.map((user) => {
+								const isAssigned = task.assignees?.some((assignee) => assignee.id === user.id) || false;
+								return (
+									<ContextMenuCheckboxItem
+										key={user.id}
+										checked={isAssigned}
+										onCheckedChange={(checked) => {
+											const currentAssigneeIds = task.assignees?.map((a) => a.id) || [];
+											const newAssigneeIds = checked
+												? [...currentAssigneeIds, user.id]
+												: currentAssigneeIds.filter((id) => id !== user.id);
+											handleAssigneeChange(newAssigneeIds);
+										}}
+									>
+										<div className="flex items-center gap-2">
+											<Avatar className="h-5 w-5">
+												<AvatarImage src={user.image || undefined} alt={user.name} />
+												<AvatarFallback className="text-xs">
+													{user.name
+														.split(" ")
+														.map((n: string) => n[0])
+														.join("")
+														.toUpperCase()
+														.slice(0, 2)}
+												</AvatarFallback>
+											</Avatar>
+											<span className="text-sm">{user.name}</span>
+										</div>
+									</ContextMenuCheckboxItem>
+								);
+							})
+						) : (
+							<ContextMenuItem disabled>No users available</ContextMenuItem>
+						)}
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 				<ContextMenuSub>
 					<ContextMenuSubTrigger className="gap-3 w-full">Labels</ContextMenuSubTrigger>
-					<ContextMenuSubContent className="w-44">
-						<ContextMenuItem>...</ContextMenuItem>
+					<ContextMenuSubContent className="w-52">
+						<ContextMenuLabel>Apply Labels</ContextMenuLabel>
+						<ContextMenuSeparator />
+						{task.labels && task.labels.length > 0 ? (
+							task.labels.map((label) => (
+								<ContextMenuCheckboxItem
+									key={label.id}
+									checked={true}
+									onCheckedChange={(checked) => {
+										if (!checked) {
+											// Call onTaskUpdate with updated labels
+											const updatedLabels = task.labels?.filter((l) => l.id !== label.id) || [];
+											onTaskUpdate?.(task.id, { labels: updatedLabels });
+										}
+									}}
+								>
+									<div className="flex items-center gap-2">
+										<IconCircleFilled
+											className="h-3 w-3"
+											style={{
+												color: label.color || "var(--foreground)",
+											}}
+										/>
+										<span className="text-sm">{label.name}</span>
+									</div>
+								</ContextMenuCheckboxItem>
+							))
+						) : (
+							<ContextMenuItem disabled>No labels applied</ContextMenuItem>
+						)}
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 			</ContextMenuContent>
