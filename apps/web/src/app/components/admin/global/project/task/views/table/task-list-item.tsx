@@ -400,32 +400,45 @@ export function TaskListItem({
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent className="w-52">
-				<ContextMenuItem inset onClick={handleTaskClick} className="gap-1 w-full">
+				<ContextMenuItem onClick={handleTaskClick} className="gap-3 w-full">
 					<IconAppWindow className="size-4" />
 					Open
 				</ContextMenuItem>
 				<Link href={``}>
-					<ContextMenuItem inset className="gap-1 w-full">
+					<ContextMenuItem className="gap-3 w-full">
 						<IconLink className="size-4" />
 						Full page
 					</ContextMenuItem>
 				</Link>
-				<ContextMenuItem inset>Reload</ContextMenuItem>
+				<ContextMenuSeparator />
 				<ContextMenuSub>
-					<ContextMenuSubTrigger inset>Status</ContextMenuSubTrigger>
+					<ContextMenuSubTrigger className="gap-3 w-full">
+						{priority?.icon(`h-3.5 w-3.5`)} Priority
+					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-44">
 						<ContextMenuItem>...</ContextMenuItem>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
-				<ContextMenuSeparator />
-				<ContextMenuCheckboxItem checked>Show Bookmarks</ContextMenuCheckboxItem>
-				<ContextMenuCheckboxItem>Show Full URLs</ContextMenuCheckboxItem>
-				<ContextMenuSeparator />
-				<ContextMenuRadioGroup value="pedro">
-					<ContextMenuLabel inset>People</ContextMenuLabel>
-					<ContextMenuRadioItem value="pedro">Pedro Duarte</ContextMenuRadioItem>
-					<ContextMenuRadioItem value="colm">Colm Tuite</ContextMenuRadioItem>
-				</ContextMenuRadioGroup>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger className="gap-3 w-full">
+						{status?.icon(`h-3.5 w-3.5`)} Status
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-44">
+						<ContextMenuItem>...</ContextMenuItem>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger className="gap-3 w-full">Assigned</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-44">
+						<ContextMenuItem>...</ContextMenuItem>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger className="gap-3 w-full">Labels</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-44">
+						<ContextMenuItem>...</ContextMenuItem>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
 			</ContextMenuContent>
 		</ContextMenu>
 	);
