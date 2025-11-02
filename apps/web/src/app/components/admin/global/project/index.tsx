@@ -1,4 +1,6 @@
 "use client";
+import { Label } from "@repo/ui/components/label";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@repo/ui/components/resizable";
 import { Separator } from "@repo/ui/components/separator";
 import { useEffect } from "react";
 import { useLayoutProject } from "@/app/admin/[organization_id]/[project_id]/Context";
@@ -8,6 +10,8 @@ import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import ListProjectTasks from "./list";
+import ProjectDropdown from "./project-dropdown";
+import ProjectSide from "./shared/ProjectSide";
 import { TaskFilterDropdown } from "./task/filter/dropdown/TaskFilterDropdown";
 import { TaskViewDropdown } from "./task/grouping/task-view-dropdown";
 
@@ -59,17 +63,27 @@ export default function OrganizationProjectHomePage() {
 					<TaskViewDropdown />
 				</div>
 			</div>
-			<div className="flex-1 overflow-scroll flex flex-col relative">
-				<ListProjectTasks
-					tasks={tasks}
-					setTasks={setTasks}
-					ws={ws}
-					labels={labels}
-					availableUsers={organization.members.map((member) => member.user)}
-					organization={organization}
-					project={project}
-				/>
-			</div>
+			<ResizablePanelGroup direction="horizontal">
+				<ResizablePanel defaultSize={80} minSize={70}>
+					<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
+						<ListProjectTasks
+							tasks={tasks}
+							setTasks={setTasks}
+							ws={ws}
+							labels={labels}
+							availableUsers={organization.members.map((member) => member.user)}
+							organization={organization}
+							project={project}
+						/>
+					</div>
+				</ResizablePanel>
+				<ResizableHandle />
+				<ResizablePanel defaultSize={20} minSize={10} collapsedSize={0} collapsible={true}>
+					<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
+						<ProjectSide />
+					</div>
+				</ResizablePanel>
+			</ResizablePanelGroup>
 		</div>
 	);
 }
