@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
-import { getLabels, getTasksByUserId } from "@repo/database";
+import { db, getLabels, getTasksByUserId } from "@repo/database";
+import { inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import type React from "react";
 import { getAccess } from "@/app/lib/serverFunctions";
@@ -26,9 +27,11 @@ export default async function MyTasksLayout({
 	const labelsPromises = organizationIds.map((orgId) => getLabels(orgId));
 	const labelsArrays = await Promise.all(labelsPromises);
 	const allLabels: schema.labelType[] = labelsArrays.flat();
-
+	const views = await db.query.savedView.findMany({
+		where: (view) => inArray(view.organizationId, organizationIds),
+	});
 	return (
-		<RootProviderMyTasks tasks={tasks} labels={allLabels}>
+		<RootProviderMyTasks tasks={tasks} labels={allLabels} views={views}>
 			{children}
 		</RootProviderMyTasks>
 	);

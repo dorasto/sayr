@@ -195,6 +195,10 @@ export type WSMessage =
 			data: schema.labelType;
 	  })
 	| (BaseMessage & {
+			type: "CREATE_VIEW";
+			data: schema.savedViewType;
+	  })
+	| (BaseMessage & {
 			type: "FIREHOSE";
 			data: {
 				channel: string;

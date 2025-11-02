@@ -5,6 +5,7 @@ import { and, eq, lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { checkMembershipRole, decodeCursor, encodeCursor } from "@/util";
+import { savedView } from "../../../../packages/database/schema";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProject } from "./project";
@@ -295,6 +296,39 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	return c.json({
 		success: true,
 		data: label,
+	});
+});
+apiRouteAdminOrganization.post("/create-view", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, name, value } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [view] = await db
+		.insert(savedView)
+		.values({
+			organizationId: org_id,
+			createdById: session?.userId,
+			name,
+			filterParams: value,
+		})
+		.returning();
+	const data = {
+		type: "CREATE_VIEW" as WSBaseMessage["type"],
+		data: view,
+	};
+	const found = findClientByWsId(wsClientId);
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	// const members = await getOrganizationMembers(org_id);
+	// members.forEach((member) => {
+	// 	const clients = findClientsByUserId(member.userId);
+	// 	clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+	// });
+	return c.json({
+		success: true,
+		data: view,
 	});
 });
 apiRouteAdminOrganization.route("/project", apiRouteAdminProject);

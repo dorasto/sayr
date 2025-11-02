@@ -1,5 +1,4 @@
 "use client";
-import { Label } from "@repo/ui/components/label";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@repo/ui/components/resizable";
 import { Separator } from "@repo/ui/components/separator";
 import { useEffect } from "react";
@@ -10,14 +9,13 @@ import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import ListProjectTasks from "./list";
-import ProjectDropdown from "./project-dropdown";
 import ProjectSide from "./shared/ProjectSide";
 import { TaskFilterDropdown } from "./task/filter/dropdown/TaskFilterDropdown";
 import { TaskViewDropdown } from "./task/grouping/task-view-dropdown";
 
 export default function OrganizationProjectHomePage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, labels, setLabels } = useLayoutOrganization();
+	const { organization, setOrganization, labels, setLabels, views, setViews } = useLayoutOrganization();
 	const { project, tasks, setTasks } = useLayoutProject();
 	useWebSocketSubscription({
 		ws,
@@ -33,6 +31,11 @@ export default function OrganizationProjectHomePage() {
 		CREATE_LABEL: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
 				setLabels([...labels, msg.data]);
+			}
+		},
+		CREATE_VIEW: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setViews([...views, msg.data]);
 			}
 		},
 	};
@@ -57,7 +60,14 @@ export default function OrganizationProjectHomePage() {
 				</Label>
 			</div> */}
 			<div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
-				<TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers} />
+				<TaskFilterDropdown
+					tasks={tasks}
+					labels={labels}
+					availableUsers={availableUsers}
+					organizationId={organization.id}
+					views={views}
+					setViews={setViews}
+				/>
 				<div className="flex items-center gap-2 shrink-0 ml-auto">
 					<Separator orientation="vertical" className="h-5" />
 					<TaskViewDropdown />

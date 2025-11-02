@@ -25,10 +25,14 @@ import {
 	IconUser,
 	IconUserCheck,
 } from "@tabler/icons-react";
+import { view } from "drizzle-orm/sqlite-core";
 import dynamic from "next/dynamic";
+import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { TaskFilterDropdown } from "@/app/components/admin/global/project/task/filter/task-filter-dropdown";
+import { deserializeFilters } from "../task/filter/dropdown/serialization";
+import type { FilterState } from "../task/filter/types";
 
 const CreateIssueDialog = dynamic(() => import("@/app/components/admin/global/project/task/issue/creator"), {
 	ssr: false,
@@ -41,9 +45,16 @@ export default function ProjectSide() {
 	const { value: organization } = useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
 	const { value: project, setValue: setProject } = useStateManagement<schema.projectType>("project", null, 1);
 	const { value: tasks, setValue: setTasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);
+	const { value: views } = useStateManagement<schema.savedViewType[]>("views", [], 1);
 	const { value: labels, setValue: setLabels } = useStateManagement<schema.labelType[]>("labels", [], 1);
 	const [openNew, setOpenNew] = useState(false);
 	const [openProjectSettings, setOpenProjectSettings] = useState(false);
+	const [filtersParam, setFiltersParam] = useQueryState("filters", parseAsString.withDefault(""));
+	const { setValue: setFilterState } = useStateManagement<FilterState>(
+		"task-filters",
+		{ groups: [], operator: "AND" },
+		1
+	);
 
 	// Extract users from organization members for filter dropdown
 	const availableUsers = organization?.members.map((member) => member.user) || [];
@@ -117,27 +128,25 @@ export default function ProjectSide() {
 				</TabsList>
 				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-0.5 max-h-64 overflow-scroll">
-						{/* Example tile, replace with actual views */}
-						<Tile className="bg-card md:w-full">
-							<TileHeader>
-								<TileTitle className="flex items-center gap-2">
-									<TileIcon>
-										<IconStack2 />
-									</TileIcon>
-									Default
-								</TileTitle>
-							</TileHeader>
-						</Tile>
-						<Tile className="bg-card md:w-full">
-							<TileHeader>
-								<TileTitle className="flex items-center gap-2">
-									<TileIcon>
-										<IconStackForward />
-									</TileIcon>
-									New
-								</TileTitle>
-							</TileHeader>
-						</Tile>
+						{views.map((view) => (
+							<Tile
+								className="bg-card md:w-full"
+								key={view.id}
+								onClick={() => {
+									setFiltersParam(view.filterParams);
+									setFilterState(deserializeFilters(view.filterParams) || { groups: [], operator: "AND" });
+								}}
+							>
+								<TileHeader>
+									<TileTitle className="flex items-center gap-2">
+										<TileIcon>
+											<IconStack2 />
+										</TileIcon>
+										{view.name}
+									</TileTitle>
+								</TileHeader>
+							</Tile>
+						))}
 					</div>
 				</TabsContent>
 			</Tabs>

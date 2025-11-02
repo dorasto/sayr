@@ -12,6 +12,7 @@ export * from "./label.schema";
 export * from "./member.schema";
 export * from "./organization.schema";
 export * from "./project.schema";
+export * from "./saveView.schema";
 export * from "./task.schema";
 export * from "./taskAssignee.schema";
 export * from "./taskComment.schema";

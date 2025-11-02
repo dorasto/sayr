@@ -29,7 +29,8 @@ export type WSBaseMessage = {
 		| "FIREHOSE"
 		| "CONNECTIONS_SNAPSHOT"
 		| "WAITING_ROOM"
-		| "DISCONNECTED";
+		| "DISCONNECTED"
+		| "CREATE_VIEW";
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	data?: any;
 	orgId?: string;

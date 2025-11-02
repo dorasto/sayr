@@ -499,6 +499,56 @@ export async function createLabelAction(
 }
 
 /**
+ * Calls the `/admin/organization/create-view` API to create a new label in an organization.
+ *
+ * @param organizationId - The ID of the organization the label belongs to.
+ * @param data - The label properties (name and value).
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @returns The newly created label record.
+ *
+ * @example
+ * ```ts
+ * const view = await createSavedViewAction("org_123", {
+ *   name: "Bug",
+ *   value: "W1tbInBy",
+ * });
+ * if (view.success) {
+ *   console.log("Created View:", view.data);
+ * }
+ * ```
+ */
+export async function createSavedViewAction(
+	organizationId: string,
+	data: {
+		name: string;
+		value: string;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.savedViewType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		name: data.name,
+		value: data.value,
+		wsClientId,
+	};
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/create-view`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 ensures cookies/session are sent
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to create view");
+		}
+		return json;
+	});
+
+	return result;
+}
+/**
  * Fetches all tasks assigned to the current logged-in user across all projects and organizations.
  *
  * @returns A promise resolving to { success: boolean; data: TaskWithLabels[]; error?: string }

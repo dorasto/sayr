@@ -1,4 +1,5 @@
-import { getLabels, getOrganization } from "@repo/database";
+import { db, getLabels, getOrganization } from "@repo/database";
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import type React from "react";
 import { getAccess } from "@/app/lib/serverFunctions";
@@ -20,8 +21,11 @@ export default async function RootLayoutOrganization({
 		return redirect("/admin");
 	}
 	const labels = await getLabels(organization.id);
+	const views = await db.query.savedView.findMany({
+		where: (view) => eq(view.organizationId, organization.id),
+	});
 	return (
-		<RootProviderOrganization organization={organization} labels={labels}>
+		<RootProviderOrganization organization={organization} labels={labels} views={views}>
 			{children}
 		</RootProviderOrganization>
 	);

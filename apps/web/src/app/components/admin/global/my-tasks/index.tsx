@@ -12,7 +12,7 @@ import { MyTaskList } from "./my-task-list";
 
 export default function MyTasksPage() {
 	const { ws, organizations } = useLayoutData();
-	const { tasks, setTasks, labels } = useMyTasks();
+	const { tasks, setTasks, labels, views, setViews } = useMyTasks();
 
 	// Collect all users from all organizations
 	const allUsers = useMemo(() => {
@@ -55,7 +55,14 @@ export default function MyTasksPage() {
 	return (
 		<div className="relative flex flex-col h-full max-h-full">
 			<div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
-				<TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={allUsers} />
+				<TaskFilterDropdown
+					tasks={tasks}
+					labels={labels}
+					availableUsers={allUsers}
+					views={views}
+					setViews={setViews}
+					organizationId={""}
+				/>
 				<div className="flex items-center gap-2 shrink-0 ml-auto">
 					<Separator orientation="vertical" className="h-5" />
 					<TaskViewDropdown />
