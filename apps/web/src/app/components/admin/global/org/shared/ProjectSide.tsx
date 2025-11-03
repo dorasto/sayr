@@ -1,5 +1,6 @@
 "use client";
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
@@ -7,23 +8,27 @@ import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconStack2, IconUser, IconUserCheck } from "@tabler/icons-react";
+import { IconSettings, IconSettings2, IconStack2, IconUser, IconUserCheck, IconUsers } from "@tabler/icons-react";
 import { parseAsString, useQueryState } from "nuqs";
+import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { deserializeFilters } from "../tasks/task/filter/dropdown/serialization";
 import type { FilterState } from "../tasks/task/filter/types";
+import GlobalSettings from "./GlobalSettings";
 import { type PriorityKey, priorityConfig } from "./task-config";
 
 export default function ProjectSide() {
 	const { value: organization } = useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
 	const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);
 	const { value: views } = useStateManagement<schema.savedViewType[]>("views", [], 1);
+	const { value: labels, setValue: setLabels } = useStateManagement<schema.labelType[]>("labels", [], 1);
 	const [filtersParam] = useQueryState("filters", parseAsString.withDefault(""));
 	const { setValue: setFilterState } = useStateManagement<FilterState>(
 		"task-filters",
 		{ groups: [], operator: "AND" },
 		1
 	);
+	const [openSettings, setOpenSettings] = useState(false);
 
 	const { account } = useLayoutData();
 
@@ -98,6 +103,24 @@ export default function ProjectSide() {
 	}
 	return (
 		<div className="flex flex-col gap-3 w-full">
+			<Tile className="bg-card md:w-full">
+				<TileHeader>
+					<TileIcon>
+						<Avatar className="h-4 w-4">
+							<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
+							<AvatarFallback className="rounded-md uppercase text-xs">
+								<IconUsers className="h-4 w-4" />
+							</AvatarFallback>
+						</Avatar>
+					</TileIcon>
+					<TileTitle className="flex items-center gap-2">{organization.name}</TileTitle>
+				</TileHeader>
+				<TileAction>
+					<Button variant={"accent"} size={"icon"} onClick={() => setOpenSettings(true)}>
+						<IconSettings />
+					</Button>
+				</TileAction>
+			</Tile>
 			<div className="flex flex-wrap gap-2 w-full">
 				<Tile className="bg-card md:w-full max-w-40">
 					<TileHeader>
@@ -245,6 +268,7 @@ export default function ProjectSide() {
 					</div>
 				</TabsContent>
 			</Tabs>
+
 			{/* <div className="flex items-center gap-2 shrink-0 rounded bg-accent border px-3 py-0.5 shadow-xs w-full justify-start">
 				<Breadcrumb>
 					<BreadcrumbList className="">
@@ -284,12 +308,14 @@ export default function ProjectSide() {
 				open={openNew}
 				setOpen={setOpenNew}
 			/> */}
-			{/* <ProjectDropdown
+
+			<GlobalSettings
+				organization={organization}
 				labels={labels}
 				setLabels={setLabels}
-				isOpen={openProjectSettings}
-				setIsOpen={setOpenProjectSettings}
-			/> */}
+				isOpen={openSettings}
+				setIsOpen={setOpenSettings}
+			/>
 		</div>
 	);
 }
