@@ -15,28 +15,16 @@ import { Separator } from "@repo/ui/components/separator";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import {
-	IconAdjustmentsHorizontal,
-	IconPlus,
-	IconSettings,
-	IconSlash,
-	IconStack2,
-	IconStackForward,
-	IconUser,
-	IconUserCheck,
-} from "@tabler/icons-react";
-import { view } from "drizzle-orm/sqlite-core";
+import { cn } from "@repo/ui/lib/utils";
+import { IconSettings, IconStack2, IconUser, IconUserCheck } from "@tabler/icons-react";
 import dynamic from "next/dynamic";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
-import { TaskFilterDropdown } from "@/app/components/admin/global/project/task/filter/task-filter-dropdown";
 import { deserializeFilters } from "../task/filter/dropdown/serialization";
 import type { FilterState } from "../task/filter/types";
+import { type PriorityKey, priorityConfig } from "./task-config";
 
-const CreateIssueDialog = dynamic(() => import("@/app/components/admin/global/project/task/issue/creator"), {
-	ssr: false,
-});
 const ProjectDropdown = dynamic(() => import("@/app/components/admin/global/project/project-dropdown"), {
 	ssr: false,
 });
@@ -44,10 +32,9 @@ const ProjectDropdown = dynamic(() => import("@/app/components/admin/global/proj
 export default function ProjectSide() {
 	const { value: organization } = useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
 	const { value: project, setValue: setProject } = useStateManagement<schema.projectType>("project", null, 1);
-	const { value: tasks, setValue: setTasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);
+	const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);
 	const { value: views } = useStateManagement<schema.savedViewType[]>("views", [], 1);
 	const { value: labels, setValue: setLabels } = useStateManagement<schema.labelType[]>("labels", [], 1);
-	const [openNew, setOpenNew] = useState(false);
 	const [openProjectSettings, setOpenProjectSettings] = useState(false);
 	const [filtersParam, setFiltersParam] = useQueryState("filters", parseAsString.withDefault(""));
 	const { setValue: setFilterState } = useStateManagement<FilterState>(
@@ -56,9 +43,62 @@ export default function ProjectSide() {
 		1
 	);
 
-	// Extract users from organization members for filter dropdown
-	const availableUsers = organization?.members.map((member) => member.user) || [];
 	const { account } = useLayoutData();
+
+	// Create "My Assigned" filter state for current user
+	const myAssignedFilterState: FilterState = {
+		groups: [
+			{
+				id: "my-assigned-group",
+				operator: "AND",
+				conditions: [
+					{
+						id: `assignee-any-${account?.id}`,
+						field: "assignee",
+						operator: "any",
+						value: account?.id || "",
+					},
+				],
+			},
+		],
+		operator: "AND",
+	};
+
+	// Serialize the "My Assigned" filter for comparison
+	const myAssignedFilterParam = account?.id ? `assignee:any:${account.id}` : "";
+
+	// Check if "My Assigned" view is active
+	const isMyAssignedActive = filtersParam === myAssignedFilterParam;
+
+	// Prebuilt priority views
+	const priorityViews: Array<{ key: PriorityKey; label: string }> = [
+		{ key: "urgent", label: "Urgent" },
+		{ key: "high", label: "High Priority" },
+		{ key: "medium", label: "Medium Priority" },
+		{ key: "low", label: "Low Priority" },
+	];
+
+	// Helper to create priority filter
+	const createPriorityFilter = (priority: PriorityKey): FilterState => ({
+		groups: [
+			{
+				id: `priority-${priority}-group`,
+				operator: "AND",
+				conditions: [
+					{
+						id: `priority-any-${priority}`,
+						field: "priority",
+						operator: "any",
+						value: priority,
+					},
+				],
+			},
+		],
+		operator: "AND",
+	});
+
+	// Helper to get priority filter param
+	const getPriorityFilterParam = (priority: PriorityKey) => `priority:any:${priority}`;
 
 	// Filter out done and canceled tasks to get open issues count
 	const opentaskCount = tasks.filter((task) => task.status !== "done" && task.status !== "canceled").length;
@@ -127,26 +167,115 @@ export default function ProjectSide() {
 					</TabsTrigger>
 				</TabsList>
 				<TabsContent value="views" className="mt-0">
-					<div className="flex flex-col gap-0.5 max-h-64 overflow-scroll">
-						{views.map((view) => (
-							<Tile
-								className="bg-card md:w-full"
-								key={view.id}
-								onClick={() => {
-									setFiltersParam(view.filterParams);
-									setFilterState(deserializeFilters(view.filterParams) || { groups: [], operator: "AND" });
-								}}
-							>
-								<TileHeader>
-									<TileTitle className="flex items-center gap-2">
-										<TileIcon>
-											<IconStack2 />
-										</TileIcon>
-										{view.name}
-									</TileTitle>
-								</TileHeader>
-							</Tile>
-						))}
+					<div className="flex flex-col gap-0.5">
+						<Label variant={"heading"} className="mt-2">
+							Saved views
+						</Label>
+						{views.map((view) => {
+							const isActive = filtersParam === view.filterParams;
+							return (
+								<Tile
+									className={cn(
+										"md:w-full cursor-pointer transition-colors selec",
+										isActive ? "bg-accent" : "bg-card hover:bg-accent"
+									)}
+									key={view.id}
+									onClick={() => {
+										if (isActive) {
+											setFiltersParam("");
+											setFilterState({ groups: [], operator: "AND" });
+										} else {
+											setFiltersParam(view.filterParams);
+											setFilterState(
+												deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
+											);
+										}
+									}}
+								>
+									<TileHeader>
+										<TileTitle className="flex items-center gap-2">
+											<TileIcon>
+												<IconStack2 />
+											</TileIcon>
+											{view.name}
+										</TileTitle>
+									</TileHeader>
+
+									<TileAction>
+										<TileDescription className={cn(!isActive && "opacity-0")}>Clear filter</TileDescription>
+									</TileAction>
+								</Tile>
+							);
+						})}
+						<Label variant={"heading"} className="mt-2">
+							Default
+						</Label>
+						<Tile
+							className={cn(
+								"md:w-full cursor-pointer transition-colors",
+								isMyAssignedActive ? "bg-accent" : "bg-card hover:bg-accent"
+							)}
+							onClick={() => {
+								if (isMyAssignedActive) {
+									// Clear filters if already active
+									setFiltersParam("");
+									setFilterState({ groups: [], operator: "AND" });
+								} else {
+									// Apply "My Assigned" filter
+									setFiltersParam(myAssignedFilterParam);
+									setFilterState(myAssignedFilterState);
+								}
+							}}
+						>
+							<TileHeader>
+								<TileTitle className="flex items-center gap-2">
+									<TileIcon>
+										<IconUserCheck />
+									</TileIcon>
+									My Assigned
+								</TileTitle>
+							</TileHeader>
+							<TileAction>
+								<TileDescription className={cn(!isMyAssignedActive && "opacity-0")}>
+									Clear filter
+								</TileDescription>
+							</TileAction>
+						</Tile>
+						{/* Prebuilt Priority Views */}
+						{priorityViews.map(({ key, label }) => {
+							const filterParam = getPriorityFilterParam(key);
+							const isActive = filtersParam === filterParam;
+							const config = priorityConfig[key];
+
+							return (
+								<Tile
+									className={cn(
+										"md:w-full cursor-pointer transition-colors",
+										isActive ? "bg-accent" : "bg-card hover:bg-accent"
+									)}
+									key={key}
+									onClick={() => {
+										if (isActive) {
+											setFiltersParam("");
+											setFilterState({ groups: [], operator: "AND" });
+										} else {
+											setFiltersParam(filterParam);
+											setFilterState(createPriorityFilter(key));
+										}
+									}}
+								>
+									<TileHeader>
+										<TileTitle className="flex items-center gap-2">
+											<TileIcon className={config.className}>{config.icon("w-4 h-4")}</TileIcon>
+											{label}
+										</TileTitle>
+									</TileHeader>
+									<TileAction>
+										<TileDescription className={cn(!isActive && "opacity-0")}>Clear filter</TileDescription>
+									</TileAction>
+								</Tile>
+							);
+						})}
 					</div>
 				</TabsContent>
 			</Tabs>

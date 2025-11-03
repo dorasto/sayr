@@ -97,6 +97,16 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers, orga
 		return `${window.location.origin}${pathname}${serialized ? `?filters=${serialized}` : ""}`;
 	}, [filterState, pathname]);
 
+	const currentFiltersString = useMemo(() => serializeFilters(filterState), [filterState]);
+
+	const showNewViewPopover = useMemo(() => {
+		// Don't show if no filters applied
+		if (activeFiltersCount === 0) return false;
+		// Don't show if a view with these exact filters already exists
+		const viewExists = views.some((view) => view.filterParams === currentFiltersString);
+		return !viewExists;
+	}, [activeFiltersCount, views, currentFiltersString]);
+
 	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
 		addFilter({
 			id: `${field}-${operator}-${value}-${Date.now()}`,
@@ -165,12 +175,14 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers, orga
 					className="gap-1 h-6 w-6 bg-accent border-transparent p-1 relative"
 				/>
 			)}
-			<NewViewPopover
-				organizationId={organizationId}
-				views={views}
-				setViews={setViews}
-				currentFilters={serializeFilters(filterState)}
-			/>
+			{showNewViewPopover && (
+				<NewViewPopover
+					organizationId={organizationId}
+					views={views}
+					setViews={setViews}
+					currentFilters={currentFiltersString}
+				/>
+			)}
 		</div>
 	);
 }
