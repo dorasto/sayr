@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { label, projectLabelAssignment, taskLabelAssignment } from "../../schema/label.schema";
+import { label, taskLabelAssignment } from "../../schema/label.schema";
 import { db } from "..";
 
 /**
@@ -60,7 +60,6 @@ export async function getLabel(orgId: string, labelId: string) {
  *
  * @param orgId - The organization ID the label belongs to.
  * @param taskId - The ID of the task to assign the label to.
- * @param projectId - The project ID the task is part of (needed for join table).
  * @param labelId - The ID of the lable you want to add
  * @returns The label row that was assigned, or `null` if label creation failed.
  *
@@ -72,7 +71,7 @@ export async function getLabel(orgId: string, labelId: string) {
  * }
  * ```
  */
-export async function addLabelToTask(orgId: string, taskId: string, projectId: string, labelId: string) {
+export async function addLabelToTask(orgId: string, taskId: string, labelId: string) {
 	const tag = await getLabel(orgId, labelId);
 	if (!tag) {
 		return null;
@@ -91,7 +90,7 @@ export async function addLabelToTask(orgId: string, taskId: string, projectId: s
 		.insert(taskLabelAssignment)
 		.values({
 			taskId,
-			projectId,
+			organizationId: orgId,
 			labelId: tag.id,
 		})
 		.onConflictDoNothing();
@@ -99,7 +98,7 @@ export async function addLabelToTask(orgId: string, taskId: string, projectId: s
 	return tag;
 }
 
-export async function removeLabelFromTask(orgId: string, taskId: string, projectId: string, labelId: string) {
+export async function removeLabelFromTask(orgId: string, taskId: string, labelId: string) {
 	const tag = await getLabel(orgId, labelId);
 	if (!tag) {
 		return null;
@@ -116,7 +115,7 @@ export async function removeLabelFromTask(orgId: string, taskId: string, project
 			.where(
 				and(
 					eq(taskLabelAssignment.taskId, taskId),
-					eq(taskLabelAssignment.projectId, projectId),
+					eq(taskLabelAssignment.organizationId, orgId),
 					eq(taskLabelAssignment.labelId, tag.id)
 				)
 			);
@@ -124,91 +123,6 @@ export async function removeLabelFromTask(orgId: string, taskId: string, project
 	} else {
 		return { success: false, error: new Error("Label not assigned to task") };
 	}
-}
-
-/**
- * Assign a label to a project. If the label does not exist, it will be created.
- * This function is idempotent: if the project already has the label, no duplicate
- * assignment is created.
- *
- * @param orgId - The organization ID the label belongs to.
- * @param projectId - The ID of the project to tag.
- * @param name - The label name (e.g. `"Urgent"`).
- * @param color - Optional hex color for the label (defaults to `#cccccc`).
- * @returns The label row that was assigned, or `null` if label creation failed.
- *
- * @example
- * ```ts
- * const label = await addLabelToProject("org_1", "proj_1", "Marketing", "#33c1ff");
- * if (label) {
- *   console.log(`Added label "${label.name}" to the project.`);
- * }
- * ```
- */
-export async function addLabelToProject(orgId: string, projectId: string, name: string, color?: string) {
-	const tag = await getOrCreateLabel(orgId, name, color);
-	if (!tag) {
-		return null;
-	}
-	// check if already assigned
-	const [existingAssignment] = await db
-		.select()
-		.from(projectLabelAssignment)
-		.where(and(eq(projectLabelAssignment.projectId, projectId), eq(projectLabelAssignment.labelId, tag.id)));
-
-	if (existingAssignment) {
-		return tag; // Already assigned
-	}
-
-	await db.insert(projectLabelAssignment).values({
-		projectId,
-		labelId: tag.id,
-	});
-
-	return tag;
-}
-
-/**
- * Safely remove a label only if it is not used in any project or task.
- *
- * If the label is still assigned to at least one project/task, deletion
- * is prevented and a descriptive error is returned.
- *
- * @param labelId - The ID of the label to delete.
- * @returns An object indicating the result:
- * - `{ success: true }` if the label was deleted successfully.
- * - `{ success: false, error: Error }` if deletion was blocked because
- *   the label is still in use.
- *
- * @example
- * ```ts
- * const res = await removeLabelSafely("lbl_urgent");
- * if (!res.success) {
- *   console.error(res.error.message);
- * } else {
- *   console.log("Label deleted");
- * }
- * ```
- */
-export async function removeLabelSafely(labelId: string) {
-	// check if label is assigned to *any* project
-	const projectUse = await db.select().from(projectLabelAssignment).where(eq(projectLabelAssignment.labelId, labelId));
-
-	// check if label is assigned to *any* task
-	const taskUse = await db.select().from(taskLabelAssignment).where(eq(taskLabelAssignment.labelId, labelId));
-
-	if (projectUse.length > 0 || taskUse.length > 0) {
-		return {
-			success: false,
-			error: new Error("❌ Cannot delete label: still assigned to a project/task"),
-		};
-	}
-
-	// safe to delete
-	await db.delete(label).where(eq(label.id, labelId));
-	return {
-		success: true,
-	};
 }
 
 /**
@@ -242,11 +156,6 @@ export async function getLabelUsage(labelId: string) {
 	const lbl = await db.query.label.findFirst({
 		where: (labels) => eq(labels.id, labelId),
 		with: {
-			projectAssignments: {
-				with: {
-					project: true, // Pull project details
-				},
-			},
 			taskAssignments: {
 				with: {
 					task: true, // Pull task details
@@ -269,18 +178,13 @@ export async function getLabelUsage(labelId: string) {
 			name: lbl.name,
 			color: lbl.color,
 		},
-		projects: lbl.projectAssignments.map((p) => ({
-			projectId: p.projectId,
-			projectName: p.project,
-		})),
 		tasks: lbl.taskAssignments.map((t) => ({
 			taskId: t.taskId,
 			taskTitle: t.task,
 		})),
 		counts: {
-			projects: lbl.projectAssignments.length,
 			tasks: lbl.taskAssignments.length,
-			total: lbl.projectAssignments.length + lbl.taskAssignments.length,
+			total: lbl.taskAssignments.length,
 		},
 	};
 }

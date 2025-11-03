@@ -137,61 +137,10 @@ export async function uploadOrganizationBanner(organizationId: string, file: Fil
 }
 
 /**
- * Updates an organization's details by calling the external admin API.
- *
- * This action:
- * - Sends a POST request with the updated organization data.
- * - Includes the client WebSocket ID (`wsClientId`) to support broadcast updates
- *   (ensuring events are sent to everyone except the caller).
- *
- * @param organizationId - The ID of the organization to update.
- * @param data - The organization fields to update (name).
- * @param wsClientId - A WebSocket client ID, used to broadcast changes to everyone except you.
- * @returns A promise resolving to the JSON response returned by the external API.
- *
- * @example
- * ```ts
- * const result = await createProjectAction("org_123", {
- *   name: "New Org Name",
- *   slug: "new-org-slug",
- *   description: "Updated description",
- * }, "client_456");
- *
- * console.log(result.success ? "Organization updated!" : "Update failed");
- * ```
- */
-export async function createProjectAction(
-	organizationId: string,
-	data: {
-		name: string;
-		description: string;
-		visibility?: "private" | "public";
-	},
-	wsClientId: string
-): Promise<{ success: boolean; data: schema.projectType; error?: string }> {
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/create`, {
-		method: "POST",
-		body: JSON.stringify({
-			org_id: organizationId,
-			wsClientId,
-			name: data.name,
-			description: data.description,
-			visibility: data.visibility,
-		}),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include", // 👈 This ensures cookies are sent
-	}).then(async (e) => await e.json());
-	return result;
-}
-
-/**
- * Calls the `/admin/project/task/create` API to create a new task
+ * Calls the `/admin/task/create` API to create a new task
  * within a given project inside an organization.
  *
  * @param organizationId - The ID of the organization where the task will be created.
- * @param projectId - The ID of the project to create the task in.
  * @param data - The properties of the new task:
  * - `title` (required) - The task title.
  * - `description` (optional) - The task description (array of editor blocks).
@@ -208,7 +157,6 @@ export async function createProjectAction(
  * ```ts
  * const result = await createTaskAction(
  *   "org_123",
- *   "proj_456",
  *   {
  *     title: "Implement new feature",
  *     description: [{ type: "paragraph", content: "Build the dashboard UI" }],
@@ -228,7 +176,6 @@ export async function createProjectAction(
  */
 export async function createTaskAction(
 	organizationId: string,
-	projectId: string,
 	data: {
 		title: string;
 		description: PartialBlock[] | undefined;
@@ -238,12 +185,11 @@ export async function createTaskAction(
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/create`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
 			wsClientId,
-			project_id: projectId,
 			title: data.title,
 			description: data.description,
 			status: data.status,
@@ -259,11 +205,10 @@ export async function createTaskAction(
 }
 
 /**
- * Calls the `/admin/project/task/update` API to update an existing task.
+ * Calls the `/admin/task/update` API to update an existing task.
  * Only the fields provided in `data` will be updated.
  *
  * @param organizationId - The ID of the organization the task belongs to.
- * @param projectId - The ID of the project the task belongs to.
  * @param taskId - The ID of the task to update.
  * @param data - The fields to update on the task:
  * - `title` (optional) - The new task title.
@@ -280,7 +225,6 @@ export async function createTaskAction(
  * ```ts
  * const result = await updateTaskAction(
  *   "org_123",
- *   "proj_456",
  *   "task_789",
  *   { status: "done", priority: "high" },
  *   "ws_client_001"
@@ -295,7 +239,6 @@ export async function createTaskAction(
  */
 export async function updateTaskAction(
 	organizationId: string,
-	projectId: string,
 	taskId: string,
 	data: {
 		title?: string;
@@ -308,7 +251,6 @@ export async function updateTaskAction(
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
-		project_id: projectId,
 		task_id: taskId,
 		// Merge only the fields passed in
 		...(data.title !== undefined ? { title: data.title } : {}),
@@ -317,7 +259,7 @@ export async function updateTaskAction(
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
 	};
 
-	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/update`, {
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/update`, {
 		method: "PATCH",
 		body: JSON.stringify(payload),
 		headers: {
@@ -329,11 +271,10 @@ export async function updateTaskAction(
 }
 
 /**
- * Calls the `/admin/project/task/update-labels` API to update the labels of an existing task.
+ * Calls the `/admin/task/update-labels` API to update the labels of an existing task.
  * This replaces any existing labels on the task with the provided `labels` array.
  *
  * @param organizationId - The ID of the organization the task belongs to.
- * @param projectId - The ID of the project the task belongs to.
  * @param taskId - The ID of the task being updated.
  * @param labels - Array of label IDs to assign to the task (replaces current labels).
  * @param wsClientId - The WebSocket client ID (used for pushing live updates).
@@ -346,7 +287,6 @@ export async function updateTaskAction(
  * ```ts
  * const result = await updateLabelToTaskAction(
  *   "org_123",
- *   "proj_456",
  *   "task_789",
  *   ["label_bug", "label_priority"],
  *   "ws_client_001"
@@ -361,7 +301,6 @@ export async function updateTaskAction(
  */
 export async function updateLabelToTaskAction(
 	organizationId: string,
-	projectId: string,
 	taskId: string,
 	labels: string[],
 	wsClientId: string
@@ -369,28 +308,23 @@ export async function updateLabelToTaskAction(
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
-		project_id: projectId,
 		task_id: taskId,
 		labels: labels,
 	};
 
-	const result = await fetch(
-		`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/update-labels`,
-		{
-			method: "POST",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include", // 👈 This ensures cookies are sent
-		}
-	).then(async (e) => await e.json());
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/update-labels`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 This ensures cookies are sent
+	}).then(async (e) => await e.json());
 	return result as { success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string };
 }
 
 export async function updateAssigneesToTaskAction(
 	organizationId: string,
-	projectId: string,
 	taskId: string,
 	assignees: string[],
 	wsClientId: string
@@ -398,28 +332,23 @@ export async function updateAssigneesToTaskAction(
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
-		project_id: projectId,
 		task_id: taskId,
 		assignees: assignees,
 	};
 
-	const result = await fetch(
-		`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/update-assignees`,
-		{
-			method: "POST",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include", // 👈 This ensures cookies are sent
-		}
-	).then(async (e) => await e.json());
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/update-assignees`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 This ensures cookies are sent
+	}).then(async (e) => await e.json());
 	return result as { success: boolean; data: schema.TaskWithLabels; skipped: boolean; error?: string };
 }
 
 export async function CreateTaskCommentAction(
 	organizationId: string,
-	projectId: string,
 	taskId: string,
 	blockNote: PartialBlock[] | undefined,
 	wsClientId: string
@@ -427,22 +356,18 @@ export async function CreateTaskCommentAction(
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
-		project_id: projectId,
 		task_id: taskId,
 		blocknote: blockNote,
 	};
 
-	const result = await fetch(
-		`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/project/task/create-comment`,
-		{
-			method: "POST",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include", // 👈 This ensures cookies are sent
-		}
-	).then(async (e) => await e.json());
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/create-comment`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 This ensures cookies are sent
+	}).then(async (e) => await e.json());
 	return result as { success: boolean; data: { id: string }; skipped: boolean; error?: string };
 }
 

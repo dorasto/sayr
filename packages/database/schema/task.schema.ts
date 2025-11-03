@@ -5,7 +5,6 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
-import { project } from "./project.schema";
 import { taskAssignee } from "./taskAssignee.schema";
 import { taskTimeline } from "./taskTimeline.schema";
 export const visibleEnum = v.pgEnum("visible", ["public", "private"]);
@@ -23,10 +22,6 @@ export const task = table("task", {
 		.text("organization_id")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
-	projectId: v
-		.text("project_id")
-		.notNull()
-		.references(() => project.id, { onDelete: "cascade" }),
 	shortId: v.integer("short_id"),
 	visible: visibleEnum("visible").default("public"), // enum-like field
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
@@ -40,16 +35,12 @@ export const task = table("task", {
 
 export type taskType = typeof task.$inferSelect;
 
-export const taskUniquePerProject = v.unique("task_project_shortid_unique").on(task.projectId, task.shortId);
+export const taskUniquePerProject = v.unique("task_organization_shortid_unique").on(task.organizationId, task.shortId);
 
 export const taskRelations = relations(task, ({ one, many }) => ({
 	organization: one(organization, {
 		fields: [task.organizationId],
 		references: [organization.id],
-	}),
-	project: one(project, {
-		fields: [task.projectId],
-		references: [project.id],
 	}),
 	createdBy: one(user, {
 		fields: [task.createdBy],

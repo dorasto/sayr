@@ -15,7 +15,7 @@ import { db, schema } from "..";
  *
  * @example
  * ```ts
- * const tasks = await getTasksByProjectId("org_123", "proj_456");
+ * const tasks = await getTasksByOrganizationId("org_123");
  * tasks.forEach(task => {
  *   console.log("Task:", task.title);
  *   task.labels.forEach(label =>
@@ -24,9 +24,9 @@ import { db, schema } from "..";
  * });
  * ```
  */
-export async function getTasksByProjectId(orgId: string, projectId: string): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByOrganizationId(orgId: string): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId)),
+		where: (t) => and(eq(t.organizationId, orgId)),
 		with: {
 			labels: {
 				with: {
@@ -76,7 +76,6 @@ export async function getTasksByProjectId(orgId: string, projectId: string): Pro
  * - `assignees` → an array of user objects (instead of assignment records).
  *
  * @param orgId - The ID of the organization the task belongs to.
- * @param projectId - The ID of the project the task belongs to.
  * @param shortId - The short numeric identifier of the task (e.g. project-scoped).
  * @returns A promise that resolves to the task object with related data, or `null` if not found.
  *
@@ -90,13 +89,9 @@ export async function getTasksByProjectId(orgId: string, projectId: string): Pro
  * }
  * ```
  */
-export async function getTaskByShortId(
-	orgId: string,
-	projectId: string,
-	shortId: number
-): Promise<schema.TaskWithLabels | null> {
+export async function getTaskByShortId(orgId: string, shortId: number): Promise<schema.TaskWithLabels | null> {
 	const task = await db.query.task.findFirst({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.shortId, shortId)),
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId)),
 		with: {
 			labels: { with: { label: true } },
 			createdBy: { columns: { id: true, name: true, image: true } },
@@ -127,7 +122,6 @@ export async function getTaskByShortId(
  * - `assignees` → an array of user objects (instead of assignment records).
  *
  * @param orgId - The ID of the organization the task belongs to.
- * @param projectId - The ID of the project the task belongs to.
  * @param Id - The unique task ID.
  * @returns A promise that resolves to the task object with related data, or `null` if not found.
  *
@@ -141,9 +135,9 @@ export async function getTaskByShortId(
  * }
  * ```
  */
-export async function getTaskById(orgId: string, projectId: string, Id: string) {
+export async function getTaskById(orgId: string, Id: string) {
 	const task = await db.query.task.findFirst({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.id, Id)),
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.id, Id)),
 		with: {
 			labels: { with: { label: true } },
 			createdBy: { columns: { id: true, name: true, image: true } },
@@ -188,7 +182,6 @@ export async function getTaskById(orgId: string, projectId: string, Id: string) 
  */
 export async function createTask(
 	orgId: string,
-	projectId: string,
 	data: {
 		title: string;
 		description?: unknown;
@@ -201,7 +194,7 @@ export async function createTask(
 	const [max] = (await db
 		.select({ max: sql<number>`MAX(${schema.task.shortId})` })
 		.from(schema.task)
-		.where(eq(schema.task.projectId, projectId))) || [{ max: 0 }];
+		.where(eq(schema.task.organizationId, orgId))) || [{ max: 0 }];
 
 	const nextShortId = (max?.max ?? 0) + 1;
 
@@ -210,7 +203,6 @@ export async function createTask(
 		.insert(schema.task)
 		.values({
 			organizationId: orgId,
-			projectId: projectId,
 			shortId: nextShortId,
 			title: data.title,
 			description: data.description ?? [],
@@ -230,7 +222,6 @@ export async function createTask(
  */
 export async function addLogEventTask(
 	task_id: string,
-	project_id: string,
 	org_id: string,
 	type: (typeof schema.timelineEventTypeEnum.enumValues)[number],
 	fromValue?: unknown,
@@ -240,7 +231,6 @@ export async function addLogEventTask(
 ) {
 	return await db.insert(taskTimeline).values({
 		taskId: task_id,
-		projectId: project_id,
 		organizationId: org_id,
 		actorId: actorId ?? null,
 		eventType: type,
@@ -250,16 +240,9 @@ export async function addLogEventTask(
 	});
 }
 
-export async function createComment(
-	org_id: string,
-	project_id: string,
-	task_id: string,
-	blockNote: unknown,
-	createdBy?: string
-) {
+export async function createComment(org_id: string, task_id: string, blockNote: unknown, createdBy?: string) {
 	return await db.insert(taskComment).values({
 		organizationId: org_id,
-		projectId: project_id,
 		taskId: task_id,
 		blockNote: blockNote,
 		createdBy: createdBy,
@@ -305,13 +288,12 @@ export async function createComment(
  */
 export async function getTaskComments(
 	orgId: string,
-	projectId: string,
 	taskId: string,
 	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {}
 ) {
 	// Step 1: Paginated comments
 	const comments = await db.query.taskComment.findMany({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.taskId, taskId)),
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
 		with: {
 			createdBy: { columns: { id: true, name: true, image: true } },
 		},
@@ -322,7 +304,7 @@ export async function getTaskComments(
 
 	// Step 2: Count total comments (for pagination UI)
 	const totalCommentsResult = await db.query.taskComment.findMany({
-		where: (c) => and(eq(c.organizationId, orgId), eq(c.projectId, projectId), eq(c.taskId, taskId)),
+		where: (c) => and(eq(c.organizationId, orgId), eq(c.taskId, taskId)),
 		columns: { id: true },
 	});
 	const totalComments = totalCommentsResult.length;
@@ -332,9 +314,9 @@ export async function getTaskComments(
 	return { comments, totalComments };
 }
 
-export async function getTaskTimeline(orgId: string, projectId: string, taskId: string) {
+export async function getTaskTimeline(orgId: string, taskId: string) {
 	const timeline = await db.query.taskTimeline.findMany({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.taskId, taskId)),
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
 		with: {
 			actor: { columns: { id: true, name: true, image: true } },
 		},
@@ -343,12 +325,12 @@ export async function getTaskTimeline(orgId: string, projectId: string, taskId: 
 	return timeline;
 }
 
-export async function getMergedTaskActivity(orgId: string, projectId: string, taskId: string) {
+export async function getMergedTaskActivity(orgId: string, taskId: string) {
 	// Fetch both datasets in parallel for efficiency
 	const [timeline, comments] = await Promise.all([
-		getTaskTimeline(orgId, projectId, taskId),
+		getTaskTimeline(orgId, taskId),
 		await db.query.taskComment.findMany({
-			where: (t) => and(eq(t.organizationId, orgId), eq(t.projectId, projectId), eq(t.taskId, taskId)),
+			where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
 			with: {
 				createdBy: { columns: { id: true, name: true, image: true } },
 			},
@@ -436,12 +418,6 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 					id: true,
 					name: true,
 					slug: true,
-				},
-			},
-			project: {
-				columns: {
-					id: true,
-					name: true,
 				},
 			},
 		},

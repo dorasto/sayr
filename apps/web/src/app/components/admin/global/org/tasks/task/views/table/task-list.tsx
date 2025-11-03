@@ -6,24 +6,24 @@ import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect, useMemo, useState } from "react";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
-import { applyFilters } from "../org/tasks/task/filter/filter-config";
-import type { FilterState } from "../org/tasks/task/filter/types";
-import { TASK_GROUPINGS } from "../org/tasks/task/grouping/config";
-import { TaskGroupSectionHeader } from "../org/tasks/task/grouping/task-group-section-header";
-import { useTaskViewState } from "../org/tasks/task/grouping/use-task-view-state";
-import { TaskContent } from "../org/tasks/task/views/table/task-content";
-import { TaskListItem } from "../org/tasks/task/views/table/task-list-item";
+import { applyFilters } from "../../filter/filter-config";
+import type { FilterState } from "../../filter/types";
+import { TASK_GROUPINGS } from "../../grouping/config";
+import { TaskGroupSectionHeader } from "../../grouping/task-group-section-header";
+import { useTaskViewState } from "../../grouping/use-task-view-state";
+import { TaskContent } from "./task-content";
+import { TaskListItem } from "./task-list-item";
 
-interface MyTaskListProps {
+interface TaskListProps {
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: schema.TaskWithLabels[]) => void;
 	ws: WebSocket | null;
 	labels: schema.labelType[];
-	availableUsers: schema.userType[];
-	organizations: schema.OrganizationWithMembers[];
+	availableUsers?: schema.userType[];
+	organization: schema.OrganizationWithMembers;
 }
 
-export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organizations }: MyTaskListProps) {
+export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], organization }: TaskListProps) {
 	const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 	const { value: selectedTask, setValue: setSelectedTask } = useStateManagement<schema.TaskWithLabels | null>(
@@ -47,7 +47,6 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 	const filteredTasks = useMemo(() => {
 		return applyFilters(tasks, filterState);
 	}, [tasks, filterState]);
-
 	const handlers: WSMessageHandler<WSMessage> = {
 		UPDATE_TASK: (msg) => {
 			const updatedTask = msg.data;
@@ -78,19 +77,17 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 			}
 		},
 	};
-
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE MyTaskList]", msg),
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE TaskList]", msg),
 	});
-
 	useEffect(() => {
 		if (!ws) return;
 		ws.addEventListener("message", handleMessage);
+		// Cleanup on unmount or dependency change
 		return () => {
 			ws.removeEventListener("message", handleMessage);
 		};
 	}, [ws, handleMessage]);
-
 	const handleTaskSelect = (taskId: string, selected: boolean) => {
 		const newSelected = new Set(selectedTasks);
 		if (selected) {
@@ -131,15 +128,6 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 		});
 	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition]);
 
-	// Find organization and project for the selected task
-	const selectedTaskContext = useMemo(() => {
-		if (!selectedTask) return null;
-
-		const organization = organizations.find((org) => org.id === selectedTask.organizationId);
-
-		return { organization };
-	}, [selectedTask, organizations]);
-
 	return (
 		<div className="rounded h-full">
 			{/* Grouped task list */}
@@ -169,7 +157,6 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 												setTasks={setTasks}
 												setSelectedTask={setSelectedTask}
 												availableUsers={availableUsers}
-												personal={true}
 											/>
 										))
 									) : (
@@ -183,7 +170,7 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 			) : (
 				<div className="flex items-center justify-center">No issues found</div>
 			)}
-			{selectedTask && selectedTaskContext?.organization && (
+			{selectedTask && (
 				<TaskContent
 					task={selectedTask}
 					open={isTaskContentOpen}
@@ -198,7 +185,7 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 					setTasks={setTasks}
 					setSelectedTask={setSelectedTask}
 					availableUsers={availableUsers}
-					organization={selectedTaskContext.organization}
+					organization={organization}
 					ws={ws}
 				/>
 			)}

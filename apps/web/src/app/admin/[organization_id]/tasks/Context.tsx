@@ -1,0 +1,39 @@
+"use client";
+import type { schema } from "@repo/database";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconLoader2 } from "@tabler/icons-react";
+import { createContext, type ReactNode, useContext, useEffect } from "react";
+
+interface ContextType {
+	tasks: schema.TaskWithLabels[];
+	setTasks: (newValue: ContextType["tasks"]) => void;
+}
+
+const RootContext = createContext<ContextType | undefined>(undefined);
+
+export function RootProviderOrganizationTasks({
+	children,
+	tasks,
+}: {
+	children: ReactNode;
+	tasks: ContextType["tasks"];
+}) {
+	const { value: newTasks, setValue: setTasks } = useStateManagement("tasks", tasks);
+	useEffect(() => setTasks(tasks), [tasks, setTasks]);
+	if (!tasks) {
+		return (
+			<div className="flex items-center h-full mx-auto place-items-center">
+				<IconLoader2 className="animate-spin" />
+			</div>
+		);
+	}
+	return <RootContext.Provider value={{ tasks: newTasks, setTasks }}>{children}</RootContext.Provider>;
+}
+
+export function useLayoutTasks() {
+	const context = useContext(RootContext);
+	if (context === undefined) {
+		throw new Error("useLayoutProject must be used within a RootProviderOrganizationTasks");
+	}
+	return context;
+}

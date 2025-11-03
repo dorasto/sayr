@@ -19,8 +19,7 @@ import { broadcast, broadcastPublic, broadcastToRoom, findClientByWsId } from ".
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 apiRouteAdminProjectTask.post("/create", async (c) => {
-	const { org_id, wsClientId, project_id, title, description, status, priority, labels, assignees } =
-		await c.req.json();
+	const { org_id, wsClientId, title, description, status, priority, labels, assignees } = await c.req.json();
 	const session = c.get("session");
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
@@ -28,7 +27,6 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	}
 	const task = await createTask(
 		org_id,
-		project_id,
 		{
 			title,
 			description,
@@ -43,7 +41,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	}
 	if (labels && labels.length > 0) {
 		for (const labelId of labels) {
-			await addLabelToTask(org_id, task.id, project_id, labelId);
+			await addLabelToTask(org_id, task.id, labelId);
 		}
 	}
 	// Attach assignees if provided
@@ -53,7 +51,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				.insert(schema.taskAssignee)
 				.values({
 					taskId: task.id,
-					projectId: project_id,
+					organizationId: org_id,
 					userId,
 				})
 				.onConflictDoNothing(); // avoid duplicate assignments
@@ -61,7 +59,6 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	}
 	await addLogEventTask(
 		task.id,
-		project_id,
 		org_id,
 		"created",
 		null,
@@ -70,14 +67,14 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		description
 	);
 	// Refetch with full labels
-	const taskWithData = await getTaskById(org_id, project_id, task.id);
+	const taskWithData = await getTaskById(org_id, task.id);
 
 	const found = findClientByWsId(wsClientId);
 	const data = {
 		type: "CREATE_TASK" as WSBaseMessage["type"],
 		data: taskWithData,
 	};
-	broadcast(org_id, `project:${project_id}`, data, found?.socket);
+	broadcast(org_id, `tasks`, data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
 	return c.json({
 		success: true,
@@ -85,7 +82,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	});
 });
 apiRouteAdminProjectTask.patch("/update", async (c) => {
-	const { org_id, wsClientId, project_id, task_id, ...updates } = await c.req.json();
+	const { org_id, wsClientId, task_id, ...updates } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
@@ -94,7 +91,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	}
 	// 🔎 Check task existence
 	const existingTask = await db.query.task.findFirst({
-		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id)),
 	});
 	if (!existingTask) {
 		return c.json({ success: false, error: "Task not found" }, 404);
@@ -119,20 +116,11 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 
 	// 📝 Step 2: Log timeline changes
 	if (updates.status && updates.status !== existingTask.status) {
-		await addLogEventTask(
-			task_id,
-			project_id,
-			org_id,
-			"status_change",
-			existingTask.status,
-			updates.status,
-			session?.userId
-		);
+		await addLogEventTask(task_id, org_id, "status_change", existingTask.status, updates.status, session?.userId);
 	}
 	if (updates.priority && updates.priority !== existingTask.priority) {
 		await addLogEventTask(
 			task_id,
-			project_id,
 			org_id,
 			"priority_change",
 			existingTask.priority,
@@ -141,12 +129,11 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		);
 	}
 	if (updates.title && updates.title !== existingTask.title) {
-		await addLogEventTask(task_id, project_id, org_id, "updated", existingTask.title, updates.title, session?.userId);
+		await addLogEventTask(task_id, org_id, "updated", existingTask.title, updates.title, session?.userId);
 	}
 	if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
 		await addLogEventTask(
 			task_id,
-			project_id,
 			org_id,
 			"updated",
 			existingTask.description,
@@ -157,19 +144,19 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	}
 
 	// 🔄 Step 3: Refetch task with relations
-	const taskWithData = await getTaskById(org_id, project_id, task_id);
+	const taskWithData = await getTaskById(org_id, task_id);
 
 	// 📢 Step 4: Broadcast one unified update
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-	broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
+	broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
 	broadcastPublic(org_id, { ...data });
 
 	return c.json({ success: true, data: taskWithData });
 });
 
 apiRouteAdminProjectTask.post("/update-labels", async (c) => {
-	const { org_id, wsClientId, project_id, task_id, labels } = await c.req.json();
+	const { org_id, wsClientId, task_id, labels } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
@@ -182,7 +169,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 		// const taskWithData = await enqueueJob(key, async () => {
 		// 🔎 Check task existence with labels
 		const existingTask = await db.query.task.findFirst({
-			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id)),
 			with: {
 				labels: { with: { label: true } },
 			},
@@ -204,20 +191,20 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 		// 1️⃣ Add missing labels
 		for (const labelId of incomingLabelIds) {
 			if (!currentLabelIds.includes(labelId)) {
-				await addLabelToTask(org_id, task_id, project_id, labelId);
-				await addLogEventTask(task_id, project_id, org_id, "label_added", null, labelId, session?.userId);
+				await addLabelToTask(org_id, task_id, labelId);
+				await addLogEventTask(task_id, org_id, "label_added", null, labelId, session?.userId);
 			}
 		}
 
 		// 2️⃣ Remove labels not in incoming list
 		for (const labelId of currentLabelIds) {
 			if (!incomingLabelIds.includes(labelId)) {
-				await removeLabelFromTask(org_id, task_id, project_id, labelId);
-				await addLogEventTask(task_id, project_id, org_id, "label_removed", null, labelId, session?.userId);
+				await removeLabelFromTask(org_id, task_id, labelId);
+				await addLogEventTask(task_id, org_id, "label_removed", null, labelId, session?.userId);
 			}
 		}
 
-		const taskWithData = await getTaskById(org_id, project_id, task_id);
+		const taskWithData = await getTaskById(org_id, task_id);
 		// });
 
 		// // undefined means this wasn’t the latest — skip returning older state
@@ -227,7 +214,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 
 		const found = findClientByWsId(wsClientId);
 		const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-		broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
+		broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
 		broadcastPublic(org_id, { ...data });
 
 		return c.json({ success: true, data: taskWithData });
@@ -242,7 +229,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 });
 
 apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
-	const { org_id, wsClientId, project_id, task_id, assignees } = await c.req.json();
+	const { org_id, wsClientId, task_id, assignees } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
@@ -254,7 +241,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 		// const taskWithData = await enqueueJob(key, async () => {
 		// 🔎 Check task existence with labels
 		const existingTask = await db.query.task.findFirst({
-			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id), eq(t.projectId, project_id)),
+			where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id)),
 			with: {
 				assignees: {
 					with: { user: { columns: { id: true, name: true, image: true } } },
@@ -277,9 +264,9 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 			if (!currentAssigneeIds.includes(userId)) {
 				await db
 					.insert(schema.taskAssignee)
-					.values({ taskId: task_id, projectId: project_id, userId })
+					.values({ taskId: task_id, organizationId: org_id, userId })
 					.onConflictDoNothing();
-				await addLogEventTask(task_id, project_id, org_id, "assignee_added", null, userId, session?.userId);
+				await addLogEventTask(task_id, org_id, "assignee_added", null, userId, session?.userId);
 			}
 		}
 		// 2️⃣ Remove assignees not in incoming list
@@ -290,16 +277,16 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 					.where(
 						and(
 							eq(schema.taskAssignee.taskId, task_id),
-							eq(schema.taskAssignee.projectId, project_id),
+							eq(schema.taskAssignee.organizationId, org_id),
 							eq(schema.taskAssignee.userId, userId)
 						)
 					);
-				await addLogEventTask(task_id, project_id, org_id, "assignee_removed", null, userId, session?.userId);
+				await addLogEventTask(task_id, org_id, "assignee_removed", null, userId, session?.userId);
 			}
 		}
 
 		// 🔄 Fetch updated task with related data
-		const taskWithData = await getTaskById(org_id, project_id, task_id);
+		const taskWithData = await getTaskById(org_id, task_id);
 		// return taskWithData;
 		// });
 
@@ -310,7 +297,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 
 		const found = findClientByWsId(wsClientId);
 		const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-		broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
+		broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
 		broadcastPublic(org_id, { ...data });
 
 		return c.json({ success: true, data: taskWithData });
@@ -325,18 +312,18 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 });
 
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
-	const { org_id, wsClientId, project_id, task_id, blocknote } = await c.req.json();
+	const { org_id, wsClientId, task_id, blocknote } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
-	const key = `${org_id}:${project_id}:${task_id}`;
-	await createComment(org_id, project_id, task_id, blocknote, session?.userId);
+	const key = `${org_id}:${task_id}`;
+	await createComment(org_id, task_id, blocknote, session?.userId);
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"], data: { id: task_id } };
-	broadcastToRoom(org_id, `project:${project_id};task:${task_id}`, data, found?.socket, true);
+	broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
 	broadcastPublic(org_id, { ...data });
 	console.log("key:", key);
 	return c.json({ success: true, data: { id: task_id } });
@@ -345,13 +332,11 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	const query = c.req.query();
 	const org_id = query.org_id;
-	const project_id = query.project_id;
 	const task_id = query.task_id;
 
 	// --- Validate required parameters ---
 	const missingParams = [];
 	if (!org_id) missingParams.push("org_id");
-	if (!project_id) missingParams.push("project_id");
 	if (!task_id) missingParams.push("task_id");
 
 	if (missingParams.length > 0) {
@@ -374,7 +359,7 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	}
 
 	// --- Fetch task & comments ---
-	const timeline = await getMergedTaskActivity(org_id || "", project_id || "", task_id || "");
+	const timeline = await getMergedTaskActivity(org_id || "", task_id || "");
 
 	return c.json({
 		success: true,

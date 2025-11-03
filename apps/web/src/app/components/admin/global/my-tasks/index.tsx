@@ -8,8 +8,8 @@ import { useMyTasks } from "@/app/admin/mine/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
-import { TaskFilterDropdown } from "../project/task/filter/dropdown/TaskFilterDropdown";
-import { TaskViewDropdown } from "../project/task/grouping/task-view-dropdown";
+import { TaskFilterDropdown } from "../org/tasks/task/filter/dropdown/TaskFilterDropdown";
+import { TaskViewDropdown } from "../org/tasks/task/grouping/task-view-dropdown";
 import { MyTaskList } from "./my-task-list";
 
 export default function MyTasksPage() {

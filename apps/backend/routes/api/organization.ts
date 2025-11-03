@@ -8,7 +8,7 @@ import { checkMembershipRole, decodeCursor, encodeCursor } from "@/util";
 import { savedView } from "../../../../packages/database/schema";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
-import { apiRouteAdminProject } from "./project";
+import { apiRouteAdminProjectTask } from "./task";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 apiRouteAdminOrganization.post("/update", async (c) => {
 	const { org_id, wsClientId, data } = await c.req.json();
@@ -331,4 +331,4 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 		data: view,
 	});
 });
-apiRouteAdminOrganization.route("/project", apiRouteAdminProject);
+apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);
