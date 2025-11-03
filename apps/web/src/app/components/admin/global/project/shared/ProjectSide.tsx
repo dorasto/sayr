@@ -36,7 +36,7 @@ export default function ProjectSide() {
 	const { value: views } = useStateManagement<schema.savedViewType[]>("views", [], 1);
 	const { value: labels, setValue: setLabels } = useStateManagement<schema.labelType[]>("labels", [], 1);
 	const [openProjectSettings, setOpenProjectSettings] = useState(false);
-	const [filtersParam, setFiltersParam] = useQueryState("filters", parseAsString.withDefault(""));
+	const [filtersParam] = useQueryState("filters", parseAsString.withDefault(""));
 	const { setValue: setFilterState } = useStateManagement<FilterState>(
 		"task-filters",
 		{ groups: [], operator: "AND" },
@@ -182,10 +182,8 @@ export default function ProjectSide() {
 									key={view.id}
 									onClick={() => {
 										if (isActive) {
-											setFiltersParam("");
 											setFilterState({ groups: [], operator: "AND" });
 										} else {
-											setFiltersParam(view.filterParams);
 											setFilterState(
 												deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
 											);
@@ -218,11 +216,10 @@ export default function ProjectSide() {
 							onClick={() => {
 								if (isMyAssignedActive) {
 									// Clear filters if already active
-									setFiltersParam("");
 									setFilterState({ groups: [], operator: "AND" });
 								} else {
 									// Apply "My Assigned" filter
-									setFiltersParam(myAssignedFilterParam);
+									// setFiltersParam(myAssignedFilterParam);
 									setFilterState(myAssignedFilterState);
 								}
 							}}
@@ -256,10 +253,10 @@ export default function ProjectSide() {
 									key={key}
 									onClick={() => {
 										if (isActive) {
-											setFiltersParam("");
+											// setFiltersParam("");
 											setFilterState({ groups: [], operator: "AND" });
 										} else {
-											setFiltersParam(filterParam);
+											// setFiltersParam(filterParam);
 											setFilterState(createPriorityFilter(key));
 										}
 									}}
