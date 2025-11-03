@@ -1,9 +1,11 @@
 "use client";
 
 import { Separator } from "@repo/ui/components/separator";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { useMyTasks } from "@/app/admin/mine/Context";
+import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import { TaskFilterDropdown } from "../project/task/filter/dropdown/TaskFilterDropdown";
@@ -11,9 +13,11 @@ import { TaskViewDropdown } from "../project/task/grouping/task-view-dropdown";
 import { MyTaskList } from "./my-task-list";
 
 export default function MyTasksPage() {
+	const queryClient = useQueryClient();
+	queryClient.removeQueries({ queryKey: ["organization"] });
 	const { ws, organizations } = useLayoutData();
 	const { tasks, setTasks, labels, views, setViews } = useMyTasks();
-
+	useWebSocketSubscription({ ws });
 	// Collect all users from all organizations
 	const allUsers = useMemo(() => {
 		const userMap = new Map();
