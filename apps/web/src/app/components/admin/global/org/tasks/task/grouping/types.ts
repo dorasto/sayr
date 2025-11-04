@@ -1,7 +1,7 @@
 import type { schema } from "@repo/database";
 import type { ReactNode } from "react";
 
-export type TaskGroupingId = "status" | "assignee" | "priority";
+export type TaskGroupingId = "status" | "assignee" | "priority" | "category";
 
 export interface TaskGroup {
 	id: string;
@@ -19,6 +19,7 @@ export interface TaskGroupingContext {
 	tasks: schema.TaskWithLabels[];
 	availableUsers: schema.userType[];
 	showEmptyGroups: boolean;
+	categories: schema.categoryType[];
 }
 
 export interface TaskGroupingDefinition {

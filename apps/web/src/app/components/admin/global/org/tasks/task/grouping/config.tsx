@@ -2,7 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { IconUser } from "@tabler/icons-react";
+import { IconCategory2, IconUser } from "@tabler/icons-react";
 import { priorityConfig, statusConfig } from "../../../shared/task-config";
 import type { TaskGroup, TaskGroupingContext, TaskGroupingDefinition, TaskGroupingId } from "./types";
 
@@ -183,7 +183,73 @@ const assigneeGrouping = createGroupingDefinition("assignee", {
 			.filter((group) => (showEmptyGroups ? true : group.tasks.length > 0));
 	},
 });
+const createCategoryGroup = (category?: schema.categoryType | null): TaskGroup => {
+	const key = category?.id || "uncategorized";
+	const id = category?.id ? `category:${category.id}` : "category:none";
+	return {
+		id,
+		key,
+		label: category?.name || "No category",
+		icon: <div className="h-3 w-3 rounded-full border" style={{ backgroundColor: category?.color || "#cccccc" }} />,
+		tasks: [],
+		count: 0,
+	};
+};
+export const categoryGrouping = createGroupingDefinition("category", {
+	label: "Category",
+	description: "Group tasks by categories",
+	icon: <IconCategory2 className="h-4 w-4" />,
+	group: ({ tasks, showEmptyGroups, categories }: TaskGroupingContext) => {
+		const groupMap = new Map<string, TaskGroup>();
 
+		// Safely create or retrieve a group without using non-null assertions
+		const ensureGroupForCategory = (category?: schema.categoryType | null): TaskGroup => {
+			const key = category?.id || "uncategorized";
+			const existingGroup = groupMap.get(key);
+			if (existingGroup) {
+				return existingGroup;
+			}
+			const newGroup = createCategoryGroup(category);
+			groupMap.set(key, newGroup);
+			return newGroup;
+		};
+
+		// Optionally pre-create groups for all categories (for "show empty" mode)
+		if (showEmptyGroups) {
+			categories.forEach((cat) => ensureGroupForCategory(cat));
+			ensureGroupForCategory(null); // Uncategorized
+		}
+
+		// Assign each task to a category-based group
+		tasks.forEach((task) => {
+			// Handle both string-based and object-based category fields
+			let category: schema.categoryType | null = null;
+			if (typeof task.category === "string") {
+				category = categories.find((c) => c.id === task.category) ?? null;
+			} else if (task.category && typeof task.category === "object") {
+				category = task.category as schema.categoryType;
+			}
+
+			const group = ensureGroupForCategory(category);
+			group.tasks.push(task);
+		});
+
+		// Compute counts for all groups
+		const groups = Array.from(groupMap.values()).map((group) => ({
+			...group,
+			count: group.tasks.length,
+		}));
+
+		// Sort alphabetically, with "No category" last
+		return groups
+			.sort((a, b) => {
+				if (a.key === "uncategorized") return 1;
+				if (b.key === "uncategorized") return -1;
+				return a.label.localeCompare(b.label);
+			})
+			.filter((group) => (showEmptyGroups ? true : group.tasks.length > 0));
+	},
+});
 function createGroupingDefinition(
 	id: TaskGroupingId,
 	definition: Omit<TaskGroupingDefinition, "id">
@@ -198,6 +264,7 @@ export const TASK_GROUPINGS: Record<TaskGroupingId, TaskGroupingDefinition> = {
 	status: statusGrouping,
 	priority: priorityGrouping,
 	assignee: assigneeGrouping,
+	category: categoryGrouping,
 };
 
 export const TASK_GROUPING_OPTIONS: TaskGroupingDefinition[] = Object.values(TASK_GROUPINGS);

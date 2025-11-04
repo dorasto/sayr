@@ -137,8 +137,9 @@ export function MyTaskList({
 			tasks: filteredTasks,
 			availableUsers,
 			showEmptyGroups,
+			categories,
 		});
-	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition]);
+	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition, categories]);
 
 	// Find organization and project for the selected task
 	const selectedTaskContext = useMemo(() => {

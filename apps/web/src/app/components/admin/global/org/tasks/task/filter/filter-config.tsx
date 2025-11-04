@@ -1,5 +1,5 @@
 import type { schema } from "@repo/database";
-import { IconCalendar, IconTag, IconTextSize, IconUser } from "@tabler/icons-react";
+import { IconCalendar, IconCategory2, IconTag, IconTextSize, IconUser } from "@tabler/icons-react";
 import { priorityConfig, statusConfig } from "../../../shared/task-config";
 import type {
 	DateRangeValue,
@@ -49,7 +49,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 	{
 		field: "category",
 		label: "Category",
-		icon: <IconUser className="w-4 h-4" />,
+		icon: <IconCategory2 className="w-4 h-4" />,
 		operators: ["any", "none", "empty", "not_empty"],
 		filterDefault: "any",
 		multi: true,

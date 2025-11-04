@@ -134,8 +134,9 @@ export function TaskList({
 			tasks: filteredTasks,
 			availableUsers,
 			showEmptyGroups,
+			categories,
 		});
-	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition]);
+	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition, categories]);
 
 	return (
 		<div className="rounded h-full">
