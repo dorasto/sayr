@@ -86,9 +86,6 @@ export default function ProjectSide() {
 		operator: "AND",
 	});
 
-	// Helper to get priority filter param
-	const getPriorityFilterParam = (priority: PriorityKey) => `priority:any:${priority}`;
-
 	// Filter out done and canceled tasks to get open issues count
 	const opentaskCount = tasks.filter((task) => task.status !== "done" && task.status !== "canceled").length;
 	const openusertaskCount = tasks.filter(
