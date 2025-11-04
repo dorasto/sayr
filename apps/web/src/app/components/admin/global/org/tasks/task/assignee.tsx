@@ -178,7 +178,7 @@ export default function GlobalTaskAssignees({
 							<ComboBoxEmpty>No users found.</ComboBoxEmpty>
 							<ComboBoxGroup>
 								{availableUsers.map((user) => (
-									<ComboBoxItem key={user.id} value={user.id}>
+									<ComboBoxItem key={user.id} value={user.id} searchValue={user.name.toLowerCase()}>
 										<Avatar className="h-6 w-6">
 											<AvatarImage src={user.image || undefined} alt={user.name} />
 											<AvatarFallback className="text-xs">

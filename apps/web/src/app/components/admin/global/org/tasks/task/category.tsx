@@ -158,7 +158,7 @@ export default function GlobalTaskCategory({
 							<ComboBoxEmpty>No categories found</ComboBoxEmpty>
 							<ComboBoxGroup>
 								{categories.map((cat) => (
-									<ComboBoxItem key={cat.id} value={cat.id}>
+									<ComboBoxItem key={cat.id} value={cat.id} searchValue={cat.name.toLowerCase()}>
 										<div className="flex items-center gap-2">
 											<div
 												className="h-3 w-3 rounded-full border"
