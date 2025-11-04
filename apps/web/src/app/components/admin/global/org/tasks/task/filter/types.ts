@@ -22,7 +22,8 @@ export type FilterField =
 	| "creator"
 	| "created_at"
 	| "updated_at"
-	| "title";
+	| "title"
+	| "category";
 
 export interface DateRangeValue {
 	start: string;
@@ -71,7 +72,8 @@ export interface FilterFieldConfig {
 		tasks: schema.TaskWithLabels[],
 		labels: schema.labelType[],
 		users: schema.userType[],
-		subSearch: string
+		subSearch: string,
+		categories: schema.categoryType[]
 	) => FilterOption[];
 	renderValue?: (condition: FilterCondition) => React.ReactNode;
 }

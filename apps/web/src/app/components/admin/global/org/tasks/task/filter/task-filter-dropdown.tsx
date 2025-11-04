@@ -73,9 +73,10 @@ interface TaskFilterDropdownProps {
 	tasks: schema.TaskWithLabels[];
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
+	categories: schema.categoryType[];
 }
 
-export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: TaskFilterDropdownProps) {
+export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers, categories }: TaskFilterDropdownProps) {
 	const [filters, setFilters] = useQueryState("filters", parseAsString.withDefault(""));
 	const { value: filterState, setValue: setFilterState } = useStateManagement<FilterState>(
 		"task-filters",
@@ -370,7 +371,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers }: Ta
 	const getAvailableOptions = (fieldName: FilterField) => {
 		const config = FILTER_FIELD_CONFIGS.find((c) => c.field === fieldName);
 		return typeof config?.getOptions === "function"
-			? config.getOptions(_tasks, labels, availableUsers, subSearch)
+			? config.getOptions(_tasks, labels, availableUsers, subSearch, categories)
 			: [];
 	};
 

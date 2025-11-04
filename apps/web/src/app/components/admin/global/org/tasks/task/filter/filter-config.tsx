@@ -46,6 +46,22 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		getOptions: (_t, _l, _u, subSearch) =>
 			PRIORITY_OPTIONS.filter((o) => o.label.toLowerCase().includes(subSearch?.toLowerCase() || "")),
 	},
+	{
+		field: "category",
+		label: "Category",
+		icon: <IconUser className="w-4 h-4" />,
+		operators: ["any", "none", "empty", "not_empty"],
+		filterDefault: "any",
+		multi: true,
+		getOptions: (tasks, _labels, _users, subSearch, categories) => {
+			const ids = new Set<string>();
+			tasks.forEach((t) => t.assignees?.forEach((a) => ids.add(a.id)));
+			const q = subSearch.toLowerCase();
+			return categories
+				.filter((c) => c.name.toLowerCase().includes(q || ""))
+				.map((category) => ({ value: category.id, label: category.name, color: category.color || "#cccccc" }));
+		},
+	},
 	// Multi-value relations
 	{
 		field: "assignee",
@@ -231,6 +247,8 @@ function extractFieldValue(task: schema.TaskWithLabels, field: string): unknown 
 			return task.status || null;
 		case "priority":
 			return task.priority || null;
+		case "category":
+			return task.category || null;
 		case "assignee":
 			return (task.assignees || []).map((a) => a.id);
 		case "label":

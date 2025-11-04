@@ -73,6 +73,7 @@ export default function OrganizationTasksHomePage() {
 					organizationId={organization.id}
 					views={views}
 					setViews={setViews}
+					categories={categories}
 				/>
 				<div className="flex items-center gap-2 shrink-0 ml-auto">
 					<Separator orientation="vertical" className="h-5" />

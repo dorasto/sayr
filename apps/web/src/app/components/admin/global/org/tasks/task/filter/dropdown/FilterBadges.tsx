@@ -19,6 +19,7 @@ interface FilterBadgesProps {
 	conditions: FilterCondition[];
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
+	categories: schema.categoryType[];
 	removeFilter: (id: string) => void;
 	updateFilterOperator: (id: string, op: FilterOperator) => void;
 	toggleValue: (id: string, value: string) => void;
@@ -34,6 +35,7 @@ export function FilterBadges(props: FilterBadgesProps) {
 		conditions,
 		labels,
 		availableUsers,
+		categories,
 		removeFilter,
 		updateFilterOperator,
 		toggleValue,
@@ -69,6 +71,10 @@ export function FilterBadges(props: FilterBadgesProps) {
 								if (condition.field === "assignee") {
 									const u = availableUsers.find((u) => u.id === v);
 									return u?.name || u?.email || v;
+								}
+								if (condition.field === "category") {
+									const u = categories.find((category) => category.id === v);
+									return u?.name || v;
 								}
 								return v;
 							})

@@ -27,9 +27,18 @@ interface Props {
 	organizationId: string;
 	views: schema.savedViewType[];
 	setViews: (newValue: Props["views"]) => void;
+	categories: schema.categoryType[];
 }
 
-export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers, organizationId, setViews, views }: Props) {
+export function TaskFilterDropdown({
+	tasks: _tasks,
+	labels,
+	availableUsers,
+	organizationId,
+	setViews,
+	views,
+	categories,
+}: Props) {
 	// Query + persisted state
 	const [filtersParam, setFiltersParam] = useQueryState("filters", parseAsString.withDefault(""));
 	const { value: filterState, setValue: setFilterState } = useStateManagement<FilterState>(
@@ -85,7 +94,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers, orga
 	const getAvailableOptions = (field: FilterField) => {
 		const config = FILTER_FIELD_CONFIGS.find((c) => c.field === field);
 		return typeof config?.getOptions === "function"
-			? config.getOptions(_tasks, labels, availableUsers, subSearch)
+			? config.getOptions(_tasks, labels, availableUsers, subSearch, categories)
 			: [];
 	};
 
@@ -153,6 +162,7 @@ export function TaskFilterDropdown({ tasks: _tasks, labels, availableUsers, orga
 				getAvailableOptions={getAvailableOptions}
 				getAvailableOperators={getAvailableOperators}
 				renderFilterValue={renderFilterValue}
+				categories={categories}
 			/>
 			<FilterMenu
 				activeFiltersCount={activeFiltersCount}
