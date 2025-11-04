@@ -12,7 +12,8 @@ import { TaskContent } from "./views/table/task-content";
 
 export default function OrganizationTaskHomePage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, labels, setLabels } = useLayoutOrganization();
+	const { organization, setOrganization, labels, setLabels, views, setViews, categories, setCategories } =
+		useLayoutOrganization();
 	const { tasks, setTasks } = useLayoutTasks();
 	const { task, setTask } = useLayoutTask();
 	useWebSocketSubscription({
@@ -26,6 +27,16 @@ export default function OrganizationTaskHomePage() {
 		CREATE_LABEL: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
 				setLabels([...labels, msg.data]);
+			}
+		},
+		CREATE_VIEW: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setViews([...views, msg.data]);
+			}
+		},
+		CREATE_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setCategories([...categories, msg.data]);
 			}
 		},
 		UPDATE_TASK: (msg) => {
@@ -85,6 +96,7 @@ export default function OrganizationTaskHomePage() {
 			availableUsers={organization.members.map((member) => member.user)}
 			isDialog={false}
 			ws={ws}
+			categories={categories}
 		/>
 	);
 }

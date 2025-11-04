@@ -173,8 +173,8 @@ export type WSMessage =
 			data: schema.organizationType;
 	  })
 	| (BaseMessage & {
-			type: "CREATE_PROJECT";
-			data: schema.projectType;
+			type: "CREATE_CATEGORY";
+			data: schema.categoryType;
 	  })
 	| (BaseMessage & {
 			type: "CREATE_TASK";

@@ -9,9 +9,10 @@ interface Props {
 	labels: schema.labelType[];
 	availableUsers?: schema.userType[];
 	organization: schema.OrganizationWithMembers;
+	categories: schema.categoryType[];
 }
 
-export default function ListTasks({ tasks, setTasks, ws, labels, availableUsers, organization }: Props) {
+export default function ListTasks({ tasks, setTasks, ws, labels, availableUsers, organization, categories }: Props) {
 	return (
 		<div className="">
 			<TaskList
@@ -21,6 +22,7 @@ export default function ListTasks({ tasks, setTasks, ws, labels, availableUsers,
 				labels={labels}
 				availableUsers={availableUsers}
 				organization={organization}
+				categories={categories}
 			/>
 		</div>
 	);

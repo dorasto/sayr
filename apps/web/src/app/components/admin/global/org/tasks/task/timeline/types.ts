@@ -19,12 +19,14 @@ export interface GlobalTimelineProps {
 	task: schema.TaskWithLabels;
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
+	categories: schema.categoryType[];
 }
 
 export interface TimelineItemProps {
 	item: schema.taskTimelineWithActor;
 	labels?: schema.labelType[];
 	availableUsers?: schema.userType[];
+	categories?: schema.categoryType[];
 }
 
 export interface ConsolidatedTimelineItemProps {

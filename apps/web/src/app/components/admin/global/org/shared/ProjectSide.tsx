@@ -8,7 +8,7 @@ import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconSettings, IconSettings2, IconStack2, IconUser, IconUserCheck, IconUsers } from "@tabler/icons-react";
+import { IconSettings, IconStack2, IconUser, IconUserCheck, IconUsers } from "@tabler/icons-react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
@@ -22,6 +22,11 @@ export default function ProjectSide() {
 	const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);
 	const { value: views } = useStateManagement<schema.savedViewType[]>("views", [], 1);
 	const { value: labels, setValue: setLabels } = useStateManagement<schema.labelType[]>("labels", [], 1);
+	const { value: categories, setValue: setCategories } = useStateManagement<schema.categoryType[]>(
+		"categories",
+		[],
+		1
+	);
 	const [filtersParam] = useQueryState("filters", parseAsString.withDefault(""));
 	const { setValue: setFilterState } = useStateManagement<FilterState>(
 		"task-filters",
@@ -315,6 +320,8 @@ export default function ProjectSide() {
 				setLabels={setLabels}
 				isOpen={openSettings}
 				setIsOpen={setOpenSettings}
+				categories={categories}
+				setCategories={setCategories}
 			/>
 		</div>
 	);

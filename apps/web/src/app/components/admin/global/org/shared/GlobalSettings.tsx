@@ -1,18 +1,11 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
-import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import { Separator } from "@repo/ui/components/separator";
-import ColorPicker from "@repo/ui/components/tomui/color-picker";
-import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { TabbedDialog, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
-import { IconCategory, IconCircleFilled, IconSearch, IconSettings, IconTag } from "@tabler/icons-react";
-import { useState } from "react";
-import CreateLabel from "../tasks/create-label";
-import label from "../tasks/task/label";
+import { IconCategory, IconCircleFilled, IconSettings, IconTag } from "@tabler/icons-react";
+import CreateCategory from "../create-category";
+import CreateLabel from "../create-label";
 
 interface Props {
 	organization: schema.OrganizationWithMembers;
@@ -20,6 +13,8 @@ interface Props {
 	setLabels: (newValue: Props["labels"]) => void;
 	isOpen?: boolean;
 	setIsOpen?: (open: boolean) => void;
+	categories: schema.categoryType[];
+	setCategories: (newValue: Props["categories"]) => void;
 }
 
 export default function GlobalSettings({
@@ -30,6 +25,8 @@ export default function GlobalSettings({
 	setIsOpen = () => {
 		false;
 	},
+	categories,
+	setCategories,
 }: Props) {
 	// Simple side layout with one tab
 	const sideGroupedTabs = [
@@ -57,10 +54,6 @@ export default function GlobalSettings({
 			],
 		},
 	];
-	const [color, setColor] = useState({
-		hsla: "#000000",
-		hex: "#000000",
-	});
 	return (
 		<div>
 			<TabbedDialog
@@ -95,49 +88,21 @@ export default function GlobalSettings({
 					</div>
 				</TabPanel>
 				<TabPanel tabId="categories">
-					<div className="p-4 flex flex-col gap-3">
-						<InputGroup className="h-auto">
-							<InputGroupAddon align="inline-start">
-								<InputGroupButton asChild>
-									<Popover modal={true}>
-										<PopoverTrigger asChild>
-											<Button variant={"accent"} size={"icon"} className="aspect-square">
-												<IconCircleFilled style={{ color: color.hsla || "" }} />
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent className="p-0 w-64">
-											<div className="flex flex-col gap-3">
-												<div className="p-3">
-													<ColorPickerCustom onChange={setColor} defaultValue={color.hex} height={100} />
-												</div>
-												<div className="">
-													<div className="">
-														<InputGroup>
-															<InputGroupInput placeholder="Search..." />
-															<InputGroupAddon>
-																<IconSearch />
-															</InputGroupAddon>
-														</InputGroup>
-														<div>
-															... icons here in a scroll. The color chosen will become the icon color,
-															and we'll generate a shade for the background/adjust the opacity.
-														</div>
-													</div>
-												</div>
-											</div>
-										</PopoverContent>
-									</Popover>
-								</InputGroupButton>
-							</InputGroupAddon>
-							<InputGroupInput placeholder="Category name" />
-							<InputGroupAddon align="inline-end">
-								<InputGroupButton variant="ghost" className="h-full">
-									Save
-								</InputGroupButton>
-							</InputGroupAddon>
-						</InputGroup>
-						{/* map saved categories. Only show save when changes are made. Mapped items should look and act similar*/}
-					</div>
+					<CreateCategory orgId={organization.id} categories={categories} setCategories={setCategories} />
+					{categories.map((category) => (
+						<div key={category.id} className="flex items-center gap-3 bg-accent border rounded p-1">
+							<div>
+								<IconCircleFilled style={{ color: category.color || "" }} />
+							</div>
+							<Input
+								variant={"ghost"}
+								placeholder="Category name"
+								className="bg-transparent"
+								value={category.name}
+								readOnly
+							/>
+						</div>
+					))}
 				</TabPanel>
 			</TabbedDialog>
 		</div>

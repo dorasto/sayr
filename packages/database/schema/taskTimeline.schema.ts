@@ -16,6 +16,7 @@ export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
 	"assignee_removed",
 	"created",
 	"updated",
+	"category_change",
 ]);
 
 export const taskTimeline = table("task_timeline", {

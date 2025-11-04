@@ -15,7 +15,8 @@ import { TaskViewDropdown } from "./task/grouping/task-view-dropdown";
 
 export default function OrganizationTasksHomePage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, labels, setLabels, views, setViews } = useLayoutOrganization();
+	const { organization, setOrganization, labels, setLabels, views, setViews, categories, setCategories } =
+		useLayoutOrganization();
 	const { tasks, setTasks } = useLayoutTasks();
 	useWebSocketSubscription({
 		ws,
@@ -36,6 +37,11 @@ export default function OrganizationTasksHomePage() {
 		CREATE_VIEW: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
 				setViews([...views, msg.data]);
+			}
+		},
+		CREATE_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setCategories([...categories, msg.data]);
 			}
 		},
 	};
@@ -83,6 +89,7 @@ export default function OrganizationTasksHomePage() {
 							labels={labels}
 							availableUsers={organization.members.map((member) => member.user)}
 							organization={organization}
+							categories={categories}
 						/>
 					</div>
 				</ResizablePanel>

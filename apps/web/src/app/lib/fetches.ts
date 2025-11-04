@@ -205,7 +205,7 @@ export async function createTaskAction(
 }
 
 /**
- * Calls the `/admin/task/update` API to update an existing task.
+ * Calls the `/admin/organization/task/update` API to update an existing task.
  * Only the fields provided in `data` will be updated.
  *
  * @param organizationId - The ID of the organization the task belongs to.
@@ -215,6 +215,8 @@ export async function createTaskAction(
  * - `description` (optional) - The updated description (array of editor blocks).
  * - `status` (optional) - The new status ID, or `null` to remove.
  * - `priority` (optional) - The new priority ID, or `null` to remove.
+ * - `category` (optional) - The new category ID, or `null` to remove.
+ *
  * @param wsClientId - The WebSocket client ID (for pushing real-time updates).
  * @returns A promise resolving to:
  * - `success` — Indicates whether the update succeeded.
@@ -245,6 +247,7 @@ export async function updateTaskAction(
 		description?: PartialBlock[];
 		status?: string | null;
 		priority?: string | null;
+		category?: string | null;
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -256,6 +259,7 @@ export async function updateTaskAction(
 		...(data.title !== undefined ? { title: data.title } : {}),
 		...(data.description !== undefined ? { description: data.description } : {}),
 		...(data.status !== undefined ? { status: data.status } : {}),
+		...(data.category !== undefined ? { category: data.category } : {}),
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
 	};
 
@@ -473,6 +477,59 @@ export async function createSavedViewAction(
 
 	return result;
 }
+
+/**
+ * Calls the `/admin/organization/create-category` API to create a category in an organization.
+ *
+ * @param organizationId - The ID of the organization the label belongs to.
+ * @param data - The label properties (name and color).
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @returns The newly created category record.
+ *
+ * @example
+ * ```ts
+ * const category = await createCategoryAction("org_123", {
+ *   name: "Bug",
+ *   color: "#ff0000",
+ * });
+ * if (category.success) {
+ *   console.log("Created category:", category.data);
+ * }
+ * ```
+ */
+export async function createCategoryAction(
+	organizationId: string,
+	data: {
+		name: string;
+		color: string;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.labelType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		name: data.name,
+		color: data.color,
+		wsClientId,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/create-category`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 ensures cookies/session are sent
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to create category");
+		}
+		return json;
+	});
+
+	return result;
+}
+
 /**
  * Fetches all tasks assigned to the current logged-in user across all projects and organizations.
  *

@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
+import { category } from "./category.schema";
 import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { taskAssignee } from "./taskAssignee.schema";
@@ -30,7 +31,8 @@ export const task = table("task", {
 	description: v.jsonb("description").default([]),
 	status: statusEnum("todo"),
 	priority: priorityEnum("none"),
-	createdBy: v.text("created_by").references(() => user.id),
+	createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),
+	category: v.text("category").references(() => category.id, { onDelete: "set null" }),
 });
 
 export type taskType = typeof task.$inferSelect;
@@ -45,6 +47,10 @@ export const taskRelations = relations(task, ({ one, many }) => ({
 	createdBy: one(user, {
 		fields: [task.createdBy],
 		references: [user.id],
+	}),
+	category: one(category, {
+		fields: [task.category],
+		references: [category.id],
 	}),
 	labels: many(taskLabelAssignment),
 	assignees: many(taskAssignee),

@@ -5,7 +5,7 @@ import { and, eq, lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { checkMembershipRole, decodeCursor, encodeCursor } from "@/util";
-import { savedView } from "../../../../packages/database/schema";
+import { category, savedView } from "../../../../packages/database/schema";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
@@ -298,6 +298,41 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 		data: label,
 	});
 });
+apiRouteAdminOrganization.post("/create-category", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, name, color } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [created] = await db
+		.insert(category)
+		.values({
+			organizationId: org_id,
+			name,
+			color: color ?? "hsla(0, 0%, 0%, 1)",
+		})
+		.returning();
+	if (!created) {
+		return c.json({ success: false, error: "Failed to create category." }, 500);
+	}
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "CREATE_CATEGORY" as WSBaseMessage["type"],
+		data: created,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+	});
+	return c.json({
+		success: true,
+		data: created,
+	});
+});
 apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, value } = await c.req.json();
@@ -314,6 +349,9 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 			filterParams: value,
 		})
 		.returning();
+	if (!view) {
+		return c.json({ success: false, error: "Failed to create view." }, 500);
+	}
 	const data = {
 		type: "CREATE_VIEW" as WSBaseMessage["type"],
 		data: view,
@@ -321,11 +359,11 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const found = findClientByWsId(wsClientId);
 	broadcast(org_id, "admin", data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
-	// const members = await getOrganizationMembers(org_id);
-	// members.forEach((member) => {
-	// 	const clients = findClientsByUserId(member.userId);
-	// 	clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
-	// });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+	});
 	return c.json({
 		success: true,
 		data: view,

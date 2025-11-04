@@ -16,7 +16,7 @@ export default function MyTasksPage() {
 	const queryClient = useQueryClient();
 	queryClient.removeQueries({ queryKey: ["organization"] });
 	const { ws, organizations } = useLayoutData();
-	const { tasks, setTasks, labels, views, setViews } = useMyTasks();
+	const { tasks, setTasks, labels, views, setViews, categories, setLabels, setCategories } = useMyTasks();
 	useWebSocketSubscription({ ws });
 	// Collect all users from all organizations
 	const allUsers = useMemo(() => {
@@ -41,6 +41,21 @@ export default function MyTasksPage() {
 			// Check if this task is assigned to the current user
 			// We'll need to refresh the list or check assignees
 			setTasks([...tasks, msg.data]);
+		},
+		CREATE_LABEL: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
+				setLabels([...labels, msg.data]);
+			}
+		},
+		CREATE_VIEW: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
+				setViews([...views, msg.data]);
+			}
+		},
+		CREATE_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
+				setCategories([...categories, msg.data]);
+			}
 		},
 	};
 
@@ -80,6 +95,7 @@ export default function MyTasksPage() {
 					labels={labels}
 					availableUsers={allUsers}
 					organizations={organizations}
+					categories={categories}
 				/>
 			</div>
 		</div>

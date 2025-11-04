@@ -17,10 +17,11 @@ import {
 	TimelineStatusChange,
 	TimelineUpdated,
 } from ".";
+import { TimelineCategoryChange } from "./timeline-category-change";
 import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
 
-export default function GlobalTimeline({ task, labels, availableUsers }: GlobalTimelineProps) {
+export default function GlobalTimeline({ task, labels, availableUsers, categories }: GlobalTimelineProps) {
 	const timelineComponents = {
 		created: TimelineCreated,
 		status_change: TimelineStatusChange,
@@ -31,6 +32,7 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 		assignee_added: TimelineAssigneeAdded,
 		assignee_removed: TimelineAssigneeRemoved,
 		updated: TimelineUpdated,
+		category_change: TimelineCategoryChange,
 	};
 	const { value } = useStateManagementFetch<schema.taskTimelineWithActor[], Partial<schema.taskTimelineWithActor>>({
 		key: ["timeline", task.id],
@@ -97,7 +99,13 @@ export default function GlobalTimeline({ task, labels, availableUsers }: GlobalT
 							}
 
 							return (
-								<TimelineComponent key={item.id} item={item} labels={labels} availableUsers={availableUsers} />
+								<TimelineComponent
+									key={item.id}
+									item={item}
+									labels={labels}
+									availableUsers={availableUsers}
+									categories={categories}
+								/>
 							);
 						})}
 					</Timeline>

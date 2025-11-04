@@ -19,6 +19,7 @@ import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "../../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";
+import GlobalTaskCategory from "../../category";
 import GlobalTaskLabels from "../../label";
 import GlobalTaskPriority from "../../priority";
 import GlobalTaskStatus from "../../status";
@@ -37,6 +38,7 @@ interface TaskContentProps {
 	organization: schema.OrganizationWithMembers;
 	ws: WebSocket | null;
 	personal?: boolean;
+	categories: schema.categoryType[];
 }
 
 interface TaskContentSideContentProps {
@@ -48,6 +50,7 @@ interface TaskContentSideContentProps {
 	availableUsers?: schema.userType[];
 	wsClientId: string;
 	runWithToast: typeof useToastAction extends () => { runWithToast: infer T } ? T : never;
+	categories: schema.categoryType[];
 }
 
 export function TaskContentSideContent({
@@ -59,6 +62,7 @@ export function TaskContentSideContent({
 	availableUsers = [],
 	wsClientId,
 	runWithToast,
+	categories,
 }: TaskContentSideContentProps) {
 	const debouncedUpdateLabels = useDebounceAsync(
 		async (values: string[], wsClientId: string) => {
@@ -88,6 +92,15 @@ export function TaskContentSideContent({
 		<div className="flex flex-col gap-3">
 			{/* <GlobalTaskCreatedAt task={task} />
 					<Separator /> */}
+			<GlobalTaskCategory
+				task={task}
+				editable={true}
+				useInternalLogic={true}
+				tasks={tasks}
+				setTasks={setTasks}
+				setSelectedTask={setSelectedTask}
+				categories={categories}
+			/>
 			<GlobalTaskStatus
 				task={task}
 				editable={true}
@@ -209,6 +222,7 @@ export function TaskContent({
 	isDialog = true,
 	organization,
 	personal = false,
+	categories,
 }: TaskContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const status = statusConfig[task.status as keyof typeof statusConfig];
@@ -225,7 +239,7 @@ export function TaskContent({
 						{task.title}
 					</Label>
 					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
-					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
+					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} categories={categories} />
 				</div>
 				<div className="w-[18rem] shrink-0 overflow-y-auto p-3 ml-0 rounded-r-2xl rounded bg-card">
 					<div className="flex items-center gap-2 shrink-0 w-full">
@@ -251,6 +265,7 @@ export function TaskContent({
 						availableUsers={availableUsers}
 						wsClientId={wsClientId}
 						runWithToast={runWithToast}
+						categories={categories}
 					/>
 				</div>
 			</div>
@@ -310,7 +325,7 @@ export function TaskContent({
 		>
 			<SplitDialogContent className="relative h-full">
 				<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
-				<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} />
+				<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} categories={categories} />
 			</SplitDialogContent>
 			<SplitDialogSide className="p-2">
 				<TaskContentSideContent
@@ -322,6 +337,7 @@ export function TaskContent({
 					availableUsers={availableUsers}
 					wsClientId={wsClientId}
 					runWithToast={runWithToast}
+					categories={categories}
 				/>
 			</SplitDialogSide>
 		</SplitDialog>

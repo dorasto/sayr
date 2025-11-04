@@ -99,7 +99,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 
 	// 🎯 Pick only fields allowed for update
 	const allowed: Partial<schema.taskType> = {};
-	["title", "description", "status", "priority"].forEach((field) => {
+	["title", "description", "status", "priority", "category"].forEach((field) => {
 		if (updates[field] !== undefined) {
 			// @ts-expect-error because dynamic field assignment
 			allowed[field] = updates[field];
@@ -115,6 +115,16 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	}
 
 	// 📝 Step 2: Log timeline changes
+	if (updates.category && updates.category !== existingTask.category) {
+		await addLogEventTask(
+			task_id,
+			org_id,
+			"category_change",
+			existingTask.category,
+			updates.category,
+			session?.userId
+		);
+	}
 	if (updates.status && updates.status !== existingTask.status) {
 		await addLogEventTask(task_id, org_id, "status_change", existingTask.status, updates.status, session?.userId);
 	}

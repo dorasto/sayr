@@ -24,8 +24,11 @@ export default async function RootLayoutOrganization({
 	const views = await db.query.savedView.findMany({
 		where: (view) => eq(view.organizationId, organization.id),
 	});
+	const categories = await db.query.category.findMany({
+		where: (category) => eq(category.organizationId, organization.id),
+	});
 	return (
-		<RootProviderOrganization organization={organization} labels={labels} views={views}>
+		<RootProviderOrganization organization={organization} labels={labels} views={views} categories={categories}>
 			{children}
 		</RootProviderOrganization>
 	);

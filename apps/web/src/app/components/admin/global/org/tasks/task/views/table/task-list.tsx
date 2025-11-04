@@ -21,9 +21,18 @@ interface TaskListProps {
 	labels: schema.labelType[];
 	availableUsers?: schema.userType[];
 	organization: schema.OrganizationWithMembers;
+	categories: schema.categoryType[];
 }
 
-export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], organization }: TaskListProps) {
+export function TaskList({
+	tasks,
+	setTasks,
+	ws,
+	labels,
+	availableUsers = [],
+	organization,
+	categories,
+}: TaskListProps) {
 	const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 	const { value: selectedTask, setValue: setSelectedTask } = useStateManagement<schema.TaskWithLabels | null>(
@@ -187,6 +196,7 @@ export function TaskList({ tasks, setTasks, ws, labels, availableUsers = [], org
 					availableUsers={availableUsers}
 					organization={organization}
 					ws={ws}
+					categories={categories}
 				/>
 			)}
 		</div>
