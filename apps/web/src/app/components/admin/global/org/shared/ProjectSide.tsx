@@ -12,7 +12,7 @@ import { IconSettings, IconStack2, IconUser, IconUserCheck, IconUsers } from "@t
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
-import { deserializeFilters } from "../tasks/task/filter/dropdown/serialization";
+import { deserializeFilters, serializeFilters } from "../tasks/task/filter/dropdown/serialization";
 import type { FilterState } from "../tasks/task/filter/types";
 import GlobalSettings from "./GlobalSettings";
 import { type PriorityKey, priorityConfig } from "./task-config";
@@ -56,11 +56,8 @@ export default function ProjectSide() {
 		operator: "AND",
 	};
 
-	// Serialize the "My Assigned" filter for comparison
-	const myAssignedFilterParam = account?.id ? `assignee:any:${account.id}` : "";
-
 	// Check if "My Assigned" view is active
-	const isMyAssignedActive = filtersParam === myAssignedFilterParam;
+	const isMyAssignedActive = filtersParam === serializeFilters(myAssignedFilterState);
 
 	// Prebuilt priority views
 	const priorityViews: Array<{ key: PriorityKey; label: string }> = [
@@ -237,8 +234,7 @@ export default function ProjectSide() {
 						</Tile>
 						{/* Prebuilt Priority Views */}
 						{priorityViews.map(({ key, label }) => {
-							const filterParam = getPriorityFilterParam(key);
-							const isActive = filtersParam === filterParam;
+							const isActive = filtersParam === serializeFilters(createPriorityFilter(key));
 							const config = priorityConfig[key];
 
 							return (
