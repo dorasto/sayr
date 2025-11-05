@@ -15,6 +15,8 @@ interface Props {
 	setIsOpen?: (open: boolean) => void;
 	categories: schema.categoryType[];
 	setCategories: (newValue: Props["categories"]) => void;
+	tasks?: schema.TaskWithLabels[];
+	onCategoryClick?: (categoryId: string) => void;
 }
 
 export default function GlobalSettings({
@@ -27,11 +29,17 @@ export default function GlobalSettings({
 	},
 	categories,
 	setCategories,
+	tasks = [],
+	onCategoryClick,
 }: Props) {
+	// Calculate task count per category
+	const getCategoryTaskCount = (categoryId: string) => {
+		return tasks.filter((task) => task.category === categoryId).length;
+	};
 	// Simple side layout with one tab
 	const sideGroupedTabs = [
 		{
-			name: "Organization Settings",
+			name: organization?.name || "Organization",
 			items: [
 				{
 					id: "general",
@@ -88,21 +96,21 @@ export default function GlobalSettings({
 					</div>
 				</TabPanel>
 				<TabPanel tabId="categories">
-					<CreateCategory orgId={organization.id} categories={categories} setCategories={setCategories} />
-					{categories.map((category) => (
-						<div key={category.id} className="flex items-center gap-3 bg-accent border rounded p-1">
-							<div>
-								<IconCircleFilled style={{ color: category.color || "" }} />
-							</div>
-							<Input
-								variant={"ghost"}
-								placeholder="Category name"
-								className="bg-transparent"
-								value={category.name}
-								readOnly
+					<div className="p-4 flex flex-col gap-2">
+						<CreateCategory orgId={organization.id} categories={categories} setCategories={setCategories} />
+						{categories.map((category) => (
+							<CreateCategory
+								key={category.id}
+								orgId={organization.id}
+								categories={categories}
+								setCategories={setCategories}
+								category={category}
+								mode="edit"
+								taskCount={getCategoryTaskCount(category.id)}
+								onCategoryClick={onCategoryClick}
 							/>
-						</div>
-					))}
+						))}
+					</div>
 				</TabPanel>
 			</TabbedDialog>
 		</div>

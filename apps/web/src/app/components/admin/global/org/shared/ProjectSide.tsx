@@ -2,13 +2,21 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { Label } from "@repo/ui/components/label";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconSettings, IconStack2, IconUser, IconUserCheck, IconUsers } from "@tabler/icons-react";
+import {
+	IconChevronRight,
+	IconCircleFilled,
+	IconSettings,
+	IconStack2,
+	IconUser,
+	IconUserCheck,
+	IconUsers,
+} from "@tabler/icons-react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
@@ -86,6 +94,25 @@ export default function ProjectSide() {
 		operator: "AND",
 	});
 
+	// Helper to create category filter
+	const createCategoryFilter = (categoryId: string): FilterState => ({
+		groups: [
+			{
+				id: `category-${categoryId}-group`,
+				operator: "AND",
+				conditions: [
+					{
+						id: `category-any-${categoryId}`,
+						field: "category",
+						operator: "any",
+						value: categoryId,
+					},
+				],
+			},
+		],
+		operator: "AND",
+	});
+
 	// Filter out done and canceled tasks to get open issues count
 	const opentaskCount = tasks.filter((task) => task.status !== "done" && task.status !== "canceled").length;
 	const openusertaskCount = tasks.filter(
@@ -101,7 +128,7 @@ export default function ProjectSide() {
 		);
 	}
 	return (
-		<div className="flex flex-col gap-3 w-full">
+		<div className="flex flex-col gap-3 w-full relative">
 			<Tile className="bg-card md:w-full">
 				<TileHeader>
 					<TileIcon>
@@ -144,8 +171,8 @@ export default function ProjectSide() {
 					</TileHeader>
 				</Tile>
 			</div>
-			<Tabs defaultValue="views" className="w-full p-1">
-				<TabsList className="justify-start bg-transparent px-0">
+			<Tabs defaultValue="views" className="w-full p-1 relative">
+				<TabsList className="justify-start bg-background w-full px-0 sticky top-0">
 					<TabsTrigger asChild value="views">
 						<Button
 							variant={"accent"}
@@ -159,110 +186,221 @@ export default function ProjectSide() {
 				</TabsList>
 				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-0.5">
-						<Label variant={"heading"} className="mt-2">
-							Saved views
-						</Label>
-						{views.map((view) => {
-							const isActive = filtersParam === view.filterParams;
-							return (
+						<Collapsible defaultOpen>
+							<CollapsibleTrigger asChild className="group">
 								<Tile
 									className={cn(
-										"md:w-full cursor-pointer transition-colors selec",
-										isActive ? "bg-accent" : "bg-card hover:bg-accent"
+										"md:w-full cursor-pointer transition-colors data-[state=closed]:bg-transparent data-[state=open]:bg-accent select-none"
 									)}
-									key={view.id}
-									onClick={() => {
-										if (isActive) {
-											setFilterState({ groups: [], operator: "AND" });
-										} else {
-											setFilterState(
-												deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
-											);
-										}
-									}}
 								>
 									<TileHeader>
 										<TileTitle className="flex items-center gap-2">
 											<TileIcon>
 												<IconStack2 />
 											</TileIcon>
-											{view.name}
+											Saved views
 										</TileTitle>
 									</TileHeader>
 
 									<TileAction>
-										<TileDescription className={cn(!isActive && "opacity-0")}>Clear filter</TileDescription>
+										<IconChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" />
 									</TileAction>
 								</Tile>
-							);
-						})}
-						<Label variant={"heading"} className="mt-2">
-							Default
-						</Label>
-						<Tile
-							className={cn(
-								"md:w-full cursor-pointer transition-colors",
-								isMyAssignedActive ? "bg-accent" : "bg-card hover:bg-accent"
-							)}
-							onClick={() => {
-								if (isMyAssignedActive) {
-									// Clear filters if already active
-									setFilterState({ groups: [], operator: "AND" });
-								} else {
-									// Apply "My Assigned" filter
-									// setFiltersParam(myAssignedFilterParam);
-									setFilterState(myAssignedFilterState);
-								}
-							}}
-						>
-							<TileHeader>
-								<TileTitle className="flex items-center gap-2">
-									<TileIcon>
-										<IconUserCheck />
-									</TileIcon>
-									My Assigned
-								</TileTitle>
-							</TileHeader>
-							<TileAction>
-								<TileDescription className={cn(!isMyAssignedActive && "opacity-0")}>
-									Clear filter
-								</TileDescription>
-							</TileAction>
-						</Tile>
-						{/* Prebuilt Priority Views */}
-						{priorityViews.map(({ key, label }) => {
-							const isActive = filtersParam === serializeFilters(createPriorityFilter(key));
-							const config = priorityConfig[key];
+							</CollapsibleTrigger>
 
-							return (
+							<CollapsibleContent className="pt-0.5 space-y-0.5">
+								{views.map((view) => {
+									const isActive = filtersParam === view.filterParams;
+									return (
+										<Tile
+											className={cn(
+												"md:w-full cursor-pointer transition-colors",
+												isActive ? "bg-accent" : "bg-card hover:bg-accent"
+											)}
+											key={view.id}
+											onClick={() => {
+												if (isActive) {
+													setFilterState({ groups: [], operator: "AND" });
+												} else {
+													setFilterState(
+														deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
+													);
+												}
+											}}
+										>
+											<TileHeader className="h-fit max-w-fit">
+												<TileTitle className="flex items-center gap-2 truncate">
+													<TileIcon>
+														<IconStack2 />
+													</TileIcon>
+													{view.name}
+												</TileTitle>
+											</TileHeader>
+
+											<TileAction>
+												<TileDescription className={cn(!isActive && "opacity-0")}>
+													Clear filter
+												</TileDescription>
+											</TileAction>
+										</Tile>
+									);
+								})}
+							</CollapsibleContent>
+						</Collapsible>
+						<Collapsible defaultOpen>
+							<CollapsibleTrigger asChild className="group">
+								<Tile
+									className={cn(
+										"md:w-full cursor-pointer transition-colors data-[state=open]:bg-accent select-none"
+									)}
+								>
+									<TileHeader>
+										<TileTitle className="flex items-center gap-2">
+											<TileIcon>
+												<IconUserCheck />
+											</TileIcon>
+											Default
+										</TileTitle>
+									</TileHeader>
+
+									<TileAction>
+										<IconChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" />
+									</TileAction>
+								</Tile>
+							</CollapsibleTrigger>
+
+							<CollapsibleContent className="pt-0.5 space-y-0.5">
 								<Tile
 									className={cn(
 										"md:w-full cursor-pointer transition-colors",
-										isActive ? "bg-accent" : "bg-card hover:bg-accent"
+										isMyAssignedActive ? "bg-accent" : "bg-card hover:bg-accent"
 									)}
-									key={key}
 									onClick={() => {
-										if (isActive) {
-											// setFiltersParam("");
+										if (isMyAssignedActive) {
+											// Clear filters if already active
 											setFilterState({ groups: [], operator: "AND" });
 										} else {
-											// setFiltersParam(filterParam);
-											setFilterState(createPriorityFilter(key));
+											// Apply "My Assigned" filter
+											// setFiltersParam(myAssignedFilterParam);
+											setFilterState(myAssignedFilterState);
 										}
 									}}
 								>
 									<TileHeader>
 										<TileTitle className="flex items-center gap-2">
-											<TileIcon className={config.className}>{config.icon("w-4 h-4")}</TileIcon>
-											{label}
+											<TileIcon>
+												<IconUserCheck />
+											</TileIcon>
+											My Assigned
 										</TileTitle>
 									</TileHeader>
 									<TileAction>
-										<TileDescription className={cn(!isActive && "opacity-0")}>Clear filter</TileDescription>
+										<TileDescription className={cn(!isMyAssignedActive && "opacity-0")}>
+											Clear filter
+										</TileDescription>
 									</TileAction>
 								</Tile>
-							);
-						})}
+								{/* Prebuilt Priority Views */}
+								{priorityViews.map(({ key, label }) => {
+									const isActive = filtersParam === serializeFilters(createPriorityFilter(key));
+									const config = priorityConfig[key];
+
+									return (
+										<Tile
+											className={cn(
+												"md:w-full cursor-pointer transition-colors",
+												isActive ? "bg-accent" : "bg-card hover:bg-accent"
+											)}
+											key={key}
+											onClick={() => {
+												if (isActive) {
+													// setFiltersParam("");
+													setFilterState({ groups: [], operator: "AND" });
+												} else {
+													// setFiltersParam(filterParam);
+													setFilterState(createPriorityFilter(key));
+												}
+											}}
+										>
+											<TileHeader>
+												<TileTitle className="flex items-center gap-2">
+													<TileIcon className={config.className}>{config.icon("w-4 h-4")}</TileIcon>
+													{label}
+												</TileTitle>
+											</TileHeader>
+											<TileAction>
+												<TileDescription className={cn(!isActive && "opacity-0")}>
+													Clear filter
+												</TileDescription>
+											</TileAction>
+										</Tile>
+									);
+								})}
+							</CollapsibleContent>
+						</Collapsible>
+						{/* Category Views */}
+						{categories.length > 0 && (
+							<Collapsible defaultOpen>
+								<CollapsibleTrigger asChild className="group">
+									<Tile
+										className={cn(
+											"md:w-full cursor-pointer transition-colors data-[state=open]:bg-accent select-none"
+										)}
+									>
+										<TileHeader>
+											<TileTitle className="flex items-center gap-2">
+												<TileIcon>
+													<IconCircleFilled />
+												</TileIcon>
+												Categories
+											</TileTitle>
+										</TileHeader>
+
+										<TileAction>
+											<IconChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" />
+										</TileAction>
+									</Tile>
+								</CollapsibleTrigger>
+
+								<CollapsibleContent className="pt-0.5 space-y-0.5">
+									{categories.map((category) => {
+										const isActive = filtersParam === serializeFilters(createCategoryFilter(category.id));
+										const categoryTaskCount = tasks.filter((task) => task.category === category.id).length;
+
+										return (
+											<Tile
+												className={cn(
+													"md:w-full cursor-pointer transition-colors",
+													isActive ? "bg-accent" : "bg-card hover:bg-accent"
+												)}
+												key={category.id}
+												onClick={() => {
+													if (isActive) {
+														setFilterState({ groups: [], operator: "AND" });
+													} else {
+														setFilterState(createCategoryFilter(category.id));
+													}
+												}}
+											>
+												<TileHeader>
+													<TileTitle className="flex items-center gap-2">
+														<TileIcon>
+															<IconCircleFilled style={{ color: category.color || "#cccccc" }} />
+														</TileIcon>
+														{category.name}
+													</TileTitle>
+												</TileHeader>
+												<TileAction>
+													<TileDescription className={cn(!isActive && "opacity-50")}>
+														{categoryTaskCount} {categoryTaskCount === 1 ? "task" : "tasks"}
+													</TileDescription>
+												</TileAction>
+											</Tile>
+										);
+									})}
+								</CollapsibleContent>
+							</Collapsible>
+						)}
 					</div>
 				</TabsContent>
 			</Tabs>
@@ -315,6 +453,11 @@ export default function ProjectSide() {
 				setIsOpen={setOpenSettings}
 				categories={categories}
 				setCategories={setCategories}
+				tasks={tasks}
+				onCategoryClick={(categoryId) => {
+					setFilterState(createCategoryFilter(categoryId));
+					setOpenSettings(false);
+				}}
 			/>
 		</div>
 	);
