@@ -49,6 +49,39 @@ export function ensureCdnUrl(pathOrUrl: string, cdnBase = process.env.FILE_CDN |
 }
 
 /**
+ * Extracts the raw HSL values from an HSLA or HSL color string.
+ *
+ * @param hslaColor - An HSLA or HSL color string (e.g., "hsla(209, 100%, 50%, 1)" or "hsl(209, 100%, 50%)")
+ * @returns The raw HSL values without the function wrapper (e.g., "209, 100%, 50%")
+ *
+ * @example
+ * ```ts
+ * const rawHsl = extractHslValues("hsla(209, 100%, 50%, 1)");
+ * // "209, 100%, 50%"
+ *
+ * const rawHsl2 = extractHslValues("hsl(120, 80%, 60%)");
+ * // "120, 80%, 60%"
+ * ```
+ */
+export function extractHslValues(hslaColor: string): string {
+	if (!hslaColor) {
+		return "";
+	}
+
+	// Match hsla(h, s%, l%, a) or hsl(h, s%, l%)
+	const match = hslaColor.match(/hsla?\(([^)]+)\)/);
+	if (!match || !match[1]) {
+		return hslaColor;
+	}
+
+	// Extract all values and remove the alpha if present
+	const values = match[1].split(",").map((v) => v.trim());
+
+	// Return only the first 3 values (h, s, l) without alpha
+	return values.slice(0, 3).join(", ");
+}
+
+/**
  * Converts an HSLA color string to a new HSLA color with the specified opacity.
  *
  * @param hslaColor - An HSLA color string (e.g., "hsla(193, 100%, 50%, 1)")

@@ -44,7 +44,7 @@ export default function CreateCategory({
 	const change = name !== category?.name || color.hsla !== category?.color || icon !== category?.icon;
 
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-
+	console.log("Render CreateCategory", { name, color, icon, change, isEditMode });
 	return (
 		<div className="">
 			<InputGroup className="h-auto bg-accent border-transparent">
@@ -52,8 +52,8 @@ export default function CreateCategory({
 					<InputGroupButton asChild>
 						<Popover modal>
 							<PopoverTrigger asChild>
-								<Button variant={"accent"} size={"icon"} className="aspect-square">
-									<RenderIcon iconName={icon} color={color.hsla} raw />
+								<Button variant={"accent"} className="h-auto w-auto p-0">
+									<RenderIcon iconName={icon} color={color.hsla} button />
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent className="p-0 w-64">

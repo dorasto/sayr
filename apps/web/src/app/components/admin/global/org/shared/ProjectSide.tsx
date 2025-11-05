@@ -20,12 +20,14 @@ import {
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
+import { useSticky } from "@/app/hooks/use-sticky";
 import { deserializeFilters, serializeFilters } from "../tasks/task/filter/dropdown/serialization";
 import type { FilterState } from "../tasks/task/filter/types";
 import GlobalSettings from "./GlobalSettings";
 import { type PriorityKey, priorityConfig } from "./task-config";
 
 export default function ProjectSide() {
+	const { stuck, stickyRef } = useSticky();
 	const { value: organization } = useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
 	const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);
 	const { value: views } = useStateManagement<schema.savedViewType[]>("views", [], 1);
@@ -172,18 +174,38 @@ export default function ProjectSide() {
 				</Tile>
 			</div>
 			<Tabs defaultValue="views" className="w-full p-1 relative">
-				<TabsList className="justify-start bg-background w-full px-0 sticky top-0">
-					<TabsTrigger asChild value="views">
-						<Button
-							variant={"accent"}
-							className="data-[state=active]:bg-card bg-transparent rounded-lg border-transparent"
-							size={"sm"}
-						>
-							<IconStack2 className="w-4 h-4" />
-							Views
-						</Button>
-					</TabsTrigger>
-				</TabsList>
+				<div
+					className={cn(
+						"flex items-center gap-2 shrink-0 sticky top-0 w-full bg-background z-50 p-1",
+						stuck && "border-b shadow-xl"
+					)}
+					ref={stickyRef}
+				>
+					<TabsList className={cn("justify-start w-full p-0 sticky top-0 bg-background transition-colors")}>
+						<TabsTrigger asChild value="views">
+							<Button
+								variant={"accent"}
+								className="data-[state=active]:bg-card bg-transparent rounded-lg border-transparent"
+								size={"sm"}
+							>
+								<IconStack2 className="w-4 h-4" />
+								Views
+							</Button>
+						</TabsTrigger>
+					</TabsList>
+					{stuck && (
+						<div className="flex items-center gap-2 ml-auto">
+							<Button
+								variant={"accent"}
+								className="data-[state=active]:bg-card bg-transparent rounded-lg border-transparent aspect-square"
+								size={"sm"}
+								onClick={() => setOpenSettings(true)}
+							>
+								<IconSettings />
+							</Button>
+						</div>
+					)}
+				</div>
 				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-0.5">
 						<Collapsible defaultOpen>
