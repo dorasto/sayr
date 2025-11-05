@@ -1,6 +1,7 @@
 "use client";
 
 import type { schema } from "@repo/database";
+import { Badge } from "@repo/ui/components/badge";
 import { Label } from "@repo/ui/components/label";
 import {
 	ComboBox,
@@ -16,6 +17,10 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { cn } from "@repo/ui/lib/utils";
+import { extractHslValues } from "@repo/util";
+import { XIcon } from "lucide-react";
+import RenderIcon from "@/app/components/RenderIcon";
 import { updateTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 
@@ -136,11 +141,11 @@ export default function GlobalTaskCategory({
 							<ComboBoxValue placeholder="Select category">
 								{currentCategory ? (
 									<div className="flex items-center gap-2">
-										<div
-											className="h-3 w-3 rounded-full border"
-											style={{
-												backgroundColor: currentCategory.color || "#cccccc",
-											}}
+										<RenderIcon
+											iconName={currentCategory.icon || "IconCircleFilled"}
+											size={12}
+											color={currentCategory.color || undefined}
+											raw
 										/>
 										<span>{currentCategory.name}</span>
 									</div>
@@ -160,11 +165,11 @@ export default function GlobalTaskCategory({
 								{categories.map((cat) => (
 									<ComboBoxItem key={cat.id} value={cat.id} searchValue={cat.name.toLowerCase()}>
 										<div className="flex items-center gap-2">
-											<div
-												className="h-3 w-3 rounded-full border"
-												style={{
-													backgroundColor: cat.color || "#cccccc",
-												}}
+											<RenderIcon
+												iconName={cat.icon || "IconCircleFilled"}
+												size={12}
+												color={cat.color || undefined}
+												raw
 											/>
 											<span>{cat.name}</span>
 										</div>
@@ -176,5 +181,61 @@ export default function GlobalTaskCategory({
 				</ComboBox>
 			</div>
 		</div>
+	);
+}
+
+interface RenderCategoryProps {
+	category: { id: string; name: string; color?: string | null; icon?: string | null };
+	showRemove?: boolean;
+	onRemove?: (categoryId: string) => void;
+	onClick?: (e: React.MouseEvent, categoryId: string) => void;
+	className?: string;
+}
+
+export function RenderCategory({
+	category,
+	showRemove = false,
+	onRemove,
+	onClick,
+	className = "",
+}: RenderCategoryProps) {
+	return (
+		<Badge
+			key={category.id}
+			variant="secondary"
+			className={cn(
+				"flex items-center justify-center gap-1 text-xs h-5 border border-border rounded-2xl truncate group/category cursor-pointer w-fit relative ps-5",
+				showRemove && "pe-5",
+				className
+			)}
+			style={{
+				borderColor: category.color ? `hsla(${extractHslValues(category.color)}, 0.5)` : undefined,
+				background: category.color ? `hsla(${extractHslValues(category.color)}, 0.1)` : undefined,
+			}}
+			onClick={onClick ? (e) => onClick(e, category.id) : undefined}
+		>
+			<div className="shrink-0 absolute inset-y-0 flex items-center justify-center start-0 ps-1">
+				<RenderIcon
+					iconName={category.icon || "IconCircleFilled"}
+					size={12}
+					color={category.color || undefined}
+					button
+					className="size-3 [&_svg]:size-3"
+				/>
+			</div>
+			<span className="truncate">{category.name}</span>
+			{showRemove && onRemove && (
+				<div className="shrink-0 absolute inset-y-0 flex items-center justify-center end-0 pe-1">
+					<XIcon
+						size={12}
+						className="cursor-pointer hover:bg-muted rounded-sm shrink-0 opacity-0 group-hover/category:opacity-100"
+						onClick={(e) => {
+							e.stopPropagation();
+							onRemove(category.id);
+						}}
+					/>
+				</div>
+			)}
+		</Badge>
 	);
 }

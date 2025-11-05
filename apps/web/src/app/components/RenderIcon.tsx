@@ -1,4 +1,5 @@
 import { Button } from "@repo/ui/components/button";
+import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
 import * as tabler from "@tabler/icons-react";
 
@@ -8,12 +9,14 @@ const RenderIcon = ({
 	raw,
 	button,
 	color,
+	className,
 }: {
 	iconName: string;
 	size?: number;
 	raw?: boolean;
 	color?: string;
 	button?: boolean;
+	className?: string;
 }) => {
 	try {
 		if (iconName.startsWith("Icon")) {
@@ -30,7 +33,7 @@ const RenderIcon = ({
 				if (button) {
 					return (
 						<div
-							className="flex items-center aspect-square size-10 [&_svg]:size-6 justify-center"
+							className={cn("flex items-center aspect-square size-10 [&_svg]:size-6 justify-center", className)}
 							style={{
 								background: color ? `hsla(${extractHslValues(color)}, 0.1)` : undefined,
 							}}

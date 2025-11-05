@@ -1,6 +1,7 @@
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { IconArrowRight } from "@tabler/icons-react";
+import { RenderCategory } from "../category";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 
@@ -23,6 +24,7 @@ export function TimelineCategoryChange({
 		const toId = (item.toValue as string)?.replaceAll('"', "") || null;
 
 		const fromCategory = categories.find((c) => c.id === fromId);
+
 		const toCategory = categories.find((c) => c.id === toId);
 
 		return (
@@ -30,48 +32,32 @@ export function TimelineCategoryChange({
 				<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the category{" "}
 				{fromCategory ? (
 					<>
-						from{" "}
-						<Badge
-							variant="outline"
-							className="inline-flex items-center gap-1 justify-start"
-							style={{
-								borderColor: fromCategory.color || "#ccc",
-								color: fromCategory.color || "inherit",
-							}}
-						>
-							<span
-								className="inline-block h-2.5 w-2.5 rounded-full"
-								style={{ backgroundColor: fromCategory.color || "#ccc" }}
-							/>
-							<span>{fromCategory.name}</span>
-						</Badge>{" "}
+						from <RenderCategory category={fromCategory} className="inline-flex" />{" "}
 					</>
 				) : fromId ? (
 					<>
-						from <Badge variant="outline">Unknown ({fromId})</Badge>{" "}
+						from{" "}
+						<Badge
+							variant="secondary"
+							className="inline-flex items-center gap-1 justify-center h-5 border border-border"
+						>
+							Unknown ({fromId})
+						</Badge>{" "}
 					</>
 				) : null}
 				{toCategory ? (
 					<>
-						to{" "}
-						<Badge
-							variant="outline"
-							className="inline-flex items-center gap-1 justify-start"
-							style={{
-								borderColor: toCategory.color || "#ccc",
-								color: toCategory.color || "inherit",
-							}}
-						>
-							<span
-								className="inline-block h-2.5 w-2.5 rounded-full"
-								style={{ backgroundColor: toCategory.color || "#ccc" }}
-							/>
-							<span>{toCategory.name}</span>
-						</Badge>
+						to <RenderCategory category={toCategory} className="inline-flex" />
 					</>
 				) : toId ? (
 					<>
-						to <Badge variant="outline">Unknown ({toId})</Badge>
+						to{" "}
+						<Badge
+							variant="secondary"
+							className="inline-flex items-center gap-1 justify-center h-5 border border-border"
+						>
+							Unknown ({toId})
+						</Badge>
 					</>
 				) : null}
 			</>
