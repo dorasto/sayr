@@ -28,7 +28,7 @@ app.use(
 	"*",
 	cors({
 		origin: [process.env.NEXT_PUBLIC_URL_ROOT as string, process.env.NEXT_PUBLIC_API_SERVER as string],
-		allowMethods: ["POST", "GET", "PATCH", "PUT"],
+		allowMethods: ["POST", "GET", "PATCH", "PUT", "DELETE"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		maxAge: 600,
 		credentials: true,

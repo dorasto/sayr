@@ -300,7 +300,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 });
 apiRouteAdminOrganization.post("/create-category", async (c) => {
 	const session = c.get("session");
-	const { org_id, wsClientId, name, color } = await c.req.json();
+	const { org_id, wsClientId, name, color, icon } = await c.req.json();
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -311,6 +311,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 			organizationId: org_id,
 			name,
 			color: color ?? "hsla(0, 0%, 0%, 1)",
+			icon,
 		})
 		.returning();
 	if (!created) {
@@ -331,6 +332,73 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	return c.json({
 		success: true,
 		data: created,
+	});
+});
+apiRouteAdminOrganization.patch("/edit-category", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id, name, color, icon } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [edit] = await db
+		.update(category)
+		.set({
+			name,
+			color: color ?? "hsla(0, 0%, 0%, 1)",
+			icon,
+		})
+		.where(and(eq(category.id, id), eq(category.organizationId, org_id)))
+		.returning();
+	if (!edit) {
+		return c.json({ success: false, error: "Failed to edit category." }, 500);
+	}
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "EDIT_CATEGORY" as WSBaseMessage["type"],
+		data: edit,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+	});
+	return c.json({
+		success: true,
+		data: edit,
+	});
+});
+apiRouteAdminOrganization.delete("/delete-category", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [removed] = await db
+		.delete(category)
+		.where(and(eq(category.id, id), eq(category.organizationId, org_id), eq(category.id, id)))
+		.returning();
+	if (!removed) {
+		return c.json({ success: false, error: "Failed to remove category." }, 500);
+	}
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "REMOVE_CATEGORY" as WSBaseMessage["type"],
+		data: removed,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+	});
+	return c.json({
+		success: true,
+		data: removed,
 	});
 });
 apiRouteAdminOrganization.post("/create-view", async (c) => {

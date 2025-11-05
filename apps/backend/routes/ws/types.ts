@@ -31,7 +31,9 @@ export type WSBaseMessage = {
 		| "WAITING_ROOM"
 		| "DISCONNECTED"
 		| "CREATE_VIEW"
-		| "CREATE_CATEGORY";
+		| "CREATE_CATEGORY"
+		| "EDIT_CATEGORY"
+		| "REMOVE_CATEGORY";
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	data?: any;
 	orgId?: string;

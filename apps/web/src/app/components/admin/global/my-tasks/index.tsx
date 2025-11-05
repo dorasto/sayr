@@ -57,6 +57,16 @@ export default function MyTasksPage() {
 				setCategories([...categories, msg.data]);
 			}
 		},
+		EDIT_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
+				setCategories(categories.map((cat) => (cat.id === msg.data.id ? { ...cat, ...msg.data } : cat)));
+			}
+		},
+		REMOVE_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
+				setCategories(categories.filter((cat) => cat.id !== msg.data?.id));
+			}
+		},
 	};
 
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {

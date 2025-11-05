@@ -44,6 +44,16 @@ export default function OrganizationTasksHomePage() {
 				setCategories([...categories, msg.data]);
 			}
 		},
+		EDIT_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setCategories(categories.map((cat) => (cat.id === msg.data.id ? { ...cat, ...msg.data } : cat)));
+			}
+		},
+		REMOVE_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setCategories(categories.filter((cat) => cat.id !== msg.data?.id));
+			}
+		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),

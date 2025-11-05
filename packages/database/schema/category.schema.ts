@@ -17,6 +17,7 @@ export const category = table("category", {
 		.references(() => organization.id, { onDelete: "cascade" }),
 	name: v.varchar("name").notNull(),
 	color: v.varchar("color").default("hsla(0, 0%, 0%, 1)"),
+	icon: v.text("icon"),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 });
 

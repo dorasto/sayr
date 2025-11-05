@@ -502,13 +502,15 @@ export async function createCategoryAction(
 	data: {
 		name: string;
 		color: string;
+		icon: string;
 	},
 	wsClientId: string
-): Promise<{ success: boolean; data: schema.labelType; error?: string }> {
+): Promise<{ success: boolean; data: schema.categoryType; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		name: data.name,
 		color: data.color,
+		icon: data.icon,
 		wsClientId,
 	};
 
@@ -523,6 +525,74 @@ export async function createCategoryAction(
 		const json = await res.json();
 		if (!res.ok) {
 			throw new Error(json?.error || "Failed to create category");
+		}
+		return json;
+	});
+
+	return result;
+}
+
+export async function editCategoryAction(
+	organizationId: string,
+	data: {
+		id: string;
+		name: string;
+		color: string;
+		icon: string;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.categoryType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		id: data.id,
+		name: data.name,
+		color: data.color,
+		icon: data.icon,
+		wsClientId,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/edit-category`, {
+		method: "PATCH",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 ensures cookies/session are sent
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to edit category");
+		}
+		return json;
+	});
+
+	return result;
+}
+
+export async function deleteCategoryAction(
+	organizationId: string,
+	data: {
+		id: string;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.categoryType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		id: data.id,
+		wsClientId,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/delete-category`, {
+		method: "DELETE",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 ensures cookies/session are sent
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to edit category");
 		}
 		return json;
 	});

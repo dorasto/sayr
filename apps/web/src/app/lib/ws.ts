@@ -177,6 +177,14 @@ export type WSMessage =
 			data: schema.categoryType;
 	  })
 	| (BaseMessage & {
+			type: "EDIT_CATEGORY";
+			data: schema.categoryType;
+	  })
+	| (BaseMessage & {
+			type: "REMOVE_CATEGORY";
+			data: schema.categoryType;
+	  })
+	| (BaseMessage & {
 			type: "CREATE_TASK";
 			data: schema.TaskWithLabels;
 	  })

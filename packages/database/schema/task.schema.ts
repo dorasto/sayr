@@ -24,13 +24,13 @@ export const task = table("task", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	shortId: v.integer("short_id"),
-	visible: visibleEnum("visible").default("public"), // enum-like field
+	visible: visibleEnum("visible").default("public").notNull(), // enum-like field
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	title: v.text("title"),
 	description: v.jsonb("description").default([]),
-	status: statusEnum("todo"),
-	priority: priorityEnum("none"),
+	status: statusEnum("todo").notNull(),
+	priority: priorityEnum("none").notNull(),
 	createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),
 	category: v.text("category").references(() => category.id, { onDelete: "set null" }),
 });

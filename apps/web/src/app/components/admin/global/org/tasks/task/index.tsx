@@ -39,6 +39,16 @@ export default function OrganizationTaskHomePage() {
 				setCategories([...categories, msg.data]);
 			}
 		},
+		EDIT_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setCategories(categories.map((cat) => (cat.id === msg.data.id ? { ...cat, ...msg.data } : cat)));
+			}
+		},
+		REMOVE_CATEGORY: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
+				setCategories(categories.filter((cat) => cat.id !== msg.data?.id));
+			}
+		},
 		UPDATE_TASK: (msg) => {
 			const updatedTask = msg.data;
 			const updatedTasks = tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));

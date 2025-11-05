@@ -36,6 +36,16 @@ export default function OrganizationHomePage() {
 				setCategories([...categories, msg.data]);
 			}
 		},
+		EDIT_CATEGORY: (msg) => {
+			if (msg.scope === "CHANNEL") {
+				setCategories(categories.map((cat) => (cat.id === msg.data.id ? { ...cat, ...msg.data } : cat)));
+			}
+		},
+		REMOVE_CATEGORY: (msg) => {
+			if (msg.scope === "CHANNEL") {
+				setCategories(categories.filter((cat) => cat.id !== msg.data?.id));
+			}
+		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE ORG PAGE]", msg),
