@@ -509,9 +509,12 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	if (!view) {
 		return c.json({ success: false, error: "Failed to create view." }, 500);
 	}
+	const views = await db.query.savedView.findMany({
+		where: (view) => eq(view.organizationId, org_id),
+	});
 	const data = {
-		type: "CREATE_VIEW" as WSBaseMessage["type"],
-		data: view,
+		type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+		data: views,
 	};
 	const found = findClientByWsId(wsClientId);
 	broadcast(org_id, "admin", data, found?.socket);
@@ -523,7 +526,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	});
 	return c.json({
 		success: true,
-		data: view,
+		data: views,
 	});
 });
 apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);

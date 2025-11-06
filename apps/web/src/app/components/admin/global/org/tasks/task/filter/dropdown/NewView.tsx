@@ -12,12 +12,11 @@ import { useToastAction } from "@/app/lib/util";
 
 interface Props {
 	organizationId: string;
-	views: schema.savedViewType[];
-	setViews: (newValue: Props["views"]) => void;
+	setViews: (newValue: schema.savedViewType[]) => void;
 	currentFilters: string; // e.g. URL param value (filters=....)
 }
 
-export function NewViewPopover({ organizationId, views, setViews, currentFilters }: Props) {
+export function NewViewPopover({ organizationId, setViews, currentFilters }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const [name, setName] = useState("");
 	const { runWithToast, isFetching } = useToastAction();
@@ -53,7 +52,7 @@ export function NewViewPopover({ organizationId, views, setViews, currentFilters
 		);
 
 		if (data?.success && data.data) {
-			setViews([...views, data.data]);
+			setViews(data.data);
 			setName("");
 		}
 	};

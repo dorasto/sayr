@@ -186,12 +186,7 @@ export function TaskFilterDropdown({
 				/>
 			)}
 			{showNewViewPopover && (
-				<NewViewPopover
-					organizationId={organizationId}
-					views={views}
-					setViews={setViews}
-					currentFilters={currentFiltersString}
-				/>
+				<NewViewPopover organizationId={organizationId} setViews={setViews} currentFilters={currentFiltersString} />
 			)}
 		</div>
 	);
