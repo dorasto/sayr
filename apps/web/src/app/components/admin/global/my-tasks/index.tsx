@@ -42,29 +42,19 @@ export default function MyTasksPage() {
 			// We'll need to refresh the list or check assignees
 			setTasks([...tasks, msg.data]);
 		},
-		CREATE_LABEL: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
-				setLabels([...labels, msg.data]);
+		UPDATE_LABELS: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.meta?.orgId)) {
+				setLabels(msg.data);
 			}
 		},
-		CREATE_VIEW: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
-				setViews([...views, msg.data]);
+		UPDATE_VIEWS: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.meta?.orgId)) {
+				setViews(msg.data);
 			}
 		},
-		CREATE_CATEGORY: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
-				setCategories([...categories, msg.data]);
-			}
-		},
-		EDIT_CATEGORY: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
-				setCategories(categories.map((cat) => (cat.id === msg.data.id ? { ...cat, ...msg.data } : cat)));
-			}
-		},
-		REMOVE_CATEGORY: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.data.organizationId)) {
-				setCategories(categories.filter((cat) => cat.id !== msg.data?.id));
+		UPDATE_CATEGORIES: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && organizations.find((org) => org.id === msg.meta?.orgId)) {
+				setCategories(msg.data);
 			}
 		},
 	};

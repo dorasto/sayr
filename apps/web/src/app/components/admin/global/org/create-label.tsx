@@ -1,92 +1,232 @@
 "use client";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { Input } from "@repo/ui/components/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import ColorPicker from "@repo/ui/components/tomui/color-picker";
+import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconCheck, IconCircleFilled } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
-import { createLabelAction } from "@/app/lib/fetches";
+import RenderIcon from "@/app/components/RenderIcon";
+import { createLabelAction, deleteLabelAction, editLabelAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 
 interface Props {
 	orgId: string;
-	labels: schema.labelType[];
-	setLabels: (newValue: Props["labels"]) => void;
+	setLabels: (newValue: schema.labelType[]) => void;
+	label?: schema.labelType;
+	mode?: "create" | "edit";
+	taskCount?: number;
+	onLabelClick?: (labelId: string) => void;
 }
 
-export default function CreateLabel({ orgId, labels, setLabels }: Props) {
+export default function CreateLabel({ orgId, setLabels, label, mode = "create", taskCount = 0, onLabelClick }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const [name, setName] = useState("");
+	const [name, setName] = useState(label?.name || "");
 	const [color, setColor] = useState({
-		hsla: "#000000",
-		hex: "#000000",
+		hsla: label?.color || "#000000",
+		hex: label?.color || "#000000",
 	});
 	const { runWithToast, isFetching } = useToastAction();
+	const isEditMode = mode === "edit" && label;
+	const change = name !== label?.name || color.hsla !== label?.color;
+
+	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+	console.log("Render CreateLabel", { name, color, change, isEditMode });
 	return (
-		<div className="flex items-center gap-3 bg-accent border rounded p-1">
-			<Popover>
-				<PopoverTrigger asChild>
-					<Button variant="accent" size={"icon"} className="shrink-0">
-						<IconCircleFilled style={{ color: color.hsla }} />
-					</Button>
-				</PopoverTrigger>
-				<PopoverContent>
-					<ColorPicker showDebugInfo onChange={setColor} defaultValue={color.hex} />
-				</PopoverContent>
-			</Popover>
-			<Input
-				variant={"ghost"}
-				placeholder="Label name"
-				className="bg-transparent"
-				value={name}
-				onChange={(e) => setName(e.target.value)}
-			/>
-			<Button
-				variant="accent"
-				size={"icon"}
-				className="shrink-0"
-				onClick={async () => {
-					const data = await runWithToast(
-						"create-label",
-						{
-							loading: {
-								title: "Creating label...",
-								description: "Please wait while we create the label.",
-							},
-							success: {
-								title: "Label created",
-								description: "The label has been successfully created.",
-							},
-							error: {
-								title: "Failed to create label",
-								description: "An error occurred while creating the label.",
-							},
-						},
-						() =>
-							createLabelAction(
-								orgId,
-								{
-									name,
-									color: color.hsla,
-								},
-								wsClientId
-							)
-					);
-					if (data?.success && data.data) {
-						setLabels([...labels, data.data]);
-						setName("");
-						setColor({
-							hsla: "#000000",
-							hex: "#000000",
-						});
-					}
-				}}
-				disabled={name.length === 0 || isFetching}
-			>
-				<IconCheck />
-			</Button>
+		<div className="">
+			<InputGroup className="h-auto bg-accent border-transparent">
+				<InputGroupAddon align="inline-start">
+					<InputGroupButton asChild>
+						<Popover modal>
+							<PopoverTrigger asChild>
+								<Button variant={"accent"} className="h-auto w-auto p-0">
+									<RenderIcon iconName={"IconCircleFilled"} color={color.hsla} button />
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="p-0 w-64">
+								<div className="flex flex-col gap-3">
+									<div className="p-3">
+										<ColorPickerCustom onChange={setColor} defaultValue={color.hex} height={100} />
+									</div>
+								</div>
+							</PopoverContent>
+						</Popover>
+					</InputGroupButton>
+				</InputGroupAddon>
+				<InputGroupInput placeholder="Label name" value={name} onChange={(e) => setName(e.target.value)} />
+				{isEditMode && (
+					<InputGroupAddon align="inline-end">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-xs text-muted-foreground h-auto py-1 px-2 cursor-pointer hover:text-foreground"
+							onClick={() => {
+								if (onLabelClick && label) {
+									onLabelClick(label.id);
+								}
+							}}
+							disabled={!onLabelClick}
+						>
+							{taskCount} {taskCount === 1 ? "task" : "tasks"}
+						</Button>
+					</InputGroupAddon>
+				)}
+
+				{/* ------- Create Mode ------- */}
+				{!isEditMode ? (
+					<InputGroupAddon align="inline-end">
+						<InputGroupButton
+							variant="ghost"
+							className="h-full"
+							onClick={async () => {
+								const data = await runWithToast(
+									"create-label",
+									{
+										loading: {
+											title: "Creating label...",
+											description: "Please wait while we create the label.",
+										},
+										success: {
+											title: "Label created",
+											description: "The label has been successfully created.",
+										},
+										error: {
+											title: "Failed to create label",
+											description: "An error occurred while creating the label.",
+										},
+									},
+									() =>
+										createLabelAction(
+											orgId,
+											{
+												name,
+												color: color.hsla,
+											},
+											wsClientId
+										)
+								);
+								if (data?.success && data.data) {
+									setLabels(data.data);
+									setName("");
+									setColor({
+										hsla: "#000000",
+										hex: "#000000",
+									});
+								}
+							}}
+							disabled={name.length === 0 || isFetching}
+						>
+							Save
+						</InputGroupButton>
+					</InputGroupAddon>
+				) : (
+					/* ------- Edit Mode ------- */
+					<InputGroupAddon align="inline-end">
+						{change ? (
+							<InputGroupButton
+								variant="ghost"
+								className="h-full"
+								onClick={async () => {
+									const data = await runWithToast(
+										"edit-label",
+										{
+											loading: {
+												title: "Updating label...",
+												description: "Please wait while we update the label.",
+											},
+											success: {
+												title: "Label updated",
+												description: "The label has been successfully updated.",
+											},
+											error: {
+												title: "Failed to update label",
+												description: "An error occurred while updating the label.",
+											},
+										},
+										() =>
+											editLabelAction(
+												orgId,
+												{
+													id: label?.id,
+													name,
+													color: color.hsla,
+												},
+												wsClientId
+											)
+									);
+									if (data?.success && data.data) {
+										setLabels(data.data);
+										setName(data.data.find((e) => e.id === label?.id)?.name || "");
+										setColor({
+											hsla: data.data.find((e) => e.id === label?.id)?.color || "#000000",
+											hex: data.data.find((e) => e.id === label?.id)?.color || "#000000",
+										});
+									}
+								}}
+								disabled={isFetching}
+							>
+								<IconDeviceFloppy />
+							</InputGroupButton>
+						) : (
+							<Popover open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+								<PopoverTrigger asChild>
+									<InputGroupButton variant="ghost" className="h-full">
+										<IconTrash />
+									</InputGroupButton>
+								</PopoverTrigger>
+								<PopoverContent className="p-4 w-60 flex flex-col gap-3 bg-card border border-muted shadow-md">
+									<p className="text-sm text-muted-foreground">
+										Are you sure you want to delete this category?
+									</p>
+									<div className="flex justify-end gap-2">
+										<Button variant="outline" size="sm" onClick={() => setConfirmDeleteOpen(false)}>
+											Cancel
+										</Button>
+										<Button
+											variant="destructive"
+											size="sm"
+											onClick={async () => {
+												const data = await runWithToast(
+													"delete-label",
+													{
+														loading: {
+															title: "Deleting label...",
+															description: "Please wait while we delete the label.",
+														},
+														success: {
+															title: "Label deleted",
+															description: "The label has been successfully deleted.",
+														},
+														error: {
+															title: "Failed to delete label",
+															description: "An error occurred while deleting the label.",
+														},
+													},
+													() =>
+														deleteLabelAction(
+															orgId,
+															{
+																id: label?.id,
+															},
+															wsClientId
+														)
+												);
+												if (data?.success && data.data) {
+													setConfirmDeleteOpen(false);
+													setLabels(data.data);
+												}
+											}}
+										>
+											Delete
+										</Button>
+									</div>
+								</PopoverContent>
+							</Popover>
+						)}
+					</InputGroupAddon>
+				)}
+			</InputGroup>
 		</div>
 	);
 }

@@ -1,9 +1,8 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Input } from "@repo/ui/components/input";
 import { TabbedDialog, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
-import { IconCategory, IconCircleFilled, IconSettings, IconTag } from "@tabler/icons-react";
+import { IconCategory, IconSettings, IconTag } from "@tabler/icons-react";
 import CreateCategory from "../create-category";
 import CreateLabel from "../create-label";
 
@@ -17,6 +16,7 @@ interface Props {
 	setCategories: (newValue: Props["categories"]) => void;
 	tasks?: schema.TaskWithLabels[];
 	onCategoryClick?: (categoryId: string) => void;
+	onLabelClick?: (labelId: string) => void;
 }
 
 export default function GlobalSettings({
@@ -31,10 +31,14 @@ export default function GlobalSettings({
 	setCategories,
 	tasks = [],
 	onCategoryClick,
+	onLabelClick,
 }: Props) {
 	// Calculate task count per category
 	const getCategoryTaskCount = (categoryId: string) => {
 		return tasks.filter((task) => task.category === categoryId).length;
+	};
+	const getLabelTaskCount = (labelId: string) => {
+		return tasks.filter((task) => task.labels.find((e) => e.id === labelId))?.length;
 	};
 	// Simple side layout with one tab
 	const sideGroupedTabs = [
@@ -77,32 +81,28 @@ export default function GlobalSettings({
 					<div className="p-4"></div>
 				</TabPanel>
 				<TabPanel tabId="labels">
-					<div className="p-4">
-						<CreateLabel orgId={organization.id} labels={labels} setLabels={setLabels} />
+					<div className="p-4 flex flex-col gap-2">
+						<CreateLabel orgId={organization.id} setLabels={setLabels} />
 						{labels.map((label) => (
-							<div key={label.id} className="flex items-center gap-3 bg-accent border rounded p-1">
-								<div>
-									<IconCircleFilled style={{ color: label.color || "" }} />
-								</div>
-								<Input
-									variant={"ghost"}
-									placeholder="Label name"
-									className="bg-transparent"
-									value={label.name}
-									readOnly
-								/>
-							</div>
+							<CreateLabel
+								key={label.id}
+								orgId={organization.id}
+								setLabels={setLabels}
+								label={label}
+								mode="edit"
+								taskCount={getLabelTaskCount(label.id)}
+								onLabelClick={onLabelClick}
+							/>
 						))}
 					</div>
 				</TabPanel>
 				<TabPanel tabId="categories">
 					<div className="p-4 flex flex-col gap-2">
-						<CreateCategory orgId={organization.id} categories={categories} setCategories={setCategories} />
+						<CreateCategory orgId={organization.id} setCategories={setCategories} />
 						{categories.map((category) => (
 							<CreateCategory
 								key={category.id}
 								orgId={organization.id}
-								categories={categories}
 								setCategories={setCategories}
 								category={category}
 								mode="edit"

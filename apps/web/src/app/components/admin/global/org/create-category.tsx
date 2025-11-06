@@ -14,8 +14,7 @@ import { useToastAction } from "@/app/lib/util";
 
 interface Props {
 	orgId: string;
-	categories: schema.categoryType[];
-	setCategories: (newValue: Props["categories"]) => void;
+	setCategories: (newValue: schema.categoryType[]) => void;
 	category?: schema.categoryType;
 	mode?: "create" | "edit";
 	taskCount?: number;
@@ -24,7 +23,6 @@ interface Props {
 
 export default function CreateCategory({
 	orgId,
-	categories,
 	setCategories,
 	category,
 	mode = "create",
@@ -130,7 +128,7 @@ export default function CreateCategory({
 										)
 								);
 								if (data?.success && data.data) {
-									setCategories([...categories, data.data]);
+									setCategories(data.data);
 									setName("");
 									setColor({
 										hsla: "#000000",
@@ -181,15 +179,13 @@ export default function CreateCategory({
 											)
 									);
 									if (data?.success && data.data) {
-										setCategories(
-											categories.map((cat) => (cat.id === data.data.id ? { ...cat, ...data.data } : cat))
-										);
-										setName(data.data.name);
+										setCategories(data.data);
+										setName(data.data.find((e) => e.id === category?.id)?.name || "");
 										setColor({
-											hsla: data.data.color || "#000000",
-											hex: data.data.color || "#000000",
+											hsla: data.data.find((e) => e.id === category?.id)?.color || "#000000",
+											hex: data.data.find((e) => e.id === category?.id)?.color || "#000000",
 										});
-										setIcon(data.data.icon || "IconCircleFilled");
+										setIcon(data.data.find((e) => e.id === category?.id)?.icon || "IconCircleFilled");
 									}
 								}}
 								disabled={isFetching}
@@ -243,7 +239,7 @@ export default function CreateCategory({
 
 												if (data?.success && data.data) {
 													setConfirmDeleteOpen(false);
-													setCategories(categories.filter((cat) => cat.id !== category?.id));
+													setCategories(data.data);
 												}
 											}}
 										>

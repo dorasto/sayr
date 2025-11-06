@@ -11,8 +11,7 @@ import type { WSMessage } from "@/app/lib/ws";
 export default function OrganizationHomePage() {
 	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
-	const { organization, setOrganization, labels, setLabels, setViews, views, setCategories, categories } =
-		useLayoutOrganization();
+	const { organization, setOrganization, setLabels, setViews, setCategories } = useLayoutOrganization();
 	const { wsSubscribedState } = useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -21,29 +20,19 @@ export default function OrganizationHomePage() {
 		setOrganization: setOrganization,
 	});
 	const handlers: WSMessageHandler<WSMessage> = {
-		CREATE_LABEL: (msg) => {
+		UPDATE_LABELS: (msg) => {
 			if (msg.scope === "CHANNEL") {
-				setLabels([...labels, msg.data]);
+				setLabels(msg.data);
 			}
 		},
-		CREATE_VIEW: (msg) => {
+		UPDATE_VIEWS: (msg) => {
 			if (msg.scope === "CHANNEL") {
-				setViews([...views, msg.data]);
+				setViews(msg.data);
 			}
 		},
-		CREATE_CATEGORY: (msg) => {
+		UPDATE_CATEGORIES: (msg) => {
 			if (msg.scope === "CHANNEL") {
-				setCategories([...categories, msg.data]);
-			}
-		},
-		EDIT_CATEGORY: (msg) => {
-			if (msg.scope === "CHANNEL") {
-				setCategories(categories.map((cat) => (cat.id === msg.data.id ? { ...cat, ...msg.data } : cat)));
-			}
-		},
-		REMOVE_CATEGORY: (msg) => {
-			if (msg.scope === "CHANNEL") {
-				setCategories(categories.filter((cat) => cat.id !== msg.data?.id));
+				setCategories(msg.data);
 			}
 		},
 	};

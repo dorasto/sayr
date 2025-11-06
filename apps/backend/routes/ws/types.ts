@@ -25,15 +25,13 @@ export type WSBaseMessage = {
 		| "CREATE_PROJECT"
 		| "CREATE_TASK"
 		| "UPDATE_TASK"
-		| "CREATE_LABEL"
+		| "UPDATE_LABELS"
 		| "FIREHOSE"
 		| "CONNECTIONS_SNAPSHOT"
 		| "WAITING_ROOM"
 		| "DISCONNECTED"
-		| "CREATE_VIEW"
-		| "CREATE_CATEGORY"
-		| "EDIT_CATEGORY"
-		| "REMOVE_CATEGORY";
+		| "UPDATE_VIEWS"
+		| "UPDATE_CATEGORIES";
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	data?: any;
 	orgId?: string;

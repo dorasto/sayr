@@ -114,7 +114,23 @@ export default function ProjectSide() {
 		],
 		operator: "AND",
 	});
-
+	const createLabelFilter = (labelId: string): FilterState => ({
+		groups: [
+			{
+				id: `label-${labelId}-group`,
+				operator: "AND",
+				conditions: [
+					{
+						id: `label-any-${labelId}`,
+						field: "label",
+						operator: "any",
+						value: labelId,
+					},
+				],
+			},
+		],
+		operator: "AND",
+	});
 	// Filter out done and canceled tasks to get open issues count
 	const opentaskCount = tasks.filter((task) => task.status !== "done" && task.status !== "canceled").length;
 	const openusertaskCount = tasks.filter(
@@ -478,6 +494,10 @@ export default function ProjectSide() {
 				tasks={tasks}
 				onCategoryClick={(categoryId) => {
 					setFilterState(createCategoryFilter(categoryId));
+					setOpenSettings(false);
+				}}
+				onLabelClick={(labelId) => {
+					setFilterState(createLabelFilter(labelId));
 					setOpenSettings(false);
 				}}
 			/>

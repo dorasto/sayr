@@ -173,16 +173,16 @@ export type WSMessage =
 			data: schema.organizationType;
 	  })
 	| (BaseMessage & {
-			type: "CREATE_CATEGORY";
-			data: schema.categoryType;
+			type: "UPDATE_CATEGORIES";
+			data: schema.categoryType[];
 	  })
 	| (BaseMessage & {
-			type: "EDIT_CATEGORY";
-			data: schema.categoryType;
+			type: "UPDATE_LABELS";
+			data: schema.labelType[];
 	  })
 	| (BaseMessage & {
-			type: "REMOVE_CATEGORY";
-			data: schema.categoryType;
+			type: "UPDATE_VIEWS";
+			data: schema.savedViewType[];
 	  })
 	| (BaseMessage & {
 			type: "CREATE_TASK";
@@ -197,14 +197,6 @@ export type WSMessage =
 			data: {
 				id: string;
 			};
-	  })
-	| (BaseMessage & {
-			type: "CREATE_LABEL";
-			data: schema.labelType;
-	  })
-	| (BaseMessage & {
-			type: "CREATE_VIEW";
-			data: schema.savedViewType;
 	  })
 	| (BaseMessage & {
 			type: "FIREHOSE";

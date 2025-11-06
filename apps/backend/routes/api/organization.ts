@@ -1,11 +1,10 @@
-import { db, getOrCreateLabel, getOrganizationMembers, getUsersByIds, schema } from "@repo/database";
+import { db, getLabels, getOrganizationMembers, getUsersByIds, schema } from "@repo/database";
 import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { checkMembershipRole, decodeCursor, encodeCursor } from "@/util";
-import { category, savedView } from "../../../../packages/database/schema";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
@@ -280,11 +279,22 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
-	const label = await getOrCreateLabel(org_id, name, color);
+	const [created] = await db
+		.insert(schema.label)
+		.values({
+			organizationId: org_id,
+			name,
+			color: color ?? "#cccccc",
+		})
+		.returning();
+	if (!created) {
+		return c.json({ success: false, error: "Failed to create label." }, 500);
+	}
+	const labels = await getLabels(org_id);
 	const found = findClientByWsId(wsClientId);
 	const data = {
-		type: "CREATE_LABEL" as WSBaseMessage["type"],
-		data: label,
+		type: "UPDATE_LABELS" as WSBaseMessage["type"],
+		data: labels,
 	};
 	broadcast(org_id, "admin", data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
@@ -295,9 +305,78 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	});
 	return c.json({
 		success: true,
-		data: label,
+		data: labels,
 	});
 });
+apiRouteAdminOrganization.patch("/edit-label", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id, name, color } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [edit] = await db
+		.update(schema.label)
+		.set({
+			name,
+			color: color ?? "hsla(0, 0%, 0%, 1)",
+		})
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)))
+		.returning();
+	if (!edit) {
+		return c.json({ success: false, error: "Failed to edit label." }, 500);
+	}
+	const labels = await getLabels(org_id);
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "UPDATE_LABELS" as WSBaseMessage["type"],
+		data: labels,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+	});
+	return c.json({
+		success: true,
+		data: labels,
+	});
+});
+apiRouteAdminOrganization.delete("/delete-label", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [removed] = await db
+		.delete(schema.label)
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id), eq(schema.label.id, id)))
+		.returning();
+	if (!removed) {
+		return c.json({ success: false, error: "Failed to remove label." }, 500);
+	}
+	const labels = await getLabels(org_id);
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "UPDATE_LABELS" as WSBaseMessage["type"],
+		data: labels,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+	});
+	return c.json({
+		success: true,
+		data: labels,
+	});
+});
+
 apiRouteAdminOrganization.post("/create-category", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, color, icon } = await c.req.json();
@@ -306,7 +385,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	const [created] = await db
-		.insert(category)
+		.insert(schema.category)
 		.values({
 			organizationId: org_id,
 			name,
@@ -317,10 +396,13 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	if (!created) {
 		return c.json({ success: false, error: "Failed to create category." }, 500);
 	}
+	const categories = await db.query.category.findMany({
+		where: (category) => eq(category.organizationId, org_id),
+	});
 	const found = findClientByWsId(wsClientId);
 	const data = {
-		type: "CREATE_CATEGORY" as WSBaseMessage["type"],
-		data: created,
+		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+		data: categories,
 	};
 	broadcast(org_id, "admin", data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
@@ -331,7 +413,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	});
 	return c.json({
 		success: true,
-		data: created,
+		data: categories,
 	});
 });
 apiRouteAdminOrganization.patch("/edit-category", async (c) => {
@@ -342,21 +424,24 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	const [edit] = await db
-		.update(category)
+		.update(schema.category)
 		.set({
 			name,
 			color: color ?? "hsla(0, 0%, 0%, 1)",
 			icon,
 		})
-		.where(and(eq(category.id, id), eq(category.organizationId, org_id)))
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id)))
 		.returning();
 	if (!edit) {
 		return c.json({ success: false, error: "Failed to edit category." }, 500);
 	}
+	const categories = await db.query.category.findMany({
+		where: (category) => eq(category.organizationId, org_id),
+	});
 	const found = findClientByWsId(wsClientId);
 	const data = {
-		type: "EDIT_CATEGORY" as WSBaseMessage["type"],
-		data: edit,
+		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+		data: categories,
 	};
 	broadcast(org_id, "admin", data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
@@ -367,7 +452,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	});
 	return c.json({
 		success: true,
-		data: edit,
+		data: categories,
 	});
 });
 apiRouteAdminOrganization.delete("/delete-category", async (c) => {
@@ -378,16 +463,19 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	const [removed] = await db
-		.delete(category)
-		.where(and(eq(category.id, id), eq(category.organizationId, org_id), eq(category.id, id)))
+		.delete(schema.category)
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id), eq(schema.category.id, id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove category." }, 500);
 	}
+	const categories = await db.query.category.findMany({
+		where: (category) => eq(category.organizationId, org_id),
+	});
 	const found = findClientByWsId(wsClientId);
 	const data = {
-		type: "REMOVE_CATEGORY" as WSBaseMessage["type"],
-		data: removed,
+		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+		data: categories,
 	};
 	broadcast(org_id, "admin", data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
@@ -398,9 +486,10 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	});
 	return c.json({
 		success: true,
-		data: removed,
+		data: categories,
 	});
 });
+
 apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, value } = await c.req.json();
@@ -409,7 +498,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	const [view] = await db
-		.insert(savedView)
+		.insert(schema.savedView)
 		.values({
 			organizationId: org_id,
 			createdById: session?.userId,

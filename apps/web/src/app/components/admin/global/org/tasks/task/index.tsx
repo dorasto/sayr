@@ -12,7 +12,7 @@ import { TaskContent } from "./views/table/task-content";
 
 export default function OrganizationTaskHomePage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, labels, setLabels, views, setViews, categories, setCategories } =
+	const { organization, setOrganization, labels, setLabels, setViews, categories, setCategories } =
 		useLayoutOrganization();
 	const { tasks, setTasks } = useLayoutTasks();
 	const { task, setTask } = useLayoutTask();
@@ -24,29 +24,19 @@ export default function OrganizationTaskHomePage() {
 		setOrganization: setOrganization,
 	});
 	const handlers: WSMessageHandler<WSMessage> = {
-		CREATE_LABEL: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
-				setLabels([...labels, msg.data]);
+		UPDATE_LABELS: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setLabels(msg.data);
 			}
 		},
-		CREATE_VIEW: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
-				setViews([...views, msg.data]);
+		UPDATE_VIEWS: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setViews(msg.data);
 			}
 		},
-		CREATE_CATEGORY: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
-				setCategories([...categories, msg.data]);
-			}
-		},
-		EDIT_CATEGORY: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
-				setCategories(categories.map((cat) => (cat.id === msg.data.id ? { ...cat, ...msg.data } : cat)));
-			}
-		},
-		REMOVE_CATEGORY: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && msg.data.organizationId === organization.id) {
-				setCategories(categories.filter((cat) => cat.id !== msg.data?.id));
+		UPDATE_CATEGORIES: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setCategories(msg.data);
 			}
 		},
 		UPDATE_TASK: (msg) => {

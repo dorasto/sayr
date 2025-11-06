@@ -401,7 +401,7 @@ export async function createLabelAction(
 		color: string;
 	},
 	wsClientId: string
-): Promise<{ success: boolean; data: schema.labelType; error?: string }> {
+): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		name: data.name,
@@ -427,6 +427,71 @@ export async function createLabelAction(
 	return result;
 }
 
+export async function editLabelAction(
+	organizationId: string,
+	data: {
+		id: string;
+		name: string;
+		color: string;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		id: data.id,
+		name: data.name,
+		color: data.color,
+		wsClientId,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/edit-label`, {
+		method: "PATCH",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 ensures cookies/session are sent
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to edit label");
+		}
+		return json;
+	});
+
+	return result;
+}
+
+export async function deleteLabelAction(
+	organizationId: string,
+	data: {
+		id: string;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		id: data.id,
+		wsClientId,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/delete-label`, {
+		method: "DELETE",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // 👈 ensures cookies/session are sent
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to delete label");
+		}
+		return json;
+	});
+
+	return result;
+}
 /**
  * Calls the `/admin/organization/create-view` API to create a new label in an organization.
  *
@@ -505,7 +570,7 @@ export async function createCategoryAction(
 		icon: string;
 	},
 	wsClientId: string
-): Promise<{ success: boolean; data: schema.categoryType; error?: string }> {
+): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		name: data.name,
@@ -541,7 +606,7 @@ export async function editCategoryAction(
 		icon: string;
 	},
 	wsClientId: string
-): Promise<{ success: boolean; data: schema.categoryType; error?: string }> {
+): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		id: data.id,
@@ -575,7 +640,7 @@ export async function deleteCategoryAction(
 		id: string;
 	},
 	wsClientId: string
-): Promise<{ success: boolean; data: schema.categoryType; error?: string }> {
+): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		id: data.id,
@@ -592,7 +657,7 @@ export async function deleteCategoryAction(
 	}).then(async (res) => {
 		const json = await res.json();
 		if (!res.ok) {
-			throw new Error(json?.error || "Failed to edit category");
+			throw new Error(json?.error || "Failed to delete category");
 		}
 		return json;
 	});
