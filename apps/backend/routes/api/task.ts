@@ -5,6 +5,7 @@ import {
 	createTask,
 	db,
 	getMergedTaskActivity,
+	getOrganizationMembers,
 	getTaskById,
 	removeLabelFromTask,
 	schema,
@@ -15,7 +16,14 @@ import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
 import { checkMembershipRole } from "@/util";
 // import { enqueueJob } from "@/queue";
-import { broadcast, broadcastPublic, broadcastToRoom, findClientByWsId } from "../ws";
+import {
+	broadcast,
+	broadcastIndividual,
+	broadcastPublic,
+	broadcastToRoom,
+	findClientByWsId,
+	findClientsByUserId,
+} from "../ws";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 apiRouteAdminProjectTask.post("/create", async (c) => {
@@ -76,6 +84,17 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	};
 	broadcast(org_id, `tasks`, data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) =>
+				c.wsClientId !== wsClientId &&
+				c.orgId !== org_id &&
+				c.channel !== "tasks" &&
+				broadcastIndividual(c.socket, data, org_id)
+		);
+	});
 	return c.json({
 		success: true,
 		data: taskWithData,
@@ -161,7 +180,17 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
 	broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
 	broadcastPublic(org_id, { ...data });
-
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) =>
+				c.wsClientId !== wsClientId &&
+				c.orgId !== org_id &&
+				(c.channel !== `task:${task_id}` || c.channel !== "tasks") &&
+				broadcastIndividual(c.socket, data, org_id)
+		);
+	});
 	return c.json({ success: true, data: taskWithData });
 });
 
@@ -226,7 +255,17 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 		const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
 		broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
 		broadcastPublic(org_id, { ...data });
-
+		const members = await getOrganizationMembers(org_id);
+		members.forEach((member) => {
+			const clients = findClientsByUserId(member.userId);
+			clients.forEach(
+				(c) =>
+					c.wsClientId !== wsClientId &&
+					c.orgId !== org_id &&
+					(c.channel !== `task:${task_id}` || c.channel !== "tasks") &&
+					broadcastIndividual(c.socket, data, org_id)
+			);
+		});
 		return c.json({ success: true, data: taskWithData });
 	} catch (err) {
 		console.error("update-labels error:", err);
@@ -309,7 +348,17 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 		const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
 		broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
 		broadcastPublic(org_id, { ...data });
-
+		const members = await getOrganizationMembers(org_id);
+		members.forEach((member) => {
+			const clients = findClientsByUserId(member.userId);
+			clients.forEach(
+				(c) =>
+					c.wsClientId !== wsClientId &&
+					c.orgId !== org_id &&
+					(c.channel !== `task:${task_id}` || c.channel !== "tasks") &&
+					broadcastIndividual(c.socket, data, org_id)
+			);
+		});
 		return c.json({ success: true, data: taskWithData });
 	} catch (err) {
 		console.error("update-assignees error:", err);
@@ -335,6 +384,17 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const data = { type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"], data: { id: task_id } };
 	broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
 	broadcastPublic(org_id, { ...data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) =>
+				c.wsClientId !== wsClientId &&
+				c.orgId !== org_id &&
+				(c.channel !== `task:${task_id}` || c.channel !== "tasks") &&
+				broadcastIndividual(c.socket, data, org_id)
+		);
+	});
 	console.log("key:", key);
 	return c.json({ success: true, data: { id: task_id } });
 });

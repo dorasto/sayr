@@ -43,17 +43,6 @@ export function useWebSocketSubscription({
 				setOrganization({ ...organization, ...msg.data });
 			}
 		},
-		CREATE_PROJECT: (msg) => {
-			if (msg.scope === "INDIVIDUAL" && organizations) {
-				setOrganizations(
-					organizations.map((org) =>
-						org.id === msg.data.organizationId ? { ...org, projects: [...org.projects, msg.data] } : org
-					)
-				);
-			} else if (organization && setOrganization) {
-				setOrganization({ ...organization, projects: [...organization.projects, msg.data] });
-			}
-		},
 	};
 
 	// Stable handler for WebSocket `onmessage`
@@ -68,17 +57,6 @@ export function useWebSocketSubscription({
 		}
 		let cancelled = false; // mark stale subscriptions
 		ws.addEventListener("message", handleMessage);
-
-		if (!orgId || !channel) {
-			if (ws.readyState === WebSocket.OPEN) {
-				ws.send(JSON.stringify({ type: "UNSUBSCRIBE" }));
-				setWSSubscribedState({ orgId: "WAITING_ROOM", channel: "main" });
-			}
-			return () => {
-				ws.removeEventListener("message", handleMessage);
-				setWSSubscribedState(null);
-			};
-		}
 		// Gather current / previous values -----
 		const prev = wsSubscribedState;
 		const prevOrgId = prev?.orgId ?? null;
@@ -90,6 +68,16 @@ export function useWebSocketSubscription({
 		// delay sending to let old hook unmount cleanly
 		const id = setTimeout(() => {
 			if (cancelled) return;
+			if (!orgId || !channel) {
+				if (ws.readyState === WebSocket.OPEN && WSClientId) {
+					ws.send(JSON.stringify({ type: "UNSUBSCRIBE" }));
+					setWSSubscribedState({ orgId: "WAITING_ROOM", channel: "main" });
+				}
+				return () => {
+					ws.removeEventListener("message", handleMessage);
+					setWSSubscribedState(null);
+				};
+			}
 			if (changed && ws.readyState === WebSocket.OPEN && WSClientId) {
 				ws.send(JSON.stringify({ type: "SUBSCRIBE", orgId, channel }));
 				setWSSubscribedState({ orgId, channel });

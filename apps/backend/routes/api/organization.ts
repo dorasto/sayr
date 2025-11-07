@@ -41,7 +41,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		const members = await getOrganizationMembers(org_id);
 		members.forEach((member) => {
 			const clients = findClientsByUserId(member.userId);
-			clients.forEach((c) => broadcastIndividual(c.socket, data));
+			clients.forEach((c) => broadcastIndividual(c.socket, data, org_id));
 		});
 		return c.json({
 			success: true,
@@ -301,7 +301,9 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
-		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
 	});
 	return c.json({
 		success: true,
@@ -337,7 +339,9 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
-		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
 	});
 	return c.json({
 		success: true,
@@ -369,7 +373,9 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
-		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
 	});
 	return c.json({
 		success: true,
@@ -409,7 +415,9 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
-		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
 	});
 	return c.json({
 		success: true,
@@ -448,7 +456,9 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
-		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
 	});
 	return c.json({
 		success: true,
@@ -482,7 +492,9 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
-		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
 	});
 	return c.json({
 		success: true,
@@ -522,7 +534,9 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
-		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
 	});
 	return c.json({
 		success: true,
