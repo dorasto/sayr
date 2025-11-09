@@ -729,14 +729,6 @@ wsRoute.get(
 
 wsRoute.get("/health", (c) => c.json({ ok: true }));
 
-wsRoute.get("/metrics", (c) => {
-	return c.json({
-		rooms: rooms.size,
-		sockets: wsClients.size,
-		memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-		uptimeMin: Math.round(process.uptime() / 60),
-	});
-});
 // ✅ Heartbeat interval
 // Send a PING every 30 seconds
 // Close dead sockets after 60 seconds of no PONG

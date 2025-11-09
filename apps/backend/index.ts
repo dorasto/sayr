@@ -44,7 +44,7 @@ app.use("*", async (c, next) => {
 	c.header("X-Organization-Name", "Doras Media Limited");
 	return next();
 });
-
+app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
@@ -52,7 +52,46 @@ app.get("/health", (c) => c.text("OK"));
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.get("/ws-test", serveStatic({ path: "./public/ws.html" }));
 app.route("/ws", wsRoute);
+app.get("/metrics", (c) => {
+	const mem = process.memoryUsage();
+	const cpuUsage = process.cpuUsage();
+	const uptime = process.uptime();
 
+	const buildCommit = process.env.GIT_COMMIT ?? "unknown";
+	const buildVersion = process.env.APP_VERSION ?? "dev";
+	const buildEnv = process.env.NODE_ENV ?? "unknown";
+
+	const metrics = {
+		status: "ok",
+		service: "Sayr.io backend",
+		env: buildEnv,
+		build: {
+			version: buildVersion,
+			commit: buildCommit,
+		},
+		runtime: {
+			bunVersion: Bun.version,
+			arch: process.arch,
+			platform: process.platform,
+			uptimeSeconds: uptime,
+			cpu: {
+				userSecondsTotal: cpuUsage.user / 1e6,
+				systemSecondsTotal: cpuUsage.system / 1e6,
+			},
+			memory: {
+				rssBytes: mem.rss,
+				heapTotalBytes: mem.heapTotal,
+				heapUsedBytes: mem.heapUsed,
+				externalBytes: mem.external,
+				arrayBuffersBytes: mem.arrayBuffers,
+			},
+			heapSpacesCount: Object.keys(mem).length,
+		},
+		timestamp: Date.now(),
+	};
+
+	return c.json(metrics, 200);
+});
 app.use("*", async (c, next) => {
 	const session = await safeGetSession(c.req.raw.headers);
 	if (!session) {
