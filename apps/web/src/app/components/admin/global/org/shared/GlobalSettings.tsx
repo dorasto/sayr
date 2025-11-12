@@ -1,10 +1,12 @@
 "use client";
-
 import type { schema } from "@repo/database";
+
 import { TabbedDialog, TabPanel } from "@repo/ui/components/tomui/tabbed-dialog";
 import { IconCategory, IconSettings, IconTag } from "@tabler/icons-react";
 import CreateCategory from "../create-category";
 import CreateLabel from "../create-label";
+
+import GeneralTab from "./tabs/general";
 
 interface Props {
 	organization: schema.OrganizationWithMembers;
@@ -78,7 +80,7 @@ export default function GlobalSettings({
 				size="lg"
 			>
 				<TabPanel tabId="general">
-					<div className="p-4"></div>
+					<GeneralTab organization={organization} />
 				</TabPanel>
 				<TabPanel tabId="labels">
 					<div className="p-4 flex flex-col gap-2">

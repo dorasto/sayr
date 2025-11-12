@@ -3,14 +3,19 @@
 import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
+import { ButtonGroup } from "@repo/ui/components/button-group";
+import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Toggle } from "@repo/ui/components/toggle";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowBack, IconArrowUp } from "@tabler/icons-react";
+import { IconArrowBack, IconLock, IconLockOpen2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { CreateTaskCommentAction } from "@/app/lib/fetches";
 import { extractTextContent, useToastAction } from "@/app/lib/util";
+
+type CommentVisibility = "internal" | "public";
 
 interface TaskNewCommentContentProps {
 	task: schema.TaskWithLabels;
@@ -21,6 +26,7 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 	const { runWithToast, isFetching } = useToastAction();
 	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(undefined);
 	const [editorKey, setEditorKey] = useState(0);
+	const [visibility, setVisibility] = useState<CommentVisibility>("public");
 	const commentText = extractTextContent(newComment);
 	const disabled = isFetching || commentText.length === 0;
 	const handleSubmit = async () => {
@@ -57,7 +63,12 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 		}
 	};
 	return (
-		<div className="text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col">
+		<div
+			className={cn(
+				"text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col",
+				visibility === "public" && "border-primary/50 bg-primary/5"
+			)}
+		>
 			<Editor
 				key={editorKey} // 👈 force rerender when the key changes
 				emptyDocumentPlaceholder="Leave a comment"
@@ -73,15 +84,31 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 				}}
 			/>
 			<div className="flex items-center gap-2 ml-auto">
-				<Button
-					variant={disabled ? "accent" : "default"}
-					size={"sm"}
-					disabled={disabled}
-					onClick={handleSubmit}
-					className={cn("border-transparent")}
-				>
-					<IconArrowBack />
-				</Button>
+				<ButtonGroup>
+					<Button
+						variant={visibility === "internal" ? "accent" : "default"}
+						size={"sm"}
+						disabled={disabled}
+						onClick={handleSubmit}
+						className={cn("border-transparent")}
+					>
+						{visibility === "internal" ? "Internal comment" : "Post comment"}
+						<IconArrowBack />
+					</Button>
+					<Toggle
+						aria-label="Toggle visibility"
+						size="sm"
+						className="border-transparent hover:border-transparent"
+						variant={visibility === "internal" ? "accent" : "primary"}
+						pressed={visibility === "internal"}
+						disabled={disabled}
+						onPressedChange={(pressed) => setVisibility(pressed ? "internal" : "public")}
+						// className={cn("data-[state=off]:bg-primary/10 data-[state=off]:border-primary/50")}
+						defaultPressed={true}
+					>
+						{visibility === "internal" ? <IconLock /> : <IconLockOpen2 />}
+					</Toggle>
+				</ButtonGroup>
 			</div>
 		</div>
 	);

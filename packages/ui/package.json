@@ -72,6 +72,7 @@
 		"react-hook-form": "^7.60.0",
 		"react-image-crop": "^11.0.10",
 		"react-resizable-panels": "^3.0.3",
+		"react-textarea-autosize": "^8.5.9",
 		"recharts": "^2.15.4",
 		"sonner": "^2.0.6",
 		"tailwind-merge": "^3.3.1",
