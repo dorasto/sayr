@@ -51,6 +51,17 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
 					},
 				},
 			},
+			comments: {
+				with: {
+					createdBy: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
 		},
 	});
 
@@ -98,6 +109,13 @@ export async function getTaskByShortId(orgId: string, shortId: number): Promise<
 			assignees: {
 				with: { user: { columns: { id: true, name: true, image: true } } },
 			},
+			comments: {
+				with: {
+					createdBy: {
+						columns: { id: true, name: true, image: true },
+					},
+				},
+			},
 		},
 	});
 	if (!task) return null;
@@ -143,6 +161,13 @@ export async function getTaskById(orgId: string, Id: string) {
 			createdBy: { columns: { id: true, name: true, image: true } },
 			assignees: {
 				with: { user: { columns: { id: true, name: true, image: true } } },
+			},
+			comments: {
+				with: {
+					createdBy: {
+						columns: { id: true, name: true, image: true },
+					},
+				},
 			},
 		},
 	});

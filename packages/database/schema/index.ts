@@ -25,6 +25,7 @@ export type TaskWithLabels = taskType & {
 	assignees: { id: string; name: string; image: string | null }[];
 	createdBy?: { id: string; name: string; image: string | null } | null;
 	organization?: { id: string; name: string; slug: string };
+	comments?: CommentsWithAuthor;
 };
 
 export type CommentsWithAuthor = Array<
