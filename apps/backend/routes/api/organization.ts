@@ -80,11 +80,27 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		const objectName = `/logo.${ext}`;
 		if (oldLogo) {
 			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`);
+			await db
+				.delete(schema.file)
+				.where(
+					and(
+						eq(schema.file.organizationId, orgId),
+						eq(schema.file.url, `organization/${orgId}/${getFileNameFromUrl(oldLogo)}`)
+					)
+				);
 		}
 		// 3. Upload to storage
 		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
 			"user-id": user?.id || "ANONYMOUS",
+		});
+		await db.insert(schema.file).values({
+			organizationId: orgId,
+			fileName: objectName,
+			url: imagelogo,
+			userId: user?.id || "ANONYMOUS",
+			visibility: "public",
+			type: file.type || "application/octet-stream",
 		});
 
 		// 4. Build result payload
@@ -127,11 +143,26 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		const objectName = `banner.${ext}`;
 		if (oldBanner) {
 			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`);
+			await db
+				.delete(schema.file)
+				.where(
+					and(
+						eq(schema.file.organizationId, orgId),
+						eq(schema.file.url, `organization/${orgId}/${getFileNameFromUrl(oldBanner)}`)
+					)
+				);
 		}
 		// 3. Upload to storage
 		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
-			"user-id": user?.id || "ANONYMOUS",
+		});
+		await db.insert(schema.file).values({
+			organizationId: orgId,
+			fileName: objectName,
+			url: imagebanner,
+			userId: user?.id || "ANONYMOUS",
+			visibility: "public",
+			type: file.type || "application/octet-stream",
 		});
 
 		// 4. Build result payload
@@ -197,7 +228,7 @@ apiRouteAdminOrganization.get("/:orgId/assets-test", async (c) => {
 	});
 });
 
-apiRouteAdminOrganization.get("/:orgId/assets", async (c) => {
+apiRouteAdminOrganization.get("/:orgId/files", async (c) => {
 	const session = c.get("session");
 	const orgId = c.req.param("orgId");
 
@@ -218,17 +249,17 @@ apiRouteAdminOrganization.get("/:orgId/assets", async (c) => {
 	// --- Total count query ---
 	const [count] = await db
 		.select({ count: sql<number>`count(*)` })
-		.from(schema.asset)
-		.where(eq(schema.asset.organizationId, orgId));
+		.from(schema.file)
+		.where(eq(schema.file.organizationId, orgId));
 
 	// --- Where clause ---
 	// IDs descend. Show items "older than" the cursor for next pages.
 	const whereClause = cursorId
-		? and(eq(schema.asset.organizationId, orgId), lt(schema.asset.id, cursorId))
-		: eq(schema.asset.organizationId, orgId);
+		? and(eq(schema.file.organizationId, orgId), lt(schema.file.id, cursorId))
+		: eq(schema.file.organizationId, orgId);
 
 	// --- Fetch one extra to check for next page ---
-	const assets = await db.query.asset.findMany({
+	const assets = await db.query.file.findMany({
 		where: whereClause,
 		with: {
 			user: { columns: { id: true, name: true, image: true } },

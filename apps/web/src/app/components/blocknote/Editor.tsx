@@ -2,12 +2,26 @@
 //@ts-expect-error
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
-import { GridSuggestionMenuController, SuggestionMenuController, useCreateBlockNote } from "@blocknote/react";
+import {
+	FilePanelController,
+	FormattingToolbar,
+	FormattingToolbarController,
+	GridSuggestionMenuController,
+	getFormattingToolbarItems,
+	SuggestionMenuController,
+	useCreateBlockNote,
+} from "@blocknote/react";
 //@ts-expect-error
 import "@blocknote/mantine/style.css";
 //@ts-expect-error
 import "./style.css";
-import { type BlockNoteEditor, BlockNoteSchema, createCodeBlockSpec, type PartialBlock } from "@blocknote/core";
+import {
+	type BlockNoteEditor,
+	BlockNoteSchema,
+	createCodeBlockSpec,
+	createFileBlockSpec,
+	type PartialBlock,
+} from "@blocknote/core";
 import {
 	ar,
 	de,
@@ -35,7 +49,9 @@ import { useTheme } from "next-themes";
 import { type KeyboardEventHandler, useEffect, useState } from "react";
 import { createHighlighter } from "../../shiki.bundle";
 import { CustomSlashMenu } from "./CustomSlashMenu";
+import { CustomFilePanel } from "./custom/CustomFilePanel";
 import { CustomEmojiPicker } from "./custom/emoji";
+import { FileReplaceButton } from "./custom/FileReplaceButton";
 import { getFilteredSlashMenuItems } from "./customSlashMenuItems";
 
 // Create a mapping of supported locales
@@ -157,6 +173,15 @@ export default function Editor({
 							langs: [],
 						}),
 				}),
+				file: createFileBlockSpec({
+					type: "file",
+					propSchema: {
+						name: { type: "string", default: "" },
+						url: { type: "string", default: "" },
+						type: { type: "string", default: "" },
+					},
+					filePanel: "default", // 👈 must match implicit controller key
+				}),
 			},
 		}),
 		trailingBlock: trailing,
@@ -186,6 +211,8 @@ export default function Editor({
 			emojiPicker={false}
 			linkToolbar={true}
 			onKeyDown={onKeyDown}
+			filePanel={false}
+			formattingToolbar={false}
 		>
 			<GridSuggestionMenuController
 				triggerCharacter={":"}
@@ -204,6 +231,18 @@ export default function Editor({
 					return getFilteredSlashMenuItems(editor, query);
 				}}
 			/>
+			<FormattingToolbarController
+				formattingToolbar={(props) => {
+					const items = getFormattingToolbarItems();
+					items.splice(
+						items.findIndex((c) => c.key === "replaceFileButton"),
+						1,
+						<FileReplaceButton key={"fileReplaceButton"} />
+					);
+					return <FormattingToolbar {...props}>{items}</FormattingToolbar>;
+				}}
+			/>
+			<FilePanelController filePanel={(props) => <CustomFilePanel props={props} />} />
 		</BlockNoteView>
 	);
 }

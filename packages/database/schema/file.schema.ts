@@ -4,8 +4,8 @@ import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
-export const assetVisibilityEnum = v.pgEnum("asset_visibility", ["public", "private"]);
-export const asset = table("asset", {
+export const fileVisibilityEnum = v.pgEnum("file_visibility", ["public", "private"]);
+export const file = table("file", {
 	id: v
 		.text("id")
 		.primaryKey()
@@ -16,14 +16,15 @@ export const asset = table("asset", {
 	userId: v.text("user_id").references(() => user.id, { onDelete: "set null" }),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
-	visibility: assetVisibilityEnum("visibility").notNull(),
+	visibility: fileVisibilityEnum("visibility").notNull(),
+	type: v.text("type"),
 });
 
-export type assetType = typeof asset.$inferSelect;
+export type fileType = typeof file.$inferSelect;
 
-export const assetnRelations = relations(asset, ({ one }) => ({
+export const filenRelations = relations(file, ({ one }) => ({
 	user: one(user, {
-		fields: [asset.userId],
+		fields: [file.userId],
 		references: [user.id],
 	}),
 }));

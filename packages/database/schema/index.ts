@@ -6,8 +6,8 @@ import type { taskType } from "./task.schema";
 import type { taskCommentType } from "./taskComment.schema";
 import type { taskTimelineType } from "./taskTimeline.schema";
 
-export * from "./asset.schema";
 export * from "./category.schema";
+export * from "./file.schema";
 export * from "./label.schema";
 export * from "./member.schema";
 export * from "./organization.schema";
