@@ -1,7 +1,10 @@
 "use client";
+import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
 import { Input } from "@repo/ui/components/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@repo/ui/components/input-group";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { cn } from "@repo/ui/lib/utils";
 import * as tabler from "@tabler/icons-react";
 import { IconSearch } from "@tabler/icons-react";
 import { type JSX, useEffect, useState } from "react";
@@ -59,9 +62,26 @@ export default function IconPicker({ value, update }: Props) {
 	};
 
 	return (
-		<Card className="border-none bg-transparent p-1">
+		<Card className="border-none bg-transparent">
 			<div className="w-full">
-				<div className="flex items-center gap-1 rounded-t-md bg-muted pl-2 pr-2">
+				<InputGroup className="h-auto bg-accent border-transparent">
+					<InputGroupInput
+						onKeyUp={handleSearch}
+						className="placeholder:text-muted-foreground"
+						placeholder="Search over 5000 icons..."
+					/>
+					<InputGroupAddon>
+						<IconSearch />
+					</InputGroupAddon>
+					<InputGroupAddon align="inline-end">
+						<a href="https://tabler.io/icons?utm_source=sayr.io">
+							<Button className="p-1 h-auto bg-[#1E69C3] hover:bg-[#1E69C3]/80 text-xs" size={"sm"}>
+								<tabler.IconBrandTablerFilled className="" /> tabler.io
+							</Button>
+						</a>
+					</InputGroupAddon>
+				</InputGroup>
+				{/* <div className="flex items-center gap-1 rounded-t-md bg-muted pl-2 pr-2">
 					<IconSearch size={18} />
 					<Input
 						type="text"
@@ -70,10 +90,10 @@ export default function IconPicker({ value, update }: Props) {
 						placeholder="Search over 5000 icons..."
 						onKeyUp={handleSearch}
 					/>
-				</div>
+				</div> */}
 				<ScrollArea className="h-72 w-full rounded-md border-2 border-muted bg-card px-3">
-					<div className="grid grid-cols-2 place-items-center gap-3 py-3 md:grid-cols-3">
-						{selectedIcon.icon && selectedIcon.value && (
+					<div className="grid grid-cols-2 gap-3 py-3 md:grid-cols-4">
+						{/* {selectedIcon.icon && selectedIcon.value && (
 							<button
 								type="button"
 								className="icons-tooltip text-light-copy size-16 text-copy rounded-xl border-2 bg-primary text-3xl"
@@ -81,14 +101,17 @@ export default function IconPicker({ value, update }: Props) {
 							>
 								{selectedIcon.icon}
 							</button>
-						)}
+						)} */}
 
 						{icons.map((icon, index) => (
 							<button
 								type="button"
 								// biome-ignore lint/suspicious/noArrayIndexKey: <key>
 								key={index}
-								className="icons-tooltip text-light-copy size-16 text-copy rounded-xl border-2 bg-accent text-3xl"
+								className={cn(
+									"icons-tooltip text-light-copy size-16 text-copy rounded-xl border-2 bg-accent text-3xl",
+									selectedIcon.value === icon.value && "border-primary"
+								)}
 								onClick={() => update(icon.value)}
 							>
 								{icon.icon}

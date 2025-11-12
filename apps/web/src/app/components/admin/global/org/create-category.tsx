@@ -57,12 +57,12 @@ export default function CreateCategory({
 									<RenderIcon iconName={icon} color={color.hsla} button />
 								</Button>
 							</PopoverTrigger>
-							<PopoverContent className="p-0 w-64">
+							<PopoverContent className="p-0 w-64 md:w-96">
 								<div className="flex flex-col gap-3">
 									<div className="p-3">
 										<ColorPickerCustom onChange={setColor} defaultValue={color.hex} height={100} />
 									</div>
-									<div>
+									<div className="px-3">
 										<IconPicker
 											value={icon}
 											update={(value: string): void => {
@@ -99,51 +99,53 @@ export default function CreateCategory({
 				{/* ------- Create Mode ------- */}
 				{!isEditMode ? (
 					<InputGroupAddon align="inline-end">
-						<InputGroupButton
-							variant="ghost"
-							className="h-full"
-							onClick={async () => {
-								const data = await runWithToast(
-									"create-category",
-									{
-										loading: {
-											title: "Creating category...",
-											description: "Please wait while we create the category.",
-										},
-										success: {
-											title: "Category created",
-											description: "The category has been successfully created.",
-										},
-										error: {
-											title: "Failed to create category",
-											description: "An error occurred while creating the category.",
-										},
-									},
-									() =>
-										createCategoryAction(
-											orgId,
-											{
-												name,
-												color: color.hsla,
-												icon,
+						{name.length !== 0 && (
+							<InputGroupButton
+								variant="ghost"
+								className="h-full"
+								onClick={async () => {
+									const data = await runWithToast(
+										"create-category",
+										{
+											loading: {
+												title: "Creating category...",
+												description: "Please wait while we create the category.",
 											},
-											wsClientId
-										)
-								);
-								if (data?.success && data.data) {
-									setCategories(data.data);
-									setName("");
-									setColor({
-										hsla: "#000000",
-										hex: "#000000",
-									});
-									setIcon("");
-								}
-							}}
-							disabled={name.length === 0 || isFetching}
-						>
-							Save
-						</InputGroupButton>
+											success: {
+												title: "Category created",
+												description: "The category has been successfully created.",
+											},
+											error: {
+												title: "Failed to create category",
+												description: "An error occurred while creating the category.",
+											},
+										},
+										() =>
+											createCategoryAction(
+												orgId,
+												{
+													name,
+													color: color.hsla,
+													icon,
+												},
+												wsClientId
+											)
+									);
+									if (data?.success && data.data) {
+										setCategories(data.data);
+										setName("");
+										setColor({
+											hsla: "#000000",
+											hex: "#000000",
+										});
+										setIcon("");
+									}
+								}}
+								disabled={name.length === 0 || isFetching}
+							>
+								Save
+							</InputGroupButton>
+						)}
 					</InputGroupAddon>
 				) : (
 					/* ------- Edit Mode ------- */
