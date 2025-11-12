@@ -45,6 +45,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	const [editOpen, setEditOpen] = useState(false);
 	const path = usePathname();
 	const isActive = path.includes(`/admin/${organization.id}`);
+	const [collapsibleOpen, setCollapsibleOpen] = useState(isActive);
 	const closeMobileSidebarOnClick = () => {
 		if (isMobile) {
 			closeMobileSidebar();
@@ -53,7 +54,12 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 	// Desktop + Sidebar Open: Collapsible with full content
 	const renderCollapsibleView = () => (
-		<Collapsible key={organization.id} defaultOpen={isActive} className="group/collapsible">
+		<Collapsible
+			key={organization.id}
+			open={collapsibleOpen}
+			onOpenChange={setCollapsibleOpen}
+			className="group/collapsible"
+		>
 			<SidebarGroup className={cn("flex flex-col gap-1")}>
 				<SidebarGroupLabel asChild>
 					<div
@@ -76,11 +82,18 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 								</Avatar>
 							</div>
 						</CollapsibleTrigger>
-						<Link href={`/admin/${organization.id}`} className="w-full cursor-pointer">
+						<Link
+							href={`/admin/${organization.id}`}
+							className="w-full cursor-pointer"
+							onClick={() => {
+								setCollapsibleOpen(true);
+								closeMobileSidebarOnClick();
+							}}
+						>
 							<SidebarMenuButton
 								className={cn(
-									"hover:bg-transparent font-semibold text-sidebar-foreground/70 group-hover/coltrig:text-sidebar-foreground cursor-pointer"
-									// isActive && "text-sidebar-foreground"
+									"hover:bg-transparent font-semibold text-sidebar-foreground/70 group-hover/coltrig:text-sidebar-foreground cursor-pointer",
+									isActive && "text-sidebar-foreground"
 								)}
 							>
 								<span>{organization.name}</span>
