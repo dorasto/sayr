@@ -1,11 +1,14 @@
 "use client";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
+import { ButtonGroup } from "@repo/ui/components/button-group";
+import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
+import { Label } from "@repo/ui/components/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconSettings, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import IconPicker from "@/app/components/icon-picker";
 import RenderIcon from "@/app/components/RenderIcon";
@@ -50,7 +53,7 @@ export default function CreateCategory({
 					<InputGroupButton asChild>
 						<Popover modal>
 							<PopoverTrigger asChild>
-								<Button variant={"accent"} className="h-auto w-auto p-0">
+								<Button variant={"accent"} className="h-auto w-auto p-0 border-transparent">
 									<RenderIcon iconName={icon} color={color.hsla} button />
 								</Button>
 							</PopoverTrigger>
@@ -199,52 +202,67 @@ export default function CreateCategory({
 										<IconTrash />
 									</InputGroupButton>
 								</PopoverTrigger>
-								<PopoverContent className="p-4 w-60 flex flex-col gap-3 bg-card border border-muted shadow-md">
-									<p className="text-sm text-muted-foreground">
-										Are you sure you want to delete this category?
-									</p>
-									<div className="flex justify-end gap-2">
-										<Button variant="outline" size="sm" onClick={() => setConfirmDeleteOpen(false)}>
-											Cancel
-										</Button>
-										<Button
-											variant="destructive"
-											size="sm"
-											onClick={async () => {
-												const data = await runWithToast(
-													"delete-category",
-													{
-														loading: {
-															title: "Deleting category...",
-															description: "Please wait while we delete the category.",
-														},
-														success: {
-															title: "Category deleted",
-															description: "The category has been successfully deleted.",
-														},
-														error: {
-															title: "Failed to delete category",
-															description: "An error occurred while deleting the category.",
-														},
-													},
-													() =>
-														deleteCategoryAction(
-															orgId,
+								<PopoverContent className="p-0 flex flex-col gap-3">
+									<Tile className="md:w-full p-3 bg-accent">
+										<TileHeader>
+											<TileIcon asChild>
+												<RenderIcon iconName={icon} color={color.hsla} button />
+											</TileIcon>
+											<TileTitle className="flex items-center gap-2">{name}</TileTitle>
+										</TileHeader>
+										<TileAction>
+											{taskCount} {taskCount === 1 ? "task" : "tasks"}
+										</TileAction>
+									</Tile>
+									<div className="flex flex-col gap-3 p-3">
+										<div className="flex items-center gap-1">
+											<Label>Are you sure you want to delete this category?</Label>
+										</div>
+										<div className="flex justify-end gap-2">
+											<ButtonGroup>
+												<Button variant="outline" size="sm" onClick={() => setConfirmDeleteOpen(false)}>
+													Cancel
+												</Button>
+												<Button
+													variant="destructive"
+													size="sm"
+													onClick={async () => {
+														const data = await runWithToast(
+															"delete-category",
 															{
-																id: category?.id,
+																loading: {
+																	title: "Deleting category...",
+																	description: "Please wait while we delete the category.",
+																},
+																success: {
+																	title: "Category deleted",
+																	description: "The category has been successfully deleted.",
+																},
+																error: {
+																	title: "Failed to delete category",
+																	description: "An error occurred while deleting the category.",
+																},
 															},
-															wsClientId
-														)
-												);
+															() =>
+																deleteCategoryAction(
+																	orgId,
+																	{
+																		id: category?.id,
+																	},
+																	wsClientId
+																)
+														);
 
-												if (data?.success && data.data) {
-													setConfirmDeleteOpen(false);
-													setCategories(data.data);
-												}
-											}}
-										>
-											Delete
-										</Button>
+														if (data?.success && data.data) {
+															setConfirmDeleteOpen(false);
+															setCategories(data.data);
+														}
+													}}
+												>
+													<IconTrash />
+												</Button>
+											</ButtonGroup>
+										</div>
 									</div>
 								</PopoverContent>
 							</Popover>
