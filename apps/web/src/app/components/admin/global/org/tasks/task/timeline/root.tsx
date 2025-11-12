@@ -70,46 +70,48 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 	);
 
 	return (
-		<div className="relative h-full w-full">
+		<div className="relative h-full w-full flex flex-col min-h-0">
 			{showInitialLoading ? (
 				<div className="flex min-h-full items-center justify-center py-6">
 					<IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
 				</div>
 			) : (
 				<>
-					<Timeline>
-						{consolidatedItems.map((item) => {
-							// Check if it's a consolidated item
-							if ("items" in item) {
+					<div className="flex-grow">
+						<Timeline>
+							{consolidatedItems.map((item) => {
+								// Check if it's a consolidated item
+								if ("items" in item) {
+									return (
+										<ConsolidatedTimelineItem
+											key={item.id}
+											consolidatedItem={item}
+											labels={labels}
+											availableUsers={availableUsers}
+										/>
+									);
+								}
+
+								// Handle individual items
+								const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
+
+								if (!TimelineComponent) {
+									return null;
+								}
+
 								return (
-									<ConsolidatedTimelineItem
+									<TimelineComponent
 										key={item.id}
-										consolidatedItem={item}
+										item={item}
 										labels={labels}
 										availableUsers={availableUsers}
+										categories={categories}
 									/>
 								);
-							}
-
-							// Handle individual items
-							const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
-
-							if (!TimelineComponent) {
-								return null;
-							}
-
-							return (
-								<TimelineComponent
-									key={item.id}
-									item={item}
-									labels={labels}
-									availableUsers={availableUsers}
-									categories={categories}
-								/>
-							);
-						})}
-					</Timeline>
-					<div className="py-4">
+							})}
+						</Timeline>
+					</div>
+					<div className="py-4 mt-auto">
 						<TaskNewCommentContent task={task} onFinish={() => value.refetch()} />
 					</div>
 				</>

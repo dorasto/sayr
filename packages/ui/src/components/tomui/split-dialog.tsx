@@ -208,7 +208,7 @@ interface SplitDialogContentProps {
 }
 
 export function SplitDialogContent({ children, className }: SplitDialogContentProps) {
-	return <div className={cn("p-4", className)}>{children}</div>;
+	return <div className={cn("p-4 pb-0", className)}>{children}</div>;
 }
 
 interface SplitDialogSideProps {
