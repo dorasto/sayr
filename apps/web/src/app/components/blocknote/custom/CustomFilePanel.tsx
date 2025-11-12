@@ -4,8 +4,10 @@ import { type FilePanelProps, useBlockNoteEditor } from "@blocknote/react";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
+import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { useStateManagement, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconArrowRight } from "@tabler/icons-react";
 import React from "react";
 
 type FileItem = {
@@ -47,6 +49,15 @@ export function CustomFilePanel({ props }: { props: FilePanelProps }) {
 
 	const blockType = props.block?.type ?? "file";
 
+	// --- Custom labels for block types ---
+	const getBlockTypeLabel = (type: string): string => {
+		if (type.includes("image")) return "Image";
+		if (type.includes("video")) return "Video";
+		if (type.includes("audio")) return "Audio";
+		if (type.includes("pdf")) return "PDF Document";
+		return "File";
+	};
+
 	// --- Filter files based on block type ---
 	const filteredFiles = React.useMemo(() => {
 		if (blockType.includes("image")) return files.filter((f) => f.type.startsWith("image/"));
@@ -73,7 +84,7 @@ export function CustomFilePanel({ props }: { props: FilePanelProps }) {
 		if (file.type.startsWith("image/")) {
 			return (
 				// biome-ignore lint/performance/noImgElement: <test>
-				<img src={file.url} alt={file.name} className="h-24 w-24 object-cover rounded-md border" loading="lazy" />
+				<img src={file.url} alt={file.name} className="h-24 object-cover" loading="lazy" />
 			);
 		}
 		if (file.type.startsWith("video/")) {
@@ -99,31 +110,35 @@ export function CustomFilePanel({ props }: { props: FilePanelProps }) {
 	if (value.isLoading) return <div className="p-4 text-center text-sm text-muted-foreground">Loading assets...</div>;
 
 	return (
-		<div className="border rounded-md bg-background max-w-lg">
-			<div className="border-b p-3 font-medium text-sm text-muted-foreground">
-				Select a {blockType.toUpperCase()}
-			</div>
-
+		<div className="border rounded-md bg-background md:w-lg w-56">
 			<ScrollArea className="h-[320px]">
-				<div className="grid gap-2 p-2">
+				<div className="grid gap-2 grid-cols-2 p-2">
 					{filteredFiles.map((file) => (
-						<Card
+						<button
+							type="button"
 							key={file.id}
-							className="flex items-center justify-between hover:bg-secondary transition-colors"
+							onClick={() => handleSelect(file)}
+							className="aspect-square rounded-lg flex p-1 items-center w-full justify-center h-full bg-accent [&_img]:h-32 place-items-center border border-transparent hover:bg-accent/80 transition-all hover:border-border"
 						>
-							<CardHeader className="w-32 flex items-center justify-center">{renderPreview(file)}</CardHeader>
+							{renderPreview(file)}
+						</button>
+						// <Card
+						// 	key={file.id}
+						// 	className="flex items-center justify-between hover:bg-secondary transition-colors"
+						// >
+						// 	<CardHeader className="w-32 flex items-center justify-center">{renderPreview(file)}</CardHeader>
 
-							<CardContent className="flex-1 flex flex-col items-start justify-center">
-								<CardTitle className="text-sm">{file.name}</CardTitle>
-								<span className="text-xs text-muted-foreground">{file.size}</span>
-							</CardContent>
+						// 	<CardContent className="flex-1 flex flex-col items-start justify-center">
+						// 		<CardTitle className="text-sm">{file.name}</CardTitle>
+						// 		<span className="text-xs text-muted-foreground">{file.size}</span>
+						// 	</CardContent>
 
-							<div className="p-2">
-								<Button size="sm" onClick={() => handleSelect(file)}>
-									Select
-								</Button>
-							</div>
-						</Card>
+						// 	<div className="p-2">
+						// 		<Button size="sm" onClick={() => handleSelect(file)}>
+						// 			Select
+						// 		</Button>
+						// 	</div>
+						// </Card>
 					))}
 
 					{filteredFiles.length === 0 && (

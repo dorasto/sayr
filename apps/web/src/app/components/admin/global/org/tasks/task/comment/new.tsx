@@ -5,6 +5,8 @@ import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { cn } from "@repo/ui/lib/utils";
+import { IconArrowBack, IconArrowUp } from "@tabler/icons-react";
 import { useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import { CreateTaskCommentAction } from "@/app/lib/fetches";
@@ -20,6 +22,7 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(undefined);
 	const [editorKey, setEditorKey] = useState(0);
 	const commentText = extractTextContent(newComment);
+	const disabled = isFetching || commentText.length === 0;
 	const handleSubmit = async () => {
 		if (isFetching || commentText.length === 0) {
 			headlessToast.error({
@@ -70,8 +73,14 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 				}}
 			/>
 			<div className="flex items-center gap-2 ml-auto">
-				<Button disabled={isFetching || commentText.length <= 0} onClick={handleSubmit}>
-					Comment
+				<Button
+					variant={disabled ? "accent" : "default"}
+					size={"sm"}
+					disabled={disabled}
+					onClick={handleSubmit}
+					className={cn("border-transparent")}
+				>
+					<IconArrowBack />
 				</Button>
 			</div>
 		</div>
