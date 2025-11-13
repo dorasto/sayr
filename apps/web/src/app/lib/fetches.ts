@@ -430,12 +430,14 @@ export async function CreateTaskCommentAction(
 	organizationId: string,
 	taskId: string,
 	blockNote: PartialBlock[] | undefined,
+	visibility: schema.taskCommentType["visibility"],
 	wsClientId: string
 ): Promise<{ success: boolean; data: { id: string }; skipped: boolean; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		wsClientId,
 		task_id: taskId,
+		visibility: visibility,
 		blocknote: blockNote,
 	};
 

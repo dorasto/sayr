@@ -5,6 +5,7 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
+export const taskCommentVisibilityEnum = v.pgEnum("task_comment_visibility", ["public", "internal"]);
 
 export const taskComment = table("task_comment", {
 	id: v
@@ -24,6 +25,7 @@ export const taskComment = table("task_comment", {
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	blockNote: v.jsonb("block_note"),
 	createdBy: v.text("created_by").references(() => user.id),
+	visibility: taskCommentVisibilityEnum("visibility").notNull().default("public"),
 });
 
 export type taskCommentType = typeof taskComment.$inferSelect;

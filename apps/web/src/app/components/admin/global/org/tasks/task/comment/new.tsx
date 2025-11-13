@@ -4,7 +4,6 @@ import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { ButtonGroup } from "@repo/ui/components/button-group";
-import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Toggle } from "@repo/ui/components/toggle";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
@@ -54,7 +53,7 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 					description: "The comment appears locally but could not be saved to the server. Please try again.",
 				},
 			},
-			() => CreateTaskCommentAction(task.organizationId, task.id, newComment, wsClientId)
+			() => CreateTaskCommentAction(task.organizationId, task.id, newComment, visibility, wsClientId)
 		);
 		if (data?.success && data.data && task && task.id === data.data.id) {
 			setNewComment(undefined);

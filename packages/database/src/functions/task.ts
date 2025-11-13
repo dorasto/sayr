@@ -265,11 +265,18 @@ export async function addLogEventTask(
 	});
 }
 
-export async function createComment(org_id: string, task_id: string, blockNote: unknown, createdBy?: string) {
+export async function createComment(
+	org_id: string,
+	task_id: string,
+	blockNote: unknown,
+	visibility: schema.taskCommentType["visibility"],
+	createdBy?: string
+) {
 	return await db.insert(taskComment).values({
 		organizationId: org_id,
 		taskId: task_id,
 		blockNote: blockNote,
+		visibility: visibility,
 		createdBy: createdBy,
 	});
 }
@@ -350,12 +357,17 @@ export async function getTaskTimeline(orgId: string, taskId: string) {
 	return timeline;
 }
 
-export async function getMergedTaskActivity(orgId: string, taskId: string) {
+export async function getMergedTaskActivity(orgId: string, taskId: string, isPublic: boolean) {
+	const commentConditions = [
+		eq(schema.taskComment.organizationId, orgId),
+		eq(schema.taskComment.taskId, taskId),
+		...(isPublic ? [eq(schema.taskComment.visibility, "public")] : []),
+	];
 	// Fetch both datasets in parallel for efficiency
 	const [timeline, comments] = await Promise.all([
 		getTaskTimeline(orgId, taskId),
 		await db.query.taskComment.findMany({
-			where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
+			where: () => and(...commentConditions),
 			with: {
 				createdBy: { columns: { id: true, name: true, image: true } },
 			},
@@ -380,6 +392,7 @@ export async function getMergedTaskActivity(orgId: string, taskId: string) {
 		actor: comment.createdBy,
 		eventType: "comment" as const,
 		blockNote: comment.blockNote,
+		visibility: comment.visibility,
 	}));
 
 	// Merge and sort chronologically (oldest → newest)

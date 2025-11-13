@@ -371,7 +371,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 });
 
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
-	const { org_id, wsClientId, task_id, blocknote } = await c.req.json();
+	const { org_id, wsClientId, task_id, blocknote, visibility } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
@@ -379,7 +379,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	const key = `${org_id}:${task_id}`;
-	await createComment(org_id, task_id, blocknote, session?.userId);
+	await createComment(org_id, task_id, blocknote, visibility, session?.userId);
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"], data: { id: task_id } };
 	broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
@@ -425,11 +425,16 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	// --- Authorization ---
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id || "");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-	}
+		// --- Fetch task & comments ---
+		const timeline = await getMergedTaskActivity(org_id || "", task_id || "", true);
 
+		return c.json({
+			success: true,
+			data: timeline,
+		});
+	}
 	// --- Fetch task & comments ---
-	const timeline = await getMergedTaskActivity(org_id || "", task_id || "");
+	const timeline = await getMergedTaskActivity(org_id || "", task_id || "", false);
 
 	return c.json({
 		success: true,
