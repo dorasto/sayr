@@ -3,10 +3,11 @@ import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
+import { category } from "./category.schema";
 import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
-import { project } from "./project.schema";
 import { taskAssignee } from "./taskAssignee.schema";
+import { taskComment } from "./taskComment.schema";
 import { taskTimeline } from "./taskTimeline.schema";
 export const visibleEnum = v.pgEnum("visible", ["public", "private"]);
 export const statusEnum = v.pgEnum("status", ["backlog", "todo", "in-progress", "done", "canceled"]);
@@ -23,39 +24,37 @@ export const task = table("task", {
 		.text("organization_id")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
-	projectId: v
-		.text("project_id")
-		.notNull()
-		.references(() => project.id, { onDelete: "cascade" }),
 	shortId: v.integer("short_id"),
-	visible: visibleEnum("visible").default("public"), // enum-like field
+	visible: visibleEnum("visible").default("public").notNull(), // enum-like field
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	title: v.text("title"),
 	description: v.jsonb("description").default([]),
-	status: statusEnum("todo"),
-	priority: priorityEnum("none"),
-	createdBy: v.text("created_by").references(() => user.id),
+	status: statusEnum("todo").notNull(),
+	priority: priorityEnum("none").notNull(),
+	createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),
+	category: v.text("category").references(() => category.id, { onDelete: "set null" }),
 });
 
 export type taskType = typeof task.$inferSelect;
 
-export const taskUniquePerProject = v.unique("task_project_shortid_unique").on(task.projectId, task.shortId);
+export const taskUniquePerProject = v.unique("task_organization_shortid_unique").on(task.organizationId, task.shortId);
 
 export const taskRelations = relations(task, ({ one, many }) => ({
 	organization: one(organization, {
 		fields: [task.organizationId],
 		references: [organization.id],
 	}),
-	project: one(project, {
-		fields: [task.projectId],
-		references: [project.id],
-	}),
 	createdBy: one(user, {
 		fields: [task.createdBy],
 		references: [user.id],
 	}),
+	category: one(category, {
+		fields: [task.category],
+		references: [category.id],
+	}),
 	labels: many(taskLabelAssignment),
 	assignees: many(taskAssignee),
 	timeline: many(taskTimeline),
+	comments: many(taskComment),
 }));

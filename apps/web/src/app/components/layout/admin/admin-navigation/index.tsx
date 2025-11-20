@@ -6,15 +6,15 @@ import { StatusBar } from "@/app/components/admin/global/status";
 import AdminCommand from "../admin-command";
 import MinePage from "./MinePage";
 import OrganizationPage from "./OrganizationPage";
-import ProjectPage from "./ProjectPage";
 import SidebarSection from "./SidebarSection";
 import TaskPage from "./TaskPage";
+import TasksPage from "./TasksPage";
 import { useAdminRoute } from "./useAdminRoute";
 
 export default function AdminNavigation() {
 	const { value: sidebarIsOpen } = useLocalStorage("left-sidebar-state", false);
 	const isMobile = useIsMobile();
-	const { isOrgPage, isProjectPage, isTaskPage, isMinePage } = useAdminRoute();
+	const { isOrgPage, isTaskPage, isMinePage, isTasksPage } = useAdminRoute();
 
 	return (
 		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center">
@@ -34,9 +34,9 @@ export default function AdminNavigation() {
 							</div>
 						</>
 					) : ( */}
+					{isTasksPage && <TasksPage />}
 					{isTaskPage && <TaskPage />}
 					{isOrgPage && <OrganizationPage />}
-					{isProjectPage && <ProjectPage />}
 					{isMinePage && <MinePage />}
 					<StatusBar />
 

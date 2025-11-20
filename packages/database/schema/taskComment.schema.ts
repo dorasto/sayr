@@ -4,8 +4,8 @@ import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
-import { project } from "./project.schema";
 import { task } from "./task.schema";
+export const taskCommentVisibilityEnum = v.pgEnum("task_comment_visibility", ["public", "internal"]);
 
 export const taskComment = table("task_comment", {
 	id: v
@@ -18,10 +18,6 @@ export const taskComment = table("task_comment", {
 		.text("organization_id")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
-	projectId: v
-		.text("project_id")
-		.notNull()
-		.references(() => project.id, { onDelete: "cascade" }),
 	taskId: v.text("task_id").references(() => task.id, {
 		onDelete: "cascade",
 	}),
@@ -29,6 +25,7 @@ export const taskComment = table("task_comment", {
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	blockNote: v.jsonb("block_note"),
 	createdBy: v.text("created_by").references(() => user.id),
+	visibility: taskCommentVisibilityEnum("visibility").notNull().default("public"),
 });
 
 export type taskCommentType = typeof taskComment.$inferSelect;
@@ -37,10 +34,6 @@ export const taskCommentRelations = relations(taskComment, ({ one }) => ({
 	task: one(task, {
 		fields: [taskComment.taskId],
 		references: [task.id],
-	}),
-	project: one(project, {
-		fields: [taskComment.projectId],
-		references: [project.id],
 	}),
 	organization: one(organization, {
 		fields: [taskComment.organizationId],

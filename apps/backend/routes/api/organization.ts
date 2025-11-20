@@ -1,14 +1,13 @@
-import { db, getOrCreateLabel, getOrganizationMembers, getUsersByIds, schema } from "@repo/database";
+import { db, getLabels, getOrganizationMembers, getUsersByIds, schema } from "@repo/database";
 import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { checkMembershipRole, decodeCursor, encodeCursor } from "@/util";
-import { savedView } from "../../../../packages/database/schema";
 import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
-import { apiRouteAdminProject } from "./project";
+import { apiRouteAdminProjectTask } from "./task";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 apiRouteAdminOrganization.post("/update", async (c) => {
 	const { org_id, wsClientId, data } = await c.req.json();
@@ -42,7 +41,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		const members = await getOrganizationMembers(org_id);
 		members.forEach((member) => {
 			const clients = findClientsByUserId(member.userId);
-			clients.forEach((c) => broadcastIndividual(c.socket, data));
+			clients.forEach((c) => broadcastIndividual(c.socket, data, org_id));
 		});
 		return c.json({
 			success: true,
@@ -81,11 +80,27 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		const objectName = `/logo.${ext}`;
 		if (oldLogo) {
 			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`);
+			await db
+				.delete(schema.file)
+				.where(
+					and(
+						eq(schema.file.organizationId, orgId),
+						eq(schema.file.url, `organization/${orgId}/${getFileNameFromUrl(oldLogo)}`)
+					)
+				);
 		}
 		// 3. Upload to storage
 		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
 			"user-id": user?.id || "ANONYMOUS",
+		});
+		await db.insert(schema.file).values({
+			organizationId: orgId,
+			fileName: objectName,
+			url: imagelogo,
+			userId: user?.id || "ANONYMOUS",
+			visibility: "public",
+			type: file.type || "application/octet-stream",
 		});
 
 		// 4. Build result payload
@@ -128,11 +143,26 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		const objectName = `banner.${ext}`;
 		if (oldBanner) {
 			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`);
+			await db
+				.delete(schema.file)
+				.where(
+					and(
+						eq(schema.file.organizationId, orgId),
+						eq(schema.file.url, `organization/${orgId}/${getFileNameFromUrl(oldBanner)}`)
+					)
+				);
 		}
 		// 3. Upload to storage
 		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
-			"user-id": user?.id || "ANONYMOUS",
+		});
+		await db.insert(schema.file).values({
+			organizationId: orgId,
+			fileName: objectName,
+			url: imagebanner,
+			userId: user?.id || "ANONYMOUS",
+			visibility: "public",
+			type: file.type || "application/octet-stream",
 		});
 
 		// 4. Build result payload
@@ -198,7 +228,7 @@ apiRouteAdminOrganization.get("/:orgId/assets-test", async (c) => {
 	});
 });
 
-apiRouteAdminOrganization.get("/:orgId/assets", async (c) => {
+apiRouteAdminOrganization.get("/:orgId/files", async (c) => {
 	const session = c.get("session");
 	const orgId = c.req.param("orgId");
 
@@ -219,17 +249,17 @@ apiRouteAdminOrganization.get("/:orgId/assets", async (c) => {
 	// --- Total count query ---
 	const [count] = await db
 		.select({ count: sql<number>`count(*)` })
-		.from(schema.asset)
-		.where(eq(schema.asset.organizationId, orgId));
+		.from(schema.file)
+		.where(eq(schema.file.organizationId, orgId));
 
 	// --- Where clause ---
 	// IDs descend. Show items "older than" the cursor for next pages.
 	const whereClause = cursorId
-		? and(eq(schema.asset.organizationId, orgId), lt(schema.asset.id, cursorId))
-		: eq(schema.asset.organizationId, orgId);
+		? and(eq(schema.file.organizationId, orgId), lt(schema.file.id, cursorId))
+		: eq(schema.file.organizationId, orgId);
 
 	// --- Fetch one extra to check for next page ---
-	const assets = await db.query.asset.findMany({
+	const assets = await db.query.file.findMany({
 		where: whereClause,
 		with: {
 			user: { columns: { id: true, name: true, image: true } },
@@ -280,24 +310,229 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
-	const label = await getOrCreateLabel(org_id, name, color);
+	const [created] = await db
+		.insert(schema.label)
+		.values({
+			organizationId: org_id,
+			name,
+			color: color ?? "#cccccc",
+		})
+		.returning();
+	if (!created) {
+		return c.json({ success: false, error: "Failed to create label." }, 500);
+	}
+	const labels = await getLabels(org_id);
 	const found = findClientByWsId(wsClientId);
 	const data = {
-		type: "CREATE_LABEL" as WSBaseMessage["type"],
-		data: label,
+		type: "UPDATE_LABELS" as WSBaseMessage["type"],
+		data: labels,
 	};
 	broadcast(org_id, "admin", data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
-		clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
 	});
 	return c.json({
 		success: true,
-		data: label,
+		data: labels,
 	});
 });
+apiRouteAdminOrganization.patch("/edit-label", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id, name, color } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [edit] = await db
+		.update(schema.label)
+		.set({
+			name,
+			color: color ?? "hsla(0, 0%, 0%, 1)",
+		})
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)))
+		.returning();
+	if (!edit) {
+		return c.json({ success: false, error: "Failed to edit label." }, 500);
+	}
+	const labels = await getLabels(org_id);
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "UPDATE_LABELS" as WSBaseMessage["type"],
+		data: labels,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
+	});
+	return c.json({
+		success: true,
+		data: labels,
+	});
+});
+apiRouteAdminOrganization.delete("/delete-label", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [removed] = await db
+		.delete(schema.label)
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id), eq(schema.label.id, id)))
+		.returning();
+	if (!removed) {
+		return c.json({ success: false, error: "Failed to remove label." }, 500);
+	}
+	const labels = await getLabels(org_id);
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "UPDATE_LABELS" as WSBaseMessage["type"],
+		data: labels,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
+	});
+	return c.json({
+		success: true,
+		data: labels,
+	});
+});
+
+apiRouteAdminOrganization.post("/create-category", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, name, color, icon } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [created] = await db
+		.insert(schema.category)
+		.values({
+			organizationId: org_id,
+			name,
+			color: color ?? "hsla(0, 0%, 0%, 1)",
+			icon,
+		})
+		.returning();
+	if (!created) {
+		return c.json({ success: false, error: "Failed to create category." }, 500);
+	}
+	const categories = await db.query.category.findMany({
+		where: (category) => eq(category.organizationId, org_id),
+	});
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+		data: categories,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
+	});
+	return c.json({
+		success: true,
+		data: categories,
+	});
+});
+apiRouteAdminOrganization.patch("/edit-category", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id, name, color, icon } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [edit] = await db
+		.update(schema.category)
+		.set({
+			name,
+			color: color ?? "hsla(0, 0%, 0%, 1)",
+			icon,
+		})
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id)))
+		.returning();
+	if (!edit) {
+		return c.json({ success: false, error: "Failed to edit category." }, 500);
+	}
+	const categories = await db.query.category.findMany({
+		where: (category) => eq(category.organizationId, org_id),
+	});
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+		data: categories,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
+	});
+	return c.json({
+		success: true,
+		data: categories,
+	});
+});
+apiRouteAdminOrganization.delete("/delete-category", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [removed] = await db
+		.delete(schema.category)
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id), eq(schema.category.id, id)))
+		.returning();
+	if (!removed) {
+		return c.json({ success: false, error: "Failed to remove category." }, 500);
+	}
+	const categories = await db.query.category.findMany({
+		where: (category) => eq(category.organizationId, org_id),
+	});
+	const found = findClientByWsId(wsClientId);
+	const data = {
+		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+		data: categories,
+	};
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
+	});
+	return c.json({
+		success: true,
+		data: categories,
+	});
+});
+
 apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, value } = await c.req.json();
@@ -306,7 +541,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	const [view] = await db
-		.insert(savedView)
+		.insert(schema.savedView)
 		.values({
 			organizationId: org_id,
 			createdById: session?.userId,
@@ -314,21 +549,29 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 			filterParams: value,
 		})
 		.returning();
+	if (!view) {
+		return c.json({ success: false, error: "Failed to create view." }, 500);
+	}
+	const views = await db.query.savedView.findMany({
+		where: (view) => eq(view.organizationId, org_id),
+	});
 	const data = {
-		type: "CREATE_VIEW" as WSBaseMessage["type"],
-		data: view,
+		type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+		data: views,
 	};
 	const found = findClientByWsId(wsClientId);
 	broadcast(org_id, "admin", data, found?.socket);
 	broadcastPublic(org_id, { ...data, data: data });
-	// const members = await getOrganizationMembers(org_id);
-	// members.forEach((member) => {
-	// 	const clients = findClientsByUserId(member.userId);
-	// 	clients.forEach((c) => c.wsClientId !== wsClientId && broadcastIndividual(c.socket, data));
-	// });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
+		);
+	});
 	return c.json({
 		success: true,
-		data: view,
+		data: views,
 	});
 });
-apiRouteAdminOrganization.route("/project", apiRouteAdminProject);
+apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);

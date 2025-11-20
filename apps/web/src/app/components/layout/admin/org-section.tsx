@@ -11,40 +11,27 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-	SidebarMenuSub,
-	SidebarMenuSubButton,
-	SidebarMenuSubItem,
 } from "@repo/ui/components/custom-sidebar-localstorage";
 
-import {
-	Drawer,
-	DrawerContent,
-	DrawerDescription,
-	DrawerHeader,
-	DrawerTitle,
-	DrawerTrigger,
-} from "@repo/ui/components/drawer";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconChevronRight, IconPencil, IconPlus, IconProgress, IconSettings, IconUsers } from "@tabler/icons-react";
+import { IconChevronRight, IconProgress, IconSettings, IconUsers } from "@tabler/icons-react";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import UpdateOrgDialog from "@/app/components/admin/global/org/management/update/edit-org-dialog";
 import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog";
-import CreateProjectDialog from "../../admin/global/project/create-project-dialog";
 
 interface OrgSectionProps {
 	organization: schema.OrganizationWithMembers;
@@ -54,11 +41,11 @@ interface OrgSectionProps {
 export default function OrgSection({ organization, closeMobileSidebar }: OrgSectionProps) {
 	const isMobile = useIsMobile();
 	const { isOpen: isDialogOpen, openDialog, setIsOpen } = useUpdateOrgDialog();
-	const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
 	const { value: isOpen } = useLocalStorage("left-sidebar-state", !isMobile);
 	const [editOpen, setEditOpen] = useState(false);
 	const path = usePathname();
 	const isActive = path.includes(`/admin/${organization.id}`);
+	const [collapsibleOpen, setCollapsibleOpen] = useState(isActive);
 	const closeMobileSidebarOnClick = () => {
 		if (isMobile) {
 			closeMobileSidebar();
@@ -67,7 +54,12 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 	// Desktop + Sidebar Open: Collapsible with full content
 	const renderCollapsibleView = () => (
-		<Collapsible key={organization.id} defaultOpen={isActive} className="group/collapsible">
+		<Collapsible
+			key={organization.id}
+			open={collapsibleOpen}
+			onOpenChange={setCollapsibleOpen}
+			className="group/collapsible"
+		>
 			<SidebarGroup className={cn("flex flex-col gap-1")}>
 				<SidebarGroupLabel asChild>
 					<div
@@ -90,11 +82,18 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 								</Avatar>
 							</div>
 						</CollapsibleTrigger>
-						<Link href={`/admin/${organization.id}`} className="w-full cursor-pointer">
+						<Link
+							href={`/admin/${organization.id}`}
+							className="w-full cursor-pointer"
+							onClick={() => {
+								setCollapsibleOpen(true);
+								closeMobileSidebarOnClick();
+							}}
+						>
 							<SidebarMenuButton
 								className={cn(
-									"hover:bg-transparent font-semibold text-sidebar-foreground/70 group-hover/coltrig:text-sidebar-foreground cursor-pointer"
-									// isActive && "text-sidebar-foreground"
+									"hover:bg-transparent font-semibold text-sidebar-foreground/70 group-hover/coltrig:text-sidebar-foreground cursor-pointer",
+									isActive && "text-sidebar-foreground"
 								)}
 							>
 								<span>{organization.name}</span>
@@ -118,23 +117,20 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 				<CollapsibleContent className="">
 					<SidebarGroupContent className="">
 						<SidebarMenu className="">
-							{organization.projects.length > 0 &&
-								organization.projects.map((project) => (
-									<SidebarMenuItem key={project.id} className="">
-										<SidebarMenuButton
-											asChild
-											isActive={path.includes(`/admin/${organization.id}/${project.id}`)}
-											className=""
-										>
-											<Link href={`/admin/${organization.id}/${project.id}`} className="">
-												<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-													<IconProgress />
-												</div>
-												<span>{project.name}</span>
-											</Link>
-										</SidebarMenuButton>
-									</SidebarMenuItem>
-								))}
+							<SidebarMenuItem className="">
+								<SidebarMenuButton
+									asChild
+									isActive={path.includes(`/admin/${organization.id}/tasks`)}
+									className=""
+								>
+									<Link href={`/admin/${organization.id}/tasks`} className="">
+										<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+											<IconProgress />
+										</div>
+										<span>Tasks</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</CollapsibleContent>
@@ -200,21 +196,11 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 				<DropdownMenuLabel>Projects</DropdownMenuLabel>
 				<DropdownMenuGroup className="p-1">
-					{organization.projects.length > 0 ? (
-						organization.projects.map((project) => (
-							<DropdownMenuItem asChild key={project.id}>
-								<Link href={`/admin/${organization.id}/${project.id}`} className="flex items-center gap-2">
-									<IconProgress className="h-4 w-4" />
-									<span>{project.name}</span>
-								</Link>
-							</DropdownMenuItem>
-						))
-					) : (
-						<DropdownMenuLabel>No projects</DropdownMenuLabel>
-					)}
-					<DropdownMenuItem onClick={() => [setIsProjectDialogOpen(true)]} className="flex items-center gap-2">
-						<IconPlus className="h-4 w-4" />
-						Create a new project
+					<DropdownMenuItem asChild>
+						<Link href={`/admin/${organization.id}/tasks`} className="flex items-center gap-2">
+							<IconProgress className="h-4 w-4" />
+							<span>Tasks</span>
+						</Link>
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
@@ -237,12 +223,6 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 			<SidebarMenu>{getOrganizationView()}</SidebarMenu>
 
 			<UpdateOrgDialog organization={organization} isOpen={isDialogOpen} onOpenChange={setIsOpen} />
-
-			<CreateProjectDialog
-				organization={organization}
-				open={isProjectDialogOpen}
-				onOpenChange={setIsProjectDialogOpen}
-			/>
 		</>
 	);
 }

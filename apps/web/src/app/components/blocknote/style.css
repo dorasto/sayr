@@ -74,3 +74,14 @@
     pointer-events: auto;
     cursor: pointer;
 }
+
+/* picker - override pointer size using CSS custom properties
+.w-color-colorful {
+	--colorful-pointer-size: 20px;
+}
+
+.w-color-interactive.w-color-saturation.w-color-colorful > div:first-child {
+	height: var(--colorful-pointer-size, 20px) !important;
+	width: var(--colorful-pointer-size, 20px) !important;
+	transform: translate(calc(var(--colorful-pointer-size, 20px) / -2), calc(var(--colorful-pointer-size, 20px) / -2)) !important;
+} */

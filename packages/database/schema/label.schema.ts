@@ -3,7 +3,6 @@ import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { organization } from "./organization.schema";
-import { project } from "./project.schema";
 import { task } from "./task.schema";
 
 // Universal label (scoped to an organization)
@@ -25,25 +24,6 @@ export const label = table("label", {
 
 export type labelType = typeof label.$inferSelect;
 
-export const projectLabelAssignment = table("project_labels", {
-	id: v
-		.text("id")
-		.primaryKey()
-		.$defaultFn(() => {
-			return randomUUID();
-		}),
-	projectId: v
-		.text("project_id")
-		.notNull()
-		.references(() => project.id, { onDelete: "cascade" }),
-	labelId: v
-		.text("label_id")
-		.notNull()
-		.references(() => label.id, { onDelete: "cascade" }),
-});
-
-export type projectLabelType = typeof projectLabelAssignment.$inferSelect;
-
 export const taskLabelAssignment = table("task_labels", {
 	id: v
 		.text("id")
@@ -55,10 +35,10 @@ export const taskLabelAssignment = table("task_labels", {
 		.text("task_id")
 		.notNull()
 		.references(() => task.id, { onDelete: "cascade" }),
-	projectId: v
-		.text("project_id")
+	organizationId: v
+		.text("organization_id")
 		.notNull()
-		.references(() => project.id, { onDelete: "cascade" }),
+		.references(() => organization.id, { onDelete: "cascade" }),
 	labelId: v
 		.text("label_id")
 		.notNull()
@@ -72,7 +52,6 @@ export const labelRelations = relations(label, ({ one, many }) => ({
 		fields: [label.organizationId],
 		references: [organization.id],
 	}),
-	projectAssignments: many(projectLabelAssignment),
 	taskAssignments: many(taskLabelAssignment),
 }));
 
@@ -83,21 +62,6 @@ export const taskLabelRelations = relations(taskLabelAssignment, ({ one }) => ({
 	}),
 	label: one(label, {
 		fields: [taskLabelAssignment.labelId],
-		references: [label.id],
-	}),
-	project: one(project, {
-		fields: [taskLabelAssignment.projectId],
-		references: [project.id],
-	}),
-}));
-
-export const projectLabelRelations = relations(projectLabelAssignment, ({ one }) => ({
-	project: one(project, {
-		fields: [projectLabelAssignment.projectId],
-		references: [project.id],
-	}),
-	label: one(label, {
-		fields: [projectLabelAssignment.labelId],
 		references: [label.id],
 	}),
 }));

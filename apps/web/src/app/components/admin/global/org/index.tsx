@@ -11,7 +11,7 @@ import type { WSMessage } from "@/app/lib/ws";
 export default function OrganizationHomePage() {
 	const { account, ws } = useLayoutData();
 	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
-	const { organization, setOrganization, labels, setLabels, setViews, views } = useLayoutOrganization();
+	const { organization, setOrganization, setLabels, setViews, setCategories } = useLayoutOrganization();
 	const { wsSubscribedState } = useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -20,11 +20,20 @@ export default function OrganizationHomePage() {
 		setOrganization: setOrganization,
 	});
 	const handlers: WSMessageHandler<WSMessage> = {
-		CREATE_LABEL: (msg) => {
-			setLabels([...labels, msg.data]);
+		UPDATE_LABELS: (msg) => {
+			if (msg.scope === "CHANNEL") {
+				setLabels(msg.data);
+			}
 		},
-		CREATE_VIEW: (msg) => {
-			setViews([...views, msg.data]);
+		UPDATE_VIEWS: (msg) => {
+			if (msg.scope === "CHANNEL") {
+				setViews(msg.data);
+			}
+		},
+		UPDATE_CATEGORIES: (msg) => {
+			if (msg.scope === "CHANNEL") {
+				setCategories(msg.data);
+			}
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {

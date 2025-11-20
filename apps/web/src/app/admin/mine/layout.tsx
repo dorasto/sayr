@@ -30,8 +30,11 @@ export default async function MyTasksLayout({
 	const views = await db.query.savedView.findMany({
 		where: (view) => inArray(view.organizationId, organizationIds),
 	});
+	const categories = await db.query.category.findMany({
+		where: (category) => inArray(category.organizationId, organizationIds),
+	});
 	return (
-		<RootProviderMyTasks tasks={tasks} labels={allLabels} views={views}>
+		<RootProviderMyTasks tasks={tasks} labels={allLabels} views={views} categories={categories}>
 			{children}
 		</RootProviderMyTasks>
 	);

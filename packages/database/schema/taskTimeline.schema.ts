@@ -4,7 +4,6 @@ import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
-import { project } from "./project.schema";
 import { task } from "./task.schema";
 
 export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
@@ -17,6 +16,7 @@ export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
 	"assignee_removed",
 	"created",
 	"updated",
+	"category_change",
 ]);
 
 export const taskTimeline = table("task_timeline", {
@@ -32,10 +32,6 @@ export const taskTimeline = table("task_timeline", {
 		.text("organization_id")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
-	projectId: v
-		.text("project_id")
-		.notNull()
-		.references(() => project.id, { onDelete: "cascade" }),
 	actorId: v.text("actor_id").references(() => user.id),
 	eventType: timelineEventTypeEnum("event_type").notNull(),
 	fromValue: v.jsonb("from_value"),
@@ -54,10 +50,6 @@ export const taskTimelineRelations = relations(taskTimeline, ({ one }) => ({
 	organization: one(organization, {
 		fields: [taskTimeline.organizationId],
 		references: [organization.id],
-	}),
-	project: one(project, {
-		fields: [taskTimeline.projectId],
-		references: [project.id],
 	}),
 	actor: one(user, {
 		fields: [taskTimeline.actorId],

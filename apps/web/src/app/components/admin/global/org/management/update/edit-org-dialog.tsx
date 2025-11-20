@@ -92,6 +92,7 @@ export default function UpdateOrgDialog({ organization, isOpen, onOpenChange }: 
 				description="Make changes to your organization here. You can change the banner, logo, name, slug, and description."
 				groupedTabs={tabs}
 				defaultTab="general"
+				layout="side"
 				size="xl"
 			>
 				<TabPanel tabId="general">

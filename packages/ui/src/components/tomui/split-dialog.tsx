@@ -1,13 +1,12 @@
 "use client";
 
 import { Button } from "@repo/ui/components/button";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@repo/ui/components/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@repo/ui/components/dialog";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowDown } from "@tabler/icons-react";
-import { CircleQuestionMark, XIcon } from "lucide-react";
+import { CircleQuestionMark } from "lucide-react";
 import type { ReactNode } from "react";
 import { Children, isValidElement, useEffect, useRef, useState } from "react";
-import { Label } from "../label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
 
 interface SplitDialogProps {
@@ -31,41 +30,18 @@ export function SplitDialog({
 	showTitle = true,
 	sidebarPosition = "left",
 }: SplitDialogProps) {
+	const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+	const [showScrollButton, setShowScrollButton] = useState(false);
+	const observersRef = useRef<{
+		timeouts: NodeJS.Timeout[];
+		resizeObserver?: ResizeObserver;
+		mutationObserver?: MutationObserver;
+		rafId?: number;
+	}>({ timeouts: [] });
+
 	// Extract SplitDialogContent and SplitDialogSide from children
 	let contentComponent: ReactNode = null;
 	let sideComponent: ReactNode = null;
-
-	const scrollContainerRef = useRef<HTMLDivElement>(null);
-	const [isScrolled, setIsScrolled] = useState(false);
-	const [isAtBottom, setIsAtBottom] = useState(true);
-
-	useEffect(() => {
-		const scrollContainer = scrollContainerRef.current;
-		if (!scrollContainer) return;
-
-		const checkScroll = () => {
-			const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-			setIsScrolled(scrollHeight > clientHeight);
-			setIsAtBottom(Math.abs(scrollHeight - scrollTop - clientHeight) < 1);
-		};
-
-		checkScroll();
-
-		scrollContainer.addEventListener("scroll", checkScroll);
-		const resizeObserver = new ResizeObserver(checkScroll);
-		resizeObserver.observe(scrollContainer);
-
-		return () => {
-			scrollContainer.removeEventListener("scroll", checkScroll);
-			resizeObserver.unobserve(scrollContainer);
-		};
-	}, []);
-
-	const scrollToBottom = () => {
-		if (scrollContainerRef.current) {
-			scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-		}
-	};
 
 	Children.forEach(children, (child) => {
 		if (isValidElement(child)) {
@@ -76,6 +52,77 @@ export function SplitDialog({
 			}
 		}
 	});
+
+	// Callback ref to set the scroll container
+	const scrollContainerRef = (node: HTMLDivElement | null) => {
+		if (node) {
+			setScrollContainer(node);
+		}
+	};
+
+	useEffect(() => {
+		if (!scrollContainer || !isOpen) {
+			return;
+		}
+
+		let ticking = false;
+
+		const checkScroll = () => {
+			const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+			const hasScroll = scrollHeight > clientHeight;
+			// More generous threshold (5px) to account for sub-pixel rendering
+			const isAtBottom = scrollHeight - scrollTop - clientHeight < 5;
+
+			// Show button only if there's scrollable content AND we're not at the bottom
+			setShowScrollButton(hasScroll && !isAtBottom);
+			ticking = false;
+		};
+
+		// Throttled scroll handler using requestAnimationFrame
+		const handleScroll = () => {
+			if (!ticking) {
+				ticking = true;
+				observersRef.current.rafId = requestAnimationFrame(checkScroll);
+			}
+		};
+
+		// Check immediately and after delays (for async content)
+		checkScroll();
+		observersRef.current.timeouts = [setTimeout(checkScroll, 100), setTimeout(checkScroll, 500)];
+
+		// Listen for scroll events (throttled)
+		scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
+
+		// Watch for size changes (e.g., content expanding)
+		observersRef.current.resizeObserver = new ResizeObserver(checkScroll);
+		observersRef.current.resizeObserver.observe(scrollContainer);
+
+		// Watch for DOM changes (only childList changes, not attributes)
+		observersRef.current.mutationObserver = new MutationObserver(checkScroll);
+		observersRef.current.mutationObserver.observe(scrollContainer, {
+			childList: true,
+			subtree: true,
+		});
+
+		return () => {
+			observersRef.current.timeouts.forEach(clearTimeout);
+			scrollContainer.removeEventListener("scroll", handleScroll);
+			observersRef.current.resizeObserver?.disconnect();
+			observersRef.current.mutationObserver?.disconnect();
+			if (observersRef.current.rafId) {
+				cancelAnimationFrame(observersRef.current.rafId);
+			}
+		};
+	}, [isOpen, scrollContainer]); // Depend on both isOpen and scrollContainer
+
+	const scrollToBottom = () => {
+		if (scrollContainer) {
+			scrollContainer.scrollTo({
+				top: scrollContainer.scrollHeight,
+				behavior: "smooth",
+			});
+		}
+	};
 
 	// const sizeClasses = {
 	// 	sm: "max-w-none md:max-w-lg",
@@ -139,9 +186,15 @@ export function SplitDialog({
 							{contentComponent}
 						</div>
 
-						<Button size="icon" className="absolute bottom-4 right-4 rounded-full" onClick={scrollToBottom}>
-							<IconArrowDown />
-						</Button>
+						{showScrollButton && (
+							<Button
+								size="icon"
+								className="absolute bottom-4 right-4 rounded-full shadow-lg transition-opacity duration-200"
+								onClick={scrollToBottom}
+							>
+								<IconArrowDown />
+							</Button>
+						)}
 					</div>
 				</div>
 			</DialogContent>
@@ -155,7 +208,7 @@ interface SplitDialogContentProps {
 }
 
 export function SplitDialogContent({ children, className }: SplitDialogContentProps) {
-	return <div className={cn("p-4", className)}>{children}</div>;
+	return <div className={cn("p-4 pb-0", className)}>{children}</div>;
 }
 
 interface SplitDialogSideProps {

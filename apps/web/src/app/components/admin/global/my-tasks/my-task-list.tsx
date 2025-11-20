@@ -6,13 +6,13 @@ import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect, useMemo, useState } from "react";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
-import { applyFilters } from "../project/task/filter/filter-config";
-import type { FilterState } from "../project/task/filter/types";
-import { TASK_GROUPINGS } from "../project/task/grouping/config";
-import { TaskGroupSectionHeader } from "../project/task/grouping/task-group-section-header";
-import { useTaskViewState } from "../project/task/grouping/use-task-view-state";
-import { TaskContent } from "../project/task/views/table/task-content";
-import { TaskListItem } from "../project/task/views/table/task-list-item";
+import { applyFilters } from "../org/tasks/task/filter/filter-config";
+import type { FilterState } from "../org/tasks/task/filter/types";
+import { TASK_GROUPINGS } from "../org/tasks/task/grouping/config";
+import { TaskGroupSectionHeader } from "../org/tasks/task/grouping/task-group-section-header";
+import { useTaskViewState } from "../org/tasks/task/grouping/use-task-view-state";
+import { TaskContent } from "../org/tasks/task/views/table/task-content";
+import { TaskListItem } from "../org/tasks/task/views/table/task-list-item";
 
 interface MyTaskListProps {
 	tasks: schema.TaskWithLabels[];
@@ -21,9 +21,18 @@ interface MyTaskListProps {
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
 	organizations: schema.OrganizationWithMembers[];
+	categories: schema.categoryType[];
 }
 
-export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organizations }: MyTaskListProps) {
+export function MyTaskList({
+	tasks,
+	setTasks,
+	ws,
+	labels,
+	availableUsers,
+	organizations,
+	categories,
+}: MyTaskListProps) {
 	const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 	const { value: selectedTask, setValue: setSelectedTask } = useStateManagement<schema.TaskWithLabels | null>(
@@ -128,22 +137,17 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 			tasks: filteredTasks,
 			availableUsers,
 			showEmptyGroups,
+			categories,
 		});
-	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition]);
+	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition, categories]);
 
 	// Find organization and project for the selected task
 	const selectedTaskContext = useMemo(() => {
 		if (!selectedTask) return null;
 
 		const organization = organizations.find((org) => org.id === selectedTask.organizationId);
-		// We don't have projects readily available, so we'll create a minimal one
-		const project = {
-			id: selectedTask.projectId,
-			name: "Project", // We don't have the name
-			organizationId: selectedTask.organizationId,
-		} as schema.projectType;
 
-		return { organization, project };
+		return { organization };
 	}, [selectedTask, organizations]);
 
 	return (
@@ -189,7 +193,7 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 			) : (
 				<div className="flex items-center justify-center">No issues found</div>
 			)}
-			{selectedTask && selectedTaskContext?.organization && selectedTaskContext?.project && (
+			{selectedTask && selectedTaskContext?.organization && (
 				<TaskContent
 					task={selectedTask}
 					open={isTaskContentOpen}
@@ -205,8 +209,8 @@ export function MyTaskList({ tasks, setTasks, ws, labels, availableUsers, organi
 					setSelectedTask={setSelectedTask}
 					availableUsers={availableUsers}
 					organization={selectedTaskContext.organization}
-					project={selectedTaskContext.project}
 					ws={ws}
+					categories={categories}
 				/>
 			)}
 		</div>

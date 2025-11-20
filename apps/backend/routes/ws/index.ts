@@ -69,6 +69,7 @@ function sendToClients(
  *
  * @param ws - The target WebSocket connection to send the message to.
  * @param message - The message object to be sent. The `scope` field will be
+ * @param orgId - The orgid for meta if needed
  * automatically set to `"INDIVIDUAL"`, and a `meta.ts` timestamp will be added.
  *
  * @returns void
@@ -78,7 +79,7 @@ function sendToClients(
  * broadcastIndividual(ws, { type: "UPDATE", data: { ... } });
  * ```
  */
-export function broadcastIndividual(ws: ServerWebSocket, message: Omit<WSBaseMessage, "scope">) {
+export function broadcastIndividual(ws: ServerWebSocket, message: Omit<WSBaseMessage, "scope">, orgId?: string) {
 	// skip closed sockets
 	if (!ws || ws.readyState !== 1) return;
 
@@ -103,7 +104,9 @@ export function broadcastIndividual(ws: ServerWebSocket, message: Omit<WSBaseMes
 	// Instead of copying the whole meta & message, build fast and reuse small string concat
 	if (typeof message.data === "string") {
 		// handle cheap string case
-		ws.send(`{"type":"${message.type}","scope":"INDIVIDUAL","data":"${message.data}","meta":{"ts":${ts}}}`);
+		ws.send(
+			`{"type":"${message.type}","scope":"INDIVIDUAL","data":"${message.data}","meta":{"ts":${ts},"orgId":${orgId}}}`
+		);
 		return;
 	}
 
@@ -112,7 +115,7 @@ export function broadcastIndividual(ws: ServerWebSocket, message: Omit<WSBaseMes
 		JSON.stringify({
 			...message,
 			scope: "INDIVIDUAL",
-			meta: { ts, ...(message.meta || {}) },
+			meta: { ts, orgId, ...(message.meta || {}) },
 		})
 	);
 }
@@ -726,14 +729,6 @@ wsRoute.get(
 
 wsRoute.get("/health", (c) => c.json({ ok: true }));
 
-wsRoute.get("/metrics", (c) => {
-	return c.json({
-		rooms: rooms.size,
-		sockets: wsClients.size,
-		memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-		uptimeMin: Math.round(process.uptime() / 60),
-	});
-});
 // ✅ Heartbeat interval
 // Send a PING every 30 seconds
 // Close dead sockets after 60 seconds of no PONG

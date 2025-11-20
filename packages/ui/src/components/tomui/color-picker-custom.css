@@ -1,0 +1,11 @@
+/* Force border-radius on saturation picker */
+.color-picker-saturation .w-color-interactive {
+	border-radius: 8px !important;
+	overflow: hidden;
+}
+
+/* Force border-radius on hue slider */
+.color-picker-hue .w-color-interactive {
+	border-radius: 6px !important;
+	overflow: hidden;
+}

@@ -40,7 +40,6 @@ export async function getOrganizations(userId: string): Promise<schema.Organizat
 					user: true, // ✅ this now works because of relations()
 				},
 			},
-			projects: {},
 		},
 		where: (organization, { inArray }) => inArray(organization.id, orgIds),
 	});
@@ -83,7 +82,6 @@ export async function getOrganization(orgId: string, userId: string): Promise<sc
 			members: {
 				with: { user: true },
 			},
-			projects: {},
 		},
 	});
 

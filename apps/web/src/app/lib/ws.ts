@@ -173,8 +173,16 @@ export type WSMessage =
 			data: schema.organizationType;
 	  })
 	| (BaseMessage & {
-			type: "CREATE_PROJECT";
-			data: schema.projectType;
+			type: "UPDATE_CATEGORIES";
+			data: schema.categoryType[];
+	  })
+	| (BaseMessage & {
+			type: "UPDATE_LABELS";
+			data: schema.labelType[];
+	  })
+	| (BaseMessage & {
+			type: "UPDATE_VIEWS";
+			data: schema.savedViewType[];
 	  })
 	| (BaseMessage & {
 			type: "CREATE_TASK";
@@ -189,14 +197,6 @@ export type WSMessage =
 			data: {
 				id: string;
 			};
-	  })
-	| (BaseMessage & {
-			type: "CREATE_LABEL";
-			data: schema.labelType;
-	  })
-	| (BaseMessage & {
-			type: "CREATE_VIEW";
-			data: schema.savedViewType;
 	  })
 	| (BaseMessage & {
 			type: "FIREHOSE";
