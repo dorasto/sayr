@@ -12,6 +12,7 @@ const ResizablePanelGroup = ({ className, ...props }: React.ComponentProps<typeo
 );
 
 const ResizablePanel = ResizablePrimitive.Panel;
+export type ResizablePanelHandle = ResizablePrimitive.ImperativePanelHandle;
 
 const ResizableHandle = ({
 	withHandle,

@@ -1,7 +1,15 @@
 "use client";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@repo/ui/components/resizable";
+import { Button } from "@repo/ui/components/button";
+import {
+	ResizableHandle,
+	ResizablePanel,
+	ResizablePanelGroup,
+	type ResizablePanelHandle,
+} from "@repo/ui/components/resizable";
 import { Separator } from "@repo/ui/components/separator";
-import { useEffect } from "react";
+import { cn } from "@repo/ui/lib/utils";
+import { IconAdjustmentsHorizontal, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
+import { useEffect, useRef } from "react";
 import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 import { useLayoutTasks } from "@/app/admin/[organization_id]/tasks/Context";
 import { useLayoutData } from "@/app/admin/Context";
@@ -15,9 +23,32 @@ import { TaskViewDropdown } from "./task/grouping/task-view-dropdown";
 
 export default function OrganizationTasksHomePage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, labels, setLabels, views, setViews, categories, setCategories } =
-		useLayoutOrganization();
+	const {
+		organization,
+		setOrganization,
+		labels,
+		setLabels,
+		views,
+		setViews,
+		categories,
+		setCategories,
+		isProjectPanelOpen,
+		setProjectPanelOpen,
+	} = useLayoutOrganization();
 	const { tasks, setTasks } = useLayoutTasks();
+	const ref = useRef<ResizablePanelHandle>(null);
+
+	useEffect(() => {
+		const panel = ref.current;
+		if (panel) {
+			if (isProjectPanelOpen) {
+				panel.expand();
+			} else {
+				panel.collapse();
+			}
+		}
+	}, [isProjectPanelOpen]);
+
 	useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -78,10 +109,19 @@ export default function OrganizationTasksHomePage() {
 				<div className="flex items-center gap-2 shrink-0 ml-auto">
 					<Separator orientation="vertical" className="h-5" />
 					<TaskViewDropdown />
+					{/* {!isProjectPanelOpen && ( */}
+					<Button
+						variant="accent"
+						className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
+						onClick={() => (isProjectPanelOpen ? setProjectPanelOpen(false) : setProjectPanelOpen(true))}
+					>
+						{isProjectPanelOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
+					</Button>
+					{/* )} */}
 				</div>
 			</div>
 			<ResizablePanelGroup direction="horizontal">
-				<ResizablePanel defaultSize={80} minSize={70}>
+				<ResizablePanel defaultSize={70} minSize={70}>
 					<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
 						<ListTasks
 							tasks={tasks}
@@ -95,7 +135,15 @@ export default function OrganizationTasksHomePage() {
 					</div>
 				</ResizablePanel>
 				<ResizableHandle />
-				<ResizablePanel defaultSize={20} minSize={10} collapsedSize={0} collapsible={true}>
+				<ResizablePanel
+					defaultSize={30}
+					minSize={20}
+					collapsedSize={0}
+					collapsible={true}
+					ref={ref}
+					onCollapse={() => setProjectPanelOpen(false)}
+					onExpand={() => setProjectPanelOpen(true)}
+				>
 					<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
 						<ProjectSide />
 					</div>

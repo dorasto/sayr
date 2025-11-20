@@ -12,6 +12,8 @@ interface ContextType {
 	setViews: (newValue: ContextType["views"]) => void;
 	categories: schema.categoryType[];
 	setCategories: (newValue: ContextType["categories"]) => void;
+	isProjectPanelOpen: boolean;
+	setProjectPanelOpen: (newValue: boolean) => void;
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);
@@ -33,6 +35,7 @@ export function RootProviderOrganization({
 	const { value: Newlabels, setValue: setLabels } = useStateManagement("labels", labels);
 	const { value: NewViews, setValue: setViews } = useStateManagement("views", views);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories);
+	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement("isProjectPanelOpen", true);
 	// Sync props → state
 	useEffect(() => setOrganization(organization), [organization, setOrganization]);
 	useEffect(() => setLabels(labels), [labels, setLabels]);
@@ -49,6 +52,8 @@ export function RootProviderOrganization({
 				setViews,
 				categories: NewCategories,
 				setCategories,
+				isProjectPanelOpen,
+				setProjectPanelOpen,
 			}}
 		>
 			{children}
