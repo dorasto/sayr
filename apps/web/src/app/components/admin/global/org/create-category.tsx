@@ -8,7 +8,7 @@ import { Label } from "@repo/ui/components/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconDeviceFloppy, IconSettings, IconTrash } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import IconPicker from "@/app/components/icon-picker";
 import RenderIcon from "@/app/components/RenderIcon";

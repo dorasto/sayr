@@ -10,6 +10,8 @@ const RenderIcon = ({
 	button,
 	color,
 	className,
+	style,
+	focus,
 }: {
 	iconName: string;
 	size?: number;
@@ -17,6 +19,8 @@ const RenderIcon = ({
 	color?: string;
 	button?: boolean;
 	className?: string;
+	style?: React.CSSProperties;
+	focus?: boolean;
 }) => {
 	try {
 		if (iconName.startsWith("Icon")) {
@@ -31,14 +35,16 @@ const RenderIcon = ({
 					return <IconComponent size={size || 60} color={color} />;
 				}
 				if (button) {
+					const showBackground = focus === undefined ? true : focus;
 					return (
 						<div
 							className={cn("flex items-center aspect-square size-10 [&_svg]:size-6 justify-center", className)}
 							style={{
-								background: color ? `hsla(${extractHslValues(color)}, 0.1)` : undefined,
+								background: showBackground && color ? `hsla(${extractHslValues(color)}, 0.1)` : undefined,
+								...style,
 							}}
 						>
-							<IconComponent size={size || 60} color={color} />
+							<IconComponent size={size || 60} color={showBackground ? color : undefined} />
 						</div>
 					);
 				}

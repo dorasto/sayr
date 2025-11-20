@@ -8,18 +8,24 @@ import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { extractHslValues } from "@repo/util";
 import {
 	IconChevronRight,
 	IconCircleFilled,
+	IconFilter,
+	IconFilter2,
+	IconPencil,
 	IconSettings,
 	IconStack2,
 	IconUser,
 	IconUserCheck,
 	IconUsers,
+	IconX,
 } from "@tabler/icons-react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
+import RenderIcon from "@/app/components/RenderIcon";
 import { useSticky } from "@/app/hooks/use-sticky";
 import { deserializeFilters, serializeFilters } from "../tasks/task/filter/dropdown/serialization";
 import type { FilterState } from "../tasks/task/filter/types";
@@ -165,50 +171,155 @@ export default function ProjectSide() {
 					</Button>
 				</TileAction>
 			</Tile>
-			<div className="flex flex-wrap gap-2 w-full">
-				<Tile className="bg-card md:w-full max-w-40">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
+				<Tile
+					className={cn(
+						"bg-card md:w-full cursor-pointer select-none",
+						filtersParam === "" ? "bg-accent" : "bg-card hover:bg-accent"
+					)}
+					onClick={() => {
+						// Clear filters if already active
+						setFilterState({ groups: [], operator: "AND" });
+					}}
+				>
 					<TileHeader>
 						<TileTitle className="flex items-center gap-2">
-							<TileIcon>
+							<TileIcon
+								className={cn(
+									filtersParam === "" ? "text-foreground bg-muted-foreground/20" : "text-muted-foreground"
+								)}
+							>
 								<IconStack2 />
 							</TileIcon>
 							Open tasks
 						</TileTitle>
-						<TileDescription>{opentaskCount}</TileDescription>
+						<TileDescription>
+							{opentaskCount} {opentaskCount === 1 ? "task" : "tasks"}
+						</TileDescription>
 					</TileHeader>
 				</Tile>
-				<Tile className="bg-card md:w-full max-w-40">
+				<Tile
+					className={cn(
+						"bg-card md:w-full cursor-pointer select-none",
+						isMyAssignedActive ? "bg-accent" : "bg-card hover:bg-accent"
+					)}
+					onClick={() => {
+						if (isMyAssignedActive) {
+							// Clear filters if already active
+							setFilterState({ groups: [], operator: "AND" });
+						} else {
+							// Apply "My Assigned" filter
+							// setFiltersParam(myAssignedFilterParam);
+							setFilterState(myAssignedFilterState);
+						}
+					}}
+				>
 					<TileHeader>
 						<TileTitle className="flex items-center gap-2">
-							<TileIcon>
+							<TileIcon
+								className={cn(
+									isMyAssignedActive ? "text-foreground bg-muted-foreground/20" : "text-muted-foreground"
+								)}
+							>
 								<IconUser />
 							</TileIcon>
 							Your tasks
 						</TileTitle>
-						<TileDescription>{openusertaskCount}</TileDescription>
+						<TileDescription>
+							{openusertaskCount} {openusertaskCount === 1 ? "task" : "tasks"}
+						</TileDescription>
 					</TileHeader>
 				</Tile>
+				{categories.map((category) => {
+					const isActive = filtersParam === serializeFilters(createCategoryFilter(category.id));
+					const categoryTaskCount = tasks.filter((task) => task.category === category.id).length;
+
+					return (
+						<Tile
+							className={cn(
+								"bg-card md:w-full cursor-pointer select-none",
+								isActive ? "bg-accent" : "bg-card hover:bg-accent"
+							)}
+							key={category.id}
+							onClick={() => {
+								if (isActive) {
+									setFilterState({ groups: [], operator: "AND" });
+								} else {
+									setFilterState(createCategoryFilter(category.id));
+								}
+							}}
+						>
+							<TileHeader>
+								<TileTitle className="flex items-center gap-2">
+									<TileIcon
+										style={{
+											background: isActive
+												? `hsla(${extractHslValues(category.color || "#cccccc")}, 0.1)`
+												: undefined,
+										}}
+									>
+										<RenderIcon
+											iconName={category.icon || "IconCircleFilled"}
+											color={category.color || undefined}
+											button
+											focus={isActive}
+											className={cn(
+												"size-4! [&_svg]:size-3! border-0 ",
+												!isActive && "text-muted-foreground"
+											)}
+										/>
+										{/* <IconCircleFilled style={{ color: category.color || "#cccccc" }} /> */}
+									</TileIcon>
+									{category.name}
+								</TileTitle>
+								<TileDescription>
+									{categoryTaskCount} {categoryTaskCount === 1 ? "task" : "tasks"}
+								</TileDescription>
+							</TileHeader>
+							{/* <TileAction>
+								<TileDescription className={cn(!isActive && "opacity-50")}>
+									{categoryTaskCount} {categoryTaskCount === 1 ? "task" : "tasks"}
+								</TileDescription>
+							</TileAction> */}
+						</Tile>
+					);
+				})}
 			</div>
-			<Tabs defaultValue="views" className="w-full p-1 relative">
+			<Tabs defaultValue="views" className="w-full p-1 relative bg-card rounded-lg">
 				<div
 					className={cn(
-						"flex items-center gap-2 shrink-0 sticky top-0 w-full bg-background z-50 p-1",
+						"flex items-center gap-2 shrink-0 sticky top-0 w-full bg-card z-50 p-1",
 						stuck && "border-b shadow-xl"
 					)}
 					ref={stickyRef}
 				>
-					<TabsList className={cn("justify-start w-full p-0 sticky top-0 bg-background transition-colors")}>
+					<TabsList
+						className={cn(
+							"justify-start w-full p-0 sticky top-0 bg-card transition-colors gap-2 h-auto overflow-x-scroll"
+						)}
+					>
 						<TabsTrigger asChild value="views">
 							<Button
 								variant={"accent"}
-								className="data-[state=active]:bg-card bg-transparent rounded-lg border-transparent"
+								className="data-[state=active]:bg-accent bg-transparent rounded-lg border-transparent text-xs w-auto px-2 py-1 h-auto"
 								size={"sm"}
 							>
-								<IconStack2 className="w-4 h-4" />
-								Views
+								<IconStack2 className="w-3! h-3!" />
+								Custom views
+							</Button>
+						</TabsTrigger>
+						<TabsTrigger asChild value="priority">
+							<Button
+								variant={"accent"}
+								className="data-[state=active]:bg-accent bg-transparent rounded-lg border-transparent text-xs w-auto px-2 py-1 h-auto"
+								size={"sm"}
+							>
+								<IconStack2 className="w-3! h-3!" />
+								Priority
 							</Button>
 						</TabsTrigger>
 					</TabsList>
+
 					{stuck && (
 						<div className="flex items-center gap-2 ml-auto">
 							<Button
@@ -224,264 +335,76 @@ export default function ProjectSide() {
 				</div>
 				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-0.5">
-						<Collapsible defaultOpen>
-							<CollapsibleTrigger asChild className="group">
+						{views.map((view) => {
+							const isActive = filtersParam === view.filterParams;
+							return (
 								<Tile
 									className={cn(
-										"md:w-full cursor-pointer transition-colors data-[state=closed]:bg-transparent data-[state=open]:bg-accent select-none"
+										"md:w-full cursor-pointer transition-colors group",
+										isActive ? "bg-accent" : "bg-transparent hover:bg-accent"
 									)}
-								>
-									<TileHeader>
-										<TileTitle className="flex items-center gap-2">
-											<TileIcon>
-												<IconStack2 />
-											</TileIcon>
-											Saved views
-										</TileTitle>
-									</TileHeader>
-
-									<TileAction>
-										<IconChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" />
-									</TileAction>
-								</Tile>
-							</CollapsibleTrigger>
-
-							<CollapsibleContent className="pt-0.5 space-y-0.5">
-								{views.map((view) => {
-									const isActive = filtersParam === view.filterParams;
-									return (
-										<Tile
-											className={cn(
-												"md:w-full cursor-pointer transition-colors",
-												isActive ? "bg-accent" : "bg-card hover:bg-accent"
-											)}
-											key={view.id}
-											onClick={() => {
-												if (isActive) {
-													setFilterState({ groups: [], operator: "AND" });
-												} else {
-													setFilterState(
-														deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
-													);
-												}
-											}}
-										>
-											<TileHeader className="h-fit max-w-fit">
-												<TileTitle className="flex items-center gap-2 truncate">
-													<TileIcon>
-														<IconStack2 />
-													</TileIcon>
-													{view.name}
-												</TileTitle>
-											</TileHeader>
-
-											<TileAction>
-												<TileDescription className={cn(!isActive && "opacity-0")}>
-													Clear filter
-												</TileDescription>
-											</TileAction>
-										</Tile>
-									);
-								})}
-							</CollapsibleContent>
-						</Collapsible>
-						<Collapsible defaultOpen>
-							<CollapsibleTrigger asChild className="group">
-								<Tile
-									className={cn(
-										"md:w-full cursor-pointer transition-colors data-[state=open]:bg-accent select-none"
-									)}
-								>
-									<TileHeader>
-										<TileTitle className="flex items-center gap-2">
-											<TileIcon>
-												<IconUserCheck />
-											</TileIcon>
-											Default
-										</TileTitle>
-									</TileHeader>
-
-									<TileAction>
-										<IconChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" />
-									</TileAction>
-								</Tile>
-							</CollapsibleTrigger>
-
-							<CollapsibleContent className="pt-0.5 space-y-0.5">
-								<Tile
-									className={cn(
-										"md:w-full cursor-pointer transition-colors",
-										isMyAssignedActive ? "bg-accent" : "bg-card hover:bg-accent"
-									)}
+									key={view.id}
 									onClick={() => {
-										if (isMyAssignedActive) {
-											// Clear filters if already active
+										if (isActive) {
 											setFilterState({ groups: [], operator: "AND" });
 										} else {
-											// Apply "My Assigned" filter
-											// setFiltersParam(myAssignedFilterParam);
-											setFilterState(myAssignedFilterState);
+											setFilterState(
+												deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
+											);
+										}
+									}}
+								>
+									<TileHeader className="h-fit max-w-fit">
+										<TileTitle className="flex items-center gap-2 truncate">
+											<TileIcon className={cn(!isActive && "bg-transparent")}>
+												<IconStack2 />
+											</TileIcon>
+											{view.name}
+										</TileTitle>
+									</TileHeader>
+								</Tile>
+							);
+						})}
+					</div>
+				</TabsContent>
+				<TabsContent value="priority" className="mt-0">
+					<div className="flex flex-col gap-0.5">
+						{priorityViews.map(({ key, label }) => {
+							const isActive = filtersParam === serializeFilters(createPriorityFilter(key));
+							const config = priorityConfig[key];
+
+							return (
+								<Tile
+									className={cn(
+										"md:w-full cursor-pointer transition-colors group",
+										isActive ? "bg-accent" : "bg-transparent hover:bg-accent"
+									)}
+									key={key}
+									onClick={() => {
+										if (isActive) {
+											// setFiltersParam("");
+											setFilterState({ groups: [], operator: "AND" });
+										} else {
+											// setFiltersParam(filterParam);
+											setFilterState(createPriorityFilter(key));
 										}
 									}}
 								>
 									<TileHeader>
 										<TileTitle className="flex items-center gap-2">
-											<TileIcon>
-												<IconUserCheck />
+											<TileIcon className={cn(config.className, !isActive && "bg-transparent")}>
+												{config.icon("w-4 h-4")}
 											</TileIcon>
-											My Assigned
+
+											{label}
 										</TileTitle>
 									</TileHeader>
-									<TileAction>
-										<TileDescription className={cn(!isMyAssignedActive && "opacity-0")}>
-											Clear filter
-										</TileDescription>
-									</TileAction>
 								</Tile>
-								{/* Prebuilt Priority Views */}
-								{priorityViews.map(({ key, label }) => {
-									const isActive = filtersParam === serializeFilters(createPriorityFilter(key));
-									const config = priorityConfig[key];
-
-									return (
-										<Tile
-											className={cn(
-												"md:w-full cursor-pointer transition-colors",
-												isActive ? "bg-accent" : "bg-card hover:bg-accent"
-											)}
-											key={key}
-											onClick={() => {
-												if (isActive) {
-													// setFiltersParam("");
-													setFilterState({ groups: [], operator: "AND" });
-												} else {
-													// setFiltersParam(filterParam);
-													setFilterState(createPriorityFilter(key));
-												}
-											}}
-										>
-											<TileHeader>
-												<TileTitle className="flex items-center gap-2">
-													<TileIcon className={config.className}>{config.icon("w-4 h-4")}</TileIcon>
-													{label}
-												</TileTitle>
-											</TileHeader>
-											<TileAction>
-												<TileDescription className={cn(!isActive && "opacity-0")}>
-													Clear filter
-												</TileDescription>
-											</TileAction>
-										</Tile>
-									);
-								})}
-							</CollapsibleContent>
-						</Collapsible>
-						{/* Category Views */}
-						{categories.length > 0 && (
-							<Collapsible defaultOpen>
-								<CollapsibleTrigger asChild className="group">
-									<Tile
-										className={cn(
-											"md:w-full cursor-pointer transition-colors data-[state=open]:bg-accent select-none"
-										)}
-									>
-										<TileHeader>
-											<TileTitle className="flex items-center gap-2">
-												<TileIcon>
-													<IconCircleFilled />
-												</TileIcon>
-												Categories
-											</TileTitle>
-										</TileHeader>
-
-										<TileAction>
-											<IconChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" />
-										</TileAction>
-									</Tile>
-								</CollapsibleTrigger>
-
-								<CollapsibleContent className="pt-0.5 space-y-0.5">
-									{categories.map((category) => {
-										const isActive = filtersParam === serializeFilters(createCategoryFilter(category.id));
-										const categoryTaskCount = tasks.filter((task) => task.category === category.id).length;
-
-										return (
-											<Tile
-												className={cn(
-													"md:w-full cursor-pointer transition-colors",
-													isActive ? "bg-accent" : "bg-card hover:bg-accent"
-												)}
-												key={category.id}
-												onClick={() => {
-													if (isActive) {
-														setFilterState({ groups: [], operator: "AND" });
-													} else {
-														setFilterState(createCategoryFilter(category.id));
-													}
-												}}
-											>
-												<TileHeader>
-													<TileTitle className="flex items-center gap-2">
-														<TileIcon>
-															<IconCircleFilled style={{ color: category.color || "#cccccc" }} />
-														</TileIcon>
-														{category.name}
-													</TileTitle>
-												</TileHeader>
-												<TileAction>
-													<TileDescription className={cn(!isActive && "opacity-50")}>
-														{categoryTaskCount} {categoryTaskCount === 1 ? "task" : "tasks"}
-													</TileDescription>
-												</TileAction>
-											</Tile>
-										);
-									})}
-								</CollapsibleContent>
-							</Collapsible>
-						)}
+							);
+						})}
 					</div>
 				</TabsContent>
 			</Tabs>
-
-			{/* <div className="flex items-center gap-2 shrink-0 rounded bg-accent border px-3 py-0.5 shadow-xs w-full justify-start">
-				<Breadcrumb>
-					<BreadcrumbList className="">
-						<BreadcrumbItem>
-							<BreadcrumbLink href={`/admin/${organization?.id}`}>{organization?.name}</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator>
-							<IconSlash />
-						</BreadcrumbSeparator>
-						<BreadcrumbItem>
-							<Button
-								variant={"ghost"}
-								size={"sm"}
-								className="h-auto w-auto p-0 gap-1 items-center"
-								onClick={() => setOpenProjectSettings(true)}
-							>
-								<IconSettings className="!size-4" /> {project?.name}
-							</Button>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
-			</div> */}
-
-			{/* Task Filters */}
-			{/* <TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers} /> */}
-
-			{/* <Button variant={"accent"} size={"sm"} className="h-9" onClick={() => setOpenNew(true)}>
-				<IconPlus />
-				<span className="text-inherit">New task</span>
-			</Button>
-			<CreateIssueDialog
-				organization={organization}
-				project={project}
-				tasks={tasks}
-				setTasks={setTasks}
-				_labels={labels}
-				open={openNew}
-				setOpen={setOpenNew}
-			/> */}
 
 			<GlobalSettings
 				organization={organization}
