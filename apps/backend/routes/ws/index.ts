@@ -58,7 +58,7 @@ function sendToClients(
 			// Optionally remove closed/broken sockets
 			try {
 				c.socket.close();
-			} catch {}
+			} catch { }
 			unsubscribe(c.socket);
 		}
 	}
@@ -347,6 +347,53 @@ export function findClientsByUserId(userId: string): ClientInfo[] {
 		}
 	}
 	return results;
+}
+
+/**
+ * Broadcasts a WebSocket message to all active connections belonging to a user,
+ * excluding a specific WebSocket client ID or channel if needed.
+ *
+ * This is useful when sending user-scoped messages (e.g. notifications, updates)
+ * that should reach all the user’s active sessions except a particular one—such
+ * as the client that originated the message.
+ *
+ * @param userId - The user ID whose active WebSocket clients should receive the message.
+ * @param wsClientId - The WebSocket client ID to exclude from the broadcast (usually the sender).
+ * @param org_id - The organization ID context in which the broadcast is happening.
+ * @param message - The message payload to send to each target client.
+ * @param excludeChannel - (Optional) A channel name to exclude from the broadcast.
+ *   Defaults to `"admin"`.
+ *
+ * @returns void
+ *
+ * @example
+ * ```ts
+ * // Send a message to all of a user's connected clients, except one
+ * broadcastByUserId(
+ *   "user_123",
+ *   "ws_abc123",
+ *   "org_999",
+ *   {
+ *     type: "NOTIFICATION",
+ *     data: { text: "A new update is available." },
+ *   }
+ * );
+ *
+ * // Optionally exclude a specific channel
+ * broadcastByUserId(
+ *   "user_123",
+ *   "ws_abc123",
+ *   "org_999",
+ *   { type: "CHAT_MESSAGE", data: { text: "Hey there!" } },
+ *   "support"
+ * );
+ * ```
+ */
+export function broadcastByUserId(userId: string, wsClientId: string, org_id: string, message: Omit<WSBaseMessage, "scope">, excludeChannel = "admin") {
+	const targets = findClientsByUserId(userId);
+	targets.forEach(
+		(c) => c.wsClientId !== wsClientId && c.channel !== excludeChannel && broadcastIndividual(c.socket, message, org_id)
+	);
 }
 
 /**
@@ -756,7 +803,7 @@ process.on("SIGTERM", () => {
 	for (const ws of wsClients.keys()) {
 		try {
 			ws.close();
-		} catch {}
+		} catch { }
 	}
 	process.exit(0);
 });

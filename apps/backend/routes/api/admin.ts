@@ -5,8 +5,6 @@ import { apiRouteAdminOrganization } from "./organization";
 
 export const apiRouteAdmin = new Hono<AppEnv>();
 
-apiRouteAdmin.route("/organization", apiRouteAdminOrganization);
-
 // Get all tasks assigned to the logged-in user
 apiRouteAdmin.get("/tasks/mine", async (c) => {
 	const session = c.get("session");
@@ -25,3 +23,6 @@ apiRouteAdmin.get("/tasks/mine", async (c) => {
 		return c.json({ success: false, error: "Failed to fetch tasks" }, 500);
 	}
 });
+
+// Organization routes
+apiRouteAdmin.route("/organization", apiRouteAdminOrganization);

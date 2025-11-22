@@ -26,6 +26,8 @@ import {
 } from "../ws";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
+
+// Create a new task
 apiRouteAdminProjectTask.post("/create", async (c) => {
 	const { org_id, wsClientId, title, description, status, priority, labels, assignees } = await c.req.json();
 	const session = c.get("session");
@@ -100,6 +102,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		data: taskWithData,
 	});
 });
+// Update task details
 apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const { org_id, wsClientId, task_id, ...updates } = await c.req.json();
 	const session = c.get("session");
@@ -193,7 +196,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	});
 	return c.json({ success: true, data: taskWithData });
 });
-
+// Update task labels
 apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	const { org_id, wsClientId, task_id, labels } = await c.req.json();
 	const session = c.get("session");
@@ -276,7 +279,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 		return c.json({ success: false, error: errorMessage }, 500);
 	}
 });
-
+// Update task assignees
 apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	const { org_id, wsClientId, task_id, assignees } = await c.req.json();
 	const session = c.get("session");
@@ -369,7 +372,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 		return c.json({ success: false, error: errorMessage }, 500);
 	}
 });
-
+// Create a comment on a task
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const { org_id, wsClientId, task_id, blocknote, visibility } = await c.req.json();
 	const session = c.get("session");
@@ -398,7 +401,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	console.log("key:", key);
 	return c.json({ success: true, data: { id: task_id } });
 });
-
+// Get merged task activity timeline
 apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	const query = c.req.query();
 	const org_id = query.org_id;

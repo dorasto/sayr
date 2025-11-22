@@ -1,14 +1,16 @@
-import { db, getLabels, getOrganizationMembers, getUsersByIds, schema } from "@repo/database";
-import { listFileObjectsWithMetadata, removeObject, uploadObject } from "@repo/storage";
+import { db, getLabels, getOrganizationMembers, schema } from "@repo/database";
+import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { checkMembershipRole, decodeCursor, encodeCursor } from "@/util";
-import { broadcast, broadcastIndividual, broadcastPublic, findClientByWsId, findClientsByUserId } from "../ws";
+import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
+
+// Update organization details
 apiRouteAdminOrganization.post("/update", async (c) => {
 	const { org_id, wsClientId, data } = await c.req.json();
 	const session = c.get("session");
@@ -40,8 +42,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		broadcastPublic(org_id, { ...data, data: { ...data.data, privateId: null } });
 		const members = await getOrganizationMembers(org_id);
 		members.forEach((member) => {
-			const clients = findClientsByUserId(member.userId);
-			clients.forEach((c) => broadcastIndividual(c.socket, data, org_id));
+			broadcastByUserId(member.userId, wsClientId, org_id, data, "");
 		});
 		return c.json({
 			success: true,
@@ -54,6 +55,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	}
 });
 
+// Upload organization logo
 apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 	try {
 		const session = c.get("session");
@@ -117,6 +119,7 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 	}
 });
 
+// Upload organization banner
 apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 	try {
 		const session = c.get("session");
@@ -179,55 +182,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 	}
 });
 
-apiRouteAdminOrganization.get("/:orgId/assets-test", async (c) => {
-	const session = c.get("session");
-	const orgId = c.req.param("orgId");
-
-	// Authorization
-	const isAuthorized = await checkMembershipRole(session?.userId, orgId);
-	if (!isAuthorized) {
-		return c.json({ error: "UNAUTHORIZED" }, 401);
-	}
-
-	// Pagination params
-	const pageSize = Number(c.req.query("limit") ?? 5);
-	const encodedCursor = c.req.query("cursor");
-	const decodedCursor = decodeCursor<{ startAfter?: string }>(encodedCursor);
-
-	// Fetch page from MinIO
-	const {
-		objects: data,
-		nextStartAfter,
-		hasMore,
-	} = await listFileObjectsWithMetadata(`organization/${orgId}/`, pageSize, decodedCursor?.startAfter);
-
-	// Collect and map users
-	const userIds = Array.from(new Set(data.map((s) => s.userId).filter(Boolean)));
-	const users = await getUsersByIds(userIds);
-	const userMap = new Map(users.map((u) => [u.id, u]));
-
-	const assets = data.map((item) => ({
-		...item,
-		url: ensureCdnUrl(item.name || ""),
-		user: item.userId
-			? {
-					name: userMap.get(item.userId)?.name ?? "",
-					image: userMap.get(item.userId)?.image ?? "",
-				}
-			: undefined,
-	}));
-
-	// Encode the next cursor safely
-	const nextCursor = nextStartAfter ? encodeCursor({ startAfter: nextStartAfter }) : undefined;
-
-	return c.json({
-		data: assets,
-		nextCursor,
-		pageSize,
-		hasMore,
-	});
-});
-
+// list organization assets as a paginated response
 apiRouteAdminOrganization.get("/:orgId/files", async (c) => {
 	const session = c.get("session");
 	const orgId = c.req.param("orgId");
@@ -303,6 +258,8 @@ apiRouteAdminOrganization.get("/:orgId/files", async (c) => {
 	});
 });
 
+// Label management
+// Create label with name and color
 apiRouteAdminOrganization.post("/create-label", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, color } = await c.req.json();
@@ -331,16 +288,14 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	broadcastPublic(org_id, { ...data, data: data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
-		const clients = findClientsByUserId(member.userId);
-		clients.forEach(
-			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
-		);
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
 	});
 	return c.json({
 		success: true,
 		data: labels,
 	});
 });
+// Edit label name and color
 apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id, name, color } = await c.req.json();
@@ -369,16 +324,14 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	broadcastPublic(org_id, { ...data, data: data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
-		const clients = findClientsByUserId(member.userId);
-		clients.forEach(
-			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
-		);
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
 	});
 	return c.json({
 		success: true,
 		data: labels,
 	});
 });
+// Delete label by label ID
 apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id } = await c.req.json();
@@ -403,10 +356,7 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	broadcastPublic(org_id, { ...data, data: data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
-		const clients = findClientsByUserId(member.userId);
-		clients.forEach(
-			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
-		);
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
 	});
 	return c.json({
 		success: true,
@@ -414,6 +364,8 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	});
 });
 
+// Category management
+// Create category with name, color, and icon
 apiRouteAdminOrganization.post("/create-category", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, color, icon } = await c.req.json();
@@ -445,16 +397,14 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	broadcastPublic(org_id, { ...data, data: data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
-		const clients = findClientsByUserId(member.userId);
-		clients.forEach(
-			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
-		);
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
 	});
 	return c.json({
 		success: true,
 		data: categories,
 	});
 });
+// Edit category name, color, and icon
 apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id, name, color, icon } = await c.req.json();
@@ -486,16 +436,14 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	broadcastPublic(org_id, { ...data, data: data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
-		const clients = findClientsByUserId(member.userId);
-		clients.forEach(
-			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
-		);
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
 	});
 	return c.json({
 		success: true,
 		data: categories,
 	});
 });
+// Delete category by category ID
 apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id } = await c.req.json();
@@ -522,10 +470,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	broadcastPublic(org_id, { ...data, data: data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
-		const clients = findClientsByUserId(member.userId);
-		clients.forEach(
-			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
-		);
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
 	});
 	return c.json({
 		success: true,
@@ -533,6 +478,8 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	});
 });
 
+// Saved View management
+// Create saved view with name and filter params
 apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, value } = await c.req.json();
@@ -564,14 +511,13 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	broadcastPublic(org_id, { ...data, data: data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
-		const clients = findClientsByUserId(member.userId);
-		clients.forEach(
-			(c) => c.wsClientId !== wsClientId && c.channel !== "admin" && broadcastIndividual(c.socket, data, org_id)
-		);
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
 	});
 	return c.json({
 		success: true,
 		data: views,
 	});
 });
+
+// Task routes
 apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);
