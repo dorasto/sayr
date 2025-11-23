@@ -3,6 +3,7 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
@@ -41,7 +42,11 @@ export function MyTaskList({
 		3000
 	);
 	const { value: filterState } = useStateManagement<FilterState>("task-filters", { groups: [], operator: "AND" }, 1);
-	const [isTaskContentOpen, setIsTaskContentOpen] = useState(false);
+	const [taskContentOpenOrganization, setTaskContentOpenOrganization] = useQueryState(
+		"org",
+		parseAsString.withDefault("")
+	);
+	const [taskContentOpen, setTaskContentOpen] = useQueryState("task", parseAsInteger.withDefault(0));
 	const { viewState } = useTaskViewState();
 	const { grouping, showEmptyGroups } = viewState;
 
@@ -99,6 +104,27 @@ export function MyTaskList({
 			ws.removeEventListener("message", handleMessage);
 		};
 	}, [ws, handleMessage]);
+	// Sync selected task with query param
+	useEffect(() => {
+		if (taskContentOpen === 0) {
+			setSelectedTask(null);
+		}
+		const task = filteredTasks.find(
+			(t) => t.shortId === taskContentOpen && t.organizationId === taskContentOpenOrganization
+		);
+		if (task) {
+			setSelectedTask(task);
+			setTaskContentOpen(task.shortId);
+			setTaskContentOpenOrganization(task.organizationId);
+		}
+	}, [
+		taskContentOpen,
+		setSelectedTask,
+		filteredTasks.find,
+		setTaskContentOpen,
+		setTaskContentOpenOrganization,
+		taskContentOpenOrganization,
+	]);
 
 	const handleTaskSelect = (taskId: string, selected: boolean) => {
 		const newSelected = new Set(selectedTasks);
@@ -110,11 +136,12 @@ export function MyTaskList({
 		setSelectedTasks(newSelected);
 	};
 
-	const handleTaskClick = (taskId: string) => {
-		const task = filteredTasks.find((t) => t.id === taskId);
+	const handleTaskClick = (taskId: string, organizationId: string) => {
+		const task = filteredTasks.find((t) => t.id === taskId && t.organizationId === organizationId);
 		if (task) {
 			setSelectedTask(task);
-			setIsTaskContentOpen(true);
+			setTaskContentOpen(task.shortId);
+			setTaskContentOpenOrganization(task.organizationId);
 		}
 	};
 
@@ -196,10 +223,11 @@ export function MyTaskList({
 			{selectedTask && selectedTaskContext?.organization && (
 				<TaskContent
 					task={selectedTask}
-					open={isTaskContentOpen}
+					open={typeof taskContentOpen === "number"}
 					onOpenChange={(value) => {
-						setIsTaskContentOpen(value);
 						if (!value) {
+							setTaskContentOpen(0);
+							setTaskContentOpenOrganization("");
 							setSelectedTask(null);
 						}
 					}}

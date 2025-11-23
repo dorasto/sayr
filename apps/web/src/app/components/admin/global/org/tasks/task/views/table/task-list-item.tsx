@@ -34,7 +34,7 @@ interface TaskListItemProps {
 	task: schema.TaskWithLabels;
 	isSelected: boolean;
 	onSelect: (selected: boolean) => void;
-	onTaskClick?: (taskId: string) => void;
+	onTaskClick?: (taskId: string, organizationId: string) => void;
 	onTaskUpdate?: (taskId: string, updates: Partial<schema.TaskWithLabels>) => void;
 	setSelectedTask?: (task: schema.TaskWithLabels | null) => void;
 	tasks?: schema.TaskWithLabels[];
@@ -79,7 +79,7 @@ export function TaskListItem({
 			return;
 		}
 
-		onTaskClick?.(task.id);
+		onTaskClick?.(task.id, task.organizationId);
 	};
 
 	const handleStatusChange = (newStatus: string) => {

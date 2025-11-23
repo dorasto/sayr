@@ -3,6 +3,7 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
@@ -41,7 +42,7 @@ export function TaskList({
 		3000
 	);
 	const { value: filterState } = useStateManagement<FilterState>("task-filters", { groups: [], operator: "AND" }, 1);
-	const [isTaskContentOpen, setIsTaskContentOpen] = useState(false);
+	const [taskContentOpen, setTaskContentOpen] = useQueryState("task", parseAsInteger.withDefault(0));
 	const { viewState } = useTaskViewState();
 	const { grouping, showEmptyGroups } = viewState;
 
@@ -97,6 +98,19 @@ export function TaskList({
 			ws.removeEventListener("message", handleMessage);
 		};
 	}, [ws, handleMessage]);
+
+	// Sync selected task with query param
+	useEffect(() => {
+		if (taskContentOpen === 0) {
+			setSelectedTask(null);
+		}
+		const task = filteredTasks.find((t) => t.shortId === taskContentOpen);
+		if (task) {
+			setSelectedTask(task);
+			setTaskContentOpen(task.shortId);
+		}
+	}, [taskContentOpen, setSelectedTask, filteredTasks.find, setTaskContentOpen]);
+
 	const handleTaskSelect = (taskId: string, selected: boolean) => {
 		const newSelected = new Set(selectedTasks);
 		if (selected) {
@@ -111,7 +125,8 @@ export function TaskList({
 		const task = filteredTasks.find((t) => t.id === taskId);
 		if (task) {
 			setSelectedTask(task);
-			setIsTaskContentOpen(true);
+			// setIsTaskContentOpen(true);
+			setTaskContentOpen(task.shortId);
 		}
 	};
 
@@ -183,10 +198,10 @@ export function TaskList({
 			{selectedTask && (
 				<TaskContent
 					task={selectedTask}
-					open={isTaskContentOpen}
+					open={typeof taskContentOpen === "number"}
 					onOpenChange={(value) => {
-						setIsTaskContentOpen(value);
 						if (!value) {
+							setTaskContentOpen(0);
 							setSelectedTask(null);
 						}
 					}}

@@ -250,7 +250,7 @@ export function TaskContent({
 							copyIcon={<IconLink />}
 							showTooltip={false}
 						/>
-						<Link href={`/admin/${organization.id}/tasks`} className="">
+						<Link href={`/admin/${organization.id}/tasks?task=${task.shortId}`} className="">
 							<Button size="icon" className="size-5" variant="ghost">
 								<IconArrowsDiagonalMinimize2 />
 							</Button>
@@ -303,7 +303,7 @@ export function TaskContent({
 							{status.label}
 						</Badge>
 						<Link href={`/admin/${task.organizationId}/tasks/${task.shortId}`}>
-							<Button size={"icon"} className="size-5" variant={"ghost"} onClick={() => onOpenChange(false)}>
+							<Button size={"icon"} className="size-5" variant={"ghost"}>
 								<IconArrowsDiagonal2 />
 							</Button>
 						</Link>

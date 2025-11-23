@@ -35,7 +35,7 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 		category_change: TimelineCategoryChange,
 	};
 	const { value } = useStateManagementFetch<schema.taskTimelineWithActor[], Partial<schema.taskTimelineWithActor>>({
-		key: ["timeline", task.id],
+		key: ["timeline", task.id, task.organizationId],
 		fetch: {
 			url: `${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/timeline?org_id=${task.organizationId}&task_id=${task.id}`,
 			custom: async (url) => {
