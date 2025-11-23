@@ -31,11 +31,19 @@ export function RootProviderOrganization({
 	views: ContextType["views"];
 	categories: ContextType["categories"];
 }) {
-	const { value: NewOrganization, setValue: setOrganization } = useStateManagement("organization", organization);
-	const { value: Newlabels, setValue: setLabels } = useStateManagement("labels", labels);
-	const { value: NewViews, setValue: setViews } = useStateManagement("views", views);
-	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories);
-	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement("isProjectPanelOpen", true);
+	const { value: NewOrganization, setValue: setOrganization } = useStateManagement(
+		"organization",
+		organization,
+		30000
+	);
+	const { value: Newlabels, setValue: setLabels } = useStateManagement("labels", labels, 30000);
+	const { value: NewViews, setValue: setViews } = useStateManagement("views", views, 30000);
+	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories, 30000);
+	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement(
+		"isProjectPanelOpen",
+		true,
+		30000
+	);
 	// Sync props → state
 	useEffect(() => setOrganization(organization), [organization, setOrganization]);
 	useEffect(() => setLabels(labels), [labels, setLabels]);

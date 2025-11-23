@@ -18,7 +18,7 @@ export function RootProviderOrganizationTasks({
 	children: ReactNode;
 	tasks: ContextType["tasks"];
 }) {
-	const { value: newTasks, setValue: setTasks } = useStateManagement("tasks", tasks);
+	const { value: newTasks, setValue: setTasks } = useStateManagement("tasks", tasks, 30000);
 	useEffect(() => setTasks(tasks), [tasks, setTasks]);
 	if (!tasks) {
 		return (

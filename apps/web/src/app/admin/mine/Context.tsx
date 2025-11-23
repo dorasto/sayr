@@ -29,11 +29,10 @@ export function RootProviderMyTasks({
 	views: ContextType["views"];
 	categories: ContextType["categories"];
 }) {
-	const { value: newTasks, setValue: setTasks } = useStateManagement("my-tasks", tasks);
-	const { value: newLabels, setValue: setLabels } = useStateManagement("my-labels", labels);
-	const { value: NewViews, setValue: setViews } = useStateManagement("my-views", views);
-	const { value: NewCategories, setValue: setCategories } = useStateManagement("my-categories", categories);
-
+	const { value: newTasks, setValue: setTasks } = useStateManagement("my-tasks", tasks, 30000);
+	const { value: newLabels, setValue: setLabels } = useStateManagement("my-labels", labels, 30000);
+	const { value: NewViews, setValue: setViews } = useStateManagement("my-views", views, 30000);
+	const { value: NewCategories, setValue: setCategories } = useStateManagement("my-categories", categories, 30000);
 	// Sync props → state
 	useEffect(() => setTasks(tasks), [tasks, setTasks]);
 	useEffect(() => setLabels(labels), [labels, setLabels]);
