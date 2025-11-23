@@ -1,5 +1,6 @@
 "use client";
 
+import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
 import { useAdminRoute } from "./admin/admin-navigation/useAdminRoute";
 import { LeftSidebarProvider } from "./admin/left-sidebar";
@@ -26,6 +27,23 @@ export function Wrapper({ children, className }: Props) {
 					{children}
 				</div>
 			</div>
+		</div>
+	);
+}
+
+interface SubProps {
+	children: React.ReactNode;
+	className?: string;
+	style?: "default" | "compact";
+	title?: string;
+}
+export function SubWrapper({ children, className, style = "default", title = "title" }: SubProps) {
+	return (
+		<div className={cn("flex flex-col gap-3", style === "compact" && "max-w-prose mx-auto p-3 md:p-6", className)}>
+			<Label variant={"heading"} className="text-2xl text-foreground">
+				{title}
+			</Label>
+			{children}
 		</div>
 	);
 }
