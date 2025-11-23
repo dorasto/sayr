@@ -10,6 +10,6 @@
 			"@/getSession": ["./getSession.ts"],
 		}
 	},
-	"include": ["routes", "public", "index.ts","queue.ts"],
+	"include": ["routes", "public", "index.ts","queue.ts","github","worker.ts"],
 	"exclude": ["node_modules"]
 }

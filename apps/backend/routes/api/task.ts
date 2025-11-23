@@ -132,7 +132,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		await db
 			.update(schema.task)
 			.set({ ...allowed, updatedAt: new Date() })
-			.where(eq(schema.task.id, task_id))
+			.where(and(eq(schema.task.id, task_id), eq(schema.task.organizationId, org_id)))
 			.returning();
 	}
 

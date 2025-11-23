@@ -5,6 +5,8 @@ import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { safeGetSession } from "@/getSession";
 import { apiRoute } from "./routes/api";
+import { internalRoute } from "./routes/api/internal";
+import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
 // -----------------------------------------------------------------------------
 // Types
@@ -20,7 +22,7 @@ export type AppEnv = {
 // App setup
 // -----------------------------------------------------------------------------
 const app = new Hono<AppEnv>();
-
+app.route("/internal", internalRoute);
 // -----------------------------------------------------------------------------
 // CORS
 // -----------------------------------------------------------------------------
@@ -52,6 +54,7 @@ app.get("/health", (c) => c.text("OK"));
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.get("/ws-test", serveStatic({ path: "./public/ws.html" }));
 app.route("/ws", wsRoute);
+app.route("/webhook", webhookRoute);
 app.get("/metrics", (c) => {
 	const mem = process.memoryUsage();
 	const cpuUsage = process.cpuUsage();
