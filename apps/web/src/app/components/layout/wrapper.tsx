@@ -5,17 +5,18 @@ import { cn } from "@repo/ui/lib/utils";
 import { useAdminRoute } from "./admin/admin-navigation/useAdminRoute";
 import { LeftSidebarProvider } from "./admin/left-sidebar";
 import { PrimarySidebar } from "./admin/sidebars/primary";
+import { SettingsSidebar } from "./admin/sidebars/settings";
 
 interface Props {
 	children: React.ReactNode;
 	className?: string;
 }
 export function Wrapper({ children, className }: Props) {
-	const { isTaskPage } = useAdminRoute();
+	const { isTaskPage, isSettingsPage } = useAdminRoute();
 	return (
 		<div className="h-full w-full max-h-[calc(100dvh-var(--header-height))]!">
 			<div className="flex flex-1 h-full w-full transition-all pb-2 pr-2">
-				<PrimarySidebar />
+				{isSettingsPage ? <SettingsSidebar /> : <PrimarySidebar />}
 				{/* <LeftSidebarProvider /> */}
 				<div
 					className={cn(
@@ -39,7 +40,7 @@ interface SubProps {
 }
 export function SubWrapper({ children, className, style = "default", title = "title" }: SubProps) {
 	return (
-		<div className={cn("flex flex-col gap-3", style === "compact" && "max-w-prose mx-auto p-3 md:p-6", className)}>
+		<div className={cn("flex flex-col gap-9", style === "compact" && "max-w-prose mx-auto p-3 md:p-6", className)}>
 			<Label variant={"heading"} className="text-2xl text-foreground">
 				{title}
 			</Label>

@@ -35,7 +35,7 @@ export function ThemeToggle({ full }: ThemeToggleProps) {
 			<div>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline" aria-label="Select theme">
+						<Button variant="accent" aria-label="Select theme">
 							{theme === "light" && (
 								<>
 									<SunIcon size={14} aria-hidden="true" />

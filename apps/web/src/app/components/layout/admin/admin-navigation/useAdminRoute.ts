@@ -43,6 +43,7 @@ export function useAdminRoute() {
 	const isOrgPage = /^\/admin\/[^/]+$/.test(pathname); // /admin/:orgId
 	const isTasksPage = /^\/admin\/[^/]+\/tasks+$/.test(pathname); // /admin/:orgId/tasks
 	const isTaskPage = /^\/admin\/[^/]+\/tasks\/[^/]+$/.test(pathname); // /admin/:orgId/tasks/:taskId
+	const isSettingsPage = /^\/admin\/settings/.test(pathname); // /admin/settings
 
-	return { isMinePage, isOrgPage, isTasksPage, isTaskPage };
+	return { isMinePage, isOrgPage, isTasksPage, isTaskPage, isSettingsPage };
 }

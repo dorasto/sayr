@@ -342,7 +342,7 @@ interface SidebarMenuButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
 	tooltip?: string;
 	asChild?: boolean;
 	icon?: React.ReactNode;
-	size?: "default" | "large";
+	size?: "default" | "large" | "small";
 }
 
 export function SidebarMenuButton({
@@ -366,13 +366,16 @@ export function SidebarMenuButton({
 				"",
 				"focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent",
 				size === "large" && "font-semibold py-3",
+				size === "small" && "text-sm min-h-auto p-1",
 				isActive && "bg-accent font-medium text-accent-foreground",
 				isCollapsed && "justify-center aspect-square ",
 				className
 			)}
 			{...props}
 		>
-			{icon && <span className={cn("[&>svg]:size-4 [&>svg]:shrink-0")}>{icon}</span>}
+			{icon && (
+				<span className={cn("[&>svg]:size-4 [&>svg]:shrink-0", size === "small" && "[&>svg]:size-3")}>{icon}</span>
+			)}
 			{children ? !isCollapsed && <span className="flex-1 truncate">{children}</span> : null}
 		</button>
 	);

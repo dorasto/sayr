@@ -65,25 +65,14 @@ export default function UserDropdown() {
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							{account.role === "admin" && (
-								<Link href="/admin/console" prefetch={false}>
-									<DropdownMenuItem>
-										<IconShield />
-										Admin
-									</DropdownMenuItem>
-								</Link>
-							)}
-							<DropdownMenuItem onClick={() => setIsUserUpdateOpen(true)}>
-								<IconUserCog />
-								Account settings
-							</DropdownMenuItem>
+							<Link href={"/admin/settings"} className="w-full">
+								<DropdownMenuItem>
+									<IconUserCog />
+									Account settings
+								</DropdownMenuItem>
+							</Link>
 						</DropdownMenuGroup>
-						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem>
-								<BadgeCheck />
-								Account
-							</DropdownMenuItem>
 							<DropdownMenuItem>
 								<CreditCard />
 								Billing

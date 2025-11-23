@@ -18,6 +18,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@repo/ui/component
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { IconCheck, IconUser } from "@tabler/icons-react";
+import { ThemeToggle } from "../../theme-toggle";
 
 export default function UserSettings() {
 	return (
@@ -91,6 +92,20 @@ export default function UserSettings() {
 							</AlertDialogFooter>
 						</AlertDialogContent>
 					</AlertDialog>
+				</TileAction>
+			</Tile>
+		</div>
+	);
+}
+export function UserPreferences() {
+	return (
+		<div className="bg-card rounded-lg flex flex-col">
+			<Tile className="md:w-full">
+				<TileHeader>
+					<TileTitle>Theme</TileTitle>
+				</TileHeader>
+				<TileAction>
+					<ThemeToggle full />
 				</TileAction>
 			</Tile>
 		</div>
