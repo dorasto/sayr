@@ -7,6 +7,7 @@ import "./globals.css";
 import { IconAlertCircle, IconAlertCircleFilled, IconCheck, IconInfoCircle, IconLoader2 } from "@tabler/icons-react";
 import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { SidebarScript } from "@/app/lib/sidebar/sidebar-script";
 import { QueryClientProvider } from "./components/layout/query-provider";
 
 const inter = Inter({
@@ -57,6 +58,9 @@ export default function RootLayout({
 			suppressHydrationWarning
 			className={`${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable}`}
 		>
+			<head>
+				<SidebarScript />
+			</head>
 			<body className="relative">
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
 					<QueryClientProvider>

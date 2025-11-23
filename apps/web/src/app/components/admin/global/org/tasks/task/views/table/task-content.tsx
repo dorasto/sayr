@@ -92,15 +92,7 @@ export function TaskContentSideContent({
 		<div className="flex flex-col gap-3">
 			{/* <GlobalTaskCreatedAt task={task} />
 					<Separator /> */}
-			<GlobalTaskCategory
-				task={task}
-				editable={true}
-				useInternalLogic={true}
-				tasks={tasks}
-				setTasks={setTasks}
-				setSelectedTask={setSelectedTask}
-				categories={categories}
-			/>
+
 			<GlobalTaskStatus
 				task={task}
 				editable={true}
@@ -205,6 +197,15 @@ export function TaskContentSideContent({
 						}
 					}
 				}}
+			/>
+			<GlobalTaskCategory
+				task={task}
+				editable={true}
+				useInternalLogic={true}
+				tasks={tasks}
+				setTasks={setTasks}
+				setSelectedTask={setSelectedTask}
+				categories={categories}
 			/>
 		</div>
 	);

@@ -2,6 +2,7 @@
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import { SidebarToggle } from "@repo/ui/components/custom-sidebar-localstorage";
+import { SidebarTrigger } from "@repo/ui/components/doras-ui/sidebar";
 import { Separator } from "@repo/ui/components/separator";
 
 export default function SidebarSection({ sidebarIsOpen, isMobile }: { sidebarIsOpen: boolean; isMobile: boolean }) {
@@ -9,7 +10,7 @@ export default function SidebarSection({ sidebarIsOpen, isMobile }: { sidebarIsO
 		<>
 			{(!sidebarIsOpen || isMobile) && (
 				<>
-					<SidebarToggle name="left-sidebar" />
+					<SidebarTrigger sidebarId="primary-sidebar" />
 					<Separator orientation="vertical" />
 				</>
 			)}

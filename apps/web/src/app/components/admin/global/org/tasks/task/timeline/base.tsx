@@ -48,7 +48,12 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children }: Timel
 				</TimelineIndicator>
 			</TimelineHeader>
 			{item.blockNote ? (
-				<TimelineContent className={cn("text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50")}>
+				<TimelineContent
+					className={cn(
+						"text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50",
+						item.visibility === "public" && "border-primary"
+					)}
+				>
 					<Editor readonly={true} value={item.blockNote as PartialBlock[]} />
 				</TimelineContent>
 			) : null}

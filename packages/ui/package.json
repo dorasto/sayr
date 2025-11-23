@@ -49,6 +49,7 @@
 		"@radix-ui/react-tooltip": "^1.2.7",
 		"@tabler/icons-react": "^3.34.1",
 		"@tanstack/react-query": "^5.85.5",
+		"@tanstack/react-store": "^0.8.0",
 		"@tanstack/react-table": "^8.21.3",
 		"@uiw/color-convert": "^2.8.0",
 		"@uiw/react-color-alpha": "^2.9.2",

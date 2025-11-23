@@ -150,7 +150,7 @@ export default function GlobalTaskCategory({
 										<span>{currentCategory.name}</span>
 									</div>
 								) : (
-									<span>Select category</span>
+									<span></span>
 								)}
 							</ComboBoxValue>
 							<ComboBoxIcon />
