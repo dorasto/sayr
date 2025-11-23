@@ -36,6 +36,7 @@ export type CommentsWithAuthor = Array<
 
 export type taskTimelineWithActor = taskTimelineType & {
 	actor?: { id: string; name: string; image: string | null };
+	visibility: "public" | "internal";
 };
 
 /* -------------------------------------------------------------------------- */
