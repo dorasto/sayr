@@ -1,5 +1,6 @@
 "use client";
 
+import { authClient } from "@repo/auth/client";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -33,7 +34,17 @@ export default function UserConnections() {
 					<TileDescription className="text-xs">Connect to sync activity</TileDescription>
 				</TileHeader>
 				<TileAction>
-					<Button variant={"accent"}>Connect</Button>
+					<Button
+						variant={"accent"}
+						onClick={async () => {
+							await authClient.linkSocial({
+								provider: "github", // Provider to link
+								callbackURL: "/admin/settings/connections", // Callback URL after linking completes
+							});
+						}}
+					>
+						Connect
+					</Button>
 				</TileAction>
 			</Tile>
 		</div>

@@ -89,8 +89,8 @@ export function SettingsSidebar() {
 					{organizations
 						.flatMap((org) => [
 							<SidebarMenu className="gap-0.5 pb-3 last:pb-0" key={org.id}>
-								<SidebarMenuItem className="min-h-auto">
-									<Link href={""} prefetch={false} className="w-full">
+								<SidebarMenuItem className="min-h-auto" isActive={pathname === `/admin/settings/org/${org.id}`}>
+									<Link href={`/admin/settings/org/${org.id}`} prefetch={false} className="w-full">
 										<SidebarMenuButton
 											size="small"
 											icon={
@@ -112,8 +112,11 @@ export function SettingsSidebar() {
 										</SidebarMenuButton>
 									</SidebarMenuSub>
 								</SidebarMenuItem>
-								<SidebarMenuItem className="min-h-auto">
-									<Link href={""} prefetch={false} className="w-full">
+								<SidebarMenuItem
+									className="min-h-auto"
+									isActive={pathname === `/admin/settings/org/${org.id}/team`}
+								>
+									<Link href={`/admin/settings/org/${org.id}/team`} prefetch={false} className="w-full">
 										<SidebarMenuButton size="small" icon={<IconUsers />} tooltip="Item">
 											<span>Team</span>
 										</SidebarMenuButton>
