@@ -12,6 +12,8 @@ interface ContextType {
 	setViews: (newValue: ContextType["views"]) => void;
 	categories: schema.categoryType[];
 	setCategories: (newValue: ContextType["categories"]) => void;
+	tasks: schema.TaskWithLabels[];
+	setTasks: (newValue: ContextType["tasks"]) => void;
 	isProjectPanelOpen: boolean;
 	setProjectPanelOpen: (newValue: boolean) => void;
 }
@@ -24,12 +26,14 @@ export function SettingsProviderOrganization({
 	labels,
 	views,
 	categories,
+	tasks,
 }: {
 	children: ReactNode;
 	organization: ContextType["organization"];
 	labels: ContextType["labels"];
 	views: ContextType["views"];
 	categories: ContextType["categories"];
+	tasks: ContextType["tasks"];
 }) {
 	const { value: NewOrganization, setValue: setOrganization } = useStateManagement(
 		"organization",
@@ -39,6 +43,7 @@ export function SettingsProviderOrganization({
 	const { value: Newlabels, setValue: setLabels } = useStateManagement("labels", labels, 30000);
 	const { value: NewViews, setValue: setViews } = useStateManagement("views", views, 30000);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories, 30000);
+	const { value: NewTasks, setValue: setTasks } = useStateManagement("tasks", tasks, 30000);
 	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement(
 		"isProjectPanelOpen",
 		true,
@@ -49,6 +54,7 @@ export function SettingsProviderOrganization({
 	useEffect(() => setLabels(labels), [labels, setLabels]);
 	useEffect(() => setViews(views), [views, setViews]);
 	useEffect(() => setCategories(categories), [categories, setCategories]);
+	useEffect(() => setTasks(tasks), [tasks, setTasks]);
 	return (
 		<RootContext.Provider
 			value={{
@@ -60,6 +66,8 @@ export function SettingsProviderOrganization({
 				setViews,
 				categories: NewCategories,
 				setCategories,
+				tasks: NewTasks,
+				setTasks,
 				isProjectPanelOpen,
 				setProjectPanelOpen,
 			}}

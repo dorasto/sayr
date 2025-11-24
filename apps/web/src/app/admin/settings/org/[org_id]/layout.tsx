@@ -1,4 +1,4 @@
-import { db, getLabels, getOrganization } from "@repo/database";
+import { db, getLabels, getOrganization, getTasksByOrganizationId } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import type React from "react";
@@ -21,6 +21,7 @@ export default async function SettingsLayoutOrganization({
 		return redirect("/admin/settings");
 	}
 	const labels = await getLabels(organization.id);
+	const tasks = await getTasksByOrganizationId(organization.id);
 	const views = await db.query.savedView.findMany({
 		where: (view) => eq(view.organizationId, organization.id),
 	});
@@ -28,7 +29,13 @@ export default async function SettingsLayoutOrganization({
 		where: (category) => eq(category.organizationId, organization.id),
 	});
 	return (
-		<SettingsProviderOrganization organization={organization} labels={labels} views={views} categories={categories}>
+		<SettingsProviderOrganization
+			organization={organization}
+			labels={labels}
+			views={views}
+			categories={categories}
+			tasks={tasks}
+		>
 			{children}
 		</SettingsProviderOrganization>
 	);

@@ -37,13 +37,21 @@ interface SubProps {
 	className?: string;
 	style?: "default" | "compact";
 	title?: string;
+	description?: string;
 }
-export function SubWrapper({ children, className, style = "default", title = "title" }: SubProps) {
+export function SubWrapper({ children, className, style = "default", title = "title", description }: SubProps) {
 	return (
 		<div className={cn("flex flex-col gap-9", style === "compact" && "max-w-prose mx-auto p-3 md:p-6", className)}>
-			<Label variant={"heading"} className="text-2xl text-foreground">
-				{title}
-			</Label>
+			<div className="flex flex-col">
+				<Label variant={"heading"} className="text-2xl text-foreground">
+					{title}
+				</Label>
+				{description && (
+					<Label variant={"subheading"} className="text-muted-foreground">
+						{description}
+					</Label>
+				)}
+			</div>
 			{children}
 		</div>
 	);

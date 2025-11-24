@@ -44,7 +44,7 @@ const RenderIcon = ({
 								...style,
 							}}
 						>
-							<IconComponent size={size || 60} color={showBackground ? color : undefined} />
+							<IconComponent className="shrink-0" size={size || 60} color={showBackground ? color : undefined} />
 						</div>
 					);
 				}

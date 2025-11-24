@@ -122,8 +122,11 @@ export function SettingsSidebar() {
 										</SidebarMenuButton>
 									</Link>
 								</SidebarMenuItem>
-								<SidebarMenuItem className="min-h-auto">
-									<Link href={""} prefetch={false} className="w-full">
+								<SidebarMenuItem
+									className="min-h-auto"
+									isActive={pathname === `/admin/settings/org/${org.id}/labels`}
+								>
+									<Link href={`/admin/settings/org/${org.id}/labels`} prefetch={false} className="w-full">
 										<SidebarMenuButton size="small" icon={<IconTag />} tooltip="Item">
 											<span>Labels</span>
 										</SidebarMenuButton>
