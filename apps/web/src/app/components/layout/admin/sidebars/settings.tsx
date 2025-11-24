@@ -17,12 +17,16 @@ import {
 	IconAdjustmentsHorizontal,
 	IconArrowLeft,
 	IconCategory,
+	IconCategoryFilled,
 	IconHttpConnect,
 	IconIcons,
+	IconLayoutGridAdd,
 	IconLayoutSidebar,
 	IconLayoutSidebarFilled,
+	IconPlug,
 	IconSettings,
 	IconTag,
+	IconTagFilled,
 	IconUser,
 	IconUsers,
 } from "@tabler/icons-react";
@@ -114,10 +118,38 @@ export function SettingsSidebar() {
 								</SidebarMenuItem>
 								<SidebarMenuItem
 									className="min-h-auto"
+									isActive={pathname.includes(`/admin/settings/org/${org.id}/connections`)}
+								>
+									<Link href={`/admin/settings/org/${org.id}/connections`} prefetch={false} className="w-full">
+										<SidebarMenuButton
+											size="small"
+											icon={
+												<IconPlug
+													className={cn(
+														pathname.includes(`/admin/settings/org/${org.id}/connections`) && "fill-white"
+													)}
+												/>
+											}
+											tooltip="Item"
+										>
+											<span>Connections</span>
+										</SidebarMenuButton>
+									</Link>
+								</SidebarMenuItem>
+								<SidebarMenuItem
+									className="min-h-auto"
 									isActive={pathname === `/admin/settings/org/${org.id}/team`}
 								>
 									<Link href={`/admin/settings/org/${org.id}/team`} prefetch={false} className="w-full">
-										<SidebarMenuButton size="small" icon={<IconUsers />} tooltip="Item">
+										<SidebarMenuButton
+											size="small"
+											icon={
+												<IconUsers
+													className={cn(pathname === `/admin/settings/org/${org.id}/team` && "fill-white")}
+												/>
+											}
+											tooltip="Item"
+										>
 											<span>Team</span>
 										</SidebarMenuButton>
 									</Link>
@@ -127,7 +159,17 @@ export function SettingsSidebar() {
 									isActive={pathname === `/admin/settings/org/${org.id}/labels`}
 								>
 									<Link href={`/admin/settings/org/${org.id}/labels`} prefetch={false} className="w-full">
-										<SidebarMenuButton size="small" icon={<IconTag />} tooltip="Item">
+										<SidebarMenuButton
+											size="small"
+											icon={
+												pathname === `/admin/settings/org/${org.id}/labels` ? (
+													<IconTagFilled />
+												) : (
+													<IconTag />
+												)
+											}
+											tooltip="Item"
+										>
 											<span>Labels</span>
 										</SidebarMenuButton>
 									</Link>
@@ -137,7 +179,17 @@ export function SettingsSidebar() {
 									isActive={pathname === `/admin/settings/org/${org.id}/categories`}
 								>
 									<Link href={`/admin/settings/org/${org.id}/categories`} prefetch={false} className="w-full">
-										<SidebarMenuButton size="small" icon={<IconCategory />} tooltip="Item">
+										<SidebarMenuButton
+											size="small"
+											icon={
+												pathname === `/admin/settings/org/${org.id}/categories` ? (
+													<IconCategoryFilled />
+												) : (
+													<IconCategory />
+												)
+											}
+											tooltip="Item"
+										>
 											<span>Categories</span>
 										</SidebarMenuButton>
 									</Link>
