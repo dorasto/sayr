@@ -24,6 +24,9 @@ export default function SettingsOrganizationPage() {
 	useWebSocketSubscription({
 		ws,
 	});
+	if (!organization) {
+		return null;
+	}
 	return (
 		<div className="bg-card rounded-lg flex flex-col">
 			<Tile className="md:w-full" variant={"transparent"}>

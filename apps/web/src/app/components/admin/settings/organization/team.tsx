@@ -108,7 +108,9 @@ export default function SettingsOrganizationPageTeam() {
 	const removeEmail = (email: string) => {
 		setEmails(emails.filter((e) => e !== email));
 	};
-
+	if (!organization) {
+		return null;
+	}
 	return (
 		<div className="bg-card rounded-lg flex flex-col">
 			{/* <p>{JSON.stringify(organization.members, null, 4)}</p> */}
