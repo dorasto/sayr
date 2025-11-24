@@ -97,11 +97,13 @@ async function processJob(job: Job) {
 }
 
 async function workerLoop() {
-	console.log("⚙️  Sayr worker started (file/redis mode)");
+	const MODE = process.env.QUEUE_MODE ?? "file"; // local default
+
+	console.log(`⚙️  Sayr worker started (${MODE} mode)`);
 	while (true) {
 		const job = await dequeue();
 		if (!job) {
-			await Bun.sleep(200);
+			await Bun.sleep(100);
 			continue;
 		}
 

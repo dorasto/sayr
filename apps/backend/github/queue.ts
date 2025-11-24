@@ -44,7 +44,7 @@ function writeFileQueue(data: Job[]) {
 export async function enqueue(job: Job) {
 	switch (MODE) {
 		case "redis":
-			await redis!.lpush(QUEUE_KEY, JSON.stringify(job));
+			await redis?.lpush(QUEUE_KEY, JSON.stringify(job));
 			console.log(`📦 [redis] Enqueued → ${job.type}`);
 			break;
 
@@ -64,7 +64,7 @@ export async function enqueue(job: Job) {
 export async function dequeue(): Promise<Job | undefined> {
 	switch (MODE) {
 		case "redis": {
-			const res = await redis!.rpop(QUEUE_KEY);
+			const res = await redis?.rpop(QUEUE_KEY);
 			if (!res) return undefined;
 			return JSON.parse(res) as Job;
 		}

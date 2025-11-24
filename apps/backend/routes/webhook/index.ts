@@ -44,16 +44,16 @@ webhookRoute.post("/github", async (c) => {
 			if (payload.action === "opened") {
 				console.log(`🪶 Issue opened: #${payload.issue.number}`);
 
-				enqueue({
-					type: "issue_opened",
-					payload: {
-						installationId: payload.installation.id,
-						repoId: payload.repository.id,
-						repo: payload.repository.name,
-						owner: payload.repository.owner.login,
-						issue_number: payload.issue.number,
-					},
-				});
+				// enqueue({
+				// 	type: "issue_opened",
+				// 	payload: {
+				// 		installationId: payload.installation.id,
+				// 		repoId: payload.repository.id,
+				// 		repo: payload.repository.name,
+				// 		owner: payload.repository.owner.login,
+				// 		issue_number: payload.issue.number,
+				// 	},
+				// });
 
 				enqueue({
 					type: "sayr_keyword_parse",
@@ -81,17 +81,17 @@ webhookRoute.post("/github", async (c) => {
 
 				console.log(`💬 Comment on #${issueNum} by ${commenter}`);
 
-				enqueue({
-					type: "issue_comment",
-					payload: {
-						installationId: payload.installation.id,
-						repoId: payload.repository.id,
-						repo: payload.repository.name,
-						owner: payload.repository.owner.login,
-						issue_number: issueNum,
-						body,
-					},
-				});
+				// enqueue({
+				// 	type: "issue_comment",
+				// 	payload: {
+				// 		installationId: payload.installation.id,
+				// 		repoId: payload.repository.id,
+				// 		repo: payload.repository.name,
+				// 		owner: payload.repository.owner.login,
+				// 		issue_number: issueNum,
+				// 		body,
+				// 	},
+				// });
 
 				enqueue({
 					type: "sayr_keyword_parse",
@@ -139,6 +139,7 @@ webhookRoute.post("/github", async (c) => {
 	return c.text("✅ Job(s) received");
 });
 
+// biome-ignore lint/suspicious/noExplicitAny: <fix later>
 async function handleInstallationRepositoriesEvent(payload: any) {
 	const installationId = payload.installation.id;
 	const owner = payload.installation.account?.login ?? "unknown";
