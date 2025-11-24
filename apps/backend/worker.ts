@@ -66,7 +66,7 @@ async function handleSayrKeywordParse(job: Job) {
 		summaryLines.join("\n") +
 		(merged ? "\n✅ PR merged!" : "");
 
-	await postGithubComment({ ...ctxBase, issueKey: "" }, comment);
+	await postGithubComment({ ...ctxBase, issueKey: 0 }, comment);
 
 	console.log(`💬 [${repo}#${number}] Comment posted to GitHub.`);
 }

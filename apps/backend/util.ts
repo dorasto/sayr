@@ -90,3 +90,9 @@ export function decodeCursor<T = any>(cursor?: string): T | undefined {
 		return undefined;
 	}
 }
+
+export function getCookieValue(headers: Headers, name: string): string | null {
+	const cookieHeader = headers.get("cookie") ?? "";
+	const match = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
+	return match ? (match[1] ?? null) : null;
+}

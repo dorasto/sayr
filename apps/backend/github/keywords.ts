@@ -1,25 +1,30 @@
 export type KeywordMatch = {
 	keyword: string;
-	issueKey: string;
+	issueKey: number;
 };
 
 // ✅ Supports: "Ref 10", "Ref #10", "Fixes SA-123", "Sayr 42"
 export function extractSayrKeywords(text: string): KeywordMatch[] {
 	if (!text) return [];
 
-	const regex =
-		/\b(?:(Fixes|Fixed|Closes|Closed|Resolves|Resolved|Blocked by|Ref|Sayr)[\s:#-]*)#?([A-Z]+-\d+|\d+)\b/gi;
+	// Only match digits for the second capture group.
+	// Will handle "Fixes 10", "Ref #15", "Sayr 42" etc.
+	const regex = /\b(?:(Fixes|Fixed|Closes|Closed|Resolves|Resolved|Blocked by|Ref|Sayr)[\s:#-]*)#?(\d+)\b/gi;
 
 	const matches: KeywordMatch[] = [];
 
-	// Safe loop for biome — no inline assignments
 	for (;;) {
 		const result = regex.exec(text);
 		if (result === null) break;
 
+		const issueKey = Number(result[2]); // force numeric
+
+		// Skip invalid conversions (NaN guard)
+		if (Number.isNaN(issueKey)) continue;
+
 		matches.push({
 			keyword: result[1] ?? "",
-			issueKey: result[2] ?? "",
+			issueKey,
 		});
 	}
 

@@ -5,7 +5,6 @@ import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { safeGetSession } from "@/getSession";
 import { apiRoute } from "./routes/api";
-import { internalRoute } from "./routes/api/internal";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
 // -----------------------------------------------------------------------------
@@ -22,7 +21,6 @@ export type AppEnv = {
 // App setup
 // -----------------------------------------------------------------------------
 const app = new Hono<AppEnv>();
-app.route("/internal", internalRoute);
 // -----------------------------------------------------------------------------
 // CORS
 // -----------------------------------------------------------------------------

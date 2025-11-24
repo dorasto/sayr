@@ -58,7 +58,7 @@ function sendToClients(
 			// Optionally remove closed/broken sockets
 			try {
 				c.socket.close();
-			} catch { }
+			} catch {}
 			unsubscribe(c.socket);
 		}
 	}
@@ -179,7 +179,8 @@ export function broadcastToRoom(
 	const seen = new Set<ServerWebSocket>();
 	const targets: ClientInfo[] = [];
 
-	const addRoom = (key: string) => {
+	const addRoom = (key?: string) => {
+		if (!key) return;
 		const clients = rooms.get(`${orgId}:${key}`);
 		if (!clients) return;
 		for (const c of clients) {
@@ -190,13 +191,16 @@ export function broadcastToRoom(
 		}
 	};
 
-	// always to the specific channel
-	addRoom(channel);
+	// Split channel string and broadcast to each piece
+	const parts = channel.split(";");
 
-	// optionally include parent
-	if (includeParent && channel.includes(";")) {
-		const parent = channel.split(";")[0];
-		parent && addRoom(parent);
+	// Always send to all channel parts (child and parent)
+	for (const part of parts) {
+		addRoom(part);
+	}
+
+	if (includeParent && parts.length > 1) {
+		addRoom(parts[0]);
 	}
 
 	if (targets.length > 0) {
@@ -389,10 +393,17 @@ export function findClientsByUserId(userId: string): ClientInfo[] {
  * );
  * ```
  */
-export function broadcastByUserId(userId: string, wsClientId: string, org_id: string, message: Omit<WSBaseMessage, "scope">, excludeChannel = "admin") {
+export function broadcastByUserId(
+	userId: string,
+	wsClientId: string,
+	org_id: string,
+	message: Omit<WSBaseMessage, "scope">,
+	excludeChannel = "admin"
+) {
 	const targets = findClientsByUserId(userId);
 	targets.forEach(
-		(c) => c.wsClientId !== wsClientId && c.channel !== excludeChannel && broadcastIndividual(c.socket, message, org_id)
+		(c) =>
+			c.wsClientId !== wsClientId && c.channel !== excludeChannel && broadcastIndividual(c.socket, message, org_id)
 	);
 }
 
@@ -803,7 +814,7 @@ process.on("SIGTERM", () => {
 	for (const ws of wsClients.keys()) {
 		try {
 			ws.close();
-		} catch { }
+		} catch {}
 	}
 	process.exit(0);
 });
