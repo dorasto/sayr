@@ -42,15 +42,19 @@ import {
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { useLayoutOrganizationSettings } from "@/app/admin/settings/org/[org_id]/Context";
-import { SubWrapper } from "@/app/components/layout/wrapper";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 
 export default function SettingsOrganizationPageTeam() {
 	const { ws } = useLayoutData();
-	const { organization } = useLayoutOrganizationSettings();
+	const { organization, setOrganization } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
+		orgId: organization.id,
+		organization: organization,
+		channel: "admin",
+		setOrganization: setOrganization,
 	});
+
 	const roleBadge = (role: string) => {
 		switch (role) {
 			case "owner":

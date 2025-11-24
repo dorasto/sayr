@@ -18,9 +18,15 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@repo/ui/component
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { IconCheck, IconUser } from "@tabler/icons-react";
+import { useLayoutData } from "@/app/admin/Context";
+import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { ThemeToggle } from "../../theme-toggle";
 
 export default function UserSettings() {
+	const { ws } = useLayoutData();
+	useWebSocketSubscription({
+		ws,
+	});
 	return (
 		<div className="bg-card rounded-lg flex flex-col">
 			<Tile className="md:w-full">

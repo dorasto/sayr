@@ -9,20 +9,21 @@ import {
 	InputGroupInput,
 	InputGroupText,
 } from "@repo/ui/components/input-group";
-import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { IconCheck, IconUser } from "@tabler/icons-react";
 import { useLayoutData } from "@/app/admin/Context";
 import { useLayoutOrganizationSettings } from "@/app/admin/settings/org/[org_id]/Context";
-import { SubWrapper } from "@/app/components/layout/wrapper";
-import { ThemeToggle } from "@/app/components/theme-toggle";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 
 export default function SettingsOrganizationPage() {
 	const { ws } = useLayoutData();
-	const { organization } = useLayoutOrganizationSettings();
+	const { organization, setOrganization } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
+		orgId: organization.id,
+		organization: organization,
+		channel: "admin",
+		setOrganization: setOrganization,
 	});
 	if (!organization) {
 		return null;

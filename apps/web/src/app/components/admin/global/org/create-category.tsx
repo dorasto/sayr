@@ -10,7 +10,7 @@ import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import IconPicker from "@/app/components/icon-picker";
 import RenderIcon from "@/app/components/RenderIcon";
 import { createCategoryAction, deleteCategoryAction, editCategoryAction } from "@/app/lib/fetches";
@@ -48,7 +48,16 @@ export default function CreateCategory({
 	const change = name !== category?.name || color.hsla !== category?.color || icon !== category?.icon;
 
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-	console.log("Render CreateCategory", { name, color, icon, change, isEditMode });
+	useEffect(() => {
+		if (isEditMode) {
+			setName(category?.name || "");
+			setColor({
+				hsla: category?.color || "#F59E0B",
+				hex: category?.color || "#F59E0B",
+			});
+			setIcon(category?.icon || "IconCircleFilled");
+		}
+	}, [isEditMode, category?.color, category?.name, category?.icon]);
 	return (
 		<div className="h-auto">
 			<InputGroup

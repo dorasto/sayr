@@ -1,19 +1,13 @@
 "use client";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupButton,
-	InputGroupInput,
-	InputGroupText,
-} from "@repo/ui/components/input-group";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RenderIcon from "@/app/components/RenderIcon";
 import { createLabelAction, deleteLabelAction, editLabelAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
@@ -48,7 +42,15 @@ export default function CreateLabel({
 	const change = name !== label?.name || color.hsla !== label?.color;
 
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-	console.log("Render CreateLabel", { name, color, change, isEditMode });
+	useEffect(() => {
+		if (isEditMode) {
+			setName(label?.name || "");
+			setColor({
+				hsla: label?.color || "#F59E0B",
+				hex: label?.color || "#F59E0B",
+			});
+		}
+	}, [isEditMode, label?.color, label?.name]);
 	return (
 		<div className="h-auto">
 			<InputGroup
