@@ -8,6 +8,7 @@ import { Label } from "@repo/ui/components/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { cn } from "@repo/ui/lib/utils";
 import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import IconPicker from "@/app/components/icon-picker";
@@ -22,6 +23,7 @@ interface Props {
 	mode?: "create" | "edit";
 	taskCount?: number;
 	onCategoryClick?: (categoryId: string) => void;
+	settingsUI?: boolean;
 }
 
 export default function CreateCategory({
@@ -31,6 +33,7 @@ export default function CreateCategory({
 	mode = "create",
 	taskCount = 0,
 	onCategoryClick,
+	settingsUI = false,
 }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const [name, setName] = useState(category?.name || "");
@@ -47,14 +50,27 @@ export default function CreateCategory({
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 	console.log("Render CreateCategory", { name, color, icon, change, isEditMode });
 	return (
-		<div className="">
-			<InputGroup className="h-auto bg-accent border-transparent">
-				<InputGroupAddon align="inline-start">
+		<div className="h-auto">
+			<InputGroup
+				className={cn(
+					"h-auto bg-accent border-transparent group/group",
+					settingsUI && "bg-card flex items-center gap-1 "
+				)}
+			>
+				<InputGroupAddon align="inline-start" className="h-full">
 					<InputGroupButton asChild>
 						<Popover modal>
 							<PopoverTrigger asChild>
-								<Button variant={"accent"} className="h-auto w-auto p-0 border-transparent">
-									<RenderIcon iconName={icon} color={color.hsla} button />
+								<Button
+									variant={"accent"}
+									className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
+								>
+									<RenderIcon
+										iconName={icon}
+										color={color.hsla}
+										button
+										className={cn(settingsUI && "size-8 [&_svg]:size-5")}
+									/>
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent className="p-0 w-64 md:w-96">
@@ -76,11 +92,16 @@ export default function CreateCategory({
 					</InputGroupButton>
 				</InputGroupAddon>
 
-				<InputGroupInput placeholder="Category name" value={name} onChange={(e) => setName(e.target.value)} />
+				<InputGroupInput
+					className={cn("", settingsUI && "hover:bg-accent focus-within:bg-accent h-8")}
+					placeholder="Category name"
+					value={name}
+					onChange={(e) => setName(e.target.value)}
+				/>
 
-				{isEditMode && (
+				{isEditMode ? (
 					<InputGroupAddon align="inline-end">
-						<Button
+						<InputGroupButton
 							variant="ghost"
 							size="sm"
 							className="text-xs text-muted-foreground h-auto py-1 px-2 cursor-pointer hover:text-foreground"
@@ -90,6 +111,16 @@ export default function CreateCategory({
 								}
 							}}
 							disabled={!onCategoryClick}
+						>
+							{taskCount} {taskCount === 1 ? "task" : "tasks"}
+						</InputGroupButton>
+					</InputGroupAddon>
+				) : (
+					<InputGroupAddon align="inline-end" className="invisible">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-xs text-muted-foreground h-auto py-1 px-2 cursor-pointer hover:text-foreground"
 						>
 							{taskCount} {taskCount === 1 ? "task" : "tasks"}
 						</Button>
@@ -200,7 +231,13 @@ export default function CreateCategory({
 						) : (
 							<Popover open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
 								<PopoverTrigger asChild>
-									<InputGroupButton variant="ghost" className="h-full">
+									<InputGroupButton
+										variant="ghost"
+										className={cn(
+											"h-full",
+											settingsUI && "opacity-0 group-hover/group:opacity-100 transition-all"
+										)}
+									>
 										<IconTrash />
 									</InputGroupButton>
 								</PopoverTrigger>

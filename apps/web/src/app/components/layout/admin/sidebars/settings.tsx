@@ -132,8 +132,11 @@ export function SettingsSidebar() {
 										</SidebarMenuButton>
 									</Link>
 								</SidebarMenuItem>
-								<SidebarMenuItem className="min-h-auto">
-									<Link href={""} prefetch={false} className="w-full">
+								<SidebarMenuItem
+									className="min-h-auto"
+									isActive={pathname === `/admin/settings/org/${org.id}/categories`}
+								>
+									<Link href={`/admin/settings/org/${org.id}/categories`} prefetch={false} className="w-full">
 										<SidebarMenuButton size="small" icon={<IconCategory />} tooltip="Item">
 											<span>Categories</span>
 										</SidebarMenuButton>
