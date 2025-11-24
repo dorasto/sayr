@@ -1,4 +1,5 @@
 "use client";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import {
 	Sidebar,
 	SidebarContent,
@@ -9,18 +10,26 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarMenuSub,
 } from "@repo/ui/components/doras-ui/sidebar";
+import { cn } from "@repo/ui/lib/utils";
 import {
 	IconAdjustmentsHorizontal,
 	IconArrowLeft,
+	IconCategory,
 	IconHttpConnect,
+	IconIcons,
 	IconLayoutSidebar,
 	IconLayoutSidebarFilled,
+	IconSettings,
+	IconTag,
 	IconUser,
+	IconUsers,
 } from "@tabler/icons-react";
 import { useStore } from "@tanstack/react-store";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLayoutData } from "@/app/admin/Context";
 import { sidebarActions, sidebarStore } from "@/app/lib/sidebar/sidebar-store";
 import UserDropdown from "./user-dropdown";
 
@@ -42,6 +51,7 @@ export function SettingsSidebar() {
 	const pathname = usePathname();
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 	const isSidebarOpen = sidebar?.open ?? true;
+	const { account, organizations } = useLayoutData();
 
 	return (
 		<Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
@@ -56,7 +66,7 @@ export function SettingsSidebar() {
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarHeader>
-			<SidebarContent>
+			<SidebarContent className="flex flex-col gap-3">
 				<SidebarGroup>
 					<SidebarGroupLabel>Settings</SidebarGroupLabel>
 					<SidebarMenu className="gap-0.5">
@@ -74,6 +84,64 @@ export function SettingsSidebar() {
 						})}
 					</SidebarMenu>
 				</SidebarGroup>
+				{/* {organizations
+                                            .flatMap((org) => [
+                                                <OrgSection closeMobileSidebar={closeMobileSidebar} key={org.id} organization={org} />,
+                                                // <div key={org.id}></div>
+                                            ])
+                                            .filter(Boolean)} */}
+				{organizations
+					.flatMap((org) => [
+						<SidebarGroup key={org.id}>
+							<SidebarMenu className="gap-0.5">
+								<SidebarMenuItem className="min-h-auto">
+									<Link href={""} prefetch={false} className="w-full">
+										<SidebarMenuButton
+											size="small"
+											icon={
+												<Avatar className="h-3 w-3">
+													<AvatarImage src={org.logo || ""} alt={org.name} className="" />
+													<AvatarFallback className="rounded-md uppercase text-xs">
+														<IconUsers className="h-3 w-3" />
+													</AvatarFallback>
+												</Avatar>
+											}
+											tooltip="Item"
+										>
+											<span>{org.name}</span>
+										</SidebarMenuButton>
+									</Link>
+									<SidebarMenuSub>
+										<SidebarMenuButton size="small" className="bg-accent text-xs">
+											<span className="truncate font-mono">{org.slug}</span>
+										</SidebarMenuButton>
+									</SidebarMenuSub>
+								</SidebarMenuItem>
+								<SidebarMenuItem className="min-h-auto">
+									<Link href={""} prefetch={false} className="w-full">
+										<SidebarMenuButton size="small" icon={<IconUsers />} tooltip="Item">
+											<span>Team</span>
+										</SidebarMenuButton>
+									</Link>
+								</SidebarMenuItem>
+								<SidebarMenuItem className="min-h-auto">
+									<Link href={""} prefetch={false} className="w-full">
+										<SidebarMenuButton size="small" icon={<IconTag />} tooltip="Item">
+											<span>Labels</span>
+										</SidebarMenuButton>
+									</Link>
+								</SidebarMenuItem>
+								<SidebarMenuItem className="min-h-auto">
+									<Link href={""} prefetch={false} className="w-full">
+										<SidebarMenuButton size="small" icon={<IconCategory />} tooltip="Item">
+											<span>Categories</span>
+										</SidebarMenuButton>
+									</Link>
+								</SidebarMenuItem>
+							</SidebarMenu>
+						</SidebarGroup>,
+					])
+					.filter(Boolean)}
 			</SidebarContent>
 			<SidebarFooter className="border-t-transparent">
 				<SidebarMenu className="gap-0.5">
