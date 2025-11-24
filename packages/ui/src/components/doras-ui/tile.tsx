@@ -5,21 +5,18 @@ import { cn } from "@repo/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
-const tileVariants = cva(
-	"rounded-lg p-3 transition-all flex items-center justify-between gap-9 hover:shadow-sm md:w-fit w-full",
-	{
-		variants: {
-			variant: {
-				default: "bg-card",
-				transparent: "bg-transparent",
-				outline: "border",
-			},
+const tileVariants = cva("rounded-lg p-3 transition-all flex items-center justify-between gap-9 md:w-fit w-full", {
+	variants: {
+		variant: {
+			default: "bg-card",
+			transparent: "bg-transparent",
+			outline: "border",
 		},
-		defaultVariants: {
-			variant: "default",
-		},
-	}
-);
+	},
+	defaultVariants: {
+		variant: "default",
+	},
+});
 
 // Context to share variant with children
 const TileContext = React.createContext<{
