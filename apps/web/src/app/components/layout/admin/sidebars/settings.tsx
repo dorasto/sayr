@@ -84,16 +84,11 @@ export function SettingsSidebar() {
 						})}
 					</SidebarMenu>
 				</SidebarGroup>
-				{/* {organizations
-                                            .flatMap((org) => [
-                                                <OrgSection closeMobileSidebar={closeMobileSidebar} key={org.id} organization={org} />,
-                                                // <div key={org.id}></div>
-                                            ])
-                                            .filter(Boolean)} */}
-				{organizations
-					.flatMap((org) => [
-						<SidebarGroup key={org.id}>
-							<SidebarMenu className="gap-0.5">
+				<SidebarGroup className="">
+					<SidebarGroupLabel>Organizations</SidebarGroupLabel>
+					{organizations
+						.flatMap((org) => [
+							<SidebarMenu className="gap-0.5 pb-3 last:pb-0" key={org.id}>
 								<SidebarMenuItem className="min-h-auto">
 									<Link href={""} prefetch={false} className="w-full">
 										<SidebarMenuButton
@@ -138,10 +133,10 @@ export function SettingsSidebar() {
 										</SidebarMenuButton>
 									</Link>
 								</SidebarMenuItem>
-							</SidebarMenu>
-						</SidebarGroup>,
-					])
-					.filter(Boolean)}
+							</SidebarMenu>,
+						])
+						.filter(Boolean)}
+				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter className="border-t-transparent">
 				<SidebarMenu className="gap-0.5">
