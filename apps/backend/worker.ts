@@ -97,7 +97,7 @@ async function processJob(job: Job) {
 }
 
 async function workerLoop() {
-	console.log("⚙️ Sayr worker started (file/redis mode)");
+	console.log("⚙️  Sayr worker started (file/redis mode)");
 	while (true) {
 		const job = await dequeue();
 		if (!job) {
@@ -110,6 +110,7 @@ async function workerLoop() {
 			console.log(`🧾 Processing job: ${job.type}`);
 			await processJob(job);
 			console.log(`✅ Job ${job.type} done in ${Date.now() - start}ms`);
+			console.log("--------------------------------");
 		} catch (err) {
 			console.error(`❌ Error processing job:`, err);
 		}
