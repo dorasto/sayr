@@ -1,3 +1,5 @@
+import { db } from "@repo/database";
+import { and, eq } from "drizzle-orm";
 import {
 	handleBlockKeyword,
 	handleCloseKeyword,
@@ -9,8 +11,17 @@ import { extractSayrKeywords } from "./github/keywords";
 import { dequeue, type Job } from "./github/queue";
 
 async function handleSayrKeywordParse(job: Job) {
-	const { text, eventType, number, owner, repo, merged, installationId } = job.payload;
-
+	const { text, eventType, number, owner, repoId, repo, merged, installationId } = job.payload;
+	const integration = await db.query.githubIntegration.findFirst({
+		where: (g) => and(eq(g.installationId, installationId), eq(g.repoId, repoId)),
+	});
+	if (!integration) {
+		return;
+	}
+	const orgId = integration?.organizationId;
+	if (!orgId) {
+		return;
+	}
 	console.log(`🔍 [${repo}#${number}] Checking ${eventType} for Sayr keywords...`);
 
 	const matches = extractSayrKeywords(text);
@@ -19,18 +30,20 @@ async function handleSayrKeywordParse(job: Job) {
 		return;
 	}
 
-	const ctxBase: Omit<KeywordContext, "issueKey"> = {
+	const ctxBase: Omit<KeywordContext, "taskKey"> = {
 		owner,
+		repoId,
 		repo,
 		number,
 		installationId,
 		merged,
+		orgId,
 	};
 
 	const summaryLines: string[] = [];
 
 	for (const m of matches) {
-		const ctx: KeywordContext = { ...ctxBase, issueKey: m.issueKey };
+		const ctx: KeywordContext = { ...ctxBase, taskKey: m.taskKey };
 		const action = m.keyword.toLowerCase();
 
 		switch (action) {
@@ -40,19 +53,21 @@ async function handleSayrKeywordParse(job: Job) {
 			case "closed":
 			case "resolves":
 			case "resolved":
-				await handleCloseKeyword(ctx);
-				summaryLines.push(`✅ Closed Sayr issue ${m.issueKey}`);
+				{
+					const closeResult = await handleCloseKeyword(ctx);
+					summaryLines.push(closeResult);
+				}
 				break;
 
 			case "blocked by":
 				await handleBlockKeyword(ctx);
-				summaryLines.push(`🚧 Blocked by ${m.issueKey}`);
+				summaryLines.push(`🚧 Blocked by ${m.taskKey}`);
 				break;
 
 			case "ref":
 			case "sayr":
 				await handleLinkKeyword(ctx);
-				summaryLines.push(`🔗 Linked to ${m.issueKey}`);
+				summaryLines.push(`🔗 Linked to ${m.taskKey}`);
 				break;
 
 			default:
@@ -66,7 +81,7 @@ async function handleSayrKeywordParse(job: Job) {
 		summaryLines.join("\n") +
 		(merged ? "\n✅ PR merged!" : "");
 
-	await postGithubComment({ ...ctxBase, issueKey: 0 }, comment);
+	await postGithubComment({ ...ctxBase, taskKey: 0 }, comment);
 
 	console.log(`💬 [${repo}#${number}] Comment posted to GitHub.`);
 }

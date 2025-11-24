@@ -1,4 +1,3 @@
-// src/github/keywordActions.ts
 import { Octokit } from "@octokit/rest";
 import { db } from "@repo/database";
 import { and, eq } from "drizzle-orm";
@@ -6,20 +5,20 @@ import { getInstallationToken } from "./auth";
 
 // common shape for handlers
 export interface KeywordContext {
-	issueKey: number;
+	taskKey: number;
 	owner: string;
+	repoId: number;
 	repo: string;
 	number: number;
 	installationId: number;
 	merged?: boolean;
+	orgId: string;
 }
 
-// --- Example Sayr action stubs ---
-// (replace these with your actual Sayr API calls later)
-async function markSayrClosed(issueKey: number) {
-	const orgId = "45205CEF-184A-4D32-BE02-81341B7C15F9";
+// --- Handlers called by worker ---
+export async function handleCloseKeyword(ctx: KeywordContext) {
 	const task = await db.query.task.findFirst({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, issueKey)),
+		where: (t) => and(eq(t.organizationId, ctx.orgId), eq(t.shortId, ctx.taskKey)),
 	});
 	if (task) {
 		const data = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/update`, {
@@ -29,40 +28,29 @@ async function markSayrClosed(issueKey: number) {
 				cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
 			},
 			body: JSON.stringify({
-				org_id: orgId,
+				org_id: ctx.orgId,
 				task_id: task.id,
 				status: "done",
 			}),
 		});
 		if (!data.ok) {
-			console.error(`❌ [Sayr] Failed to close issue ${issueKey}: ${data.statusText}`);
-			return;
+			console.error(`❌ [Sayr] Failed to close issue ${ctx.taskKey}: ${data.statusText}`);
+			return `❌ Failed to close task ${ctx.taskKey}: ${data.statusText}`;
 		}
-		console.log(`✅ [Sayr] Closed issue ${issueKey}.`);
+		console.log(`✅ [Sayr] Closed issue ${ctx.taskKey}.`);
+		return `✅ Closed task ${ctx.taskKey}.`;
 	} else {
-		console.error(`❌ [Sayr] Issue ${issueKey} not found in database.`);
+		console.error(`❌ [Sayr] Issue ${ctx.taskKey} not found in database.`);
+		return `❌ task ${ctx.taskKey} not found.`;
 	}
 }
 
-async function linkSayrReference(issueKey: number) {
-	console.log(`🔗 [Sayr] Linked reference ${issueKey}.`);
-}
-
-async function markSayrBlocked(issueKey: number) {
-	console.log(`🚧 [Sayr] Marked ${issueKey} as blocked.`);
-}
-
-// --- Handlers called by worker ---
-export async function handleCloseKeyword(ctx: KeywordContext) {
-	await markSayrClosed(ctx.issueKey);
-}
-
 export async function handleLinkKeyword(ctx: KeywordContext) {
-	await linkSayrReference(ctx.issueKey);
+	console.log("🚀 ~ handleLinkKeyword ~ ctx:", ctx);
 }
 
 export async function handleBlockKeyword(ctx: KeywordContext) {
-	await markSayrBlocked(ctx.issueKey);
+	console.log("🚀 ~ handleBlockKeyword ~ ctx:", ctx);
 }
 
 // --- GitHub comment summary (optional) ---

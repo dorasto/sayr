@@ -1,3 +1,5 @@
+import { db, schema } from "@repo/database";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { enqueue } from "../../github/queue";
 import { verifySignature } from "../../github/verify";
@@ -15,8 +17,29 @@ webhookRoute.post("/github", async (c) => {
 	}
 
 	const payload = JSON.parse(rawBody);
-
 	switch (event) {
+		case "installation":
+			if (payload.action === "created") {
+				const installation = payload.installation;
+				const owner = installation.account?.login ?? "unknown";
+
+				for (const repo of payload.repositories ?? []) {
+					await db.insert(schema.githubIntegration).values({
+						id: crypto.randomUUID(),
+						installationId: installation.id,
+						repoId: repo.id,
+						repoName: repo.name,
+						owner,
+					});
+					console.log(`✅ Linked GitHub repo ${repo.full_name} (${repo.id})`);
+				}
+
+				return c.text("Installation registered ✅");
+			}
+			break;
+		case "installation_repositories":
+			await handleInstallationRepositoriesEvent(payload);
+			return c.text("Installation repositories updated ✅");
 		case "issues":
 			if (payload.action === "opened") {
 				console.log(`🪶 Issue opened: #${payload.issue.number}`);
@@ -25,6 +48,7 @@ webhookRoute.post("/github", async (c) => {
 					type: "issue_opened",
 					payload: {
 						installationId: payload.installation.id,
+						repoId: payload.repository.id,
 						repo: payload.repository.name,
 						owner: payload.repository.owner.login,
 						issue_number: payload.issue.number,
@@ -37,6 +61,7 @@ webhookRoute.post("/github", async (c) => {
 						text: payload.issue.body ?? "",
 						title: payload.issue.title ?? "",
 						owner: payload.repository.owner.login,
+						repoId: payload.repository.id,
 						repo: payload.repository.name,
 						number: payload.issue.number,
 						installationId: payload.installation.id,
@@ -60,6 +85,7 @@ webhookRoute.post("/github", async (c) => {
 					type: "issue_comment",
 					payload: {
 						installationId: payload.installation.id,
+						repoId: payload.repository.id,
 						repo: payload.repository.name,
 						owner: payload.repository.owner.login,
 						issue_number: issueNum,
@@ -73,6 +99,7 @@ webhookRoute.post("/github", async (c) => {
 						text: body,
 						title: "",
 						owner: payload.repository.owner.login,
+						repoId: payload.repository.id,
 						repo: payload.repository.name,
 						number: issueNum,
 						installationId: payload.installation.id,
@@ -94,6 +121,7 @@ webhookRoute.post("/github", async (c) => {
 						text: payload.pull_request.body ?? "",
 						title: payload.pull_request.title ?? "",
 						owner: payload.repository.owner.login,
+						repoId: payload.repository.id,
 						repo: payload.repository.name,
 						number: prNum,
 						installationId: payload.installation.id,
@@ -110,3 +138,47 @@ webhookRoute.post("/github", async (c) => {
 
 	return c.text("✅ Job(s) received");
 });
+
+async function handleInstallationRepositoriesEvent(payload: any) {
+	const installationId = payload.installation.id;
+	const owner = payload.installation.account?.login ?? "unknown";
+
+	// --- Handle added repos ---
+	if (payload.repositories_added?.length) {
+		console.log(`📦 Adding ${payload.repositories_added.length} repo(s) for install ${installationId}`);
+
+		for (const repo of payload.repositories_added) {
+			const existing = await db.query.githubIntegration.findFirst({
+				where: (g) => and(eq(g.installationId, installationId), eq(g.repoId, repo.id)),
+			});
+
+			if (!existing) {
+				await db.insert(schema.githubIntegration).values({
+					id: crypto.randomUUID(),
+					installationId,
+					repoId: repo.id,
+					repoName: repo.name,
+					owner,
+				});
+				console.log(`✅ Added repo: ${repo.full_name} (${repo.id})`);
+			}
+		}
+	}
+
+	// --- Handle removed repos ---
+	if (payload.repositories_removed?.length) {
+		console.log(`🗑 Removing ${payload.repositories_removed.length} repo(s) from install ${installationId}`);
+
+		for (const repo of payload.repositories_removed) {
+			await db
+				.delete(schema.githubIntegration)
+				.where(
+					and(
+						eq(schema.githubIntegration.installationId, installationId),
+						eq(schema.githubIntegration.repoId, repo.id)
+					)
+				);
+			console.log(`❌ Removed repo: ${repo.full_name} (${repo.id})`);
+		}
+	}
+}

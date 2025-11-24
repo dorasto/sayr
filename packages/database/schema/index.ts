@@ -8,6 +8,7 @@ import type { taskTimelineType } from "./taskTimeline.schema";
 
 export * from "./category.schema";
 export * from "./file.schema";
+export * from "./githubIntegration.schema";
 export * from "./label.schema";
 export * from "./member.schema";
 export * from "./organization.schema";
