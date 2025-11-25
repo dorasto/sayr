@@ -62,7 +62,7 @@ export function SubWrapper({
 					<Link href={backButton} className="">
 						<Button
 							variant={"ghost"}
-							className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent"
+							className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg"
 							size={"sm"}
 						>
 							<IconArrowLeft className="size-3!" />
