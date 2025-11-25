@@ -19,7 +19,7 @@ import { Input } from "@repo/ui/components/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@repo/ui/components/input-group";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
-import { IconBrandGithub, IconCheck, IconUser, IconUsers } from "@tabler/icons-react";
+import { IconBrandGithub, IconBrandGithubFilled, IconCheck, IconUser, IconUsers } from "@tabler/icons-react";
 import { useLayoutData } from "@/app/admin/Context";
 import type { GithubUserType } from "@/app/admin/settings/connections/page";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
@@ -38,8 +38,11 @@ export default function UserConnections({ githubUser }: Props) {
 		<div className="bg-card rounded-lg flex flex-col">
 			<Tile className="md:w-full">
 				<TileHeader>
-					<TileIcon className="[&_svg]:size-9 bg-transparent">
-						<Avatar className="h-10 w-10 rounded-md">
+					<TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
+						<div className="absolute z-50 -bottom-0.5 -right-0.5 bg-accent p-0.5 rounded-xl">
+							<IconBrandGithubFilled className="size-4! mx-auto my-auto" />
+						</div>
+						<Avatar className="w-full h-full rounded-md">
 							<AvatarImage
 								// github organization image
 								src={githubUser?.avatar_url || ""}
