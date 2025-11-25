@@ -1,6 +1,6 @@
-# 🚀 Project Management Tool
+# 🚀 Sayr.io
 
-A modern, transparent, and collaborative **project management platform** designed for teams who value openness and efficiency. Built with a cutting-edge tech stack, this tool bridges internal workflows with public collaboration through granular privacy controls.
+A modern, transparent, and collaborative **project management platform** designed for teams who value openness and efficiency. Bridge internal workflows with public collaboration.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.4+-black?logo=next.js)](https://nextjs.org/)
@@ -14,34 +14,31 @@ A modern, transparent, and collaborative **project management platform** designe
 ## ✨ Features
 
 ### 🔐 Authentication & Authorization
-- **OAuth Integration** with GitHub and custom providers (Doras)
+- **OAuth Integration** with [GitHub](https://github.com) and [Doras.to](https://doras.to)
 - **Role-Based Access Control** with distinct permissions for external users vs. organization members
 - **Session Management** powered by [Better Auth](https://www.better-auth.com/)
 
 ### 📋 Task Management
-- **Organizations & Teams** — Multi-tenant architecture with organization-scoped projects
-- **Rich Task Properties** — Title, status, priority, categories, labels, and assignees
-- **Visibility Controls** — Per-field public/private toggles for granular privacy
-- **Status Workflows** — Backlog → Todo → In Progress → Done → Canceled
-- **Priority Levels** — None, Low, Medium, High, Urgent
-- **Custom Labels** — Color-coded, organization-scoped labels with visibility options
+- **Organizations & Teams**
+- **Rich Task Properties**
+- **Visibility Controls**
+- **Status Workflows**
+- **Priority Levels**
+- **Custom Labels**
 
 ### 💬 Collaboration
-- **Threaded Comments** — Public and internal discussions on a unified timeline
-- **Task Timeline** — Full activity history for tracking changes
-- **Real-Time Updates** — WebSocket support for live notifications
-- **File Uploads** — Secure object storage with MinIO/S3-compatible backends
+- **Threaded Comments** - Public and internal discussions on a unified timeline
+- **Task Timeline** - Full activity history for tracking changes
+- **Real-Time Updates** - WebSocket support for live notifications
+- **File Uploads** - Secure object storage with MinIO/S3-compatible backends
 
 ### 🎨 Modern UI
-- **Responsive Design** — Mobile-first approach with adaptive layouts
-- **Dark Mode** — System-aware theme switching
-- **Rich Components** — Built on Shadcn/ui with Radix primitives
-- **Block Editor** — BlockNote-powered rich text editing
+- **Responsive Design** - With adaptive layouts
+- **Rich Components** - Built on [Shadcn/ui](https://ui.shadcn.com) with Radix primitives
+- **Block Editor** - [BlockNote](https://www.blocknotejs.org/) rich text editing
 
 ### 🔗 Integrations
-- **GitHub Integration** — Link repositories, issues, and pull requests
-- **Extensible API** — RESTful endpoints with WebSocket support
-
+- **GitHub Integration** — Link repositories, issues, and more
 ---
 
 ## 🛠️ Tech Stack
@@ -49,21 +46,20 @@ A modern, transparent, and collaborative **project management platform** designe
 ### Frontend
 | Technology | Purpose |
 |------------|---------|
-| [Next.js 15](https://nextjs.org/) | React framework with App Router & Turbopack |
-| [React 19](https://react.dev/) | UI library with Server Components |
-| [TailwindCSS 4.1](https://tailwindcss.com/) | Utility-first CSS framework |
+| [Next.js](https://nextjs.org/) | React framework with App Router & Turbopack |
+| [React](https://react.dev/) | UI library with Server Components |
+| [TailwindCSS](https://tailwindcss.com/) | Utility-first CSS framework |
 | [Shadcn/ui](https://ui.shadcn.com/) | Accessible component library |
 | [TanStack Query](https://tanstack.com/query) | Server state management |
-| [TanStack Table](https://tanstack.com/table) | Headless table utilities |
+| [TanStack Store](https://tanstack.com/store) | Store management |
 | [BlockNote](https://blocknotejs.org/) | Block-based rich text editor |
-| [Lucide](https://lucide.dev/) | Icon library |
 
 ### Backend
 | Technology | Purpose |
 |------------|---------|
-| [Bun](https://bun.sh/) | Fast JavaScript runtime |
+| [Bun](https://bun.sh/) | JavaScript runtime |
 | [Hono](https://hono.dev/) | Lightweight web framework |
-| [Drizzle ORM](https://orm.drizzle.team/) | TypeScript ORM for PostgreSQL |
+| [Drizzle ORM](https://orm.drizzle.team/) | TypeScript ORM |
 | [PostgreSQL](https://www.postgresql.org/) | Primary database |
 | [Redis](https://redis.io/) | Caching and queues (via ioredis) |
 | [MinIO](https://min.io/) | S3-compatible object storage |
@@ -128,58 +124,6 @@ project-management-tool/
 - **pnpm** 10.6+ (`npm install -g pnpm`)
 - **PostgreSQL** 15+
 - **Docker** (optional, for containerized development)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/dorasto/project-management-tool.git
-   cd project-management-tool
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` with your configuration:
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/project_management"
-   
-   # Auth providers
-   GITHUB_CLIENT_ID="your_github_client_id"
-   GITHUB_CLIENT_SECRET="your_github_client_secret"
-   
-   # Storage
-   STORAGE_URL="your_minio_endpoint"
-   STORAGE_ACCESS_KEY="your_access_key"
-   STORAGE_SECRET_KEY="your_secret_key"
-   STORAGE_BUCKET="your_bucket_name"
-   
-   # URLs
-   NEXT_PUBLIC_URL_ROOT="http://localhost:3000"
-   NEXT_PUBLIC_API_SERVER="http://localhost:5468"
-   ```
-
-4. **Push database schema**
-   ```bash
-   cd packages/database
-   pnpm db:push
-   ```
-
-5. **Start development servers**
-   ```bash
-   pnpm dev
-   ```
-   This starts:
-   - **Web app**: http://localhost:3000
-   - **API server**: http://localhost:5468
-
----
 
 ## 📜 Available Commands
 
@@ -247,23 +191,17 @@ We welcome contributions! Here's how you can help:
    - Use TypeScript for type safety
    - Write meaningful commit messages
 
-4. **Lint and format**
-   ```bash
-   pnpm lint:fix
-   pnpm format-write
-   ```
-
-5. **Check types**
+4. **Check types**
    ```bash
    pnpm check-types
    ```
 
-6. **Commit your changes**
+5. **Commit your changes**
    ```bash
    git commit -m "feat: add amazing feature"
    ```
 
-7. **Push and create a Pull Request**
+6. **Push and create a Pull Request**
    ```bash
    git push origin feature/amazing-feature
    ```
