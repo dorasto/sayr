@@ -19,9 +19,20 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@repo/ui/component
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { IconBrandGithub, IconCheck, IconUser } from "@tabler/icons-react";
+import { useLayoutData } from "@/app/admin/Context";
+import type { GithubUserType } from "@/app/admin/settings/connections/page";
+import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { ThemeToggle } from "../../theme-toggle";
 
-export default function UserConnections() {
+interface Props {
+	githubUser: GithubUserType | null | undefined;
+}
+
+export default function UserConnections({ githubUser }: Props) {
+	const { ws } = useLayoutData();
+	useWebSocketSubscription({
+		ws,
+	});
 	return (
 		<div className="bg-card rounded-lg flex flex-col">
 			<Tile className="md:w-full">
@@ -33,6 +44,7 @@ export default function UserConnections() {
 
 					<TileDescription className="text-xs">Connect to sync activity</TileDescription>
 				</TileHeader>
+				{githubUser?.name}
 				<TileAction>
 					<Button
 						variant={"accent"}
@@ -44,6 +56,17 @@ export default function UserConnections() {
 						}}
 					>
 						Connect
+					</Button>
+					<Button
+						variant={"accent"}
+						onClick={async () => {
+							await authClient.unlinkAccount({
+								providerId: "github", // Provider to link
+							});
+							window.location.reload();
+						}}
+					>
+						Disconnect
 					</Button>
 				</TileAction>
 			</Tile>
