@@ -1,8 +1,8 @@
 import { db, schema } from "@repo/database";
+import { verifySignature } from "@repo/util/github/verify";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { enqueue } from "../../github/queue";
-import { verifySignature } from "../../github/verify";
 
 export const webhookRoute = new Hono();
 webhookRoute.post("/github", async (c) => {
@@ -69,7 +69,8 @@ async function handleContentEvents(event: string, payload: any) {
 	const linked = await db.query.githubRepository.findFirst({
 		where: and(
 			eq(schema.githubRepository.installationId, installationId),
-			eq(schema.githubRepository.repoId, repoId)
+			eq(schema.githubRepository.repoId, repoId),
+			eq(schema.githubRepository.repoId, repository.id)
 		),
 	});
 
@@ -93,6 +94,7 @@ async function handleContentEvents(event: string, payload: any) {
 						installationId: payload.installation.id,
 						eventType: "issue",
 						organizationId: linked.organizationId,
+						categoryId: linked.categoryId,
 					},
 				});
 			}
@@ -118,6 +120,7 @@ async function handleContentEvents(event: string, payload: any) {
 						eventType: "comment",
 						merged: false,
 						organizationId: linked.organizationId,
+						categoryId: linked.categoryId,
 					},
 				});
 			}

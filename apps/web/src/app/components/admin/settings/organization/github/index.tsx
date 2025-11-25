@@ -34,29 +34,54 @@ import {
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import {
-	IconBadge,
 	IconBrandGithub,
-	IconCircle,
 	IconCircleFilled,
 	IconDots,
 	IconExternalLink,
 	IconPlus,
-	IconProgress,
 	IconSettings,
-	IconUserCancel,
 	IconUsers,
 	IconX,
 } from "@tabler/icons-react";
-import Link from "next/link";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { useLayoutOrganizationSettings } from "@/app/admin/settings/org/[org_id]/Context";
 import RenderIcon from "@/app/components/RenderIcon";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
+import { createGithubSyncConnectionAction } from "@/app/lib/fetches";
+import { useToastAction } from "@/app/lib/util";
 
-export default function SettingsOrganizationConnectionsGitHubPage() {
+export type githubInstallationDetailsType = {
+	installationId: number;
+	installDate: string;
+	joinUserName: string | null;
+	account: {
+		login: string;
+		id: number;
+		type: string;
+		avatar_url: string;
+		html_url: string;
+	};
+	target_type: string;
+	app_id: number;
+	permissions: Record<string, "read" | "write" | undefined>;
+	repositories: Array<{
+		id: number;
+		name: string;
+		full_name: string;
+		owner: string;
+		private: boolean;
+	}>;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+interface Props {
+	githubInfo: githubInstallationDetailsType | null;
+}
+
+export default function SettingsOrganizationConnectionsGitHubPage({ githubInfo }: Props) {
 	const { ws } = useLayoutData();
-	const { organization } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
 	});
@@ -71,8 +96,8 @@ export default function SettingsOrganizationConnectionsGitHubPage() {
 								<Avatar className="h-10 w-10 rounded-md">
 									<AvatarImage
 										// github organization image
-										// src={member.user.image || ""}
-										// alt={member.user.name}
+										src={githubInfo?.account.avatar_url || ""}
+										alt={githubInfo?.account.login}
 										className="rounded-none"
 									/>
 									<AvatarFallback className="rounded-md uppercase text-xs">
@@ -80,8 +105,10 @@ export default function SettingsOrganizationConnectionsGitHubPage() {
 									</AvatarFallback>
 								</Avatar>
 							</TileIcon>
-							<TileTitle>Org name</TileTitle>
-							<TileDescription>Connected by user - date</TileDescription>
+							<TileTitle>{githubInfo?.account.login}</TileTitle>
+							<TileDescription>
+								Connected by {githubInfo?.joinUserName} - {githubInfo?.createdAt.toISOString()}
+							</TileDescription>
 						</TileHeader>
 						<TileAction className="">
 							<Button variant={"ghost"} size={"icon"}>
@@ -104,9 +131,8 @@ export default function SettingsOrganizationConnectionsGitHubPage() {
 	);
 }
 
-export function SettingsOrganizationConnectionsGitHubSync() {
+export function SettingsOrganizationConnectionsGitHubSync({ githubInfo }: Props) {
 	const { ws } = useLayoutData();
-	const { organization } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
 	});
@@ -210,7 +236,11 @@ export function SettingsOrganizationConnectionsGitHubSync() {
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
-			<SettingsOrganizationConnectionsGitHubSyncDialog open={isSyncDialogOpen} onOpenChange={setIsSyncDialogOpen} />
+			<SettingsOrganizationConnectionsGitHubSyncDialog
+				open={isSyncDialogOpen}
+				onOpenChange={setIsSyncDialogOpen}
+				githubInfo={githubInfo}
+			/>
 		</>
 	);
 }
@@ -218,22 +248,19 @@ export function SettingsOrganizationConnectionsGitHubSync() {
 interface SettingsOrganizationConnectionsGitHubSyncDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	githubInfo: githubInstallationDetailsType | null;
 }
 export function SettingsOrganizationConnectionsGitHubSyncDialog({
 	open,
 	onOpenChange,
+	githubInfo,
 }: SettingsOrganizationConnectionsGitHubSyncDialogProps) {
-	const { categories } = useLayoutOrganizationSettings();
+	const { categories, organization } = useLayoutOrganizationSettings();
 	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
 	const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-	const repos = [
-		{ id: "repo-1", name: "dorasto/project-management-tool" },
-		{ id: "repo-2", name: "dorasto/ui" },
-	];
-
-	const selectedRepoName = repos.find((r) => r.id === selectedRepo)?.name;
+	const selectedRepoName = githubInfo?.repositories.find((r) => r.full_name === selectedRepo)?.name;
 	const selectedCategoryData = categories.find((c) => c.id === selectedCategory);
+	const { runWithToast, isFetching } = useToastAction();
 
 	return (
 		<AdaptiveDialog open={open} onOpenChange={onOpenChange}>
@@ -259,11 +286,11 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 								<ComboBoxList>
 									<ComboBoxEmpty>No repository found.</ComboBoxEmpty>
 									<ComboBoxGroup>
-										{repos.map((repo) => (
-											<ComboBoxItem key={repo.id} value={repo.id} searchValue={repo.name}>
+										{githubInfo?.repositories.map((repo) => (
+											<ComboBoxItem key={repo.id} value={repo.full_name} searchValue={repo.name}>
 												<div className="flex items-center gap-2">
 													<IconBrandGithub className="size-4!" />
-													<span>{repo.name}</span>
+													<span>{repo.full_name}</span>
 												</div>
 											</ComboBoxItem>
 										))}
@@ -317,7 +344,45 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 				</AdaptiveDialogBody>
 				<AdaptiveDialogFooter>
 					<AdaptiveDialogClose asChild>
-						<Button variant={"accent"}>Save</Button>
+						<Button
+							variant={"accent"}
+							onClick={async () => {
+								const repoId = githubInfo?.repositories.find((r) => r.full_name === selectedRepo)?.id;
+								const repoName = githubInfo?.repositories.find((r) => r.full_name === selectedRepo)?.name;
+								if (!githubInfo || !selectedRepo || !selectedCategory || !repoId || !repoName) return;
+								const data = await runWithToast(
+									"create-github-sync-connection",
+									{
+										loading: {
+											title: "Creating sync connection...",
+											description: "Please wait while we create the sync connection.",
+										},
+										success: {
+											title: "Sync connection created",
+											description: "The sync connection has been successfully created.",
+										},
+										error: {
+											title: "Failed to create sync connection",
+											description: "An error occurred while creating the sync connection.",
+										},
+									},
+									() =>
+										createGithubSyncConnectionAction(organization.id, {
+											installationId: githubInfo?.installationId,
+											repoId: repoId,
+											repoName: repoName,
+											categoryId: selectedCategory,
+										})
+								);
+								if (data?.success && data.data) {
+									onOpenChange(false);
+									window.location.reload();
+								}
+							}}
+							disabled={isFetching}
+						>
+							Save
+						</Button>
 					</AdaptiveDialogClose>
 				</AdaptiveDialogFooter>
 			</AdaptiveDialogContent>

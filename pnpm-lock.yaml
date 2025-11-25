@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@octokit/rest':
+        specifier: ^22.0.1
+        version: 22.0.1
       drizzle-orm:
         specifier: ^0.44.5
         version: 0.44.5(bun-types@1.2.23)(kysely@0.28.5)(pg@8.16.3)(postgres@3.4.3)
@@ -27,9 +30,6 @@ importers:
 
   apps/backend:
     dependencies:
-      '@octokit/rest':
-        specifier: ^22.0.1
-        version: 22.0.1
       '@repo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -42,18 +42,12 @@ importers:
       '@repo/util':
         specifier: workspace:*
         version: link:../../packages/util
-      '@types/jsonwebtoken':
-        specifier: ^9.0.10
-        version: 9.0.10
       hono:
         specifier: ^4.8.4
         version: 4.9.4
       ioredis:
         specifier: ^5.8.2
         version: 5.8.2
-      jsonwebtoken:
-        specifier: ^9.0.2
-        version: 9.0.2
     devDependencies:
       '@hono/node-server':
         specifier: ^1.15.0
@@ -481,6 +475,13 @@ importers:
         version: 5.8.3
 
   packages/util:
+    dependencies:
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*

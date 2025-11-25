@@ -22,7 +22,8 @@
 		"@types/node": "^24.0.14"
 	},
 	"dependencies": {
-        "drizzle-orm": "^0.44.5"
+        "drizzle-orm": "^0.44.5",
+        "@octokit/rest": "^22.0.1"
 	},
 	"packageManager": "pnpm@10.6.2"
 }

@@ -10,6 +10,10 @@
         ".": "./src/index.ts",
         "./*": "./src/*.ts"
     },
+    "peerDependencies": {
+		"@types/jsonwebtoken": "^9.0.10",
+		"jsonwebtoken": "^9.0.2"
+    },
     "scripts": {},
     "devDependencies": {
         "@repo/typescript-config": "workspace:*",

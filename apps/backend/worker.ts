@@ -9,8 +9,9 @@ import { extractSayrKeywords } from "./github/keywords";
 import { dequeue, type Job } from "./github/queue";
 
 async function handleSayrKeywordParse(job: Job) {
-	const { text, eventType, number, owner, repoId, repo, merged, installationId, organizationId } = job.payload;
-	if (!organizationId) {
+	const { text, eventType, number, owner, repoId, repo, merged, installationId, organizationId, categoryId } =
+		job.payload;
+	if (!organizationId || !categoryId) {
 		return;
 	}
 	console.log(`🔍 [${repo}#${number}] Checking ${eventType} for Sayr keywords...`);
@@ -29,6 +30,7 @@ async function handleSayrKeywordParse(job: Job) {
 		installationId,
 		merged,
 		orgId: organizationId,
+		categoryId,
 	};
 
 	const summaryLines: string[] = [];

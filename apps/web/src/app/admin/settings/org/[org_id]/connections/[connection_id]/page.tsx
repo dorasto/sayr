@@ -1,13 +1,16 @@
+import { db, schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
+import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
 import { IconPlus } from "@tabler/icons-react";
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { connections } from "@/app/components/admin/settings/organization/connections-data";
 import SettingsOrganizationConnectionsGitHubPage, {
+	type githubInstallationDetailsType,
 	SettingsOrganizationConnectionsGitHubSync,
 } from "@/app/components/admin/settings/organization/github";
 import { SubWrapper } from "@/app/components/layout/wrapper";
-
 export default async function ConnectionPage({
 	params,
 }: {
@@ -29,14 +32,23 @@ export default async function ConnectionPage({
 			backButton={`/admin/settings/org/${(await params).org_id}/connections`}
 			backButtonText="Connections"
 		>
-			{renderConnectionComponent(connection_id)}
+			{await renderConnectionComponent(connection_id, (await params).org_id)}
 		</SubWrapper>
 	);
 }
 
-const renderConnectionComponent = (connectionId: string) => {
+const renderConnectionComponent = async (connectionId: string, org_id: string) => {
 	switch (connectionId) {
-		case "github":
+		case "github": {
+			let githubInfo: githubInstallationDetailsType | null = null;
+			const github = await db.query.githubInstallation.findFirst({
+				where: eq(schema.githubInstallation.organizationId, org_id),
+				with: { user: {} },
+			});
+			if (github) {
+				githubInfo = await getInstallationDetailsWithRepos(github);
+			}
+
 			return (
 				<>
 					<div className="flex flex-col gap-3">
@@ -51,7 +63,7 @@ const renderConnectionComponent = (connectionId: string) => {
 								<IconPlus />
 							</Button>
 						</div>
-						<SettingsOrganizationConnectionsGitHubPage />
+						<SettingsOrganizationConnectionsGitHubPage githubInfo={githubInfo} />
 					</div>
 					<div className="flex flex-col gap-3">
 						{/* <div className="flex items-start justify-between">
@@ -63,10 +75,11 @@ const renderConnectionComponent = (connectionId: string) => {
 								<IconPlus />
 							</Button>
 						</div> */}
-						<SettingsOrganizationConnectionsGitHubSync />
+						<SettingsOrganizationConnectionsGitHubSync githubInfo={githubInfo} />
 					</div>
 				</>
 			);
+		}
 		// Add more cases here for different connection types
 		default:
 			return null;

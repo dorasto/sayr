@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { db } from "@repo/database";
+import { getInstallationToken } from "@repo/util/github/auth";
 import { and, eq } from "drizzle-orm";
-import { getInstallationToken } from "./auth";
 
 // common shape for handlers
 export interface KeywordContext {
@@ -13,12 +13,13 @@ export interface KeywordContext {
 	installationId: number;
 	merged?: boolean;
 	orgId: string;
+	categoryId: string;
 }
 
 // --- Handlers called by worker ---
 export async function handleCloseKeyword(ctx: KeywordContext) {
 	const task = await db.query.task.findFirst({
-		where: (t) => and(eq(t.organizationId, ctx.orgId), eq(t.shortId, ctx.taskKey)),
+		where: (t) => and(eq(t.organizationId, ctx.orgId), eq(t.shortId, ctx.taskKey), eq(t.category, ctx.categoryId)),
 	});
 	if (task) {
 		const data = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/update`, {
@@ -40,8 +41,8 @@ export async function handleCloseKeyword(ctx: KeywordContext) {
 		console.log(`✅ [Sayr] Closed issue ${ctx.taskKey}.`);
 		return `✅ Closed task ${ctx.taskKey}.`;
 	} else {
-		console.error(`❌ [Sayr] Issue ${ctx.taskKey} not found in database.`);
-		return `❌ task ${ctx.taskKey} not found.`;
+		console.error(`❌ [Sayr] Issue ${ctx.taskKey} not found within org ${ctx.orgId} and category ${ctx.categoryId}.`);
+		return `❌ task ${ctx.taskKey} not found within this organization or category.`;
 	}
 }
 

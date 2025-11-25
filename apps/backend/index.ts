@@ -1,4 +1,6 @@
 import type { auth } from "@repo/auth/index";
+import { db, schema } from "@repo/database";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
@@ -7,6 +9,7 @@ import { safeGetSession } from "@/getSession";
 import { apiRoute } from "./routes/api";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
+import { checkMembershipRole } from "./util";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -102,6 +105,33 @@ app.use("*", async (c, next) => {
 	c.set("user", session.user);
 	c.set("session", session.session);
 	return next();
+});
+app.get("/github/org-check", async (c) => {
+	const installationId = Number(c.req.query("installation_id"));
+	const stateRaw = c.req.query("state") || "{}";
+	const orgId = stateRaw.split("org_")[1];
+	if (!installationId || !orgId) {
+		return c.text("❌ Missing installation_id or orgId", 400);
+	}
+	const session = c.get("session");
+	const isAuthorized = await checkMembershipRole(session?.userId, orgId);
+	if (!isAuthorized) return c.text("❌ Unauthorized", 403);
+	const found = await db.query.githubInstallation.findFirst({
+		where: eq(schema.githubInstallation.installationId, installationId),
+	});
+	if (found?.organizationId) {
+		return c.text("❌ Installation already linked", 400);
+	}
+	await db
+		.update(schema.githubInstallation)
+		.set({
+			organizationId: orgId,
+			userId: session?.userId || "",
+		})
+		.where(eq(schema.githubInstallation.installationId, installationId));
+	const root = process.env.NEXT_PUBLIC_URL_ROOT || "http://localhost:3000/";
+	const redirectUrl = new URL(`/admin/settings/org/${orgId}/connections/github`, root).toString();
+	return c.redirect(redirectUrl, 302);
 });
 app.route("/api", apiRoute);
 

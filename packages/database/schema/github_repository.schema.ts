@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import { user } from "./auth";
 import { category } from "./category.schema";
 import { githubInstallation } from "./github_installation.schema";
 import { organization } from "./organization.schema";
@@ -14,17 +15,18 @@ export const githubRepository = table("github_repository", {
 	id: v.text("id").primaryKey(),
 
 	/** FK to installation */
-	installationId: v.text("installation_id").references(() => githubInstallation.id),
+	installationId: v
+		.integer("installation_id")
+		.notNull()
+		.references(() => githubInstallation.installationId, { onDelete: "cascade" }),
 
 	/** Repo-specific data */
 	repoId: v.integer("repo_id").notNull(),
 	repoName: v.text("repo_name").notNull(),
-	owner: v.text("owner").notNull(),
 
-	/** Optional links to Sayr domain models */
-	organizationId: v.text("organization_id").references(() => organization.id),
-	categoryId: v.text("category_id").references(() => category.id),
-
+	organizationId: v.text("organization_id").references(() => organization.id, { onDelete: "cascade" }),
+	categoryId: v.text("category_id").references(() => category.id, { onDelete: "cascade" }),
+	userId: v.text("user_id").references(() => user.id, { onDelete: "set null" }),
 	/** Timestamps */
 	createdAt: v.timestamp("created_at").defaultNow().notNull(),
 	updatedAt: v.timestamp("updated_at").defaultNow().notNull(),
@@ -47,5 +49,9 @@ export const githubRepositoryRelations = relations(githubRepository, ({ one }) =
 	category: one(category, {
 		fields: [githubRepository.categoryId],
 		references: [category.id],
+	}),
+	user: one(user, {
+		fields: [githubRepository.userId],
+		references: [user.id],
 	}),
 }));

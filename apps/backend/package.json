@@ -8,15 +8,12 @@
 		"start": "bun ./dist/index.js"
 	},
 	"dependencies": {
-		"@octokit/rest": "^22.0.1",
 		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/storage": "workspace:*",
 		"@repo/util": "workspace:*",
-		"@types/jsonwebtoken": "^9.0.10",
 		"hono": "^4.8.4",
-		"ioredis": "^5.8.2",
-		"jsonwebtoken": "^9.0.2"
+		"ioredis": "^5.8.2"
 	},
 	"devDependencies": {
 		"@hono/node-server": "^1.15.0",

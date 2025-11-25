@@ -518,6 +518,38 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 		data: views,
 	});
 });
+apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
+	const session = c.get("session");
+	const { org_id, repo_id, repo_name, installation_id, category_id } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const found = await db.query.githubRepository.findFirst({
+		where: and(
+			eq(schema.githubRepository.installationId, installation_id),
+			eq(schema.githubRepository.repoId, repo_id),
+			eq(schema.githubRepository.organizationId, org_id),
+			eq(schema.githubRepository.categoryId, category_id)
+		),
+	});
+	if (found) {
+		return c.json({ success: false, error: "Repository already synced." }, 400);
+	}
+	const result = await db.insert(schema.githubRepository).values({
+		id: crypto.randomUUID(),
+		installationId: installation_id,
+		repoId: repo_id,
+		repoName: repo_name,
+		organizationId: org_id,
+		categoryId: category_id,
+		userId: session?.userId || "",
+	});
+	return c.json({
+		success: true,
+		data: result,
+	});
+});
 
 // Task routes
 apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);

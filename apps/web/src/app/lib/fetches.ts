@@ -847,6 +847,83 @@ export async function deleteCategoryAction(
 }
 
 /**
+ * Synchronizes a GitHub repository with an organization’s task system.
+ *
+ * Sends a POST request to the `/admin/organization/connections/github/sync-repo`
+ * API endpoint to link a GitHub repo (via installation) to an
+ * organization category for task tracking or automation.
+ *
+ * @param organizationId - The unique ID of the organization performing the sync.
+ * @param data - Repository sync details, including:
+ *   - `installationId` — The GitHub App installation ID for the connected account.
+ *   - `repoId` — The GitHub repository ID to sync.
+ *   - `repoName` — The name of the repository.
+ *   - `categoryId` — The internal category ID used to assign tasks.
+ *
+ * @returns A promise resolving to an object:
+ * ```ts
+ * {
+ *   success: boolean;            // Whether the sync action succeeded
+ *   data: schema.labelType[];    // Data returned by the server (labels or sync records)
+ *   error?: string;              // Error message if the operation failed
+ * }
+ * ```
+ *
+ * @example
+ * ```ts
+ * const result = await createGithubSyncConnectionAction("org_123", {
+ *   installationId: 987654,
+ *   repoId: 123456,
+ *   repoName: "frontend-ui",
+ *   categoryId: "cat_45"
+ * });
+ *
+ * if (result.success) {
+ *   console.log("Repository synced:", result.data);
+ * } else {
+ *   console.error("Sync failed:", result.error);
+ * }
+ * ```
+ */
+export async function createGithubSyncConnectionAction(
+	organizationId: string,
+	data: {
+		installationId: number;
+		repoId: number;
+		repoName: string;
+		categoryId: string;
+	}
+): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		installation_id: data.installationId,
+		repo_id: data.repoId,
+		repo_name: data.repoName,
+		category_id: data.categoryId,
+	};
+
+	const result = await fetch(
+		`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/connections/github/sync-repo`,
+		{
+			method: "POST",
+			body: JSON.stringify(payload),
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include", // 👈 ensures cookies/session are sent
+		}
+	).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to add sync repo");
+		}
+		return json;
+	});
+
+	return result;
+}
+
+/**
  * Calls the `/admin/tasks/mine` API to fetch all tasks assigned to the current user.
  *
  * Retrieves all tasks assigned to the authenticated user across all organizations.
