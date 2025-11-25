@@ -1,5 +1,3 @@
-import { db } from "@repo/database";
-import { and, eq } from "drizzle-orm";
 import {
 	handleBlockKeyword,
 	handleCloseKeyword,
@@ -11,15 +9,8 @@ import { extractSayrKeywords } from "./github/keywords";
 import { dequeue, type Job } from "./github/queue";
 
 async function handleSayrKeywordParse(job: Job) {
-	const { text, eventType, number, owner, repoId, repo, merged, installationId } = job.payload;
-	const integration = await db.query.githubIntegration.findFirst({
-		where: (g) => and(eq(g.installationId, installationId), eq(g.repoId, repoId)),
-	});
-	if (!integration) {
-		return;
-	}
-	const orgId = integration?.organizationId;
-	if (!orgId) {
+	const { text, eventType, number, owner, repoId, repo, merged, installationId, organizationId } = job.payload;
+	if (!organizationId) {
 		return;
 	}
 	console.log(`🔍 [${repo}#${number}] Checking ${eventType} for Sayr keywords...`);
@@ -37,7 +28,7 @@ async function handleSayrKeywordParse(job: Job) {
 		number,
 		installationId,
 		merged,
-		orgId,
+		orgId: organizationId,
 	};
 
 	const summaryLines: string[] = [];

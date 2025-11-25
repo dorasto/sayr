@@ -5,7 +5,6 @@ import { enqueue } from "../../github/queue";
 import { verifySignature } from "../../github/verify";
 
 export const webhookRoute = new Hono();
-
 webhookRoute.post("/github", async (c) => {
 	const signature = c.req.header("x-hub-signature-256");
 	const event = c.req.header("x-github-event");
@@ -17,44 +16,71 @@ webhookRoute.post("/github", async (c) => {
 	}
 
 	const payload = JSON.parse(rawBody);
+
 	switch (event) {
 		case "installation":
 			if (payload.action === "created") {
 				const installation = payload.installation;
-				const owner = installation.account?.login ?? "unknown";
+				const installationId = installation.id;
 
-				for (const repo of payload.repositories ?? []) {
-					await db.insert(schema.githubIntegration).values({
-						id: crypto.randomUUID(),
-						installationId: installation.id,
-						repoId: repo.id,
-						repoName: repo.name,
-						owner,
-					});
-					console.log(`✅ Linked GitHub repo ${repo.full_name} (${repo.id})`);
-				}
+				// ✅ Create only the installation record
+				await db.insert(schema.githubInstallation).values({
+					id: crypto.randomUUID(),
+					installationId,
+				});
 
+				console.log(`✅ Created installation record ${installationId}`);
 				return c.text("Installation registered ✅");
 			}
+
+			if (payload.action === "deleted") {
+				// Clean up if app is uninstalled
+				const installationId = payload.installation.id;
+				await db
+					.delete(schema.githubInstallation)
+					.where(eq(schema.githubInstallation.installationId, installationId));
+
+				console.log(`❌ Deleted installation record ${installationId}`);
+				return c.text("Installation deleted ✅");
+			}
+
 			break;
-		case "installation_repositories":
-			await handleInstallationRepositoriesEvent(payload);
-			return c.text("Installation repositories updated ✅");
+		// other cases (issues, PRs, comments) unchanged
+		case "issues":
+		case "issue_comment":
+		case "pull_request":
+			await handleContentEvents(event, payload);
+			break;
+
+		default:
+			break;
+	}
+
+	return c.text("✅ Job(s) received");
+});
+
+// biome-ignore lint/suspicious/noExplicitAny: <fix later>
+async function handleContentEvents(event: string, payload: any) {
+	const { installation, repository } = payload;
+	const installationId = installation.id;
+	const repoId = repository.id;
+
+	// Check if this repo has been activated in Sayr
+	const linked = await db.query.githubRepository.findFirst({
+		where: and(
+			eq(schema.githubRepository.installationId, installationId),
+			eq(schema.githubRepository.repoId, repoId)
+		),
+	});
+
+	if (!linked) {
+		console.log(`⚠️ Ignoring event for unlinked repo (${repoId})`);
+		return;
+	}
+	switch (event) {
 		case "issues":
 			if (payload.action === "opened") {
 				console.log(`🪶 Issue opened: #${payload.issue.number}`);
-
-				// enqueue({
-				// 	type: "issue_opened",
-				// 	payload: {
-				// 		installationId: payload.installation.id,
-				// 		repoId: payload.repository.id,
-				// 		repo: payload.repository.name,
-				// 		owner: payload.repository.owner.login,
-				// 		issue_number: payload.issue.number,
-				// 	},
-				// });
-
 				enqueue({
 					type: "sayr_keyword_parse",
 					payload: {
@@ -66,6 +92,7 @@ webhookRoute.post("/github", async (c) => {
 						number: payload.issue.number,
 						installationId: payload.installation.id,
 						eventType: "issue",
+						organizationId: linked.organizationId,
 					},
 				});
 			}
@@ -76,23 +103,8 @@ webhookRoute.post("/github", async (c) => {
 				const issueNum = payload.issue.number;
 				const commenter = payload.comment?.user?.login ?? "unknown";
 				const body = payload.comment.body.trim();
-
-				if (commenter.endsWith("[bot]")) return c.text("Ignored bot comment");
-
+				if (commenter.endsWith("[bot]")) return;
 				console.log(`💬 Comment on #${issueNum} by ${commenter}`);
-
-				// enqueue({
-				// 	type: "issue_comment",
-				// 	payload: {
-				// 		installationId: payload.installation.id,
-				// 		repoId: payload.repository.id,
-				// 		repo: payload.repository.name,
-				// 		owner: payload.repository.owner.login,
-				// 		issue_number: issueNum,
-				// 		body,
-				// 	},
-				// });
-
 				enqueue({
 					type: "sayr_keyword_parse",
 					payload: {
@@ -105,81 +117,33 @@ webhookRoute.post("/github", async (c) => {
 						installationId: payload.installation.id,
 						eventType: "comment",
 						merged: false,
+						organizationId: linked.organizationId,
 					},
 				});
 			}
 			break;
 
-		case "pull_request":
-			if (["opened", "synchronize", "closed"].includes(payload.action)) {
-				const prNum = payload.pull_request.number;
-				console.log(`🔀 PR #${prNum} (${payload.action})`);
-
-				enqueue({
-					type: "sayr_keyword_parse",
-					payload: {
-						text: payload.pull_request.body ?? "",
-						title: payload.pull_request.title ?? "",
-						owner: payload.repository.owner.login,
-						repoId: payload.repository.id,
-						repo: payload.repository.name,
-						number: prNum,
-						installationId: payload.installation.id,
-						eventType: "pr",
-						merged: payload.pull_request.merged ?? false,
-					},
-				});
-			}
-			break;
-
+		// case "pull_request":
+		// 	if (["opened", "synchronize", "closed"].includes(payload.action)) {
+		// 		const prNum = payload.pull_request.number;
+		// 		console.log(`🔀 PR #${prNum} (${payload.action})`);
+		// 		enqueue({
+		// 			type: "sayr_keyword_parse",
+		// 			payload: {
+		// 				text: payload.pull_request.body ?? "",
+		// 				title: payload.pull_request.title ?? "",
+		// 				owner: payload.repository.owner.login,
+		// 				repoId: payload.repository.id,
+		// 				repo: payload.repository.name,
+		// 				number: prNum,
+		// 				installationId: payload.installation.id,
+		// 				eventType: "pr",
+		// 				merged: payload.pull_request.merged ?? false,
+		// 			},
+		// 		});
+		// 	}
+		// 	break;
 		default:
 			break;
-	}
-
-	return c.text("✅ Job(s) received");
-});
-
-// biome-ignore lint/suspicious/noExplicitAny: <fix later>
-async function handleInstallationRepositoriesEvent(payload: any) {
-	const installationId = payload.installation.id;
-	const owner = payload.installation.account?.login ?? "unknown";
-
-	// --- Handle added repos ---
-	if (payload.repositories_added?.length) {
-		console.log(`📦 Adding ${payload.repositories_added.length} repo(s) for install ${installationId}`);
-
-		for (const repo of payload.repositories_added) {
-			const existing = await db.query.githubIntegration.findFirst({
-				where: (g) => and(eq(g.installationId, installationId), eq(g.repoId, repo.id)),
-			});
-
-			if (!existing) {
-				await db.insert(schema.githubIntegration).values({
-					id: crypto.randomUUID(),
-					installationId,
-					repoId: repo.id,
-					repoName: repo.name,
-					owner,
-				});
-				console.log(`✅ Added repo: ${repo.full_name} (${repo.id})`);
-			}
-		}
-	}
-
-	// --- Handle removed repos ---
-	if (payload.repositories_removed?.length) {
-		console.log(`🗑 Removing ${payload.repositories_removed.length} repo(s) from install ${installationId}`);
-
-		for (const repo of payload.repositories_removed) {
-			await db
-				.delete(schema.githubIntegration)
-				.where(
-					and(
-						eq(schema.githubIntegration.installationId, installationId),
-						eq(schema.githubIntegration.repoId, repo.id)
-					)
-				);
-			console.log(`❌ Removed repo: ${repo.full_name} (${repo.id})`);
-		}
 	}
 }
