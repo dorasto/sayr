@@ -64,6 +64,7 @@ export default function UserConnections({ githubUser }: Props) {
 					{githubUser === null ? (
 						<Button
 							variant={"accent"}
+							size={"sm"}
 							onClick={async () => {
 								await authClient.linkSocial({
 									provider: "github", // Provider to link
@@ -76,6 +77,7 @@ export default function UserConnections({ githubUser }: Props) {
 					) : (
 						<Button
 							variant={"accent"}
+							size={"sm"}
 							onClick={async () => {
 								await authClient.unlinkAccount({
 									providerId: "github", // Provider to link
