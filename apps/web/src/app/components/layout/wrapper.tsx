@@ -23,7 +23,7 @@ export function Wrapper({ children, className }: Props) {
 				{/* <LeftSidebarProvider /> */}
 				<div
 					className={cn(
-						"h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-paint",
+						"h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout",
 						isTaskPage && "pt-0 pr-0",
 						className
 					)}
@@ -43,6 +43,7 @@ interface SubProps {
 	description?: string;
 	icon?: React.ReactNode;
 	backButton?: string;
+	backButtonText?: string;
 }
 export function SubWrapper({
 	children,
@@ -52,21 +53,36 @@ export function SubWrapper({
 	description,
 	icon,
 	backButton,
+	backButtonText = "Back",
 }: SubProps) {
 	return (
 		<div className="relative">
-			{backButton && (
-				<Link
-					href={backButton}
-					className="sticky top-3 left-3 w-full bg-gradient-to-b from-background to-transparent"
-				>
-					<Button variant={"ghost"} className="w-fit bg-background" size={"sm"}>
-						<IconArrowLeft />
+			<div className="sticky top-0 z-50 w-full md:h-7 bg-gradient-to-b from-background from-0% via-background/50 via-50% to-background/10 flex items-center px-3 pt-3">
+				{backButton ? (
+					<Link href={backButton} className="">
+						<Button
+							variant={"ghost"}
+							className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent"
+							size={"sm"}
+						>
+							<IconArrowLeft className="size-3!" />
+							<span className="">{backButtonText}</span>
+						</Button>
+					</Link>
+				) : (
+					<Button variant={"ghost"} className="w-fit text-xs p-1 h-auto invisible" size={"sm"}>
+						<IconArrowLeft className="size-3!" />
 						<span className="hidden lg:block">Back</span>
 					</Button>
-				</Link>
-			)}
-			<div className={cn("flex flex-col gap-9", style === "compact" && "max-w-prose mx-auto p-3 md:p-6", className)}>
+				)}
+			</div>
+			<div
+				className={cn(
+					"flex flex-col gap-9",
+					style === "compact" && "max-w-prose mx-auto p-3 md:p-6 md:pt-0",
+					className
+				)}
+			>
 				<div className="flex flex-col">
 					{icon ? (
 						<div className="flex gap-2">

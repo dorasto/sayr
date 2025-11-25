@@ -21,6 +21,7 @@ export default async function ConnectionPage({
 			icon={<connection.icon />}
 			style="compact"
 			backButton={`/admin/settings/org/${(await params).org_id}/connections`}
+			backButtonText="Connections"
 		>
 			<div className="text-2xl text-muted-foreground">
 				Connection settings for {connection.name} will appear here.
