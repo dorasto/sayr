@@ -14,7 +14,7 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
-import { checkMembershipRole } from "@/util";
+import { checkMembershipRole, getCookieValue } from "@/util";
 // import { enqueueJob } from "@/queue";
 import {
 	broadcast,
@@ -105,10 +105,12 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 // Update task details
 apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const { org_id, wsClientId, task_id, ...updates } = await c.req.json();
+	const sayrInternal = getCookieValue(c.req.raw.headers, "sayr_internal");
+	const isInternal = sayrInternal === process.env.INTERNAL_SECRET;
 	const session = c.get("session");
-
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
-	if (!isAuthorized) {
+
+	if (!isAuthorized && !isInternal) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	// 🔎 Check task existence
@@ -132,7 +134,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		await db
 			.update(schema.task)
 			.set({ ...allowed, updatedAt: new Date() })
-			.where(eq(schema.task.id, task_id))
+			.where(and(eq(schema.task.id, task_id), eq(schema.task.organizationId, org_id)))
 			.returning();
 	}
 
