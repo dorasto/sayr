@@ -4,8 +4,8 @@ import type { TimelineItemProps } from "./types";
 
 export function TimelineCreated({ item }: TimelineItemProps) {
 	return (
-		<TimelineItemWrapper item={item} icon={IconPlus} color="bg-accent text-primary-foreground">
-			Created by <AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} />
-		</TimelineItemWrapper>
+		<TimelineItemWrapper item={item} icon={IconPlus} color="bg-accent text-primary-foreground" />
+		// 	{/* Created by <AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} />
+		// </TimelineItemWrapper> */}
 	);
 }

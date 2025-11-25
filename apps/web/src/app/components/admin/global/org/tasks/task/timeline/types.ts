@@ -12,7 +12,7 @@ export interface TimelineItemWrapperProps {
 	item: schema.taskTimelineWithActor;
 	icon: React.ComponentType<{ size?: number }>;
 	color: string;
-	children: React.ReactNode;
+	children?: React.ReactNode;
 }
 
 export interface GlobalTimelineProps {

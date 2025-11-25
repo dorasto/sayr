@@ -4,8 +4,8 @@ import type { TimelineItemProps } from "./types";
 
 export function TimelineComment({ item }: TimelineItemProps) {
 	return (
-		<TimelineItemWrapper item={item} icon={IconMessageDots} color="bg-accent text-primary-foreground">
-			<AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> commented
-		</TimelineItemWrapper>
+		<TimelineItemWrapper item={item} icon={IconMessageDots} color="bg-accent text-primary-foreground" />
+		// 	{/* <AvatarWithName name={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> commented */}
+		// {/* </TimelineItemWrapper> */}
 	);
 }

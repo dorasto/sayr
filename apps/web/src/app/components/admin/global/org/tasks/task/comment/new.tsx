@@ -65,7 +65,7 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 		<div
 			className={cn(
 				"text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col",
-				visibility === "public" && "border-primary/50 bg-primary/5"
+				visibility === "internal" && "border-primary/30 bg-primary/5"
 			)}
 		>
 			<Editor
@@ -85,11 +85,11 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 			<div className="flex items-center gap-2 ml-auto">
 				<ButtonGroup>
 					<Button
-						variant={visibility === "internal" ? "accent" : "default"}
+						variant={visibility === "internal" ? "default" : "accent"}
 						size={"sm"}
 						disabled={disabled}
 						onClick={handleSubmit}
-						className={cn("border-transparent")}
+						className={cn("border-transparent", visibility === "internal" && "bg-primary/10 hover:bg-primary/20")}
 					>
 						{visibility === "internal" ? "Internal comment" : "Post comment"}
 						<IconArrowBack />
@@ -97,8 +97,11 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 					<Toggle
 						aria-label="Toggle visibility"
 						size="sm"
-						className="border-transparent hover:border-transparent"
-						variant={visibility === "internal" ? "accent" : "primary"}
+						className={cn(
+							"border-transparent hover:border-transparent",
+							visibility === "internal" && "bg-primary/10! hover:bg-primary/20!"
+						)}
+						variant={visibility === "internal" ? "primary" : "accent"}
 						pressed={visibility === "internal"}
 						disabled={disabled}
 						onPressedChange={(pressed) => setVisibility(pressed ? "internal" : "public")}
