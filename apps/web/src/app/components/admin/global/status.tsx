@@ -41,7 +41,7 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 			icon: <CheckCircle2 className="w-3.5 h-3.5" />,
 			color: "bg-success",
 			text: "text-success",
-			label: "Connected",
+			label: "",
 		},
 	} as const;
 
@@ -139,7 +139,10 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 			<div className="flex items-center gap-0.5 w-full">
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Badge variant={"secondary"} className="font-mono h-9 rounded gap-1">
+						<Badge
+							variant={"secondary"}
+							className={cn("font-mono h-9 rounded gap-1", ws.label === "" && "bg-transparent")}
+						>
 							<span className={cn("", ws.text)}>{ws.icon}</span> {ws.label}
 						</Badge>
 					</TooltipTrigger>

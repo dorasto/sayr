@@ -42,12 +42,12 @@ export default function AdminNavigation() {
 					{isTaskPage && <TaskPage />}
 					{isOrgPage && <OrganizationPage />}
 					{isMinePage && <MinePage />}
-					<StatusBar />
 
 					{/* )} */}
 				</div>
 
 				<div className="flex items-center gap-1 ml-auto">
+					<StatusBar />
 					<AdminCommand />
 				</div>
 			</div>
