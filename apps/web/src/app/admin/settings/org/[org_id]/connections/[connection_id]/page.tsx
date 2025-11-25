@@ -54,7 +54,7 @@ const renderConnectionComponent = (connectionId: string) => {
 						<SettingsOrganizationConnectionsGitHubPage />
 					</div>
 					<div className="flex flex-col gap-3">
-						<div className="flex items-start justify-between">
+						{/* <div className="flex items-start justify-between">
 							<div className="flex flex-col">
 								<Label variant={"heading"}>Task syncing</Label>
 								<Label variant={"description"}>Link categories to specific repositories for syncing</Label>
@@ -62,7 +62,7 @@ const renderConnectionComponent = (connectionId: string) => {
 							<Button variant={"ghost"} size={"icon"}>
 								<IconPlus />
 							</Button>
-						</div>
+						</div> */}
 						<SettingsOrganizationConnectionsGitHubSync />
 					</div>
 				</>
