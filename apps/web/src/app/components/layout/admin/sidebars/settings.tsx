@@ -11,30 +11,27 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarMenuSub,
+	useSidebar,
 } from "@repo/ui/components/doras-ui/sidebar";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import {
-	IconAdjustmentsHorizontal,
 	IconArrowLeft,
 	IconCategory,
 	IconCategoryFilled,
 	IconHttpConnect,
-	IconIcons,
-	IconLayoutGridAdd,
 	IconLayoutSidebar,
 	IconLayoutSidebarFilled,
 	IconPlug,
-	IconSettings,
 	IconTag,
 	IconTagFilled,
 	IconUser,
 	IconUsers,
 } from "@tabler/icons-react";
-import { useStore } from "@tanstack/react-store";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutData } from "@/app/admin/Context";
-import { sidebarActions, sidebarStore } from "@/app/lib/sidebar/sidebar-store";
+import { sidebarActions } from "@/app/lib/sidebar/sidebar-store";
 import UserDropdown from "./user-dropdown";
 
 const settingsNavigation = [
@@ -53,9 +50,10 @@ const settingsNavigation = [
 export function SettingsSidebar() {
 	const sidebarId = "primary-sidebar"; // Sharing the same ID to maintain state
 	const pathname = usePathname();
-	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
-	const isSidebarOpen = sidebar?.open ?? true;
-	const { account, organizations } = useLayoutData();
+	const { isCollapsed } = useSidebar(sidebarId);
+	const isSidebarOpen = !isCollapsed;
+	const { organizations } = useLayoutData();
+	const isMobile = useIsMobile();
 
 	return (
 		<Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
@@ -72,7 +70,7 @@ export function SettingsSidebar() {
 			</SidebarHeader>
 			<SidebarContent className="flex flex-col gap-3">
 				<SidebarGroup>
-					<SidebarGroupLabel>Settings</SidebarGroupLabel>
+					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>Settings</SidebarGroupLabel>
 					<SidebarMenu className="gap-0.5">
 						{settingsNavigation.map((item) => {
 							const isActive = pathname === item.url;
@@ -89,7 +87,7 @@ export function SettingsSidebar() {
 					</SidebarMenu>
 				</SidebarGroup>
 				<SidebarGroup className="">
-					<SidebarGroupLabel>Organizations</SidebarGroupLabel>
+					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>Organizations</SidebarGroupLabel>
 					{organizations
 						.flatMap((org) => [
 							<SidebarMenu className="gap-0.5 pb-3 last:pb-0" key={org.id}>
@@ -105,7 +103,7 @@ export function SettingsSidebar() {
 													</AvatarFallback>
 												</Avatar>
 											}
-											tooltip="Item"
+											tooltip={org.name}
 										>
 											<span>{org.name}</span>
 										</SidebarMenuButton>
@@ -119,6 +117,7 @@ export function SettingsSidebar() {
 								<SidebarMenuItem
 									className="min-h-auto"
 									isActive={pathname.includes(`/admin/settings/org/${org.id}/connections`)}
+									hideWhenCollapsed
 								>
 									<Link href={`/admin/settings/org/${org.id}/connections`} prefetch={false} className="w-full">
 										<SidebarMenuButton
@@ -137,6 +136,7 @@ export function SettingsSidebar() {
 									</Link>
 								</SidebarMenuItem>
 								<SidebarMenuItem
+									hideWhenCollapsed
 									className="min-h-auto"
 									isActive={pathname === `/admin/settings/org/${org.id}/team`}
 								>
@@ -155,6 +155,7 @@ export function SettingsSidebar() {
 									</Link>
 								</SidebarMenuItem>
 								<SidebarMenuItem
+									hideWhenCollapsed
 									className="min-h-auto"
 									isActive={pathname === `/admin/settings/org/${org.id}/labels`}
 								>
@@ -175,6 +176,7 @@ export function SettingsSidebar() {
 									</Link>
 								</SidebarMenuItem>
 								<SidebarMenuItem
+									hideWhenCollapsed
 									className="min-h-auto"
 									isActive={pathname === `/admin/settings/org/${org.id}/categories`}
 								>
@@ -204,7 +206,11 @@ export function SettingsSidebar() {
 					<SidebarMenuItem className="">
 						<SidebarMenuButton
 							size="small"
-							onClick={() => sidebarActions.toggleSidebar(sidebarId)}
+							onClick={() =>
+								isMobile
+									? sidebarActions.toggleSidebar(sidebarId, true)
+									: sidebarActions.toggleSidebar(sidebarId)
+							}
 							icon={isSidebarOpen ? <IconLayoutSidebarFilled /> : <IconLayoutSidebar />}
 						>
 							{" "}

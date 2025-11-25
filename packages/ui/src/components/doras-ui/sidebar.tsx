@@ -5,6 +5,7 @@ import { IconChevronRight, IconLayoutSidebar } from "@tabler/icons-react";
 import { useStore } from "@tanstack/react-store";
 import * as React from "react";
 import { sidebarActions, sidebarStore } from "../../../../../apps/web/src/app/lib/sidebar/sidebar-store";
+import { useIsMobile } from "../../hooks/use-mobile";
 import { Button } from "../button";
 import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../sheet";
@@ -17,14 +18,17 @@ const SIDEBAR_WIDTH_COLLAPSED = "3.5rem";
 interface SidebarContextProps {
 	id: string;
 	isCollapsed?: boolean;
+	isMobile?: boolean;
 }
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
 
 // Hook to use sidebar
 export function useSidebar(id?: string) {
 	const context = React.useContext(SidebarContext);
+	const isMobileEnv = useIsMobile();
 	const sidebarId = id ?? context?.id;
-	const isCollapsed = context?.isCollapsed;
+	const isCollapsedContext = context?.isCollapsed;
+	const isMobile = context?.isMobile ?? isMobileEnv;
 
 	if (!sidebarId) {
 		throw new Error("useSidebar must be called with an id or within a Sidebar component");
@@ -33,13 +37,21 @@ export function useSidebar(id?: string) {
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 
 	const effectiveSidebar = React.useMemo(() => {
-		if (isCollapsed && sidebar) {
+		if (isMobile && sidebar) {
+			return { ...sidebar, open: true };
+		}
+
+		if (isCollapsedContext && sidebar) {
 			return { ...sidebar, open: false, openMobile: false };
 		}
 		return sidebar;
-	}, [sidebar, isCollapsed]);
+	}, [sidebar, isCollapsedContext, isMobile]);
+
+	const state = effectiveSidebar?.open ? "expanded" : "collapsed";
 
 	return {
+		state,
+		isCollapsed: state === "collapsed",
 		sidebar: effectiveSidebar,
 		toggle: (isMobile = false) => sidebarActions.toggleSidebar(sidebarId, isMobile),
 		setOpen: (open: boolean, isMobile = false) => sidebarActions.setOpen(sidebarId, open, isMobile),
@@ -76,7 +88,7 @@ export function Sidebar({
 	children,
 	...props
 }: SidebarProps) {
-	const [isMobile, setIsMobile] = React.useState(false);
+	const isMobile = useIsMobile();
 	const [isClient, setIsClient] = React.useState(false);
 	const hasRegistered = React.useRef(false);
 
@@ -144,13 +156,6 @@ export function Sidebar({
 		}
 	}, [sidebar?.open, id, width, collapsedWidth, sidebar]);
 
-	React.useEffect(() => {
-		const checkMobile = () => setIsMobile(window.innerWidth < 768);
-		checkMobile();
-		window.addEventListener("resize", checkMobile);
-		return () => window.removeEventListener("resize", checkMobile);
-	}, []);
-
 	// Use sidebar state if available, otherwise defaultOpen
 	const isOpen = isCollapsed ? false : sidebar ? (isMobile ? sidebar.openMobile : sidebar.open) : defaultOpen;
 	const currentWidth = isOpen ? width : collapsedWidth;
@@ -158,7 +163,7 @@ export function Sidebar({
 	// Mobile: show Sheet
 	if (isMobile) {
 		return (
-			<SidebarContext.Provider value={{ id, isCollapsed }}>
+			<SidebarContext.Provider value={{ id, isCollapsed: false, isMobile: true }}>
 				<Sheet
 					open={sidebar ? sidebar.openMobile : false}
 					onOpenChange={(open) => sidebarActions.setOpen(id, open, true)}
@@ -189,7 +194,7 @@ export function Sidebar({
 	// This prevents hydration mismatch because server doesn't know localStorage state
 	if (!isClient) {
 		return (
-			<div className={cn(variantRootStyles[variant], rootClassName)}>
+			<div className={cn(variantRootStyles[variant], rootClassName, "hidden md:block")}>
 				<aside
 					data-sidebar-id={id}
 					data-variant={variant}
@@ -292,14 +297,13 @@ export function SidebarMenuItem({
 	children,
 	...props
 }: SidebarMenuItemProps) {
-	const { sidebar } = useSidebar();
-	const collapsed = sidebar && !sidebar.open;
+	const { isCollapsed: sidebarCollapsed } = useSidebar();
 
 	// Hide when collapsed if hideWhenCollapsed is true
-	if (hideWhenCollapsed && collapsed) return null;
+	if (hideWhenCollapsed && sidebarCollapsed) return null;
 
 	// Hide when expanded if showWhenCollapsed is true
-	if (showWhenCollapsed && !collapsed) return null;
+	if (showWhenCollapsed && !sidebarCollapsed) return null;
 
 	return (
 		<li
@@ -310,7 +314,7 @@ export function SidebarMenuItem({
 				"hover:bg-accent hover:text-accent-foreground",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 				isActive && "bg-accent font-medium text-accent-foreground",
-				(isCollapsed || collapsed) && "justify-center aspect-square",
+				(isCollapsed || sidebarCollapsed) && "justify-center aspect-square",
 
 				className
 			)}
@@ -324,8 +328,7 @@ export function SidebarMenuItem({
 
 // Sidebar Menu Sub
 export function SidebarMenuSub({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-	const { sidebar } = useSidebar();
-	const isCollapsed = sidebar && !sidebar.open;
+	const { isCollapsed } = useSidebar();
 
 	if (isCollapsed) return null;
 
@@ -354,8 +357,7 @@ export function SidebarMenuButton({
 	size,
 	...props
 }: SidebarMenuButtonProps) {
-	const { sidebar } = useSidebar();
-	const isCollapsed = sidebar && !sidebar.open;
+	const { isCollapsed } = useSidebar();
 
 	const button = (
 		<button
@@ -410,8 +412,7 @@ export function SidebarSubmenu({
 	...props
 }: SidebarSubmenuProps) {
 	const [isOpen, setIsOpen] = React.useState(defaultOpen);
-	const { sidebar } = useSidebar();
-	const isCollapsed = sidebar && !sidebar.open;
+	const { isCollapsed } = useSidebar();
 
 	const trigger = (
 		<button
@@ -507,16 +508,7 @@ export function SidebarTrigger({
 		throw new Error("SidebarTrigger must be used within a Sidebar component or passed a sidebarId prop");
 	}
 
-	const [isMobile, setIsMobile] = React.useState(false);
-
-	React.useEffect(() => {
-		const checkMobile = () => {
-			setIsMobile(window.innerWidth < 768);
-		};
-		checkMobile();
-		window.addEventListener("resize", checkMobile);
-		return () => window.removeEventListener("resize", checkMobile);
-	}, []);
+	const isMobile = useIsMobile();
 
 	return (
 		<Button
