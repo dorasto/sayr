@@ -7,6 +7,8 @@ import {
 	type ResizablePanelHandle,
 } from "@repo/ui/components/resizable";
 import { Separator } from "@repo/ui/components/separator";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@repo/ui/components/sheet";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { IconAdjustmentsHorizontal, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
 import { useEffect, useRef } from "react";
@@ -37,8 +39,16 @@ export default function OrganizationTasksHomePage() {
 	} = useLayoutOrganization();
 	const { tasks, setTasks } = useLayoutTasks();
 	const ref = useRef<ResizablePanelHandle>(null);
+	const useMobile = useIsMobile();
 
 	useEffect(() => {
+		if (useMobile) {
+			setProjectPanelOpen(false);
+		}
+	}, [useMobile, setProjectPanelOpen]);
+
+	useEffect(() => {
+		if (useMobile) return;
 		const panel = ref.current;
 		if (panel) {
 			if (isProjectPanelOpen) {
@@ -47,7 +57,7 @@ export default function OrganizationTasksHomePage() {
 				panel.collapse();
 			}
 		}
-	}, [isProjectPanelOpen]);
+	}, [isProjectPanelOpen, useMobile]);
 
 	useWebSocketSubscription({
 		ws,
@@ -121,7 +131,7 @@ export default function OrganizationTasksHomePage() {
 				</div>
 			</div>
 			<ResizablePanelGroup direction="horizontal">
-				<ResizablePanel defaultSize={70} minSize={70}>
+				<ResizablePanel defaultSize={useMobile ? 100 : 70} minSize={70}>
 					<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
 						<ListTasks
 							tasks={tasks}
@@ -134,20 +144,39 @@ export default function OrganizationTasksHomePage() {
 						/>
 					</div>
 				</ResizablePanel>
-				<ResizableHandle />
-				<ResizablePanel
-					defaultSize={30}
-					minSize={20}
-					collapsedSize={0}
-					collapsible={true}
-					ref={ref}
-					onCollapse={() => setProjectPanelOpen(false)}
-					onExpand={() => setProjectPanelOpen(true)}
-				>
-					<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
-						<ProjectSide />
-					</div>
-				</ResizablePanel>
+				{useMobile ? (
+					<Sheet defaultOpen={false} open={isProjectPanelOpen} onOpenChange={setProjectPanelOpen}>
+						<SheetContent className="p-0" showClose={false}>
+							<SheetHeader className="sr-only">
+								<SheetTitle>Are you absolutely sure?</SheetTitle>
+								<SheetDescription>
+									This action cannot be undone. This will permanently delete your account and remove your data
+									from our servers.
+								</SheetDescription>
+							</SheetHeader>
+							<div className="flex-1 overflow-y-auto h-full flex flex-col relative p-3">
+								<ProjectSide />
+							</div>
+						</SheetContent>
+					</Sheet>
+				) : (
+					<>
+						<ResizableHandle />
+						<ResizablePanel
+							defaultSize={isProjectPanelOpen ? 30 : 0}
+							minSize={20}
+							collapsedSize={0}
+							collapsible={true}
+							ref={ref}
+							onCollapse={() => setProjectPanelOpen(false)}
+							onExpand={() => setProjectPanelOpen(true)}
+						>
+							<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
+								<ProjectSide />
+							</div>
+						</ResizablePanel>
+					</>
+				)}
 			</ResizablePanelGroup>
 		</div>
 	);
