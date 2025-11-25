@@ -22,6 +22,7 @@ import {
 	IconUsers,
 	IconX,
 } from "@tabler/icons-react";
+import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
@@ -166,9 +167,11 @@ export default function ProjectSide() {
 					<TileTitle className="flex items-center gap-2">{organization.name}</TileTitle>
 				</TileHeader>
 				<TileAction>
-					<Button variant={"accent"} size={"icon"} onClick={() => setOpenSettings(true)}>
-						<IconSettings />
-					</Button>
+					<Link href={`/admin/settings/org/${organization.id}`}>
+						<Button variant={"accent"} size={"icon"}>
+							<IconSettings />
+						</Button>
+					</Link>
 				</TileAction>
 			</Tile>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">

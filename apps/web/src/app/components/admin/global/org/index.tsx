@@ -1,9 +1,14 @@
 "use client";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { TabbedDialogExample } from "@repo/ui/components/tomui/tabbed-dialog-example";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconCategory, IconLabel, IconPlug, IconProgress, IconTag, IconUsers } from "@tabler/icons-react";
+import Link from "next/link";
 import { useEffect } from "react";
 import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
 import { useLayoutData } from "@/app/admin/Context";
+import { SubWrapper } from "@/app/components/layout/wrapper";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
@@ -48,31 +53,96 @@ export default function OrganizationHomePage() {
 		};
 	}, [ws, handleMessage]);
 	return (
-		<div className="">
-			<TabbedDialogExample />
-			<h1>org detail {organization.name}</h1>
-			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			<img src={organization.logo || ""} alt={organization.name} />
-			{/** biome-ignore lint/performance/noImgElement: <will use> */}
-			<img src={organization.bannerImg || ""} alt={organization.name} />
-			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
-			<div className="flex items-center gap-2">
-				<span className="font-medium">WebSocket Status:</span>
-				<span
-					className={`px-2 py-1 rounded text-sm ${
-						wsStatus === "Connected" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-					}`}
-				>
-					{wsStatus}
-				</span>
+		<SubWrapper
+			title={`${organization.name}`}
+			description={`${organization.slug}.sayr.io`}
+			icon={
+				<Avatar>
+					<AvatarImage src={organization.logo || ""} alt={organization.name} />
+					<AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
+				</Avatar>
+			}
+			style="compact"
+		>
+			<div className="grid md:grid-cols-12 gap-3">
+				<Link href={`/admin/${organization.id}/tasks`} className="col-span-full">
+					<Tile className="md:w-full hover:bg-accent">
+						<TileHeader className="w-full">
+							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
+								<IconProgress className="size-10!" />
+							</TileIcon>
+							<TileTitle className="text-xl font-bold">Tasks</TileTitle>
+							<TileDescription>Let's see what awaits</TileDescription>
+						</TileHeader>
+					</Tile>
+				</Link>
+				<Link href={`/admin/settings/org/${organization.id}/categories`} className="col-span-6 row-span-2">
+					<Tile className="md:w-full hover:bg-accent h-full">
+						<TileHeader className="w-full">
+							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
+								<IconCategory />
+							</TileIcon>
+							<TileTitle className="font-bold">Categories</TileTitle>
+						</TileHeader>
+					</Tile>
+				</Link>
+				<Link href={`/admin/settings/org/${organization.id}/labels`} className="col-span-3">
+					<Tile className="md:w-full hover:bg-accent h-full">
+						<TileHeader className="w-full">
+							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
+								<IconTag />
+							</TileIcon>
+							<TileTitle className="font-bold">Labels</TileTitle>
+						</TileHeader>
+					</Tile>
+				</Link>
+				<Link href={`/admin/settings/org/${organization.id}/team`} className="col-span-3">
+					<Tile className="md:w-full hover:bg-accent">
+						<TileHeader className="w-full">
+							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
+								<IconUsers />
+							</TileIcon>
+							<TileTitle className="font-bold">Team</TileTitle>
+						</TileHeader>
+					</Tile>
+				</Link>
+				<Link href={`/admin/settings/org/${organization.id}/connections`} className="col-span-6">
+					<Tile className="md:w-full hover:bg-accent">
+						<TileHeader className="w-full">
+							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
+								<IconPlug />
+							</TileIcon>
+							<TileTitle className="font-bold">Connections</TileTitle>
+						</TileHeader>
+					</Tile>
+				</Link>
 			</div>
-			{wsSubscribedState ? (
-				<div className="text-green-600 font-medium">
-					✅ Subscribed to channel <code>{wsSubscribedState.channel}</code>
-				</div>
-			) : (
-				<div className="text-yellow-600">⏳ Waiting for subscription...</div>
-			)}
-		</div>
+		</SubWrapper>
+		// <div className="">
+		// 	<TabbedDialogExample />
+		// 	<h1>org detail {organization.name}</h1>
+		// 	{/** biome-ignore lint/performance/noImgElement: <will use> */}
+		// 	<img src={organization.logo || ""} alt={organization.name} />
+		// 	{/** biome-ignore lint/performance/noImgElement: <will use> */}
+		// 	<img src={organization.bannerImg || ""} alt={organization.name} />
+		// 	<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
+		// 	<div className="flex items-center gap-2">
+		// 		<span className="font-medium">WebSocket Status:</span>
+		// 		<span
+		// 			className={`px-2 py-1 rounded text-sm ${
+		// 				wsStatus === "Connected" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+		// 			}`}
+		// 		>
+		// 			{wsStatus}
+		// 		</span>
+		// 	</div>
+		// 	{wsSubscribedState ? (
+		// 		<div className="text-green-600 font-medium">
+		// 			✅ Subscribed to channel <code>{wsSubscribedState.channel}</code>
+		// 		</div>
+		// 	) : (
+		// 		<div className="text-yellow-600">⏳ Waiting for subscription...</div>
+		// 	)}
+		// </div>
 	);
 }
