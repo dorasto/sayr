@@ -69,8 +69,7 @@ async function handleContentEvents(event: string, payload: any) {
 	const linked = await db.query.githubRepository.findFirst({
 		where: and(
 			eq(schema.githubRepository.installationId, installationId),
-			eq(schema.githubRepository.repoId, repoId),
-			eq(schema.githubRepository.repoId, repository.id)
+			eq(schema.githubRepository.repoId, repoId)
 		),
 	});
 
