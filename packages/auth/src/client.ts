@@ -8,3 +8,7 @@ export const authClient = createAuthClient({
 export const signInDoras = async () => {
 	await authClient.signIn.oauth2({ providerId: "doras", callbackURL: "/admin" });
 };
+
+export const singInGithub = async () => {
+	await authClient.signIn.social({ provider: "github", callbackURL: "/admin" });
+};

@@ -1,5 +1,5 @@
 "use client";
-import { signInDoras } from "@repo/auth/client";
+import { signInDoras, singInGithub } from "@repo/auth/client";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
+import { IconBrandGithub } from "@tabler/icons-react";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 
@@ -89,6 +90,15 @@ export default function LoginDialog({ trigger }: Props) {
 						className="dark:hidden"
 					/>
 					<Label className="font-bold">Doras.to</Label>
+				</Button>
+				<Button
+					variant="accent"
+					className="bg-accent flex flex-col items-center gap-1 h-14 w-full"
+					onClick={singInGithub}
+				>
+					<IconBrandGithub className="size-5! text-black dark:hidden" />
+					<IconBrandGithub className="size-5! text-white hidden dark:block" />
+					<Label className="font-bold">GitHub</Label>
 				</Button>
 			</DialogContent>
 		</Dialog>

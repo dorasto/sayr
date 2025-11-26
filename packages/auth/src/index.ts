@@ -23,6 +23,17 @@ export const auth = betterAuth({
 		github: {
 			clientId: process.env.GITHUB_CLIENT_ID as string,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+			mapProfileToUser: async (profile) => {
+				return {
+					id: String(profile.id),
+					email: profile.email ?? `${profile.id}@github.local`, // fallback
+					name: profile.name ?? profile.login,
+					image: profile.avatar_url,
+					emailVerified: true,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				};
+			},
 		},
 	},
 	account: {
@@ -60,7 +71,6 @@ export const auth = betterAuth({
 							image: profile.pic,
 						};
 					},
-					overrideUserInfo: true,
 				},
 			],
 		}),
