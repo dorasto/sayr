@@ -1,5 +1,6 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import {
 	AdaptiveDialog,
 	AdaptiveDialogBody,
@@ -33,6 +34,7 @@ import {
 	ComboBoxTrigger,
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
+import { formatDateTime } from "@repo/util";
 import {
 	IconBrandGithub,
 	IconCircleFilled,
@@ -107,7 +109,7 @@ export default function SettingsOrganizationConnectionsGitHubPage({ githubInfo }
 							</TileIcon>
 							<TileTitle>{githubInfo?.account.login}</TileTitle>
 							<TileDescription>
-								Connected by {githubInfo?.joinUserName} - {githubInfo?.createdAt.toISOString()}
+								Connected by {githubInfo?.joinUserName} - {formatDateTime(githubInfo?.createdAt as Date)}
 							</TileDescription>
 						</TileHeader>
 						<TileAction className="">
@@ -131,8 +133,18 @@ export default function SettingsOrganizationConnectionsGitHubPage({ githubInfo }
 	);
 }
 
-export function SettingsOrganizationConnectionsGitHubSync({ githubInfo }: Props) {
+export type githubRepositoryWithRepoName = schema.githubRepositoryType & {
+	repoName: string;
+	avatarUrl: string | null;
+};
+
+interface PropsSync {
+	githubInfo: githubInstallationDetailsType | null;
+	githubConnections: githubRepositoryWithRepoName[];
+}
+export function SettingsOrganizationConnectionsGitHubSync({ githubInfo, githubConnections }: PropsSync) {
 	const { ws } = useLayoutData();
+	const { categories } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
 	});
@@ -235,6 +247,56 @@ export function SettingsOrganizationConnectionsGitHubSync({ githubInfo }: Props)
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
+				{githubConnections.map((connection) => {
+					return (
+						<DropdownMenu key={connection.id}>
+							<DropdownMenuTrigger asChild className="group">
+								<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
+									<TileHeader className="md:w-full">
+										<TileIcon className="bg-transparent">
+											<Avatar className="h-10 w-10 rounded-md">
+												<AvatarImage
+													// github organization image
+													// src={member.user.image || ""}
+													// alt={member.user.name}
+													className="rounded-none"
+												/>
+												<AvatarFallback className="rounded-md uppercase text-xs">
+													<IconUsers className="h-6 w-6" />
+												</AvatarFallback>
+											</Avatar>
+										</TileIcon>
+										<TileTitle>{connection.repoName}</TileTitle>
+										<TileDescription>
+											{categories.find((c) => c.id === connection.categoryId)?.name}
+											{" - "}
+											{formatDateTime(connection.createdAt as Date)}
+										</TileDescription>
+									</TileHeader>
+									<TileAction className="">
+										<Button variant={"accent"} size={"sm"} className="bg-transparent rounded-lg">
+											<IconCircleFilled className="text-success" /> Enabled
+										</Button>
+									</TileAction>
+								</Tile>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem>
+									{/* click to disable. when disabled the circle filled changes from text-success to text-accent and text changes to Disabled */}
+									<IconCircleFilled className="text-success" /> Enabled
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem>
+									<IconSettings /> Edit
+								</DropdownMenuItem>
+								<DropdownMenuItem>
+									<IconX />
+									Remove
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					);
+				})}
 			</div>
 			<SettingsOrganizationConnectionsGitHubSyncDialog
 				open={isSyncDialogOpen}
