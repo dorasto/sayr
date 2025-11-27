@@ -29,7 +29,7 @@ COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=builder /app/out/full/ .
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Build arguments for Next.js (with placeholders for runtime replacement)
 ARG NEXT_PUBLIC_URL_ROOT="___NEXT_PUBLIC_URL_ROOT___"

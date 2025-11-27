@@ -10,7 +10,7 @@
         ".": "./src/index.ts",
         "./*": "./src/*.ts"
     },
-    "peerDependencies": {
+    "dependencies": {
 		"@types/jsonwebtoken": "^9.0.10",
 		"jsonwebtoken": "^9.0.2"
     },
