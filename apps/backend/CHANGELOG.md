@@ -1,5 +1,15 @@
 # backend
 
+## 0.0.3
+
+### Patch Changes
+
+- 7eaf0ca: Removing --frozen-lockfile from pnpm install as at this time we do not push the lockfile
+- Updated dependencies [7eaf0ca]
+  - @repo/util@0.0.1
+  - @repo/database@0.0.1
+  - @repo/auth@0.0.1
+
 ## 0.0.2
 
 ### Patch Changes
