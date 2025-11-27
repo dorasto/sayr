@@ -1,5 +1,11 @@
 # backend
 
+## 0.0.5
+
+### Patch Changes
+
+- 381aef8: Update the draft task to pass the category string
+
 ## 0.0.4
 
 ### Patch Changes
