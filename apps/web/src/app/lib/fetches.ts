@@ -209,6 +209,8 @@ export async function createTaskAction(
 		status: string | undefined | null;
 		priority: string | undefined | null;
 		labels: string[];
+		category?: string | null;
+		assignees?: string[];
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -222,6 +224,8 @@ export async function createTaskAction(
 			status: data.status,
 			priority: data.priority,
 			labels: data.labels,
+			category: data.category,
+			assignees: data.assignees,
 		}),
 		headers: {
 			"Content-Type": "application/json",
