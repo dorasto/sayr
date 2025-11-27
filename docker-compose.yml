@@ -5,6 +5,7 @@ services:
     container_name: sayr-web
     image: ghcr.io/dorasto/sayr-web:latest
     restart: always
+    pull_policy: always
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
@@ -37,6 +38,7 @@ services:
     container_name: sayr-backend
     image: ghcr.io/dorasto/sayr-backend:latest
     restart: always
+    pull_policy: always
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
