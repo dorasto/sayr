@@ -1,5 +1,11 @@
 # backend
 
+## 0.0.6
+
+### Patch Changes
+
+- 4571562: Resolving build errors
+
 ## 0.0.5
 
 ### Patch Changes
