@@ -1,5 +1,19 @@
 # web
 
+## 0.1.0
+
+### Minor Changes
+
+- fff272a: block random account logins
+
+### Patch Changes
+
+- Updated dependencies [fff272a]
+  - @repo/auth@0.1.0
+  - @repo/database@0.1.0
+  - @repo/ui@0.1.0
+  - @repo/util@0.1.0
+
 ## 0.0.7
 
 ### Patch Changes
