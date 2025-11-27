@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type React from "react";
+import { Footer } from "../components/home/footer";
 import Navigation from "../components/home/navigation";
 
 export const metadata: Metadata = {
@@ -25,7 +26,10 @@ export default function RootLayout({
 	return (
 		<div className="flex h-dvh flex-col overflow-hidden">
 			<Navigation />
-			<div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+			<div className="min-h-0 flex-1 overflow-y-auto h-full">{children}</div>
+			<div className="mt-0">
+				<Footer />
+			</div>
 		</div>
 	);
 }

@@ -1,5 +1,6 @@
 "use client";
 import { Button } from "@repo/ui/components/button";
+import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
@@ -58,13 +59,16 @@ export function HeroSectionWithBeamsAndGrid() {
 				}}
 			/>
 
-			<h2 className="relative z-50 mx-auto mb-4 mt-4 max-w-4xl text-balance text-center text-4xl font-semibold tracking-tight text-foreground">
+			<Label
+				variant={"heading"}
+				className="relative z-50 mx-auto mb-4 mt-4 max-w-4xl text-balance text-center text-4xl font-semibold tracking-tight text-foreground"
+			>
 				<Balancer>A transparent workspace for teams & communities</Balancer>
-			</h2>
-			<p className="relative z-50 mx-auto mt-4 max-w-lg px-4 text-center text-foreground">
+			</Label>
+			<Label variant={"heading"} className="relative z-50 mx-auto mt-4 max-w-4xl px-4 text-center text-foreground">
 				Empower your organization and community with unified project management. Collaborate openly, share progress,
 				and manage tasks—all with granular privacy and seamless external participation.
-			</p>
+			</Label>
 			<div className="mb-10 mt-8 flex w-full flex-col items-center justify-center gap-4 px-8 sm:flex-row md:mb-20 z-50">
 				<LoginDialog trigger={<Button size={"lg"}>Get started</Button>} />
 			</div>
