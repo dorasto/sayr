@@ -5,8 +5,6 @@ services:
     container_name: sayr-web
     image: ghcr.io/dorasto/sayr-web:main
     restart: always
-    ports:
-      - "${WEB_PORT:-3000}:3000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
@@ -37,8 +35,6 @@ services:
     container_name: sayr-backend
     image: ghcr.io/dorasto/sayr-backend:main
     restart: always
-    ports:
-      - "${BACKEND_PORT:-5468}:5468"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
@@ -60,6 +56,18 @@ services:
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
       - STORAGE_PORT=${STORAGE_PORT}
       - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
+    networks:
+      - app_network
+  nginx:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.nginx
+    container_name: sayr-nginx
+    ports:
+      - "3000:80"
+    depends_on:
+      - web
+      - backend
     networks:
       - app_network
 
