@@ -1,5 +1,12 @@
 # @repo/database
 
+## 0.0.3
+
+### Patch Changes
+
+- @repo/storage@0.0.3
+- @repo/util@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes

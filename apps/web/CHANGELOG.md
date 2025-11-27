@@ -1,5 +1,19 @@
 # web
 
+## 0.0.3
+
+### Patch Changes
+
+- 4f2a3e6: - Remove NextJS <image> component in place for img instead on subdomain
+  - Create a new button variant for consistent styling
+  - Improve task creator with category and assignee
+  - Add dropdown up top navigation for quick picking views
+- Updated dependencies [4f2a3e6]
+  - @repo/ui@0.0.3
+  - @repo/auth@0.0.3
+  - @repo/database@0.0.3
+  - @repo/util@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes
