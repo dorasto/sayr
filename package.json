@@ -13,7 +13,8 @@
 		"lint:ci": "biome check --line-ending=lf .",
 		"check-types": "turbo check-types",
 		"docker": "docker-compose down --remove-orphans --volumes && docker container prune -f && docker-compose up --build -d",
-		"docker:build": "docker-compose -f docker-compose.yml build"
+		"docker:build": "docker-compose -f docker-compose.yml build",
+		"release": "changeset tag && git push origin --tags"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.1",
