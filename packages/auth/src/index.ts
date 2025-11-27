@@ -22,8 +22,10 @@ export const auth = betterAuth({
 	},
 	socialProviders: {
 		github: {
+			disableSignUp: true,
 			clientId: process.env.GITHUB_CLIENT_ID as string,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+			redirectURI: `${process.env.NEXT_PUBLIC_URL_ROOT}/api/auth/oauth2/callback/github`,
 			mapProfileToUser: async (profile) => {
 				return {
 					id: String(profile.id),
@@ -61,6 +63,7 @@ export const auth = betterAuth({
 					authorizationUrlParams: {
 						redirect_to: `${process.env.NEXT_PUBLIC_URL_ROOT}/admin` as string,
 					},
+					redirectURI: `${process.env.NEXT_PUBLIC_URL_ROOT}/api/auth/oauth2/callback/doras`,
 					getUserInfo: async (tokens) => {
 						if (tokens.accessToken) {
 							const data = await DorasUser(tokens.accessToken);
