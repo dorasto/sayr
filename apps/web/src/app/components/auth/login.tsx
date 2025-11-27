@@ -1,5 +1,5 @@
 "use client";
-import { signInDoras, singInGithub } from "@repo/auth/client";
+import { signInDoras } from "@repo/auth/client";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -94,7 +94,8 @@ export default function LoginDialog({ trigger }: Props) {
 				<Button
 					variant="accent"
 					className="bg-accent flex flex-col items-center gap-1 h-14 w-full"
-					onClick={singInGithub}
+					// onClick={singInGithub}
+					disabled
 				>
 					<IconBrandGithub className="size-5! text-black dark:hidden" />
 					<IconBrandGithub className="size-5! text-white hidden dark:block" />

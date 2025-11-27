@@ -8,6 +8,7 @@ export const auth = betterAuth({
 		provider: "pg",
 		schema: schema.auth,
 	}),
+	trustedOrigins: ["http://localhost:3000", process.env.NEXT_PUBLIC_URL_ROOT || ""],
 	user: {
 		additionalFields: {
 			role: {
@@ -54,11 +55,21 @@ export const auth = betterAuth({
 					authorizationUrl: "https://doras.to/oauth2/authorize",
 					tokenUrl: "https://doras.to/oauth2/token",
 					userInfoUrl: "https://doras.to/api/v1/account/me",
-					scopes: ["identity"],
+					scopes: ["identity,brands"],
 					responseType: "code",
 					authentication: "post",
 					authorizationUrlParams: {
 						redirect_to: `${process.env.NEXT_PUBLIC_URL_ROOT}/admin` as string,
+					},
+					getUserInfo: async (tokens) => {
+						if (tokens.accessToken) {
+							const data = await DorasUser(tokens.accessToken);
+							if (data?.error) {
+								throw new Error(data.error);
+							}
+							const profile = data?.account;
+							return profile;
+						}
 					},
 					mapProfileToUser: async (profile) => {
 						return {
@@ -76,3 +87,45 @@ export const auth = betterAuth({
 		}),
 	],
 });
+
+async function DorasUser(accessToken: string) {
+	try {
+		const response = await fetch("https://doras.to/api/v1/account/me", {
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+			},
+		});
+		const account = await response.json();
+		if (account?.id) {
+			const responseOrgMember = await fetch(
+				`https://doras.to/api/v1/account/me/brand/${process.env.DORAS_ORGANIZATION}`,
+				{
+					method: "GET",
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				}
+			);
+			const dataOrgMember = await responseOrgMember.json();
+			if (dataOrgMember?.message) {
+				return null;
+			}
+			if (dataOrgMember.id !== process.env.DORAS_ORGANIZATION) {
+				return null;
+			}
+			return {
+				account: account,
+			};
+		}
+		return {
+			error: "Token not found",
+		};
+		// biome-ignore lint/suspicious/noExplicitAny: <needed>
+	} catch (error: any) {
+		console.error("Error fetching token:", error);
+		return {
+			error: error.toString(),
+		};
+	}
+}

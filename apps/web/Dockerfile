@@ -83,6 +83,8 @@ ENV GITHUB_APP_PRIVATE_KEY=""
 ENV GITHUB_WEBHOOK_SECRET=""
 ENV STORAGE_PORT=""
 ENV FILE_NAME_HASH_LENGTH=""
+ENV DORAS_ORGANIZATION=""
+ENV BETTER_AUTH_SECRET=""
 
 # Copy entrypoint script
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/entrypoint.sh ./entrypoint.sh
