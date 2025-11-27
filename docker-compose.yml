@@ -3,7 +3,7 @@ version: "3.8"
 services:
   web:
     container_name: sayr-web
-    image: ghcr.io/dorasto/sayr-web:main
+    image: ghcr.io/dorasto/sayr-web:latest
     restart: always
     environment:
       - DATABASE_URL=${DATABASE_URL}
@@ -33,7 +33,7 @@ services:
 
   backend:
     container_name: sayr-backend
-    image: ghcr.io/dorasto/sayr-backend:main
+    image: ghcr.io/dorasto/sayr-backend:latest
     restart: always
     environment:
       - DATABASE_URL=${DATABASE_URL}
