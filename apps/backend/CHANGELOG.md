@@ -1,5 +1,11 @@
 # backend
 
+## 0.0.4
+
+### Patch Changes
+
+- 086b853: Updating environment variables for build
+
 ## 0.0.3
 
 ### Patch Changes
