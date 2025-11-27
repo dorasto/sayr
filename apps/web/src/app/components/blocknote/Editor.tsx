@@ -1,5 +1,4 @@
 "use client";
-//@ts-expect-error
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import {
@@ -11,9 +10,7 @@ import {
 	SuggestionMenuController,
 	useCreateBlockNote,
 } from "@blocknote/react";
-//@ts-expect-error
 import "@blocknote/mantine/style.css";
-//@ts-expect-error
 import "./style.css";
 import {
 	type BlockNoteEditor,
