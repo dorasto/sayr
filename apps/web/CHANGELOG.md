@@ -1,5 +1,13 @@
 # web
 
+## 0.0.6
+
+### Patch Changes
+
+- 4571562: Resolving build errors
+- Updated dependencies [4571562]
+  - @repo/ui@0.0.1
+
 ## 0.0.5
 
 ### Patch Changes
