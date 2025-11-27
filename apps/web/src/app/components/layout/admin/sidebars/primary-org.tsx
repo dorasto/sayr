@@ -201,16 +201,15 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 							{organization.slug}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN}
 						</span>
 					</div>
-					<Button
-						variant={"accent"}
-						className="h-9 w-9 ml-auto aspect-square p-0"
-						onClick={() => {
-							openDialog();
-							setEditOpen(false);
-						}}
+					<a
+						href={`/admin/settings/org/${organization.id}`}
+						onClick={closeMobileSidebarOnClick}
+						className="ml-auto"
 					>
-						<IconSettings className="h-4 w-4" />
-					</Button>
+						<Button variant={"accent"} className="h-9 w-9 ml-auto aspect-square p-0">
+							<IconSettings className="h-4 w-4" />
+						</Button>
+					</a>
 				</DropdownMenuLabel>
 
 				<DropdownMenuLabel>Projects</DropdownMenuLabel>

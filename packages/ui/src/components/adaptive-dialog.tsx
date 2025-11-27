@@ -52,10 +52,12 @@ const AdaptiveDialogClose = ({ children, ...props }: React.ComponentProps<typeof
 interface AdaptiveDialogContentProps extends React.ComponentPropsWithoutRef<typeof BaseDialogContent> {
 	showClose?: boolean;
 	drawerProps?: Partial<React.ComponentPropsWithoutRef<typeof DrawerContent>>;
+	size?: "small" | "medium" | "large";
+	dialogClassName?: string;
 }
 
 const AdaptiveDialogContent = React.forwardRef<React.ElementRef<typeof BaseDialogContent>, AdaptiveDialogContentProps>(
-	({ className, children, showClose = true, drawerProps = {}, ...props }, ref) => {
+	({ className, children, showClose = true, drawerProps = {}, size = "medium", dialogClassName, ...props }, ref) => {
 		const isMobile = useIsMobile();
 
 		if (isMobile) {
@@ -76,7 +78,14 @@ const AdaptiveDialogContent = React.forwardRef<React.ElementRef<typeof BaseDialo
 		return (
 			<BaseDialogContent
 				ref={ref}
-				className={cn("max-h-[85vh] flex flex-col p-0 overflow-hidden", className)}
+				className={cn(
+					"max-h-[85vh] flex flex-col p-0 overflow-hidden",
+					size === "small" && "max-w-none md:max-w-lg",
+					size === "medium" && "max-w-none md:max-w-2xl",
+					size === "large" && "max-w-none md:max-w-4xl",
+					dialogClassName,
+					className
+				)}
 				showClose={showClose}
 				{...props}
 			>

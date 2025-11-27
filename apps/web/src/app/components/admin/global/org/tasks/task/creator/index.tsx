@@ -15,12 +15,23 @@ import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconLabel, IconProgress, IconSlash, IconUsers } from "@tabler/icons-react";
+import {
+	IconCategory,
+	IconFolder,
+	IconLabel,
+	IconProgress,
+	IconSlash,
+	IconUserPlus,
+	IconUsers,
+} from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
+import RenderIcon from "@/app/components/RenderIcon";
 import { createTaskAction } from "@/app/lib/fetches";
 import { useToastAction } from "@/app/lib/util";
 import { priorityConfig, statusConfig } from "../../../shared/task-config";
+import GlobalTaskAssignees from "../assignee";
+import GlobalTaskCategory from "../category";
 import GlobalTaskLabels from "../label";
 import GlobalTaskPriority from "../priority";
 import GlobalTaskStatus from "../status";
@@ -45,14 +56,23 @@ export default function CreateIssueDialog({
 	},
 }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: categories } = useStateManagement<schema.categoryType[]>("categories", [], 1);
 	// const [open, setOpen] = useState(false);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState<undefined | PartialBlock[]>(undefined);
 	const [status, setStatus] = useState<string | undefined | null>("backlog");
 	const [priority, setPriority] = useState<string | undefined | null>("none");
+	const [category, setCategory] = useState<string>("");
 	const [labels, setLabels] = useState<string[]>([]);
+	const [assignees, setAssignees] = useState<string[]>([]);
 	const { runWithToast, isFetching } = useToastAction();
 	const selectedLabels = useMemo(() => _labels.filter((label) => labels.includes(label.id)), [_labels, labels]);
+	const selectedCategory = useMemo(() => categories.find((c) => c.id === category), [categories, category]);
+	const availableUsers = useMemo(() => organization.members.map((m) => m.user), [organization.members]);
+	const selectedAssignees = useMemo(
+		() => availableUsers.filter((user) => assignees.includes(user.id)),
+		[availableUsers, assignees]
+	);
 	const resolvedStatus = (status ?? "backlog") || "backlog";
 	const resolvedPriority = (priority ?? "none") || "none";
 
@@ -70,10 +90,19 @@ export default function CreateIssueDialog({
 			priority: resolvedPriority as schema.TaskWithLabels["priority"],
 			createdBy: null,
 			labels: selectedLabels,
-			assignees: [],
-			category: "",
+			assignees: selectedAssignees,
+			category: category || "",
 		}),
-		[description, organization.id, resolvedPriority, resolvedStatus, selectedLabels, title]
+		[
+			description,
+			organization.id,
+			resolvedPriority,
+			resolvedStatus,
+			selectedLabels,
+			title,
+			category,
+			selectedAssignees,
+		]
 	);
 	const handleUpdate = async () => {
 		const data = await runWithToast(
@@ -92,6 +121,8 @@ export default function CreateIssueDialog({
 						status: resolvedStatus,
 						priority: resolvedPriority,
 						labels,
+						category,
+						assignees,
 					},
 					wsClientId
 				)
@@ -102,13 +133,16 @@ export default function CreateIssueDialog({
 			setDescription(undefined);
 			setStatus("backlog");
 			setPriority("none");
+			setCategory("");
 			setLabels([]);
+			setAssignees([]);
 			setTasks([...tasks, data.data]);
 		}
 	};
 	const statusconfig = statusConfig[resolvedStatus as keyof typeof statusConfig];
 	const priorityconfig = priorityConfig[resolvedPriority as keyof typeof priorityConfig];
 	const selectedLabelCount = draftTask.labels.length;
+	const selectedAssigneeCount = draftTask.assignees.length;
 	return (
 		<div className="flex items-center gap-3">
 			{/* <Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
@@ -178,13 +212,13 @@ export default function CreateIssueDialog({
 									trailing={false}
 								/>
 							</div>
-							<div className="flex items-center gap-3 w-full">
+							<div className="flex items-center flex-wrap gap-1 w-full">
 								<GlobalTaskStatus
 									task={draftTask}
 									editable
 									onChange={(value) => setStatus(value)}
 									customTrigger={
-										<Button variant={"accent"} className="w-fit text-xs h-7" size={"sm"}>
+										<Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
 											{statusconfig?.icon(`h-3.5 w-3.5 ${statusconfig?.className || ""}`)}
 											{statusconfig?.label}
 										</Button>
@@ -195,7 +229,7 @@ export default function CreateIssueDialog({
 									editable
 									onChange={(value) => setPriority(value)}
 									customTrigger={
-										<Button variant={"accent"} className="w-fit text-xs h-7" size={"sm"}>
+										<Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
 											{priorityconfig?.icon(`h-3.5 w-3.5 ${priorityconfig?.className || ""}`)}
 											{priorityconfig?.label}
 										</Button>
@@ -208,7 +242,7 @@ export default function CreateIssueDialog({
 									onLabelsChange={setLabels}
 									customChildren
 									customTrigger={
-										<Button variant={"accent"} className="w-fit text-xs h-7 line-clamp-1" size={"sm"}>
+										<Button variant={"primary"} className="w-fit text-xs h-7 line-clamp-1" size={"sm"}>
 											{selectedLabelCount > 1 ? (
 												<div className="flex items-center gap-2">
 													<div className="flex -space-x-1">
@@ -231,7 +265,89 @@ export default function CreateIssueDialog({
 													<span>{draftTask.labels[0]?.name}</span>
 												</div>
 											) : (
-												<IconLabel />
+												<span className="flex items-center gap-2">
+													<IconLabel className="h-3.5 w-3.5 mr-1" />
+													Labels
+												</span>
+											)}
+										</Button>
+									}
+								/>
+								<GlobalTaskAssignees
+									task={draftTask}
+									editable
+									availableUsers={availableUsers}
+									onChange={(value) => setAssignees(value)}
+									customTrigger={
+										<Button variant={"primary"} className="w-fit text-xs h-7 line-clamp-1" size={"sm"}>
+											{selectedAssigneeCount > 1 ? (
+												<div className="flex items-center gap-2">
+													<div className="flex -space-x-1">
+														{draftTask.assignees.map((assignee) => (
+															<Avatar key={assignee.id} className="h-4 w-4 border border-background">
+																<AvatarImage src={assignee.image || undefined} alt={assignee.name} />
+																<AvatarFallback className="text-[8px]">
+																	{assignee.name
+																		.split(" ")
+																		.map((n) => n[0])
+																		.join("")
+																		.toUpperCase()
+																		.slice(0, 2)}
+																</AvatarFallback>
+															</Avatar>
+														))}
+													</div>
+													<span>{selectedAssigneeCount} assignees</span>
+												</div>
+											) : selectedAssigneeCount === 1 ? (
+												<div className="flex items-center">
+													<Avatar className="h-4 w-4 mr-2">
+														<AvatarImage
+															src={draftTask.assignees[0]?.image || undefined}
+															alt={draftTask.assignees[0]?.name}
+														/>
+														<AvatarFallback className="text-[8px]">
+															{draftTask.assignees[0]?.name
+																.split(" ")
+																.map((n) => n[0])
+																.join("")
+																.toUpperCase()
+																.slice(0, 2)}
+														</AvatarFallback>
+													</Avatar>
+													<span>{draftTask.assignees[0]?.name}</span>
+												</div>
+											) : (
+												<span className="flex items-center gap-2">
+													<IconUserPlus className="h-3.5 w-3.5 mr-1" />
+													Assignees
+												</span>
+											)}
+										</Button>
+									}
+								/>
+								<GlobalTaskCategory
+									task={draftTask}
+									editable
+									categories={categories}
+									onChange={(value) => setCategory(value)}
+									customTrigger={
+										<Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
+											{selectedCategory ? (
+												<>
+													<RenderIcon
+														iconName={selectedCategory.icon || "IconCircleFilled"}
+														className="size-3.5! [&_svg]:size-3.5! mr-1"
+														color={selectedCategory.color || undefined}
+														button
+													/>
+													{selectedCategory.name}
+												</>
+											) : (
+												<>
+													<IconCategory className="h-3.5 w-3.5 mr-1" />
+													Category
+												</>
 											)}
 										</Button>
 									}
@@ -241,7 +357,7 @@ export default function CreateIssueDialog({
 					</div>
 					<AdaptiveDialogFooter className="mt-auto bg-background flex !flex-col gap-2">
 						<div className="flex items-center gap-2 ml-auto">
-							<Button variant={"accent"} onClick={handleUpdate} disabled={isFetching || !title.trim()}>
+							<Button variant={"primary"} onClick={handleUpdate} disabled={isFetching || !title.trim()}>
 								Create task
 							</Button>
 						</div>

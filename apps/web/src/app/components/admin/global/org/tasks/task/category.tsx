@@ -58,11 +58,11 @@ export default function GlobalTaskCategory({
 	const { runWithToast } = useToastAction();
 
 	const handleCategoryChange = async (categoryId: string | null) => {
-		if (!categoryId) return;
+		// if (!categoryId) return;
 
 		// Always call onChange first
 		if (onChange) {
-			onChange(categoryId);
+			onChange(categoryId || "");
 		}
 
 		if (useInternalLogic && tasks && setTasks && setSelectedTask) {
