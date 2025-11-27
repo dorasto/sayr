@@ -3,7 +3,7 @@ version: "3.8"
 services:
   web:
     container_name: sayr-web
-    image: ghcr.io/dorasto/project-management-tool-web:main
+    image: ghcr.io/dorasto/sayr-web:main
     restart: always
     ports:
       - "${WEB_PORT:-3000}:3000"
@@ -35,7 +35,7 @@ services:
 
   backend:
     container_name: sayr-backend
-    image: ghcr.io/dorasto/project-management-tool-backend:main
+    image: ghcr.io/dorasto/sayr-backend:main
     restart: always
     ports:
       - "${BACKEND_PORT:-5468}:5468"

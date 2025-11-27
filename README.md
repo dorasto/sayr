@@ -83,7 +83,7 @@ A modern, transparent, and collaborative **project management platform** designe
 ## 📁 Project Structure
 
 ```
-project-management-tool/
+sayr/
 ├── apps/
 │   ├── backend/          # Hono API server (Bun runtime)
 │   │   ├── routes/       # API, webhook, and WebSocket routes
