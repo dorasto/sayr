@@ -1,5 +1,14 @@
 # @repo/database
 
+## 0.0.2
+
+### Patch Changes
+
+- ce1090d: Initial release - reset
+- Updated dependencies [ce1090d]
+  - @repo/storage@0.0.2
+  - @repo/util@0.0.2
+
 ## 0.1.0
 
 ### Patch Changes
