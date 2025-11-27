@@ -1,5 +1,17 @@
 # web
 
+## 0.0.4
+
+### Patch Changes
+
+- d74a80b: Auto deploy when built
+- ceb6dbe: hotfix
+- Updated dependencies [d74a80b]
+  - @repo/auth@0.0.4
+  - @repo/database@0.0.4
+  - @repo/ui@0.0.4
+  - @repo/util@0.0.4
+
 ## 0.0.3
 
 ### Patch Changes
