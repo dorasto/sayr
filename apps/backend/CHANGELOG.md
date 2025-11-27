@@ -1,5 +1,11 @@
 # backend
 
+## 0.0.5
+
+### Patch Changes
+
+- 0ebf32e: Update the workflow to get a base release
+
 ## 0.0.4
 
 ### Patch Changes
