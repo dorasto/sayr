@@ -1,5 +1,15 @@
 # web
 
+## 0.0.7
+
+### Patch Changes
+
+- 4130c06: Updating our workflows to utilize blacksmith runners while the project is private
+  - @repo/auth@0.0.7
+  - @repo/database@0.0.7
+  - @repo/ui@0.0.7
+  - @repo/util@0.0.7
+
 ## 0.0.6
 
 ### Patch Changes
