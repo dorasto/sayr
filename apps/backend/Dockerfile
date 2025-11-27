@@ -9,6 +9,9 @@ RUN turbo prune backend --docker
 FROM oven/bun:1 AS installer
 WORKDIR /app
 
+# Install dependencies
+RUN apt-get update && apt-get install -y nodejs npm
+
 # Install pnpm
 RUN npm install -g pnpm
 
