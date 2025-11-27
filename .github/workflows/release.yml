@@ -14,7 +14,7 @@ env:
 jobs:
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: write
       pull-requests: write
@@ -32,6 +32,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: "pnpm"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -45,19 +46,32 @@ jobs:
         with:
           # This executes the release command when the PR is merged
           publish: pnpm release
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-and-push:
+      - name: Create GitHub Release
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
+          gh release create v$version --title "v$version" --generate-notes
+
+  build-image:
     needs: release
     if: needs.release.outputs.published == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'blacksmith-4vcpu-ubuntu-2404-arm' || 'blacksmith-4vcpu-ubuntu-2404' }}
     permissions:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         package: ${{ fromJson(needs.release.outputs.publishedPackages) }}
+        platform:
+          - linux/amd64
+          - linux/arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -77,13 +91,93 @@ jobs:
             echo "build=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up QEMU
+      - name: Set up Docker Builder
         if: steps.config.outputs.build == 'true'
-        uses: docker/setup-qemu-action@v3
+        uses: useblacksmith/setup-docker-builder@v1
+        with:
+          platforms: ${{ matrix.platform }}
 
-      - name: Set up Docker Buildx
+      - name: Log in to the Container registry
         if: steps.config.outputs.build == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        if: steps.config.outputs.build == 'true'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}
+          tags: |
+            type=raw,value=${{ matrix.package.version }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        if: steps.config.outputs.build == 'true'
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.config.outputs.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        if: steps.config.outputs.build == 'true'
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: steps.config.outputs.build == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.package.name }}-${{ strategy.job-index }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-manifest:
+    needs: [release, build-image]
+    if: needs.release.outputs.published == 'true'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.release.outputs.publishedPackages) }}
+    steps:
+      - name: Determine Docker Config
+        id: config
+        run: |
+          if [[ "${{ matrix.package.name }}" == "web" ]]; then
+            echo "image_suffix=-web" >> $GITHUB_OUTPUT
+            echo "build=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.package.name }}" == "backend" ]]; then
+            echo "image_suffix=-backend" >> $GITHUB_OUTPUT
+            echo "build=true" >> $GITHUB_OUTPUT
+          else
+            echo "build=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download digests
+        if: steps.config.outputs.build == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digests-${{ matrix.package.name }}-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      - name: Set up Docker Builder
+        if: steps.config.outputs.build == 'true'
+        uses: useblacksmith/setup-docker-builder@v1
 
       - name: Log in to the Container registry
         if: steps.config.outputs.build == 'true'
@@ -104,13 +198,14 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=${{ matrix.package.version }}
             type=raw,value=latest
 
-      - name: Build and push Docker image
+      - name: Create manifest list and push
         if: steps.config.outputs.build == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ steps.config.outputs.dockerfile }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}@sha256:%s ' *)
+
+      - name: Inspect image
+        if: steps.config.outputs.build == 'true'
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:${{ matrix.package.version }}
