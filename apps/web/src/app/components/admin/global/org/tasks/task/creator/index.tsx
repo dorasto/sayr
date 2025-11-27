@@ -71,6 +71,7 @@ export default function CreateIssueDialog({
 			createdBy: null,
 			labels: selectedLabels,
 			assignees: [],
+			category: "",
 		}),
 		[description, organization.id, resolvedPriority, resolvedStatus, selectedLabels, title]
 	);
