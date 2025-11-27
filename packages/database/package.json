@@ -1,6 +1,6 @@
 {
     "name": "@repo/database",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "private": true,
     "license": "MIT",
     "publishConfig": {
@@ -16,7 +16,7 @@
     "dependencies": {
         "pg": "^8.11.3",
         "postgres": "3.4.3",
-		"@repo/storage": "workspace:*",
+        "@repo/storage": "workspace:*",
         "@repo/util": "workspace:*"
     },
     "devDependencies": {
