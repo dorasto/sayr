@@ -10,8 +10,17 @@ const nextConfig = {
 	transpilePackages: ['@repo/ui', '@repo/auth' ,'@repo/database'],
 	outputFileTracingRoot: path.join(__dirname, '../../'),
 	images: {
-        remotePatterns: [new URL(`${process.env.FILE_CDN}/**`)],
-    },
+		remotePatterns: process.env.FILE_CDN
+			? [
+					{
+						protocol: new URL(process.env.FILE_CDN).protocol.replace(':', ''),
+						hostname: new URL(process.env.FILE_CDN).hostname,
+						port: new URL(process.env.FILE_CDN).port,
+						pathname: '/**',
+					},
+				]
+			: [],
+	},
 };
 
 export default nextConfig;
