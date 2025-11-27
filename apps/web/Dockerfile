@@ -31,6 +31,22 @@ COPY --from=builder /app/out/full/ .
 
 RUN pnpm install --frozen-lockfile
 
+# Build arguments for Next.js (with placeholders for runtime replacement)
+ARG NEXT_PUBLIC_URL_ROOT="___NEXT_PUBLIC_URL_ROOT___"
+ARG NEXT_PUBLIC_API_SERVER="___NEXT_PUBLIC_API_SERVER___"
+ARG NEXT_PUBLIC_PROJECT_NAME="___NEXT_PUBLIC_PROJECT_NAME___"
+ARG NEXT_PUBLIC_WS_URL="___NEXT_PUBLIC_WS_URL___"
+ARG NEXT_PUBLIC_ROOT_DOMAIN="___NEXT_PUBLIC_ROOT_DOMAIN___"
+ARG NEXT_PUBLIC_EXTERNAL_API_URL="___NEXT_PUBLIC_EXTERNAL_API_URL___"
+
+# Set environment variables for build time
+ENV NEXT_PUBLIC_URL_ROOT=$NEXT_PUBLIC_URL_ROOT
+ENV NEXT_PUBLIC_API_SERVER=$NEXT_PUBLIC_API_SERVER
+ENV NEXT_PUBLIC_PROJECT_NAME=$NEXT_PUBLIC_PROJECT_NAME
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+ENV NEXT_PUBLIC_ROOT_DOMAIN=$NEXT_PUBLIC_ROOT_DOMAIN
+ENV NEXT_PUBLIC_EXTERNAL_API_URL=$NEXT_PUBLIC_EXTERNAL_API_URL
+
 ENV IS_DOCKER 1
 
 # Build the Next.js application
@@ -44,11 +60,15 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 USER nextjs
 
-ENV HOSTNAME "0.0.0.0"
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV IS_DOCKER 1
-ENV PORT 3000
+ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV IS_DOCKER=1
+ENV PORT=3000
+
+# Copy entrypoint script
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
@@ -59,4 +79,5 @@ COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/publ
 
 EXPOSE 3000
 
-CMD node apps/web/server.js
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["node", "apps/web/server.js"]

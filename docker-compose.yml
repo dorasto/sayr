@@ -1,29 +1,68 @@
-version: "3"
+version: "3.8"
 
 services:
   web:
-    container_name: web
-    build:
-      context: .
-      dockerfile: ./apps/web/Dockerfile
+    container_name: sayr-web
+    image: ghcr.io/dorasto/project-management-tool-web:main
     restart: always
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
+      - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
+      - NEXT_PUBLIC_URL_ROOT=${NEXT_PUBLIC_URL_ROOT}
+      - NEXT_PUBLIC_API_SERVER=${NEXT_PUBLIC_API_SERVER}
+      - NEXT_PUBLIC_PROJECT_NAME=${NEXT_PUBLIC_PROJECT_NAME}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
+      - NEXT_PUBLIC_ROOT_DOMAIN=${NEXT_PUBLIC_ROOT_DOMAIN}
+      - NEXT_PUBLIC_EXTERNAL_API_URL=${NEXT_PUBLIC_EXTERNAL_API_URL}
+      - STORAGE_URL=${STORAGE_URL}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - FILE_SALT=${FILE_SALT}
+      - FILE_CDN=${FILE_CDN}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - STORAGE_PORT=${STORAGE_PORT}
+      - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
     networks:
       - app_network
-#  api:
-#    container_name: api
-#    build:
-#      context: .
-#      dockerfile: ./apps/api/Dockerfile
-#    restart: always
-#    ports:
-#      - "3001:3001"
-#    networks:
-#      - app_network
 
-# Define a network, which allows containers to communicate
-# with each other, by using their container name as a hostname
+  backend:
+    container_name: sayr-backend
+    image: ghcr.io/dorasto/project-management-tool-backend:main
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-5468}:5468"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
+      - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
+      - NEXT_PUBLIC_URL_ROOT=${NEXT_PUBLIC_URL_ROOT}
+      - NEXT_PUBLIC_API_SERVER=${NEXT_PUBLIC_API_SERVER}
+      - NEXT_PUBLIC_PROJECT_NAME=${NEXT_PUBLIC_PROJECT_NAME}
+      - STORAGE_URL=${STORAGE_URL}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - FILE_SALT=${FILE_SALT}
+      - FILE_CDN=${FILE_CDN}
+      - SAYR_EMAIL=${SAYR_EMAIL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - STORAGE_PORT=${STORAGE_PORT}
+      - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
+    networks:
+      - app_network
+
 networks:
   app_network:
     driver: bridge
