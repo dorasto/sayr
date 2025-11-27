@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: <will fix later> */
 import { auth, db } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import UserConnections from "@/app/components/admin/settings/connections";
@@ -28,12 +27,12 @@ export type GithubUserType = {
 	name: string;
 	company: string;
 	blog: string;
-	location: any;
-	email: any;
-	hireable: any;
+	location: string | null;
+	email: string | null;
+	hireable: boolean | null;
 	bio: string;
 	twitter_username: string;
-	notification_email: any;
+	notification_email: string | null | undefined;
 	public_repos: number;
 	public_gists: number;
 	followers: number;
@@ -65,8 +64,6 @@ export type DorasUserType = {
 		location: string;
 		pronouns: string;
 	};
-	users: Array<any>;
-	users_pending: Array<any>;
 };
 
 export default async function Mine() {

@@ -82,9 +82,15 @@ async function renderConnectionComponent(connectionId: string, org_id: string) {
 									Link your GitHub organizations and repositories to your Sayr organization.
 								</Label>
 							</div>
-							<Button variant="ghost" size="icon">
-								<IconPlus />
-							</Button>
+							<a
+								href={`https://github.com/apps/${process.env.GITHUB_APP_NAME}/installations/new?state=org_${org_id}`}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<Button variant="ghost" size="icon">
+									<IconPlus />
+								</Button>
+							</a>
 						</div>
 
 						<SettingsOrganizationConnectionsGitHubPage githubInfo={githubInfo} />

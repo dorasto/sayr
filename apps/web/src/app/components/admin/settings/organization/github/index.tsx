@@ -90,45 +90,57 @@ export default function SettingsOrganizationConnectionsGitHubPage({ githubInfo }
 
 	return (
 		<div className="bg-card rounded-lg flex flex-col">
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
-						<TileHeader className="md:w-full">
-							<TileIcon className="bg-transparent">
-								<Avatar className="h-10 w-10 rounded-md">
-									<AvatarImage
-										// github organization image
-										src={githubInfo?.account.avatar_url || ""}
-										alt={githubInfo?.account.login}
-										className="rounded-none"
-									/>
-									<AvatarFallback className="rounded-md uppercase text-xs">
-										<IconUsers className="h-6 w-6" />
-									</AvatarFallback>
-								</Avatar>
-							</TileIcon>
-							<TileTitle>{githubInfo?.account.login}</TileTitle>
-							<TileDescription>
-								Connected by {githubInfo?.joinUserName} - {formatDateTime(githubInfo?.createdAt as Date)}
-							</TileDescription>
-						</TileHeader>
-						<TileAction className="">
-							<Button variant={"ghost"} size={"icon"}>
-								<IconDots />
-							</Button>
-						</TileAction>
-					</Tile>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					<DropdownMenuItem>
-						<IconExternalLink /> Configure
-					</DropdownMenuItem>
-					<DropdownMenuItem>
-						<IconX />
-						Remove
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+			{githubInfo && (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
+							<TileHeader className="md:w-full">
+								<TileIcon className="bg-transparent">
+									<Avatar className="h-10 w-10 rounded-md">
+										<AvatarImage
+											// github organization image
+											src={githubInfo.account.avatar_url || ""}
+											alt={githubInfo.account.login}
+											className="rounded-none"
+										/>
+										<AvatarFallback className="rounded-md uppercase text-xs">
+											<IconUsers className="h-6 w-6" />
+										</AvatarFallback>
+									</Avatar>
+								</TileIcon>
+								<TileTitle>{githubInfo.account.login}</TileTitle>
+								<TileDescription>
+									Connected by {githubInfo.joinUserName} - {formatDateTime(githubInfo.createdAt as Date)}
+								</TileDescription>
+							</TileHeader>
+							<TileAction className="">
+								<Button variant={"ghost"} size={"icon"}>
+									<IconDots />
+								</Button>
+							</TileAction>
+						</Tile>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuItem asChild>
+							<a
+								href={
+									githubInfo.target_type === "Organization"
+										? `https://github.com/organizations/${githubInfo.account.login}/settings/installations/${githubInfo.installationId}`
+										: `https://github.com/settings/installations/${githubInfo.installationId}`
+								}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<IconExternalLink /> Configure
+							</a>
+						</DropdownMenuItem>
+						<DropdownMenuItem>
+							<IconX />
+							Remove
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			)}
 		</div>
 	);
 }
@@ -149,7 +161,11 @@ export function SettingsOrganizationConnectionsGitHubSync({ githubInfo, githubCo
 		ws,
 	});
 	const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
-
+	if (githubInfo) {
+		githubInfo.repositories = githubInfo.repositories.filter(
+			(repo) => !githubConnections.find((conn) => conn.repoId === repo.id)
+		);
+	}
 	return (
 		<>
 			<div className="flex items-start justify-between">
@@ -441,7 +457,7 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 									window.location.reload();
 								}
 							}}
-							disabled={isFetching}
+							disabled={isFetching || !selectedRepo || !selectedCategory}
 						>
 							Save
 						</Button>

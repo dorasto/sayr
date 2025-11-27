@@ -4,7 +4,7 @@ import { authClient } from "@repo/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { Icon24Hours, IconBrandGithub, IconBrandGithubFilled } from "@tabler/icons-react";
+import { IconBrandGithub, IconBrandGithubFilled } from "@tabler/icons-react";
 import Image from "next/image";
 import { useLayoutData } from "@/app/admin/Context";
 import type { DorasUserType, GithubUserType } from "@/app/admin/settings/connections/page";
@@ -23,7 +23,7 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 	const bothConnected = !!githubUser && !!dorasUser;
 
 	return (
-		<>
+		<div className="flex flex-col gap-2">
 			{/* --- Doras connection --- */}
 			<div className="bg-card rounded-lg flex flex-col">
 				<Tile className="md:w-full">
@@ -151,6 +151,6 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 					</TileAction>
 				</Tile>
 			</div>
-		</>
+		</div>
 	);
 }

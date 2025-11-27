@@ -110,18 +110,41 @@ app.get("/github/org-check", async (c) => {
 	const installationId = Number(c.req.query("installation_id"));
 	const stateRaw = c.req.query("state") || "{}";
 	const orgId = stateRaw.split("org_")[1];
+
 	if (!installationId || !orgId) {
 		return c.text("❌ Missing installation_id or orgId", 400);
 	}
+
 	const session = c.get("session");
 	const isAuthorized = await checkMembershipRole(session?.userId, orgId);
 	if (!isAuthorized) return c.text("❌ Unauthorized", 403);
-	const found = await db.query.githubInstallation.findFirst({
-		where: eq(schema.githubInstallation.installationId, installationId),
-	});
-	if (found?.organizationId) {
+
+	// Helper: retry wrapper
+	async function retryFindInstallation(maxRetries = 5, delayMs = 500) {
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			const found = await db.query.githubInstallation.findFirst({
+				where: eq(schema.githubInstallation.installationId, installationId),
+			});
+			if (found) return found;
+
+			// Wait before retrying, with backoff
+			if (attempt < maxRetries) {
+				await new Promise((res) => setTimeout(res, delayMs * attempt));
+			}
+		}
+		return null;
+	}
+
+	const found = await retryFindInstallation();
+
+	if (!found) {
+		return c.text("❌ Installation not found after retries", 404);
+	}
+
+	if (found.organizationId) {
 		return c.text("❌ Installation already linked", 400);
 	}
+
 	await db
 		.update(schema.githubInstallation)
 		.set({
@@ -129,8 +152,10 @@ app.get("/github/org-check", async (c) => {
 			userId: session?.userId || "",
 		})
 		.where(eq(schema.githubInstallation.installationId, installationId));
+
 	const root = process.env.NEXT_PUBLIC_URL_ROOT || "http://localhost:3000/";
 	const redirectUrl = new URL(`/admin/settings/org/${orgId}/connections/github`, root).toString();
+
 	return c.redirect(redirectUrl, 302);
 });
 app.route("/api", apiRoute);
