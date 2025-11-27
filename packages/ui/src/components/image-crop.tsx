@@ -83,6 +83,7 @@ export function ImageCrop({
 					y: Math.round(((percentCrop.y ?? 0) * height) / 100),
 					width: Math.round((percentCrop.width * width) / 100),
 					height: Math.round((percentCrop.height * height) / 100),
+					unit: "px",
 				};
 				setCompletedCrop(pixelCrop);
 			}
