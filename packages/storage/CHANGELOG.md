@@ -1,5 +1,11 @@
 # @repo/storage
 
+## 0.0.6
+
+### Patch Changes
+
+- 8c4e148: adding redis for queue system
+
 ## 0.0.5
 
 ### Patch Changes
