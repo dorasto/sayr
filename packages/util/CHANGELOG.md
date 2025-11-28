@@ -1,5 +1,11 @@
 # @repo/util
 
+## 0.0.5
+
+### Patch Changes
+
+- f6938fb: fix public pages
+
 ## 0.0.4
 
 ### Patch Changes

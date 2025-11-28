@@ -1,5 +1,13 @@
 # @repo/auth
 
+## 0.0.5
+
+### Patch Changes
+
+- f6938fb: fix public pages
+- Updated dependencies [f6938fb]
+  - @repo/database@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes
