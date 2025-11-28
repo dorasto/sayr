@@ -1,5 +1,11 @@
 # @repo/ui
 
+## 0.0.7
+
+### Patch Changes
+
+- efe75f4: fixed internal auth between worker and backend
+
 ## 0.0.6
 
 ### Patch Changes
