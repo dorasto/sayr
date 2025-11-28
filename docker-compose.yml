@@ -71,9 +71,7 @@ services:
 
   worker:
     container_name: sayr-worker
-    build:
-      context: .
-      dockerfile: ./apps/worker/Dockerfile
+    image: ghcr.io/dorasto/sayr-worker:latest
     restart: always
     pull_policy: always
     environment:
