@@ -1,3 +1,6 @@
+import { httpInstrumentationMiddleware } from "@hono/otel";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { NodeSDK } from "@opentelemetry/sdk-node";
 import type { auth } from "@repo/auth/index";
 import { db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
@@ -20,10 +23,44 @@ export type AppEnv = {
 	};
 };
 
+const traceExporter = new OTLPTraceExporter({
+	url: `https://${process.env.AXIOM_BACKEND_OTEL_DOMAIN}/v1/traces`,
+	headers: {
+		Authorization: `Bearer ${process.env.AXIOM_BACKEND_OTEL_TOKEN}`,
+		"X-Axiom-Dataset": process.env.AXIOM_BACKEND_OTEL_DATASET || "",
+	},
+});
+
+// Create the OTEL SDK
+const openTelemetrySDK = new NodeSDK({
+	traceExporter,
+});
+
+// Start OTEL
+openTelemetrySDK.start();
+
 // -----------------------------------------------------------------------------
 // App setup
 // -----------------------------------------------------------------------------
 const app = new Hono<AppEnv>();
+// Optional request tracing instrumentation
+app.use(
+	httpInstrumentationMiddleware({
+		serviceName: "hono-with-axiom",
+		serviceVersion: process.env.APP_VERSION || "dev",
+		captureRequestHeaders: [
+			"user-agent",
+			"x-request-id",
+			"x-forwarded-for",
+			"x-real-ip",
+			"content-type",
+			"accept",
+			"origin",
+			"referer",
+		],
+		captureResponseHeaders: ["content-type", "content-length", "x-service-name", "x-organization-name"],
+	})
+);
 // -----------------------------------------------------------------------------
 // CORS
 // -----------------------------------------------------------------------------
