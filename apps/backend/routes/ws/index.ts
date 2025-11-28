@@ -801,25 +801,69 @@ wsRoute.get("/health", (c) => c.json({ ok: true }));
 // Close dead sockets after 60 seconds of no PONG
 setInterval(() => {
 	const now = Date.now();
+	console.log(`[DEBUG] Heartbeat loop tick @ ${new Date(now).toISOString()}`);
+	console.log(`[DEBUG] Tracking ${wsClients.size} active WebSocket clients`);
+
 	for (const [socket, wsClient] of wsClients) {
-		if (now - wsClient.lastPong > 60_000) {
-			console.log("Closing dead socket", wsClient);
-			socket.close();
-			unsubscribe(socket);
-		} else {
+		const ageSincePong = now - wsClient.lastPong;
+		console.log(
+			`[DEBUG] Checking socket ${wsClient.id || "(no id)"}, ` +
+				`lastPong=${wsClient.lastPong}, ageSincePong=${ageSincePong}ms`
+		);
+
+		if (ageSincePong > 60_000) {
+			console.warn(`[WARN] Closing dead socket ${wsClient.id || "(no id)"}: ` + `no PONG in ${ageSincePong}ms`);
 			try {
-				const pingTs = Date.now();
-				wsClient.lastPing = pingTs;
-				socket.send(
-					`{"type":"PING","scope":"INDIVIDUAL","meta":{"ts":${pingTs},"lastLatency":${wsClient.lastLatency}}}`
-				);
-			} catch {
-				console.log("Failed to ping, closing", wsClient);
 				socket.close();
+			} catch (err) {
+				console.error(`[ERROR] Failed to close socket ${wsClient.id || "(no id)"}:`, err);
+			}
+			try {
 				unsubscribe(socket);
+			} catch (err) {
+				console.error(`[ERROR] Failed to unsubscribe socket ${wsClient.id || "(no id)"}:`, err);
+			}
+			continue;
+		}
+
+		try {
+			const pingTs = Date.now();
+			const latency = wsClient.lastLatency ?? "unknown";
+			wsClient.lastPing = pingTs;
+
+			console.log(
+				`[DEBUG] Sending PING to socket ${wsClient.id || "(no id)"} ` +
+					`@${new Date(pingTs).toISOString()}, lastLatency=${latency}ms`
+			);
+
+			const payload = JSON.stringify({
+				type: "PING",
+				scope: "INDIVIDUAL",
+				meta: {
+					ts: pingTs,
+					lastLatency: wsClient.lastLatency,
+				},
+			});
+
+			socket.send(payload);
+		} catch (err) {
+			console.error(`[ERROR] Failed to ping socket ${wsClient.id || "(no id)"}, closing`, err);
+			try {
+				socket.close();
+			} catch (closeErr) {
+				console.error(`[ERROR] Failed to close socket ${wsClient.id || "(no id)"} after failed ping:`, closeErr);
+			}
+			try {
+				unsubscribe(socket);
+			} catch (unsubErr) {
+				console.error(
+					`[ERROR] Failed to unsubscribe socket ${wsClient.id || "(no id)"} after failed ping:`,
+					unsubErr
+				);
 			}
 		}
 	}
+	console.log(`[DEBUG] Heartbeat loop complete\n`);
 }, 30_000);
 
 process.on("SIGTERM", () => {
