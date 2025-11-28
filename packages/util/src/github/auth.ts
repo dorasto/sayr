@@ -5,6 +5,9 @@ import jwt from "jsonwebtoken";
 const APP_ID = process.env.GITHUB_APP_ID!;
 // biome-ignore lint/style/noNonNullAssertion: <needed>
 const PRIVATE_KEY = process.env.GITHUB_APP_PRIVATE_KEY!;
+console.log("🚀 ~ PRIVATE_KEY:", PRIVATE_KEY);
+const privateKey = process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, "\n");
+console.log("🚀 ~ privateKey:", privateKey);
 export function createAppJWT(): string {
 	const now = Math.floor(Date.now() / 1000);
 	return jwt.sign({ iat: now - 60, exp: now + 600, iss: APP_ID }, PRIVATE_KEY, { algorithm: "RS256" });
