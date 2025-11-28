@@ -17,6 +17,12 @@ export const auth = betterAuth({
 			},
 		},
 	},
+	advanced: {
+		crossSubDomainCookies: {
+			enabled: process.env.NODE_ENV === "production",
+			domain: `.${process.env.NEXT_PUBLIC_URL_ROOT || ""}`, // your domain
+		},
+	},
 	emailAndPassword: {
 		enabled: false,
 	},

@@ -55,7 +55,7 @@ const useWebSocket = () => {
 									}
 									return;
 								case "PING": {
-									console.log("🚀 ~ WebSocket ~ PING:");
+									console.log("🚀 ~ WebSocket ~ PING:", data);
 									webSocket?.send(JSON.stringify({ type: "PONG", meta: { ts: Date.now() } } as WSMessage));
 									return;
 								}
