@@ -64,6 +64,8 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - QUEUE_MODE=${QUEUE_MODE}
       - REDIS_URL=${REDIS_URL}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - SYSTEM_ACCOUNT_ID=${SYSTEM_ACCOUNT_ID}
     networks:
       - app_network
 
@@ -99,6 +101,8 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - QUEUE_MODE=${QUEUE_MODE}
       - REDIS_URL=${REDIS_URL}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - SYSTEM_ACCOUNT_ID=${SYSTEM_ACCOUNT_ID}
     networks:
       - app_network
 

@@ -1,4 +1,7 @@
 import { auth } from "@repo/auth/index";
+import { auth as authSchema, db } from "@repo/database";
+import { eq } from "drizzle-orm";
+import { getCookieValue } from "./util";
 
 // -----------------------------------------------------------------------------
 // Session cache (in-memory, keyed by better-auth.session_token)
@@ -13,32 +16,93 @@ function getSessionToken(headers: Headers): string {
 	return match?.[1] ?? "anonymous";
 }
 
-export async function safeGetSession(
-	headers: Headers,
-	ms = 10_000,
-	ttl = 1 * 60 * 1000 // cache duration: 1 minute by default
-): Promise<SessionValue | null> {
+// 🧠 Simple in-memory cache for system account existence
+const systemAccountCache = {
+	exists: false,
+	checkedAt: 0,
+	ttl: 48 * 60 * 60 * 1000, // 48 hours
+};
+
+export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60 * 1000): Promise<SessionValue | null> {
 	const key = getSessionToken(headers);
 	const now = Date.now();
 
-	// ✅ 1. Serve from cache if valid
+	// 🔒 1. Internal shortcut path (supports cookie OR header)
+	const sayrInternalCookie = getCookieValue(headers, "sayr_internal");
+	const sayrInternalHeader = headers.get("x-internal-secret");
+	const fromService = headers.get("x-internal-service");
+	const userAgent = headers.get("user-agent");
+
+	const isInternal =
+		sayrInternalHeader &&
+		sayrInternalCookie &&
+		userAgent?.includes("Sayr-Worker/1.0") &&
+		sayrInternalHeader === sayrInternalCookie &&
+		sayrInternalHeader === process.env.INTERNAL_SECRET &&
+		fromService === "sayr-worker";
+	if (isInternal) {
+		const systemId = process.env.SYSTEM_ACCOUNT_ID;
+		if (!systemId) return null;
+
+		// ⚙️ Use cache if valid
+		if (systemAccountCache.exists && now - systemAccountCache.checkedAt < systemAccountCache.ttl) {
+			console.log("✅ System account confirmed (from cache)");
+			return {
+				// biome-ignore lint/suspicious/noExplicitAny: <needed>
+				session: { userId: systemId } as any,
+				// biome-ignore lint/suspicious/noExplicitAny: <needed>
+				user: { id: systemId } as any,
+			};
+		}
+
+		try {
+			// 🚀 Minimal existence check
+			const result = await db
+				.select({ id: authSchema.user.id })
+				.from(authSchema.user)
+				.where(eq(authSchema.user.id, systemId))
+				.limit(1);
+
+			const exists = result.length > 0;
+			systemAccountCache.exists = exists;
+			systemAccountCache.checkedAt = now;
+
+			if (exists) {
+				console.log("✅ System account confirmed (cached 48h)");
+			} else {
+				console.warn("⚠️ System account missing (cached 48h anyway)");
+			}
+		} catch {
+			console.warn("⚠️ Skipping system account check (DB error ignored)");
+			systemAccountCache.exists = true;
+			systemAccountCache.checkedAt = now;
+		}
+
+		// ✅ Always provide a valid system session for internal callers
+		return {
+			// biome-ignore lint/suspicious/noExplicitAny: <needed>
+			session: { userId: systemId } as any,
+			// biome-ignore lint/suspicious/noExplicitAny: <needed>
+			user: { id: systemId } as any,
+		};
+	}
+
+	// ✅ 2. Serve from cache if available and valid
 	const cached = sessionCache.get(key);
 	if (cached && cached.expiresAt > now) {
 		return cached.value;
 	}
 
-	// ⏱ 2. Timeout protection for session fetch
+	// ⏱ 3. Timeout protection
 	const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms));
 
 	try {
+		// Fetch the real session
 		const session = (await Promise.race([auth.api.getSession({ headers }), timeoutPromise])) as SessionValue;
 
-		// Store (including null) with expiry
 		sessionCache.set(key, { value: session, expiresAt: now + ttl });
 		return session;
-	} catch (err) {
-		console.warn("⚠️ safeGetSession: timeout or error while fetching session:", err);
-		// Cache short failure window (5 s) to prevent auth storming
+	} catch {
 		sessionCache.set(key, { value: null, expiresAt: now + 5_000 });
 		return null;
 	}

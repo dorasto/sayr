@@ -105,12 +105,20 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 // Update task details
 apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const { org_id, wsClientId, task_id, ...updates } = await c.req.json();
-	const sayrInternal = getCookieValue(c.req.raw.headers, "sayr_internal");
-	const isInternal = sayrInternal === process.env.INTERNAL_SECRET;
 	const session = c.get("session");
+	const systemAccountCheck = session?.userId === process.env.SYSTEM_ACCOUNT_ID;
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
-
-	if (!isAuthorized && !isInternal) {
+	if (systemAccountCheck) {
+		console.log("✅ System account authorized to update task", {
+			task_id,
+			org_id,
+			updates,
+			userId: session?.userId,
+			userAgent: c.req.header("user-agent"),
+			service: c.req.header("x-internal-service"),
+		});
+	}
+	if (!isAuthorized && !systemAccountCheck) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	// 🔎 Check task existence

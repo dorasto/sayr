@@ -27,6 +27,10 @@ export async function handleCloseKeyword(ctx: KeywordContext) {
 			headers: {
 				"Content-Type": "application/json",
 				cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
+				"user-agent": "Sayr-Worker/1.0",
+				"x-internal-secret": process.env.INTERNAL_SECRET!,
+				"x-internal-service": "sayr-worker",
+				"x-internal-timestamp": new Date().toISOString(),
 			},
 			body: JSON.stringify({
 				org_id: ctx.orgId,
