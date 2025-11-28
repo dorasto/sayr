@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import UserTable from "../../components/console/user-table";
 import { getAccess, getUsers } from "../../lib/serverFunctions";
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
 	const result = await getUsers();

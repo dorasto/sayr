@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/performance/noImgElement: <Dont care> */
 "use client";
 import { useLayoutPublicDataOrganization } from "@/app/org/[slug]/Context";
 
