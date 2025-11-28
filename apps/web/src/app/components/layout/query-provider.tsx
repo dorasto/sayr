@@ -1,6 +1,11 @@
 "use client";
 
-import { MutationCache, QueryCache, QueryClient, QueryClientProvider as TanstackQueryClientProvider } from "@tanstack/react-query";
+import {
+	MutationCache,
+	QueryCache,
+	QueryClient,
+	QueryClientProvider as TanstackQueryClientProvider,
+} from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { type ReactNode, useState } from "react";
 import { logger } from "@/app/lib/axiom/client";

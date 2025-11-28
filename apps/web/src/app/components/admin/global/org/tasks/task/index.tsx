@@ -7,9 +7,9 @@ import { useLayoutTasks } from "@/app/admin/[organization_id]/tasks/Context";
 import { useLayoutData } from "@/app/admin/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
+import { useLogger } from "@/app/lib/axiom/client";
 import type { WSMessage } from "@/app/lib/ws";
 import { TaskContent } from "./views/table/task-content";
-import { useLogger } from "@/app/lib/axiom/client";
 
 export default function OrganizationTaskHomePage() {
 	const log = useLogger();

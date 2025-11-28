@@ -3,8 +3,8 @@ import type { schema } from "@repo/database";
 import { getSessionCookie } from "better-auth/cookies";
 import { unstable_cache } from "next/cache";
 import { headers } from "next/headers";
-import { redirectAuth } from "@/app/lib/redirectAuth";
 import { logger } from "@/app/lib/axiom/server";
+import { redirectAuth } from "@/app/lib/redirectAuth";
 
 const _getAccess = async (h: Headers) => {
 	const cookie = getSessionCookie(h) ?? "anon";

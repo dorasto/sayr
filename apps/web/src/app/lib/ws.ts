@@ -3,12 +3,15 @@
 import type { schema } from "@repo/database";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast as sonnerToast } from "sonner";
+import { useLogger } from "@/app/lib/axiom/client";
 
 let webSocket: WebSocket | null = null;
+let lastMessageTimestamp: number = Date.now();
 
 const useWebSocket = () => {
+	const log = useLogger();
 	const [ws, setWs] = useState<WebSocket | null>(null);
 	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
 	const { setValue: setWSClientId } = useStateManagement<string>("ws-clientId", "");
@@ -19,11 +22,17 @@ const useWebSocket = () => {
 				setWSStatus("Connecting");
 				webSocket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "/ws");
 				webSocket.onopen = () => {
+					console.log("✅ WebSocket connection established");
+					log.info("WebSocket connection established");
+					lastMessageTimestamp = Date.now();
 					setWs(webSocket);
 				};
 				webSocket.addEventListener(
 					"message",
 					(event) => {
+						lastMessageTimestamp = Date.now();
+						// Log raw message for debugging
+						console.log("⬇️ WS Recv:", event.data);
 						try {
 							const data: WSMessage = JSON.parse(event.data);
 							switch (data.type) {
@@ -31,6 +40,7 @@ const useWebSocket = () => {
 									if (data.data.authenticated) {
 										setWSStatus("Connected");
 										setWSClientId(data.data.wsClientId);
+										log.info("WebSocket authenticated", { wsClientId: data.data.wsClientId });
 										headlessToast.success({
 											id: "ws-connection-status",
 											title: "WebSocket Connected",
@@ -38,7 +48,8 @@ const useWebSocket = () => {
 										});
 									} else {
 										webSocket = null;
-										console.log("WebSocket disconnected. Attempting to reconnect...");
+										console.log("WebSocket disconnected (unauthenticated). Attempting to reconnect...");
+										log.warn("WebSocket disconnected (unauthenticated)");
 										setWs(null);
 										setWSStatus("Reconnecting");
 										headlessToast.error({
@@ -56,21 +67,33 @@ const useWebSocket = () => {
 									return;
 								case "PING": {
 									console.log("🚀 ~ WebSocket ~ PING:", data);
-									webSocket?.send(JSON.stringify({ type: "PONG", meta: { ts: Date.now() } } as WSMessage));
+									const pong = { type: "PONG", meta: { ts: Date.now() } } as WSMessage;
+									console.log("⬆️ Sending PONG:", pong);
+									webSocket?.send(JSON.stringify(pong));
 									return;
 								}
 								default:
 									break;
 							}
-						} catch {
-							console.log("📩 Raw:", event.data);
+						} catch (error) {
+							console.log("📩 Raw (parse error):", event.data, error);
+							log.error("WebSocket message parse error", { error, data: event.data });
 						}
 					},
 					{ signal: abortController.signal }
 				);
-				webSocket.onclose = () => {
+				webSocket.onclose = (event) => {
 					webSocket = null;
-					console.log("WebSocket disconnected. Attempting to reconnect...");
+					console.log("WebSocket disconnected. Attempting to reconnect...", {
+						code: event.code,
+						reason: event.reason,
+						wasClean: event.wasClean,
+					});
+					log.info("WebSocket disconnected", {
+						code: event.code,
+						reason: event.reason,
+						wasClean: event.wasClean,
+					});
 					setWs(null);
 					setWSClientId("");
 					setWSStatus("Reconnecting");
@@ -89,6 +112,7 @@ const useWebSocket = () => {
 
 				webSocket.onerror = (error) => {
 					console.error("WebSocket error:", error);
+					log.error("WebSocket error", { error });
 					if (webSocket && webSocket.readyState === WebSocket.OPEN) {
 						webSocket.close();
 					}
@@ -114,15 +138,45 @@ const useWebSocket = () => {
 			connectWebSocket();
 		}, 100);
 
+		// Watchdog interval: Check every 5s if we haven't received a message in 45s
+		const watchdogInterval = setInterval(() => {
+			if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+				const timeSinceLastMessage = Date.now() - lastMessageTimestamp;
+				if (timeSinceLastMessage > 45000) {
+					console.warn(`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`);
+					log.warn("WebSocket watchdog timeout", { timeSinceLastMessage });
+					webSocket.close(4000, "Watchdog timeout");
+				}
+			}
+		}, 5000);
+
+		// Online/Offline listeners
+		const handleOnline = () => {
+			console.log("🌐 Browser is ONLINE");
+			log.info("Browser online");
+			if (!webSocket || webSocket.readyState === WebSocket.CLOSED) {
+				connectWebSocket();
+			}
+		};
+		const handleOffline = () => {
+			console.log("🔌 Browser is OFFLINE");
+			log.info("Browser offline");
+		};
+		window.addEventListener("online", handleOnline);
+		window.addEventListener("offline", handleOffline);
+
 		return () => {
 			console.log("Clearing WebSocket on unmount.");
 			clearTimeout(timeoutId);
+			clearInterval(watchdogInterval);
+			window.removeEventListener("online", handleOnline);
+			window.removeEventListener("offline", handleOffline);
 			webSocket?.close();
 			abortController.abort();
 			// Clean up any persistent toast
 			sonnerToast.dismiss("ws-connection-status");
 		};
-	}, [setWSStatus, setWSClientId]);
+	}, [setWSStatus, setWSClientId, log]);
 	return ws;
 };
 

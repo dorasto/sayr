@@ -31,21 +31,24 @@ export function useWSMessageHandler<T extends { type: string }>(
 	onUnhandledRef.current = onUnhandled;
 
 	// stable message handler – never changes
-	const handleMessage = useCallback((event: MessageEvent) => {
-		const data = JSON.parse(event.data) as T;
+	const handleMessage = useCallback(
+		(event: MessageEvent) => {
+			const data = JSON.parse(event.data) as T;
 
-		// optional "tap-in"
-		onEachRef.current?.(data);
+			// optional "tap-in"
+			onEachRef.current?.(data);
 
-		const handler = handlersRef.current[data.type as keyof WSMessageHandler<T>] as ((msg: T) => void) | undefined;
+			const handler = handlersRef.current[data.type as keyof WSMessageHandler<T>] as ((msg: T) => void) | undefined;
 
-		if (handler) {
-			handler(data);
-		} else {
-			log.warn("Unhandled WebSocket message", { type: data.type });
-			onUnhandledRef.current?.(data);
-		}
-	}, [log]);
+			if (handler) {
+				handler(data);
+			} else {
+				log.warn("Unhandled WebSocket message", { type: data.type });
+				onUnhandledRef.current?.(data);
+			}
+		},
+		[log]
+	);
 
 	return handleMessage;
 }

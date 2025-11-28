@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { setUserRole } from "./serverFunctions";
 import { logger } from "@/app/lib/axiom/server";
+import { setUserRole } from "./serverFunctions";
 
 export async function changeUserRoleAction(userId: string, role: "admin" | "user") {
 	try {
