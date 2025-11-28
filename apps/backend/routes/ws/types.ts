@@ -52,5 +52,6 @@ export type wsClientsType = {
 	offenceCount: number;
 	// Heartbeat info
 	lastPong: number; // ✅ last pong received from heartbeat
+	lastPing: number; // ✅ last ping sent for heartbeat
 	lastLatency: number; // ✅ last measured RTT
 };

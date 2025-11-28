@@ -581,6 +581,7 @@ wsRoute.get(
 				id: wsClientId,
 				connectedAt: Date.now(),
 				lastPong: Date.now(),
+				lastPing: Date.now(),
 				lastLatency: -1,
 				lastMessageAt: 0,
 				offenceCount: 0,
@@ -669,12 +670,20 @@ wsRoute.get(
 					}
 				}
 				switch (msg.type) {
-					case "PONG":
+					case "PONG": {
 						if (client) {
+							const now = Date.now();
 							wsClient.lastPong = now;
-							wsClient.lastLatency = msg.meta ? (msg.meta.latency as number) : -9999;
+							// If we stored lastPing when sending the PING (recommended in your interval loop)
+							if (wsClient.lastPing && typeof wsClient.lastPing === "number") {
+								wsClient.lastLatency = now - wsClient.lastPing;
+							} else {
+								// Fallback in case we haven’t sent one yet
+								wsClient.lastLatency = -1;
+							}
 						}
 						return;
+					}
 					case "SUBSCRIBE":
 						if (msg.orgId === ADMIN_ORG && msg.channel === CONNECTIONS_CHANNEL) {
 							const sessionData = await safeGetSession(c.req.raw.headers);
@@ -799,7 +808,11 @@ setInterval(() => {
 			unsubscribe(socket);
 		} else {
 			try {
-				socket.send(`{"type":"PING","scope":"INDIVIDUAL","meta":{"ts":${Date.now()}}}`);
+				const pingTs = Date.now();
+				wsClient.lastPing = pingTs;
+				socket.send(
+					`{"type":"PING","scope":"INDIVIDUAL","meta":{"ts":${pingTs},"lastLatency":${wsClient.lastLatency}}}`
+				);
 			} catch {
 				console.log("Failed to ping, closing", wsClient);
 				socket.close();

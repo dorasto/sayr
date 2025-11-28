@@ -55,10 +55,7 @@ const useWebSocket = () => {
 									}
 									return;
 								case "PING": {
-									const rtt = data.meta ? Date.now() - data.meta.ts : "";
-									webSocket?.send(
-										JSON.stringify({ type: "PONG", meta: { ts: Date.now(), latency: rtt } } as WSMessage)
-									);
+									webSocket?.send(JSON.stringify({ type: "PONG", meta: { ts: Date.now() } } as WSMessage));
 									return;
 								}
 								default:
@@ -137,7 +134,6 @@ export type BaseMessage = {
 		ts: number; // timestamp
 		channel?: string;
 		orgId?: string;
-		latency?: string | number;
 	};
 };
 

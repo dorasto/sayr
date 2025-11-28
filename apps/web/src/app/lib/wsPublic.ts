@@ -23,9 +23,8 @@ const useWebSocketPublic = ({
 			setWSStatus("Connected");
 			setWSClientId(msg.data.wsClientId);
 		},
-		PING: (msg: WSMessage) => {
-			const rtt = msg.meta ? Date.now() - msg.meta.ts : "";
-			webSocket?.send(JSON.stringify({ type: "PONG", meta: { ts: Date.now(), latency: rtt } } as WSMessage));
+		PING: () => {
+			webSocket?.send(JSON.stringify({ type: "PONG", meta: { ts: Date.now() } } as WSMessage));
 		},
 		UPDATE_ORG: (msg) => {
 			setOrganization({ ...organization, ...msg.data });
