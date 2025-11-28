@@ -2,6 +2,7 @@
 
 import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
+import { logger } from "@/app/lib/axiom/client";
 
 export interface UpdateOrganizationData {
 	name: string;
@@ -54,6 +55,7 @@ export async function updateOrganizationAction(
 	data: UpdateOrganizationData,
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.organizationType; error?: string }> {
+	logger.info("Updating organization", { organizationId, data });
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/update`, {
 		method: "POST",
 		body: JSON.stringify({
@@ -66,6 +68,9 @@ export async function updateOrganizationAction(
 		},
 		credentials: "include", // 👈 This ensures cookies are sent
 	}).then(async (e) => await e.json());
+	if (!result.success) {
+		logger.error("Failed to update organization", { error: result.error, organizationId });
+	}
 	return result;
 }
 
@@ -214,6 +219,7 @@ export async function createTaskAction(
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
+	logger.info("Creating task", { organizationId, title: data.title });
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/create`, {
 		method: "POST",
 		body: JSON.stringify({
@@ -232,6 +238,9 @@ export async function createTaskAction(
 		},
 		credentials: "include", // 👈 This ensures cookies are sent
 	}).then(async (e) => await e.json());
+	if (!result.success) {
+		logger.error("Failed to create task", { error: result.error, organizationId });
+	}
 	return result;
 }
 
@@ -295,6 +304,8 @@ export async function updateTaskAction(
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
 	};
 
+	logger.info("Updating task", { organizationId, taskId, updates: Object.keys(data) });
+
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/update`, {
 		method: "PATCH",
 		body: JSON.stringify(payload),
@@ -303,6 +314,9 @@ export async function updateTaskAction(
 		},
 		credentials: "include", // 👈 This ensures cookies are sent
 	}).then(async (e) => await e.json());
+	if (!result.success) {
+		logger.error("Failed to update task", { error: result.error, organizationId, taskId });
+	}
 	return result;
 }
 

@@ -9,8 +9,10 @@ import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import { TaskContent } from "./views/table/task-content";
+import { useLogger } from "@/app/lib/axiom/client";
 
 export default function OrganizationTaskHomePage() {
+	const log = useLogger();
 	const { ws } = useLayoutData();
 	const { organization, setOrganization, labels, setLabels, setViews, categories, setCategories } =
 		useLayoutOrganization();
@@ -26,21 +28,25 @@ export default function OrganizationTaskHomePage() {
 	const handlers: WSMessageHandler<WSMessage> = {
 		UPDATE_LABELS: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				log.debug("Updating labels from WS", { msg });
 				setLabels(msg.data);
 			}
 		},
 		UPDATE_VIEWS: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				log.debug("Updating views from WS", { msg });
 				setViews(msg.data);
 			}
 		},
 		UPDATE_CATEGORIES: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				log.debug("Updating categories from WS", { msg });
 				setCategories(msg.data);
 			}
 		},
 		UPDATE_TASK: (msg) => {
 			const updatedTask = msg.data;
+			log.debug("Updating task from WS", { taskId: updatedTask.id });
 			const updatedTasks = tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));
 			setTasks(updatedTasks);
 			if (task && task.id === updatedTask.id) {
@@ -57,6 +63,7 @@ export default function OrganizationTaskHomePage() {
 		},
 		UPDATE_TASK_COMMENTS: async (msg) => {
 			if (msg.data.id === task.id) {
+				log.debug("Updating task comments from WS", { taskId: msg.data.id });
 				sendWindowMessage(
 					window,
 					{
@@ -69,7 +76,7 @@ export default function OrganizationTaskHomePage() {
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationProjectTaskHomePage]", msg),
+		onUnhandled: (msg) => log.warn("⚠️ [UNHANDLED MESSAGE OrganizationProjectTaskHomePage]", { msg }),
 	});
 	useEffect(() => {
 		if (!ws) return;

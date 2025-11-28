@@ -2,6 +2,7 @@ import { HeadlessToastConfig } from "@repo/ui/components/headless-toast";
 import { Toaster } from "@repo/ui/components/sonner";
 import type { Metadata, Viewport } from "next";
 import type React from "react";
+import { WebVitals } from "@/app/lib/axiom/client";
 import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
 import { IconAlertCircle, IconAlertCircleFilled, IconCheck, IconInfoCircle, IconLoader2 } from "@tabler/icons-react";
@@ -61,6 +62,7 @@ export default function RootLayout({
 			<head>
 				<SidebarScript />
 			</head>
+			<WebVitals />
 			<body className="relative">
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
 					<QueryClientProvider>

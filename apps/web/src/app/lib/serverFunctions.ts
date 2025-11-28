@@ -4,6 +4,7 @@ import { getSessionCookie } from "better-auth/cookies";
 import { unstable_cache } from "next/cache";
 import { headers } from "next/headers";
 import { redirectAuth } from "@/app/lib/redirectAuth";
+import { logger } from "@/app/lib/axiom/server";
 
 const _getAccess = async (h: Headers) => {
 	const cookie = getSessionCookie(h) ?? "anon";
@@ -23,7 +24,8 @@ const _getAccess = async (h: Headers) => {
 		}
 
 		return redirectAuth();
-	} catch {
+	} catch (error) {
+		logger.error("Error getting session", { error });
 		return redirectAuth();
 	}
 };
@@ -86,6 +88,7 @@ export async function getUsers() {
 
 		return result;
 	} catch (error) {
+		logger.error("Error fetching users", { error });
 		console.log("🚀 ~ getUsers ~ error:", error);
 		return {
 			users: [],
@@ -95,6 +98,7 @@ export async function getUsers() {
 }
 
 export async function setUserRole(userId: string, role: "admin" | "user") {
+	logger.info("Setting user role", { userId, role });
 	const result = await auth.api.setRole({
 		body: {
 			userId: userId,

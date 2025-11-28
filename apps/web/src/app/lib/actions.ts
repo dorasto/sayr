@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { setUserRole } from "./serverFunctions";
+import { logger } from "@/app/lib/axiom/server";
 
 export async function changeUserRoleAction(userId: string, role: "admin" | "user") {
 	try {
+		logger.info("Changing user role", { userId, role });
 		const result = await setUserRole(userId, role);
 
 		// Revalidate the admin console page to refresh the data
@@ -12,6 +14,7 @@ export async function changeUserRoleAction(userId: string, role: "admin" | "user
 
 		return { success: true, data: result };
 	} catch (error) {
+		logger.error("Failed to change user role", { error, userId, role });
 		console.error("Failed to change user role:", error);
 		return {
 			success: false,

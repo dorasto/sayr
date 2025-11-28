@@ -1,6 +1,7 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect } from "react";
+import { useLogger } from "@/app/lib/axiom/client";
 import { useLayoutData } from "../admin/Context";
 import type { WSMessage } from "../lib/ws";
 import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandler";
@@ -22,6 +23,7 @@ export function useWebSocketSubscription({
 	organization,
 	setOrganization,
 }: UseWebSocketSubscriptionOptions): UseWebSocketSubscriptionReturn {
+	const log = useLogger();
 	const { organizations, setOrganizations } = useLayoutData();
 	const { value: wsSubscribedState, setValue: setWSSubscribedState } = useStateManagement<{
 		orgId: string;
@@ -31,6 +33,7 @@ export function useWebSocketSubscription({
 	// Define handlers for message types
 	const handlers: WSMessageHandler<WSMessage> = {
 		SUBSCRIBED: (msg) => {
+			log.debug("WebSocket Subscribed", { orgId: msg.data.orgId, channel: msg.data.channel });
 			setWSSubscribedState({
 				orgId: msg.data.orgId,
 				channel: msg.data.channel,
@@ -47,7 +50,7 @@ export function useWebSocketSubscription({
 
 	// Stable handler for WebSocket `onmessage`
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE useWebSocketSubscription]", msg),
+		onUnhandled: (msg) => log.warn("⚠️ [UNHANDLED MESSAGE useWebSocketSubscription]", { msg }),
 	});
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <will fix at somepoint>
 	useEffect(() => {
@@ -81,7 +84,7 @@ export function useWebSocketSubscription({
 			if (changed && ws.readyState === WebSocket.OPEN && WSClientId) {
 				ws.send(JSON.stringify({ type: "SUBSCRIBE", orgId, channel }));
 				setWSSubscribedState({ orgId, channel });
-				console.log("🔄 Subscribed to", { orgId, channel });
+				log.info("🔄 Subscribed to", { orgId, channel });
 			}
 		}, 50); // small delay avoids cross-layout overlap
 		return () => {
@@ -90,7 +93,7 @@ export function useWebSocketSubscription({
 			ws.removeEventListener("message", handleMessage);
 		};
 		// ✅ wsSubscribedState stays in deps safely because we’re comparing before set
-	}, [ws, orgId, channel, handleMessage, setWSSubscribedState, WSClientId]);
+	}, [ws, orgId, channel, handleMessage, setWSSubscribedState, WSClientId, log]);
 
 	return { wsSubscribedState };
 }

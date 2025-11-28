@@ -1,5 +1,8 @@
+import { transformMiddlewareRequest } from "@axiomhq/nextjs";
 import { getSessionCookie } from "better-auth/cookies";
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { logger } from "@/app/lib/axiom/server";
 
 export const config = {
 	matcher: [
@@ -16,7 +19,10 @@ export const config = {
 	],
 };
 
-export default function middleware(req: NextRequest) {
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+	logger.info(...transformMiddlewareRequest(req));
+	event.waitUntil(logger.flush());
+
 	const url = req.nextUrl;
 	const path = url.pathname;
 	const search = url.search;

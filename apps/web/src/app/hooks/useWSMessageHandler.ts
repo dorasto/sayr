@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react";
+import { useLogger } from "@/app/lib/axiom/client";
 
 export type WSMessageHandler<T extends { type: string }> = {
 	[K in T["type"]]?: (msg: Extract<T, { type: K }>) => void;
@@ -19,6 +20,7 @@ export function useWSMessageHandler<T extends { type: string }>(
 		onUnhandled?: (msg: T) => void;
 	} = {}
 ) {
+	const log = useLogger();
 	const handlersRef = useRef<WSMessageHandler<T>>({});
 	const onEachRef = useRef<typeof onEach | null>(null);
 	const onUnhandledRef = useRef<typeof onUnhandled | null>(null);
@@ -40,9 +42,10 @@ export function useWSMessageHandler<T extends { type: string }>(
 		if (handler) {
 			handler(data);
 		} else {
+			log.warn("Unhandled WebSocket message", { type: data.type });
 			onUnhandledRef.current?.(data);
 		}
-	}, []);
+	}, [log]);
 
 	return handleMessage;
 }
