@@ -62,8 +62,56 @@ services:
       - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
       - DORAS_ORGANIZATION=${DORAS_ORGANIZATION}
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - QUEUE_MODE=${QUEUE_MODE}
+      - REDIS_URL=${REDIS_URL}
     networks:
       - app_network
+
+  worker:
+    container_name: sayr-worker
+    build:
+      context: .
+      dockerfile: ./apps/worker/Dockerfile
+    restart: always
+    pull_policy: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
+      - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
+      - NEXT_PUBLIC_URL_ROOT=${NEXT_PUBLIC_URL_ROOT}
+      - NEXT_PUBLIC_API_SERVER=${NEXT_PUBLIC_API_SERVER}
+      - NEXT_PUBLIC_PROJECT_NAME=${NEXT_PUBLIC_PROJECT_NAME}
+      - STORAGE_URL=${STORAGE_URL}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - FILE_SALT=${FILE_SALT}
+      - FILE_CDN=${FILE_CDN}
+      - SAYR_EMAIL=${SAYR_EMAIL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - STORAGE_PORT=${STORAGE_PORT}
+      - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
+      - DORAS_ORGANIZATION=${DORAS_ORGANIZATION}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - QUEUE_MODE=${QUEUE_MODE}
+      - REDIS_URL=${REDIS_URL}
+    networks:
+      - app_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: sayr-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+
   nginx:
     build:
       context: .
@@ -80,3 +128,6 @@ services:
 networks:
   app_network:
     driver: bridge
+
+volumes:
+  redis_data:

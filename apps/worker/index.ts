@@ -1,3 +1,4 @@
+import { dequeue, type Job } from "@repo/util/github/queue";
 import {
 	handleBlockKeyword,
 	handleCloseKeyword,
@@ -6,7 +7,6 @@ import {
 	postGithubComment,
 } from "./github/keywordActions";
 import { extractSayrKeywords } from "./github/keywords";
-import { dequeue, type Job } from "./github/queue";
 
 async function handleSayrKeywordParse(job: Job) {
 	const { text, eventType, number, owner, repoId, repo, merged, installationId, organizationId, categoryId } =

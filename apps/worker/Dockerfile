@@ -4,7 +4,7 @@ FROM base AS builder
 WORKDIR /app
 RUN npm install -g turbo
 COPY . .
-RUN turbo prune backend --docker
+RUN turbo prune worker --docker
 
 FROM oven/bun:1 AS installer
 WORKDIR /app
@@ -27,13 +27,13 @@ RUN pnpm install
 COPY --from=builder /app/out/full/ .
 
 # Build the project
-WORKDIR /app/apps/backend
+WORKDIR /app/apps/worker
 RUN bun run build
 
 FROM oven/bun:1 AS runner
 WORKDIR /app
 
-COPY --from=installer /app/apps/backend/dist ./dist
+COPY --from=installer /app/apps/worker/dist ./dist
 
 # Environment Variables
 ENV DATABASE_URL=""
@@ -60,9 +60,5 @@ ENV DORAS_ORGANIZATION=""
 ENV BETTER_AUTH_SECRET=""
 ENV QUEUE_MODE=""
 ENV REDIS_URL=""
-
-
-# Expose the port the app runs on
-EXPOSE 5468
 
 CMD ["bun", "run", "dist/index.js"]

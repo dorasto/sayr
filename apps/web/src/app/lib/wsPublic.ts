@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { useWSMessageHandler, type WSMessageHandler } from "../hooks/useWSMessageHandler";
 import type { WSMessage } from "./ws";
 
-const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
 let webSocket: WebSocket | null = null;
 
 const useWebSocketPublic = ({
@@ -40,7 +39,7 @@ const useWebSocketPublic = ({
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(`${wsUrl}?orgId=${organization.id}` || "/ws");
+				webSocket = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}?orgId=${organization.id}` || "/ws");
 				webSocket.onopen = () => {
 					setWs(webSocket);
 				};

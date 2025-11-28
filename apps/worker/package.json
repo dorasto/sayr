@@ -1,5 +1,5 @@
 {
-	"name": "backend",
+	"name": "worker",
 	"version": "0.0.5",
 	"private": false,
 	"scripts": {
@@ -8,14 +8,10 @@
 		"start": "bun ./dist/index.js"
 	},
 	"dependencies": {
-		"@repo/auth": "workspace:*",
-		"@repo/database": "workspace:*",
-		"@repo/storage": "workspace:*",
 		"@repo/util": "workspace:*",
-		"hono": "^4.8.4"
+		"@repo/database": "workspace:*"
 	},
 	"devDependencies": {
-		"@hono/node-server": "^1.15.0",
 		"@repo/typescript-config": "workspace:*",
 		"@types/bun": "^1.2.23",
 		"bun-types": "^1.2.21",

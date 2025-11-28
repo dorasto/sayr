@@ -6,7 +6,6 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
 import { toast as sonnerToast } from "sonner";
 
-const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
 let webSocket: WebSocket | null = null;
 
 const useWebSocket = () => {
@@ -18,7 +17,7 @@ const useWebSocket = () => {
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(wsUrl || "/ws");
+				webSocket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "/ws");
 				webSocket.onopen = () => {
 					setWs(webSocket);
 				};

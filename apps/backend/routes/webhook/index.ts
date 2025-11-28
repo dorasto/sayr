@@ -1,8 +1,8 @@
 import { db, schema } from "@repo/database";
+import { enqueue } from "@repo/util/github/queue";
 import { verifySignature } from "@repo/util/github/verify";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { enqueue } from "../../github/queue";
 
 export const webhookRoute = new Hono();
 webhookRoute.post("/github", async (c) => {
