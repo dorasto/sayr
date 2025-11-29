@@ -8,11 +8,19 @@ interface InviteServerPageProps {
 
 export default async function InviteServerPage({ params, searchParams }: InviteServerPageProps) {
 	const { account } = await getAccess();
+	if (!account) {
+		return <div>Please log in or sign up then open this invite.</div>;
+	}
 	const { org_id } = await params;
 	const search = await searchParams;
 	const invite = await db.query.invite.findFirst({
 		where: (invites, { eq, and }) =>
-			and(eq(invites.organizationId, org_id), eq(invites.inviteCode, search.code), eq(invites.status, "pending")),
+			and(
+				eq(invites.organizationId, org_id),
+				eq(invites.inviteCode, search.code),
+				eq(invites.status, "pending"),
+				eq(invites.userId, account?.id)
+			),
 	});
 	return (
 		<div className="p-4">
