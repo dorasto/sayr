@@ -3,6 +3,34 @@
 import type { schema } from "@repo/database";
 import { logger } from "@/app/lib/axiom/client";
 
+export async function inviteAction(
+	invite: schema.inviteType,
+	type: "accept" | "deny"
+): Promise<{
+	success: boolean;
+	error?: string;
+}> {
+	logger.info("Inviting organization member", { invite, type });
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/invite`, {
+		method: "POST",
+		body: JSON.stringify({ invite, type }),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (e) => await e.json());
+	if (!result.success) {
+		logger.error("Failed to invite member", { error: result.error, invite, type });
+		return {
+			success: false,
+			error: result.error,
+		};
+	}
+	logger.info("Invite accepted", { invite, type });
+	return {
+		success: true,
+	};
+}
 /**
  * Invites one or more users to join an organization via the `/admin/organization/member` API.
  *
