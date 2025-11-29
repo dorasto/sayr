@@ -6,9 +6,19 @@ export const authClient = createAuthClient({
 });
 
 export const signInDoras = async () => {
+	const found = await authClient.getSession();
+	if (found) {
+		window.location.href = "/admin";
+		return;
+	}
 	await authClient.signIn.oauth2({ providerId: "doras", callbackURL: "/admin" });
 };
 
 export const singInGithub = async () => {
+	const found = await authClient.getSession();
+	if (found) {
+		window.location.href = "/admin";
+		return;
+	}
 	await authClient.signIn.social({ provider: "github", callbackURL: "/admin" });
 };

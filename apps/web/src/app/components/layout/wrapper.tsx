@@ -3,24 +3,24 @@
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
+import { IconArrowLeft } from "@tabler/icons-react";
 import Link from "next/link";
 import { useAdminRoute } from "./admin/admin-navigation/useAdminRoute";
-import { LeftSidebarProvider } from "./admin/left-sidebar";
 import { PrimarySidebar } from "./admin/sidebars/primary";
 import { SettingsSidebar } from "./admin/sidebars/settings";
+import { StaffSidebar } from "./admin/sidebars/staff";
 
 interface Props {
 	children: React.ReactNode;
 	className?: string;
 }
 export function Wrapper({ children, className }: Props) {
-	const { isTaskPage, isSettingsPage } = useAdminRoute();
+	const { isTaskPage, isSettingsPage, isStaffPage } = useAdminRoute();
 	return (
 		<div className="h-full w-full max-h-[calc(100dvh-var(--header-height))]!">
 			<div className="flex flex-1 h-full w-full transition-all pb-2 pr-2">
 				{/* <PrimarySidebar /> */}
-				{isSettingsPage ? <SettingsSidebar /> : <PrimarySidebar />}
+				{isSettingsPage ? <SettingsSidebar /> : isStaffPage ? <StaffSidebar /> : <PrimarySidebar />}
 				{/* <LeftSidebarProvider /> */}
 				<div
 					className={cn(

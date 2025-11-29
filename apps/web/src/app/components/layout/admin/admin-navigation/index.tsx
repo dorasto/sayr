@@ -1,6 +1,5 @@
 "use client";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import useLocalStorage from "@repo/ui/hooks/useLocalStorage.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { useStore } from "@tanstack/react-store";
 import { StatusBar } from "@/app/components/admin/global/status";
@@ -16,7 +15,6 @@ import { useAdminRoute } from "./useAdminRoute";
 export default function AdminNavigation() {
 	const primarySidebar = useStore(sidebarStore, (state) => state.sidebars["primary-sidebar"]);
 	const isSidebarOpen = primarySidebar?.open ?? true;
-	const { value: sidebarIsOpen } = useLocalStorage("left-sidebar-state", false);
 	const isMobile = useIsMobile();
 	const { isOrgPage, isTaskPage, isMinePage, isTasksPage } = useAdminRoute();
 
