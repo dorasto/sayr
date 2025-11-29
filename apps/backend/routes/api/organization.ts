@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { db, getLabels, getOrganizationMembers, schema } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
@@ -548,6 +549,100 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 	return c.json({
 		success: true,
 		data: result,
+	});
+});
+
+//team member routes
+
+apiRouteAdminOrganization.post("/member", async (c) => {
+	const session = c.get("session");
+	const { org_id, emails }: { org_id: string; emails: string[] } = await c.req.json();
+
+	// --- Permissions ---
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id, ["owner"]);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const invites = [];
+	const failedEmails: string[] = [];
+
+	for (const email of emails) {
+		try {
+			// Find existing user if any
+			const user = await db.query.user.findFirst({
+				where: (usr) => eq(usr.email, email),
+			});
+
+			// Already exists as member?
+			const existingMember = user
+				? await db.query.member.findFirst({
+						where: and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user.id)),
+					})
+				: null;
+
+			if (existingMember) continue;
+
+			// Already invited?
+			const existingInvite = await db.query.invite.findFirst({
+				where: and(eq(schema.invite.organizationId, org_id), eq(schema.invite.email, email)),
+			});
+
+			if (existingInvite) continue;
+
+			// Generate secure invite code
+			const inviteCode = randomBytes(12).toString("hex");
+
+			const [newInvite] = await db
+				.insert(schema.invite)
+				.values({
+					id: randomBytes(8).toString("hex"),
+					organizationId: org_id,
+					email,
+					userId: user?.id ?? null,
+					invitedById: session?.userId || "",
+					status: "pending",
+					role: "member",
+					inviteCode,
+					expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
+				})
+				.returning();
+
+			invites.push(newInvite);
+		} catch (err) {
+			console.error("Failed to invite email:", email, err);
+			failedEmails.push(email);
+		}
+	}
+
+	return c.json({
+		success: true,
+		invites,
+		...(failedEmails.length > 0 && { errors: failedEmails }),
+	});
+});
+
+apiRouteAdminOrganization.delete("/member", async (c) => {
+	const session = c.get("session");
+	const { org_id, user_id } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id, ["owner"]);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [removed] = await db
+		.delete(schema.member)
+		.where(and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user_id)))
+		.returning();
+	if (!removed) {
+		return c.json({ success: false, error: "Failed to remove member." }, 500);
+	}
+	broadcastByUserId(user_id, "", org_id, {
+		type: "MEMBER_ACTIONS",
+		data: { orgId: org_id, userId: user_id, action: "REMOVED" },
+	});
+	return c.json({
+		success: true,
+		// data: removed,
 	});
 });
 

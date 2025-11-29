@@ -1,5 +1,6 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import {
 	AdaptiveDialog,
 	AdaptiveDialogBody,
@@ -43,9 +44,11 @@ import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import { useLayoutOrganizationSettings } from "@/app/admin/settings/org/[org_id]/Context";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
+import { deleteOrganizationMemberAction, inviteOrganizationMembersAction } from "@/app/lib/fetches/organization";
+import { useToastAction } from "@/app/lib/util";
 
-export default function SettingsOrganizationPageTeam() {
-	const { ws } = useLayoutData();
+export default function SettingsOrganizationPageTeam({ invites }: { invites: schema.inviteType[] }) {
+	const { ws, account } = useLayoutData();
 	const { organization, setOrganization } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
@@ -54,7 +57,6 @@ export default function SettingsOrganizationPageTeam() {
 		channel: "admin",
 		setOrganization: setOrganization,
 	});
-
 	const roleBadge = (role: string) => {
 		switch (role) {
 			case "owner":
@@ -112,13 +114,25 @@ export default function SettingsOrganizationPageTeam() {
 	const removeEmail = (email: string) => {
 		setEmails(emails.filter((e) => e !== email));
 	};
+	const { runWithToast, isFetching } = useToastAction();
 	if (!organization) {
 		return null;
 	}
+	const mergeMembersAndInvites = [
+		...organization.members,
+		...invites.map((invite) => ({
+			id: invite.id,
+			userId: invite.userId,
+			//@ts-expect-error invite.user can be null
+			user: invite.user || { id: "", name: invite.email, email: invite.email, image: "" },
+			role: invite.role,
+			status: invite.status,
+		})),
+	];
 	return (
 		<div className="bg-card rounded-lg flex flex-col">
 			{/* <p>{JSON.stringify(organization.members, null, 4)}</p> */}
-			{organization.members?.map((member) => (
+			{mergeMembersAndInvites?.map((member) => (
 				<DropdownMenu key={member.id}>
 					<DropdownMenuTrigger asChild>
 						<Tile
@@ -144,6 +158,8 @@ export default function SettingsOrganizationPageTeam() {
 							</TileHeader>
 							<TileAction className="">
 								<TileDescription asChild>{roleBadge(member.role)}</TileDescription>
+								{/* @ts-expect-error status can be string */}
+								{member.status && <span className="mx-2 text-muted-foreground">{member.status}</span>}
 								<Button variant={"ghost"} size={"icon"}>
 									<IconDots />
 								</Button>
@@ -164,7 +180,20 @@ export default function SettingsOrganizationPageTeam() {
 						<DropdownMenuItem>
 							<IconBadge /> Update role
 						</DropdownMenuItem>
-						<DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={async () => {
+								if (member.userId === account?.id) {
+									alert("You cannot remove yourself from the organization.");
+									return;
+								}
+								const confirmed = window.confirm(
+									"You are about to remove this member from the organization. Are you sure?"
+								);
+								if (!confirmed) return;
+								await deleteOrganizationMemberAction(organization.id, member.user.id);
+								window.location.reload();
+							}}
+						>
 							<IconUserCancel />
 							Remove from organization
 						</DropdownMenuItem>
@@ -229,10 +258,31 @@ export default function SettingsOrganizationPageTeam() {
 					<AdaptiveDialogFooter>
 						<AdaptiveDialogClose asChild>
 							<Button
-								onClick={() => {
-									setOpen(false);
-									setEmails([]);
+								onClick={async () => {
+									const data = await runWithToast(
+										"invite-organization-members",
+										{
+											loading: {
+												title: "Inviting members...",
+												description: "Please wait while we invite the members.",
+											},
+											success: {
+												title: "Members invited",
+												description: "The members have been successfully invited.",
+											},
+											error: {
+												title: "Failed to invite members",
+												description: "An error occurred while inviting the members.",
+											},
+										},
+										() => inviteOrganizationMembersAction(organization.id, emails)
+									);
+									if (data?.success) {
+										setEmails([]);
+										setOpen(false);
+									}
 								}}
+								disabled={emails.length === 0 || isFetching}
 							>
 								Send Invites
 							</Button>

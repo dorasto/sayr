@@ -31,7 +31,8 @@ export type WSBaseMessage = {
 		| "WAITING_ROOM"
 		| "DISCONNECTED"
 		| "UPDATE_VIEWS"
-		| "UPDATE_CATEGORIES";
+		| "UPDATE_CATEGORIES"
+		| "MEMBER_ACTIONS";
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	data?: any;
 	orgId?: string;

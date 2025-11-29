@@ -3,7 +3,7 @@
 import type { schema } from "@repo/database";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast as sonnerToast } from "sonner";
 import { useLogger } from "@/app/lib/axiom/client";
 
@@ -70,6 +70,19 @@ const useWebSocket = () => {
 									const pong = { type: "PONG", meta: { ts: Date.now() } } as WSMessage;
 									console.log("⬆️ Sending PONG:", pong);
 									webSocket?.send(JSON.stringify(pong));
+									return;
+								}
+								case "MEMBER_ACTIONS": {
+									if (data.data.action === "REMOVED") {
+										headlessToast.info({
+											id: "org-member-removed",
+											title: "Removed from organization",
+											description: "You have been removed from the organization. Redirecting...",
+										});
+										setTimeout(() => {
+											window.location.href = "/admin";
+										});
+									}
 									return;
 								}
 								default:
@@ -258,6 +271,10 @@ export type WSMessage =
 	| (BaseMessage & {
 			type: "CONNECTIONS_SNAPSHOT";
 			data: FirehoseClient[];
+	  })
+	| (BaseMessage & {
+			type: "MEMBER_ACTIONS";
+			data: { action: "ADDED" | "REMOVED"; orgId: string; userId: string };
 	  });
 
 export type FirehoseClient = {
