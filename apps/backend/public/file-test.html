@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>File Upload Tester Sayr.io</title>
+    <style>
+      body {
+        background-color: #111;
+        color: #eee;
+        font-family: monospace;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 20px;
+        margin-bottom: 10px;
+      }
+
+      h2 {
+        font-size: 16px;
+        margin-top: 20px;
+        margin-bottom: 10px;
+      }
+
+      .upload-tester {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+
+      .upload-tester input,
+      .upload-tester button,
+      .upload-tester textarea {
+        padding: 8px;
+        margin: 5px 0;
+        width: 100%;
+        border-radius: 4px;
+        border: 1px solid #444;
+        background: #222;
+        color: #eee;
+        font-family: monospace;
+        font-size: 14px;
+      }
+
+      .upload-tester button {
+        cursor: pointer;
+        background: #333;
+      }
+
+      .upload-tester button:hover {
+        background: #444;
+      }
+
+      .upload-tester button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+      }
+
+      .file-input-wrapper input[type="file"] {
+        position: absolute;
+        left: -9999px;
+      }
+
+      .file-input-label {
+        display: block;
+        padding: 12px;
+        background: #333;
+        border: 2px dashed #555;
+        border-radius: 4px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .file-input-label:hover {
+        background: #444;
+        border-color: #666;
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+
+      .preview-item {
+        position: relative;
+        border: 1px solid #444;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #222;
+      }
+
+      .preview-item img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        display: block;
+      }
+
+      .preview-item-info {
+        padding: 8px;
+        font-size: 11px;
+        color: #aaa;
+        word-break: break-all;
+      }
+
+      .preview-item-status {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: bold;
+      }
+
+      .status-pending {
+        background: #555;
+        color: #fff;
+      }
+
+      .status-uploading {
+        background: #0066cc;
+        color: #fff;
+      }
+
+      .status-success {
+        background: #00aa00;
+        color: #fff;
+      }
+
+      .status-error {
+        background: #cc0000;
+        color: #fff;
+      }
+
+      .upload-log {
+        background: #000;
+        color: #0f0;
+        font-family: monospace;
+        padding: 10px;
+        height: 300px;
+        overflow-y: auto;
+        border-radius: 4px;
+        margin-top: 10px;
+        white-space: pre-wrap;
+        font-size: 13px;
+      }
+
+      .remove-btn {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        background: #cc0000;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 10px;
+        width: auto;
+        margin: 0;
+      }
+
+      .remove-btn:hover {
+        background: #ff0000;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="upload-tester">
+      <h1>📤 File Upload Tester</h1>
+
+      <!-- Config Section -->
+      <h2>⚙️ Configuration</h2>
+      <label for="upload-url">Upload Endpoint URL:</label>
+      <input
+        id="upload-url"
+        type="text"
+        value="http://localhost:5468/api/file/upload"
+      />
+
+      <!-- File Selection Section -->
+      <h2>📁 Select Images</h2>
+      <div class="file-input-wrapper">
+        <input id="file-input" type="file" accept="image/*" multiple />
+        <label for="file-input" class="file-input-label">
+          Click to select images or drag and drop
+        </label>
+      </div>
+
+      <!-- Preview Section -->
+      <h2>🖼️ Preview</h2>
+      <div id="preview-grid" class="preview-grid"></div>
+
+      <!-- Submit Section -->
+      <h2>🚀 Upload</h2>
+      <button id="submit-btn" onclick="uploadAll()" disabled>
+        Upload All Images
+      </button>
+
+      <!-- Log -->
+      <h2>📋 Log</h2>
+      <div id="upload-log" class="upload-log"></div>
+    </div>
+
+    <script>
+      let selectedFiles = [];
+      let previewBlobs = [];
+
+      const fileInput = document.getElementById("file-input");
+      const previewGrid = document.getElementById("preview-grid");
+      const submitBtn = document.getElementById("submit-btn");
+      const uploadLog = document.getElementById("upload-log");
+
+      function logMessage(msg) {
+        const timestamp = new Date().toLocaleTimeString();
+        uploadLog.innerHTML += `[${timestamp}] ${msg}\n`;
+        uploadLog.scrollTop = uploadLog.scrollHeight;
+      }
+
+      function updateSubmitButton() {
+        submitBtn.disabled = selectedFiles.length === 0;
+      }
+
+      function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        previewBlobs.splice(index, 1);
+        renderPreviews();
+        updateSubmitButton();
+        logMessage(`🗑️ Removed file at index ${index}`);
+      }
+
+      function renderPreviews() {
+        previewGrid.innerHTML = "";
+
+        selectedFiles.forEach((file, index) => {
+          const previewItem = document.createElement("div");
+          previewItem.className = "preview-item";
+          previewItem.dataset.index = index;
+
+          const img = document.createElement("img");
+          img.src = previewBlobs[index];
+          img.alt = file.name;
+
+          const removeBtn = document.createElement("button");
+          removeBtn.className = "remove-btn";
+          removeBtn.textContent = "✕";
+          removeBtn.onclick = () => removeFile(index);
+
+          const statusBadge = document.createElement("div");
+          statusBadge.className = "preview-item-status status-pending";
+          statusBadge.id = `status-${index}`;
+          statusBadge.textContent = "PENDING";
+
+          const info = document.createElement("div");
+          info.className = "preview-item-info";
+          info.textContent = `${file.name}\n${(file.size / 1024).toFixed(
+            2
+          )} KB`;
+
+          previewItem.appendChild(img);
+          previewItem.appendChild(removeBtn);
+          previewItem.appendChild(statusBadge);
+          previewItem.appendChild(info);
+          previewGrid.appendChild(previewItem);
+        });
+      }
+
+      function updateStatus(index, status, text) {
+        const statusBadge = document.getElementById(`status-${index}`);
+        if (statusBadge) {
+          statusBadge.className = `preview-item-status status-${status}`;
+          statusBadge.textContent = text;
+        }
+      }
+
+      fileInput.addEventListener("change", (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        files.forEach((file) => {
+          if (!file.type.startsWith("image/")) {
+            logMessage(`⚠️ Skipping non-image file: ${file.name}`);
+            return;
+          }
+
+          selectedFiles.push(file);
+          const blobUrl = URL.createObjectURL(file);
+          previewBlobs.push(blobUrl);
+          logMessage(
+            `✅ Added: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`
+          );
+        });
+
+        renderPreviews();
+        updateSubmitButton();
+        fileInput.value = ""; // Reset input to allow selecting same file again
+      });
+
+      // Drag and drop support
+      const fileInputLabel = document.querySelector(".file-input-label");
+      fileInputLabel.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        fileInputLabel.style.borderColor = "#666";
+        fileInputLabel.style.background = "#444";
+      });
+
+      fileInputLabel.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        fileInputLabel.style.borderColor = "#555";
+        fileInputLabel.style.background = "#333";
+      });
+
+      fileInputLabel.addEventListener("drop", (e) => {
+        e.preventDefault();
+        fileInputLabel.style.borderColor = "#555";
+        fileInputLabel.style.background = "#333";
+
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length === 0) return;
+
+        files.forEach((file) => {
+          if (!file.type.startsWith("image/")) {
+            logMessage(`⚠️ Skipping non-image file: ${file.name}`);
+            return;
+          }
+
+          selectedFiles.push(file);
+          const blobUrl = URL.createObjectURL(file);
+          previewBlobs.push(blobUrl);
+          logMessage(
+            `✅ Added: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`
+          );
+        });
+
+        renderPreviews();
+        updateSubmitButton();
+      });
+
+      async function uploadAll() {
+        if (selectedFiles.length === 0) {
+          logMessage("⚠️ No files to upload");
+          return;
+        }
+
+        const uploadUrl = document.getElementById("upload-url").value;
+
+        logMessage(`🚀 Starting upload of ${selectedFiles.length} file(s)...`);
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Uploading...";
+
+        const uploadPromises = selectedFiles.map(async (file, index) => {
+          updateStatus(index, "uploading", "UPLOADING");
+          logMessage(`📤 Uploading: ${file.name}...`);
+
+          try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await fetch(uploadUrl, {
+              method: "PUT",
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (!result.success) {
+              throw new Error(result.error || "Upload failed");
+            }
+
+            updateStatus(index, "success", "SUCCESS");
+            logMessage(
+              `✅ Success: ${file.name} -> ${
+                result.data?.url || "uploaded"
+              } (ID: ${result.data?.id || "N/A"})`
+            );
+            return { success: true, file: file.name, result };
+          } catch (error) {
+            updateStatus(index, "error", "ERROR");
+            logMessage(`❌ Error uploading ${file.name}: ${error.message}`);
+            return { success: false, file: file.name, error: error.message };
+          }
+        });
+
+        const results = await Promise.all(uploadPromises);
+        const successCount = results.filter((r) => r.success).length;
+        const errorCount = results.filter((r) => !r.success).length;
+
+        logMessage(
+          `\n📊 Upload complete: ${successCount} succeeded, ${errorCount} failed`
+        );
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Upload All Images";
+      }
+    </script>
+  </body>
+</html>

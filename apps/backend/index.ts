@@ -3,7 +3,8 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import type { auth } from "@repo/auth/index";
 import { db, schema } from "@repo/database";
-import { eq } from "drizzle-orm";
+import { CronJob } from "cron";
+import { eq, lt } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
@@ -13,6 +14,7 @@ import { apiRoute } from "./routes/api";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
 import { checkMembershipRole } from "./util";
+
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -91,6 +93,7 @@ app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://fi
 app.get("/health", (c) => c.text("OK"));
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.get("/ws-test", serveStatic({ path: "./public/ws.html" }));
+app.get("/file-test", serveStatic({ path: "./public/file-test.html" }));
 app.route("/ws", wsRoute);
 app.route("/webhook", webhookRoute);
 app.get("/metrics", (c) => {
@@ -228,6 +231,22 @@ app.onError((err, c) => {
 		500
 	);
 });
+
+// Delete invites whose expiresAt is older than 24 hours ago
+new CronJob(
+	"0 0 * * *",
+	async () => {
+		try {
+			const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+			await db.delete(schema.invite).where(lt(schema.invite.expiresAt, cutoffDate));
+			console.log("Expired invites older than 24 hours deleted");
+		} catch (err) {
+			console.error("Error deleting expired invites:", err);
+		}
+	},
+	null,
+	true
+);
 
 // -----------------------------------------------------------------------------
 // Server export (for Bun)

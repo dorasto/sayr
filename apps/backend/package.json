@@ -16,6 +16,7 @@
 		"@repo/database": "workspace:*",
 		"@repo/storage": "workspace:*",
 		"@repo/util": "workspace:*",
+		"cron": "^4.3.4",
 		"hono": "^4.8.4"
 	},
 	"devDependencies": {

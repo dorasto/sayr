@@ -37,8 +37,8 @@ export async function uploadObject(
 	// Salt to make hashes unpredictable even if filename known
 	const salt = process.env.FILE_SALT || "";
 
-	// Length of the final hash string — e.g. 16 / 24 / 32
-	const hashLength = parseInt(process.env.FILE_NAME_HASH_LENGTH || "32", 10);
+	// Length of the final hash string — e.g. 16 / 24 / 32 / 64
+	const hashLength = parseInt(process.env.FILE_NAME_HASH_LENGTH || "64", 10);
 
 	// Generate salted SHA-256 hash
 	const fullHash = crypto
@@ -63,7 +63,7 @@ export async function uploadObject(
 		finalKey,
 		data,
 		size,
-		{ ...meta, originalName: objectName } // 👈 Keep original name in metadata
+		{ ...meta } // 👈 Keep original name in metadata
 	);
 
 	return finalKey;

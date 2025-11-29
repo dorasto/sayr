@@ -95,7 +95,7 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		// 3. Upload to storage
 		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
-			"user-id": user?.id || "ANONYMOUS",
+			originalName: objectName,
 		});
 		await db.insert(schema.file).values({
 			organizationId: orgId,
@@ -159,6 +159,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		// 3. Upload to storage
 		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
+			originalName: objectName,
 		});
 		await db.insert(schema.file).values({
 			organizationId: orgId,
