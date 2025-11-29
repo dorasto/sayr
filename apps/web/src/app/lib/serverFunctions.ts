@@ -49,8 +49,12 @@ export const getAccess = async () => {
 	const h = new Headers(await headers());
 	const cookie = getSessionCookie(h) ?? "anon";
 
-	const cachedFn = unstable_cache(() => _getAccess(h), [`getAccess-${cookie}`], {
-		revalidate: 600, // 10 mins
+	// Get access first (may redirect)
+	const result = await _getAccess(h); // this may throw NEXT_REDIRECT
+
+	// Then cache only valid user data
+	const cachedFn = unstable_cache(async () => result, [`getAccess-${cookie}`], {
+		revalidate: 600,
 		tags: ["auth-session"],
 	});
 
