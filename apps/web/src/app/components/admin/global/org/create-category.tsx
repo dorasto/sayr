@@ -13,7 +13,7 @@ import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import IconPicker from "@/app/components/icon-picker";
 import RenderIcon from "@/app/components/RenderIcon";
-import { createCategoryAction, deleteCategoryAction, editCategoryAction } from "@/app/lib/fetches";
+import { createCategoryAction, deleteCategoryAction, editCategoryAction } from "@/app/lib/fetches/organization";
 import { useToastAction } from "@/app/lib/util";
 
 interface Props {

@@ -15,7 +15,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useDebounceAsync } from "@/app/hooks/useDebounceAsync";
-import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches";
+import { updateLabelToTaskAction, updateTaskAction } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "../../../../shared/task-config";
 import GlobalTaskAssignees from "../../assignee";

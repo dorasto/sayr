@@ -22,7 +22,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconPlus, IconUserPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
 import { useDebounceAsync } from "@/app/hooks/useDebounceAsync";
-import { updateAssigneesToTaskAction } from "@/app/lib/fetches";
+import { updateAssigneesToTaskAction } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/app/lib/util";
 
 interface GlobalTaskAssigneesProps {

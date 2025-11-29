@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/pop
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { useState } from "react";
-import { createSavedViewAction } from "@/app/lib/fetches"; // you'll implement this similar to createLabelAction
+import { createSavedViewAction } from "@/app/lib/fetches/organization"; // you'll implement this similar to createLabelAction
 import { useToastAction } from "@/app/lib/util";
 
 interface Props {

@@ -21,7 +21,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
 import { XIcon } from "lucide-react";
 import RenderIcon from "@/app/components/RenderIcon";
-import { updateTaskAction } from "@/app/lib/fetches";
+import { updateTaskAction } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/app/lib/util";
 
 interface GlobalTaskCategoryProps {

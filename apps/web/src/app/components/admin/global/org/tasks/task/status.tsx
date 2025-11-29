@@ -17,7 +17,7 @@ import {
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { updateTaskAction } from "@/app/lib/fetches";
+import { updateTaskAction } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/app/lib/util";
 import { statusConfig } from "../../shared/task-config";
 

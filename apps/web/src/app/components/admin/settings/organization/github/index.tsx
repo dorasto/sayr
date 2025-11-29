@@ -50,7 +50,7 @@ import { useLayoutData } from "@/app/admin/Context";
 import { useLayoutOrganizationSettings } from "@/app/admin/settings/org/[org_id]/Context";
 import RenderIcon from "@/app/components/RenderIcon";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
-import { createGithubSyncConnectionAction } from "@/app/lib/fetches";
+import { createGithubSyncConnectionAction } from "@/app/lib/fetches/organization";
 import { useToastAction } from "@/app/lib/util";
 
 export type githubInstallationDetailsType = {

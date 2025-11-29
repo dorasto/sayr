@@ -9,7 +9,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconCircleFilled } from "@tabler/icons-react";
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import { toast } from "sonner";
-import { updateOrganizationAction, uploadOrganizationBanner } from "@/app/lib/fetches";
+import { updateOrganizationAction, uploadOrganizationBanner } from "@/app/lib/fetches/organization";
 import { useToastAction } from "@/app/lib/util";
 import { handleFileValidation } from "../utils/file-validation";
 import type { FileWithPreview } from "../utils/types";

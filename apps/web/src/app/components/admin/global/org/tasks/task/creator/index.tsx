@@ -27,7 +27,7 @@ import {
 import { useMemo, useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import RenderIcon from "@/app/components/RenderIcon";
-import { createTaskAction } from "@/app/lib/fetches";
+import { createTaskAction } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/app/lib/util";
 import { priorityConfig, statusConfig } from "../../../shared/task-config";
 import GlobalTaskAssignees from "../assignee";

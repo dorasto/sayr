@@ -10,7 +10,7 @@ import { TabbedDialogFooter } from "@repo/ui/components/tomui/tabbed-dialog";
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCharacterLimit } from "@/app/hooks/use-character-limit";
-import { updateOrganizationAction, uploadOrganizationLogo } from "@/app/lib/fetches";
+import { updateOrganizationAction, uploadOrganizationLogo } from "@/app/lib/fetches/organization";
 import { useToastAction } from "@/app/lib/util";
 import { handleFileValidation } from "../utils/file-validation";
 import type { FileWithPreview } from "../utils/types";

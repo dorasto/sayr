@@ -11,7 +11,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconLock, IconLockOpen2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
-import { CreateTaskCommentAction } from "@/app/lib/fetches";
+import { CreateTaskCommentAction } from "@/app/lib/fetches/task";
 import { extractTextContent, useToastAction } from "@/app/lib/util";
 
 type CommentVisibility = "internal" | "public";

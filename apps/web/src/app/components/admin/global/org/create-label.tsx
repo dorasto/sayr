@@ -9,7 +9,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import RenderIcon from "@/app/components/RenderIcon";
-import { createLabelAction, deleteLabelAction, editLabelAction } from "@/app/lib/fetches";
+import { createLabelAction, deleteLabelAction, editLabelAction } from "@/app/lib/fetches/organization";
 import { useToastAction } from "@/app/lib/util";
 
 interface Props {
