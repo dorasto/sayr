@@ -39,6 +39,7 @@ export function Wrapper({ children, className }: Props) {
 interface SubProps {
 	children: React.ReactNode;
 	className?: string;
+    rootClassName?: string;
 	style?: "default" | "compact";
 	title?: string;
 	description?: string;
@@ -49,6 +50,7 @@ interface SubProps {
 export function SubWrapper({
 	children,
 	className,
+    rootClassName,
 	style = "default",
 	title = "title",
 	description,
@@ -57,7 +59,7 @@ export function SubWrapper({
 	backButtonText = "Back",
 }: SubProps) {
 	return (
-		<div className="relative">
+		<div className={cn("relative", rootClassName)}>
 			<div className="sticky top-0 z-50 w-full md:h-7 bg-gradient-to-b from-background from-0% via-background/50 via-50% to-background/10 flex items-center px-3 pt-3">
 				{backButton ? (
 					<Link href={backButton} className="">
