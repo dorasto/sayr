@@ -115,6 +115,7 @@ export async function getOrganizationMembers(orgId: string): Promise<schema.memb
 		where: (member) => eq(member.organizationId, orgId),
 	});
 }
+
 /**
  * Fetches a single organization by its unique slug.
  *
@@ -147,3 +148,37 @@ export async function getOrganizationPublic(orgSlug: string): Promise<schema.org
 	}
 	return null;
 }
+
+/**
+ * Fetches a single organization by its Id
+ *
+ * @param orgId - The unique identifier of the organization.
+ * @returns A promise that resolves to the organization's data if found,
+ * or `null` if no organization exists with the given id.
+ *
+ * @example
+ * ```ts
+ * const org = await getOrganizationPublic("uuid");
+ *
+ * if (org) {
+ *   console.log(`Organization: ${org.name} (${org.slug})`);
+ * } else {
+ *   console.log("Organization not found.");
+ * }
+ * ```
+ */
+export async function getOrganizationPublicById(orgId: string): Promise<schema.organizationType | null> {
+	const organization = await db.query.organization.findFirst({
+		where: (org) => eq(org.id, orgId),
+	});
+	if (organization) {
+		return {
+			...organization,
+			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
+			bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
+			privateId: null,
+		};
+	}
+	return null;
+}
+
