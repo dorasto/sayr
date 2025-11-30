@@ -1,5 +1,6 @@
 "use client";
 
+import { authClient } from "@repo/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { SidebarMenuButton, SidebarMenuItem, SidebarMenuSub } from "@repo/ui/components/doras-ui/sidebar";
 import {
@@ -83,7 +84,13 @@ export default function UserDropdown() {
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={async () => {
+								await authClient.signOut();
+								console.log("User signed out successfully.");
+								window.location.reload();
+							}}
+						>
 							<LogOut />
 							Log out
 						</DropdownMenuItem>

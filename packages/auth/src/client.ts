@@ -7,7 +7,7 @@ export const authClient = createAuthClient({
 
 export const signInDoras = async () => {
 	const found = await authClient.getSession();
-	if (found) {
+	if (found.data) {
 		window.location.href = "/admin";
 		return;
 	}
@@ -16,7 +16,7 @@ export const signInDoras = async () => {
 
 export const singInGithub = async () => {
 	const found = await authClient.getSession();
-	if (found) {
+	if (found.data) {
 		window.location.href = "/admin";
 		return;
 	}
