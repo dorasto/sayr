@@ -42,7 +42,7 @@ export async function safeGetOrganization(orgId: string, userId: string, ms = 50
  * @param userId - The ID of the user (from session)
  * @param orgId - The ID of the organization
  * @param allowedRoles - Array of roles allowed to pass authorization
- *                       (default: ["owner", "admin"])
+ *                       (default: ["owner", "admin", "user"])
  * @returns A promise that resolves to a boolean indicating whether the user
  *          is authorized
  *
@@ -63,7 +63,7 @@ export async function safeGetOrganization(orgId: string, userId: string, ms = 50
 export async function checkMembershipRole(
 	userId: string | undefined,
 	orgId: string,
-	allowedRoles: string[] = ["owner", "admin"]
+	allowedRoles: string[] = ["owner", "admin", "user"]
 ): Promise<boolean> {
 	if (!userId) return false;
 

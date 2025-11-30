@@ -603,7 +603,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 					userId: user?.id ?? null,
 					invitedById: session?.userId || "",
 					status: "pending",
-					role: "member",
+					role: "user",
 					inviteCode,
 					expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
 				})

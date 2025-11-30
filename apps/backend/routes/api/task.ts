@@ -14,7 +14,7 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
-import { checkMembershipRole, getCookieValue } from "@/util";
+import { checkMembershipRole } from "@/util";
 // import { enqueueJob } from "@/queue";
 import {
 	broadcast,
