@@ -27,7 +27,7 @@ export function InvitationActions({ invite, organizationName }: InvitationAction
 			if (result.success) {
 				if (type === "accept") {
 					// Redirect to the organization after accepting
-					router.push(`/`);
+					router.push(`/admin/${invite.organizationId}`);
 					router.refresh();
 				} else {
 					// Redirect home after declining
