@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@repo/ui/components/button";
-import { inviteAction } from "@/app/lib/fetches/organization";
 import type { schema } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { inviteAction } from "@/app/lib/fetches/organization";
 
 interface InvitationActionsProps {
 	invite: schema.inviteType;
@@ -47,11 +47,7 @@ export function InvitationActions({ invite, organizationName }: InvitationAction
 	return (
 		<div className="flex flex-col items-center gap-3">
 			<div className="flex items-center gap-3">
-				<Button
-					variant="primary"
-					onClick={() => handleAction("accept")}
-					disabled={isLoading !== null}
-				>
+				<Button variant="primary" onClick={() => handleAction("accept")} disabled={isLoading !== null}>
 					{isLoading === "accept" ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
