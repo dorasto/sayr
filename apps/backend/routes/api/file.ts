@@ -1,19 +1,19 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { uploadObject } from "@repo/storage";
+import { createHash, randomBytes } from "node:crypto";
+import { db } from "@repo/database";
+import { removeObject, uploadObject } from "@repo/storage";
+import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
+import { checkMembershipRole } from "@/util";
 
 export const apiRouteFile = new Hono<AppEnv>();
 
 // Upload a file
-apiRouteFile.put("/upload", async (c) => {
+apiRouteFile.put("/", async (c) => {
 	try {
 		const session = c.get("session");
-
-		if (!session?.userId) {
-			return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-		}
-
+		const orgId = c.req.header("X-File-Privacy");
 		// Parse multipart body
 		const body = await c.req.parseBody();
 		const file = body.file;
@@ -34,21 +34,77 @@ apiRouteFile.put("/upload", async (c) => {
 			.digest("hex");
 
 		const objectName = `${fullHash}.${ext}`;
+		if (orgId !== "public" && typeof orgId === "string") {
+			const isAuthorized = await checkMembershipRole(session?.userId, orgId);
+			if (!isAuthorized) {
+				// Upload to storage
+				const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
+					"Content-Type": file.type || "application/octet-stream",
+				});
+				const url = ensureCdnUrl(uploadedUrl);
+
+				return c.json({
+					success: true,
+					url,
+				});
+			}
+			const organization = await db.query.organization.findFirst({
+				where: (org) => eq(org.id, orgId),
+			});
+			if (!organization) {
+				// Upload to storage
+				const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
+					"Content-Type": file.type || "application/octet-stream",
+				});
+				const url = ensureCdnUrl(uploadedUrl);
+
+				return c.json({
+					success: true,
+					url,
+				});
+			}
+			// Upload to storage
+			const uploadedUrl = await uploadObject(objectName, buffer, `files/${organization?.privateId}`, {
+				"Content-Type": file.type || "application/octet-stream",
+			});
+			const url = ensureCdnUrl(uploadedUrl);
+
+			return c.json({
+				success: true,
+				url,
+			});
+		}
 		// Upload to storage
-		const uploadedUrl = await uploadObject(objectName, buffer, "files", {
+		const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
 			"Content-Type": file.type || "application/octet-stream",
 		});
+		const url = ensureCdnUrl(uploadedUrl);
 
 		return c.json({
 			success: true,
-			data: {
-				id: randomUUID(),
-				fileName: objectName,
-				url: uploadedUrl,
-				originalName: file.name,
-				size: file.size,
-				type: file.type,
-			},
+			url,
+		});
+	} catch (err: unknown) {
+		const message = err instanceof Error ? err.message : "Upload failed";
+		console.error("Upload failed:", message);
+		return c.json({ success: false, error: "Upload failed" }, 500);
+	}
+});
+
+apiRouteFile.delete("/", async (c) => {
+	try {
+		const session = c.get("session");
+		if (!session?.userId) {
+			return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		}
+		const { url } = await c.req.json();
+		if (!url || typeof url !== "string") {
+			return c.json({ success: false, error: "No file URL provided" }, 400);
+		}
+		await removeObject(`files/${getFileNameFromUrl(url)}`);
+		return c.json({
+			success: true,
+			message: "File deleted successfully",
 		});
 	} catch (err: unknown) {
 		const message = err instanceof Error ? err.message : "Upload failed";

@@ -11,6 +11,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconLock, IconLockOpen2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
+import { uploadFile } from "@/app/lib/fetches/file";
 import { CreateTaskCommentAction } from "@/app/lib/fetches/task";
 import { extractTextContent, useToastAction } from "@/app/lib/util";
 
@@ -29,7 +30,7 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 	const commentText = extractTextContent(newComment);
 	const disabled = isFetching || commentText.length === 0;
 	const handleSubmit = async () => {
-		if (isFetching || commentText.length === 0) {
+		if (!newComment || isFetching || commentText.length === 0) {
 			headlessToast.error({
 				title: "Cannot submit empty comment",
 				description: "Please enter some text before submitting your comment.",
@@ -37,6 +38,71 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 			});
 			return;
 		}
+
+		const updatedBlocks: PartialBlock[] = await Promise.all(
+			(newComment ?? []).map(async (block) => {
+				if (
+					(block.type === "image" || block.type === "file" || block.type === "video" || block.type === "audio") &&
+					typeof block.props === "object" &&
+					// biome-ignore lint/suspicious/noExplicitAny: <fix>
+					typeof (block.props as any).url === "string" &&
+					// biome-ignore lint/suspicious/noExplicitAny: <fix>
+					(block.props as any).url.startsWith("blob:")
+				) {
+					headlessToast.info({
+						title: "Uploading file...",
+						description: "Please wait while your file is being uploaded.",
+						id: "create-task-comment",
+					});
+					const props = block.props as { url: string; name?: string };
+					try {
+						const blob = await fetch(props.url).then((res) => res.blob());
+						const fileName = props.name || `upload-${Date.now()}`;
+						const file = new File([blob], fileName, { type: blob.type });
+						if (visibility === "internal") {
+							const result = await uploadFile(file, task.organizationId);
+							if (result.success && result.data?.url) {
+								console.log("✅ Uploaded file:", result.data.url);
+								URL.revokeObjectURL(props.url);
+								// Return updated block with new URL
+								return {
+									...block,
+									props: {
+										...block.props,
+										url: result.data.url,
+										name: fileName,
+									},
+								} satisfies PartialBlock;
+							} else {
+								console.error("❌ Upload failed:", result.error);
+							}
+						} else {
+							const result = await uploadFile(file);
+							if (result.success && result.data?.url) {
+								console.log("✅ Uploaded file:", result.data.url);
+								URL.revokeObjectURL(props.url);
+								// Return updated block with new URL
+								return {
+									...block,
+									props: {
+										...block.props,
+										url: result.data.url,
+										name: fileName,
+									},
+								} satisfies PartialBlock;
+							} else {
+								console.error("❌ Upload failed:", result.error);
+							}
+						}
+					} catch (err) {
+						console.error("⚠️ Blob upload failed:", err);
+					}
+				}
+
+				return block;
+			})
+		);
+
 		const data = await runWithToast(
 			"create-task-comment",
 			{
@@ -53,8 +119,9 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 					description: "The comment appears locally but could not be saved to the server. Please try again.",
 				},
 			},
-			() => CreateTaskCommentAction(task.organizationId, task.id, newComment, visibility, wsClientId)
+			() => CreateTaskCommentAction(task.organizationId, task.id, updatedBlocks, visibility, wsClientId)
 		);
+
 		if (data?.success && data.data && task && task.id === data.data.id) {
 			setNewComment(undefined);
 			setEditorKey((prev) => prev + 1);
@@ -74,6 +141,7 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 				trailing={false}
 				language="en"
 				value={newComment}
+				updateContent={newComment}
 				onChange={setNewComment}
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {

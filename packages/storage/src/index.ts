@@ -221,7 +221,7 @@ export async function listFileObjectsWithMetadata(
  * ```
  */
 export async function removeObject(objectName: string): Promise<void> {
-	await minioClient.removeObject(BUCKET, objectName);
+	return await minioClient.removeObject(BUCKET, objectName);
 }
 
 /**
@@ -239,6 +239,8 @@ export async function removeObject(objectName: string): Promise<void> {
  * console.log("Multiple files removed.");
  * ```
  */
-export async function removeObjects(objectNames: string[]): Promise<void> {
-	await minioClient.removeObjects(BUCKET, objectNames);
+
+// biome-ignore lint/suspicious/noExplicitAny: <needed>
+export async function removeObjects(objectNames: string[]): Promise<any[]> {
+	return await minioClient.removeObjects(BUCKET, objectNames);
 }

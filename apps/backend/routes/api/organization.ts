@@ -2,10 +2,10 @@ import { randomBytes } from "node:crypto";
 import { db, getLabels, getOrganizationMembers, schema } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { checkMembershipRole, decodeCursor, encodeCursor } from "@/util";
+import { checkMembershipRole } from "@/util";
 import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
@@ -60,7 +60,6 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 	try {
 		const session = c.get("session");
-		const user = c.get("user");
 		const orgId = c.req.param("orgId");
 		const oldLogo = c.req.header("X-old-file");
 
@@ -83,27 +82,11 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		const objectName = `/logo.${ext}`;
 		if (oldLogo) {
 			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`);
-			await db
-				.delete(schema.file)
-				.where(
-					and(
-						eq(schema.file.organizationId, orgId),
-						eq(schema.file.url, `organization/${orgId}/${getFileNameFromUrl(oldLogo)}`)
-					)
-				);
 		}
 		// 3. Upload to storage
 		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
 			originalName: objectName,
-		});
-		await db.insert(schema.file).values({
-			organizationId: orgId,
-			fileName: objectName,
-			url: imagelogo,
-			userId: user?.id || "ANONYMOUS",
-			visibility: "public",
-			type: file.type || "application/octet-stream",
 		});
 
 		// 4. Build result payload
@@ -124,7 +107,6 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 	try {
 		const session = c.get("session");
-		const user = c.get("user");
 		const orgId = c.req.param("orgId");
 		const oldBanner = c.req.header("X-old-file");
 
@@ -147,27 +129,11 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		const objectName = `banner.${ext}`;
 		if (oldBanner) {
 			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`);
-			await db
-				.delete(schema.file)
-				.where(
-					and(
-						eq(schema.file.organizationId, orgId),
-						eq(schema.file.url, `organization/${orgId}/${getFileNameFromUrl(oldBanner)}`)
-					)
-				);
 		}
 		// 3. Upload to storage
 		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
 			"Content-Type": file.type || "application/octet-stream",
 			originalName: objectName,
-		});
-		await db.insert(schema.file).values({
-			organizationId: orgId,
-			fileName: objectName,
-			url: imagebanner,
-			userId: user?.id || "ANONYMOUS",
-			visibility: "public",
-			type: file.type || "application/octet-stream",
 		});
 
 		// 4. Build result payload
@@ -182,82 +148,6 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		console.error("Upload failed:", err.message);
 		return c.text("Upload failed", 500);
 	}
-});
-
-// list organization assets as a paginated response
-apiRouteAdminOrganization.get("/:orgId/files", async (c) => {
-	const session = c.get("session");
-	const orgId = c.req.param("orgId");
-
-	// Authorization
-	const isAuthorized = await checkMembershipRole(session?.userId, orgId);
-	if (!isAuthorized) {
-		return c.json({ error: "UNAUTHORIZED" }, 401);
-	}
-
-	// --- Pagination params ---
-	const pageSize = Math.min(Number(c.req.query("limit") ?? 10), 200);
-	const encodedCursor = c.req.query("cursor");
-	const decodedCursor = decodeCursor<{ id?: string; index?: number }>(encodedCursor);
-
-	const cursorId = decodedCursor?.id;
-	const cursorIndex = decodedCursor?.index ?? 0;
-
-	// --- Total count query ---
-	const [count] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(schema.file)
-		.where(eq(schema.file.organizationId, orgId));
-
-	// --- Where clause ---
-	// IDs descend. Show items "older than" the cursor for next pages.
-	const whereClause = cursorId
-		? and(eq(schema.file.organizationId, orgId), lt(schema.file.id, cursorId))
-		: eq(schema.file.organizationId, orgId);
-
-	// --- Fetch one extra to check for next page ---
-	const assets = await db.query.file.findMany({
-		where: whereClause,
-		with: {
-			user: { columns: { id: true, name: true, image: true } },
-		},
-		orderBy: (a, { desc }) => desc(a.id),
-		limit: pageSize + 1,
-	});
-
-	// --- Handle pagination / cursors ---
-	const hasMore = assets.length > pageSize;
-	const visibleAssets = hasMore ? assets.slice(0, pageSize) : assets;
-
-	const nextCursor =
-		hasMore && visibleAssets.length > 0
-			? encodeCursor({
-					id: visibleAssets[visibleAssets.length - 1]?.id,
-					index: cursorIndex + 1, // page index increment
-				})
-			: undefined;
-
-	// --- Transform / enrich ---
-	const data = visibleAssets.map((asset) => ({
-		...asset,
-		url: ensureCdnUrl(asset.url),
-	}));
-
-	// --- Compute "page" stats ---
-	const currentPage = cursorIndex + 1;
-	const totalPages = count?.count && count.count > 0 ? Math.ceil(count.count / pageSize) : currentPage;
-
-	return c.json({
-		data,
-		pagination: {
-			pageSize,
-			currentPage,
-			totalItems: Number(count?.count || 0),
-			totalPages,
-			hasMore,
-			nextCursor,
-		},
-	});
 });
 
 // Label management

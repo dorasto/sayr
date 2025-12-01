@@ -7,7 +7,6 @@ import type { taskCommentType } from "./taskComment.schema";
 import type { taskTimelineType } from "./taskTimeline.schema";
 
 export * from "./category.schema";
-export * from "./file.schema";
 export * from "./github_installation.schema";
 export * from "./github_repository.schema";
 export * from "./invite.schema";
