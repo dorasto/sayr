@@ -12,6 +12,7 @@ import {
 } from "@repo/ui/components/adaptive-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
@@ -27,6 +28,7 @@ import {
 import { useMemo, useState } from "react";
 import { Editor } from "@/app/components/blocknote/DynamicEditor";
 import RenderIcon from "@/app/components/RenderIcon";
+import { uploadFile } from "@/app/lib/fetches/file";
 import { createTaskAction } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/app/lib/util";
 import { priorityConfig, statusConfig } from "../../../shared/task-config";
@@ -105,6 +107,51 @@ export default function CreateIssueDialog({
 		]
 	);
 	const handleUpdate = async () => {
+		const updatedBlocks: PartialBlock[] = await Promise.all(
+			(description ?? []).map(async (block) => {
+				if (
+					(block.type === "image" || block.type === "file" || block.type === "video" || block.type === "audio") &&
+					typeof block.props === "object" &&
+					// biome-ignore lint/suspicious/noExplicitAny: <fix>
+					typeof (block.props as any).url === "string" &&
+					// biome-ignore lint/suspicious/noExplicitAny: <fix>
+					(block.props as any).url.startsWith("blob:")
+				) {
+					headlessToast.info({
+						title: "Uploading file...",
+						description: "Please wait while your file is being uploaded.",
+						id: "create-task",
+					});
+					const props = block.props as { url: string; name?: string };
+					try {
+						const blob = await fetch(props.url).then((res) => res.blob());
+						const fileName = props.name || `upload-${Date.now()}`;
+						const file = new File([blob], fileName, { type: blob.type });
+						const result = await uploadFile(file);
+						if (result.success && result.data?.url) {
+							console.log("✅ Uploaded file:", result.data.url);
+							URL.revokeObjectURL(props.url);
+							// Return updated block with new URL
+							return {
+								...block,
+								props: {
+									...block.props,
+									url: result.data.url,
+									name: fileName,
+								},
+							} satisfies PartialBlock;
+						} else {
+							console.error("❌ Upload failed:", result.error);
+						}
+					} catch (err) {
+						console.error("⚠️ Blob upload failed:", err);
+					}
+				}
+
+				return block;
+			})
+		);
+
 		const data = await runWithToast(
 			"create-task",
 			{
@@ -117,7 +164,7 @@ export default function CreateIssueDialog({
 					organization.id,
 					{
 						title,
-						description,
+						description: updatedBlocks,
 						status: resolvedStatus,
 						priority: resolvedPriority,
 						labels,
