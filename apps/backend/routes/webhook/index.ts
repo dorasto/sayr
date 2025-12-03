@@ -1,5 +1,4 @@
-import { ServerBlockNoteEditor } from "@blocknote/server-util";
-import { createComment, db, schema } from "@repo/database";
+import { db, schema } from "@repo/database";
 import { enqueue } from "@repo/util/github/queue";
 import { verifySignature } from "@repo/util/github/verify";
 import { and, eq } from "drizzle-orm";
@@ -107,35 +106,6 @@ async function handleContentEvents(event: string, payload: any) {
 				const body = payload.comment.body.trim();
 				if (commenter.endsWith("[bot]")) return;
 				console.log(`💬 Comment on #${issueNum} by ${commenter}`);
-				// biome-ignore lint/complexity/useOptionalChain: <dont care>
-				if (linked && linked.organizationId) {
-					const taskLink = await db.query.githubIssue.findFirst({
-						where: and(
-							eq(schema.githubIssue.organizationId, linked.organizationId),
-							eq(schema.githubIssue.repositoryId, linked.id),
-							eq(schema.githubIssue.issueNumber, issueNum)
-						),
-					});
-					console.log("🚀 ~ handleContentEvents ~ taskLink:", taskLink);
-					if (taskLink) {
-						const editor = ServerBlockNoteEditor.create();
-						const blocks = await editor.tryParseMarkdownToBlocks(body);
-						const githubIssue = {
-							id: crypto.randomUUID(),
-							type: "paragraph",
-							props: {},
-							content: [
-								{
-									type: "text",
-									text: `View related GitHub issue #${taskLink.issueNumber}`,
-									href: taskLink.issueUrl,
-								},
-							],
-							children: [],
-						};
-						await createComment(taskLink.organizationId, taskLink.taskId, [...blocks, githubIssue], "public");
-					}
-				}
 				enqueue({
 					type: "sayr_keyword_parse",
 					payload: {
