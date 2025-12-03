@@ -85,3 +85,7 @@
 	width: var(--colorful-pointer-size, 20px) !important;
 	transform: translate(calc(var(--colorful-pointer-size, 20px) / -2), calc(var(--colorful-pointer-size, 20px) / -2)) !important;
 } */
+
+.bn-file-block-content-wrapper {
+    outline: none !important;
+}
