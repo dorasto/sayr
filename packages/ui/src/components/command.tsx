@@ -1,10 +1,10 @@
 "use client";
 
 import type { DialogProps } from "@radix-ui/react-dialog";
-import { Dialog, DialogContent } from "@repo/ui/components/dialog";
+import { Dialog, DialogContent, DialogOverlay } from "@repo/ui/components/dialog";
 import { cn } from "@repo/ui/lib/utils";
+import { IconSearch } from "@tabler/icons-react";
 import { Command as CommandPrimitive } from "cmdk";
-import { Search } from "lucide-react";
 import * as React from "react";
 
 const Command = React.forwardRef<
@@ -25,7 +25,12 @@ Command.displayName = CommandPrimitive.displayName;
 const CommandDialog = ({ children, ...props }: DialogProps) => {
 	return (
 		<Dialog {...props}>
-			<DialogContent className="overflow-hidden p-0 shadow-lg bg-popover">
+			<DialogOverlay className="backdrop-blur-none" />
+			<DialogContent
+				preventDefaultFocus={false}
+				className="overflow-hidden p-0 shadow-lg bg-popover"
+				overlay={false}
+			>
 				<Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
 					{children}
 				</Command>
@@ -39,7 +44,7 @@ const CommandInput = React.forwardRef<
 	React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> & { icon?: React.ReactNode }
 >(({ className, icon, ...props }, ref) => (
 	<div className="flex items-center border-b px-3" cmdk-input-wrapper="">
-		{icon ? icon : <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />}
+		{icon ? icon : <IconSearch className="mr-2 h-4 w-4 shrink-0 opacity-50" />}
 		<CommandPrimitive.Input
 			ref={ref}
 			className={cn(
