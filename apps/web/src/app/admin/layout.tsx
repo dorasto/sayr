@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import type React from "react";
 import AdminNavigation from "../components/layout/admin/admin-navigation";
 import { Wrapper } from "../components/layout/wrapper";
+import { NavigationTracker } from "../components/navigation-tracker";
 import { getAccess } from "../lib/serverFunctions";
 import { RootProvider } from "./Context";
 
@@ -34,6 +35,7 @@ export default async function RootLayoutRoot({
 			{/* <div className="min-h-0 flex-1 overflow-y-auto"> */}
 
 			<RootProvider account={account} organizations={organizations}>
+				<NavigationTracker />
 				<AdminNavigation />
 				<Wrapper className="">
 					{/* <AdminSubNavigation /> */}

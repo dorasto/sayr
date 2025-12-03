@@ -28,9 +28,11 @@ import {
 	IconUser,
 	IconUsers,
 } from "@tabler/icons-react";
+import { useStore } from "@tanstack/react-store";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutData } from "@/app/admin/Context";
+import { navigationStore } from "@/app/lib/navigation-store";
 import { sidebarActions } from "@/app/lib/sidebar/sidebar-store";
 import UserDropdown from "./user-dropdown";
 
@@ -54,13 +56,14 @@ export function SettingsSidebar() {
 	const isSidebarOpen = !isCollapsed;
 	const { organizations } = useLayoutData();
 	const isMobile = useIsMobile();
+	const lastDashboardRoute = useStore(navigationStore, (state) => state.lastDashboardRoute);
 
 	return (
 		<Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
 			<SidebarHeader className="pb-0">
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<Link className="w-full" href="/admin" prefetch={false}>
+						<Link className="w-full" href={lastDashboardRoute} prefetch={false}>
 							<SidebarMenuButton tooltip="Back to Dashboard" icon={<IconArrowLeft size={16} />}>
 								<span>Back to Dashboard</span>
 							</SidebarMenuButton>
