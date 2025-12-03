@@ -7,12 +7,6 @@
 		"build": "bun build index.ts --target=bun --outdir ./dist",
 		"start": "bun ./dist/index.js"
 	},
-	"resolutions": {
-        "prosemirror-model": "1.22.1",
-        "prosemirror-transform": "1.8.0",
-        "prosemirror-state": "1.4.3",
-        "prosemirror-view": "1.30.0"
-    },
 	"dependencies": {
 		"@blocknote/server-util": "^0.44.0",
 		"@hono/otel": "^1.0.1",
