@@ -539,6 +539,7 @@ export async function createSavedViewAction(
 	data: {
 		name: string;
 		value: string;
+		viewConfig?: Record<string, unknown>;
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
@@ -546,6 +547,7 @@ export async function createSavedViewAction(
 		org_id: organizationId,
 		name: data.name,
 		value: data.value,
+		view_config: data.viewConfig,
 		wsClientId,
 	};
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/create-view`, {
@@ -559,6 +561,100 @@ export async function createSavedViewAction(
 		const json = await res.json();
 		if (!res.ok) {
 			throw new Error(json?.error || "Failed to create view");
+		}
+		return json;
+	});
+
+	return result;
+}
+
+/**
+ * Calls the `/admin/organization/update-view` API to update a saved view in an organization.
+ *
+ * @param organizationId - The ID of the organization the views belong to.
+ * @param data - The view properties to update:
+ * - `id` (required) - The ID of the view to update.
+ * - `name` (optional) - The updated name of the view.
+ * - `value` (optional) - The updated encoded filter string.
+ * - `viewConfig` (optional) - The updated view configuration.
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @returns A promise resolving to:
+ * - `success` — Whether the view update succeeded.
+ * - `data` — An array of saved view records returned by the server.
+ * - `error` — Optional error message if update failed.
+ */
+export async function updateSavedViewAction(
+	organizationId: string,
+	data: {
+		id: string;
+		name?: string;
+		value?: string;
+		viewConfig?: Record<string, unknown>;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		id: data.id,
+		name: data.name,
+		value: data.value,
+		view_config: data.viewConfig,
+		wsClientId,
+	};
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/update-view`, {
+		method: "PATCH",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to update view");
+		}
+		return json;
+	});
+
+	return result;
+}
+
+/**
+ * Calls the `/admin/organization/delete-view` API to delete a saved view from an organization.
+ *
+ * @param organizationId - The ID of the organization the views belong to.
+ * @param data - The view properties for deletion:
+ * - `id` (required) - The ID of the view to delete.
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @returns A promise resolving to:
+ * - `success` — Whether the view was deleted successfully.
+ * - `data` — An array of remaining saved view records returned by the server.
+ * - `error` — Optional error message if deletion failed.
+ */
+export async function deleteSavedViewAction(
+	organizationId: string,
+	data: {
+		id: string;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		id: data.id,
+		wsClientId,
+	};
+
+	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/delete-view`, {
+		method: "DELETE",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to delete view");
 		}
 		return json;
 	});

@@ -23,6 +23,10 @@ import {
 	IconLayoutSidebar,
 	IconLayoutSidebarFilled,
 	IconPlug,
+	IconStack,
+	IconStack2,
+	IconStack2Filled,
+	IconStackFilled,
 	IconTag,
 	IconTagFilled,
 	IconUser,
@@ -36,19 +40,6 @@ import { navigationStore } from "@/app/lib/navigation-store";
 import { sidebarActions } from "@/app/lib/sidebar/sidebar-store";
 import UserDropdown from "./user-dropdown";
 
-const settingsNavigation = [
-	{
-		title: "Account",
-		url: "/admin/settings",
-		icon: IconUser,
-	},
-	{
-		title: "Connections",
-		url: "/admin/settings/connections",
-		icon: IconHttpConnect,
-	},
-];
-
 export function SettingsSidebar() {
 	const sidebarId = "primary-sidebar"; // Sharing the same ID to maintain state
 	const pathname = usePathname();
@@ -57,7 +48,57 @@ export function SettingsSidebar() {
 	const { organizations } = useLayoutData();
 	const isMobile = useIsMobile();
 	const lastDashboardRoute = useStore(navigationStore, (state) => state.lastDashboardRoute);
-
+	const settingsNavigation = [
+		{
+			title: "Account",
+			url: "/admin/settings",
+			icon: IconUser,
+		},
+		{
+			title: "Connections",
+			url: "/admin/settings/connections",
+			icon: IconHttpConnect,
+		},
+	];
+	const orgSubItems = [
+		{
+			title: "Connections",
+			slug: "connections",
+			icon: IconPlug,
+			activeIcon: IconPlug,
+			activeClass: "fill-white",
+			matchType: "includes",
+		},
+		{
+			title: "Team",
+			slug: "team",
+			icon: IconUsers,
+			activeIcon: IconUsers,
+			activeClass: "fill-white",
+			matchType: "exact",
+		},
+		{
+			title: "Labels",
+			slug: "labels",
+			icon: IconTag,
+			activeIcon: IconTagFilled,
+			matchType: "exact",
+		},
+		{
+			title: "Categories",
+			slug: "categories",
+			icon: IconCategory,
+			activeIcon: IconCategoryFilled,
+			matchType: "exact",
+		},
+		{
+			title: "Views",
+			slug: "views",
+			icon: IconStack2,
+			activeIcon: IconStack2Filled,
+			matchType: "includes",
+		},
+	];
 	return (
 		<Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
 			<SidebarHeader className="pb-0">
@@ -117,88 +158,29 @@ export function SettingsSidebar() {
 										</SidebarMenuButton>
 									</SidebarMenuSub>
 								</SidebarMenuItem>
-								<SidebarMenuItem
-									className="min-h-auto"
-									isActive={pathname.includes(`/admin/settings/org/${org.id}/connections`)}
-									hideWhenCollapsed
-								>
-									<Link href={`/admin/settings/org/${org.id}/connections`} prefetch={false} className="w-full">
-										<SidebarMenuButton
-											size="small"
-											icon={
-												<IconPlug
-													className={cn(
-														pathname.includes(`/admin/settings/org/${org.id}/connections`) && "fill-white"
-													)}
-												/>
-											}
-											tooltip="Item"
+								{orgSubItems.map((item) => {
+									const url = `/admin/settings/org/${org.id}/${item.slug}`;
+									const isActive = item.matchType === "includes" ? pathname.includes(url) : pathname === url;
+									const Icon = isActive ? item.activeIcon : item.icon;
+									return (
+										<SidebarMenuItem
+											key={item.title}
+											hideWhenCollapsed
+											className="min-h-auto"
+											isActive={isActive}
 										>
-											<span>Connections</span>
-										</SidebarMenuButton>
-									</Link>
-								</SidebarMenuItem>
-								<SidebarMenuItem
-									hideWhenCollapsed
-									className="min-h-auto"
-									isActive={pathname === `/admin/settings/org/${org.id}/team`}
-								>
-									<Link href={`/admin/settings/org/${org.id}/team`} prefetch={false} className="w-full">
-										<SidebarMenuButton
-											size="small"
-											icon={
-												<IconUsers
-													className={cn(pathname === `/admin/settings/org/${org.id}/team` && "fill-white")}
-												/>
-											}
-											tooltip="Item"
-										>
-											<span>Team</span>
-										</SidebarMenuButton>
-									</Link>
-								</SidebarMenuItem>
-								<SidebarMenuItem
-									hideWhenCollapsed
-									className="min-h-auto"
-									isActive={pathname === `/admin/settings/org/${org.id}/labels`}
-								>
-									<Link href={`/admin/settings/org/${org.id}/labels`} prefetch={false} className="w-full">
-										<SidebarMenuButton
-											size="small"
-											icon={
-												pathname === `/admin/settings/org/${org.id}/labels` ? (
-													<IconTagFilled />
-												) : (
-													<IconTag />
-												)
-											}
-											tooltip="Item"
-										>
-											<span>Labels</span>
-										</SidebarMenuButton>
-									</Link>
-								</SidebarMenuItem>
-								<SidebarMenuItem
-									hideWhenCollapsed
-									className="min-h-auto"
-									isActive={pathname === `/admin/settings/org/${org.id}/categories`}
-								>
-									<Link href={`/admin/settings/org/${org.id}/categories`} prefetch={false} className="w-full">
-										<SidebarMenuButton
-											size="small"
-											icon={
-												pathname === `/admin/settings/org/${org.id}/categories` ? (
-													<IconCategoryFilled />
-												) : (
-													<IconCategory />
-												)
-											}
-											tooltip="Item"
-										>
-											<span>Categories</span>
-										</SidebarMenuButton>
-									</Link>
-								</SidebarMenuItem>
+											<Link href={url} prefetch={false} className="w-full">
+												<SidebarMenuButton
+													size="small"
+													icon={<Icon className={cn(isActive && item.activeClass)} />}
+													tooltip={item.title}
+												>
+													<span>{item.title}</span>
+												</SidebarMenuButton>
+											</Link>
+										</SidebarMenuItem>
+									);
+								})}
 							</SidebarMenu>,
 						])
 						.filter(Boolean)}

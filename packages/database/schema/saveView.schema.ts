@@ -17,6 +17,7 @@ export const savedView = table("saved_view", {
 	createdById: v.text("created_by_id").references(() => user.id),
 	name: v.text("name").notNull(),
 	filterParams: v.text("filter_params").notNull(),
+	viewConfig: v.jsonb("view_config"),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 });

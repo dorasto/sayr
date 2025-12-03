@@ -14,9 +14,10 @@ interface Props {
 	organizationId: string;
 	setViews: (newValue: schema.savedViewType[]) => void;
 	currentFilters: string; // e.g. URL param value (filters=....)
+	viewConfig?: Record<string, unknown>;
 }
 
-export function NewViewPopover({ organizationId, setViews, currentFilters }: Props) {
+export function NewViewPopover({ organizationId, setViews, currentFilters, viewConfig }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const [name, setName] = useState("");
 	const { runWithToast, isFetching } = useToastAction();
@@ -46,6 +47,7 @@ export function NewViewPopover({ organizationId, setViews, currentFilters }: Pro
 					{
 						name,
 						value: currentFilters,
+						viewConfig,
 					},
 					wsClientId
 				)

@@ -13,7 +13,7 @@ import { TASK_GROUPINGS } from "../org/tasks/task/grouping/config";
 import { TaskGroupSectionHeader } from "../org/tasks/task/grouping/task-group-section-header";
 import { useTaskViewState } from "../org/tasks/task/grouping/use-task-view-state";
 import { TaskContent } from "../org/tasks/task/views/table/task-content";
-import { TaskListItem } from "../org/tasks/task/views/table/task-list-item";
+import { UnifiedTaskItem } from "../org/tasks/task/views/unified-task-item";
 
 interface MyTaskListProps {
 	tasks: schema.TaskWithLabels[];
@@ -197,7 +197,8 @@ export function MyTaskList({
 								<div className="py-1 flex flex-col gap-1">
 									{group.tasks.length > 0 ? (
 										group.tasks.map((task) => (
-											<TaskListItem
+											<UnifiedTaskItem
+												viewMode="list"
 												key={`${group.id}:${task.id}`}
 												task={task}
 												isSelected={selectedTasks.has(task.id)}
@@ -205,7 +206,6 @@ export function MyTaskList({
 												onTaskClick={handleTaskClick}
 												tasks={tasks}
 												setTasks={setTasks}
-												setSelectedTask={setSelectedTask}
 												availableUsers={availableUsers}
 												personal={true}
 											/>

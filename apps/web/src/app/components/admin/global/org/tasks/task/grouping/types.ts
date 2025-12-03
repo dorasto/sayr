@@ -35,6 +35,7 @@ export interface TaskViewState {
 	grouping: TaskGroupingId;
 	showEmptyGroups: boolean;
 	showCompletedTasks: boolean;
+	viewMode: "list" | "kanban";
 }
 
 export const TASK_VIEW_STATE_KEY = "task-view";
@@ -43,4 +44,5 @@ export const DEFAULT_TASK_VIEW_STATE: TaskViewState = {
 	grouping: "status",
 	showEmptyGroups: true,
 	showCompletedTasks: false,
+	viewMode: "list",
 };

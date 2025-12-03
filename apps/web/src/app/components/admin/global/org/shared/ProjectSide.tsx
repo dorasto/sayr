@@ -8,15 +8,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ta
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
-import { IconSettings, IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconSettings, IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import RenderIcon from "@/app/components/RenderIcon";
 import { useSticky } from "@/app/hooks/use-sticky";
+import { updateSavedViewAction } from "@/app/lib/fetches/organization";
 import { deserializeFilters, serializeFilters } from "../tasks/task/filter/dropdown/serialization";
 import type { FilterState } from "../tasks/task/filter/types";
+import type { TaskViewState } from "../tasks/task/grouping/types";
+import { useTaskViewState } from "../tasks/task/grouping/use-task-view-state";
 import GlobalSettings from "./GlobalSettings";
 import { type PriorityKey, priorityConfig } from "./task-config";
 
@@ -32,14 +35,17 @@ export default function ProjectSide() {
 		1
 	);
 	const [filtersParam] = useQueryState("filters", parseAsString.withDefault(""));
+	const [selectedViewId, setSelectedViewId] = useQueryState("viewId", parseAsString);
 	const { setValue: setFilterState } = useStateManagement<FilterState>(
 		"task-filters",
 		{ groups: [], operator: "AND" },
 		1
 	);
+	const { viewState, setViewState } = useTaskViewState();
 	const [openSettings, setOpenSettings] = useState(false);
 
 	const { account } = useLayoutData();
+	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "", 1);
 
 	// Create "My Assigned" filter state for current user
 	const myAssignedFilterState: FilterState = {
@@ -172,6 +178,7 @@ export default function ProjectSide() {
 					)}
 					onClick={() => {
 						// Clear filters if already active
+						setSelectedViewId(null);
 						setFilterState({ groups: [], operator: "AND" });
 					}}
 				>
@@ -197,6 +204,7 @@ export default function ProjectSide() {
 						isMyAssignedActive ? "bg-accent" : "bg-card hover:bg-accent"
 					)}
 					onClick={() => {
+						setSelectedViewId(null);
 						if (isMyAssignedActive) {
 							// Clear filters if already active
 							setFilterState({ groups: [], operator: "AND" });
@@ -235,6 +243,7 @@ export default function ProjectSide() {
 							)}
 							key={category.id}
 							onClick={() => {
+								setSelectedViewId(null);
 								if (isActive) {
 									setFilterState({ groups: [], operator: "AND" });
 								} else {
@@ -329,7 +338,7 @@ export default function ProjectSide() {
 				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-0.5">
 						{views.map((view) => {
-							const isActive = filtersParam === view.filterParams;
+							const isActive = selectedViewId === view.id;
 							return (
 								<Tile
 									className={cn(
@@ -339,11 +348,16 @@ export default function ProjectSide() {
 									key={view.id}
 									onClick={() => {
 										if (isActive) {
+											setSelectedViewId(null);
 											setFilterState({ groups: [], operator: "AND" });
 										} else {
+											setSelectedViewId(view.id);
 											setFilterState(
 												deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
 											);
+											if (view.viewConfig) {
+												setViewState(view.viewConfig as unknown as TaskViewState);
+											}
 										}
 									}}
 								>
@@ -355,6 +369,30 @@ export default function ProjectSide() {
 											{view.name}
 										</TileTitle>
 									</TileHeader>
+									{isActive && (
+										<TileAction>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-6 w-6"
+												onClick={(e) => {
+													e.stopPropagation();
+													if (!organization?.id) return;
+													updateSavedViewAction(
+														organization.id,
+														{
+															id: view.id,
+															value: filtersParam || "",
+															viewConfig: viewState as unknown as Record<string, unknown>,
+														},
+														wsClientId || ""
+													);
+												}}
+											>
+												<IconDeviceFloppy className="size-4" />
+											</Button>
+										</TileAction>
+									)}
 								</Tile>
 							);
 						})}

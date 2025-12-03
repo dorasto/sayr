@@ -5,6 +5,7 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
+import { useTaskViewState } from "../../grouping/use-task-view-state";
 import { FILTER_FIELD_CONFIGS } from "../filter-config";
 import type { FilterCondition, FilterField, FilterGroup, FilterOperator, FilterState } from "../types";
 import { FilterBadges } from "./FilterBadges";
@@ -46,6 +47,7 @@ export function TaskFilterDropdown({
 		deserializeFilters(filtersParam) || { groups: [], operator: "AND" },
 		1
 	);
+	const { viewState } = useTaskViewState();
 
 	const pathname = usePathname();
 
@@ -185,9 +187,14 @@ export function TaskFilterDropdown({
 					className="gap-1 h-6 w-6 bg-accent border-transparent p-1 relative"
 				/>
 			)}
-			{showNewViewPopover && (
-				<NewViewPopover organizationId={organizationId} setViews={setViews} currentFilters={currentFiltersString} />
-			)}
+			{/* {showNewViewPopover && (
+				<NewViewPopover
+					organizationId={organizationId}
+					setViews={setViews}
+					currentFilters={currentFiltersString}
+					viewConfig={viewState}
+				/>
+			)} */}
 		</div>
 	);
 }
