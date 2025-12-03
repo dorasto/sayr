@@ -1,4 +1,5 @@
 import type { account, session, user, verification } from "./auth";
+import type { githubIssueType } from "./github_issue.schema";
 import type { labelType } from "./label.schema";
 import type { memberType } from "./member.schema";
 import type { organizationType } from "./organization.schema";
@@ -8,6 +9,7 @@ import type { taskTimelineType } from "./taskTimeline.schema";
 
 export * from "./category.schema";
 export * from "./github_installation.schema";
+export * from "./github_issue.schema";
 export * from "./github_repository.schema";
 export * from "./invite.schema";
 export * from "./label.schema";
@@ -28,6 +30,7 @@ export type TaskWithLabels = taskType & {
 	createdBy?: { id: string; name: string; image: string | null } | null;
 	organization?: { id: string; name: string; slug: string };
 	comments?: CommentsWithAuthor;
+	githubIssue?: githubIssueType;
 };
 
 export type CommentsWithAuthor = Array<

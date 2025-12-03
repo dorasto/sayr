@@ -239,6 +239,7 @@ export function TaskContent({
 					<Label variant={"heading"} className={cn("text-left text-2xl font-bold ")}>
 						{task.title}
 					</Label>
+					{task.githubIssue?.issueUrl}
 					<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 					<GlobalTimeline task={task} labels={labels} availableUsers={availableUsers} categories={categories} />
 				</div>
@@ -285,6 +286,7 @@ export function TaskContent({
 						<Label variant={"heading"} className={cn("text-left text-sm text-muted-foreground shrink-0")}>
 							#{task.shortId}
 						</Label>
+						{task.githubIssue?.issueUrl}
 						{personal && (
 							<a href={`/admin/${task.organizationId}/tasks`} onClick={(e) => e.stopPropagation()}>
 								<Badge variant={"outline"} className="flex items-center gap-1 w-full justify-start shrink-0">

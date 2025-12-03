@@ -108,7 +108,8 @@ export default function CreateIssueDialog({
 	);
 	const handleUpdate = async () => {
 		const updatedBlocks: PartialBlock[] = await Promise.all(
-			(description ?? []).map(async (block) => {
+			//@ts-expect-error
+			description.map(async (block) => {
 				if (
 					(block.type === "image" || block.type === "file" || block.type === "video" || block.type === "audio") &&
 					typeof block.props === "object" &&

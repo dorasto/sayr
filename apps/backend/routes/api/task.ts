@@ -1,3 +1,4 @@
+import { Octokit } from "@octokit/rest";
 import {
 	addLabelToTask,
 	addLogEventTask,
@@ -10,6 +11,7 @@ import {
 	removeLabelFromTask,
 	schema,
 } from "@repo/database";
+import { getInstallationToken } from "@repo/util/github/auth";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
@@ -29,7 +31,7 @@ export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
 // Create a new task
 apiRouteAdminProjectTask.post("/create", async (c) => {
-	const { org_id, wsClientId, title, description, status, priority, labels, assignees } = await c.req.json();
+	const { org_id, wsClientId, title, description, status, priority, labels, assignees, category } = await c.req.json();
 	const session = c.get("session");
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
@@ -42,6 +44,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			description,
 			status,
 			priority,
+			category,
 		},
 		session?.userId
 	);
@@ -97,6 +100,35 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				broadcastIndividual(c.socket, data, org_id)
 		);
 	});
+	const foundLink = await db.query.githubRepository.findFirst({
+		where: and(eq(schema.githubRepository.organizationId, org_id), eq(schema.githubRepository.categoryId, category)),
+	});
+	if (foundLink) {
+		// 1️⃣ Get installation token
+		const token = await getInstallationToken(foundLink.installationId);
+		const octokit = new Octokit({ auth: token });
+
+		// 2️⃣ Fetch repository metadata by repo_id
+		const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
+			repository_id: foundLink.repoId,
+		});
+
+		const owner = repoInfo.owner.login;
+		const repo = repoInfo.name;
+
+		const { data: issue } = await octokit.request("POST /repos/{owner}/{repo}/issues", {
+			owner,
+			repo,
+			title,
+		});
+		await db.insert(schema.githubIssue).values({
+			repositoryId: foundLink.id,
+			issueNumber: issue.number,
+			issueUrl: issue.html_url,
+			taskId: taskWithData?.id,
+			organizationId: org_id,
+		});
+	}
 	return c.json({
 		success: true,
 		data: taskWithData,

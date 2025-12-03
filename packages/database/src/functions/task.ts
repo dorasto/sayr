@@ -62,6 +62,7 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
 					},
 				},
 			},
+			githubIssue: {},
 		},
 	});
 
@@ -116,6 +117,7 @@ export async function getTaskByShortId(orgId: string, shortId: number): Promise<
 					},
 				},
 			},
+			githubIssue: {},
 		},
 	});
 	if (!task) return null;
@@ -169,6 +171,7 @@ export async function getTaskById(orgId: string, Id: string) {
 					},
 				},
 			},
+			githubIssue: {},
 		},
 	});
 	if (!task) return null;
@@ -186,7 +189,7 @@ export async function getTaskById(orgId: string, Id: string) {
  * @param orgId - The organization ID the task belongs to.
  * @param projectId - The project ID the task belongs to.
  * @param createdBy - The user ID who is creating (or null for anonymous).
- * @param data - The task properties (title, description, status, priority).
+ * @param data - The task properties (title, description, status, priority, category).
  * @returns The newly created task row.
  *
  * @example
@@ -200,6 +203,7 @@ export async function getTaskById(orgId: string, Id: string) {
  *     description: [],
  *     status: "todo",
  *     priority: "high"
+ *     category:"",
  *   }
  * );
  * console.log(task.shortId); // 1, 2, 3, ...
@@ -212,6 +216,7 @@ export async function createTask(
 		description?: unknown;
 		status?: schema.taskType["status"];
 		priority?: schema.taskType["priority"];
+		category: schema.taskType["category"];
 	},
 	createdBy?: string | null
 ) {
@@ -233,6 +238,7 @@ export async function createTask(
 			description: data.description ?? [],
 			status: data.status ?? "todo",
 			priority: data.priority ?? "none",
+			category: data.category,
 			createdBy: createdBy, // nullable for ANONYMOUS
 			visible: "public",
 		})

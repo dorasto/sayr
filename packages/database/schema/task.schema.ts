@@ -4,6 +4,7 @@ import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { category } from "./category.schema";
+import { githubIssue } from "./github_issue.schema";
 import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { taskAssignee } from "./taskAssignee.schema";
@@ -57,4 +58,8 @@ export const taskRelations = relations(task, ({ one, many }) => ({
 	assignees: many(taskAssignee),
 	timeline: many(taskTimeline),
 	comments: many(taskComment),
+	githubIssue: one(githubIssue, {
+		fields: [task.id],
+		references: [githubIssue.taskId],
+	}),
 }));
