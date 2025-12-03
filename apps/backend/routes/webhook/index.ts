@@ -120,7 +120,20 @@ async function handleContentEvents(event: string, payload: any) {
 					if (taskLink) {
 						const editor = ServerBlockNoteEditor.create();
 						const blocks = await editor.tryParseMarkdownToBlocks(body);
-						await createComment(taskLink.organizationId, taskLink.taskId, blocks, "public");
+						const githubIssue = {
+							id: crypto.randomUUID(),
+							type: "paragraph",
+							props: {},
+							content: [
+								{
+									type: "text",
+									text: `View related GitHub issue #${taskLink.issueNumber}`,
+									href: taskLink.issueUrl,
+								},
+							],
+							children: [],
+						};
+						await createComment(taskLink.organizationId, taskLink.taskId, [...blocks, githubIssue], "public");
 					}
 				}
 				enqueue({
