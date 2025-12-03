@@ -347,6 +347,7 @@ export function UnifiedTaskView({
 							<KanbanCards id={column.id} className="gap-2 flex flex-col h-full overflow-y-auto px-0">
 								{(item) => (
 									<UnifiedTaskItem
+										key={item.id}
 										viewMode="kanban"
 										task={item as unknown as schema.TaskWithLabels}
 										columnId={column.id}

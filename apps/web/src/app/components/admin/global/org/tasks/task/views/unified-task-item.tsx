@@ -556,7 +556,7 @@ export function UnifiedTaskItem({
 										handleAssigneeChange(newAssigneeIds);
 									}}
 								>
-									<div className="flex items-center gap-2">
+									<div className="flex items-center gap-2" key={`index + ${1}`}>
 										<Avatar className="h-5 w-5">
 											<AvatarImage src={user.image || undefined} alt={user.name} />
 											<AvatarFallback className="text-xs">
