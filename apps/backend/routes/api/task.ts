@@ -121,13 +121,15 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			repo,
 			title,
 		});
-		await db.insert(schema.githubIssue).values({
-			repositoryId: foundLink.id,
-			issueNumber: issue.number,
-			issueUrl: issue.html_url,
-			taskId: taskWithData?.id,
-			organizationId: org_id,
-		});
+		if (taskWithData) {
+			await db.insert(schema.githubIssue).values({
+				repositoryId: foundLink.id,
+				issueNumber: issue.number,
+				issueUrl: issue.html_url,
+				taskId: taskWithData.id,
+				organizationId: org_id,
+			});
+		}
 	}
 	return c.json({
 		success: true,
