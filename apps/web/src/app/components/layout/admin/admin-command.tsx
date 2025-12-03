@@ -33,13 +33,7 @@ export default function AdminCommand() {
 
 	return (
 		<>
-			<Button
-				type="button"
-				onClick={() => setOpen(true)}
-				variant={"outline"}
-				className="bg-muted rounded-md"
-				size={"sm"}
-			>
+			<Button type="button" onClick={() => setOpen(true)} variant={"primary"} className="" size={"sm"}>
 				<span className="flex grow items-center">
 					<IconSearch className="text-muted-foreground -ms-1 me-3" size={16} aria-hidden="true" />
 					<span className="text-muted-foreground">Search...</span>

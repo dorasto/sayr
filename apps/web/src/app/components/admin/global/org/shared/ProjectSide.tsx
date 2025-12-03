@@ -2,26 +2,13 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
-import {
-	IconChevronRight,
-	IconCircleFilled,
-	IconFilter,
-	IconFilter2,
-	IconPencil,
-	IconSettings,
-	IconStack2,
-	IconUser,
-	IconUserCheck,
-	IconUsers,
-	IconX,
-} from "@tabler/icons-react";
+import { IconSettings, IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
@@ -154,10 +141,10 @@ export default function ProjectSide() {
 	}
 	return (
 		<div className="flex flex-col gap-3 w-full relative">
-			<Tile className="bg-card md:w-full">
+			<Tile className="bg-card md:w-full md:h-11">
 				<TileHeader>
 					<TileIcon>
-						<Avatar className="h-4 w-4">
+						<Avatar className="h-3 w-3">
 							<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
 							<AvatarFallback className="rounded-md uppercase text-xs">
 								<IconUsers className="h-4 w-4" />
@@ -167,9 +154,12 @@ export default function ProjectSide() {
 					<TileTitle className="flex items-center gap-2">{organization.name}</TileTitle>
 				</TileHeader>
 				<TileAction>
-					<Link href={`/admin/settings/org/${organization.id}`}>
-						<Button variant={"accent"} size={"icon"}>
-							<IconSettings />
+					<Link
+						href={`/admin/settings/org/${organization.id}`}
+						className="h-full w-full aspect-square flex items-center justify-center"
+					>
+						<Button variant={"ghost"} size={"icon"} className="p-0 h-4 w-4">
+							<IconSettings className="size-4!" />
 						</Button>
 					</Link>
 				</TileAction>
