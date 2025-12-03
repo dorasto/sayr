@@ -11,12 +11,27 @@ apiRoute.use("*", async (c, next) => {
 	return next();
 });
 apiRoute.get("/test", async (c) => {
-	const markdown =
-		"# Hello\n\nThis is markdown for testing\n\n| heading | heading2 |\n|--------|--------|\n| test | test |\n| test | test | ";
+	const markdown = "# Hello\n\nTesting markdown";
+	// Dynamically import at runtime → guarantees single load
+	const { ServerBlockNoteEditor } = await import("@blocknote/server-util");
 	const editor = ServerBlockNoteEditor.create();
 	const blocks = await editor.tryParseMarkdownToBlocks(markdown);
 
-	return c.json(blocks);
+	const githubIssue = {
+		id: crypto.randomUUID(),
+		type: "paragraph",
+		props: {},
+		content: [
+			{
+				type: "text",
+				text: "View related GitHub issue #42",
+				href: "https://github.com/sayr-dev/sayr-core/issues/42",
+			},
+		],
+		children: [],
+	};
+
+	return c.json({ ok: true, blocks: [...blocks, githubIssue] });
 });
 
 // Admin routes

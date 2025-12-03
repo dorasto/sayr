@@ -4,11 +4,11 @@
 	"private": false,
 	"scripts": {
 		"dev": "bun --watch run index.ts",
-		"build": "bun build index.ts --target=bun --outdir ./dist",
+		"build": "bun build index.ts --target=bun --outdir ./dist --minify",
 		"start": "bun ./dist/index.js"
 	},
 	"dependencies": {
-		"@blocknote/server-util": "^0.44.0",
+		"@blocknote/server-util": "^0.40.0",
 		"@hono/otel": "^1.0.1",
 		"@opentelemetry/exporter-trace-otlp-http": "^0.208.0",
 		"@opentelemetry/resources": "^2.2.0",
