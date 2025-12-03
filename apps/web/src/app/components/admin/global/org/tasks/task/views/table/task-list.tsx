@@ -44,7 +44,7 @@ export function TaskList({
 	const { value: filterState } = useStateManagement<FilterState>("task-filters", { groups: [], operator: "AND" }, 1);
 	const [taskContentOpen, setTaskContentOpen] = useQueryState("task", parseAsInteger.withDefault(0));
 	const { viewState } = useTaskViewState();
-	const { grouping, showEmptyGroups } = viewState;
+	const { grouping, showEmptyGroups, showCompletedTasks } = viewState;
 
 	useEffect(() => {
 		setCollapsedSections(new Set());
@@ -149,9 +149,10 @@ export function TaskList({
 			tasks: filteredTasks,
 			availableUsers,
 			showEmptyGroups,
+			showCompletedTasks,
 			categories,
 		});
-	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition, categories]);
+	}, [filteredTasks, availableUsers, showEmptyGroups, showCompletedTasks, groupingDefinition, categories]);
 
 	return (
 		<div className="rounded h-full">

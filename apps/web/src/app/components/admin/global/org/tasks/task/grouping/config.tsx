@@ -8,6 +8,12 @@ import type { TaskGroup, TaskGroupingContext, TaskGroupingDefinition, TaskGroupi
 
 const STATUS_ORDER: Array<keyof typeof statusConfig> = ["backlog", "todo", "in-progress", "done", "canceled"];
 const PRIORITY_ORDER: Array<keyof typeof priorityConfig> = ["urgent", "high", "medium", "low", "none"];
+const COMPLETED_STATUSES: Array<keyof typeof statusConfig> = ["done", "canceled"];
+
+const filterCompletedTasks = (tasks: schema.TaskWithLabels[], showCompletedTasks: boolean): schema.TaskWithLabels[] => {
+	if (showCompletedTasks) return tasks;
+	return tasks.filter((task) => !COMPLETED_STATUSES.includes(task.status as keyof typeof statusConfig));
+};
 
 const createInitialStatusGroups = () =>
 	STATUS_ORDER.map((statusKey) => {
@@ -87,14 +93,15 @@ const statusGrouping = createGroupingDefinition("status", {
 	label: "Status",
 	description: "Group tasks by their workflow status",
 	icon: statusConfig.todo.icon("h-4 w-4"),
-	group: ({ tasks, showEmptyGroups }: TaskGroupingContext) => {
+	group: ({ tasks, showEmptyGroups, showCompletedTasks }: TaskGroupingContext) => {
+		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
 		const groups = createInitialStatusGroups();
 		const fallbackGroup = groups[0];
 		if (!fallbackGroup) {
 			return [];
 		}
 
-		tasks.forEach((task) => {
+		filteredTasks.forEach((task) => {
 			const statusKey = (task.status as keyof typeof statusConfig) || fallbackGroup.key;
 			const target = groups.find((g) => g.key === statusKey) ?? fallbackGroup;
 			target.tasks.push(task);
@@ -102,7 +109,13 @@ const statusGrouping = createGroupingDefinition("status", {
 
 		return groups
 			.map((group) => ({ ...group, count: group.tasks.length }))
-			.filter((group) => (showEmptyGroups ? true : group.tasks.length > 0));
+			.filter((group) => {
+				// Hide completed status groups when showCompletedTasks is false
+				if (!showCompletedTasks && COMPLETED_STATUSES.includes(group.key as keyof typeof statusConfig)) {
+					return false;
+				}
+				return showEmptyGroups ? true : group.tasks.length > 0;
+			});
 	},
 });
 
@@ -110,14 +123,15 @@ const priorityGrouping = createGroupingDefinition("priority", {
 	label: "Priority",
 	description: "Group tasks by priority level",
 	icon: priorityConfig.medium.icon("h-4 w-4"),
-	group: ({ tasks, showEmptyGroups }: TaskGroupingContext) => {
+	group: ({ tasks, showEmptyGroups, showCompletedTasks }: TaskGroupingContext) => {
+		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
 		const groups = createInitialPriorityGroups();
 		const fallbackGroup = groups.find((group) => group.key === "none") ?? groups[0];
 		if (!fallbackGroup) {
 			return [];
 		}
 
-		tasks.forEach((task) => {
+		filteredTasks.forEach((task) => {
 			const priorityKey = (task.priority as keyof typeof priorityConfig) || fallbackGroup.key;
 			const target = groups.find((g) => g.key === priorityKey) ?? fallbackGroup;
 			target.tasks.push(task);
@@ -133,7 +147,8 @@ const assigneeGrouping = createGroupingDefinition("assignee", {
 	label: "Assignee",
 	description: "Group tasks by assigned team members",
 	icon: <IconUser className="h-4 w-4" />,
-	group: ({ tasks, availableUsers, showEmptyGroups }: TaskGroupingContext) => {
+	group: ({ tasks, availableUsers, showEmptyGroups, showCompletedTasks }: TaskGroupingContext) => {
+		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
 		const groupMap = new Map<string, TaskGroup>();
 
 		const ensureGroupForUser = (user: AssigneeDisplay | undefined) => {
@@ -154,7 +169,7 @@ const assigneeGrouping = createGroupingDefinition("assignee", {
 			ensureGroupForUser(undefined);
 		}
 
-		tasks.forEach((task) => {
+		filteredTasks.forEach((task) => {
 			if (task.assignees && task.assignees.length > 0) {
 				task.assignees.forEach((assignee) => {
 					const matchingUser = availableUsers.find((user) => user.id === assignee.id);
@@ -199,7 +214,8 @@ export const categoryGrouping = createGroupingDefinition("category", {
 	label: "Category",
 	description: "Group tasks by categories",
 	icon: <IconCategory2 className="h-4 w-4" />,
-	group: ({ tasks, showEmptyGroups, categories }: TaskGroupingContext) => {
+	group: ({ tasks, showEmptyGroups, showCompletedTasks, categories }: TaskGroupingContext) => {
+		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
 		const groupMap = new Map<string, TaskGroup>();
 
 		// Safely create or retrieve a group without using non-null assertions
@@ -221,7 +237,7 @@ export const categoryGrouping = createGroupingDefinition("category", {
 		}
 
 		// Assign each task to a category-based group
-		tasks.forEach((task) => {
+		filteredTasks.forEach((task) => {
 			// Handle both string-based and object-based category fields
 			let category: schema.categoryType | null = null;
 			if (typeof task.category === "string") {

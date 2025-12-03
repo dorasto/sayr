@@ -25,10 +25,15 @@ export function useTaskViewState() {
 		updateViewState({ showEmptyGroups });
 	};
 
+	const setShowCompletedTasks = (showCompletedTasks: boolean) => {
+		updateViewState({ showCompletedTasks });
+	};
+
 	return {
 		viewState,
 		setViewState: updateViewState,
 		setGrouping,
 		setShowEmptyGroups,
+		setShowCompletedTasks,
 	};
 }

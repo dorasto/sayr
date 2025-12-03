@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@repo/ui/components/radio-group";
 import { Switch } from "@repo/ui/components/switch";
 import OptionField from "@repo/ui/components/tomui/option-field";
 import { cn } from "@repo/ui/lib/utils";
-import { IconAdjustmentsHorizontal, IconEyeOff, IconLayoutList, IconLayoutRows } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconCheck, IconEyeOff, IconLayoutList, IconLayoutRows } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "./config";
 import type { TaskGroupingId } from "./types";
@@ -26,7 +26,7 @@ const VIEW_MODE_OPTIONS = [{ id: "list", label: "List", icon: <IconLayoutList cl
 type ViewMode = (typeof VIEW_MODE_OPTIONS)[number]["id"];
 
 export function TaskViewDropdown() {
-	const { viewState, setGrouping, setShowEmptyGroups } = useTaskViewState();
+	const { viewState, setGrouping, setShowEmptyGroups, setShowCompletedTasks } = useTaskViewState();
 
 	const activeGrouping = TASK_GROUPINGS[viewState.grouping] ?? TASK_GROUPINGS.status;
 
@@ -101,6 +101,16 @@ export function TaskViewDropdown() {
 								</DropdownMenuCheckboxItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
+					}
+				/>
+				<OptionField
+					title="Show completed tasks"
+					icon={<IconCheck className="h-4 w-4" />}
+					customSide={
+						<Switch
+							checked={viewState.showCompletedTasks}
+							onCheckedChange={(checked) => setShowCompletedTasks(Boolean(checked))}
+						/>
 					}
 				/>
 				<OptionField

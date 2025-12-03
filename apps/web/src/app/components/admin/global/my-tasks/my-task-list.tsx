@@ -48,7 +48,7 @@ export function MyTaskList({
 	);
 	const [taskContentOpen, setTaskContentOpen] = useQueryState("task", parseAsInteger.withDefault(0));
 	const { viewState } = useTaskViewState();
-	const { grouping, showEmptyGroups } = viewState;
+	const { grouping, showEmptyGroups, showCompletedTasks } = viewState;
 
 	useEffect(() => {
 		setCollapsedSections(new Set());
@@ -164,9 +164,10 @@ export function MyTaskList({
 			tasks: filteredTasks,
 			availableUsers,
 			showEmptyGroups,
+			showCompletedTasks,
 			categories,
 		});
-	}, [filteredTasks, availableUsers, showEmptyGroups, groupingDefinition, categories]);
+	}, [filteredTasks, availableUsers, showEmptyGroups, showCompletedTasks, groupingDefinition, categories]);
 
 	// Find organization and project for the selected task
 	const selectedTaskContext = useMemo(() => {
