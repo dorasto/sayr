@@ -18,13 +18,19 @@ export const githubIssue = table("github_issue", {
 		.text("repository_id")
 		.notNull()
 		.references(() => githubRepository.id, { onDelete: "cascade" }),
-	organizationId: v.text("organization_id").references(() => organization.id, { onDelete: "cascade" }),
+	organizationId: v
+		.text("organization_id")
+		.notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
 
 	/** GitHub issue data */
 	issueNumber: v.integer("issue_number").notNull(),
 	issueUrl: v.text("issue_url").notNull(),
 
-	taskId: v.text("task_id").references(() => task.id, { onDelete: "cascade" }),
+	taskId: v
+		.text("task_id")
+		.notNull()
+		.references(() => task.id, { onDelete: "cascade" }),
 
 	/** Timestamps */
 	createdAt: v.timestamp("created_at").defaultNow().notNull(),
