@@ -156,8 +156,10 @@ export function UnifiedTaskItem({
 	// --- Render Content based on View Mode ---
 
 	const renderListContent = () => (
-		<button
-			type="button"
+		// biome-ignore lint/a11y/noStaticElementInteractions: <required for custom clickable div>
+		// biome-ignore lint/a11y/useKeyWithClickEvents: <required for custom clickable div>
+		<div
+			// type="button"
 			className={cn(
 				"block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded"
 			)}
@@ -361,11 +363,13 @@ export function UnifiedTaskItem({
 					</div>
 				</div>
 			</div>
-		</button>
+		</div>
 	);
 
 	const renderKanbanContent = () => (
-		<button type="button" className="flex flex-col gap-2 h-full w-full text-left" onClick={handleTaskClick}>
+		// biome-ignore lint/a11y/noStaticElementInteractions: <required for custom clickable div>
+		// biome-ignore lint/a11y/useKeyWithClickEvents: <required for custom clickable div>
+		<div className="flex flex-col gap-2 h-full w-full text-left" onClick={handleTaskClick}>
 			<div className="flex items-start justify-between gap-2 w-full">
 				<Label variant={"description"}>#{task.shortId}</Label>
 				<GlobalTaskPriority
@@ -468,7 +472,7 @@ export function UnifiedTaskItem({
 					}
 				/>
 			</div>
-		</button>
+		</div>
 	);
 
 	const contextMenuContent = (
