@@ -516,8 +516,11 @@ export async function deleteLabelAction(
  *
  * @param organizationId - The ID of the organization the views belong to.
  * @param data - The view properties:
- * - `name` (required) - The name of the view.
- * - `value` (required) - The encoded filter or configuration string.
+ * - `name` - The updated name of the view.
+ * - `slug` - The updated slug of the view.
+ * - `logo` - The updated logo of the view.
+ * - `value` - The updated encoded filter string.
+ * - `viewConfig` - The updated view configuration.
  * @param wsClientId - The WebSocket client ID (for pushing changes).
  * @returns A promise resolving to:
  * - `success` — Whether the view creation succeeded.
@@ -538,16 +541,20 @@ export async function createSavedViewAction(
 	organizationId: string,
 	data: {
 		name: string;
-		value: string;
-		viewConfig?: Record<string, unknown>;
+		slug: string;
+		logo: string;
+		value?: string;
+		viewConfig: schema.savedViewType["viewConfig"];
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		name: data.name,
+		slug: data.slug,
+		logo: data.logo,
 		value: data.value,
-		view_config: data.viewConfig,
+		viewConfig: data.viewConfig,
 		wsClientId,
 	};
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/create-view`, {
@@ -575,6 +582,8 @@ export async function createSavedViewAction(
  * @param data - The view properties to update:
  * - `id` (required) - The ID of the view to update.
  * - `name` (optional) - The updated name of the view.
+ * - `slug` (optional) - The updated slug of the view.
+ * - `logo` (optional) - The updated logo of the view.
  * - `value` (optional) - The updated encoded filter string.
  * - `viewConfig` (optional) - The updated view configuration.
  * @param wsClientId - The WebSocket client ID (for pushing changes).
@@ -588,8 +597,10 @@ export async function updateSavedViewAction(
 	data: {
 		id: string;
 		name?: string;
+		slug?: string;
+		logo?: string;
 		value?: string;
-		viewConfig?: Record<string, unknown>;
+		viewConfig?: schema.savedViewType["viewConfig"];
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
@@ -597,8 +608,10 @@ export async function updateSavedViewAction(
 		org_id: organizationId,
 		id: data.id,
 		name: data.name,
+		slug: data.slug,
+		logo: data.logo,
 		value: data.value,
-		view_config: data.viewConfig,
+		viewConfig: data.viewConfig,
 		wsClientId,
 	};
 	const result = await fetch(`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/update-view`, {

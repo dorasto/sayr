@@ -374,7 +374,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 // Create saved view with name and filter params
 apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const session = c.get("session");
-	const { org_id, wsClientId, name, value, view_config } = await c.req.json();
+	const { org_id, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -385,8 +385,10 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 			organizationId: org_id,
 			createdById: session?.userId,
 			name,
+			logo,
+			slug,
 			filterParams: value,
-			viewConfig: view_config,
+			viewConfig: viewConfig,
 		})
 		.returning();
 	if (!view) {
@@ -415,7 +417,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 // Update saved view
 apiRouteAdminOrganization.patch("/update-view", async (c) => {
 	const session = c.get("session");
-	const { org_id, wsClientId, id, name, value, view_config } = await c.req.json();
+	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -424,8 +426,10 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 		.update(schema.savedView)
 		.set({
 			name,
+			slug,
+			logo,
 			filterParams: value,
-			viewConfig: view_config,
+			viewConfig: viewConfig,
 			updatedAt: new Date(),
 		})
 		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
