@@ -56,6 +56,7 @@ export default function ProjectSide() {
 		[]
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <needed>
 	useEffect(() => {
 		if (selectedViewSlug && views.length > 0) {
 			const view = views.find((v) => (v.slug || v.id) === selectedViewSlug);
@@ -66,7 +67,7 @@ export default function ProjectSide() {
 				}
 			}
 		}
-	}, [selectedViewSlug, views, setFilterState, setViewState, mapConfigToState]);
+	}, [views]);
 
 	const { account } = useLayoutData();
 
