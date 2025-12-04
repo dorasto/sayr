@@ -21,10 +21,7 @@ export default async function RootLayoutOrganization({
 		return redirect("/admin");
 	}
 	const labels = await getLabels(organization.id);
-	const views = await db
-		.select()
-		.from(schema.savedView)
-		.where(eq(schema.savedView.organizationId, organization.id));
+	const views = await db.select().from(schema.savedView).where(eq(schema.savedView.organizationId, organization.id));
 	const categories = await db.query.category.findMany({
 		where: (category) => eq(category.organizationId, organization.id),
 	});
