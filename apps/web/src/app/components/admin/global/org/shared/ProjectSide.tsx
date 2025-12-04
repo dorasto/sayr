@@ -372,6 +372,11 @@ export default function ProjectSide() {
 										"md:w-full cursor-pointer transition-colors group",
 										isActive ? "bg-accent" : "bg-transparent hover:bg-accent"
 									)}
+									style={{
+										backgroundColor: isActive
+											? `hsla(${extractHslValues(view.viewConfig?.color || "#ffffff")}, 0.05)`
+											: undefined,
+									}}
 									key={view.id}
 									onClick={() => {
 										if (isActive) {
@@ -391,15 +396,14 @@ export default function ProjectSide() {
 								>
 									<TileHeader className="h-fit max-w-fit">
 										<TileTitle className="flex items-center gap-2 truncate">
-											<TileIcon className={cn(!isActive && "bg-transparent")}>
+											<TileIcon className={cn("bg-transparent")}>
 												<RenderIcon
 													iconName={view.viewConfig?.icon || "IconStack2"}
 													color={view.viewConfig?.color || "#ffffff"}
 													button
-													focus={isActive}
 													className={cn(
 														"size-5! [&_svg]:size-4! border-0 ",
-														!isActive && "text-muted-foreground"
+														!isActive && "text-muted-foreground [&_svg]:grayscale! bg-transparent!"
 													)}
 												/>
 												{/* <IconStack2 /> */}
