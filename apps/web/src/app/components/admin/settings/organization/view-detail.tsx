@@ -1,8 +1,16 @@
 "use client";
 
+import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { Input } from "@repo/ui/components/input";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -11,37 +19,83 @@ import {
 	InputGroupText,
 } from "@repo/ui/components/input-group";
 import { Label } from "@repo/ui/components/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/radio-group";
-import { Separator } from "@repo/ui/components/separator";
+import { Switch } from "@repo/ui/components/switch";
+import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconCheck, IconDeviceFloppy, IconLayoutKanban, IconList, IconStack2, IconTrash } from "@tabler/icons-react";
+import {
+	IconCheck,
+	IconDeviceFloppy,
+	IconLayoutKanban,
+	IconLayoutRows,
+	IconList,
+	IconTrash,
+} from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { useLayoutData } from "@/app/admin/Context";
 import { useLayoutOrganizationSettings } from "@/app/admin/settings/org/[org_id]/Context";
+import IconPicker from "@/app/components/icon-picker";
+import RenderIcon from "@/app/components/RenderIcon";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import { deleteSavedViewAction, updateSavedViewAction } from "@/app/lib/fetches/organization";
 import type { WSMessage } from "@/app/lib/ws";
+import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "../../global/org/tasks/task/grouping/config";
+import type { TaskGroupingId } from "../../global/org/tasks/task/grouping/types";
 import { ViewFilterEditor } from "./view-filter-editor";
 
-export default function SettingsOrganizationViewDetailPage({ viewId }: { viewId: string }) {
+const slugify = (text: string) => {
+	return text
+		.toString()
+		.toLowerCase()
+		.trim()
+		.replace(/\s+/g, "-") // Replace spaces with -
+		.replace(/[^\w-]+/g, "") // Remove all non-word chars
+		.replace(/--+/g, "-"); // Replace multiple - with single -
+};
+
+export default function SettingsOrganizationViewDetailPage({
+	viewId,
+	initialView,
+}: {
+	viewId: string;
+	initialView?: schema.savedViewType;
+}) {
 	const { ws } = useLayoutData();
 	const { organization, setOrganization, views, setViews, labels, categories, tasks } =
 		useLayoutOrganizationSettings();
 	const router = useRouter();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "", 1);
 
-	const view = views.find((v) => v.id === viewId);
+	const contextView = views.find((v) => v.id === viewId);
+	// Use initialView if contextView is missing or stale (missing slug property)
+	const view = initialView && (!contextView || !("slug" in contextView)) ? initialView : contextView || initialView;
+
 	const [name, setName] = useState(view?.name || "");
 	const [filterParams, setFilterParams] = useState(view?.filterParams || "");
+	const [slug, setSlug] = useState(view?.slug || "");
+	const defaultConfig: NonNullable<schema.savedViewType["viewConfig"]> = {
+		mode: "list",
+		groupBy: "status",
+		showCompletedTasks: true,
+		showEmptyGroups: true,
+		color: "#ffffff",
+		icon: "IconStack2",
+	};
+
+	const [viewConfig, setViewConfig] = useState<NonNullable<schema.savedViewType["viewConfig"]>>(
+		view?.viewConfig || defaultConfig
+	);
 
 	useEffect(() => {
 		if (view) {
 			setName(view.name);
 			setFilterParams(view.filterParams);
+			setSlug(view.slug || "");
+			setViewConfig(view.viewConfig || defaultConfig);
 		}
 	}, [view]);
 
@@ -85,16 +139,18 @@ export default function SettingsOrganizationViewDetailPage({ viewId }: { viewId:
 					id: view.id,
 					name,
 					value: filterParams,
+					slug,
+					viewConfig,
 				},
 				wsClientId
 			);
 			if (result.success) {
-				toast.success("View updated successfully");
+				headlessToast.success({ title: "View updated successfully" });
 			} else {
-				toast.error(result.error || "Failed to update view");
+				headlessToast.error({ title: result.error || "Failed to update view" });
 			}
 		} catch (_error) {
-			toast.error("An error occurred while updating the view");
+			headlessToast.error({ title: "An error occurred while updating the view" });
 		}
 	};
 
@@ -109,18 +165,18 @@ export default function SettingsOrganizationViewDetailPage({ viewId }: { viewId:
 				wsClientId
 			);
 			if (result.success) {
-				toast.success("View deleted successfully");
+				headlessToast.success({ title: "View deleted successfully" });
 				router.push(`/admin/settings/org/${organization.id}/views`);
 			} else {
-				toast.error(result.error || "Failed to delete view");
+				headlessToast.error({ title: result.error || "Failed to delete view" });
 			}
 		} catch (_error) {
-			toast.error("An error occurred while deleting the view");
+			headlessToast.error({ title: "An error occurred while deleting the view" });
 		}
 	};
 
 	const availableUsers = organization.members.map((m) => m.user);
-
+	console.log("VIEW CONFIG", view);
 	return (
 		<div className="flex flex-col gap-3">
 			<Label variant={"heading"}>General</Label>
@@ -130,9 +186,48 @@ export default function SettingsOrganizationViewDetailPage({ viewId }: { viewId:
 						<TileTitle>Logo</TileTitle>
 					</TileHeader>
 					<TileAction className="">
-						<Button variant="accent" size={"icon"}>
-							<IconStack2 />
-						</Button>
+						<Popover>
+							<PopoverTrigger asChild>
+								<Button
+									variant="accent"
+									className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
+								>
+									<RenderIcon
+										iconName={viewConfig?.icon || "IconStack2"}
+										color={viewConfig?.color || "#ffffff"}
+										button
+										className="size-8 [&_svg]:size-5"
+									/>
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="p-0 w-64 md:w-96">
+								<div className="flex flex-col gap-3">
+									<div className="p-3">
+										<ColorPickerCustom
+											onChange={(c) =>
+												setViewConfig((prev) => ({
+													...(prev ?? defaultConfig),
+													color: c.hsla,
+												}))
+											}
+											defaultValue={viewConfig?.color || "#fffff"}
+											height={100}
+										/>
+									</div>
+									<div className="px-3">
+										<IconPicker
+											value={viewConfig?.icon || "IconStack2"}
+											update={(value) =>
+												setViewConfig((prev) => ({
+													...(prev ?? defaultConfig),
+													icon: value,
+												}))
+											}
+										/>
+									</div>
+								</div>
+							</PopoverContent>
+						</Popover>
 					</TileAction>
 				</Tile>
 				<Tile className="md:w-full" variant={"transparent"}>
@@ -161,10 +256,15 @@ export default function SettingsOrganizationViewDetailPage({ viewId }: { viewId:
 					</TileHeader>
 					<TileAction className="w-full">
 						<InputGroup className="bg-accent border-0 shadow-none transition-all">
-							<InputGroupInput placeholder="my-org" value={organization.slug} />
 							<InputGroupAddon align="inline-start">
-								<InputGroupText>view-</InputGroupText>
+								<InputGroupText className="font-mono">view-</InputGroupText>
 							</InputGroupAddon>
+							<InputGroupInput
+								placeholder="my-view"
+								className="font-mono pl-0!"
+								value={slug}
+								onChange={(e) => setSlug(slugify(e.target.value))}
+							/>
 							<InputGroupAddon align="inline-end">
 								<InputGroupButton variant={"ghost"} size={"icon-sm"}>
 									<IconCheck />
@@ -198,21 +298,22 @@ export default function SettingsOrganizationViewDetailPage({ viewId }: { viewId:
 					</TileHeader>
 					<TileAction className="">
 						<RadioGroup
-							// defaultValue={activeViewMode}
+							value={viewConfig?.mode}
 							className="flex items-center gap-2"
-							// onValueChange={(v) => setViewMode(v as ViewMode)}
+							onValueChange={(v) =>
+								setViewConfig((prev) => ({
+									...(prev ?? defaultConfig),
+									mode: v as "list" | "kanban",
+								}))
+							}
 						>
 							<Label
 								className={cn(
-									"flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-									// activeViewMode === option.id && "border-primary/50 bg-accent"
+									"flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors",
+									viewConfig?.mode === "list" && "border-primary/50 bg-accent"
 								)}
 							>
-								<RadioGroupItem
-									value={"list"}
-									// checked={option.id === activeViewMode}
-									className="sr-only"
-								/>
+								<RadioGroupItem value={"list"} className="sr-only" />
 								<div className="flex items-center gap-1">
 									<IconList className="size-4" />
 									<span className="cursor-pointer text-sm font-semibold">List</span>
@@ -220,21 +321,16 @@ export default function SettingsOrganizationViewDetailPage({ viewId }: { viewId:
 							</Label>
 							<Label
 								className={cn(
-									"flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-									// activeViewMode === option.id && "border-primary/50 bg-accent"
+									"flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors",
+									viewConfig?.mode === "kanban" && "border-primary/50 bg-accent"
 								)}
 							>
-								<RadioGroupItem
-									value={"kanban"}
-									// checked={option.id === activeViewMode}
-									className="sr-only"
-								/>
+								<RadioGroupItem value={"kanban"} className="sr-only" />
 								<div className="flex items-center gap-1">
 									<IconLayoutKanban className="size-4" />
 									<span className="cursor-pointer text-sm font-semibold">Kanban</span>
 								</div>
 							</Label>
-							{/* refer to task-view-dropdown.tsx*/}
 						</RadioGroup>
 					</TileAction>
 				</Tile>
@@ -242,19 +338,61 @@ export default function SettingsOrganizationViewDetailPage({ viewId }: { viewId:
 					<TileHeader className="md:w-full">
 						<TileTitle>Group by</TileTitle>
 					</TileHeader>
-					{/* take dropdown from task-view-dropdown.tsx */}
+					<TileAction>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="outline" className="gap-2">
+									<IconLayoutRows className="h-4 w-4" />
+									<span>
+										{TASK_GROUPINGS[(viewConfig?.groupBy as TaskGroupingId) || "status"]?.label || "Status"}
+									</span>
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuRadioGroup
+									value={viewConfig?.groupBy}
+									onValueChange={(v) =>
+										setViewConfig((prev) => ({
+											...(prev ?? defaultConfig),
+											groupBy: v as TaskGroupingId,
+										}))
+									}
+								>
+									{TASK_GROUPING_OPTIONS.map((grouping) => (
+										<DropdownMenuRadioItem key={grouping.id} value={grouping.id}>
+											{grouping.label}
+										</DropdownMenuRadioItem>
+									))}
+								</DropdownMenuRadioGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</TileAction>
 				</Tile>
 				<Tile className="md:w-full" variant={"transparent"}>
 					<TileHeader className="md:w-full">
 						<TileTitle>Show completed tasks</TileTitle>
 					</TileHeader>
-					{/* take from task-view-dropdown.tsx */}
+					<TileAction>
+						<Switch
+							checked={viewConfig?.showCompletedTasks}
+							onCheckedChange={(c) =>
+								setViewConfig((prev) => ({ ...(prev ?? defaultConfig), showCompletedTasks: c }))
+							}
+						/>
+					</TileAction>
 				</Tile>
 				<Tile className="md:w-full" variant={"transparent"}>
 					<TileHeader className="md:w-full">
 						<TileTitle>Show empty groups</TileTitle>
 					</TileHeader>
-					{/* take from task-view-dropdown.tsx */}
+					<TileAction>
+						<Switch
+							checked={viewConfig?.showEmptyGroups}
+							onCheckedChange={(c) =>
+								setViewConfig((prev) => ({ ...(prev ?? defaultConfig), showEmptyGroups: c }))
+							}
+						/>
+					</TileAction>
 				</Tile>
 			</div>
 			<div className="flex flex-col gap-4 max-w-2xl">

@@ -10,6 +10,8 @@ type viewConfig = {
 	groupBy: "status" | "priority" | "assignee" | "category";
 	showCompletedTasks: boolean;
 	showEmptyGroups: boolean;
+	color?: string;
+	icon?: string;
 };
 
 export const savedView = table("saved_view", {
