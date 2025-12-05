@@ -136,7 +136,7 @@ export function MyTaskList({
 		setSelectedTasks(newSelected);
 	};
 
-	const handleTaskClick = (taskId: string, organizationId: string) => {
+	const handleTaskClick = (taskId: string, organizationId?: string) => {
 		const task = filteredTasks.find((t) => t.id === taskId && t.organizationId === organizationId);
 		if (task) {
 			setSelectedTask(task);
