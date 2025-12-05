@@ -19,11 +19,13 @@ import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/app/lib/ws";
 import ProjectSide from "../shared/ProjectSide";
-import ListTasks from "./list";
 import { TaskFilterDropdown } from "./task/filter/dropdown/TaskFilterDropdown";
 import { TaskViewDropdown } from "./task/grouping/task-view-dropdown";
+import { useTaskViewState } from "./task/grouping/use-task-view-state";
+import { UnifiedTaskView } from "./task/views/unified-task-view";
 
 export default function OrganizationTasksHomePage() {
+	const { viewState } = useTaskViewState();
 	const { ws } = useLayoutData();
 	const {
 		organization,
@@ -132,13 +134,18 @@ export default function OrganizationTasksHomePage() {
 			</div>
 			<ResizablePanelGroup direction="horizontal">
 				<ResizablePanel defaultSize={useMobile ? 100 : 70} minSize={70}>
-					<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
-						<ListTasks
+					<div
+						className={cn(
+							"flex-1 overflow-y-auto h-full flex flex-col relative px-2",
+							viewState.viewMode === "kanban" && "pr-0"
+						)}
+					>
+						<UnifiedTaskView
 							tasks={tasks}
 							setTasks={setTasks}
 							ws={ws}
 							labels={labels}
-							availableUsers={organization.members.map((member) => member.user)}
+							availableUsers={availableUsers}
 							organization={organization}
 							categories={categories}
 						/>

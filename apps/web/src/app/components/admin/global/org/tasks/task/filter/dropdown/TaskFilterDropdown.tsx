@@ -5,6 +5,7 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
+import { useTaskViewState } from "../../grouping/use-task-view-state";
 import { FILTER_FIELD_CONFIGS } from "../filter-config";
 import type { FilterCondition, FilterField, FilterGroup, FilterOperator, FilterState } from "../types";
 import { FilterBadges } from "./FilterBadges";
@@ -46,6 +47,7 @@ export function TaskFilterDropdown({
 		deserializeFilters(filtersParam) || { groups: [], operator: "AND" },
 		1
 	);
+	const { viewState } = useTaskViewState();
 
 	const pathname = usePathname();
 
@@ -108,13 +110,33 @@ export function TaskFilterDropdown({
 
 	const currentFiltersString = useMemo(() => serializeFilters(filterState), [filterState]);
 
+	const currentViewConfig = useMemo(
+		() => ({
+			mode: viewState.viewMode,
+			groupBy: viewState.grouping,
+			showCompletedTasks: viewState.showCompletedTasks,
+			showEmptyGroups: viewState.showEmptyGroups,
+		}),
+		[viewState]
+	);
+
 	const showNewViewPopover = useMemo(() => {
-		// Don't show if no filters applied
-		if (activeFiltersCount === 0) return false;
-		// Don't show if a view with these exact filters already exists
-		const viewExists = views.some((view) => view.filterParams === currentFiltersString);
+		// Don't show if a view with these exact filters AND config already exists
+		const viewExists = views.some((view) => {
+			const filtersMatch = view.filterParams === currentFiltersString;
+			// biome-ignore lint/suspicious/noExplicitAny: viewConfig is jsonb
+			const config = view.viewConfig as any;
+			const configMatch =
+				config &&
+				config.mode === currentViewConfig.mode &&
+				config.groupBy === currentViewConfig.groupBy &&
+				config.showCompletedTasks === currentViewConfig.showCompletedTasks &&
+				config.showEmptyGroups === currentViewConfig.showEmptyGroups;
+
+			return filtersMatch && configMatch;
+		});
 		return !viewExists;
-	}, [activeFiltersCount, views, currentFiltersString]);
+	}, [views, currentFiltersString, currentViewConfig]);
 
 	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
 		addFilter({
@@ -186,7 +208,12 @@ export function TaskFilterDropdown({
 				/>
 			)}
 			{showNewViewPopover && (
-				<NewViewPopover organizationId={organizationId} setViews={setViews} currentFilters={currentFiltersString} />
+				<NewViewPopover
+					organizationId={organizationId}
+					setViews={setViews}
+					currentFilters={currentFiltersString}
+					viewConfig={currentViewConfig}
+				/>
 			)}
 		</div>
 	);

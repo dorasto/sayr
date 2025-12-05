@@ -3,20 +3,25 @@ import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { Label } from "@repo/ui/components/label";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@repo/ui/components/sheet";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
-import { IconSettings, IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
+import { IconPencil, IconSettings, IconStack2, IconUser, IconUsers, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import RenderIcon from "@/app/components/RenderIcon";
 import { useSticky } from "@/app/hooks/use-sticky";
+import SettingsOrganizationViewDetailPage from "../../../settings/organization/view-detail";
 import { deserializeFilters, serializeFilters } from "../tasks/task/filter/dropdown/serialization";
 import type { FilterState } from "../tasks/task/filter/types";
+import { DEFAULT_TASK_VIEW_STATE, type TaskViewState } from "../tasks/task/grouping/types";
+import { useTaskViewState } from "../tasks/task/grouping/use-task-view-state";
 import GlobalSettings from "./GlobalSettings";
 import { type PriorityKey, priorityConfig } from "./task-config";
 
@@ -24,7 +29,7 @@ export default function ProjectSide() {
 	const { stuck, stickyRef } = useSticky();
 	const { value: organization } = useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
 	const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);
-	const { value: views } = useStateManagement<schema.savedViewType[]>("views", [], 1);
+	const { value: views } = useStateManagement<schema.savedViewType[]>("views", [], 3);
 	const { value: labels, setValue: setLabels } = useStateManagement<schema.labelType[]>("labels", [], 1);
 	const { value: categories, setValue: setCategories } = useStateManagement<schema.categoryType[]>(
 		"categories",
@@ -32,12 +37,41 @@ export default function ProjectSide() {
 		1
 	);
 	const [filtersParam] = useQueryState("filters", parseAsString.withDefault(""));
+	const [selectedViewSlug, setSelectedViewSlug] = useQueryState("view", {
+		...parseAsString,
+		clearOnDefault: true,
+	});
 	const { setValue: setFilterState } = useStateManagement<FilterState>(
 		"task-filters",
 		{ groups: [], operator: "AND" },
 		1
 	);
+	const { setViewState } = useTaskViewState();
 	const [openSettings, setOpenSettings] = useState(false);
+	const [editingView, setEditingView] = useState<schema.savedViewType | null>(null);
+
+	const mapConfigToState = useCallback(
+		(config: NonNullable<schema.savedViewType["viewConfig"]>): TaskViewState => ({
+			grouping: config.groupBy,
+			showEmptyGroups: config.showEmptyGroups,
+			showCompletedTasks: config.showCompletedTasks,
+			viewMode: config.mode,
+		}),
+		[]
+	);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <needed>
+	useEffect(() => {
+		if (selectedViewSlug && views.length > 0) {
+			const view = views.find((v) => (v.slug || v.id) === selectedViewSlug);
+			if (view) {
+				setFilterState(deserializeFilters(view.filterParams) || { groups: [], operator: "AND" });
+				if (view.viewConfig) {
+					setViewState(mapConfigToState(view.viewConfig));
+				}
+			}
+		}
+	}, [views]);
 
 	const { account } = useLayoutData();
 
@@ -172,7 +206,9 @@ export default function ProjectSide() {
 					)}
 					onClick={() => {
 						// Clear filters if already active
+						setSelectedViewSlug(null);
 						setFilterState({ groups: [], operator: "AND" });
+						setViewState(DEFAULT_TASK_VIEW_STATE);
 					}}
 				>
 					<TileHeader>
@@ -197,6 +233,7 @@ export default function ProjectSide() {
 						isMyAssignedActive ? "bg-accent" : "bg-card hover:bg-accent"
 					)}
 					onClick={() => {
+						setSelectedViewSlug(null);
 						if (isMyAssignedActive) {
 							// Clear filters if already active
 							setFilterState({ groups: [], operator: "AND" });
@@ -205,6 +242,7 @@ export default function ProjectSide() {
 							// setFiltersParam(myAssignedFilterParam);
 							setFilterState(myAssignedFilterState);
 						}
+						setViewState(DEFAULT_TASK_VIEW_STATE);
 					}}
 				>
 					<TileHeader>
@@ -235,11 +273,13 @@ export default function ProjectSide() {
 							)}
 							key={category.id}
 							onClick={() => {
+								setSelectedViewSlug(null);
 								if (isActive) {
 									setFilterState({ groups: [], operator: "AND" });
 								} else {
 									setFilterState(createCategoryFilter(category.id));
 								}
+								setViewState(DEFAULT_TASK_VIEW_STATE);
 							}}
 						>
 							<TileHeader>
@@ -329,32 +369,74 @@ export default function ProjectSide() {
 				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-0.5">
 						{views.map((view) => {
-							const isActive = filtersParam === view.filterParams;
+							const viewSlug = view.slug || view.id;
+							const isActive = selectedViewSlug === viewSlug;
 							return (
 								<Tile
 									className={cn(
-										"md:w-full cursor-pointer transition-colors group",
+										"md:w-full cursor-pointer transition-colors group p-0 justify-baseline gap-0 group/view",
 										isActive ? "bg-accent" : "bg-transparent hover:bg-accent"
 									)}
-									key={view.id}
-									onClick={() => {
-										if (isActive) {
-											setFilterState({ groups: [], operator: "AND" });
-										} else {
-											setFilterState(
-												deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
-											);
-										}
+									style={{
+										backgroundColor: isActive
+											? `hsla(${extractHslValues(view.viewConfig?.color || "#ffffff")}, 0.05)`
+											: undefined,
 									}}
+									key={view.id}
 								>
-									<TileHeader className="h-fit max-w-fit">
+									<TileHeader
+										className="h-fit w-full p-3 flex-1"
+										onClick={() => {
+											if (isActive) {
+												setSelectedViewSlug(null);
+												setFilterState({ groups: [], operator: "AND" });
+												setViewState(DEFAULT_TASK_VIEW_STATE);
+											} else {
+												setSelectedViewSlug(viewSlug);
+												setFilterState(
+													deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
+												);
+												if (view.viewConfig) {
+													setViewState(mapConfigToState(view.viewConfig));
+												}
+											}
+										}}
+									>
 										<TileTitle className="flex items-center gap-2 truncate">
-											<TileIcon className={cn(!isActive && "bg-transparent")}>
-												<IconStack2 />
+											<TileIcon className={cn("bg-transparent")}>
+												<RenderIcon
+													iconName={view.viewConfig?.icon || "IconStack2"}
+													color={view.viewConfig?.color || "#ffffff"}
+													button
+													className={cn(
+														"size-5! [&_svg]:size-4! border-0 ",
+														!isActive && "text-muted-foreground [&_svg]:grayscale! bg-transparent!"
+													)}
+												/>
+												{/* <IconStack2 /> */}
 											</TileIcon>
 											{view.name}
 										</TileTitle>
 									</TileHeader>
+
+									<TileAction
+										className={cn(
+											"p-3 opacity-0 group-hover/view:opacity-100 transition-all",
+											isActive && "opacity-100"
+										)}
+									>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-6 w-6"
+											onClick={(e) => {
+												e.stopPropagation();
+												setEditingView(view);
+											}}
+										>
+											<IconPencil className="size-5 text-muted-foreground" />
+										</Button>
+									</TileAction>
 								</Tile>
 							);
 						})}
@@ -381,6 +463,8 @@ export default function ProjectSide() {
 											// setFiltersParam(filterParam);
 											setFilterState(createPriorityFilter(key));
 										}
+										setSelectedViewSlug(null);
+										setViewState(DEFAULT_TASK_VIEW_STATE);
 									}}
 								>
 									<TileHeader>
@@ -417,6 +501,30 @@ export default function ProjectSide() {
 					setOpenSettings(false);
 				}}
 			/>
+			<Sheet open={!!editingView} onOpenChange={(open) => !open && setEditingView(null)}>
+				<SheetContent className="sm:max-w-xl w-full overflow-y-auto p-0">
+					<SheetHeader className="sticky top-0 bg-card p-3 py-1  z-50 border-b">
+						<div className="flex items-center justify-between mb-0">
+							<SheetTitle asChild>
+								<Label variant={"heading"} className="mb-0">
+									Edit {editingView?.name}
+								</Label>
+							</SheetTitle>
+							<SheetClose asChild>
+								<Button variant="ghost" size="icon" className="h-6 w-6">
+									<IconX className="size-5" />
+								</Button>
+							</SheetClose>
+						</div>
+						<SheetDescription className="sr-only">Manage settings for this saved view.</SheetDescription>
+					</SheetHeader>
+					<div className="p-3">
+						{editingView && (
+							<SettingsOrganizationViewDetailPage viewId={editingView.id} initialView={editingView} />
+						)}
+					</div>
+				</SheetContent>
+			</Sheet>
 		</div>
 	);
 }

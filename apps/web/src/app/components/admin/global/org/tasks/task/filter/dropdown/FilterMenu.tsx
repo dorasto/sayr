@@ -53,10 +53,7 @@ export function FilterMenu(props: FilterMenuProps) {
 			}}
 		>
 			<DropdownMenuTrigger asChild>
-				<Button
-					variant="accent"
-					className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1", activeFiltersCount > 0 && "w-6")}
-				>
+				<Button variant="primary" className={cn("gap-2 h-6 w-fit p-1", activeFiltersCount > 0 && "w-6")}>
 					<IconFilter2 className="w-4 h-4" />
 					{activeFiltersCount <= 0 && <span className="text-xs">Filter</span>}
 				</Button>

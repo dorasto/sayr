@@ -15,22 +15,32 @@ import { RadioGroup, RadioGroupItem } from "@repo/ui/components/radio-group";
 import { Switch } from "@repo/ui/components/switch";
 import OptionField from "@repo/ui/components/tomui/option-field";
 import { cn } from "@repo/ui/lib/utils";
-import { IconAdjustmentsHorizontal, IconCheck, IconEyeOff, IconLayoutList, IconLayoutRows } from "@tabler/icons-react";
+import {
+	IconAdjustmentsHorizontal,
+	IconCheck,
+	IconEyeOff,
+	IconLayoutKanban,
+	IconLayoutList,
+	IconLayoutRows,
+} from "@tabler/icons-react";
 import { useMemo } from "react";
 import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "./config";
 import type { TaskGroupingId } from "./types";
 import { useTaskViewState } from "./use-task-view-state";
 
-const VIEW_MODE_OPTIONS = [{ id: "list", label: "List", icon: <IconLayoutList className="h-4 w-4" /> }] as const;
+const VIEW_MODE_OPTIONS = [
+	{ id: "list", label: "List", icon: <IconLayoutList className="h-4 w-4" /> },
+	{ id: "kanban", label: "Kanban", icon: <IconLayoutKanban className="h-4 w-4" /> },
+] as const;
 
 type ViewMode = (typeof VIEW_MODE_OPTIONS)[number]["id"];
 
 export function TaskViewDropdown() {
-	const { viewState, setGrouping, setShowEmptyGroups, setShowCompletedTasks } = useTaskViewState();
+	const { viewState, setGrouping, setShowEmptyGroups, setShowCompletedTasks, setViewMode } = useTaskViewState();
 
 	const activeGrouping = TASK_GROUPINGS[viewState.grouping] ?? TASK_GROUPINGS.status;
 
-	const activeViewMode: ViewMode = "list";
+	const activeViewMode: ViewMode = viewState.viewMode;
 
 	const groupingOptions = useMemo(() => TASK_GROUPING_OPTIONS, []);
 
@@ -43,19 +53,23 @@ export function TaskViewDropdown() {
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="max-w-96 flex flex-col gap-3 p-3" onOpenAutoFocus={(e) => e.preventDefault()}>
-				<RadioGroup defaultValue="r-1" className="flex items-center gap-2">
+				<RadioGroup
+					defaultValue={activeViewMode}
+					className="flex items-center gap-2"
+					onValueChange={(v) => setViewMode(v as ViewMode)}
+				>
 					{VIEW_MODE_OPTIONS.map((option) => (
 						<Label
 							key={option.id}
 							className={cn(
-								"flex items-start gap-2 rounded border p-3",
-								activeViewMode === option.id && "border-primary/50"
+								"flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors",
+								activeViewMode === option.id && "border-primary/50 bg-accent"
 							)}
 						>
 							<RadioGroupItem value={option.id} checked={option.id === activeViewMode} className="sr-only" />
 							<div className="flex items-center gap-1">
 								{option.icon}
-								<Label variant={"subheading"}>{option.label}</Label>
+								<span className="cursor-pointer text-sm font-semibold">{option.label}</span>
 							</div>
 						</Label>
 					))}

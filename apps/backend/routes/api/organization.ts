@@ -374,7 +374,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 // Create saved view with name and filter params
 apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const session = c.get("session");
-	const { org_id, wsClientId, name, value } = await c.req.json();
+	const { org_id, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -385,11 +385,92 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 			organizationId: org_id,
 			createdById: session?.userId,
 			name,
+			logo,
+			slug,
 			filterParams: value,
+			viewConfig: viewConfig,
 		})
 		.returning();
 	if (!view) {
 		return c.json({ success: false, error: "Failed to create view." }, 500);
+	}
+	const views = await db.query.savedView.findMany({
+		where: (view) => eq(view.organizationId, org_id),
+	});
+	const data = {
+		type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+		data: views,
+	};
+	const found = findClientByWsId(wsClientId);
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
+	});
+	return c.json({
+		success: true,
+		data: views,
+	});
+});
+
+// Update saved view
+apiRouteAdminOrganization.patch("/update-view", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [view] = await db
+		.update(schema.savedView)
+		.set({
+			name,
+			slug,
+			logo,
+			filterParams: value,
+			viewConfig: viewConfig,
+			updatedAt: new Date(),
+		})
+		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
+		.returning();
+	if (!view) {
+		return c.json({ success: false, error: "Failed to update view." }, 500);
+	}
+	const views = await db.query.savedView.findMany({
+		where: (view) => eq(view.organizationId, org_id),
+	});
+	const data = {
+		type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+		data: views,
+	};
+	const found = findClientByWsId(wsClientId);
+	broadcast(org_id, "admin", data, found?.socket);
+	broadcastPublic(org_id, { ...data, data: data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		broadcastByUserId(member.userId, wsClientId, org_id, data);
+	});
+	return c.json({
+		success: true,
+		data: views,
+	});
+});
+
+// Delete saved view
+apiRouteAdminOrganization.delete("/delete-view", async (c) => {
+	const session = c.get("session");
+	const { org_id, wsClientId, id } = await c.req.json();
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	const [removed] = await db
+		.delete(schema.savedView)
+		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
+		.returning();
+	if (!removed) {
+		return c.json({ success: false, error: "Failed to remove view." }, 500);
 	}
 	const views = await db.query.savedView.findMany({
 		where: (view) => eq(view.organizationId, org_id),

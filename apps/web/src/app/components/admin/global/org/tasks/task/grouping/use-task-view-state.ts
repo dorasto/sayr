@@ -29,11 +29,16 @@ export function useTaskViewState() {
 		updateViewState({ showCompletedTasks });
 	};
 
+	const setViewMode = (viewMode: "list" | "kanban") => {
+		updateViewState({ viewMode });
+	};
+
 	return {
 		viewState,
 		setViewState: updateViewState,
 		setGrouping,
 		setShowEmptyGroups,
 		setShowCompletedTasks,
+		setViewMode,
 	};
 }
