@@ -462,6 +462,7 @@ export default function ProjectSide() {
 											// setFiltersParam(filterParam);
 											setFilterState(createPriorityFilter(key));
 										}
+										setSelectedViewSlug(null);
 										setViewState(DEFAULT_TASK_VIEW_STATE);
 									}}
 								>
