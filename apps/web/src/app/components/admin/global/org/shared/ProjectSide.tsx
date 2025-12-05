@@ -3,18 +3,21 @@ import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { Label } from "@repo/ui/components/label";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@repo/ui/components/sheet";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
-import { IconPencil, IconSettings, IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
+import { IconPencil, IconSettings, IconStack2, IconUser, IconUsers, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
 import RenderIcon from "@/app/components/RenderIcon";
 import { useSticky } from "@/app/hooks/use-sticky";
+import SettingsOrganizationViewDetailPage from "../../../settings/organization/view-detail";
 import { deserializeFilters, serializeFilters } from "../tasks/task/filter/dropdown/serialization";
 import type { FilterState } from "../tasks/task/filter/types";
 import { DEFAULT_TASK_VIEW_STATE, type TaskViewState } from "../tasks/task/grouping/types";
@@ -45,6 +48,7 @@ export default function ProjectSide() {
 	);
 	const { setViewState } = useTaskViewState();
 	const [openSettings, setOpenSettings] = useState(false);
+	const [editingView, setEditingView] = useState<schema.savedViewType | null>(null);
 
 	const mapConfigToState = useCallback(
 		(config: NonNullable<schema.savedViewType["viewConfig"]>): TaskViewState => ({
@@ -421,7 +425,15 @@ export default function ProjectSide() {
 											isActive && "opacity-100"
 										)}
 									>
-										<Button variant="ghost" size="icon" className="h-6 w-6">
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-6 w-6"
+											onClick={(e) => {
+												e.stopPropagation();
+												setEditingView(view);
+											}}
+										>
 											<IconPencil className="size-5 text-muted-foreground" />
 										</Button>
 									</TileAction>
@@ -489,6 +501,30 @@ export default function ProjectSide() {
 					setOpenSettings(false);
 				}}
 			/>
+			<Sheet open={!!editingView} onOpenChange={(open) => !open && setEditingView(null)}>
+				<SheetContent className="sm:max-w-xl w-full overflow-y-auto p-0">
+					<SheetHeader className="sticky top-0 bg-card p-3 py-1  z-50 border-b">
+						<div className="flex items-center justify-between mb-0">
+							<SheetTitle asChild>
+								<Label variant={"heading"} className="mb-0">
+									Edit {editingView?.name}
+								</Label>
+							</SheetTitle>
+							<SheetClose asChild>
+								<Button variant="ghost" size="icon" className="h-6 w-6">
+									<IconX className="size-5" />
+								</Button>
+							</SheetClose>
+						</div>
+						<SheetDescription className="sr-only">Manage settings for this saved view.</SheetDescription>
+					</SheetHeader>
+					<div className="p-3">
+						{editingView && (
+							<SettingsOrganizationViewDetailPage viewId={editingView.id} initialView={editingView} />
+						)}
+					</div>
+				</SheetContent>
+			</Sheet>
 		</div>
 	);
 }

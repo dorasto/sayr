@@ -36,7 +36,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLayoutData } from "@/app/admin/Context";
-import { useLayoutOrganizationSettings } from "@/app/admin/settings/org/[org_id]/Context";
 import IconPicker from "@/app/components/icon-picker";
 import RenderIcon from "@/app/components/RenderIcon";
 import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
@@ -65,8 +64,15 @@ export default function SettingsOrganizationViewDetailPage({
 	initialView?: schema.savedViewType;
 }) {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, views, setViews, labels, categories, tasks } =
-		useLayoutOrganizationSettings();
+	const { value: organization, setValue: setOrganization } = useStateManagement<schema.OrganizationWithMembers>(
+		"organization",
+		null,
+		1
+	);
+	const { value: views, setValue: setViews } = useStateManagement<schema.savedViewType[]>("views", [], 3);
+	const { value: labels } = useStateManagement<schema.labelType[]>("labels", [], 1);
+	const { value: categories } = useStateManagement<schema.categoryType[]>("categories", [], 1);
+	const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);
 	const router = useRouter();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "", 1);
 
@@ -410,7 +416,7 @@ export default function SettingsOrganizationViewDetailPage({
 						Delete View
 					</Button>
 				</div>
-			</div>{" "}
+			</div>
 		</div>
 	);
 }
