@@ -154,7 +154,7 @@ app.get(
 	})
 );
 app.get(
-	"/api/docs",
+	"/api",
 	Scalar(() => {
 		return {
 			defaultHttpClient: { targetKey: "node", clientKey: "fetch" },
