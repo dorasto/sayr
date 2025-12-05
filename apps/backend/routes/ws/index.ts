@@ -146,17 +146,6 @@ export function broadcast(
 	};
 	// Send to the specific channel
 	sendToClients(rooms.get(`${orgId}:${channel}`), fullMsg, orgId, channel, exclude);
-
-	// Send to firehose listeners, but include channel info
-	const firehoseMsg: WSBaseMessage = {
-		type: "FIREHOSE",
-		scope: "CHANNEL",
-		data: {
-			channel,
-			payload: fullMsg,
-		},
-	};
-	sendToClients(rooms.get(`${orgId}:*`), firehoseMsg, orgId, "*", exclude);
 }
 
 /**
@@ -403,7 +392,10 @@ export function broadcastByUserId(
 	const targets = findClientsByUserId(userId);
 	targets.forEach(
 		(c) =>
-			c.wsClientId !== wsClientId && c.channel !== excludeChannel && broadcastIndividual(c.socket, message, org_id)
+			c.wsClientId !== wsClientId &&
+			c.channel !== excludeChannel &&
+			c.channel !== "public" &&
+			broadcastIndividual(c.socket, message, org_id)
 	);
 }
 

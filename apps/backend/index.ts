@@ -3,14 +3,17 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import type { auth } from "@repo/auth/index";
 import { db, schema } from "@repo/database";
+import { Scalar } from "@scalar/hono-api-reference";
 import { CronJob } from "cron";
 import { eq, lt } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
+import { openAPIRouteHandler } from "hono-openapi";
 import { safeGetSession } from "@/getSession";
 import { apiRoute } from "./routes/api";
+import { apiPublicRoute } from "./routes/api/public";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
 import { checkMembershipRole } from "./util";
@@ -136,6 +139,40 @@ app.get("/metrics", (c) => {
 
 	return c.json(metrics, 200);
 });
+app.route("/api/public", apiPublicRoute);
+app.get(
+	"/api/public/openapi.json",
+	openAPIRouteHandler(app, {
+		documentation: {
+			info: {
+				title: "sayr.io",
+				version: "1.0.0",
+				description: "Sayr.io public API",
+			},
+			servers: [{ url: `${process.env.NEXT_PUBLIC_API_SERVER}` || "", description: "Production" }],
+		},
+	})
+);
+app.get(
+	"/api",
+	Scalar(() => {
+		return {
+			defaultHttpClient: { targetKey: "node", clientKey: "fetch" },
+			theme: "alternate",
+			hideClientButton: true,
+			showDeveloperTools: "never",
+			pageTitle: "API docs",
+			sources: [
+				{
+					default: true,
+					url: "/api/public/openapi.json",
+					title: "Public",
+					slug: "public",
+				},
+			],
+		};
+	})
+);
 app.use("*", async (c, next) => {
 	const session = await safeGetSession(c.req.raw.headers);
 	if (!session) {

@@ -110,13 +110,6 @@ export async function getTaskByShortId(orgId: string, shortId: number): Promise<
 			assignees: {
 				with: { user: { columns: { id: true, name: true, image: true } } },
 			},
-			comments: {
-				with: {
-					createdBy: {
-						columns: { id: true, name: true, image: true },
-					},
-				},
-			},
 			githubIssue: {},
 		},
 	});
@@ -163,13 +156,6 @@ export async function getTaskById(orgId: string, Id: string) {
 			createdBy: { columns: { id: true, name: true, image: true } },
 			assignees: {
 				with: { user: { columns: { id: true, name: true, image: true } } },
-			},
-			comments: {
-				with: {
-					createdBy: {
-						columns: { id: true, name: true, image: true },
-					},
-				},
 			},
 			githubIssue: {},
 		},
