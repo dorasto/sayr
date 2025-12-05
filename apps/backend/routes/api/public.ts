@@ -9,8 +9,8 @@ import { describeOkNotFound, describePaginatedRoute } from "../../openapi/helper
 import { errorResponse, paginatedSuccessResponse, successResponse } from "../../responses";
 
 const API_LIMITS = {
-	comments: 25,
-	tasks: 10,
+	comments: 30,
+	tasks: 50,
 };
 // --- API Setup ---
 export const apiPublicRoute = new Hono<AppEnv>();
@@ -149,7 +149,7 @@ apiPublicRoute.get(
 			}
 
 			// ---- CHECK: limit overflow ----
-			if (Number(query.limit) > 10) {
+			if (Number(query.limit) > API_LIMITS.tasks) {
 				return c.json(
 					errorResponse(
 						"Invalid limit",
@@ -325,7 +325,7 @@ apiPublicRoute.get(
 			}
 
 			// ---- CHECK: limit overflow ----
-			if (Number(query.limit) > 10) {
+			if (Number(query.limit) > API_LIMITS.comments) {
 				return c.json(
 					errorResponse(
 						"Invalid limit",
