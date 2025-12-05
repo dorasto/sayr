@@ -69,6 +69,13 @@ export default function SettingsOrganizationViewDetailPage({
 		null,
 		1
 	);
+	useWebSocketSubscription({
+		ws,
+		orgId: organization?.id,
+		organization: organization,
+		channel: "admin",
+		setOrganization: setOrganization,
+	});
 	const { value: views, setValue: setViews } = useStateManagement<schema.savedViewType[]>("views", [], 3);
 	const { value: labels } = useStateManagement<schema.labelType[]>("labels", [], 1);
 	const { value: categories } = useStateManagement<schema.categoryType[]>("categories", [], 1);
@@ -104,14 +111,6 @@ export default function SettingsOrganizationViewDetailPage({
 			setViewConfig(view.viewConfig || defaultConfig);
 		}
 	}, [view]);
-
-	useWebSocketSubscription({
-		ws,
-		orgId: organization.id,
-		organization: organization,
-		channel: "admin",
-		setOrganization: setOrganization,
-	});
 
 	const handlers: WSMessageHandler<WSMessage> = {
 		UPDATE_VIEWS: (msg) => {
