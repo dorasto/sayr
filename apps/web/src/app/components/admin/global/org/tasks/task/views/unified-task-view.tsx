@@ -323,7 +323,7 @@ export function UnifiedTaskView({
 						<KanbanBoard
 							key={column.id}
 							id={column.id}
-							className="bg-card border-0 rounded-lg shadow-none flex flex-col h-full w-full min-w-96 px-2"
+							className="bg-card border-0 rounded-lg shadow-none flex flex-col h-full w-full min-w-96 max-w-96 px-2"
 						>
 							<KanbanHeader className="pb-2 flex items-center justify-between bg-muted border-0 rounded-lg shrink-0 min-h-[42px]">
 								<div className="flex items-center gap-2">

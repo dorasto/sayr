@@ -189,70 +189,59 @@ export default function SettingsOrganizationViewDetailPage({
 			<div className="bg-card rounded-lg flex flex-col">
 				<Tile className="md:w-full" variant={"transparent"}>
 					<TileHeader className="md:w-full">
-						<TileTitle>Logo</TileTitle>
-					</TileHeader>
-					<TileAction className="">
-						<Popover>
-							<PopoverTrigger asChild>
-								<Button
-									variant="accent"
-									className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
-								>
-									<RenderIcon
-										iconName={viewConfig?.icon || "IconStack2"}
-										color={viewConfig?.color || "#ffffff"}
-										button
-										className="size-8 [&_svg]:size-5"
-									/>
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent className="p-0 w-64 md:w-96">
-								<div className="flex flex-col gap-3">
-									<div className="p-3">
-										<ColorPickerCustom
-											onChange={(c) =>
-												setViewConfig((prev) => ({
-													...(prev ?? defaultConfig),
-													color: c.hsla,
-												}))
-											}
-											defaultValue={viewConfig?.color || "#fffff"}
-											height={100}
-										/>
-									</div>
-									<div className="px-3">
-										<IconPicker
-											value={viewConfig?.icon || "IconStack2"}
-											update={(value) =>
-												setViewConfig((prev) => ({
-													...(prev ?? defaultConfig),
-													icon: value,
-												}))
-											}
-										/>
-									</div>
-								</div>
-							</PopoverContent>
-						</Popover>
-					</TileAction>
-				</Tile>
-				<Tile className="md:w-full" variant={"transparent"}>
-					<TileHeader className="md:w-full">
 						<TileTitle>Name</TileTitle>
 					</TileHeader>
 					<TileAction className="w-full">
 						<InputGroup className="bg-accent border-0 shadow-none transition-all">
+							<InputGroupAddon align="inline-start">
+								<Popover>
+									<PopoverTrigger asChild>
+										<Button
+											variant="accent"
+											className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
+										>
+											<RenderIcon
+												iconName={viewConfig?.icon || "IconStack2"}
+												color={viewConfig?.color || "#ffffff"}
+												button
+												className="size-8 [&_svg]:size-5"
+											/>
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="p-0 w-64 md:w-96">
+										<div className="flex flex-col gap-3">
+											<div className="p-3">
+												<ColorPickerCustom
+													onChange={(c) =>
+														setViewConfig((prev) => ({
+															...(prev ?? defaultConfig),
+															color: c.hsla,
+														}))
+													}
+													defaultValue={viewConfig?.color || "#fffff"}
+													height={100}
+												/>
+											</div>
+											<div className="px-3">
+												<IconPicker
+													value={viewConfig?.icon || "IconStack2"}
+													update={(value) =>
+														setViewConfig((prev) => ({
+															...(prev ?? defaultConfig),
+															icon: value,
+														}))
+													}
+												/>
+											</div>
+										</div>
+									</PopoverContent>
+								</Popover>
+							</InputGroupAddon>
 							<InputGroupInput
 								value={name}
 								onChange={(e) => setName(e.target.value)}
 								placeholder="Enter view name"
 							/>
-
-							<InputGroupAddon align="inline-end">
-								<InputGroupButton variant={"ghost"} size={"icon-sm"}>
-									<IconCheck />
-								</InputGroupButton>
-							</InputGroupAddon>
 						</InputGroup>
 					</TileAction>
 				</Tile>
