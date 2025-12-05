@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ta
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
-import { IconSettings, IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
+import { IconPencil, IconSettings, IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
@@ -370,7 +370,7 @@ export default function ProjectSide() {
 							return (
 								<Tile
 									className={cn(
-										"md:w-full cursor-pointer transition-colors group",
+										"md:w-full cursor-pointer transition-colors group p-0 justify-baseline gap-0 group/view",
 										isActive ? "bg-accent" : "bg-transparent hover:bg-accent"
 									)}
 									style={{
@@ -379,23 +379,25 @@ export default function ProjectSide() {
 											: undefined,
 									}}
 									key={view.id}
-									onClick={() => {
-										if (isActive) {
-											setSelectedViewSlug(null);
-											setFilterState({ groups: [], operator: "AND" });
-											setViewState(DEFAULT_TASK_VIEW_STATE);
-										} else {
-											setSelectedViewSlug(viewSlug);
-											setFilterState(
-												deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
-											);
-											if (view.viewConfig) {
-												setViewState(mapConfigToState(view.viewConfig));
-											}
-										}
-									}}
 								>
-									<TileHeader className="h-fit max-w-fit">
+									<TileHeader
+										className="h-fit w-full p-3 flex-1"
+										onClick={() => {
+											if (isActive) {
+												setSelectedViewSlug(null);
+												setFilterState({ groups: [], operator: "AND" });
+												setViewState(DEFAULT_TASK_VIEW_STATE);
+											} else {
+												setSelectedViewSlug(viewSlug);
+												setFilterState(
+													deserializeFilters(view.filterParams) || { groups: [], operator: "AND" }
+												);
+												if (view.viewConfig) {
+													setViewState(mapConfigToState(view.viewConfig));
+												}
+											}
+										}}
+									>
 										<TileTitle className="flex items-center gap-2 truncate">
 											<TileIcon className={cn("bg-transparent")}>
 												<RenderIcon
@@ -412,30 +414,17 @@ export default function ProjectSide() {
 											{view.name}
 										</TileTitle>
 									</TileHeader>
-									{/* {isActive && (
-										<TileAction>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-6 w-6"
-												onClick={(e) => {
-													e.stopPropagation();
-													if (!organization?.id) return;
-													updateSavedViewAction(
-														organization.id,
-														{
-															id: view.id,
-															value: filtersParam || "",
-															viewConfig: viewState as unknown as Record<string, unknown>,
-														},
-														wsClientId || ""
-													);
-												}}
-											>
-												<IconDeviceFloppy className="size-4" />
-											</Button>
-										</TileAction>
-									)} */}
+
+									<TileAction
+										className={cn(
+											"p-3 opacity-0 group-hover/view:opacity-100 transition-all",
+											isActive && "opacity-100"
+										)}
+									>
+										<Button variant="ghost" size="icon" className="h-6 w-6">
+											<IconPencil className="size-5 text-muted-foreground" />
+										</Button>
+									</TileAction>
 								</Tile>
 							);
 						})}
