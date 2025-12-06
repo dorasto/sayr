@@ -1,54 +1,79 @@
 import { auth } from "@repo/auth";
-import type { schema } from "@repo/database";
+import { getOrganizations as dbGetOrganizations, type schema } from "@repo/database";
+import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
+import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getSessionCookie } from "better-auth/cookies";
-import { redirectAuth } from "@/lib/redirectAuth";
 
-const _getAccess = async (req: Request) => {
-	const h = new Headers(req.headers);
-	const cookie = getSessionCookie(h) ?? "anon";
-
-	if (!cookie || cookie === "anon") {
-		redirectAuth();
-	}
-
-	try {
-		const session = await auth.api.getSession({ headers: h });
-		if (session?.user) {
-			return { account: session.user as schema.userType };
-		}
-		redirectAuth();
-	} catch (_error) {
-		// logger.error("Error getting session", { error: _error })
-		redirectAuth();
-	}
-};
+/**
+ * Helper to normalize better-auth user to schema.userType
+ */
+function normalizeUser(user: typeof auth.$Infer.Session.user): schema.userType {
+	return {
+		id: user.id,
+		name: user.name,
+		email: user.email,
+		emailVerified: user.emailVerified,
+		image: user.image ?? null,
+		createdAt: user.createdAt,
+		updatedAt: user.updatedAt,
+		role: user.role ?? null,
+		banned: user.banned ?? null,
+		banReason: user.banReason ?? null,
+		banExpires: user.banExpires ?? null,
+	};
+}
 
 /**
  * Retrieves the current authenticated user's account from the session.
- * If no active session exists, the user will be redirected using `redirectAuth()`.
+ * If no active session exists, the user will be redirected to "/home/login".
  *
  * @returns An object containing the authenticated user's account.
- * @throws Redirects to "/" if the user is not authenticated.
+ * @throws Redirects to "/home/login" if the user is not authenticated.
  *
  * Usage (in a route beforeLoad/loader):
  *   const { account } = await getAccess()
  */
 export const getAccess = createServerFn({ method: "GET" }).handler(async () => {
-	const req = getRequest();
-	if (!req) {
-		// Should not happen in server function context
-		throw new Error("No request context");
+	const headers = getRequestHeaders();
+	const h = new Headers(headers);
+	const cookie = getSessionCookie(h);
+
+	if (!cookie) {
+		throw redirect({ to: "/home/login" });
 	}
-	return _getAccess(req);
+
+	try {
+		const session = await auth.api.getSession({ headers: h });
+		if (session?.user) {
+			return { account: normalizeUser(session.user) };
+		}
+		throw redirect({ to: "/home/login" });
+	} catch (error) {
+		// If it's already a redirect, re-throw it
+		if (error && typeof error === "object" && "redirect" in error) {
+			throw error;
+		}
+		throw redirect({ to: "/home/login" });
+	}
 });
 
 /**
- * Fetches a paginated list of users from the authentication API.
- * Requires a valid authenticated session (session cookies are sent automatically).
+ * Retrieves all organizations for a user - wrapped as a server function
+ * for use in TanStack Start loaders.
  */
-export async function getUsers(req: Request) {
+export const getOrganizations = createServerFn({ method: "GET" })
+	.inputValidator((data: { userId: string }) => data)
+	.handler(async ({ data }) => {
+		return dbGetOrganizations(data.userId);
+	});
+
+/**
+ * Fetches a paginated list of users from the authentication API.
+ * Requires a valid authenticated session.
+ */
+export const getUsers = createServerFn({ method: "GET" }).handler(async () => {
+	const headers = getRequestHeaders();
 	try {
 		const result = await auth.api.listUsers({
 			query: {
@@ -57,21 +82,25 @@ export async function getUsers(req: Request) {
 				sortBy: "name",
 				sortDirection: "asc",
 			},
-			headers: req.headers, // Request already carries cookies
+			headers: new Headers(headers),
 		});
 		return result;
 	} catch (error) {
-		// logger.error("Error fetching users", { error });
 		console.log("🚀 ~ getUsers ~ error:", error);
 		return { users: [], total: 0 };
 	}
-}
+});
 
-export async function setUserRole(req: Request, userId: string, role: "admin" | "user") {
-	// logger.info("Setting user role", { userId, role });
-	const result = await auth.api.setRole({
-		body: { userId, role },
-		headers: req.headers, // Request already carries cookies
+/**
+ * Sets the role for a user.
+ */
+export const setUserRole = createServerFn({ method: "POST" })
+	.inputValidator((data: { userId: string; role: "admin" | "user" }) => data)
+	.handler(async ({ data }) => {
+		const headers = getRequestHeaders();
+		const result = await auth.api.setRole({
+			body: { userId: data.userId, role: data.role },
+			headers: new Headers(headers),
+		});
+		return result;
 	});
-	return result;
-}
