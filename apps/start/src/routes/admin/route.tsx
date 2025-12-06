@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { RootProvider } from "@/components/generic/Context";
+import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper } from "@/components/generic/wrapper";
-import { NavigationTracker } from "@/components/navigation-tracker";
 import { getAccessWithOrganizations } from "@/lib/serverFunctions/getAccessWithOrganizations";
 
 export const Route = createFileRoute("/admin")({
