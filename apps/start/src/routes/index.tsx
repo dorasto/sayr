@@ -1,6 +1,7 @@
+import { signInDoras } from "@repo/auth/client";
+import { Button } from "@repo/ui/components/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as RouteIcon, Server, Shield, Sparkles, Waves, Zap } from "lucide-react";
-
 export const Route = createFileRoute("/")({ component: App });
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
 							</span>
 						</h1>
 					</div>
+					<Button onClick={signInDoras}>test</Button>
 					<p className="text-2xl md:text-3xl text-gray-300 mb-4 font-light">
 						The framework for next generation AI applications
 					</p>
