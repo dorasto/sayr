@@ -1,4 +1,4 @@
-import { dequeue, type Job } from "@repo/util/github/queue";
+import { dequeue, type JobGroups } from "@repo/queue";
 import {
 	handleBlockKeyword,
 	handleCloseKeyword,
@@ -8,12 +8,30 @@ import {
 } from "./github/keywordActions";
 import { extractSayrKeywords } from "./github/keywords";
 
-async function handleSayrKeywordParse(job: Job) {
-	const { text, eventType, number, owner, repoId, repo, merged, installationId, organizationId, categoryId } =
-		job.payload;
+/**
+ * Handles a "sayr_keyword_parse" GitHub job.
+ */
+async function handleSayrKeywordParse(
+	job: JobGroups["github"] & { type: "sayr_keyword_parse" }
+) {
+	const {
+		text,
+		eventType,
+		number,
+		owner,
+		repoId,
+		repo,
+		merged,
+		installationId,
+		organizationId,
+		categoryId,
+	} = job.payload;
+
 	if (!organizationId || !categoryId) {
+		console.log(`⚠️ Missing org or category for ${repo}#${number} — skipping.`);
 		return;
 	}
+
 	console.log(`🔍 [${repo}#${number}] Checking ${eventType} for Sayr keywords...`);
 
 	const matches = extractSayrKeywords(text);
@@ -45,24 +63,20 @@ async function handleSayrKeywordParse(job: Job) {
 			case "closes":
 			case "closed":
 			case "resolves":
-			case "resolved":
-				{
-					const closeResult = await handleCloseKeyword(ctx);
-					summaryLines.push(closeResult);
-				}
+			case "resolved": {
+				const closeResult = await handleCloseKeyword(ctx);
+				summaryLines.push(closeResult);
 				break;
-
+			}
 			case "blocked by":
 				await handleBlockKeyword(ctx);
 				summaryLines.push(`🚧 Blocked by ${m.taskKey}`);
 				break;
-
 			case "ref":
 			case "sayr":
 				await handleLinkKeyword(ctx);
 				summaryLines.push(`🔗 Linked to ${m.taskKey}`);
 				break;
-
 			default:
 				summaryLines.push(`⚙️ Unknown keyword ${m.keyword}`);
 				break;
@@ -75,41 +89,78 @@ async function handleSayrKeywordParse(job: Job) {
 		(merged ? "\n✅ PR merged!" : "");
 
 	await postGithubComment({ ...ctxBase, taskKey: 0 }, comment);
-
 	console.log(`💬 [${repo}#${number}] Comment posted to GitHub.`);
 }
 
-async function processJob(job: Job) {
+/**
+ * Process a GitHub job.
+ */
+async function processGithubJob(job: JobGroups["github"]) {
 	switch (job.type) {
 		case "sayr_keyword_parse":
 			await handleSayrKeywordParse(job);
 			break;
 		default:
-			console.log(`⚠️ Unhandled job type: ${job.type}`);
+			console.log(`⚠️ Unhandled GitHub job type: ${job.type}`);
 	}
 }
 
-async function workerLoop() {
-	const MODE = process.env.QUEUE_MODE ?? "file"; // local default
+/**
+ * Generic worker loop for a given queue group.
+ */
+async function workerLoop<G extends keyof JobGroups>(group: G) {
+	const MODE = process.env.QUEUE_MODE ?? "file";
+	console.log(`⚙️  Worker for group "${group}" started (${MODE} mode)`);
 
-	console.log(`⚙️  Sayr worker started (${MODE} mode)`);
 	while (true) {
-		const job = await dequeue();
+		const job = await dequeue(group);
 		if (!job) {
-			await Bun.sleep(100);
+			await Bun.sleep(200);
 			continue;
 		}
 
 		try {
 			const start = Date.now();
-			console.log(`🧾 Processing job: ${job.type}`);
-			await processJob(job);
-			console.log(`✅ Job ${job.type} done in ${Date.now() - start}ms`);
+			console.log(`🧾 [${group}] Processing job: ${job.type}`);
+
+			switch (group) {
+				case "github":
+					await processGithubJob(job as JobGroups["github"]);
+					break;
+
+				default:
+					console.log(`⚠️ No handler defined for group "${group}"`);
+			}
+
+			const duration = Date.now() - start;
+			console.log(`✅ [${group}] Done in ${duration}ms`);
 			console.log("--------------------------------");
 		} catch (err) {
-			console.error(`❌ Error processing job:`, err);
+			console.error(`❌ [${group}] Error:`, err);
 		}
 	}
 }
 
-workerLoop();
+/**
+ * Entry point — chooses what queue group to work on.
+ */
+async function main() {
+	// Grab first argument after script name
+	const groupArg = process.argv[2] as keyof JobGroups | undefined;
+
+	if (!groupArg) {
+		console.error(
+			"❌ Missing group argument.\nUsage: bun run dev <group>\nExample: bun run dev github"
+		);
+		process.exit(1);
+	}
+
+	if (!["github"].includes(groupArg)) {
+		console.error(`❌ Unknown group "${groupArg}".`);
+		process.exit(1);
+	}
+
+	await workerLoop(groupArg);
+}
+
+main();

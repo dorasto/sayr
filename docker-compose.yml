@@ -74,11 +74,12 @@ services:
     networks:
       - app_network
 
-  worker:
-    container_name: sayr-worker
+  github-worker:
+    container_name: sayr-worker-github
     image: ghcr.io/dorasto/sayr-worker:latest
     restart: always
     pull_policy: always
+    command: ["bun", "run", "dist/index.js", "github"]
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}

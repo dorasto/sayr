@@ -1,5 +1,5 @@
 import { db, schema } from "@repo/database";
-import { enqueue } from "@repo/util/github/queue";
+import { enqueue } from "@repo/queue";
 import { verifySignature } from "@repo/util/github/verify";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -81,7 +81,7 @@ async function handleContentEvents(event: string, payload: any) {
 		case "issues":
 			if (payload.action === "opened") {
 				console.log(`🪶 Issue opened: #${payload.issue.number}`);
-				enqueue({
+				enqueue("github", {
 					type: "sayr_keyword_parse",
 					payload: {
 						text: payload.issue.body ?? "",
@@ -106,7 +106,7 @@ async function handleContentEvents(event: string, payload: any) {
 				const body = payload.comment.body.trim();
 				if (commenter.endsWith("[bot]")) return;
 				console.log(`💬 Comment on #${issueNum} by ${commenter}`);
-				enqueue({
+				enqueue("github", {
 					type: "sayr_keyword_parse",
 					payload: {
 						text: body,

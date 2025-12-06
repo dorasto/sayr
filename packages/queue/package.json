@@ -1,5 +1,5 @@
 {
-    "name": "@repo/util",
+    "name": "@repo/queue",
     "version": "0.0.7",
     "private": true,
     "license": "MIT",
@@ -11,8 +11,7 @@
         "./*": "./src/*.ts"
     },
     "dependencies": {
-        "@types/jsonwebtoken": "^9.0.10",
-        "jsonwebtoken": "^9.0.2"
+        "ioredis": "^5.8.2"
     },
     "scripts": {},
     "devDependencies": {

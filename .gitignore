@@ -40,3 +40,4 @@ yarn-error.log*
 **/tmp/**
 **/*.log
 **/.vscode/settings.json.bak
+.queues
