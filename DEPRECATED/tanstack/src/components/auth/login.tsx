@@ -65,7 +65,7 @@ export function LoginComponent({ isDialog = false }: { isDialog?: boolean }) {
 							<TasqIcon className="text-primary" />
 						</div>
 						<Label variant={"heading"} className="text-4xl text-center font-bold">
-							{process.env.NEXT_PUBLIC_PROJECT_NAME}
+							{process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.VITE_PROJECT_NAME}
 						</Label>
 
 						<Label variant={"subheading"} className="text-center">

@@ -1,11 +1,11 @@
-import { createRouter } from "@tanstack/react-router";
+import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
 // Create a new router instance
-export const getRouter = () => {
-	const router = createRouter({
+const createRouter = () => {
+	const router = createTanStackRouter({
 		routeTree,
 		scrollRestoration: true,
 		defaultPreloadStaleTime: 0,
@@ -73,4 +73,19 @@ export const getRouter = () => {
 	});
 
 	return router;
+};
+
+export const getRouter = () => {
+	if (typeof document !== "undefined") {
+		// Client side
+		// @ts-ignore
+		if (!window.__router) {
+			// @ts-ignore
+			window.__router = createRouter();
+		}
+		// @ts-ignore
+		return window.__router;
+	}
+	// Server side
+	return createRouter();
 };

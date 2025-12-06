@@ -6,5 +6,9 @@ export const Route = createFileRoute("/home/login/")({
 });
 
 function RouteComponent() {
-	return <LoginComponent />;
+	return (
+		<div>
+			<LoginComponent />
+		</div>
+	);
 }

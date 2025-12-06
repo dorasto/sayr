@@ -8,13 +8,13 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as OrgsRouteImport } from './routes/orgs'
-import { Route as HomeRouteImport } from './routes/home'
-import { Route as AdminRouteImport } from './routes/admin'
+import { Route as rootRouteImport } from './routes/__root.tsx'
+import { Route as OrgsRouteImport } from './routes/orgs.tsx'
+import { Route as HomeRouteImport } from './routes/home.tsx'
+import { Route as AdminRouteImport } from './routes/admin.tsx'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as OrgsOrgSlugRouteImport } from './routes/orgs/$orgSlug'
+import { Route as OrgsOrgSlugRouteImport } from './routes/orgs/$orgSlug.tsx'
 import { Route as HomeLoginIndexRouteImport } from './routes/home/login/index'
 
 const OrgsRoute = OrgsRouteImport.update({
