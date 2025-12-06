@@ -3,7 +3,7 @@
 	"version": "0.0.7",
 	"private": false,
 	"scripts": {
-		"dev": "bun --watch run index.ts",
+		"dev": "bun --watch run index.ts github",
 		"build": "bun build index.ts --target=bun --outdir ./dist",
 		"start": "bun ./dist/index.js"
 	},
