@@ -1,9 +1,8 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-
+import NotFound from "@/components/NotFound";
 import Header from "../components/Header";
-
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -28,17 +27,7 @@ export const Route = createRootRoute({
 		],
 	}),
 
-	notFoundComponent: () => {
-		return (
-			<div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
-				<h1 className="text-4xl font-bold">404</h1>
-				<p className="text-muted-foreground">Page not found</p>
-				<a href="/" className="text-primary underline underline-offset-4 hover:text-primary/80">
-					Go back home
-				</a>
-			</div>
-		);
-	},
+	notFoundComponent: NotFound,
 
 	shellComponent: RootDocument,
 });
