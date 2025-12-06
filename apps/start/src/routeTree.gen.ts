@@ -9,14 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as OrgsOrgSlugRouteImport } from './routes/orgs/$orgSlug'
 import { Route as HomeLoginIndexRouteImport } from './routes/home/login/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
-const AdminRoute = AdminRouteImport.update({
+const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
@@ -29,7 +29,7 @@ const HomeIndexRoute = HomeIndexRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRoute,
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const OrgsOrgSlugRoute = OrgsOrgSlugRouteImport.update({
   id: '/orgs/$orgSlug',
@@ -48,7 +48,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/admin': typeof AdminRouteWithChildren
+  '/admin': typeof AdminRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/home': typeof HomeIndexRoute
@@ -64,7 +64,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/admin': typeof AdminRouteWithChildren
+  '/admin': typeof AdminRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/home/': typeof HomeIndexRoute
@@ -93,7 +93,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AdminRoute: typeof AdminRouteWithChildren
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   OrgsOrgSlugRoute: typeof OrgsOrgSlugRoute
   HomeIndexRoute: typeof HomeIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -106,7 +106,7 @@ declare module '@tanstack/react-router' {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+      preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home/': {
@@ -121,7 +121,7 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
+      parentRoute: typeof AdminRouteRoute
     }
     '/orgs/$orgSlug': {
       id: '/orgs/$orgSlug'
@@ -147,18 +147,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AdminRouteChildren {
+interface AdminRouteRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
-const AdminRouteChildren: AdminRouteChildren = {
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
 }
 
-const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
-  AdminRoute: AdminRouteWithChildren,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   OrgsOrgSlugRoute: OrgsOrgSlugRoute,
   HomeIndexRoute: HomeIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
