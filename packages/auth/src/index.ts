@@ -8,7 +8,7 @@ export const auth = betterAuth({
 		provider: "pg",
 		schema: schema.auth,
 	}),
-	trustedOrigins: ["http://localhost:3000", process.env.NEXT_PUBLIC_URL_ROOT || ""],
+	trustedOrigins: ["http://localhost:3000", process.env.VITE_URL_ROOT || ""],
 	user: {
 		additionalFields: {
 			role: {
@@ -25,7 +25,7 @@ export const auth = betterAuth({
 			disableSignUp: true,
 			clientId: process.env.GITHUB_CLIENT_ID as string,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-			redirectURI: `${process.env.NEXT_PUBLIC_URL_ROOT}/api/auth/oauth2/callback/github`,
+			redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/oauth2/callback/github`,
 			mapProfileToUser: async (profile) => {
 				return {
 					id: String(profile.id),
@@ -61,9 +61,9 @@ export const auth = betterAuth({
 					responseType: "code",
 					authentication: "post",
 					authorizationUrlParams: {
-						redirect_to: `${process.env.NEXT_PUBLIC_URL_ROOT}/admin` as string,
+						redirect_to: `${process.env.VITE_URL_ROOT}/admin` as string,
 					},
-					redirectURI: `${process.env.NEXT_PUBLIC_URL_ROOT}/api/auth/oauth2/callback/doras`,
+					redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/oauth2/callback/doras`,
 					getUserInfo: async (tokens) => {
 						if (tokens.accessToken) {
 							const data = await DorasUser(tokens.accessToken);

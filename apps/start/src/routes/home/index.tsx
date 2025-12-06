@@ -1,8 +1,8 @@
-import { signInDoras } from "@repo/auth/client";
 import { Button } from "@repo/ui/components/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as RouteIcon, Server, Shield, Sparkles, Waves, Zap } from "lucide-react";
-export const Route = createFileRoute("/")({ component: App });
+
+export const Route = createFileRoute("/home/")({ component: App });
 
 function App() {
 	const features = [
@@ -55,22 +55,20 @@ function App() {
 							</span>
 						</h1>
 					</div>
-					<Button onClick={signInDoras}>test</Button>
 					<p className="text-2xl md:text-3xl text-gray-300 mb-4 font-light">
 						The framework for next generation AI applications
 					</p>
 					<p className="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
 						Full-stack framework powered by TanStack Router for React and Solid. Build modern applications with
-						server functions, streaming, and type safety.
+						server functions, streaming, and type safety. test
 					</p>
 					<div className="flex flex-col items-center gap-4">
-						<a
-							href="https://tanstack.com/start"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-cyan-500/50"
-						>
-							Documentation
+						<Button variant="primary">test</Button>
+						<a href="http://admin.localhost:3001" className="text-cyan-400 hover:underline">
+							Visit Admin Subdomain
+						</a>
+						<a href="http://my-org.localhost:3001" className="text-cyan-400 hover:underline">
+							Visit Org Subdomain (my-org)
 						</a>
 						<p className="text-gray-400 text-sm mt-2">
 							Begin your TanStack Start journey by editing{" "}
