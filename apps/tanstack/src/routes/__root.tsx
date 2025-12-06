@@ -2,8 +2,8 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import Header from "../components/Header";
-
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -35,6 +35,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en">
 			<head>
+				<SidebarScript />
 				<HeadContent />
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: This script prevents FOUC
@@ -59,7 +60,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 					}}
 				/>
 			</head>
-			<body>
+			<body className="relative">
 				<ThemeProvider>
 					{/* <Header /> */}
 					{children}
