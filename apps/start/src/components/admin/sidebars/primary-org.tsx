@@ -185,7 +185,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 					<div className="flex min-w-0 flex-col">
 						<span className="text-foreground truncate text-sm font-medium">{organization.name}</span>
 						<span className="text-muted-foreground truncate text-xs font-normal">
-							{organization.slug}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN}
+							{organization.slug}.{process.env.VITE_ROOT_DOMAIN}
 						</span>
 					</div>
 					<a

@@ -14,6 +14,7 @@ import { sidebarStore } from "@/lib/sidebar/sidebar-store";
 // import TasksPage from "./TasksPage";
 import { useAdminRoute } from "../admin/admin-navigation/useAdminRoute";
 import SidebarSection from "../admin/sidebars/SidebarSection";
+import AdminCommand from "./AdminCommand";
 
 export default function AdminNavigation() {
 	const primarySidebar = useStore(sidebarStore, (state) => state.sidebars["primary-sidebar"]);
@@ -49,7 +50,8 @@ export default function AdminNavigation() {
 
 				<div className="flex items-center gap-1 ml-auto">
 					{/* <StatusBar />
-					<AdminCommand /> */}
+					 */}
+					<AdminCommand />
 				</div>
 			</div>
 		</header>
