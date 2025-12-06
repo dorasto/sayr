@@ -5,7 +5,7 @@ export default function NotFound() {
 		<>
 			<link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any" />
 			<title>404</title>
-			<div className="via-surface to-surface flex h-screen items-center bg-[conic-gradient(at_bottom_left,_var(--tw-gradient-stops))] from-primary">
+			<div className="via-surface to-surface flex h-screen items-center bg-[conic-gradient(at_bottom_left,var(--tw-gradient-stops))] from-primary">
 				<div className="mx-auto max-w-xl text-center text-white">
 					<h1 className="text-5xl font-black">That's a 404, bud</h1>
 					<p className="mb-7 mt-3">
@@ -14,12 +14,10 @@ export default function NotFound() {
 					</p>
 					<div className="flex place-content-center items-center gap-3">
 						<a href="/">
-							<Button className="!border-surface-100 text-surface-100 w-full p-4 font-bold">Back home</Button>
+							<Button variant={"primary"}>Back home</Button>
 						</a>
 						<a href="https://doras.to/discord">
-							<Button className="!border-surface-100 text-surface-100 flex w-full gap-2 p-4 font-bold">
-								Report an issue
-							</Button>
+							<Button variant={"ghost"}>Report an issue</Button>
 						</a>
 					</div>
 				</div>
