@@ -12,14 +12,7 @@ import {
 } from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	Icon123,
-	IconLayoutSidebar,
-	IconLayoutSidebarFilled,
-	IconLayoutSidebarLeftCollapse,
-	IconLayoutSidebarLeftExpand,
-	IconShield,
-} from "@tabler/icons-react";
+import { IconLayoutSidebar, IconLayoutSidebarFilled, IconShield } from "@tabler/icons-react";
 import { useStore } from "@tanstack/react-store";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

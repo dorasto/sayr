@@ -4,7 +4,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconChevronRight, IconLayoutSidebar } from "@tabler/icons-react";
 import { useStore } from "@tanstack/react-store";
 import * as React from "react";
-import { sidebarActions, sidebarStore } from "../../../../../apps/web/src/app/lib/sidebar/sidebar-store";
+import { sidebarActions, sidebarStore } from "../../../../../apps/start/src/lib/sidebar/sidebar-store";
 import { useIsMobile } from "../../hooks/use-mobile";
 import { Button } from "../button";
 import { Popover, PopoverContent, PopoverTrigger } from "../popover";

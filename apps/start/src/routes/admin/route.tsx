@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import AdminNavigation from "@/components/generic/AdminNavigation";
 import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper } from "@/components/generic/wrapper";
@@ -15,6 +16,7 @@ function AdminLayout() {
 		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
 			<RootProvider account={account} organizations={organizations}>
 				<NavigationTracker />
+				<AdminNavigation />
 				<Wrapper>
 					<div className="relative h-full max-h-full">
 						<Outlet />

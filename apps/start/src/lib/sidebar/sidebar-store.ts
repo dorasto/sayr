@@ -59,7 +59,7 @@ sidebarStore.subscribe(() => {
 
 export const sidebarActions = {
 	registerSidebar: (id: string, initialState: Partial<SidebarState> = {}) => {
-		sidebarStore.setState((state: SidebarStoreState) => {
+		sidebarStore.setState((state) => {
 			const newState: SidebarState = {
 				open: true,
 				openMobile: false,
@@ -85,7 +85,7 @@ export const sidebarActions = {
 	},
 
 	unregisterSidebar: (id: string) => {
-		sidebarStore.setState((state: SidebarStoreState) => {
+		sidebarStore.setState((state) => {
 			const { [id]: removedSidebar, ...rest } = state.sidebars;
 
 			// Remove keyboard shortcut mapping if exists
@@ -101,39 +101,131 @@ export const sidebarActions = {
 		});
 	},
 
-	toggleSidebar: (id: string, open?: boolean) => {
-		sidebarStore.setState((state: SidebarStoreState) => {
+	toggleSidebar: (id: string, isMobile = false) => {
+		sidebarStore.setState((state) => {
 			const sidebar = state.sidebars[id];
 			if (!sidebar) return state;
 
 			return {
-				...state,
 				sidebars: {
 					...state.sidebars,
 					[id]: {
 						...sidebar,
-						open: open ?? !sidebar.open,
+						...(isMobile ? { openMobile: !sidebar.openMobile } : { open: !sidebar.open }),
 					},
 				},
+				keyboardShortcuts: state.keyboardShortcuts,
 			};
 		});
 	},
 
-	setOpen: (id: string, open: boolean, mobile: boolean = false) => {
-		sidebarStore.setState((state: SidebarStoreState) => {
+	setOpen: (id: string, open: boolean, isMobile = false) => {
+		sidebarStore.setState((state) => {
 			const sidebar = state.sidebars[id];
 			if (!sidebar) return state;
 
 			return {
-				...state,
 				sidebars: {
 					...state.sidebars,
 					[id]: {
 						...sidebar,
-						open: mobile ? sidebar.open : open,
-						openMobile: mobile ? open : sidebar.openMobile,
+						...(isMobile ? { openMobile: open } : { open }),
 					},
 				},
+				keyboardShortcuts: state.keyboardShortcuts,
+			};
+		});
+	},
+
+	setVariant: (id: string, variant: SidebarState["variant"]) => {
+		sidebarStore.setState((state) => {
+			const sidebar = state.sidebars[id];
+			if (!sidebar) return state;
+
+			return {
+				sidebars: {
+					...state.sidebars,
+					[id]: { ...sidebar, variant },
+				},
+				keyboardShortcuts: state.keyboardShortcuts,
+			};
+		});
+	},
+
+	setKeyboardShortcut: (id: string, shortcut: string | undefined) => {
+		sidebarStore.setState((state) => {
+			const sidebar = state.sidebars[id];
+			if (!sidebar) return state;
+
+			// Remove old shortcut mapping if exists
+			const newKeyboardShortcuts = { ...state.keyboardShortcuts };
+			if (sidebar.keyboardShortcut) {
+				delete newKeyboardShortcuts[sidebar.keyboardShortcut];
+			}
+
+			// Add new shortcut mapping if provided
+			if (shortcut) {
+				newKeyboardShortcuts[shortcut] = id;
+			}
+
+			return {
+				sidebars: {
+					...state.sidebars,
+					[id]: { ...sidebar, keyboardShortcut: shortcut },
+				},
+				keyboardShortcuts: newKeyboardShortcuts,
+			};
+		});
+	},
+
+	setActiveItem: (id: string, item: string) => {
+		sidebarStore.setState((state) => {
+			const sidebar = state.sidebars[id];
+			if (!sidebar) return state;
+
+			return {
+				sidebars: {
+					...state.sidebars,
+					[id]: { ...sidebar, activeItem: item },
+				},
+				keyboardShortcuts: state.keyboardShortcuts,
+			};
+		});
+	},
+
+	// Toggle sidebar by keyboard shortcut
+	toggleByShortcut: (shortcut: string, isMobile = false) => {
+		const sidebarId = sidebarStore.state.keyboardShortcuts[shortcut];
+		if (sidebarId) {
+			sidebarActions.toggleSidebar(sidebarId, isMobile);
+		}
+	},
+
+	// Clear all persisted sidebar state
+	clearPersistedState: () => {
+		if (typeof window === "undefined") return;
+		try {
+			localStorage.removeItem(STORAGE_KEY);
+			sidebarStore.setState({ sidebars: {}, keyboardShortcuts: {} });
+		} catch (error) {
+			console.error("Failed to clear sidebar state:", error);
+		}
+	},
+
+	// Clear persisted state for a specific sidebar
+	clearSidebarState: (id: string) => {
+		sidebarStore.setState((state) => {
+			const { [id]: removedSidebar, ...rest } = state.sidebars;
+
+			// Remove keyboard shortcut mapping if exists
+			const newKeyboardShortcuts = { ...state.keyboardShortcuts };
+			if (removedSidebar?.keyboardShortcut) {
+				delete newKeyboardShortcuts[removedSidebar.keyboardShortcut];
+			}
+
+			return {
+				sidebars: rest,
+				keyboardShortcuts: newKeyboardShortcuts,
 			};
 		});
 	},

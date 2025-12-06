@@ -1,3 +1,4 @@
+"use client";
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Collapsible, CollapsibleTrigger } from "@repo/ui/components/collapsible";

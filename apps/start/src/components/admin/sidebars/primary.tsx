@@ -1,3 +1,4 @@
+"use client";
 import {
 	Sidebar,
 	SidebarContent,
@@ -19,7 +20,6 @@ import { heading, navigation } from "@/lib/routemap";
 import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 import OrgSection from "./primary-org";
 import UserDropdown from "./user-dropdown";
-
 export function PrimarySidebar() {
 	const sidebarId = "primary-sidebar";
 	const isMobile = useIsMobile();
@@ -44,7 +44,7 @@ export function PrimarySidebar() {
 
 							return (
 								<SidebarMenuItem key={item.title} isActive={isActive}>
-									<Link className="w-full" to={item.url as any}>
+									<Link className="w-full" to={item.url}>
 										<SidebarMenuButton tooltip={item.title} icon={<IconComponent size={16} />}>
 											<span>{item.title}</span>
 										</SidebarMenuButton>
@@ -66,7 +66,7 @@ export function PrimarySidebar() {
 
 								return (
 									<SidebarMenuItem key={item.title} isActive={isActive}>
-										<Link to={item.url as any} className="w-full">
+										<Link to={item.url} className="w-full">
 											<SidebarMenuButton icon={<IconComponent size={16} />} tooltip={item.title}>
 												<span>{item.title}</span>
 											</SidebarMenuButton>
@@ -103,7 +103,7 @@ export function PrimarySidebar() {
 					</SidebarMenuItem>
 					{account.role === "admin" && (
 						<SidebarMenuItem className="">
-							<Link to={"/admin/console" as any} className="w-full">
+							<Link to={"/admin/console"} className="w-full">
 								<SidebarMenuButton icon={<IconShield />}>Admin Console</SidebarMenuButton>
 							</Link>
 						</SidebarMenuItem>
