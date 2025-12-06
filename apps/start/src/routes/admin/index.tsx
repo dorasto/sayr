@@ -14,5 +14,5 @@ function AdminComponent() {
 			<h3>Admin Dashboard</h3>
 			<p>This route is accessed via the 'admin' subdomain!</p>
 		</div>
-	);
+	)
 }

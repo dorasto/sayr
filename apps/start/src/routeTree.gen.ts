@@ -9,21 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as OrgsOrgSlugRouteImport } from './routes/orgs/$orgSlug'
 import { Route as HomeLoginIndexRouteImport } from './routes/home/login/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HomeIndexRoute = HomeIndexRouteImport.update({
   id: '/home/',
   path: '/home/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const OrgsOrgSlugRoute = OrgsOrgSlugRouteImport.update({
   id: '/orgs/$orgSlug',
@@ -42,8 +48,9 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/admin': typeof AdminRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
-  '/admin': typeof AdminIndexRoute
+  '/admin/': typeof AdminIndexRoute
   '/home': typeof HomeIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/home/login': typeof HomeLoginIndexRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/admin': typeof AdminRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/home/': typeof HomeIndexRoute
@@ -66,8 +74,9 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/orgs/$orgSlug'
     | '/admin'
+    | '/orgs/$orgSlug'
+    | '/admin/'
     | '/home'
     | '/api/auth/$'
     | '/home/login'
@@ -75,6 +84,7 @@ export interface FileRouteTypes {
   to: '/orgs/$orgSlug' | '/admin' | '/home' | '/api/auth/$' | '/home/login'
   id:
     | '__root__'
+    | '/admin'
     | '/orgs/$orgSlug'
     | '/admin/'
     | '/home/'
@@ -83,8 +93,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AdminRoute: typeof AdminRouteWithChildren
   OrgsOrgSlugRoute: typeof OrgsOrgSlugRoute
-  AdminIndexRoute: typeof AdminIndexRoute
   HomeIndexRoute: typeof HomeIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   HomeLoginIndexRoute: typeof HomeLoginIndexRoute
@@ -92,6 +102,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/home/': {
       id: '/home/'
       path: '/home'
@@ -101,10 +118,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/': {
       id: '/admin/'
-      path: '/admin'
-      fullPath: '/admin'
+      path: '/'
+      fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/orgs/$orgSlug': {
       id: '/orgs/$orgSlug'
@@ -130,9 +147,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  OrgsOrgSlugRoute: OrgsOrgSlugRoute,
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  AdminRoute: AdminRouteWithChildren,
+  OrgsOrgSlugRoute: OrgsOrgSlugRoute,
   HomeIndexRoute: HomeIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   HomeLoginIndexRoute: HomeLoginIndexRoute,

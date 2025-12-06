@@ -1,12 +1,16 @@
+import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
+import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
 // Create a new router instance
 export const getRouter = () => {
+	const queryClient = new QueryClient();
 	const router = createRouter({
 		routeTree,
+		context: { queryClient },
 		defaultPreload: "intent",
 		scrollRestoration: true,
 		defaultPreloadStaleTime: 0,
@@ -14,6 +18,10 @@ export const getRouter = () => {
 			input: ({ url }) => {
 				const hostname = url.hostname;
 				if (url.pathname.startsWith("/api")) {
+					return url;
+				}
+				if (url.pathname.startsWith("/admin")) {
+					url.pathname = "/admin/";
 					return url;
 				}
 				// 1. Admin Subdomain
@@ -74,6 +82,9 @@ export const getRouter = () => {
 			},
 		},
 	});
-
+	setupRouterSsrQueryIntegration({
+		router,
+		queryClient,
+	});
 	return router;
 };
