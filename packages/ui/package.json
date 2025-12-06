@@ -16,7 +16,7 @@
 		"check-types": "tsc --noEmit"
 	},
 	"peerDependencies": {
-		"react": "^19.1.0"
+		"react": "^19.2.1"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",
