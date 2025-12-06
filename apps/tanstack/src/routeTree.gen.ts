@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as OrgsOrgSlugRouteImport } from './routes/orgs/$orgSlug'
+import { Route as HomeLoginIndexRouteImport } from './routes/home/login/index'
 
 const OrgsRoute = OrgsRouteImport.update({
   id: '/orgs',
@@ -46,6 +47,11 @@ const OrgsOrgSlugRoute = OrgsOrgSlugRouteImport.update({
   path: '/$orgSlug',
   getParentRoute: () => OrgsRoute,
 } as any)
+const HomeLoginIndexRoute = HomeLoginIndexRouteImport.update({
+  id: '/login/',
+  path: '/login/',
+  getParentRoute: () => HomeRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
@@ -54,12 +60,14 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/home/': typeof HomeIndexRoute
+  '/home/login': typeof HomeLoginIndexRoute
 }
 export interface FileRoutesByTo {
   '/orgs': typeof OrgsRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin': typeof AdminIndexRoute
   '/home': typeof HomeIndexRoute
+  '/home/login': typeof HomeLoginIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/home/': typeof HomeIndexRoute
+  '/home/login/': typeof HomeLoginIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -79,8 +88,9 @@ export interface FileRouteTypes {
     | '/orgs/$orgSlug'
     | '/admin/'
     | '/home/'
+    | '/home/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/orgs' | '/orgs/$orgSlug' | '/admin' | '/home'
+  to: '/orgs' | '/orgs/$orgSlug' | '/admin' | '/home' | '/home/login'
   id:
     | '__root__'
     | '/admin'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgSlug'
     | '/admin/'
     | '/home/'
+    | '/home/login/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -141,6 +152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgSlugRouteImport
       parentRoute: typeof OrgsRoute
     }
+    '/home/login/': {
+      id: '/home/login/'
+      path: '/login'
+      fullPath: '/home/login'
+      preLoaderRoute: typeof HomeLoginIndexRouteImport
+      parentRoute: typeof HomeRoute
+    }
   }
 }
 
@@ -156,10 +174,12 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface HomeRouteChildren {
   HomeIndexRoute: typeof HomeIndexRoute
+  HomeLoginIndexRoute: typeof HomeLoginIndexRoute
 }
 
 const HomeRouteChildren: HomeRouteChildren = {
   HomeIndexRoute: HomeIndexRoute,
+  HomeLoginIndexRoute: HomeLoginIndexRoute,
 }
 
 const HomeRouteWithChildren = HomeRoute._addFileChildren(HomeRouteChildren)
