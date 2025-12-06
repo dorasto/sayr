@@ -1,6 +1,11 @@
 {
+  "extends": "@repo/typescript-config/base.json",
   "include": ["**/*.ts", "**/*.tsx"],
   "compilerOptions": {
+        "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "target": "ES2022",
     "jsx": "react-jsx",
     "module": "ESNext",
@@ -20,9 +25,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+
   }
 }
