@@ -13,7 +13,7 @@ import {
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { IconLayoutSidebar, IconLayoutSidebarFilled, IconShield } from "@tabler/icons-react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { useLayoutData } from "@/components/generic/Context";
 import { heading, navigation } from "@/lib/routemap";
@@ -23,8 +23,9 @@ import UserDropdown from "./user-dropdown";
 export function PrimarySidebar() {
 	const sidebarId = "primary-sidebar";
 	const isMobile = useIsMobile();
-	const location = useLocation();
-	const pathname = location.publicHref;
+
+	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
+	const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 	const { account, organizations } = useLayoutData();
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 	const isSidebarOpen = sidebar?.open ?? true;
@@ -33,6 +34,7 @@ export function PrimarySidebar() {
 			sidebarActions.setOpen(sidebarId, false, true);
 		}
 	};
+	console.log("pathname", pathname);
 	return (
 		<Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
 			<SidebarHeader className="pb-0">

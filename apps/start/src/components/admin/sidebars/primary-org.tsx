@@ -15,7 +15,7 @@ import {
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronRight, IconDots, IconProgress, IconSettings, IconUsers } from "@tabler/icons-react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { useState } from "react";
 import { sidebarStore } from "@/lib/sidebar/sidebar-store";
@@ -40,9 +40,10 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	// const { value: isOpen } = useLocalStorage("left-sidebar-state", !isMobile);
 	const [editOpen, setEditOpen] = useState(false);
 	const location = useLocation();
-	const path = location.publicHref;
-	const isActive = path.includes(`/admin/${organization.id}`);
-	const [collapsibleOpen, setCollapsibleOpen] = useState(path.includes(`/admin/${organization.id}`));
+	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
+	const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
+	const isActive = pathname.includes(`/admin/${organization.id}`);
+	const [collapsibleOpen, setCollapsibleOpen] = useState(pathname.includes(`/admin/${organization.id}`));
 	const closeMobileSidebarOnClick = () => {
 		if (isMobile) {
 			closeMobileSidebar();
@@ -57,18 +58,18 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 			onOpenChange={setCollapsibleOpen}
 			className={cn(
 				"group/collapsible hover:bg-card bg-card/50 transition-all rounded-lg",
-				path.includes(`/admin/${organization.id}`) ? "bg-card" : "bg-transparent"
+				pathname.includes(`/admin/${organization.id}`) ? "bg-card" : "bg-transparent"
 			)}
 		>
 			<SidebarGroup className={cn("")}>
 				<SidebarMenuItem
 					className={cn("hover:bg-transparent bg-transparent w-full px-0")}
-					isActive={path.includes(`/admin/${organization.id}`)}
+					isActive={pathname.includes(`/admin/${organization.id}`)}
 				>
 					<div
 						className={cn(
 							"flex items-center justify-center gap-1 hover:bg-sidebar-accent rounded-lg transition-all group/coltrig w-full text-sidebar-foreground h-9",
-							path === `/admin/${organization.id}` && "bg-transparent"
+							pathname === `/admin/${organization.id}` && "bg-transparent"
 						)}
 					>
 						<SidebarMenuButton
@@ -127,7 +128,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 				<CollapsibleContent>
 					<SidebarMenuItem
 						className="cursor-pointer px-0"
-						isActive={path.includes(`/admin/${organization.id}/tasks`)}
+						isActive={pathname.includes(`/admin/${organization.id}/tasks`)}
 					>
 						<Link to={`/admin/${organization.id}/tasks`} className="w-full cursor-pointer">
 							<SidebarMenuButton className="cursor-pointer" icon={<IconProgress size={16} />} tooltip={"Tasks"}>
