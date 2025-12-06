@@ -14,7 +14,7 @@ import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { IconUserCog } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { Bell, ChevronsUpDown, CreditCard, LogOut } from "lucide-react";
-import { useLayoutData } from "../../Context";
+import { useLayoutData } from "@/components/generic/Context";
 // import { UserUpdate } from "@/app/components/admin/user/update"; // TODO: Port this component
 
 export default function UserDropdown() {

@@ -31,9 +31,9 @@ import {
 } from "@tabler/icons-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
+import { useLayoutData } from "@/components/generic/Context";
 import { navigationStore } from "@/lib/navigation-store";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import { useLayoutData } from "../../Context";
 import UserDropdown from "./user-dropdown";
 
 export function SettingsSidebar() {

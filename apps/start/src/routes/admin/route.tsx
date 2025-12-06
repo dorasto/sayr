@@ -1,5 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { RootProvider } from "@/components/generic/Context";
+import { Wrapper } from "@/components/generic/wrapper";
+import { NavigationTracker } from "@/components/navigation-tracker";
 import { getAccessWithOrganizations } from "@/lib/serverFunctions/getAccessWithOrganizations";
 
 export const Route = createFileRoute("/admin")({
@@ -10,17 +12,15 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
 	const { account, organizations } = Route.useLoaderData();
 	return (
-		<RootProvider account={account} organizations={organizations}>
-			<div className="admin-layout min-h-screen bg-gray-100">
-				<header className="p-4 bg-white shadow-sm border-b">
-					<div className="container mx-auto">
-						<h1 className="text-xl font-bold text-red-600">Admin {account.name}</h1>
+		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
+			<RootProvider account={account} organizations={organizations}>
+				<NavigationTracker />
+				<Wrapper>
+					<div className="relative h-full max-h-full">
+						<Outlet />
 					</div>
-				</header>
-				<main className="container mx-auto p-4">
-					<Outlet />
-				</main>
-			</div>
-		</RootProvider>
-	)
+				</Wrapper>
+			</RootProvider>
+		</div>
+	);
 }

@@ -42,7 +42,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body className="dark relative">
-				<Header />
+				{/* <Header /> */}
 				{children}
 				<TanStackDevtools
 					config={{
