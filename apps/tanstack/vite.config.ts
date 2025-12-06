@@ -18,6 +18,9 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
+  optimizeDeps: {
+    exclude: ['@repo/ui', '@repo/auth', '@repo/database', '@repo/util'],
+  },
 })
 
 export default config
