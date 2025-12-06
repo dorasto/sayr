@@ -1,151 +1,61 @@
 import { dequeue, type JobGroups } from "@repo/queue";
-import {
-	handleBlockKeyword,
-	handleCloseKeyword,
-	handleLinkKeyword,
-	type KeywordContext,
-	postGithubComment,
-} from "./github/keywordActions";
-import { extractSayrKeywords } from "./github/keywords";
+import { handleSayrKeywordParse } from "./github";
 
-/**
- * Handles a "sayr_keyword_parse" GitHub job.
- */
-async function handleSayrKeywordParse(
-	job: JobGroups["github"] & { type: "sayr_keyword_parse" }
-) {
-	const {
-		text,
-		eventType,
-		number,
-		owner,
-		repoId,
-		repo,
-		merged,
-		installationId,
-		organizationId,
-		categoryId,
-	} = job.payload;
-
-	if (!organizationId || !categoryId) {
-		console.log(`⚠️ Missing org or category for ${repo}#${number} — skipping.`);
-		return;
-	}
-
-	console.log(`🔍 [${repo}#${number}] Checking ${eventType} for Sayr keywords...`);
-
-	const matches = extractSayrKeywords(text);
-	if (!matches.length) {
-		console.log(`ℹ️ [${repo}#${number}] No Sayr keywords found.`);
-		return;
-	}
-
-	const ctxBase: Omit<KeywordContext, "taskKey"> = {
-		owner,
-		repoId,
-		repo,
-		number,
-		installationId,
-		merged,
-		orgId: organizationId,
-		categoryId,
-	};
-
-	const summaryLines: string[] = [];
-
-	for (const m of matches) {
-		const ctx: KeywordContext = { ...ctxBase, taskKey: m.taskKey };
-		const action = m.keyword.toLowerCase();
-
-		switch (action) {
-			case "fixes":
-			case "fixed":
-			case "closes":
-			case "closed":
-			case "resolves":
-			case "resolved": {
-				const closeResult = await handleCloseKeyword(ctx);
-				summaryLines.push(closeResult);
-				break;
-			}
-			case "blocked by":
-				await handleBlockKeyword(ctx);
-				summaryLines.push(`🚧 Blocked by ${m.taskKey}`);
-				break;
-			case "ref":
-			case "sayr":
-				await handleLinkKeyword(ctx);
-				summaryLines.push(`🔗 Linked to ${m.taskKey}`);
-				break;
-			default:
-				summaryLines.push(`⚙️ Unknown keyword ${m.keyword}`);
-				break;
-		}
-	}
-
-	const comment =
-		`🤖 Sayr keyword(s) detected on this ${eventType}:\n` +
-		summaryLines.join("\n") +
-		(merged ? "\n✅ PR merged!" : "");
-
-	await postGithubComment({ ...ctxBase, taskKey: 0 }, comment);
-	console.log(`💬 [${repo}#${number}] Comment posted to GitHub.`);
-}
-
-/**
- * Process a GitHub job.
- */
 async function processGithubJob(job: JobGroups["github"]) {
 	switch (job.type) {
 		case "sayr_keyword_parse":
 			await handleSayrKeywordParse(job);
 			break;
 		default:
-			console.log(`⚠️ Unhandled GitHub job type: ${job.type}`);
+			console.warn(`⚠️ Unhandled GitHub job type: ${job.type}`);
 	}
 }
 
-/**
- * Generic worker loop for a given queue group.
- */
+async function handleJob<G extends keyof JobGroups>(group: G, job: JobGroups[G]) {
+	const start = Date.now();
+	try {
+		switch (group) {
+			case "github":
+				await processGithubJob(job as JobGroups["github"]);
+				break;
+			default:
+				console.warn(`⚠️ No handler defined for group "${group}"`);
+		}
+		console.log(`✅ [${group}] ${job.type} done in ${Date.now() - start}ms`);
+	} catch (err) {
+		console.error(`❌ [${group}] ${job.type} failed:`, err);
+	}
+}
+
 async function workerLoop<G extends keyof JobGroups>(group: G) {
 	const MODE = process.env.QUEUE_MODE ?? "file";
-	console.log(`⚙️  Worker for group "${group}" started (${MODE} mode)`);
+	console.log(`⚙️ Worker for "${group}" started (${MODE} mode)`);
 
-	while (true) {
-		const job = await dequeue(group);
-		if (!job) {
-			await Bun.sleep(200);
-			continue;
+	// Redis mode doesn't need adaptive sleep; brpop() itself blocks.
+	if (MODE === "redis") {
+		while (true) {
+			const job = await dequeue(group);
+			if (job) await handleJob(group, job);
+			// BRPOP waits internally, so no need for Bun.sleep().
 		}
+	} else {
+		// File mode: adaptive sleep and backoff to mimic blocking I/O
+		let idleMs = 100;
+		while (true) {
+			const job = await dequeue(group);
 
-		try {
-			const start = Date.now();
-			console.log(`🧾 [${group}] Processing job: ${job.type}`);
-
-			switch (group) {
-				case "github":
-					await processGithubJob(job as JobGroups["github"]);
-					break;
-
-				default:
-					console.log(`⚠️ No handler defined for group "${group}"`);
+			if (!job) {
+				await Bun.sleep(idleMs);
+				idleMs = Math.min(idleMs * 2, 5000);
+				continue;
 			}
 
-			const duration = Date.now() - start;
-			console.log(`✅ [${group}] Done in ${duration}ms`);
-			console.log("--------------------------------");
-		} catch (err) {
-			console.error(`❌ [${group}] Error:`, err);
+			idleMs = 100;
+			await handleJob(group, job);
 		}
 	}
 }
-
-/**
- * Entry point — chooses what queue group to work on.
- */
 async function main() {
-	// Grab first argument after script name
 	const groupArg = process.argv[2] as keyof JobGroups | undefined;
 
 	if (!groupArg) {
@@ -155,7 +65,7 @@ async function main() {
 		process.exit(1);
 	}
 
-	if (!["github"].includes(groupArg)) {
+	if (!["github", "default"].includes(groupArg)) {
 		console.error(`❌ Unknown group "${groupArg}".`);
 		process.exit(1);
 	}

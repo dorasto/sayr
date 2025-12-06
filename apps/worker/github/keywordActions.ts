@@ -1,6 +1,4 @@
-import { Octokit } from "@octokit/rest";
 import { db } from "@repo/database";
-import { getInstallationToken } from "@repo/util/github/auth";
 import { and, eq } from "drizzle-orm";
 
 // common shape for handlers
@@ -56,17 +54,4 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 
 export async function handleBlockKeyword(ctx: KeywordContext) {
 	console.log("🚀 ~ handleBlockKeyword ~ ctx:", ctx);
-}
-
-// --- GitHub comment summary (optional) ---
-export async function postGithubComment(ctx: KeywordContext, body: string) {
-	const token = await getInstallationToken(ctx.installationId);
-	const octokit = new Octokit({ auth: token });
-
-	await octokit.issues.createComment({
-		owner: ctx.owner,
-		repo: ctx.repo,
-		issue_number: ctx.number,
-		body,
-	});
 }

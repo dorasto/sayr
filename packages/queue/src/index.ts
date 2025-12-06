@@ -91,9 +91,11 @@ export async function dequeue<G extends keyof JobGroups>(group: G): Promise<JobG
 	switch (MODE) {
 		case "redis": {
 			const key = `${BASE_KEY}:${group}`;
-			const res = await redis?.rpop(key);
+			// Use blocking pop for better performance (wait up to 5s)
+			const res = await redis?.brpop(key, 5);
 			if (!res) return undefined;
-			return JSON.parse(res) as JobGroups[G];
+			const [, value] = res;
+			return JSON.parse(value) as JobGroups[G];
 		}
 
 		case "file": {
