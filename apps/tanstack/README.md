@@ -1,4 +1,34 @@
-Welcome to your new TanStack app! 
+# Project Management Tool (TanStack App)
+
+## Architecture Overview
+
+This application is built with **TanStack Start** and **TanStack Router**, implementing a **multi-tenant architecture** using subdomains.
+
+### Subdomain Routing
+The application uses a custom router configuration in `src/router.tsx` to rewrite URLs based on the subdomain. This allows us to serve different "apps" from a single codebase:
+
+| Subdomain | Target Route | Description |
+|-----------|--------------|-------------|
+| `localhost:3001` | `/home` | The public landing page and marketing site. |
+| `admin.localhost:3001` | `/admin` | The administrative portal for platform management. |
+| `[slug].localhost:3001` | `/orgs/[slug]` | Organization-specific dashboards (e.g., `acme.localhost:3001`). |
+
+### Directory Structure
+The `src/routes` directory mirrors this logical separation:
+
+- `src/routes/home`: Contains routes for the public landing page.
+- `src/routes/admin`: Contains routes for the admin portal.
+- `src/routes/orgs`: Contains routes for organization dashboards.
+- `src/routes/__root.tsx`: The root layout shared across all views.
+
+### Development
+To access the different parts of the app locally:
+1. Ensure your `hosts` file maps subdomains to `127.0.0.1` if needed (though modern browsers often handle `*.localhost` automatically).
+2. Run `pnpm dev`.
+3. Visit:
+   - http://localhost:3001
+   - http://admin.localhost:3001
+   - http://test-org.localhost:3001
 
 # Getting Started
 

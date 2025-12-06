@@ -16,7 +16,7 @@ export const updateTheme = (theme: Theme) => {
 			theme,
 		};
 	});
-	if (typeof window !== "undefined") {
+	if (typeof window !== "undefined" && window.localStorage) {
 		localStorage.setItem(storageKey, theme);
 		const root = window.document.documentElement;
 		root.classList.remove("light", "dark");
@@ -31,7 +31,7 @@ export const updateTheme = (theme: Theme) => {
 };
 
 export const initTheme = () => {
-	if (typeof window !== "undefined") {
+	if (typeof window !== "undefined" && window.localStorage) {
 		const theme = (localStorage.getItem(storageKey) as Theme) || defaultTheme;
 		updateTheme(theme);
 	}

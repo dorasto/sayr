@@ -2,7 +2,7 @@ import { Button } from "@repo/ui/components/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as RouteIcon, Server, Shield, Sparkles, Waves, Zap } from "lucide-react";
 
-export const Route = createFileRoute("/")({ component: App });
+export const Route = createFileRoute("/home/")({ component: App });
 
 function App() {
 	const features = [
@@ -64,6 +64,12 @@ function App() {
 					</p>
 					<div className="flex flex-col items-center gap-4">
 						<Button variant="primary">test</Button>
+						<a href="http://admin.localhost:3001" className="text-cyan-400 hover:underline">
+							Visit Admin Subdomain
+						</a>
+						<a href="http://my-org.localhost:3001" className="text-cyan-400 hover:underline">
+							Visit Org Subdomain (my-org)
+						</a>
 						<p className="text-gray-400 text-sm mt-2">
 							Begin your TanStack Start journey by editing{" "}
 							<code className="px-2 py-1 bg-slate-700 rounded text-cyan-400">/src/routes/index.tsx</code>

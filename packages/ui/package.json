@@ -9,7 +9,8 @@
 		"./lib/*": "./src/lib/*.ts",
 		"./hooks/*.tsx": "./src/hooks/*.tsx",
 		"./hooks/*.ts": "./src/hooks/*.ts",
-		"./components/*": "./src/components/*.tsx"
+		"./components/*": "./src/components/*.tsx",
+		"./*": "./src/components/*.tsx"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"

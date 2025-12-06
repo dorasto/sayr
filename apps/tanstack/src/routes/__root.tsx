@@ -61,7 +61,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				<ThemeProvider>
-					<Header />
+					{/* <Header /> */}
 					{children}
 					{process.env.NODE_ENV !== "production" && (
 						<TanStackDevtools
