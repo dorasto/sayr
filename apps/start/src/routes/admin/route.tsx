@@ -24,5 +24,5 @@ function AdminLayout() {
 				</Wrapper>
 			</RootProvider>
 		</div>
-	);
+	)
 }

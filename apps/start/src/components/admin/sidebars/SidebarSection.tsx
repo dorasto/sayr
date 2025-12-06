@@ -8,10 +8,9 @@ export default function SidebarSection({ sidebarIsOpen, isMobile }: { sidebarIsO
 	return (
 		<>
 			{(!sidebarIsOpen || isMobile) && (
-				<>
-					<SidebarTrigger sidebarId="primary-sidebar" />
-					<Separator orientation="vertical" />
-				</>
+				<div className="w-14 flex items-center mx-auto px-1">
+					<SidebarTrigger sidebarId="primary-sidebar" className="w-10 h-10" />
+				</div>
 			)}
 			<Button
 				variant={"ghost"}

@@ -24,7 +24,7 @@ export function PrimarySidebar() {
 	const sidebarId = "primary-sidebar";
 	const isMobile = useIsMobile();
 	const location = useLocation();
-	const pathname = location.pathname;
+	const pathname = location.publicHref;
 	const { account, organizations } = useLayoutData();
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 	const isSidebarOpen = sidebar?.open ?? true;
@@ -103,7 +103,7 @@ export function PrimarySidebar() {
 					</SidebarMenuItem>
 					{account.role === "admin" && (
 						<SidebarMenuItem className="">
-							<Link to={"/admin/console"} className="w-full">
+							<Link to={"/admin"} className="w-full">
 								<SidebarMenuButton icon={<IconShield />}>Admin Console</SidebarMenuButton>
 							</Link>
 						</SidebarMenuItem>
