@@ -1,12 +1,10 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import NotFound from "@/components/NotFound";
 import { SidebarScript } from "@/lib/sidebar/sidebar-script";
-import Header from "../components/Header";
 import appCss from "../styles.css?url";
-
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
 }>()({
@@ -46,17 +44,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body className="dark relative">
 				{/* <Header /> */}
 				{children}
-				<TanStackDevtools
-					config={{
-						position: "bottom-right",
-					}}
-					plugins={[
-						{
-							name: "Tanstack Router",
-							render: <TanStackRouterDevtoolsPanel />,
-						},
-					]}
-				/>
+				<TanStackRouterDevtools position="bottom-right" />
+				<ReactQueryDevtools buttonPosition="bottom-left" />
 				<Scripts />
 			</body>
 		</html>

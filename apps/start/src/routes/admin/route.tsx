@@ -4,10 +4,14 @@ import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper } from "@/components/generic/wrapper";
 import { getAccessWithOrganizations } from "@/lib/serverFunctions/getAccessWithOrganizations";
+import { authMiddleware } from "../middleware/auth";
 
 export const Route = createFileRoute("/admin")({
 	loader: () => getAccessWithOrganizations(),
 	component: AdminLayout,
+	server: {
+		middleware: [authMiddleware],
+	},
 });
 
 function AdminLayout() {
@@ -24,5 +28,5 @@ function AdminLayout() {
 				</Wrapper>
 			</RootProvider>
 		</div>
-	)
+	);
 }

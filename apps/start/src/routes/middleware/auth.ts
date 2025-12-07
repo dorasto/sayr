@@ -6,7 +6,8 @@ export const authMiddleware = createMiddleware().server(async ({ next, request }
 	const session = await auth.api.getSession({ headers: request.headers });
 
 	if (!session) {
-		throw redirect({ to: "/home" });
+		//@ts-expect-error
+		throw redirect({ to: "/" });
 	}
 
 	return await next();
