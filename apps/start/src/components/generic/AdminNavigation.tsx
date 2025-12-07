@@ -12,7 +12,7 @@ import { sidebarStore } from "@/lib/sidebar/sidebar-store";
 // import SidebarSection from "./SidebarSection";
 // import TaskPage from "./TaskPage";
 // import TasksPage from "./TasksPage";
-import { useAdminRoute } from "../admin/admin-navigation/useAdminRoute";
+import { StatusBar } from "../admin/global/status";
 import SidebarSection from "../admin/sidebars/SidebarSection";
 import AdminCommand from "./AdminCommand";
 
@@ -49,8 +49,7 @@ export default function AdminNavigation() {
 				</div>
 
 				<div className="flex items-center gap-1 ml-auto">
-					{/* <StatusBar />
-					 */}
+					<StatusBar />
 					<AdminCommand />
 				</div>
 			</div>

@@ -1,14 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import AdminHomePage from "@/components/admin";
 
 export const Route = createFileRoute("/admin/")({
-	component: AdminPage,
+	component: AdminHomePage,
 });
-
-function AdminPage() {
-	return (
-		<div className="p-2">
-			<h3>Admin Dashboard</h3>
-			<p>This route is accessed via the 'admin' subdomain!</p>
-		</div>
-	);
-}

@@ -13,11 +13,13 @@ import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as OrgsOrgSlugRouteImport } from './routes/orgs/$orgSlug'
+import { Route as AdminMineRouteRouteImport } from './routes/admin/mine/route'
+import { Route as AdminOrgIdRouteRouteImport } from './routes/admin/$orgId/route'
 import { Route as HomeLoginIndexRouteImport } from './routes/home/login/index'
 import { Route as AdminMineIndexRouteImport } from './routes/admin/mine/index'
-import { Route as AdminOrgSlugIndexRouteImport } from './routes/admin/$orgSlug/index'
+import { Route as AdminOrgIdIndexRouteImport } from './routes/admin/$orgId/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AdminOrgSlugTasksIndexRouteImport } from './routes/admin/$orgSlug/tasks/index'
+import { Route as AdminOrgIdTasksIndexRouteImport } from './routes/admin/$orgId/tasks/index'
 
 const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/admin',
@@ -39,98 +41,116 @@ const OrgsOrgSlugRoute = OrgsOrgSlugRouteImport.update({
   path: '/orgs/$orgSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminMineRouteRoute = AdminMineRouteRouteImport.update({
+  id: '/mine',
+  path: '/mine',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminOrgIdRouteRoute = AdminOrgIdRouteRouteImport.update({
+  id: '/$orgId',
+  path: '/$orgId',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const HomeLoginIndexRoute = HomeLoginIndexRouteImport.update({
   id: '/home/login/',
   path: '/home/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminMineIndexRoute = AdminMineIndexRouteImport.update({
-  id: '/mine/',
-  path: '/mine/',
-  getParentRoute: () => AdminRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminMineRouteRoute,
 } as any)
-const AdminOrgSlugIndexRoute = AdminOrgSlugIndexRouteImport.update({
-  id: '/$orgSlug/',
-  path: '/$orgSlug/',
-  getParentRoute: () => AdminRouteRoute,
+const AdminOrgIdIndexRoute = AdminOrgIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminOrgIdRouteRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminOrgSlugTasksIndexRoute = AdminOrgSlugTasksIndexRouteImport.update({
-  id: '/$orgSlug/tasks/',
-  path: '/$orgSlug/tasks/',
-  getParentRoute: () => AdminRouteRoute,
+const AdminOrgIdTasksIndexRoute = AdminOrgIdTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => AdminOrgIdRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
+  '/admin/$orgId': typeof AdminOrgIdRouteRouteWithChildren
+  '/admin/mine': typeof AdminMineRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/home': typeof HomeIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgSlug': typeof AdminOrgSlugIndexRoute
-  '/admin/mine': typeof AdminMineIndexRoute
+  '/admin/$orgId/': typeof AdminOrgIdIndexRoute
+  '/admin/mine/': typeof AdminMineIndexRoute
   '/home/login': typeof HomeLoginIndexRoute
-  '/admin/$orgSlug/tasks': typeof AdminOrgSlugTasksIndexRoute
+  '/admin/$orgId/tasks': typeof AdminOrgIdTasksIndexRoute
 }
 export interface FileRoutesByTo {
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin': typeof AdminIndexRoute
   '/home': typeof HomeIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgSlug': typeof AdminOrgSlugIndexRoute
+  '/admin/$orgId': typeof AdminOrgIdIndexRoute
   '/admin/mine': typeof AdminMineIndexRoute
   '/home/login': typeof HomeLoginIndexRoute
-  '/admin/$orgSlug/tasks': typeof AdminOrgSlugTasksIndexRoute
+  '/admin/$orgId/tasks': typeof AdminOrgIdTasksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/admin': typeof AdminRouteRouteWithChildren
+  '/admin/$orgId': typeof AdminOrgIdRouteRouteWithChildren
+  '/admin/mine': typeof AdminMineRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/home/': typeof HomeIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgSlug/': typeof AdminOrgSlugIndexRoute
+  '/admin/$orgId/': typeof AdminOrgIdIndexRoute
   '/admin/mine/': typeof AdminMineIndexRoute
   '/home/login/': typeof HomeLoginIndexRoute
-  '/admin/$orgSlug/tasks/': typeof AdminOrgSlugTasksIndexRoute
+  '/admin/$orgId/tasks/': typeof AdminOrgIdTasksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/admin'
+    | '/admin/$orgId'
+    | '/admin/mine'
     | '/orgs/$orgSlug'
     | '/admin/'
     | '/home'
     | '/api/auth/$'
-    | '/admin/$orgSlug'
-    | '/admin/mine'
+    | '/admin/$orgId/'
+    | '/admin/mine/'
     | '/home/login'
-    | '/admin/$orgSlug/tasks'
+    | '/admin/$orgId/tasks'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/orgs/$orgSlug'
     | '/admin'
     | '/home'
     | '/api/auth/$'
-    | '/admin/$orgSlug'
+    | '/admin/$orgId'
     | '/admin/mine'
     | '/home/login'
-    | '/admin/$orgSlug/tasks'
+    | '/admin/$orgId/tasks'
   id:
     | '__root__'
     | '/admin'
+    | '/admin/$orgId'
+    | '/admin/mine'
     | '/orgs/$orgSlug'
     | '/admin/'
     | '/home/'
     | '/api/auth/$'
-    | '/admin/$orgSlug/'
+    | '/admin/$orgId/'
     | '/admin/mine/'
     | '/home/login/'
-    | '/admin/$orgSlug/tasks/'
+    | '/admin/$orgId/tasks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +191,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/mine': {
+      id: '/admin/mine'
+      path: '/mine'
+      fullPath: '/admin/mine'
+      preLoaderRoute: typeof AdminMineRouteRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/$orgId': {
+      id: '/admin/$orgId'
+      path: '/$orgId'
+      fullPath: '/admin/$orgId'
+      preLoaderRoute: typeof AdminOrgIdRouteRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/home/login/': {
       id: '/home/login/'
       path: '/home/login'
@@ -180,17 +214,17 @@ declare module '@tanstack/react-router' {
     }
     '/admin/mine/': {
       id: '/admin/mine/'
-      path: '/mine'
-      fullPath: '/admin/mine'
+      path: '/'
+      fullPath: '/admin/mine/'
       preLoaderRoute: typeof AdminMineIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
+      parentRoute: typeof AdminMineRouteRoute
     }
-    '/admin/$orgSlug/': {
-      id: '/admin/$orgSlug/'
-      path: '/$orgSlug'
-      fullPath: '/admin/$orgSlug'
-      preLoaderRoute: typeof AdminOrgSlugIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
+    '/admin/$orgId/': {
+      id: '/admin/$orgId/'
+      path: '/'
+      fullPath: '/admin/$orgId/'
+      preLoaderRoute: typeof AdminOrgIdIndexRouteImport
+      parentRoute: typeof AdminOrgIdRouteRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -199,28 +233,52 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/$orgSlug/tasks/': {
-      id: '/admin/$orgSlug/tasks/'
-      path: '/$orgSlug/tasks'
-      fullPath: '/admin/$orgSlug/tasks'
-      preLoaderRoute: typeof AdminOrgSlugTasksIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
+    '/admin/$orgId/tasks/': {
+      id: '/admin/$orgId/tasks/'
+      path: '/tasks'
+      fullPath: '/admin/$orgId/tasks'
+      preLoaderRoute: typeof AdminOrgIdTasksIndexRouteImport
+      parentRoute: typeof AdminOrgIdRouteRoute
     }
   }
 }
 
-interface AdminRouteRouteChildren {
-  AdminIndexRoute: typeof AdminIndexRoute
-  AdminOrgSlugIndexRoute: typeof AdminOrgSlugIndexRoute
+interface AdminOrgIdRouteRouteChildren {
+  AdminOrgIdIndexRoute: typeof AdminOrgIdIndexRoute
+  AdminOrgIdTasksIndexRoute: typeof AdminOrgIdTasksIndexRoute
+}
+
+const AdminOrgIdRouteRouteChildren: AdminOrgIdRouteRouteChildren = {
+  AdminOrgIdIndexRoute: AdminOrgIdIndexRoute,
+  AdminOrgIdTasksIndexRoute: AdminOrgIdTasksIndexRoute,
+}
+
+const AdminOrgIdRouteRouteWithChildren = AdminOrgIdRouteRoute._addFileChildren(
+  AdminOrgIdRouteRouteChildren,
+)
+
+interface AdminMineRouteRouteChildren {
   AdminMineIndexRoute: typeof AdminMineIndexRoute
-  AdminOrgSlugTasksIndexRoute: typeof AdminOrgSlugTasksIndexRoute
+}
+
+const AdminMineRouteRouteChildren: AdminMineRouteRouteChildren = {
+  AdminMineIndexRoute: AdminMineIndexRoute,
+}
+
+const AdminMineRouteRouteWithChildren = AdminMineRouteRoute._addFileChildren(
+  AdminMineRouteRouteChildren,
+)
+
+interface AdminRouteRouteChildren {
+  AdminOrgIdRouteRoute: typeof AdminOrgIdRouteRouteWithChildren
+  AdminMineRouteRoute: typeof AdminMineRouteRouteWithChildren
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminOrgIdRouteRoute: AdminOrgIdRouteRouteWithChildren,
+  AdminMineRouteRoute: AdminMineRouteRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
-  AdminOrgSlugIndexRoute: AdminOrgSlugIndexRoute,
-  AdminMineIndexRoute: AdminMineIndexRoute,
-  AdminOrgSlugTasksIndexRoute: AdminOrgSlugTasksIndexRoute,
 }
 
 const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
