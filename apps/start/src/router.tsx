@@ -20,10 +20,6 @@ export const getRouter = () => {
 				if (url.pathname.startsWith("/api")) {
 					return url;
 				}
-				if (url.pathname.startsWith("/admin")) {
-					url.pathname = "/admin/";
-					return url;
-				}
 				// 1. Admin Subdomain
 				if (hostname.startsWith("admin.")) {
 					if (!url.pathname.startsWith("/admin")) {
