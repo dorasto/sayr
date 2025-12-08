@@ -1,4 +1,5 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import OrganizationTaskIdPage from "@/components/pages/admin/orgid/tasks/taskId";
 import { RootProviderOrganizationTask } from "@/contexts/ContextOrgTask";
 import { getAdminOrganizationTask } from "@/lib/serverFunctions/getAdminOrganizationTask";
 
@@ -18,7 +19,7 @@ function OrgTasksLayout() {
 
 	return (
 		<RootProviderOrganizationTask task={task}>
-			<Outlet />
+			<OrganizationTaskIdPage />
 		</RootProviderOrganizationTask>
 	);
 }

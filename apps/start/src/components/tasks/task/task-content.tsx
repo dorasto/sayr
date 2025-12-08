@@ -330,6 +330,49 @@ export function TaskContentSideContent({
 	);
 }
 
+interface TaskContentMainProps {
+	task: schema.TaskWithLabels;
+	labels: schema.labelType[];
+	availableUsers?: schema.userType[];
+	organization: schema.OrganizationWithMembers;
+	categories: schema.categoryType[];
+}
+
+export function TaskContentMain({
+	task,
+	labels,
+	availableUsers = [],
+	organization,
+	categories,
+}: TaskContentMainProps) {
+	const [openData, onOpenDataChange] = useState(false);
+
+	return (
+		<div className="">
+			<SubWrapper
+				style="compact"
+				className="max-w-6xl"
+				title={task.title || "No title"}
+				description={`#${task.shortId}`}
+			>
+				{task.githubIssue?.issueUrl}
+				{/* <JsonViewer
+					data={task}
+					name="task"
+					open={openData}
+					onOpenChange={onOpenDataChange}
+				/> */}
+				<GlobalTimeline
+					task={task}
+					labels={labels}
+					availableUsers={availableUsers}
+					categories={categories}
+				/>
+			</SubWrapper>
+		</div>
+	);
+}
+
 export function TaskContent({
 	open,
 	onOpenChange,

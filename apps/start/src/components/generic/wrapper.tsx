@@ -59,7 +59,7 @@ export function SubWrapper({
 	className,
 	rootClassName,
 	style = "default",
-	title = "title",
+	title,
 	description,
 	descriptionRender,
 	icon,
@@ -98,39 +98,44 @@ export function SubWrapper({
 					className,
 				)}
 			>
-				<div className="flex flex-col">
-					{icon ? (
-						<div className="flex gap-2">
-							<div className="bg-accent p-1 rounded-lg [&_svg]:size-10! h-fit">
-								{icon}
-							</div>
-							<div className="flex flex-col">
-								<Label variant={"heading"} className="text-2xl text-foreground">
-									{title}
-								</Label>
-								{description && (
+				{title && (
+					<div className="flex flex-col">
+						{icon ? (
+							<div className="flex gap-2">
+								<div className="bg-accent p-1 rounded-lg [&_svg]:size-10! h-fit">
+									{icon}
+								</div>
+								<div className="flex flex-col">
 									<Label
-										variant={"subheading"}
-										className="text-muted-foreground"
+										variant={"heading"}
+										className="text-2xl text-foreground"
 									>
-										{description}
+										{title}
 									</Label>
-								)}
-								{descriptionRender && <div>{descriptionRender}</div>}
+									{description && (
+										<Label
+											variant={"subheading"}
+											className="text-muted-foreground"
+										>
+											{description}
+										</Label>
+									)}
+									{descriptionRender && <div>{descriptionRender}</div>}
+								</div>
 							</div>
-						</div>
-					) : (
-						<Label variant={"heading"} className="text-2xl text-foreground">
-							{title}
-						</Label>
-					)}
+						) : (
+							<Label variant={"heading"} className="text-2xl text-foreground">
+								{title}
+							</Label>
+						)}
 
-					{!icon && description && (
-						<Label variant={"subheading"} className="text-muted-foreground">
-							{description}
-						</Label>
-					)}
-				</div>
+						{!icon && description && (
+							<Label variant={"subheading"} className="text-muted-foreground">
+								{description}
+							</Label>
+						)}
+					</div>
+				)}
 				{children}
 			</div>{" "}
 		</div>
