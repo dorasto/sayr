@@ -45,7 +45,7 @@ export default function GlobalTimeline({
 	>({
 		key: ["timeline", task.id, task.organizationId],
 		fetch: {
-			url: `${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/timeline?org_id=${task.organizationId}&task_id=${task.id}`,
+			url: `${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/timeline?org_id=${task.organizationId}&task_id=${task.id}`,
 			custom: async (url) => {
 				const res = await fetch(url, { credentials: "include" });
 				if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
