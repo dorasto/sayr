@@ -31,11 +31,11 @@ import {
 } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import { statusConfig } from "@/components/admin/global/org/tasks/config";
-import GlobalTaskAssignees from "../../assignee";
-import GlobalTaskCategory from "../../category";
-import GlobalTaskLabels from "../../label";
-import GlobalTaskPriority from "../../priority";
-import GlobalTaskStatus from "../../status";
+import GlobalTaskAssignees from "./sub/assignee";
+import GlobalTaskCategory from "./sub/category";
+import GlobalTaskLabels from "./sub/label";
+import GlobalTaskPriority from "./sub/priority";
+import GlobalTaskStatus from "./sub/status";
 import GlobalTimeline from "../../timeline/root";
 import { Link, useRouterState } from "@tanstack/react-router";
 
