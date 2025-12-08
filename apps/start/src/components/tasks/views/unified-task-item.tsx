@@ -544,7 +544,7 @@ export function UnifiedTaskItem({
 				<IconAppWindow className="size-4" />
 				Open
 			</ContextMenuItem>
-			<Link to={``}>
+			<Link to={`/admin`}>
 				<ContextMenuItem className="gap-3 w-full">
 					<IconLink className="size-4" />
 					Full page
