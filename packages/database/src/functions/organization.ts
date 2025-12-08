@@ -181,4 +181,3 @@ export async function getOrganizationPublicById(orgId: string): Promise<schema.o
 	}
 	return null;
 }
-

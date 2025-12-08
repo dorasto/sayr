@@ -7,14 +7,7 @@
 	},
 	"files": {
 		"maxSize": 1048576,
-		"includes": [
-			"apps/tanstack/src/**/*.{ts,tsx,js,jsx}",
-			"apps/start/src/**/*.{ts,tsx,js,jsx}",
-			"apps/web/src/**/*.{ts,tsx,js,jsx}",
-			"apps/backend/**/*.{ts,js}",
-			"packages/*/src/**/*.{ts,tsx,js,jsx}",
-			"packages/*/schema/**/*.ts"
-		]
+		"includes": ["**", "!**/*.gen.ts"]
 	},
 	"formatter": {
 		"enabled": true,
@@ -56,20 +49,5 @@
 				"organizeImports": "on"
 			}
 		}
-	},
-	"overrides": [
-		{
-			"includes": ["**/apps/web/**"],
-			"linter": {
-				"rules": {
-					"a11y": {
-						"recommended": true
-					},
-					"correctness": {
-						"useJsxKeyInIterable": "error"
-					}
-				}
-			}
-		}
-	]
+	}
 }

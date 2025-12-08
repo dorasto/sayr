@@ -7,9 +7,9 @@
 			"@/index": ["./index.ts"],
 			"@/queue": ["./queue.ts"],
 			"@/util": ["./util.ts"],
-			"@/getSession": ["./getSession.ts"],
+			"@/getSession": ["./getSession.ts"]
 		}
 	},
-	"include": ["routes", "public", "index.ts","queue.ts","github", "responses.ts", "openapi"],
+	"include": ["routes", "public", "index.ts", "queue.ts", "github", "responses.ts", "openapi"],
 	"exclude": ["node_modules"]
 }

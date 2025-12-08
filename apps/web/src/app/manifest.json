@@ -1,9 +1,9 @@
 {
-	"id":"/admin",
+	"id": "/admin",
 	"name": "Sayr.io",
 	"short_name": "Sayr.io",
 	"scope": "/admin",
-    "start_url": "/admin",
+	"start_url": "/admin",
 	"icons": [
 		{
 			"src": "/web-app-manifest-512x512.png",
