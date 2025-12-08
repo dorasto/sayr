@@ -30,19 +30,8 @@ import {
 	type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
-import { TaskFilterDropdown } from "./filter/TaskFilterDropdown";
-import { TaskViewDropdown } from "./TaskViewDropdown";
-// import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
-// import { useLayoutTasks } from "@/app/admin/[organization_id]/tasks/Context";
-// import { useLayoutData } from "@/app/admin/Context";
-// import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
-// import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
-// import type { WSMessage } from "@/app/lib/ws";
-// import ProjectSide from "../shared/ProjectSide";
-// import { TaskFilterDropdown } from "./task/filter/dropdown/TaskFilterDropdown";
-// import { TaskViewDropdown } from "./task/grouping/task-view-dropdown";
-// import { useTaskViewState } from "./task/grouping/use-task-view-state";
-// import { UnifiedTaskView } from "./task/views/unified-task-view";
+import { TaskFilterDropdown, useTaskViewState } from "@/components/tasks/filter";
+import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
 
 export default function OrganizationTasksHomePage() {
 	const { viewState } = useTaskViewState();

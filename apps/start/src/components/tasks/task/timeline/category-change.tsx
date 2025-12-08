@@ -1,7 +1,7 @@
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { IconArrowRight } from "@tabler/icons-react";
-import { RenderCategory } from "../sub/category";
+import { RenderCategory } from "../../shared/category";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 

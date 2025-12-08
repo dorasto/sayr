@@ -6,7 +6,7 @@ import {
 	IconTextSize,
 	IconUser,
 } from "@tabler/icons-react";
-import { priorityConfig, statusConfig } from "../config";
+import { priorityConfig, statusConfig } from "../shared/config";
 import type {
 	DateRangeValue,
 	FilterCondition,
@@ -14,7 +14,7 @@ import type {
 	FilterOperator,
 	FilterState,
 	FilterValue,
-} from "../filter/types";
+} from "./types";
 
 // Convert status config to filter options
 const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({

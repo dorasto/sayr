@@ -24,13 +24,13 @@ import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
 import { IconAppWindow, IconCircleFilled, IconLink, IconUserOff } from "@tabler/icons-react";
 import { nanoid } from "nanoid";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { priorityConfig, statusConfig } from "../../../shared/task-config";
-import GlobalTaskAssignees from "../assignee";
-import { RenderLabel } from "../label";
-import GlobalTaskPriority from "../priority";
-import GlobalTaskStatus from "../status";
+import { priorityConfig, statusConfig } from "../shared/config";
+import GlobalTaskAssignees from "../shared/assignee";
+import { RenderLabel } from "../shared/label";
+import GlobalTaskPriority from "../shared/priority";
+import GlobalTaskStatus from "../shared/status";
 
 interface UnifiedTaskItemProps {
 	task: schema.TaskWithLabels;

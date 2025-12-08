@@ -16,8 +16,8 @@ import {
 	TimelinePriorityChange,
 	TimelineStatusChange,
 	TimelineUpdated,
-} from ".";
-import { TimelineCategoryChange } from "./timeline-category-change";
+} from "./index";
+import { TimelineCategoryChange } from "./category-change";
 import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
 

@@ -15,16 +15,15 @@ import {
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { updateTaskAction } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
-import { statusConfig } from "../config";
+import { priorityConfig } from "./config";
 
-interface GlobalTaskStatusProps {
+interface GlobalTaskPriorityProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
-	onChange?: (status: string) => void;
+	onChange?: (priority: string) => void;
 	// New props for internal logic
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (newValue: schema.TaskWithLabels[]) => void;
@@ -34,9 +33,11 @@ interface GlobalTaskStatusProps {
 	open?: boolean;
 	setOpen?: (open: boolean) => void;
 	customTrigger?: React.ReactNode;
+	// Legacy prop for backward compatibility
+	onPriorityChange?: (priority: string) => void;
 }
 
-export default function GlobalTaskStatus({
+export default function GlobalTaskPriority({
 	task,
 	editable = false,
 	onChange,
@@ -47,36 +48,42 @@ export default function GlobalTaskStatus({
 	open,
 	setOpen,
 	customTrigger,
-}: GlobalTaskStatusProps) {
+	onPriorityChange, // Legacy prop support
+}: GlobalTaskPriorityProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast } = useToastAction();
-	const currentStatus = (task.status ?? "backlog") || "backlog";
+	const currentPriority = (task.priority ?? "none") || "none";
 
-	const handleStatusChange = async (value: string | null) => {
+	const handlePriorityChange = async (value: string | null) => {
 		if (!value) return;
 
-		// Always call onChange first if provided (for external side effects like ignoreNextClick)
+		// Always call onChange first if provided (for external side effects like preventClick)
 		if (onChange) {
 			onChange(value);
 		}
 
+		// Support legacy prop
+		if (onPriorityChange) {
+			onPriorityChange(value);
+		}
+
 		if (useInternalLogic && tasks && setTasks && setSelectedTask) {
-			// Internal logic - same as what was in TaskContentSideContent
+			// Internal logic - same pattern as status
 			const updatedTasks = tasks.map((t) =>
 				t.id === task.id
-					? { ...task, status: value as schema.TaskWithLabels["status"] }
+					? { ...task, priority: value as schema.TaskWithLabels["priority"] }
 					: t,
 			);
 			setTasks(updatedTasks);
 			if (task) {
 				setSelectedTask({
 					...task,
-					status: value as schema.TaskWithLabels["status"],
+					priority: value as schema.TaskWithLabels["priority"],
 				});
 			}
 
 			const data = await runWithToast(
-				"update-task-status",
+				"update-task-priority",
 				{
 					loading: {
 						title: "Updating task...",
@@ -96,7 +103,7 @@ export default function GlobalTaskStatus({
 					updateTaskAction(
 						task.organizationId,
 						task.id,
-						{ status: value },
+						{ priority: value },
 						wsClientId,
 					),
 			);
@@ -108,14 +115,6 @@ export default function GlobalTaskStatus({
 				setTasks(finalTasks);
 				if (task && task.id === data.data.id) {
 					setSelectedTask(data.data);
-					sendWindowMessage(
-						window,
-						{
-							type: "timeline-update",
-							payload: data.data.id,
-						},
-						"*",
-					);
 				}
 			}
 		}
@@ -123,11 +122,11 @@ export default function GlobalTaskStatus({
 
 	return (
 		<div className="flex flex-col gap-3">
-			{!customTrigger && <Label variant={"subheading"}>Status</Label>}
+			{!customTrigger && <Label variant={"subheading"}>Priority</Label>}
 			<div className="flex flex-col gap-2">
 				<ComboBox
-					value={currentStatus}
-					onValueChange={handleStatusChange}
+					value={currentPriority}
+					onValueChange={handlePriorityChange}
 					open={open}
 					onOpenChange={setOpen}
 				>
@@ -136,22 +135,24 @@ export default function GlobalTaskStatus({
 						<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
 					) : (
 						<ComboBoxTrigger disabled={!editable} className="">
-							<ComboBoxValue placeholder="Status">
-								{currentStatus && (
+							<ComboBoxValue placeholder="Priority">
+								{currentPriority && (
 									<div className="flex items-center gap-2">
-										{statusConfig[
-											currentStatus as keyof typeof statusConfig
+										{priorityConfig[
+											currentPriority as keyof typeof priorityConfig
 										]?.icon(
 											cn(
-												statusConfig[currentStatus as keyof typeof statusConfig]
-													?.className,
+												priorityConfig[
+													currentPriority as keyof typeof priorityConfig
+												]?.className,
 												"h-4 w-4",
 											),
 										)}
 										<span>
 											{
-												statusConfig[currentStatus as keyof typeof statusConfig]
-													?.label
+												priorityConfig[
+													currentPriority as keyof typeof priorityConfig
+												]?.label
 											}
 										</span>
 									</div>
@@ -161,14 +162,13 @@ export default function GlobalTaskStatus({
 						</ComboBoxTrigger>
 					)}
 					<ComboBoxContent className="">
-						<ComboBoxSearch icon placeholder="Update status to..." />
+						<ComboBoxSearch icon placeholder="Update priority to..." />
 						<ComboBoxList>
 							<ComboBoxEmpty>Not found</ComboBoxEmpty>
 							<ComboBoxGroup>
-								{Object.entries(statusConfig).map(([key, config]) => (
+								{Object.entries(priorityConfig).map(([key, config]) => (
 									<ComboBoxItem key={key} value={key}>
 										{config?.icon(cn(config?.className, "h-4 w-4"))}
-
 										<span className="ml-2">{config.label}</span>
 									</ComboBoxItem>
 								))}

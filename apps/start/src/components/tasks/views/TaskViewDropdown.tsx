@@ -28,9 +28,9 @@ import {
 	IconLayoutRows,
 } from "@tabler/icons-react";
 import { useMemo } from "react";
-import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "./config";
-import type { TaskGroupingId } from "./filter/types";
-import { useTaskViewState } from "./filter/use-task-view-state";
+import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "../shared/config";
+import type { TaskGroupingId } from "../filter/types";
+import { useTaskViewState } from "../filter/use-task-view-state";
 
 const VIEW_MODE_OPTIONS = [
 	{ id: "list", label: "List", icon: <IconLayoutList className="h-4 w-4" /> },

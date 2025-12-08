@@ -21,8 +21,6 @@ import {
 	IconLink,
 	IconX,
 } from "@tabler/icons-react";
-// import Link from "next/link";
-// import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useDebounceAsync } from "@/app/hooks/useDebounceAsync";
 import {
@@ -30,13 +28,13 @@ import {
 	updateTaskAction,
 } from "@/app/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
-import { statusConfig } from "@/components/admin/global/org/tasks/config";
-import GlobalTaskAssignees from "./sub/assignee";
-import GlobalTaskCategory from "./sub/category";
-import GlobalTaskLabels from "./sub/label";
-import GlobalTaskPriority from "./sub/priority";
-import GlobalTaskStatus from "./sub/status";
-import GlobalTimeline from "../../timeline/root";
+import { statusConfig } from "../shared/config";
+import GlobalTaskAssignees from "../shared/assignee";
+import GlobalTaskCategory from "../shared/category";
+import GlobalTaskLabels from "../shared/label";
+import GlobalTaskPriority from "../shared/priority";
+import GlobalTaskStatus from "../shared/status";
+import GlobalTimeline from "./timeline/root";
 import { Link, useRouterState } from "@tanstack/react-router";
 
 interface TaskContentProps {
