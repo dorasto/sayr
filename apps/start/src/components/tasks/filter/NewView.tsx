@@ -21,8 +21,8 @@ import { IconDeviceFloppy } from "@tabler/icons-react";
 import { useState } from "react";
 import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
-// import { createSavedViewAction } from "@/app/lib/fetches/organization"; // you'll implement this similar to createLabelAction
-// import { useToastAction } from "@/app/lib/util";
+import { createSavedViewAction } from "@/app/lib/fetches/organization";
+import { useToastAction } from "@/lib/util";
 
 interface Props {
 	organizationId: string;

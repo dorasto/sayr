@@ -27,6 +27,10 @@ import type { WSMessage } from "@/lib/ws";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { TASK_GROUPINGS } from "../shared/config";
 import { TaskContent } from "../task/task-content";
+import {
+	updateAssigneesToTaskAction,
+	updateTaskAction,
+} from "@/app/lib/fetches/task";
 
 interface UnifiedTaskViewProps {
 	tasks: schema.TaskWithLabels[];
