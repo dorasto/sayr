@@ -1,7 +1,11 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Checkbox } from "@repo/ui/components/checkbox";
 import {
@@ -22,7 +26,12 @@ import { KanbanCard } from "@repo/ui/components/kibo-ui/kanban/index";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
-import { IconAppWindow, IconCircleFilled, IconLink, IconUserOff } from "@tabler/icons-react";
+import {
+	IconAppWindow,
+	IconCircleFilled,
+	IconLink,
+	IconUserOff,
+} from "@tabler/icons-react";
 import { nanoid } from "nanoid";
 import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
@@ -42,7 +51,10 @@ interface UnifiedTaskItemProps {
 	availableUsers: schema.userType[];
 
 	// Actions
-	onTaskUpdate?: (taskId: string, updates: Partial<schema.TaskWithLabels>) => void;
+	onTaskUpdate?: (
+		taskId: string,
+		updates: Partial<schema.TaskWithLabels>,
+	) => void;
 	onTaskClick?: (taskId: string, organizationId?: string) => void;
 
 	// List View Specific
@@ -76,9 +88,12 @@ export function UnifiedTaskItem({
 	const preventClickRef = useRef(false);
 
 	// Check if any popover is currently open
-	const hasOpenPopover = statusPopoverOpen || priorityPopoverOpen || assigneePopoverOpen;
+	const hasOpenPopover =
+		statusPopoverOpen || priorityPopoverOpen || assigneePopoverOpen;
 
-	const handleTaskClick = (e: React.MouseEvent<HTMLDivElement | HTMLButtonElement>) => {
+	const handleTaskClick = (
+		e: React.MouseEvent<HTMLDivElement | HTMLButtonElement>,
+	) => {
 		// Check if we should prevent this click
 		if (preventClickRef.current) {
 			preventClickRef.current = false;
@@ -101,7 +116,9 @@ export function UnifiedTaskItem({
 		setTimeout(() => {
 			preventClickRef.current = false;
 		}, 500);
-		onTaskUpdate?.(task.id, { status: newStatus as schema.TaskWithLabels["status"] });
+		onTaskUpdate?.(task.id, {
+			status: newStatus as schema.TaskWithLabels["status"],
+		});
 	};
 
 	const handleStatusPopoverChange = (open: boolean) => {
@@ -120,7 +137,9 @@ export function UnifiedTaskItem({
 		setTimeout(() => {
 			preventClickRef.current = false;
 		}, 500);
-		onTaskUpdate?.(task.id, { priority: newPriority as schema.TaskWithLabels["priority"] });
+		onTaskUpdate?.(task.id, {
+			priority: newPriority as schema.TaskWithLabels["priority"],
+		});
 	};
 
 	const handlePriorityPopoverChange = (open: boolean) => {
@@ -139,7 +158,9 @@ export function UnifiedTaskItem({
 		setTimeout(() => {
 			preventClickRef.current = false;
 		}, 500);
-		const updatedAssignees = availableUsers.filter((user) => userIds.includes(user.id));
+		const updatedAssignees = availableUsers.filter((user) =>
+			userIds.includes(user.id),
+		);
 		onTaskUpdate?.(task.id, { assignees: updatedAssignees });
 	};
 
@@ -161,7 +182,7 @@ export function UnifiedTaskItem({
 		<div
 			// type="button"
 			className={cn(
-				"block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded"
+				"block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded",
 			)}
 			onClick={handleTaskClick}
 			onClickCapture={(e) => {
@@ -176,7 +197,7 @@ export function UnifiedTaskItem({
 				className={cn(
 					"px-4 group/list-block h-11 max-h-11 relative flex gap-3 bg-transparent hover:bg-accent py-3 text-sm transition-colors flex-row items-center rounded data-[state=open]:bg-accent",
 					isSelected && "bg-primary/10",
-					hasOpenPopover && "bg-accent"
+					hasOpenPopover && "bg-accent",
 				)}
 			>
 				{/* Left section with checkbox, task ID, and title */}
@@ -195,7 +216,7 @@ export function UnifiedTaskItem({
 										className={cn(
 											"opacity-0 pointer-events-none group-hover/list-block:opacity-100 group-hover/list-block:pointer-events-auto transition-opacity shrink-0",
 											isSelected && "opacity-100",
-											"group-active/context:opacity-100"
+											"group-active/context:opacity-100",
 										)}
 									/>
 								</div>
@@ -224,7 +245,9 @@ export function UnifiedTaskItem({
 							{/* Task ID */}
 							<div className="shrink-0 min-w-9 w-9 max-w-9">
 								<div className="flex items-center space-x-2">
-									<span className="text-xs font-medium text-muted-foreground truncate">#{task.shortId}</span>
+									<span className="text-xs font-medium text-muted-foreground truncate">
+										#{task.shortId}
+									</span>
 								</div>
 							</div>
 						</div>
@@ -252,14 +275,21 @@ export function UnifiedTaskItem({
 						/>
 
 						{/* Title */}
-						<p className="truncate cursor-pointer text-base text-foreground w-fit">{task.title} </p>
+						<p className="truncate cursor-pointer text-base text-foreground w-fit">
+							{task.title}{" "}
+						</p>
 						{personal && task.organization && (
-							<a href={`/admin/${task.organization.id}/tasks`} onClick={(e) => e.stopPropagation()}>
+							<a
+								href={`/admin/${task.organization.id}/tasks`}
+								onClick={(e) => e.stopPropagation()}
+							>
 								<Badge
 									variant={"secondary"}
 									className="flex items-center gap-1 shrink-0 text-muted-foreground hover:text-primary-foreground"
 								>
-									<span className="text-xs truncate max-w-[150px]">{task.organization.name}</span>
+									<span className="text-xs truncate max-w-[150px]">
+										{task.organization.name}
+									</span>
 									<span className="text-xs">/</span>
 									<span className="text-xs truncate max-w-[150px]">Tasks</span>
 								</Badge>
@@ -274,7 +304,11 @@ export function UnifiedTaskItem({
 						{task.labels && task.labels.length > 0 && (
 							<div className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto">
 								{task.labels.slice(0, 3).map((label) => (
-									<RenderLabel label={label} key={label.id + nanoid(5)} data-no-propagate />
+									<RenderLabel
+										label={label}
+										key={label.id + nanoid(5)}
+										data-no-propagate
+									/>
 								))}
 								{task.labels.length > 3 && (
 									<Badge
@@ -314,7 +348,10 @@ export function UnifiedTaskItem({
 							side="left"
 							customTrigger={
 								task.assignees && task.assignees.length > 0 ? (
-									<div className="flex items-center cursor-pointer" data-no-propagate>
+									<div
+										className="flex items-center cursor-pointer"
+										data-no-propagate
+									>
 										{task.assignees.length === 1 ? (
 											<Avatar className={cn("rounded-full h-5 w-5")}>
 												<AvatarImage
@@ -330,10 +367,16 @@ export function UnifiedTaskItem({
 												{task.assignees.slice(0, 3).map((assignee, index) => (
 													<Avatar
 														key={assignee.id + nanoid(5)}
-														className={cn("rounded-full h-5 w-5", index > 0 && "relative")}
+														className={cn(
+															"rounded-full h-5 w-5",
+															index > 0 && "relative",
+														)}
 														style={{ zIndex: task.assignees.length - index }}
 													>
-														<AvatarImage src={assignee?.image || "/avatar.jpg"} alt={assignee?.name} />
+														<AvatarImage
+															src={assignee?.image || "/avatar.jpg"}
+															alt={assignee?.name}
+														/>
 														<AvatarFallback className="rounded-full bg-accent uppercase text-xs">
 															{assignee?.name.slice(0, 2)}
 														</AvatarFallback>
@@ -369,7 +412,10 @@ export function UnifiedTaskItem({
 	const renderKanbanContent = () => (
 		// biome-ignore lint/a11y/noStaticElementInteractions: <required for custom clickable div>
 		// biome-ignore lint/a11y/useKeyWithClickEvents: <required for custom clickable div>
-		<div className="flex flex-col gap-2 h-full w-full text-left" onClick={handleTaskClick}>
+		<div
+			className="flex flex-col gap-2 h-full w-full text-left"
+			onClick={handleTaskClick}
+		>
 			<div className="flex items-start justify-between gap-2 w-full">
 				<Label variant={"description"}>#{task.shortId}</Label>
 				<GlobalTaskPriority
@@ -383,7 +429,10 @@ export function UnifiedTaskItem({
 					setOpen={handlePriorityPopoverChange}
 					customTrigger={
 						<div
-							className={cn("p-1 rounded bg-transparent cursor-pointer", priority?.className)}
+							className={cn(
+								"p-1 rounded bg-transparent cursor-pointer",
+								priority?.className,
+							)}
 							title={priority?.label}
 							data-no-propagate
 						>
@@ -392,12 +441,19 @@ export function UnifiedTaskItem({
 					}
 				/>
 			</div>
-			<div className="font-medium text-sm line-clamp-2 leading-tight">{task.title}</div>
+			<div className="font-medium text-sm line-clamp-2 leading-tight">
+				{task.title}
+			</div>
 
 			{task.labels && task.labels.length > 0 && (
 				<div className="flex flex-wrap gap-1 mt-1">
 					{task.labels.slice(0, 3).map((label) => (
-						<RenderLabel key={label.id} label={label} className="max-w-[150px]" data-no-propagate />
+						<RenderLabel
+							key={label.id}
+							label={label}
+							className="max-w-[150px]"
+							data-no-propagate
+						/>
 					))}
 					{task.labels.length > 3 && (
 						<Badge variant="secondary" className="text-[10px] h-5 px-1">
@@ -423,7 +479,7 @@ export function UnifiedTaskItem({
 							<div
 								className={cn(
 									"flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border bg-transparent text-accent-foreground cursor-pointer",
-									status?.className
+									status?.className,
 								)}
 								data-no-propagate
 							>
@@ -481,11 +537,14 @@ export function UnifiedTaskItem({
 				#{task.shortId} - {task.title}
 			</ContextMenuLabel>
 			<ContextMenuSeparator />
-			<ContextMenuItem onClick={() => onTaskClick?.(task.id, task.organizationId)} className="gap-3 w-full">
+			<ContextMenuItem
+				onClick={() => onTaskClick?.(task.id, task.organizationId)}
+				className="gap-3 w-full"
+			>
 				<IconAppWindow className="size-4" />
 				Open
 			</ContextMenuItem>
-			<Link href={``}>
+			<Link to={``}>
 				<ContextMenuItem className="gap-3 w-full">
 					<IconLink className="size-4" />
 					Full page
@@ -537,19 +596,24 @@ export function UnifiedTaskItem({
 				</ContextMenuSubContent>
 			</ContextMenuSub>
 			<ContextMenuSub>
-				<ContextMenuSubTrigger className="gap-3 w-full">Assigned</ContextMenuSubTrigger>
+				<ContextMenuSubTrigger className="gap-3 w-full">
+					Assigned
+				</ContextMenuSubTrigger>
 				<ContextMenuSubContent className="w-52">
 					<ContextMenuLabel>Assign to</ContextMenuLabel>
 					<ContextMenuSeparator />
 					{availableUsers.length > 0 ? (
 						availableUsers.map((user) => {
-							const isAssigned = task.assignees?.some((assignee) => assignee.id === user.id) || false;
+							const isAssigned =
+								task.assignees?.some((assignee) => assignee.id === user.id) ||
+								false;
 							return (
 								<ContextMenuCheckboxItem
 									key={user.id}
 									checked={isAssigned}
 									onCheckedChange={(checked) => {
-										const currentAssigneeIds = task.assignees?.map((a) => a.id) || [];
+										const currentAssigneeIds =
+											task.assignees?.map((a) => a.id) || [];
 										const newAssigneeIds = checked
 											? [...currentAssigneeIds, user.id]
 											: currentAssigneeIds.filter((id) => id !== user.id);
@@ -558,7 +622,10 @@ export function UnifiedTaskItem({
 								>
 									<div className="flex items-center gap-2" key={`index + ${1}`}>
 										<Avatar className="h-5 w-5">
-											<AvatarImage src={user.image || undefined} alt={user.name} />
+											<AvatarImage
+												src={user.image || undefined}
+												alt={user.name}
+											/>
 											<AvatarFallback className="text-xs">
 												{user.name
 													.split(" ")
@@ -579,7 +646,9 @@ export function UnifiedTaskItem({
 				</ContextMenuSubContent>
 			</ContextMenuSub>
 			<ContextMenuSub>
-				<ContextMenuSubTrigger className="gap-3 w-full">Labels</ContextMenuSubTrigger>
+				<ContextMenuSubTrigger className="gap-3 w-full">
+					Labels
+				</ContextMenuSubTrigger>
 				<ContextMenuSubContent className="w-52">
 					<ContextMenuLabel>Apply Labels</ContextMenuLabel>
 					<ContextMenuSeparator />
@@ -590,7 +659,8 @@ export function UnifiedTaskItem({
 								checked={true}
 								onCheckedChange={(checked) => {
 									if (!checked) {
-										const updatedLabels = task.labels?.filter((l) => l.id !== label.id) || [];
+										const updatedLabels =
+											task.labels?.filter((l) => l.id !== label.id) || [];
 										onTaskUpdate?.(task.id, { labels: updatedLabels });
 									}
 								}}
@@ -623,7 +693,9 @@ export function UnifiedTaskItem({
 				className="bg-accent p-3 rounded-lg border-transparent shadow-sm hover:bg-secondary transition-colors cursor-pointer flex flex-col gap-2"
 			>
 				<ContextMenu>
-					<ContextMenuTrigger asChild>{renderKanbanContent()}</ContextMenuTrigger>
+					<ContextMenuTrigger asChild>
+						{renderKanbanContent()}
+					</ContextMenuTrigger>
 					{contextMenuContent}
 				</ContextMenu>
 			</KanbanCard>
@@ -632,7 +704,10 @@ export function UnifiedTaskItem({
 
 	return (
 		<ContextMenu>
-			<ContextMenuTrigger className="relative select-none group/context data-[state=open]:bg-accent" asChild>
+			<ContextMenuTrigger
+				className="relative select-none group/context data-[state=open]:bg-accent"
+				asChild
+			>
 				{renderListContent()}
 			</ContextMenuTrigger>
 			{contextMenuContent}
