@@ -12,6 +12,9 @@
 		"format": "biome format --write ."
 	},
 	"dependencies": {
+		"@blocknote/core": "^0.40.0",
+		"@blocknote/mantine": "^0.40.0",
+		"@blocknote/react": "^0.40.0",
 		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/ui": "workspace:*",
@@ -33,6 +36,7 @@
 		"clsx": "^2.1.1",
 		"lucide-react": "^0.544.0",
 		"nitro": "latest",
+		"nuqs": "^2.7.1",
 		"react": "^19.2.1",
 		"react-dom": "^19.2.1",
 		"tailwind-merge": "^3.4.0",
