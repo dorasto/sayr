@@ -6,7 +6,14 @@ import { useIsMobile } from "../../hooks/use-mobile";
 import { cn } from "../../lib/utils";
 import { Badge } from "../badge";
 import { Button } from "../button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../command";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "../command";
 import { Drawer, DrawerContent, DrawerTrigger } from "../custom-sidebar-drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 
@@ -22,7 +29,9 @@ interface ComboBoxContextValue {
 	isMobile: boolean;
 }
 
-const ComboBoxContext = React.createContext<ComboBoxContextValue | undefined>(undefined);
+const ComboBoxContext = React.createContext<ComboBoxContextValue | undefined>(
+	undefined,
+);
 
 function useComboBox() {
 	const context = React.useContext(ComboBoxContext);
@@ -106,7 +115,12 @@ interface ComboBoxTriggerProps {
 	asChild?: boolean;
 }
 
-function ComboBoxTrigger({ children, className, disabled, asChild = false }: ComboBoxTriggerProps) {
+function ComboBoxTrigger({
+	children,
+	className,
+	disabled,
+	asChild = false,
+}: ComboBoxTriggerProps) {
 	const { open, isMobile } = useComboBox();
 
 	if (!isMobile) {
@@ -116,9 +130,9 @@ function ComboBoxTrigger({ children, className, disabled, asChild = false }: Com
 		return (
 			<PopoverTrigger asChild>
 				<Button
-					variant="accent"
+					variant="primary"
 					aria-expanded={open}
-					className={cn("justify-start", className)}
+					className={cn("justify-start text-xs", className)}
 					disabled={disabled}
 				>
 					{children}
@@ -136,7 +150,7 @@ function ComboBoxTrigger({ children, className, disabled, asChild = false }: Com
 				variant="outline"
 				className={cn(
 					"bg-background hover:bg-background border-input justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px] w-full",
-					className
+					className,
 				)}
 				disabled={disabled}
 			>
@@ -154,7 +168,12 @@ interface ComboBoxContentProps {
 	side?: "top" | "right" | "bottom" | "left";
 }
 
-function ComboBoxContent({ children, className, align = "start", side = "bottom" }: ComboBoxContentProps) {
+function ComboBoxContent({
+	children,
+	className,
+	align = "start",
+	side = "bottom",
+}: ComboBoxContentProps) {
 	const { isMobile } = useComboBox();
 
 	if (!isMobile) {
@@ -189,7 +208,10 @@ interface ComboBoxValueProps {
 	children?: React.ReactNode;
 }
 
-function ComboBoxValue({ placeholder = "Select items...", children }: ComboBoxValueProps) {
+function ComboBoxValue({
+	placeholder = "Select items...",
+	children,
+}: ComboBoxValueProps) {
 	const { value, values, isMultiple } = useComboBox();
 
 	if (children) {
@@ -213,7 +235,9 @@ function ComboBoxValue({ placeholder = "Select items...", children }: ComboBoxVa
 
 // Icon component for the chevron
 function ComboBoxIcon() {
-	return <ChevronDownIcon className="h-4 w-4 shrink-0 text-muted-foreground/80 ml-auto" />;
+	return (
+		<ChevronDownIcon className="h-4 w-4 shrink-0 text-muted-foreground/80 ml-auto" />
+	);
 }
 
 // Search input component
@@ -223,8 +247,14 @@ interface ComboBoxSearchProps {
 	icon?: React.ReactNode;
 }
 
-function ComboBoxSearch({ placeholder = "Search...", className, icon }: ComboBoxSearchProps) {
-	return <CommandInput icon={icon} placeholder={placeholder} className={className} />;
+function ComboBoxSearch({
+	placeholder = "Search...",
+	className,
+	icon,
+}: ComboBoxSearchProps) {
+	return (
+		<CommandInput icon={icon} placeholder={placeholder} className={className} />
+	);
 }
 
 // List component
@@ -264,7 +294,13 @@ interface ComboBoxItemProps {
 	searchValue?: string;
 }
 
-function ComboBoxItem({ value, children, disabled, onSelect, searchValue }: ComboBoxItemProps) {
+function ComboBoxItem({
+	value,
+	children,
+	disabled,
+	onSelect,
+	searchValue,
+}: ComboBoxItemProps) {
 	const {
 		value: selectedValue,
 		values: selectedValues,
@@ -274,7 +310,9 @@ function ComboBoxItem({ value, children, disabled, onSelect, searchValue }: Comb
 		setOpen,
 	} = useComboBox();
 
-	const isSelected = isMultiple ? selectedValues?.includes(value) || false : selectedValue === value;
+	const isSelected = isMultiple
+		? selectedValues?.includes(value) || false
+		: selectedValue === value;
 	const itemValue = searchValue ? `${searchValue} ${value}` : value;
 
 	const handleSelect = () => {
@@ -285,7 +323,9 @@ function ComboBoxItem({ value, children, disabled, onSelect, searchValue }: Comb
 
 		if (isMultiple && onValuesChange) {
 			const current = selectedValues || [];
-			const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
+			const next = current.includes(value)
+				? current.filter((v) => v !== value)
+				: [...current, value];
 			onValuesChange(next);
 			// Keep open for multi-select
 		} else if (!isMultiple && onValueChange) {
@@ -309,7 +349,11 @@ interface ComboBoxSelectedProps {
 	onRemove?: (value: string) => void;
 }
 
-function ComboBoxSelected({ children, maxVisible = 3, onRemove }: ComboBoxSelectedProps) {
+function ComboBoxSelected({
+	children,
+	maxVisible = 3,
+	onRemove,
+}: ComboBoxSelectedProps) {
 	const { values, onValuesChange } = useComboBox();
 
 	if (!values || values.length === 0) {
@@ -336,7 +380,11 @@ function ComboBoxSelected({ children, maxVisible = 3, onRemove }: ComboBoxSelect
 	return (
 		<div className="flex flex-wrap gap-1 flex-1 min-w-0">
 			{values.map((value) => (
-				<Badge key={value} variant="secondary" className="flex items-center gap-1 text-xs h-5">
+				<Badge
+					key={value}
+					variant="secondary"
+					className="flex items-center gap-1 text-xs h-5"
+				>
 					<span className="truncate">{value}</span>
 					<XIcon
 						className="h-3 w-3 cursor-pointer hover:bg-muted rounded-sm"

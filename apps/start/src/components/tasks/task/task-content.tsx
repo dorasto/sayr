@@ -118,6 +118,7 @@ export function TaskContentSideContent({
 				tasks={tasks}
 				setTasks={setTasks}
 				setSelectedTask={setSelectedTask}
+				showLabel={false}
 			/>
 			<GlobalTaskAssignees
 				task={task}
@@ -270,9 +271,9 @@ export function TaskContent({
 		rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 	return !isDialog ? (
 		// FULL PAGE EXPERIENCE
-		<div className="flex flex-col h-full max-h-full relative">
+		<div className="flex flex-col h-full max-h-full min-h-full relative">
 			{/* Body of content */}
-			<div className="flex gap-3 overflow-scroll">
+			<div className="flex gap-0 overflow-scroll">
 				<div className="flex flex-col gap-3 w-full overflow-scroll overflow-x-visible p-4">
 					<Label
 						variant={"heading"}

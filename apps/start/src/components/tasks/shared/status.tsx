@@ -34,6 +34,7 @@ interface GlobalTaskStatusProps {
 	open?: boolean;
 	setOpen?: (open: boolean) => void;
 	customTrigger?: React.ReactNode;
+	showLabel?: boolean;
 }
 
 export default function GlobalTaskStatus({
@@ -47,6 +48,7 @@ export default function GlobalTaskStatus({
 	open,
 	setOpen,
 	customTrigger,
+	showLabel = true,
 }: GlobalTaskStatusProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast } = useToastAction();
@@ -123,7 +125,9 @@ export default function GlobalTaskStatus({
 
 	return (
 		<div className="flex flex-col gap-3">
-			{!customTrigger && <Label variant={"subheading"}>Status</Label>}
+			{!customTrigger && showLabel && (
+				<Label variant={"subheading"}>Status</Label>
+			)}
 			<div className="flex flex-col gap-2">
 				<ComboBox
 					value={currentStatus}
