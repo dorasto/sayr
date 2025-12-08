@@ -21,7 +21,7 @@ import { IconDeviceFloppy } from "@tabler/icons-react";
 import { useState } from "react";
 import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { createSavedViewAction } from "@/app/lib/fetches/organization";
+import { createSavedViewAction } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
 
 interface Props {

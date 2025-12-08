@@ -22,7 +22,7 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
 import { IconLock } from "@tabler/icons-react";
-import { Editor } from "@/app/components/blocknote/DynamicEditor";
+import { Editor } from "@/components/blocknote/Editor";
 import type { TimelineItemWrapperProps } from "./types";
 
 export function TimelineItemWrapper({

@@ -10,9 +10,9 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconLock, IconLockOpen2 } from "@tabler/icons-react";
 import { useState } from "react";
-import { Editor } from "@/app/components/blocknote/DynamicEditor";
-import { uploadFile } from "@/app/lib/fetches/file";
-import { CreateTaskCommentAction } from "@/app/lib/fetches/task";
+import { Editor } from "@/components/blocknote/Editor";
+import { uploadFile } from "@/lib/fetches/file";
+import { CreateTaskCommentAction } from "@/lib/fetches/task";
 import { extractTextContent, useToastAction } from "@/lib/util";
 
 type CommentVisibility = "internal" | "public";
@@ -21,10 +21,15 @@ interface TaskNewCommentContentProps {
 	task: schema.TaskWithLabels;
 	onFinish?: () => void;
 }
-export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentProps) {
+export function TaskNewCommentContent({
+	task,
+	onFinish,
+}: TaskNewCommentContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
-	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(undefined);
+	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(
+		undefined,
+	);
 	const [editorKey, setEditorKey] = useState(0);
 	const [visibility, setVisibility] = useState<CommentVisibility>("public");
 	const commentText = extractTextContent(newComment);
@@ -42,7 +47,10 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 		const updatedBlocks: PartialBlock[] = await Promise.all(
 			(newComment ?? []).map(async (block) => {
 				if (
-					(block.type === "image" || block.type === "file" || block.type === "video" || block.type === "audio") &&
+					(block.type === "image" ||
+						block.type === "file" ||
+						block.type === "video" ||
+						block.type === "audio") &&
 					typeof block.props === "object" &&
 					// biome-ignore lint/suspicious/noExplicitAny: <fix>
 					typeof (block.props as any).url === "string" &&
@@ -100,7 +108,7 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 				}
 
 				return block;
-			})
+			}),
 		);
 
 		const data = await runWithToast(
@@ -116,10 +124,18 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 				},
 				error: {
 					title: "Couldn't post comment",
-					description: "The comment appears locally but could not be saved to the server. Please try again.",
+					description:
+						"The comment appears locally but could not be saved to the server. Please try again.",
 				},
 			},
-			() => CreateTaskCommentAction(task.organizationId, task.id, updatedBlocks, visibility, wsClientId)
+			() =>
+				CreateTaskCommentAction(
+					task.organizationId,
+					task.id,
+					updatedBlocks,
+					visibility,
+					wsClientId,
+				),
 		);
 
 		if (data?.success && data.data && task && task.id === data.data.id) {
@@ -132,7 +148,7 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 		<div
 			className={cn(
 				"text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col",
-				visibility === "internal" && "border-primary/30 bg-primary/5"
+				visibility === "internal" && "border-primary/30 bg-primary/5",
 			)}
 		>
 			<Editor
@@ -157,7 +173,10 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 						size={"sm"}
 						disabled={disabled}
 						onClick={handleSubmit}
-						className={cn("border-transparent", visibility === "internal" && "bg-primary/10 hover:bg-primary/20")}
+						className={cn(
+							"border-transparent",
+							visibility === "internal" && "bg-primary/10 hover:bg-primary/20",
+						)}
 					>
 						{visibility === "internal" ? "Internal comment" : "Post comment"}
 						<IconArrowBack />
@@ -167,12 +186,15 @@ export function TaskNewCommentContent({ task, onFinish }: TaskNewCommentContentP
 						size="sm"
 						className={cn(
 							"border-transparent hover:border-transparent",
-							visibility === "internal" && "bg-primary/10! hover:bg-primary/20!"
+							visibility === "internal" &&
+								"bg-primary/10! hover:bg-primary/20!",
 						)}
 						variant={visibility === "internal" ? "primary" : "accent"}
 						pressed={visibility === "internal"}
 						disabled={disabled}
-						onPressedChange={(pressed) => setVisibility(pressed ? "internal" : "public")}
+						onPressedChange={(pressed) =>
+							setVisibility(pressed ? "internal" : "public")
+						}
 						defaultPressed={true}
 					>
 						{visibility === "internal" ? <IconLock /> : <IconLockOpen2 />}

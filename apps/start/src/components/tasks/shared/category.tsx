@@ -20,9 +20,9 @@ import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
 import { XIcon } from "lucide-react";
-import { updateTaskAction } from "@/app/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
 import RenderIcon from "@/components/generic/RenderIcon";
+import { updateTaskAction } from "@/lib/fetches/task";
+import { useToastAction } from "@/lib/util";
 
 interface GlobalTaskCategoryProps {
 	task: schema.TaskWithLabels;

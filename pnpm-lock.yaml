@@ -121,6 +121,9 @@ importers:
       '@repo/util':
         specifier: workspace:*
         version: link:../../packages/util
+      '@shikijs/types':
+        specifier: ^3.13.0
+        version: 3.13.0
       '@tabler/icons-react':
         specifier: ^3.34.1
         version: 3.34.1(react@19.2.1)
@@ -166,6 +169,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.1)
@@ -184,6 +190,9 @@ importers:
       react-dom:
         specifier: ^19.2.1
         version: 19.2.1(react@19.2.1)
+      shiki:
+        specifier: ^3.13.0
+        version: 3.13.0
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
@@ -212,6 +221,9 @@ importers:
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@types/lodash':
+        specifier: ^4.17.20
+        version: 4.17.20
       '@types/node':
         specifier: ^22.19.1
         version: 22.19.1

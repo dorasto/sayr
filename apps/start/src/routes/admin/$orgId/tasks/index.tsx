@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import OrganizationTasksHomePage from "@/components/tasks/render";
 
 export const Route = createFileRoute("/admin/$orgId/tasks/")({
 	component: RouteComponent,
@@ -6,5 +7,5 @@ export const Route = createFileRoute("/admin/$orgId/tasks/")({
 
 function RouteComponent() {
 	const { orgId } = Route.useParams();
-	return <div>/admin/{orgId}/tasks/</div>;
+	return <OrganizationTasksHomePage />;
 }

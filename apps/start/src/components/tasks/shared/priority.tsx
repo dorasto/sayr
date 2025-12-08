@@ -16,7 +16,7 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { updateTaskAction } from "@/app/lib/fetches/task";
+import { updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import { priorityConfig } from "./config";
 

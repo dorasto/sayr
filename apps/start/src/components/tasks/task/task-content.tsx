@@ -21,21 +21,18 @@ import {
 	IconLink,
 	IconX,
 } from "@tabler/icons-react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { useDebounceAsync } from "@/app/hooks/useDebounceAsync";
-import {
-	updateLabelToTaskAction,
-	updateTaskAction,
-} from "@/app/lib/fetches/task";
+import { useDebounceAsync } from "@/hooks/useDebounceAsync";
+import { updateLabelToTaskAction, updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
-import { statusConfig } from "../shared/config";
 import GlobalTaskAssignees from "../shared/assignee";
 import GlobalTaskCategory from "../shared/category";
+import { statusConfig } from "../shared/config";
 import GlobalTaskLabels from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
 import GlobalTimeline from "./timeline/root";
-import { Link, useRouterState } from "@tanstack/react-router";
 
 interface TaskContentProps {
 	isDialog?: boolean;

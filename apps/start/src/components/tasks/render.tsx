@@ -35,6 +35,7 @@ import {
 	type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
+import ProjectSide from "./side";
 
 export default function OrganizationTasksHomePage() {
 	const { viewState } = useTaskViewState();
@@ -185,9 +186,9 @@ export default function OrganizationTasksHomePage() {
 									your account and remove your data from our servers.
 								</SheetDescription>
 							</SheetHeader>
-							{/* <div className="flex-1 overflow-y-auto h-full flex flex-col relative p-3">
+							<div className="flex-1 overflow-y-auto h-full flex flex-col relative p-3">
 								<ProjectSide />
-							</div> */}
+							</div>
 						</SheetContent>
 					</Sheet>
 				) : (
@@ -202,9 +203,9 @@ export default function OrganizationTasksHomePage() {
 							onCollapse={() => setProjectPanelOpen(false)}
 							onExpand={() => setProjectPanelOpen(true)}
 						>
-							{/* <div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
+							<div className="flex-1 overflow-y-auto h-full flex flex-col relative px-2">
 								<ProjectSide />
-							</div> */}
+							</div>
 						</ResizablePanel>
 					</>
 				)}
