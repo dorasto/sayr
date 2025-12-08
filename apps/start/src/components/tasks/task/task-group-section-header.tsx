@@ -4,7 +4,7 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronDown } from "@tabler/icons-react";
-import type { TaskGroup } from "./filter/types";
+import type { TaskGroup } from "../filter/types";
 
 interface TaskGroupSectionHeaderProps {
 	group: TaskGroup;

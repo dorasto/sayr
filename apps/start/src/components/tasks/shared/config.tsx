@@ -16,7 +16,7 @@ import type {
 	TaskGroupingContext,
 	TaskGroupingDefinition,
 	TaskGroupingId,
-} from "./filter/types";
+} from "../filter/types";
 
 export const statusConfig = {
 	backlog: {

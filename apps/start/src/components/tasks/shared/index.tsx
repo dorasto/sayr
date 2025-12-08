@@ -1,1 +1,9 @@
-// This will have all shared components like reusables for badges for status assignee etc that's used across the task lists/kanbans and timeline
+// Shared task configuration and reusable components
+
+export * from "./config";
+export * from "./status";
+export * from "./priority";
+export * from "./assignee";
+export * from "./label";
+export * from "./category";
+export * from "./created";

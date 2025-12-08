@@ -14,7 +14,7 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { IconCheck, IconX } from "@tabler/icons-react";
-import { priorityConfig, statusConfig } from "../config";
+import { priorityConfig, statusConfig } from "../shared/config";
 import { getFieldConfig, isMultiCondition } from "./multi-select";
 import { getOperatorLabel } from "./operators";
 import type { FilterCondition, FilterField, FilterOperator } from "./types";

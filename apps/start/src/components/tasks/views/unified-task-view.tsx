@@ -14,27 +14,23 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconLoader2 } from "@tabler/icons-react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
-// import { useWSMessageHandler, type WSMessageHandler } from "@/app/hooks/useWSMessageHandler";
-// import { updateAssigneesToTaskAction, updateTaskAction } from "@/app/lib/fetches/task";
-// import { useToastAction } from "@/app/lib/util";
-// import type { WSMessage } from "@/app/lib/ws";
-// import { applyFilters } from "../filter/filter-config";
-// import type { FilterState } from "../filter/types";
-// import { TASK_GROUPINGS } from "../grouping/config";
-// import { TaskGroupSectionHeader } from "../grouping/task-group-section-header";
-// import { useTaskViewState } from "../grouping/use-task-view-state";
-// import { TaskContent } from "./table/task-content";
 import { UnifiedTaskItem } from "./unified-task-item";
-import { FilterState } from "./filter/types";
-import { useTaskViewState } from "./filter/use-task-view-state";
+import type { FilterState } from "../filter/types";
+import { useTaskViewState } from "../filter/use-task-view-state";
 import { useToastAction } from "@/lib/util";
-import { applyFilters } from "./filter/filter-config";
+import { applyFilters } from "../filter/filter-config";
 import {
 	useWSMessageHandler,
-	WSMessageHandler,
+	type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import { WSMessage } from "@/lib/ws";
-import { TaskGroupSectionHeader } from "./task-group-section-header";
+import type { WSMessage } from "@/lib/ws";
+import { TaskGroupSectionHeader } from "../task/task-group-section-header";
+import { TASK_GROUPINGS } from "../shared/config";
+import { TaskContent } from "../task/task-content";
+import {
+	updateAssigneesToTaskAction,
+	updateTaskAction,
+} from "@/app/lib/fetches/task";
 
 interface UnifiedTaskViewProps {
 	tasks: schema.TaskWithLabels[];
