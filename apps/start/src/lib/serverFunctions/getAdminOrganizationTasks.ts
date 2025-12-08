@@ -1,14 +1,12 @@
-import { schema } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { eq } from "drizzle-orm";
 
-export const getAdminOrganization = createServerFn({ method: "GET" })
+export const getAdminOrganizationTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgId: string }) => data)
-
+	// @ts-expect-error - TanStack Start's type system is too strict for JSONB fields (description, blockNote)
 	.handler(async ({ data }) => {
 		const { getAccess } = await import("./getAccess");
-		const { db, getOrganization, getLabels } = await import("@repo/database");
+		const { getOrganization, getTasksByOrganizationId } = await import("@repo/database");
 		try {
 			const { account } = await getAccess();
 			if (!data.orgId) {
@@ -18,15 +16,8 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			if (!organization) {
 				throw redirect({ to: "/admin" });
 			}
-			const labels = await getLabels(organization.id);
-			const views = await db
-				.select()
-				.from(schema.savedView)
-				.where(eq(schema.savedView.organizationId, organization.id));
-			const categories = await db.query.category.findMany({
-				where: (category) => eq(category.organizationId, organization.id),
-			});
-			return { organization, labels, views, categories };
+			const tasks = await getTasksByOrganizationId(organization.id);
+			return { tasks };
 		} catch (error) {
 			// If it's already a redirect, re-throw it
 			if (error && typeof error === "object" && "redirect" in error) {

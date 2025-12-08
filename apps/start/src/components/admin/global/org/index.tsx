@@ -6,10 +6,10 @@ import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
-import { useLayoutOrganization } from "@/routes/admin/$orgId/Context";
 
 export default function OrganizationHomePage() {
 	const { ws } = useLayoutData();

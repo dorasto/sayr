@@ -4,7 +4,7 @@ import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper } from "@/components/generic/wrapper";
 import { getAccessWithOrganizations } from "@/lib/serverFunctions/getAccessWithOrganizations";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware } from "@/middleware/auth";
 
 export const Route = createFileRoute("/admin")({
 	loader: () => getAccessWithOrganizations(),

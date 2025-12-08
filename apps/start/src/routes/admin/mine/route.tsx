@@ -1,9 +1,10 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { myTasks } from "@/lib/serverFunctions/myTasks";
-import { RootProviderMyTasks } from "./Context";
+import { RootProviderMyTasks } from "@/contexts/ContextMine";
+import { getMyTasks } from "@/lib/serverFunctions/myTasks";
 
 export const Route = createFileRoute("/admin/mine")({
-	loader: () => myTasks(),
+	// @ts-expect-error - TanStack Start's type system is too strict for JSONB fields (description, blockNote)
+	loader: () => getMyTasks(),
 	component: MineLayout,
 });
 

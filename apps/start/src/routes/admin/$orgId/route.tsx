@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { RootProviderOrganization } from "@/contexts/ContextOrg";
 import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
-import { RootProviderOrganization } from "./Context";
 
 export const Route = createFileRoute("/admin/$orgId")({
 	loader: async ({ params }) =>
@@ -9,10 +9,10 @@ export const Route = createFileRoute("/admin/$orgId")({
 				orgId: params.orgId,
 			},
 		}),
-	component: MineLayout,
+	component: OrgLayout,
 });
 
-function MineLayout() {
+function OrgLayout() {
 	const { organization, labels, views, categories } = Route.useLoaderData();
 	return (
 		<RootProviderOrganization organization={organization} labels={labels} views={views} categories={categories}>
