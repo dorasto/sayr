@@ -1,15 +1,15 @@
 "use client";
 
+import { de } from "@blocknote/core/locales";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useAdminRoute } from "./useAdminRoute";
 import { PrimarySidebar } from "../admin/sidebars/primary";
 import { SettingsSidebar } from "../admin/sidebars/settings";
 import { StaffSidebar } from "../admin/sidebars/staff";
+import { useAdminRoute } from "./useAdminRoute";
 
 interface Props {
 	children: React.ReactNode;
@@ -49,6 +49,7 @@ interface SubProps {
 	style?: "default" | "compact";
 	title?: string;
 	description?: string;
+	descriptionRender?: React.ReactNode;
 	icon?: React.ReactNode;
 	backButton?: string;
 	backButtonText?: string;
@@ -60,6 +61,7 @@ export function SubWrapper({
 	style = "default",
 	title = "title",
 	description,
+	descriptionRender,
 	icon,
 	backButton,
 	backButtonText = "Back",
@@ -114,6 +116,7 @@ export function SubWrapper({
 										{description}
 									</Label>
 								)}
+								{descriptionRender && <div>{descriptionRender}</div>}
 							</div>
 						</div>
 					) : (

@@ -1,6 +1,11 @@
 "use client";
 
 import type { schema } from "@repo/database";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -30,6 +35,7 @@ import {
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
+import { SubWrapper } from "@/components/generic/wrapper";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
 import { updateLabelToTaskAction, updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
@@ -349,27 +355,52 @@ export function TaskContent({
 		// FULL PAGE EXPERIENCE
 		<div className="flex flex-col h-full max-h-full min-h-full relative">
 			{/* Body of content */}
-			<div className="flex gap-0 overflow-scroll">
-				<div className="flex flex-col gap-3 w-full overflow-scroll overflow-x-visible p-4">
-					<Label
-						variant={"heading"}
-						className={cn("text-left text-2xl font-bold ")}
+			<div className="flex gap-0 min-h-full overflow-scroll">
+				<div className="flex flex-col gap-3 w-full overflow-scroll overflow-x-visible p-4 pt-0">
+					<SubWrapper
+						style="compact"
+						className="max-w-6xl"
+						title={task.title || "No title"}
+						icon={
+							<Avatar>
+								<AvatarImage
+									src={organization.logo || ""}
+									alt={organization.name}
+								/>
+								<AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
+							</Avatar>
+						}
+						descriptionRender={
+							<div className="flex gap-1">
+								<Label
+									variant={"description"}
+									className="text-muted-foreground"
+								>
+									#{task.shortId}
+								</Label>
+							</div>
+						}
 					>
-						{task.title}
-					</Label>
-					{task.githubIssue?.issueUrl}
-					<JsonViewer
-						data={task}
-						name="task"
-						open={openData}
-						onOpenChange={onOpenDataChange}
-					/>
-					<GlobalTimeline
-						task={task}
-						labels={labels}
-						availableUsers={availableUsers}
-						categories={categories}
-					/>
+						<Label
+							variant={"heading"}
+							className={cn("text-left text-2xl font-bold ")}
+						>
+							{task.title}
+						</Label>
+						{task.githubIssue?.issueUrl}
+						<JsonViewer
+							data={task}
+							name="task"
+							open={openData}
+							onOpenChange={onOpenDataChange}
+						/>
+						<GlobalTimeline
+							task={task}
+							labels={labels}
+							availableUsers={availableUsers}
+							categories={categories}
+						/>
+					</SubWrapper>
 				</div>
 				<div className="w-[18rem] shrink-0 overflow-y-auto p-3 ml-0 rounded-r-2xl rounded bg-card">
 					<div className="flex items-center gap-2 shrink-0 w-full">
