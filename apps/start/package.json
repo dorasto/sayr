@@ -3,9 +3,10 @@
 	"private": false,
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev --port 3001",
+		"dev": "vite dev",
 		"build": "vite build",
 		"serve": "vite preview",
+		"start": "bun run .output/server/index.mjs",
 		"test": "vitest run",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",
