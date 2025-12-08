@@ -1,19 +1,39 @@
 "use client";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { IconCategory, IconPlug, IconProgress, IconTag, IconUsers } from "@tabler/icons-react";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@repo/ui/components/avatar";
+import {
+	Tile,
+	TileDescription,
+	TileHeader,
+	TileIcon,
+	TileTitle,
+} from "@repo/ui/components/doras-ui/tile";
+import {
+	IconCategory,
+	IconPlug,
+	IconProgress,
+	IconTag,
+	IconUsers,
+} from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
-import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import {
+	useWSMessageHandler,
+	type WSMessageHandler,
+} from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
 
 export default function OrganizationHomePage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, setLabels, setViews, setCategories } = useLayoutOrganization();
+	const { organization, setOrganization, setLabels, setViews, setCategories } =
+		useLayoutOrganization();
 	useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -73,7 +93,10 @@ export default function OrganizationHomePage() {
 						</TileHeader>
 					</Tile>
 				</Link>
-				<Link to={`/admin/settings/org/${organization.id}/categories`} className="col-span-6 row-span-2">
+				<Link
+					to={`/admin/settings/org/${organization.id}/categories`}
+					className="col-span-6 row-span-2"
+				>
 					<Tile className="md:w-full hover:bg-accent h-full">
 						<TileHeader className="w-full">
 							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
@@ -83,7 +106,10 @@ export default function OrganizationHomePage() {
 						</TileHeader>
 					</Tile>
 				</Link>
-				<Link to={`/admin/settings/org/${organization.id}/labels`} className="col-span-3">
+				<Link
+					to={`/admin/settings/org/${organization.id}/labels`}
+					className="col-span-3"
+				>
 					<Tile className="md:w-full hover:bg-accent h-full">
 						<TileHeader className="w-full">
 							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
@@ -93,7 +119,10 @@ export default function OrganizationHomePage() {
 						</TileHeader>
 					</Tile>
 				</Link>
-				<Link to={`/admin/settings/org/${organization.id}/team`} className="col-span-3">
+				<Link
+					to={`/admin/settings/org/${organization.id}/team`}
+					className="col-span-3"
+				>
 					<Tile className="md:w-full hover:bg-accent">
 						<TileHeader className="w-full">
 							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
@@ -103,7 +132,10 @@ export default function OrganizationHomePage() {
 						</TileHeader>
 					</Tile>
 				</Link>
-				<Link to={`/admin/settings/org/${organization.id}/connections`} className="col-span-6">
+				<Link
+					to={`/admin/settings/org/${organization.id}/connections`}
+					className="col-span-6"
+				>
 					<Tile className="md:w-full hover:bg-accent">
 						<TileHeader className="w-full">
 							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">

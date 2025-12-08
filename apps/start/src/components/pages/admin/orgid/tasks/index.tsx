@@ -26,6 +26,7 @@ import {
 	TaskFilterDropdown,
 	useTaskViewState,
 } from "@/components/tasks/filter";
+import ProjectSide from "@/components/tasks/side";
 import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
@@ -35,7 +36,6 @@ import {
 	type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
-import ProjectSide from "./side";
 
 export default function OrganizationTasksHomePage() {
 	const { viewState } = useTaskViewState();
