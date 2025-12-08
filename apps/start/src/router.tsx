@@ -13,7 +13,9 @@ export const getRouter = () => {
 		context: { queryClient },
 		defaultPreload: "intent",
 		scrollRestoration: true,
-		defaultPreloadStaleTime: 0,
+		// Cache loader data for 30 seconds to prevent unnecessary refetches
+		// during hydration and same-route navigations
+		defaultPreloadStaleTime: 1000 * 30,
 		rewrite: {
 			input: ({ url }) => {
 				const hostname = url.hostname;

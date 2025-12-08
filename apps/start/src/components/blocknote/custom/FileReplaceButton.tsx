@@ -1,7 +1,8 @@
-import type {
-	BlockSchema,
-	InlineContentSchema,
-	StyleSchema,
+import {
+	type BlockSchema,
+	blockHasType,
+	type InlineContentSchema,
+	type StyleSchema,
 } from "@blocknote/core";
 import {
 	useBlockNoteEditor,
@@ -10,12 +11,17 @@ import {
 	useSelectedBlocks,
 } from "@blocknote/react";
 import { IconFileImport } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { CustomFilePanel } from "./CustomFilePanel";
 
+/**
+ * Custom FileReplaceButton component that opens a custom file panel.
+ * Based on the official BlockNote FileReplaceButton implementation.
+ * @see https://github.com/TypeCellOS/BlockNote/blob/main/packages/react/src/components/FormattingToolbar/DefaultButtons/FileReplaceButton.tsx
+ */
 export const FileReplaceButton = () => {
 	const dict = useDictionary();
-	// biome-ignore lint/style/noNonNullAssertion: <any>
+	// biome-ignore lint/style/noNonNullAssertion: Components context is always available within BlockNote
 	const Components = useComponentsContext()!;
 
 	const editor = useBlockNoteEditor<
@@ -26,25 +32,42 @@ export const FileReplaceButton = () => {
 
 	const selectedBlocks = useSelectedBlocks(editor);
 
-	const [isOpen, setIsOpen] = useState<boolean>(false);
+	// Memoize block selection to prevent unnecessary re-renders
+	const block = useMemo(() => {
+		if (!editor.isEditable) {
+			return undefined;
+		}
 
-	useEffect(() => {
-		setIsOpen(false);
-	}, []);
+		if (selectedBlocks.length !== 1) {
+			return undefined;
+		}
 
-	const block = selectedBlocks.length === 1 ? selectedBlocks[0] : undefined;
+		const selectedBlock = selectedBlocks[0];
 
-	if (block === undefined || !editor.isEditable) {
+		if (!selectedBlock) {
+			return undefined;
+		}
+
+		if (
+			!blockHasType(selectedBlock, editor, selectedBlock.type, {
+				url: "string",
+			})
+		) {
+			return undefined;
+		}
+
+		return selectedBlock;
+	}, [editor, selectedBlocks]);
+
+	if (block === undefined) {
 		return null;
 	}
 
 	return (
-		<Components.Generic.Popover.Root opened={isOpen} position={"bottom"}>
+		<Components.Generic.Popover.Root position={"bottom"}>
 			<Components.Generic.Popover.Trigger>
 				<Components.FormattingToolbar.Button
 					className={"bn-button"}
-					onClick={() => setIsOpen(!isOpen)}
-					isSelected={isOpen}
 					mainTooltip={
 						dict.formatting_toolbar.file_replace.tooltip[block.type] ||
 						dict.formatting_toolbar.file_replace.tooltip.file
@@ -61,7 +84,7 @@ export const FileReplaceButton = () => {
 				className={"bn-popover-content bn-panel-popover"}
 				variant={"panel-popover"}
 			>
-				{/* Replaces default file panel with our custom one. */}
+				{/* Custom file panel instead of default */}
 				<CustomFilePanel
 					props={{
 						block: block,

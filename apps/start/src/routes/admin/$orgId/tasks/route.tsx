@@ -9,6 +9,9 @@ export const Route = createFileRoute("/admin/$orgId/tasks")({
 				orgId: params.orgId,
 			},
 		}),
+	// Prevent refetching when only search params change (e.g., ?task=4)
+	// The task list doesn't depend on search params
+	staleTime: 1000 * 60, // 1 minute
 	component: OrgTasksLayout,
 });
 

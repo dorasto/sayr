@@ -1,13 +1,23 @@
 "use client";
 
 import { Button } from "@repo/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@repo/ui/components/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogTitle,
+} from "@repo/ui/components/dialog";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowDown } from "@tabler/icons-react";
 import { CircleQuestionMark } from "lucide-react";
 import type { ReactNode } from "react";
 import { Children, isValidElement, useEffect, useRef, useState } from "react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "../tooltip";
 
 interface SplitDialogProps {
 	isOpen: boolean;
@@ -30,7 +40,9 @@ export function SplitDialog({
 	showTitle = true,
 	sidebarPosition = "left",
 }: SplitDialogProps) {
-	const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+	const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(
+		null,
+	);
 	const [showScrollButton, setShowScrollButton] = useState(false);
 	const observersRef = useRef<{
 		timeouts: NodeJS.Timeout[];
@@ -88,7 +100,10 @@ export function SplitDialog({
 
 		// Check immediately and after delays (for async content)
 		checkScroll();
-		observersRef.current.timeouts = [setTimeout(checkScroll, 100), setTimeout(checkScroll, 500)];
+		observersRef.current.timeouts = [
+			setTimeout(checkScroll, 100),
+			setTimeout(checkScroll, 500),
+		];
 
 		// Listen for scroll events (throttled)
 		scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
@@ -138,10 +153,13 @@ export function SplitDialog({
 				className={cn(
 					"flex h-[90dvh] max-w-[calc(var(--container-7xl)-3rem)] w-[calc(100vw-3rem)] p-0 gap-0 flex-col",
 					"[&>button:last-child]:top-3.5 bg-popover",
-					className
+					className,
 				)}
 			>
-				{description && <DialogDescription className="sr-only">{description}</DialogDescription>}
+				{/* Always render DialogDescription for accessibility - use sr-only if no description provided */}
+				<DialogDescription className={description ? "sr-only" : "sr-only"}>
+					{description || "Dialog content"}
+				</DialogDescription>
 
 				{/* Header - Always sticky and above both content areas */}
 				<div className="flex-shrink-0 p-4 w-full border-b">
@@ -171,7 +189,7 @@ export function SplitDialog({
 				<div
 					className={cn(
 						"flex-1 overflow-hidden min-h-0 flex",
-						sidebarPosition === "left" ? "flex-row" : "flex-row-reverse"
+						sidebarPosition === "left" ? "flex-row" : "flex-row-reverse",
 					)}
 				>
 					{/* Sidebar */}
@@ -181,7 +199,10 @@ export function SplitDialog({
 					<div className="flex-1 min-h-0 relative">
 						<div
 							ref={scrollContainerRef}
-							className={cn("overflow-y-auto h-full", sidebarPosition === "left" ? "border-l" : "border-r")}
+							className={cn(
+								"overflow-y-auto h-full",
+								sidebarPosition === "left" ? "border-l" : "border-r",
+							)}
 						>
 							{contentComponent}
 						</div>
@@ -207,7 +228,10 @@ interface SplitDialogContentProps {
 	className?: string;
 }
 
-export function SplitDialogContent({ children, className }: SplitDialogContentProps) {
+export function SplitDialogContent({
+	children,
+	className,
+}: SplitDialogContentProps) {
 	return <div className={cn("p-4 pb-0", className)}>{children}</div>;
 }
 
@@ -217,6 +241,20 @@ interface SplitDialogSideProps {
 	width?: string;
 }
 
-export function SplitDialogSide({ children, className, width = "w-52" }: SplitDialogSideProps) {
-	return <div className={cn("shrink-0 bg-popover overflow-y-auto p-4", width, className)}>{children}</div>;
+export function SplitDialogSide({
+	children,
+	className,
+	width = "w-52",
+}: SplitDialogSideProps) {
+	return (
+		<div
+			className={cn(
+				"shrink-0 bg-popover overflow-y-auto p-4",
+				width,
+				className,
+			)}
+		>
+			{children}
+		</div>
+	);
 }
