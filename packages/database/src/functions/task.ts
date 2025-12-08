@@ -51,17 +51,6 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
 					},
 				},
 			},
-			comments: {
-				with: {
-					createdBy: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
-					},
-				},
-			},
 			githubIssue: {},
 		},
 	});
