@@ -1,10 +1,8 @@
-import type { schema } from "@repo/database";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { RootProviderOrganizationTask } from "@/contexts/ContextOrgTask";
 import { getAdminOrganizationTask } from "@/lib/serverFunctions/getAdminOrganizationTask";
 
 export const Route = createFileRoute("/admin/$orgId/tasks/$taskShortId")({
-	// @ts-expect-error - TanStack Start's type system is too strict for JSONB fields (description, blockNote)
 	loader: async ({ params }) =>
 		await getAdminOrganizationTask({
 			data: {
@@ -16,7 +14,7 @@ export const Route = createFileRoute("/admin/$orgId/tasks/$taskShortId")({
 });
 
 function OrgTasksLayout() {
-	const { task } = Route.useLoaderData() as unknown as { task: schema.TaskWithLabels };
+	const { task } = Route.useLoaderData();
 
 	return (
 		<RootProviderOrganizationTask task={task}>

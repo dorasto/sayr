@@ -30,6 +30,12 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 			text: "text-destructive",
 			label: "Disconnected",
 		},
+		Reconnecting: {
+			icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
+			color: "bg-muted-foreground",
+			text: "text-yellow-500",
+			label: "Reconnecting…",
+		},
 		Connecting: {
 			icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
 			color: "bg-muted-foreground",

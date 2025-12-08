@@ -71,7 +71,7 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
 		...task,
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
-	}));
+	})) as schema.TaskWithLabels[];
 }
 
 /**
@@ -118,7 +118,7 @@ export async function getTaskByShortId(orgId: string, shortId: number): Promise<
 		...task,
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
-	};
+	} as schema.TaskWithLabels;
 }
 
 /**
@@ -459,5 +459,5 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 		...task,
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
-	}));
+	})) as schema.TaskWithLabels[];
 }

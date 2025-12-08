@@ -31,11 +31,13 @@ export type TaskWithLabels = taskType & {
 	organization?: { id: string; name: string; slug: string };
 	comments?: CommentsWithAuthor;
 	githubIssue?: githubIssueType;
+	description: Array<string>;
 };
 
 export type CommentsWithAuthor = Array<
 	taskCommentType & {
 		createdBy: { id: string; name: string; image: string | null } | null;
+		blockNote: Array<string>;
 	}
 >;
 

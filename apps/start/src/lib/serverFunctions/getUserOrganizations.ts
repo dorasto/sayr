@@ -5,7 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
  * Combined server function to get both access and organizations in one call.
  * This is more efficient for loaders that need both.
  */
-export const getAccessWithOrganizations = createServerFn({ method: "GET" }).handler(async () => {
+export const getUserOrganizations = createServerFn({ method: "GET" }).handler(async () => {
 	// Dynamic imports to ensure server-only modules don't leak to client bundle
 	const { getAccess } = await import("./getAccess");
 	const { getOrganizations } = await import("@repo/database");

@@ -1,3 +1,4 @@
+import type { schema } from "@repo/database";
 import { HeadlessToastConfig } from "@repo/ui/components/headless-toast";
 import { Toaster } from "@repo/ui/components/sonner";
 import { IconAlertCircle, IconAlertCircleFilled, IconCheck, IconInfoCircle, IconLoader2 } from "@tabler/icons-react";
@@ -10,6 +11,7 @@ import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import appCss from "../styles.css?url";
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
+	account?: schema.userType;
 }>()({
 	head: () => ({
 		meta: [
@@ -31,9 +33,7 @@ export const Route = createRootRouteWithContext<{
 			},
 		],
 	}),
-
 	notFoundComponent: NotFound,
-
 	shellComponent: RootDocument,
 });
 

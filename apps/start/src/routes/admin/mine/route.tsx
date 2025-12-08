@@ -3,8 +3,7 @@ import { RootProviderMyTasks } from "@/contexts/ContextMine";
 import { getMyTasks } from "@/lib/serverFunctions/myTasks";
 
 export const Route = createFileRoute("/admin/mine")({
-	// @ts-expect-error - TanStack Start's type system is too strict for JSONB fields (description, blockNote)
-	loader: () => getMyTasks(),
+	loader: async () => await getMyTasks(),
 	component: MineLayout,
 });
 

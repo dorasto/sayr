@@ -3,11 +3,11 @@ import AdminNavigation from "@/components/generic/AdminNavigation";
 import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper } from "@/components/generic/wrapper";
-import { getAccessWithOrganizations } from "@/lib/serverFunctions/getAccessWithOrganizations";
+import { getUserOrganizations } from "@/lib/serverFunctions/getUserOrganizations";
 import { authMiddleware } from "@/middleware/auth";
 
 export const Route = createFileRoute("/admin")({
-	loader: () => getAccessWithOrganizations(),
+	loader: async () => await getUserOrganizations(),
 	component: AdminLayout,
 	server: {
 		middleware: [authMiddleware],
