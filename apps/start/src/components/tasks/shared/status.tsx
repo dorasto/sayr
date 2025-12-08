@@ -35,6 +35,8 @@ interface GlobalTaskStatusProps {
 	setOpen?: (open: boolean) => void;
 	customTrigger?: React.ReactNode;
 	showLabel?: boolean;
+	showChevron?: boolean;
+	className?: string;
 }
 
 export default function GlobalTaskStatus({
@@ -49,6 +51,8 @@ export default function GlobalTaskStatus({
 	setOpen,
 	customTrigger,
 	showLabel = true,
+	showChevron = true,
+	className,
 }: GlobalTaskStatusProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast } = useToastAction();
@@ -139,7 +143,7 @@ export default function GlobalTaskStatus({
 						// Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
 						<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
 					) : (
-						<ComboBoxTrigger disabled={!editable} className="">
+						<ComboBoxTrigger disabled={!editable} className={className}>
 							<ComboBoxValue placeholder="Status">
 								{currentStatus && (
 									<div className="flex items-center gap-2">
@@ -161,7 +165,7 @@ export default function GlobalTaskStatus({
 									</div>
 								)}
 							</ComboBoxValue>
-							<ComboBoxIcon />
+							{showChevron && <ComboBoxIcon />}
 						</ComboBoxTrigger>
 					)}
 					<ComboBoxContent className="">

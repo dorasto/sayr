@@ -35,6 +35,9 @@ interface GlobalTaskPriorityProps {
 	customTrigger?: React.ReactNode;
 	// Legacy prop for backward compatibility
 	onPriorityChange?: (priority: string) => void;
+	showLabel?: boolean;
+	showChevron?: boolean;
+	className?: string;
 }
 
 export default function GlobalTaskPriority({
@@ -49,6 +52,9 @@ export default function GlobalTaskPriority({
 	setOpen,
 	customTrigger,
 	onPriorityChange, // Legacy prop support
+	showLabel = true,
+	showChevron = true,
+	className,
 }: GlobalTaskPriorityProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast } = useToastAction();
@@ -122,7 +128,9 @@ export default function GlobalTaskPriority({
 
 	return (
 		<div className="flex flex-col gap-3">
-			{!customTrigger && <Label variant={"subheading"}>Priority</Label>}
+			{!customTrigger && showLabel && (
+				<Label variant={"subheading"}>Priority</Label>
+			)}
 			<div className="flex flex-col gap-2">
 				<ComboBox
 					value={currentPriority}
@@ -134,7 +142,7 @@ export default function GlobalTaskPriority({
 						// Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
 						<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
 					) : (
-						<ComboBoxTrigger disabled={!editable} className="">
+						<ComboBoxTrigger disabled={!editable} className={className}>
 							<ComboBoxValue placeholder="Priority">
 								{currentPriority && (
 									<div className="flex items-center gap-2">
@@ -158,7 +166,7 @@ export default function GlobalTaskPriority({
 									</div>
 								)}
 							</ComboBoxValue>
-							<ComboBoxIcon />
+							{showChevron && <ComboBoxIcon />}
 						</ComboBoxTrigger>
 					)}
 					<ComboBoxContent className="">

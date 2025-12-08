@@ -47,6 +47,9 @@ interface GlobalTaskAssigneesProps {
 	onAssigneesChange?: (userIds: string[]) => void;
 	align?: "start" | "center" | "end";
 	side?: "top" | "right" | "bottom" | "left";
+	showLabel?: boolean;
+	showChevron?: boolean;
+	className?: string;
 }
 
 export default function GlobalTaskAssignees({
@@ -64,6 +67,9 @@ export default function GlobalTaskAssignees({
 	onAssigneesChange, // Legacy prop support
 	side,
 	align,
+	showLabel = true,
+	showChevron = true,
+	className,
 }: GlobalTaskAssigneesProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const debouncedUpdate = useDebounceAsync(
@@ -158,7 +164,9 @@ export default function GlobalTaskAssignees({
 
 	return (
 		<div className="flex flex-col gap-3">
-			{!customTrigger && <Label variant={"subheading"}>Assigned</Label>}
+			{!customTrigger && showLabel && (
+				<Label variant={"subheading"}>Assigned</Label>
+			)}
 			<div className="flex flex-col gap-2">
 				{!customTrigger &&
 					task.assignees.map((assignee) => (
@@ -183,14 +191,14 @@ export default function GlobalTaskAssignees({
 						// Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
 						<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
 					) : currentAssigneeIds.length === 0 ? (
-						<ComboBoxTrigger disabled={!editable} className="">
+						<ComboBoxTrigger disabled={!editable} className={className}>
 							<ComboBoxValue placeholder="Status">
-								<div className="flex items-center gap-2">
+								<div className="flex items-center gap-2 text-muted-foreground">
 									<IconUserPlus className="h-4 w-4" />
 									<span>Unassigned</span>
 								</div>
 							</ComboBoxValue>
-							<ComboBoxIcon />
+							{showChevron && <ComboBoxIcon />}
 						</ComboBoxTrigger>
 					) : (
 						<ComboBoxTrigger

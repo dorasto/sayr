@@ -24,6 +24,7 @@ interface GlobalTaskLabelsProps {
 	onLabelsChange?: (labelIds: string[]) => void;
 	customTrigger?: React.ReactNode;
 	customChildren?: React.ReactNode;
+	showLabel?: boolean;
 }
 
 export default function GlobalTaskLabels({
@@ -33,6 +34,7 @@ export default function GlobalTaskLabels({
 	onLabelsChange,
 	customTrigger,
 	customChildren,
+	showLabel = true,
 }: GlobalTaskLabelsProps) {
 	// Get current selected label IDs
 	const currentLabelIds = task.labels?.map((label) => label.id) || [];
@@ -44,7 +46,9 @@ export default function GlobalTaskLabels({
 
 	return (
 		<div className="flex flex-col gap-3">
-			{!customTrigger && <Label variant={"subheading"}>Labels</Label>}
+			{!customTrigger && showLabel && (
+				<Label variant={"subheading"}>Labels</Label>
+			)}
 			<div className="flex flex-col gap-2">
 				<div className="flex flex-wrap gap-2">
 					{customChildren
@@ -55,16 +59,24 @@ export default function GlobalTaskLabels({
 									label={label}
 									showRemove={editable}
 									onRemove={(labelId) => {
-										handleLabelsChange(currentLabelIds.filter((id) => id !== labelId));
+										handleLabelsChange(
+											currentLabelIds.filter((id) => id !== labelId),
+										);
 									}}
 								/>
 							))}
-					<ComboBox values={currentLabelIds} onValuesChange={handleLabelsChange}>
+					<ComboBox
+						values={currentLabelIds}
+						onValuesChange={handleLabelsChange}
+					>
 						{customTrigger ? (
 							// Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
 							<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
 						) : (
-							<ComboBoxTrigger disabled={!editable} className="h-5 w-5 aspect-square p-0 justify-center">
+							<ComboBoxTrigger
+								disabled={!editable}
+								className="h-5 w-5 aspect-square p-0 justify-center"
+							>
 								<IconPlus />
 							</ComboBoxTrigger>
 						)}
@@ -74,7 +86,11 @@ export default function GlobalTaskLabels({
 								<ComboBoxEmpty>No labels found.</ComboBoxEmpty>
 								<ComboBoxGroup>
 									{availableLabels.map((label) => (
-										<ComboBoxItem key={label.id} value={label.id} searchValue={label.name}>
+										<ComboBoxItem
+											key={label.id}
+											value={label.id}
+											searchValue={label.name}
+										>
 											<span
 												className="h-2 w-2 flex-shrink-0 rounded-full mr-2"
 												style={{ backgroundColor: label.color || "#cccccc" }}
@@ -100,15 +116,21 @@ interface RenderLabelProps {
 	className?: string;
 }
 
-export function RenderLabel({ label, showRemove = false, onRemove, onClick, className = "" }: RenderLabelProps) {
+export function RenderLabel({
+	label,
+	showRemove = false,
+	onRemove,
+	onClick,
+	className = "",
+}: RenderLabelProps) {
 	return (
 		<Badge
 			key={label.id}
 			variant="secondary"
 			className={cn(
-				"flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative peer ps-5",
+				"flex items-center justify-center gap-1 max-w-36 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative peer ps-5",
 				showRemove && "pe-5",
-				className
+				className,
 			)}
 			// style={{
 			// 	backgroundColor: label.color ? getHslaWithOpacity(label.color, 0.1) : "var(--muted)",

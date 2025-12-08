@@ -132,7 +132,7 @@ function ComboBoxTrigger({
 				<Button
 					variant="primary"
 					aria-expanded={open}
-					className={cn("justify-start text-xs", className)}
+					className={cn("justify-start text-xs shadow-none", className)}
 					disabled={disabled}
 				>
 					{children}

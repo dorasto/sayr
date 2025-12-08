@@ -19,6 +19,7 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
+import { IconCategory } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { updateTaskAction } from "@/lib/fetches/task";
@@ -39,6 +40,9 @@ interface GlobalTaskCategoryProps {
 	setOpen?: (open: boolean) => void;
 	customTrigger?: React.ReactNode;
 	categories: schema.categoryType[];
+	showLabel?: boolean;
+	showChevron?: boolean;
+	className?: string;
 }
 
 export default function GlobalTaskCategory({
@@ -53,6 +57,9 @@ export default function GlobalTaskCategory({
 	setOpen,
 	customTrigger,
 	categories,
+	showLabel = true,
+	showChevron = true,
+	className,
 }: GlobalTaskCategoryProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast } = useToastAction();
@@ -131,7 +138,9 @@ export default function GlobalTaskCategory({
 
 	return (
 		<div className="flex flex-col gap-3">
-			{!customTrigger && <Label variant={"subheading"}>Category</Label>}
+			{!customTrigger && showLabel && (
+				<Label variant={"subheading"}>Category</Label>
+			)}
 
 			<div className="flex flex-col gap-2">
 				<ComboBox
@@ -143,7 +152,7 @@ export default function GlobalTaskCategory({
 					{customTrigger ? (
 						<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
 					) : (
-						<ComboBoxTrigger disabled={!editable}>
+						<ComboBoxTrigger disabled={!editable} className={className}>
 							<ComboBoxValue placeholder="Select category">
 								{currentCategory ? (
 									<div className="flex items-center gap-2">
@@ -156,10 +165,13 @@ export default function GlobalTaskCategory({
 										<span>{currentCategory.name}</span>
 									</div>
 								) : (
-									<span></span>
+									<div className="flex items-center gap-2 text-muted-foreground">
+										<IconCategory className="h-4 w-4" />
+										<span>No Category</span>
+									</div>
 								)}
 							</ComboBoxValue>
-							<ComboBoxIcon />
+							{showChevron && <ComboBoxIcon />}
 						</ComboBoxTrigger>
 					)}
 
