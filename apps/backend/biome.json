@@ -6,7 +6,8 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"maxSize": 1048576
+		"maxSize": 1048576,
+		"includes": ["**", "!**/*.gen.ts"]
 	},
 	"formatter": {
 		"enabled": true,
