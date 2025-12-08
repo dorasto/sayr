@@ -304,7 +304,8 @@ export function TaskContent({
 							showTooltip={false}
 						/>
 						<Link
-							to={`/admin/${organization.id}/tasks?task=${task.shortId}`}
+							to={`/admin/$orgId/tasks/$taskId`}
+							params={{ orgId: organization.id, taskId: task.id }}
 							className=""
 						>
 							<Button size="icon" className="size-5" variant="ghost">
@@ -373,7 +374,10 @@ export function TaskContent({
 							{status?.icon(`${status?.className || ""}`)}
 							{status.label}
 						</Badge>
-						<Link to={`/admin/${task.organizationId}/tasks/${task.shortId}`}>
+						<Link
+							to={`/admin/$orgId/tasks/$taskId`}
+							params={{ orgId: task.organizationId, taskId: task.id }}
+						>
 							<Button size={"icon"} className="size-5" variant={"ghost"}>
 								<IconArrowsDiagonal2 />
 							</Button>

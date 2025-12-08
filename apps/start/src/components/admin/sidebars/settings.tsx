@@ -1,4 +1,8 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@repo/ui/components/avatar";
 import {
 	Sidebar,
 	SidebarContent,
@@ -44,7 +48,10 @@ export function SettingsSidebar() {
 	const isSidebarOpen = !isCollapsed;
 	const { organizations } = useLayoutData();
 	const isMobile = useIsMobile();
-	const lastDashboardRoute = useStore(navigationStore, (state) => state.lastDashboardRoute);
+	const lastDashboardRoute = useStore(
+		navigationStore,
+		(state) => state.lastDashboardRoute,
+	);
 	const settingsNavigation = [
 		{
 			title: "Account",
@@ -101,8 +108,11 @@ export function SettingsSidebar() {
 			<SidebarHeader className="pb-0">
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<Link className="w-full" to={lastDashboardRoute as any}>
-							<SidebarMenuButton tooltip="Back to Dashboard" icon={<IconArrowLeft size={16} />}>
+						<Link className="w-full" to={lastDashboardRoute}>
+							<SidebarMenuButton
+								tooltip="Back to Dashboard"
+								icon={<IconArrowLeft size={16} />}
+							>
 								<span>Back to Dashboard</span>
 							</SidebarMenuButton>
 						</Link>
@@ -111,14 +121,24 @@ export function SettingsSidebar() {
 			</SidebarHeader>
 			<SidebarContent className="flex flex-col gap-3">
 				<SidebarGroup>
-					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>Settings</SidebarGroupLabel>
+					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>
+						Settings
+					</SidebarGroupLabel>
 					<SidebarMenu className="gap-0.5">
 						{settingsNavigation.map((item) => {
 							const isActive = pathname === item.url;
 							return (
-								<SidebarMenuItem key={item.title} isActive={isActive} className="min-h-auto">
-									<Link to={item.url as any} className="w-full">
-										<SidebarMenuButton size="small" icon={<item.icon size={16} />} tooltip={item.title}>
+								<SidebarMenuItem
+									key={item.title}
+									isActive={isActive}
+									className="min-h-auto"
+								>
+									<Link to={item.url} className="w-full">
+										<SidebarMenuButton
+											size="small"
+											icon={<item.icon size={16} />}
+											tooltip={item.title}
+										>
 											<span>{item.title}</span>
 										</SidebarMenuButton>
 									</Link>
@@ -128,17 +148,30 @@ export function SettingsSidebar() {
 					</SidebarMenu>
 				</SidebarGroup>
 				<SidebarGroup className="">
-					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>Organizations</SidebarGroupLabel>
+					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>
+						Organizations
+					</SidebarGroupLabel>
 					{organizations
 						.flatMap((org) => [
 							<SidebarMenu className="gap-0.5 pb-3 last:pb-0" key={org.id}>
-								<SidebarMenuItem className="min-h-auto" isActive={pathname === `/admin/settings/org/${org.id}`}>
-									<Link to={`/admin/settings/org/${org.id}` as any} className="w-full">
+								<SidebarMenuItem
+									className="min-h-auto"
+									isActive={pathname === `/admin/settings/org/${org.id}`}
+								>
+									<Link
+										to={`/admin/settings/org/$orgId`}
+										params={{ orgId: org.id }}
+										className="w-full"
+									>
 										<SidebarMenuButton
 											size="small"
 											icon={
 												<Avatar className="h-3 w-3">
-													<AvatarImage src={org.logo || ""} alt={org.name} className="" />
+													<AvatarImage
+														src={org.logo || ""}
+														alt={org.name}
+														className=""
+													/>
 													<AvatarFallback className="rounded-md uppercase text-xs">
 														<IconUsers className="h-3 w-3" />
 													</AvatarFallback>
@@ -150,14 +183,20 @@ export function SettingsSidebar() {
 										</SidebarMenuButton>
 									</Link>
 									<SidebarMenuSub>
-										<SidebarMenuButton size="small" className="bg-accent text-xs">
+										<SidebarMenuButton
+											size="small"
+											className="bg-accent text-xs"
+										>
 											<span className="truncate font-mono">{org.slug}</span>
 										</SidebarMenuButton>
 									</SidebarMenuSub>
 								</SidebarMenuItem>
 								{orgSubItems.map((item) => {
 									const url = `/admin/settings/org/${org.id}/${item.slug}`;
-									const isActive = item.matchType === "includes" ? pathname.includes(url) : pathname === url;
+									const isActive =
+										item.matchType === "includes"
+											? pathname.includes(url)
+											: pathname === url;
 									const Icon = isActive ? item.activeIcon : item.icon;
 									return (
 										<SidebarMenuItem
@@ -166,10 +205,14 @@ export function SettingsSidebar() {
 											className="min-h-auto"
 											isActive={isActive}
 										>
-											<Link to={url as any} className="w-full">
+											<Link to={url} className="w-full">
 												<SidebarMenuButton
 													size="small"
-													icon={<Icon className={cn(isActive && item.activeClass)} />}
+													icon={
+														<Icon
+															className={cn(isActive && item.activeClass)}
+														/>
+													}
 													tooltip={item.title}
 												>
 													<span>{item.title}</span>
@@ -193,7 +236,13 @@ export function SettingsSidebar() {
 									? sidebarActions.toggleSidebar(sidebarId, true)
 									: sidebarActions.toggleSidebar(sidebarId)
 							}
-							icon={isSidebarOpen ? <IconLayoutSidebarFilled /> : <IconLayoutSidebar />}
+							icon={
+								isSidebarOpen ? (
+									<IconLayoutSidebarFilled />
+								) : (
+									<IconLayoutSidebar />
+								)
+							}
 						>
 							{" "}
 							{isSidebarOpen ? "Collapse" : "Expand"}

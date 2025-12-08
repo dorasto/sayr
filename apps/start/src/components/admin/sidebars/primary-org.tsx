@@ -1,9 +1,22 @@
 "use client";
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
-import { SidebarGroup, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub } from "@repo/ui/components/doras-ui/sidebar";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@repo/ui/components/collapsible";
+import {
+	SidebarGroup,
+	SidebarMenuButton,
+	SidebarMenuItem,
+	SidebarMenuSub,
+} from "@repo/ui/components/doras-ui/sidebar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -14,7 +27,13 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
-import { IconChevronRight, IconDots, IconProgress, IconSettings, IconUsers } from "@tabler/icons-react";
+import {
+	IconChevronRight,
+	IconDots,
+	IconProgress,
+	IconSettings,
+	IconUsers,
+} from "@tabler/icons-react";
 import { Link, useLocation, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { useState } from "react";
@@ -28,7 +47,10 @@ interface OrgSectionProps {
 	closeMobileSidebar: () => void;
 }
 
-export default function OrgSection({ organization, closeMobileSidebar }: OrgSectionProps) {
+export default function OrgSection({
+	organization,
+	closeMobileSidebar,
+}: OrgSectionProps) {
 	const isMobile = useIsMobile();
 	// new sidebar
 	const sidebarId = "primary-sidebar";
@@ -41,9 +63,12 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	const [editOpen, setEditOpen] = useState(false);
 	const location = useLocation();
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
-	const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
+	const pathname =
+		rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 	const isActive = pathname.includes(`/admin/${organization.id}`);
-	const [collapsibleOpen, setCollapsibleOpen] = useState(pathname.includes(`/admin/${organization.id}`));
+	const [collapsibleOpen, setCollapsibleOpen] = useState(
+		pathname.includes(`/admin/${organization.id}`),
+	);
 	const closeMobileSidebarOnClick = () => {
 		if (isMobile) {
 			closeMobileSidebar();
@@ -58,7 +83,9 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 			onOpenChange={setCollapsibleOpen}
 			className={cn(
 				"group/collapsible hover:bg-card bg-card/50 transition-all rounded-lg",
-				pathname.includes(`/admin/${organization.id}`) ? "bg-card" : "bg-transparent"
+				pathname.includes(`/admin/${organization.id}`)
+					? "bg-card"
+					: "bg-transparent",
 			)}
 		>
 			<SidebarGroup className={cn("")}>
@@ -69,7 +96,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 					<div
 						className={cn(
 							"flex items-center justify-center gap-1 hover:bg-sidebar-accent rounded-lg transition-all group/coltrig w-full text-sidebar-foreground h-9",
-							pathname === `/admin/${organization.id}` && "bg-transparent"
+							pathname === `/admin/${organization.id}` && "bg-transparent",
 						)}
 					>
 						<SidebarMenuButton
@@ -81,7 +108,11 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 									<div className="h-4 w-4 aspect-square relative flex items-center justify-center">
 										<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
 										<Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0 bg-accent">
-											<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
+											<AvatarImage
+												src={organization.logo || ""}
+												alt={organization.name}
+												className=""
+											/>
 											<AvatarFallback className="rounded-md uppercase text-xs">
 												<IconUsers className="h-4 w-4" />
 											</AvatarFallback>
@@ -92,7 +123,8 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						></SidebarMenuButton>
 
 						<Link
-							to={`/admin/${organization.id}`}
+							to={`/admin/$orgId`}
+							params={{ orgId: organization.id }}
 							className="w-full cursor-pointer"
 							onClick={() => {
 								setCollapsibleOpen(true);
@@ -102,7 +134,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 							<p
 								className={cn(
 									"hover:bg-transparent font-semibold text-sidebar-foreground/70 group-hover/coltrig:text-sidebar-foreground cursor-pointer",
-									isActive && "text-sidebar-foreground"
+									isActive && "text-sidebar-foreground",
 								)}
 							>
 								<span>{organization.name}</span>
@@ -115,7 +147,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 										icon={
 											<IconDots
 												className={cn(
-													"text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/coltrig:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border cursor-pointer"
+													"text-sidebar-foreground/0 aspect-square p-0 h-4 group-hover/coltrig:text-sidebar-foreground data-[state=open]:text-sidebar-foreground transition-all relative bg-transparent hover:bg-border cursor-pointer",
 												)}
 											/>
 										}
@@ -130,8 +162,16 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						className="cursor-pointer px-0"
 						isActive={pathname.includes(`/admin/${organization.id}/tasks`)}
 					>
-						<Link to={`/admin/${organization.id}/tasks`} className="w-full cursor-pointer">
-							<SidebarMenuButton className="cursor-pointer" icon={<IconProgress size={16} />} tooltip={"Tasks"}>
+						<Link
+							to={`/admin/$orgId/tasks`}
+							params={{ orgId: organization.id }}
+							className="w-full cursor-pointer"
+						>
+							<SidebarMenuButton
+								className="cursor-pointer"
+								icon={<IconProgress size={16} />}
+								tooltip={"Tasks"}
+							>
 								<span>Tasks</span>
 							</SidebarMenuButton>
 						</Link>
@@ -142,7 +182,9 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	);
 
 	// Desktop + Sidebar Closed: Dropdown with organization options
-	const renderDropdownView = () => <SidebarMenuItem>{renderDropdown({})}</SidebarMenuItem>;
+	const renderDropdownView = () => (
+		<SidebarMenuItem>{renderDropdown({})}</SidebarMenuItem>
+	);
 
 	interface DropdownProps {
 		customTrigger?: React.ReactNode;
@@ -157,7 +199,10 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						tooltip={organization.name}
 						icon={
 							<Avatar className="h-4 w-4 rounded-md">
-								<AvatarImage src={organization.logo || ""} alt={organization.name} />
+								<AvatarImage
+									src={organization.logo || ""}
+									alt={organization.name}
+								/>
 								<AvatarFallback className="rounded-md uppercase text-xs">
 									<IconUsers className="h-4 w-4" />
 								</AvatarFallback>
@@ -171,20 +216,25 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 			<DropdownMenuContent
 				className={cn(
 					"w-60 rounded-lg p-0 z-[999]",
-					isMobile && "w-(--radix-dropdown-menu-trigger-width) min-w-56"
+					isMobile && "w-(--radix-dropdown-menu-trigger-width) min-w-56",
 				)}
 				side={isMobile ? "top" : "right"}
 				align="start"
 			>
 				<DropdownMenuLabel className="flex items-start gap-3 bg-background p-2 border-b">
 					<Avatar className="h-9 w-9 rounded-md">
-						<AvatarImage src={organization.logo || ""} alt={organization.name} />
+						<AvatarImage
+							src={organization.logo || ""}
+							alt={organization.name}
+						/>
 						<AvatarFallback className="rounded-md uppercase text-xs">
 							<IconUsers className="h-4 w-4" />
 						</AvatarFallback>
 					</Avatar>
 					<div className="flex min-w-0 flex-col">
-						<span className="text-foreground truncate text-sm font-medium">{organization.name}</span>
+						<span className="text-foreground truncate text-sm font-medium">
+							{organization.name}
+						</span>
 						<span className="text-muted-foreground truncate text-xs font-normal">
 							{organization.slug}.{process.env.VITE_ROOT_DOMAIN}
 						</span>
@@ -194,7 +244,10 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 						onClick={closeMobileSidebarOnClick}
 						className="ml-auto"
 					>
-						<Button variant={"accent"} className="h-9 w-9 ml-auto aspect-square p-0">
+						<Button
+							variant={"accent"}
+							className="h-9 w-9 ml-auto aspect-square p-0"
+						>
 							<IconSettings className="h-4 w-4" />
 						</Button>
 					</a>
@@ -203,7 +256,11 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 				<DropdownMenuLabel>Projects</DropdownMenuLabel>
 				<DropdownMenuGroup className="p-1">
 					<DropdownMenuItem asChild>
-						<Link to={`/admin/${organization.id}/tasks`} className="flex items-center gap-2">
+						<Link
+							to={`/admin/$orgId/tasks`}
+							params={{ orgId: organization.id }}
+							className="flex items-center gap-2"
+						>
 							<IconProgress className="h-4 w-4" />
 							<span>Tasks</span>
 						</Link>

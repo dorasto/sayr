@@ -82,7 +82,11 @@ export default function OrganizationHomePage() {
 			style="compact"
 		>
 			<div className="grid md:grid-cols-12 gap-3">
-				<Link to={`/admin/${organization.id}/tasks`} className="col-span-full">
+				<Link
+					to={`/admin/$orgId/tasks`}
+					params={{ orgId: organization.id }}
+					className="col-span-full"
+				>
 					<Tile className="md:w-full hover:bg-accent">
 						<TileHeader className="w-full">
 							<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
@@ -94,7 +98,8 @@ export default function OrganizationHomePage() {
 					</Tile>
 				</Link>
 				<Link
-					to={`/admin/settings/org/${organization.id}/categories`}
+					to={`/admin/settings/org/$orgId/categories`}
+					params={{ orgId: organization.id }}
 					className="col-span-6 row-span-2"
 				>
 					<Tile className="md:w-full hover:bg-accent h-full">
@@ -107,7 +112,8 @@ export default function OrganizationHomePage() {
 					</Tile>
 				</Link>
 				<Link
-					to={`/admin/settings/org/${organization.id}/labels`}
+					to={`/admin/settings/org/$orgId/labels`}
+					params={{ orgId: organization.id }}
 					className="col-span-3"
 				>
 					<Tile className="md:w-full hover:bg-accent h-full">
@@ -120,7 +126,8 @@ export default function OrganizationHomePage() {
 					</Tile>
 				</Link>
 				<Link
-					to={`/admin/settings/org/${organization.id}/team`}
+					to={`/admin/settings/org/$orgId/team`}
+					params={{ orgId: organization.id }}
 					className="col-span-3"
 				>
 					<Tile className="md:w-full hover:bg-accent">
@@ -133,7 +140,8 @@ export default function OrganizationHomePage() {
 					</Tile>
 				</Link>
 				<Link
-					to={`/admin/settings/org/${organization.id}/connections`}
+					to={`/admin/settings/org/$orgId/connections`}
+					params={{ orgId: organization.id }}
 					className="col-span-6"
 				>
 					<Tile className="md:w-full hover:bg-accent">

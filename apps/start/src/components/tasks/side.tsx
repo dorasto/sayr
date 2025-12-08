@@ -252,7 +252,8 @@ export default function ProjectSide() {
 				</TileHeader>
 				<TileAction>
 					<Link
-						to={`/admin/settings/org/${organization.id}`}
+						to={`/admin/settings/org/$orgId`}
+						params={{ orgId: organization.id }}
 						className="h-full w-full aspect-square flex items-center justify-center"
 					>
 						<Button variant={"ghost"} size={"icon"} className="p-0 h-4 w-4">
