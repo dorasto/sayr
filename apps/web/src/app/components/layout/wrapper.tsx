@@ -39,7 +39,7 @@ export function Wrapper({ children, className }: Props) {
 interface SubProps {
 	children: React.ReactNode;
 	className?: string;
-    rootClassName?: string;
+	rootClassName?: string;
 	style?: "default" | "compact";
 	title?: string;
 	description?: string;
@@ -50,7 +50,7 @@ interface SubProps {
 export function SubWrapper({
 	children,
 	className,
-    rootClassName,
+	rootClassName,
 	style = "default",
 	title = "title",
 	description,

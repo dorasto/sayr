@@ -10,6 +10,16 @@
 		"check-types": {
 			"dependsOn": ["^check-types"]
 		},
+		"lint": {
+			"dependsOn": ["^lint"]
+		},
+		"lint:fix": {
+			"dependsOn": ["^lint:fix"],
+			"cache": false
+		},
+		"format": {
+			"cache": false
+		},
 		"dev": {
 			"cache": false,
 			"persistent": true,
@@ -19,10 +29,7 @@
 			"dependsOn": ["build"],
 			"cache": false,
 			"persistent": true
-		},
-		"//#format-write": { "cache": false },
-		"//#lint": {},
-		"//#lint:fix": { "cache": false }
+		}
 	},
 	"globalDependencies": ["package.json", "pnpm-lock.yaml"],
 	"globalEnv": ["NODE_ENV"]

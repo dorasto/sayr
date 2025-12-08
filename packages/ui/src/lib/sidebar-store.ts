@@ -58,10 +58,7 @@ sidebarStore.subscribe(() => {
 });
 
 export const sidebarActions = {
-	registerSidebar: (
-		id: string,
-		initialState: Partial<SidebarState> = {},
-	) => {
+	registerSidebar: (id: string, initialState: Partial<SidebarState> = {}) => {
 		sidebarStore.setState((state) => {
 			const newState: SidebarState = {
 				open: true,
@@ -90,14 +87,14 @@ export const sidebarActions = {
 	unregisterSidebar: (id: string) => {
 		sidebarStore.setState((state) => {
 			const { [id]: removedSidebar, ...rest } = state.sidebars;
-			
+
 			// Remove keyboard shortcut mapping if exists
 			const newKeyboardShortcuts = { ...state.keyboardShortcuts };
 			if (removedSidebar?.keyboardShortcut) {
 				delete newKeyboardShortcuts[removedSidebar.keyboardShortcut];
 			}
 
-			return { 
+			return {
 				sidebars: rest,
 				keyboardShortcuts: newKeyboardShortcuts,
 			};
@@ -114,9 +111,7 @@ export const sidebarActions = {
 					...state.sidebars,
 					[id]: {
 						...sidebar,
-						...(isMobile
-							? { openMobile: !sidebar.openMobile }
-							: { open: !sidebar.open }),
+						...(isMobile ? { openMobile: !sidebar.openMobile } : { open: !sidebar.open }),
 					},
 				},
 				keyboardShortcuts: state.keyboardShortcuts,
@@ -221,14 +216,14 @@ export const sidebarActions = {
 	clearSidebarState: (id: string) => {
 		sidebarStore.setState((state) => {
 			const { [id]: removedSidebar, ...rest } = state.sidebars;
-			
+
 			// Remove keyboard shortcut mapping if exists
 			const newKeyboardShortcuts = { ...state.keyboardShortcuts };
 			if (removedSidebar?.keyboardShortcut) {
 				delete newKeyboardShortcuts[removedSidebar.keyboardShortcut];
 			}
 
-			return { 
+			return {
 				sidebars: rest,
 				keyboardShortcuts: newKeyboardShortcuts,
 			};

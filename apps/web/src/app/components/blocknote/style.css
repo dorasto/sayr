@@ -1,13 +1,11 @@
-
-
 .bn-editor {
-    padding-inline: 0px;
-    padding-block: 0px
+	padding-inline: 0px;
+	padding-block: 0px;
 }
 .bn-container[data-theming-root][data-color-scheme] {
-    --bn-colors-editor-background: "transparent";
-  --bn-colors-editor-text: var(--foreground);
-  /* --bn-colors-menu-text: #ffffff;
+	--bn-colors-editor-background: "transparent";
+	--bn-colors-editor-text: var(--foreground);
+	/* --bn-colors-menu-text: #ffffff;
   --bn-colors-menu-background: #9b0000;
   --bn-colors-tooltip-text: #ffffff;
   --bn-colors-tooltip-background: #b00000;
@@ -24,55 +22,55 @@
   --bn-border-radius: 4px;
   --bn-font-family: Helvetica Neue, sans-serif; */
 }
-[data-color-scheme="light"] [data-content-type="codeBlock"]{
-    background: var(--muted) !important;
+[data-color-scheme="light"] [data-content-type="codeBlock"] {
+	background: var(--muted) !important;
 }
-[data-color-scheme="dark"] [data-content-type="codeBlock"]{
-    background: var(--muted) !important;
+[data-color-scheme="dark"] [data-content-type="codeBlock"] {
+	background: var(--muted) !important;
 }
 
 /* Simple link styling */
 .bn-inline-content a[href] {
-    color: var(--primary);
-    font-weight: 700;
+	color: var(--primary);
+	font-weight: 700;
 }
 
 /* External link icon */
 .bn-inline-content a[href^="http"]::before,
 .bn-inline-content a[href^="https://"]::before {
-    content: "";
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    margin-right: 0.25rem;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    vertical-align: middle;
+	content: "";
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	margin-right: 0.25rem;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	vertical-align: middle;
 }
 
 /* Light theme - dark icon */
 :root .bn-inline-content a[href^="http"]::before,
 :root .bn-inline-content a[href^="https://"]::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23EF9B0D' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='none' d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M9 15l6 -6' /%3E%3Cpath d='M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464' /%3E%3Cpath d='M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463' /%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23EF9B0D' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='none' d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M9 15l6 -6' /%3E%3Cpath d='M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464' /%3E%3Cpath d='M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463' /%3E%3C/svg%3E");
 }
 
 /* Dark theme - light icon */
 .dark .bn-inline-content a[href^="http"]::before,
 .dark .bn-inline-content a[href^="https://"]::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23EF9B0D' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='none' d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M9 15l6 -6' /%3E%3Cpath d='M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464' /%3E%3Cpath d='M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463' /%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23EF9B0D' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='none' d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M9 15l6 -6' /%3E%3Cpath d='M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464' /%3E%3Cpath d='M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463' /%3E%3C/svg%3E");
 }
 
 /* Prevent navigation in edit mode */
 [data-theming-readonly="false"] .bn-inline-content a[href] {
-    pointer-events: none;
-    cursor: text;
+	pointer-events: none;
+	cursor: text;
 }
 
 /* Allow navigation in readonly mode */
 [data-theming-readonly="true"] .bn-inline-content a[href] {
-    pointer-events: auto;
-    cursor: pointer;
+	pointer-events: auto;
+	cursor: pointer;
 }
 
 /* picker - override pointer size using CSS custom properties
@@ -87,5 +85,5 @@
 } */
 
 .bn-file-block-content-wrapper {
-    outline: none !important;
+	outline: none !important;
 }

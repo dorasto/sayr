@@ -6,15 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"maxSize": 1048576,
-		"includes": [
-			"apps/tanstack/src/**/*.{ts,tsx,js,jsx}",
-			"apps/start/src/**/*.{ts,tsx,js,jsx}",
-			"apps/web/src/**/*.{ts,tsx,js,jsx}",
-			"apps/backend/**/*.{ts,js}",
-			"packages/*/src/**/*.{ts,tsx,js,jsx}",
-			"packages/*/schema/**/*.ts"
-		]
+		"maxSize": 1048576
 	},
 	"formatter": {
 		"enabled": true,
@@ -32,6 +24,12 @@
 			},
 			"style": {
 				"useTemplate": "error"
+			},
+			"a11y": {
+				"recommended": true
+			},
+			"correctness": {
+				"useJsxKeyInIterable": "error"
 			}
 		}
 	},
@@ -56,20 +54,5 @@
 				"organizeImports": "on"
 			}
 		}
-	},
-	"overrides": [
-		{
-			"includes": ["**/apps/web/**"],
-			"linter": {
-				"rules": {
-					"a11y": {
-						"recommended": true
-					},
-					"correctness": {
-						"useJsxKeyInIterable": "error"
-					}
-				}
-			}
-		}
-	]
+	}
 }

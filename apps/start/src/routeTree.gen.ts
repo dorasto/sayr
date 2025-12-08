@@ -8,382 +8,370 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as AdminRouteRouteImport } from './routes/admin/route'
-import { Route as HomeIndexRouteImport } from './routes/home/index'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as OrgsOrgSlugRouteImport } from './routes/orgs/$orgSlug'
-import { Route as AdminMineRouteRouteImport } from './routes/admin/mine/route'
-import { Route as AdminOrgIdRouteRouteImport } from './routes/admin/$orgId/route'
-import { Route as HomeLoginIndexRouteImport } from './routes/home/login/index'
-import { Route as AdminMineIndexRouteImport } from './routes/admin/mine/index'
-import { Route as AdminOrgIdIndexRouteImport } from './routes/admin/$orgId/index'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AdminOrgIdTasksRouteRouteImport } from './routes/admin/$orgId/tasks/route'
-import { Route as AdminOrgIdTasksIndexRouteImport } from './routes/admin/$orgId/tasks/index'
-import { Route as AdminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/route'
-import { Route as AdminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/index'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as AdminRouteRouteImport } from "./routes/admin/route";
+import { Route as HomeIndexRouteImport } from "./routes/home/index";
+import { Route as AdminIndexRouteImport } from "./routes/admin/index";
+import { Route as OrgsOrgSlugRouteImport } from "./routes/orgs/$orgSlug";
+import { Route as AdminMineRouteRouteImport } from "./routes/admin/mine/route";
+import { Route as AdminOrgIdRouteRouteImport } from "./routes/admin/$orgId/route";
+import { Route as HomeLoginIndexRouteImport } from "./routes/home/login/index";
+import { Route as AdminMineIndexRouteImport } from "./routes/admin/mine/index";
+import { Route as AdminOrgIdIndexRouteImport } from "./routes/admin/$orgId/index";
+import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
+import { Route as AdminOrgIdTasksRouteRouteImport } from "./routes/admin/$orgId/tasks/route";
+import { Route as AdminOrgIdTasksIndexRouteImport } from "./routes/admin/$orgId/tasks/index";
+import { Route as AdminOrgIdTasksTaskShortIdRouteRouteImport } from "./routes/admin/$orgId/tasks/$taskShortId/route";
+import { Route as AdminOrgIdTasksTaskShortIdIndexRouteImport } from "./routes/admin/$orgId/tasks/$taskShortId/index";
 
 const AdminRouteRoute = AdminRouteRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
+	id: "/admin",
+	path: "/admin",
+	getParentRoute: () => rootRouteImport,
+} as any);
 const HomeIndexRoute = HomeIndexRouteImport.update({
-  id: '/home/',
-  path: '/home/',
-  getParentRoute: () => rootRouteImport,
-} as any)
+	id: "/home/",
+	path: "/home/",
+	getParentRoute: () => rootRouteImport,
+} as any);
 const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
+	id: "/",
+	path: "/",
+	getParentRoute: () => AdminRouteRoute,
+} as any);
 const OrgsOrgSlugRoute = OrgsOrgSlugRouteImport.update({
-  id: '/orgs/$orgSlug',
-  path: '/orgs/$orgSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
+	id: "/orgs/$orgSlug",
+	path: "/orgs/$orgSlug",
+	getParentRoute: () => rootRouteImport,
+} as any);
 const AdminMineRouteRoute = AdminMineRouteRouteImport.update({
-  id: '/mine',
-  path: '/mine',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
+	id: "/mine",
+	path: "/mine",
+	getParentRoute: () => AdminRouteRoute,
+} as any);
 const AdminOrgIdRouteRoute = AdminOrgIdRouteRouteImport.update({
-  id: '/$orgId',
-  path: '/$orgId',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
+	id: "/$orgId",
+	path: "/$orgId",
+	getParentRoute: () => AdminRouteRoute,
+} as any);
 const HomeLoginIndexRoute = HomeLoginIndexRouteImport.update({
-  id: '/home/login/',
-  path: '/home/login/',
-  getParentRoute: () => rootRouteImport,
-} as any)
+	id: "/home/login/",
+	path: "/home/login/",
+	getParentRoute: () => rootRouteImport,
+} as any);
 const AdminMineIndexRoute = AdminMineIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminMineRouteRoute,
-} as any)
+	id: "/",
+	path: "/",
+	getParentRoute: () => AdminMineRouteRoute,
+} as any);
 const AdminOrgIdIndexRoute = AdminOrgIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminOrgIdRouteRoute,
-} as any)
+	id: "/",
+	path: "/",
+	getParentRoute: () => AdminOrgIdRouteRoute,
+} as any);
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
+	id: "/api/auth/$",
+	path: "/api/auth/$",
+	getParentRoute: () => rootRouteImport,
+} as any);
 const AdminOrgIdTasksRouteRoute = AdminOrgIdTasksRouteRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => AdminOrgIdRouteRoute,
-} as any)
+	id: "/tasks",
+	path: "/tasks",
+	getParentRoute: () => AdminOrgIdRouteRoute,
+} as any);
 const AdminOrgIdTasksIndexRoute = AdminOrgIdTasksIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminOrgIdTasksRouteRoute,
-} as any)
-const AdminOrgIdTasksTaskShortIdRouteRoute =
-  AdminOrgIdTasksTaskShortIdRouteRouteImport.update({
-    id: '/$taskShortId',
-    path: '/$taskShortId',
-    getParentRoute: () => AdminOrgIdTasksRouteRoute,
-  } as any)
-const AdminOrgIdTasksTaskShortIdIndexRoute =
-  AdminOrgIdTasksTaskShortIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AdminOrgIdTasksTaskShortIdRouteRoute,
-  } as any)
+	id: "/",
+	path: "/",
+	getParentRoute: () => AdminOrgIdTasksRouteRoute,
+} as any);
+const AdminOrgIdTasksTaskShortIdRouteRoute = AdminOrgIdTasksTaskShortIdRouteRouteImport.update({
+	id: "/$taskShortId",
+	path: "/$taskShortId",
+	getParentRoute: () => AdminOrgIdTasksRouteRoute,
+} as any);
+const AdminOrgIdTasksTaskShortIdIndexRoute = AdminOrgIdTasksTaskShortIdIndexRouteImport.update({
+	id: "/",
+	path: "/",
+	getParentRoute: () => AdminOrgIdTasksTaskShortIdRouteRoute,
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/admin': typeof AdminRouteRouteWithChildren
-  '/admin/$orgId': typeof AdminOrgIdRouteRouteWithChildren
-  '/admin/mine': typeof AdminMineRouteRouteWithChildren
-  '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
-  '/admin/': typeof AdminIndexRoute
-  '/home': typeof HomeIndexRoute
-  '/admin/$orgId/tasks': typeof AdminOrgIdTasksRouteRouteWithChildren
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgId/': typeof AdminOrgIdIndexRoute
-  '/admin/mine/': typeof AdminMineIndexRoute
-  '/home/login': typeof HomeLoginIndexRoute
-  '/admin/$orgId/tasks/$taskShortId': typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren
-  '/admin/$orgId/tasks/': typeof AdminOrgIdTasksIndexRoute
-  '/admin/$orgId/tasks/$taskShortId/': typeof AdminOrgIdTasksTaskShortIdIndexRoute
+	"/admin": typeof AdminRouteRouteWithChildren;
+	"/admin/$orgId": typeof AdminOrgIdRouteRouteWithChildren;
+	"/admin/mine": typeof AdminMineRouteRouteWithChildren;
+	"/orgs/$orgSlug": typeof OrgsOrgSlugRoute;
+	"/admin/": typeof AdminIndexRoute;
+	"/home": typeof HomeIndexRoute;
+	"/admin/$orgId/tasks": typeof AdminOrgIdTasksRouteRouteWithChildren;
+	"/api/auth/$": typeof ApiAuthSplatRoute;
+	"/admin/$orgId/": typeof AdminOrgIdIndexRoute;
+	"/admin/mine/": typeof AdminMineIndexRoute;
+	"/home/login": typeof HomeLoginIndexRoute;
+	"/admin/$orgId/tasks/$taskShortId": typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren;
+	"/admin/$orgId/tasks/": typeof AdminOrgIdTasksIndexRoute;
+	"/admin/$orgId/tasks/$taskShortId/": typeof AdminOrgIdTasksTaskShortIdIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
-  '/admin': typeof AdminIndexRoute
-  '/home': typeof HomeIndexRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgId': typeof AdminOrgIdIndexRoute
-  '/admin/mine': typeof AdminMineIndexRoute
-  '/home/login': typeof HomeLoginIndexRoute
-  '/admin/$orgId/tasks': typeof AdminOrgIdTasksIndexRoute
-  '/admin/$orgId/tasks/$taskShortId': typeof AdminOrgIdTasksTaskShortIdIndexRoute
+	"/orgs/$orgSlug": typeof OrgsOrgSlugRoute;
+	"/admin": typeof AdminIndexRoute;
+	"/home": typeof HomeIndexRoute;
+	"/api/auth/$": typeof ApiAuthSplatRoute;
+	"/admin/$orgId": typeof AdminOrgIdIndexRoute;
+	"/admin/mine": typeof AdminMineIndexRoute;
+	"/home/login": typeof HomeLoginIndexRoute;
+	"/admin/$orgId/tasks": typeof AdminOrgIdTasksIndexRoute;
+	"/admin/$orgId/tasks/$taskShortId": typeof AdminOrgIdTasksTaskShortIdIndexRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/admin': typeof AdminRouteRouteWithChildren
-  '/admin/$orgId': typeof AdminOrgIdRouteRouteWithChildren
-  '/admin/mine': typeof AdminMineRouteRouteWithChildren
-  '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
-  '/admin/': typeof AdminIndexRoute
-  '/home/': typeof HomeIndexRoute
-  '/admin/$orgId/tasks': typeof AdminOrgIdTasksRouteRouteWithChildren
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgId/': typeof AdminOrgIdIndexRoute
-  '/admin/mine/': typeof AdminMineIndexRoute
-  '/home/login/': typeof HomeLoginIndexRoute
-  '/admin/$orgId/tasks/$taskShortId': typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren
-  '/admin/$orgId/tasks/': typeof AdminOrgIdTasksIndexRoute
-  '/admin/$orgId/tasks/$taskShortId/': typeof AdminOrgIdTasksTaskShortIdIndexRoute
+	__root__: typeof rootRouteImport;
+	"/admin": typeof AdminRouteRouteWithChildren;
+	"/admin/$orgId": typeof AdminOrgIdRouteRouteWithChildren;
+	"/admin/mine": typeof AdminMineRouteRouteWithChildren;
+	"/orgs/$orgSlug": typeof OrgsOrgSlugRoute;
+	"/admin/": typeof AdminIndexRoute;
+	"/home/": typeof HomeIndexRoute;
+	"/admin/$orgId/tasks": typeof AdminOrgIdTasksRouteRouteWithChildren;
+	"/api/auth/$": typeof ApiAuthSplatRoute;
+	"/admin/$orgId/": typeof AdminOrgIdIndexRoute;
+	"/admin/mine/": typeof AdminMineIndexRoute;
+	"/home/login/": typeof HomeLoginIndexRoute;
+	"/admin/$orgId/tasks/$taskShortId": typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren;
+	"/admin/$orgId/tasks/": typeof AdminOrgIdTasksIndexRoute;
+	"/admin/$orgId/tasks/$taskShortId/": typeof AdminOrgIdTasksTaskShortIdIndexRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/admin'
-    | '/admin/$orgId'
-    | '/admin/mine'
-    | '/orgs/$orgSlug'
-    | '/admin/'
-    | '/home'
-    | '/admin/$orgId/tasks'
-    | '/api/auth/$'
-    | '/admin/$orgId/'
-    | '/admin/mine/'
-    | '/home/login'
-    | '/admin/$orgId/tasks/$taskShortId'
-    | '/admin/$orgId/tasks/'
-    | '/admin/$orgId/tasks/$taskShortId/'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/orgs/$orgSlug'
-    | '/admin'
-    | '/home'
-    | '/api/auth/$'
-    | '/admin/$orgId'
-    | '/admin/mine'
-    | '/home/login'
-    | '/admin/$orgId/tasks'
-    | '/admin/$orgId/tasks/$taskShortId'
-  id:
-    | '__root__'
-    | '/admin'
-    | '/admin/$orgId'
-    | '/admin/mine'
-    | '/orgs/$orgSlug'
-    | '/admin/'
-    | '/home/'
-    | '/admin/$orgId/tasks'
-    | '/api/auth/$'
-    | '/admin/$orgId/'
-    | '/admin/mine/'
-    | '/home/login/'
-    | '/admin/$orgId/tasks/$taskShortId'
-    | '/admin/$orgId/tasks/'
-    | '/admin/$orgId/tasks/$taskShortId/'
-  fileRoutesById: FileRoutesById
+	fileRoutesByFullPath: FileRoutesByFullPath;
+	fullPaths:
+		| "/admin"
+		| "/admin/$orgId"
+		| "/admin/mine"
+		| "/orgs/$orgSlug"
+		| "/admin/"
+		| "/home"
+		| "/admin/$orgId/tasks"
+		| "/api/auth/$"
+		| "/admin/$orgId/"
+		| "/admin/mine/"
+		| "/home/login"
+		| "/admin/$orgId/tasks/$taskShortId"
+		| "/admin/$orgId/tasks/"
+		| "/admin/$orgId/tasks/$taskShortId/";
+	fileRoutesByTo: FileRoutesByTo;
+	to:
+		| "/orgs/$orgSlug"
+		| "/admin"
+		| "/home"
+		| "/api/auth/$"
+		| "/admin/$orgId"
+		| "/admin/mine"
+		| "/home/login"
+		| "/admin/$orgId/tasks"
+		| "/admin/$orgId/tasks/$taskShortId";
+	id:
+		| "__root__"
+		| "/admin"
+		| "/admin/$orgId"
+		| "/admin/mine"
+		| "/orgs/$orgSlug"
+		| "/admin/"
+		| "/home/"
+		| "/admin/$orgId/tasks"
+		| "/api/auth/$"
+		| "/admin/$orgId/"
+		| "/admin/mine/"
+		| "/home/login/"
+		| "/admin/$orgId/tasks/$taskShortId"
+		| "/admin/$orgId/tasks/"
+		| "/admin/$orgId/tasks/$taskShortId/";
+	fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  AdminRouteRoute: typeof AdminRouteRouteWithChildren
-  OrgsOrgSlugRoute: typeof OrgsOrgSlugRoute
-  HomeIndexRoute: typeof HomeIndexRoute
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  HomeLoginIndexRoute: typeof HomeLoginIndexRoute
+	AdminRouteRoute: typeof AdminRouteRouteWithChildren;
+	OrgsOrgSlugRoute: typeof OrgsOrgSlugRoute;
+	HomeIndexRoute: typeof HomeIndexRoute;
+	ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
+	HomeLoginIndexRoute: typeof HomeLoginIndexRoute;
 }
 
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/home/': {
-      id: '/home/'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/orgs/$orgSlug': {
-      id: '/orgs/$orgSlug'
-      path: '/orgs/$orgSlug'
-      fullPath: '/orgs/$orgSlug'
-      preLoaderRoute: typeof OrgsOrgSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/mine': {
-      id: '/admin/mine'
-      path: '/mine'
-      fullPath: '/admin/mine'
-      preLoaderRoute: typeof AdminMineRouteRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/$orgId': {
-      id: '/admin/$orgId'
-      path: '/$orgId'
-      fullPath: '/admin/$orgId'
-      preLoaderRoute: typeof AdminOrgIdRouteRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/home/login/': {
-      id: '/home/login/'
-      path: '/home/login'
-      fullPath: '/home/login'
-      preLoaderRoute: typeof HomeLoginIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/mine/': {
-      id: '/admin/mine/'
-      path: '/'
-      fullPath: '/admin/mine/'
-      preLoaderRoute: typeof AdminMineIndexRouteImport
-      parentRoute: typeof AdminMineRouteRoute
-    }
-    '/admin/$orgId/': {
-      id: '/admin/$orgId/'
-      path: '/'
-      fullPath: '/admin/$orgId/'
-      preLoaderRoute: typeof AdminOrgIdIndexRouteImport
-      parentRoute: typeof AdminOrgIdRouteRoute
-    }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/$orgId/tasks': {
-      id: '/admin/$orgId/tasks'
-      path: '/tasks'
-      fullPath: '/admin/$orgId/tasks'
-      preLoaderRoute: typeof AdminOrgIdTasksRouteRouteImport
-      parentRoute: typeof AdminOrgIdRouteRoute
-    }
-    '/admin/$orgId/tasks/': {
-      id: '/admin/$orgId/tasks/'
-      path: '/'
-      fullPath: '/admin/$orgId/tasks/'
-      preLoaderRoute: typeof AdminOrgIdTasksIndexRouteImport
-      parentRoute: typeof AdminOrgIdTasksRouteRoute
-    }
-    '/admin/$orgId/tasks/$taskShortId': {
-      id: '/admin/$orgId/tasks/$taskShortId'
-      path: '/$taskShortId'
-      fullPath: '/admin/$orgId/tasks/$taskShortId'
-      preLoaderRoute: typeof AdminOrgIdTasksTaskShortIdRouteRouteImport
-      parentRoute: typeof AdminOrgIdTasksRouteRoute
-    }
-    '/admin/$orgId/tasks/$taskShortId/': {
-      id: '/admin/$orgId/tasks/$taskShortId/'
-      path: '/'
-      fullPath: '/admin/$orgId/tasks/$taskShortId/'
-      preLoaderRoute: typeof AdminOrgIdTasksTaskShortIdIndexRouteImport
-      parentRoute: typeof AdminOrgIdTasksTaskShortIdRouteRoute
-    }
-  }
+declare module "@tanstack/react-router" {
+	interface FileRoutesByPath {
+		"/admin": {
+			id: "/admin";
+			path: "/admin";
+			fullPath: "/admin";
+			preLoaderRoute: typeof AdminRouteRouteImport;
+			parentRoute: typeof rootRouteImport;
+		};
+		"/home/": {
+			id: "/home/";
+			path: "/home";
+			fullPath: "/home";
+			preLoaderRoute: typeof HomeIndexRouteImport;
+			parentRoute: typeof rootRouteImport;
+		};
+		"/admin/": {
+			id: "/admin/";
+			path: "/";
+			fullPath: "/admin/";
+			preLoaderRoute: typeof AdminIndexRouteImport;
+			parentRoute: typeof AdminRouteRoute;
+		};
+		"/orgs/$orgSlug": {
+			id: "/orgs/$orgSlug";
+			path: "/orgs/$orgSlug";
+			fullPath: "/orgs/$orgSlug";
+			preLoaderRoute: typeof OrgsOrgSlugRouteImport;
+			parentRoute: typeof rootRouteImport;
+		};
+		"/admin/mine": {
+			id: "/admin/mine";
+			path: "/mine";
+			fullPath: "/admin/mine";
+			preLoaderRoute: typeof AdminMineRouteRouteImport;
+			parentRoute: typeof AdminRouteRoute;
+		};
+		"/admin/$orgId": {
+			id: "/admin/$orgId";
+			path: "/$orgId";
+			fullPath: "/admin/$orgId";
+			preLoaderRoute: typeof AdminOrgIdRouteRouteImport;
+			parentRoute: typeof AdminRouteRoute;
+		};
+		"/home/login/": {
+			id: "/home/login/";
+			path: "/home/login";
+			fullPath: "/home/login";
+			preLoaderRoute: typeof HomeLoginIndexRouteImport;
+			parentRoute: typeof rootRouteImport;
+		};
+		"/admin/mine/": {
+			id: "/admin/mine/";
+			path: "/";
+			fullPath: "/admin/mine/";
+			preLoaderRoute: typeof AdminMineIndexRouteImport;
+			parentRoute: typeof AdminMineRouteRoute;
+		};
+		"/admin/$orgId/": {
+			id: "/admin/$orgId/";
+			path: "/";
+			fullPath: "/admin/$orgId/";
+			preLoaderRoute: typeof AdminOrgIdIndexRouteImport;
+			parentRoute: typeof AdminOrgIdRouteRoute;
+		};
+		"/api/auth/$": {
+			id: "/api/auth/$";
+			path: "/api/auth/$";
+			fullPath: "/api/auth/$";
+			preLoaderRoute: typeof ApiAuthSplatRouteImport;
+			parentRoute: typeof rootRouteImport;
+		};
+		"/admin/$orgId/tasks": {
+			id: "/admin/$orgId/tasks";
+			path: "/tasks";
+			fullPath: "/admin/$orgId/tasks";
+			preLoaderRoute: typeof AdminOrgIdTasksRouteRouteImport;
+			parentRoute: typeof AdminOrgIdRouteRoute;
+		};
+		"/admin/$orgId/tasks/": {
+			id: "/admin/$orgId/tasks/";
+			path: "/";
+			fullPath: "/admin/$orgId/tasks/";
+			preLoaderRoute: typeof AdminOrgIdTasksIndexRouteImport;
+			parentRoute: typeof AdminOrgIdTasksRouteRoute;
+		};
+		"/admin/$orgId/tasks/$taskShortId": {
+			id: "/admin/$orgId/tasks/$taskShortId";
+			path: "/$taskShortId";
+			fullPath: "/admin/$orgId/tasks/$taskShortId";
+			preLoaderRoute: typeof AdminOrgIdTasksTaskShortIdRouteRouteImport;
+			parentRoute: typeof AdminOrgIdTasksRouteRoute;
+		};
+		"/admin/$orgId/tasks/$taskShortId/": {
+			id: "/admin/$orgId/tasks/$taskShortId/";
+			path: "/";
+			fullPath: "/admin/$orgId/tasks/$taskShortId/";
+			preLoaderRoute: typeof AdminOrgIdTasksTaskShortIdIndexRouteImport;
+			parentRoute: typeof AdminOrgIdTasksTaskShortIdRouteRoute;
+		};
+	}
 }
 
 interface AdminOrgIdTasksTaskShortIdRouteRouteChildren {
-  AdminOrgIdTasksTaskShortIdIndexRoute: typeof AdminOrgIdTasksTaskShortIdIndexRoute
+	AdminOrgIdTasksTaskShortIdIndexRoute: typeof AdminOrgIdTasksTaskShortIdIndexRoute;
 }
 
-const AdminOrgIdTasksTaskShortIdRouteRouteChildren: AdminOrgIdTasksTaskShortIdRouteRouteChildren =
-  {
-    AdminOrgIdTasksTaskShortIdIndexRoute: AdminOrgIdTasksTaskShortIdIndexRoute,
-  }
+const AdminOrgIdTasksTaskShortIdRouteRouteChildren: AdminOrgIdTasksTaskShortIdRouteRouteChildren = {
+	AdminOrgIdTasksTaskShortIdIndexRoute: AdminOrgIdTasksTaskShortIdIndexRoute,
+};
 
-const AdminOrgIdTasksTaskShortIdRouteRouteWithChildren =
-  AdminOrgIdTasksTaskShortIdRouteRoute._addFileChildren(
-    AdminOrgIdTasksTaskShortIdRouteRouteChildren,
-  )
+const AdminOrgIdTasksTaskShortIdRouteRouteWithChildren = AdminOrgIdTasksTaskShortIdRouteRoute._addFileChildren(
+	AdminOrgIdTasksTaskShortIdRouteRouteChildren
+);
 
 interface AdminOrgIdTasksRouteRouteChildren {
-  AdminOrgIdTasksTaskShortIdRouteRoute: typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren
-  AdminOrgIdTasksIndexRoute: typeof AdminOrgIdTasksIndexRoute
+	AdminOrgIdTasksTaskShortIdRouteRoute: typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren;
+	AdminOrgIdTasksIndexRoute: typeof AdminOrgIdTasksIndexRoute;
 }
 
 const AdminOrgIdTasksRouteRouteChildren: AdminOrgIdTasksRouteRouteChildren = {
-  AdminOrgIdTasksTaskShortIdRouteRoute:
-    AdminOrgIdTasksTaskShortIdRouteRouteWithChildren,
-  AdminOrgIdTasksIndexRoute: AdminOrgIdTasksIndexRoute,
-}
+	AdminOrgIdTasksTaskShortIdRouteRoute: AdminOrgIdTasksTaskShortIdRouteRouteWithChildren,
+	AdminOrgIdTasksIndexRoute: AdminOrgIdTasksIndexRoute,
+};
 
-const AdminOrgIdTasksRouteRouteWithChildren =
-  AdminOrgIdTasksRouteRoute._addFileChildren(AdminOrgIdTasksRouteRouteChildren)
+const AdminOrgIdTasksRouteRouteWithChildren = AdminOrgIdTasksRouteRoute._addFileChildren(
+	AdminOrgIdTasksRouteRouteChildren
+);
 
 interface AdminOrgIdRouteRouteChildren {
-  AdminOrgIdTasksRouteRoute: typeof AdminOrgIdTasksRouteRouteWithChildren
-  AdminOrgIdIndexRoute: typeof AdminOrgIdIndexRoute
+	AdminOrgIdTasksRouteRoute: typeof AdminOrgIdTasksRouteRouteWithChildren;
+	AdminOrgIdIndexRoute: typeof AdminOrgIdIndexRoute;
 }
 
 const AdminOrgIdRouteRouteChildren: AdminOrgIdRouteRouteChildren = {
-  AdminOrgIdTasksRouteRoute: AdminOrgIdTasksRouteRouteWithChildren,
-  AdminOrgIdIndexRoute: AdminOrgIdIndexRoute,
-}
+	AdminOrgIdTasksRouteRoute: AdminOrgIdTasksRouteRouteWithChildren,
+	AdminOrgIdIndexRoute: AdminOrgIdIndexRoute,
+};
 
-const AdminOrgIdRouteRouteWithChildren = AdminOrgIdRouteRoute._addFileChildren(
-  AdminOrgIdRouteRouteChildren,
-)
+const AdminOrgIdRouteRouteWithChildren = AdminOrgIdRouteRoute._addFileChildren(AdminOrgIdRouteRouteChildren);
 
 interface AdminMineRouteRouteChildren {
-  AdminMineIndexRoute: typeof AdminMineIndexRoute
+	AdminMineIndexRoute: typeof AdminMineIndexRoute;
 }
 
 const AdminMineRouteRouteChildren: AdminMineRouteRouteChildren = {
-  AdminMineIndexRoute: AdminMineIndexRoute,
-}
+	AdminMineIndexRoute: AdminMineIndexRoute,
+};
 
-const AdminMineRouteRouteWithChildren = AdminMineRouteRoute._addFileChildren(
-  AdminMineRouteRouteChildren,
-)
+const AdminMineRouteRouteWithChildren = AdminMineRouteRoute._addFileChildren(AdminMineRouteRouteChildren);
 
 interface AdminRouteRouteChildren {
-  AdminOrgIdRouteRoute: typeof AdminOrgIdRouteRouteWithChildren
-  AdminMineRouteRoute: typeof AdminMineRouteRouteWithChildren
-  AdminIndexRoute: typeof AdminIndexRoute
+	AdminOrgIdRouteRoute: typeof AdminOrgIdRouteRouteWithChildren;
+	AdminMineRouteRoute: typeof AdminMineRouteRouteWithChildren;
+	AdminIndexRoute: typeof AdminIndexRoute;
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
-  AdminOrgIdRouteRoute: AdminOrgIdRouteRouteWithChildren,
-  AdminMineRouteRoute: AdminMineRouteRouteWithChildren,
-  AdminIndexRoute: AdminIndexRoute,
-}
+	AdminOrgIdRouteRoute: AdminOrgIdRouteRouteWithChildren,
+	AdminMineRouteRoute: AdminMineRouteRouteWithChildren,
+	AdminIndexRoute: AdminIndexRoute,
+};
 
-const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
-  AdminRouteRouteChildren,
-)
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(AdminRouteRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
-  AdminRouteRoute: AdminRouteRouteWithChildren,
-  OrgsOrgSlugRoute: OrgsOrgSlugRoute,
-  HomeIndexRoute: HomeIndexRoute,
-  ApiAuthSplatRoute: ApiAuthSplatRoute,
-  HomeLoginIndexRoute: HomeLoginIndexRoute,
-}
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+	AdminRouteRoute: AdminRouteRouteWithChildren,
+	OrgsOrgSlugRoute: OrgsOrgSlugRoute,
+	HomeIndexRoute: HomeIndexRoute,
+	ApiAuthSplatRoute: ApiAuthSplatRoute,
+	HomeLoginIndexRoute: HomeLoginIndexRoute,
+};
+export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
+import type { getRouter } from "./router.tsx";
+import type { createStart } from "@tanstack/react-start";
+declare module "@tanstack/react-start" {
+	interface Register {
+		ssr: true;
+		router: Awaited<ReturnType<typeof getRouter>>;
+	}
 }

@@ -59,9 +59,7 @@ async function main() {
 	const groupArg = process.argv[2] as keyof JobGroups | undefined;
 
 	if (!groupArg) {
-		console.error(
-			"❌ Missing group argument.\nUsage: bun run dev <group>\nExample: bun run dev github"
-		);
+		console.error("❌ Missing group argument.\nUsage: bun run dev <group>\nExample: bun run dev github");
 		process.exit(1);
 	}
 
