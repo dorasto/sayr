@@ -32,11 +32,11 @@ import {
 	IconLink,
 	IconUserOff,
 } from "@tabler/icons-react";
-import { nanoid } from "nanoid";
 import { Link } from "@tanstack/react-router";
+import { nanoid } from "nanoid";
 import { useRef, useState } from "react";
-import { priorityConfig, statusConfig } from "../shared/config";
 import GlobalTaskAssignees from "../shared/assignee";
+import { priorityConfig, statusConfig } from "../shared/config";
 import { RenderLabel } from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
@@ -79,6 +79,7 @@ export function UnifiedTaskItem({
 	personal = false,
 	columnId,
 }: UnifiedTaskItemProps) {
+	const taskId = String(task.shortId);
 	const status = statusConfig[task.status as keyof typeof statusConfig];
 	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
 
@@ -179,12 +180,15 @@ export function UnifiedTaskItem({
 	const renderListContent = () => (
 		// biome-ignore lint/a11y/noStaticElementInteractions: <required for custom clickable div>
 		// biome-ignore lint/a11y/useKeyWithClickEvents: <required for custom clickable div>
-		<div
+		<Link
 			// type="button"
 			className={cn(
 				"block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded",
 			)}
-			onClick={handleTaskClick}
+			// onClick={handleTaskClick}
+			to="/admin/$orgId/tasks/$taskShortId"
+			params={{ orgId: task.organizationId, taskShortId: taskId }}
+			preload={false}
 			onClickCapture={(e) => {
 				if (preventClickRef.current) {
 					e.preventDefault();
@@ -406,15 +410,18 @@ export function UnifiedTaskItem({
 					</div>
 				</div>
 			</div>
-		</div>
+		</Link>
 	);
 
 	const renderKanbanContent = () => (
 		// biome-ignore lint/a11y/noStaticElementInteractions: <required for custom clickable div>
 		// biome-ignore lint/a11y/useKeyWithClickEvents: <required for custom clickable div>
-		<div
+		<Link
 			className="flex flex-col gap-2 h-full w-full text-left"
-			onClick={handleTaskClick}
+			// onClick={handleTaskClick}
+			to="/admin/$orgId/tasks/$taskShortId"
+			params={{ orgId: task.organizationId, taskShortId: taskId }}
+			preload={false}
 		>
 			<div className="flex items-start justify-between gap-2 w-full">
 				<Label variant={"description"}>#{task.shortId}</Label>
@@ -528,7 +535,7 @@ export function UnifiedTaskItem({
 					}
 				/>
 			</div>
-		</div>
+		</Link>
 	);
 
 	const contextMenuContent = (

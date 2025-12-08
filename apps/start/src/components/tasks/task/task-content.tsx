@@ -361,6 +361,7 @@ export function TaskContent({
 						style="compact"
 						className="max-w-6xl"
 						title={task.title || "No title"}
+						backButton=".."
 						icon={
 							<Avatar>
 								<AvatarImage
@@ -381,12 +382,12 @@ export function TaskContent({
 							</div>
 						}
 					>
-						<Label
+						{/* <Label
 							variant={"heading"}
 							className={cn("text-left text-2xl font-bold ")}
 						>
 							{task.title}
-						</Label>
+						</Label> */}
 						{task.githubIssue?.issueUrl}
 						<JsonViewer
 							data={task}
