@@ -226,7 +226,7 @@ export function TaskContentSideContent({
 					/>
 				</TileAction>
 			</Tile>
-			<Tile className="md:w-full" variant={"transparent"}>
+			<Tile className="md:w-full items-start" variant={"transparent"}>
 				<TileHeader>
 					<TileTitle asChild>
 						<Label variant={"description"} className="text-xs">

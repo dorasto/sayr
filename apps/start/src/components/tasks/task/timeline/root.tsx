@@ -1,10 +1,16 @@
 import type { schema } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
 import { Timeline } from "@repo/ui/components/tomui/timeline";
-import { useStateManagementFetch, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
+import {
+	useStateManagementFetch,
+	useStateManagementInfiniteFetch,
+} from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { IconLoader2 } from "@tabler/icons-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { TaskNewCommentContent } from "../comment/new";
+import { TimelineCategoryChange } from "./category-change";
 import {
 	ConsolidatedTimelineItem,
 	TimelineAssigneeAdded,
@@ -17,13 +23,15 @@ import {
 	TimelineStatusChange,
 	TimelineUpdated,
 } from "./index";
-import { TimelineCategoryChange } from "./category-change";
 import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
-import { Button } from "@repo/ui/components/button";
-import { useQueryClient } from "@tanstack/react-query";
 
-export default function GlobalTimeline({ task, labels, availableUsers, categories }: GlobalTimelineProps) {
+export default function GlobalTimeline({
+	task,
+	labels,
+	availableUsers,
+	categories,
+}: GlobalTimelineProps) {
 	const queryClient = useQueryClient();
 	const timelineComponents = {
 		created: TimelineCreated,
@@ -60,56 +68,71 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 
 	// --- COMMENTS FETCH (infinite) ---
 	const { value: comments } = useStateManagementInfiniteFetch<
-		{ data: schema.taskTimelineWithActor[]; pagination?: {
-			hasMore:boolean;
-			page:number;
-		} },
+		{
+			data: schema.taskTimelineWithActor[];
+			pagination?: {
+				hasMore: boolean;
+				page: number;
+			};
+		},
 		Partial<schema.taskTimelineWithActor>
 	>({
 		key: ["timeline", "comments", task.id, task.organizationId],
 		fetch: {
 			url: `${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/timeline/comments?org_id=${task.organizationId}&task_id=${task.id}&limit=20`,
 			custom: async (url, pageParam) => {
-				const pageUrl = pageParam && pageParam > 1 ? `${url}&page=${pageParam}` : url;
+				const pageUrl =
+					pageParam && pageParam > 1 ? `${url}&page=${pageParam}` : url;
 				const res = await fetch(pageUrl, { credentials: "include" });
 				if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
 				const data = await res.json();
 				return data; // { data, pagination }
 			},
-			getNextPageParam: (lastPage) => (lastPage.pagination?.hasMore ? lastPage.pagination.page + 1 : undefined),
+			getNextPageParam: (lastPage) =>
+				lastPage.pagination?.hasMore ? lastPage.pagination.page + 1 : undefined,
 		},
 		staleTime: 1000,
 		gcTime: 2000 * 60,
 		refetchOnWindowFocus: false,
 	});
 
-	const hasTimelineData = Boolean(activity.data?.length) || Boolean(comments.data?.length);
-	const showInitialLoading = (activity.isLoading || comments.isLoading) && !hasTimelineData;
+	const hasTimelineData =
+		Boolean(activity.data?.length) || Boolean(comments.data?.length);
+	const showInitialLoading =
+		(activity.isLoading || comments.isLoading) && !hasTimelineData;
 
 	// --- Update on external timeline updates ---
 	useEffect(() => {
-		const unsubscribe = onWindowMessage<{ type: string; payload: string }>("*", (msg) => {
-			if (msg.type === "timeline-update" && msg.payload === task.id) {
-				activity.refetch();
-			}
-			if (msg.type === "timeline-update-comment" && msg.payload === task.id) {
-				queryClient.invalidateQueries({
-					queryKey: ["timeline", "comments", task.id, task.organizationId],
-				});
-			}
-		});
+		const unsubscribe = onWindowMessage<{ type: string; payload: string }>(
+			"*",
+			(msg) => {
+				if (msg.type === "timeline-update" && msg.payload === task.id) {
+					activity.refetch();
+				}
+				if (msg.type === "timeline-update-comment" && msg.payload === task.id) {
+					queryClient.invalidateQueries({
+						queryKey: ["timeline", "comments", task.id, task.organizationId],
+					});
+				}
+			},
+		);
 		return unsubscribe;
 	}, [activity.refetch, task.id, queryClient, task.organizationId]);
 
 	// --- Flatten comments from all pages ---
 	const allCommentPages = comments.data ?? [];
-	const flattenedComments = [...allCommentPages].reverse().flatMap((page) => page.data);
+	const flattenedComments = [...allCommentPages]
+		.reverse()
+		.flatMap((page) => page.data);
 
 	// --- Determine visible date range (oldest + newest) ---
 	const { oldestCommentTime, newestCommentTime } = useMemo(() => {
-		if (flattenedComments.length === 0) return { oldestCommentTime: null, newestCommentTime: null };
+		if (flattenedComments.length === 0)
+			return { oldestCommentTime: null, newestCommentTime: null };
 
-		const times = flattenedComments.map((c) => new Date(c.createdAt || 0).getTime());
+		const times = flattenedComments.map((c) =>
+			new Date(c.createdAt || 0).getTime(),
+		);
 		return {
 			oldestCommentTime: Math.min(...times),
 			newestCommentTime: Math.max(...times),
@@ -118,7 +141,8 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 
 	// Include all activity inside, before, or after the visible comment date range
 	const visibleActivity = useMemo(() => {
-		if (!activity.data || !oldestCommentTime || !newestCommentTime) return activity.data||[]
+		if (!activity.data || !oldestCommentTime || !newestCommentTime)
+			return activity.data || [];
 		const now = Date.now();
 
 		return activity.data.filter((a) => {
@@ -133,7 +157,9 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 	const combinedData = [...visibleActivity, ...flattenedComments];
 
 	const consolidatedItems = consolidateTimelineItems(combinedData).sort(
-		(a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
+		(a, b) =>
+			new Date(a.createdAt ?? 0).getTime() -
+			new Date(b.createdAt ?? 0).getTime(),
 	);
 
 	// --- Split for mid‑timeline button placement ---
@@ -141,7 +167,7 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 	const topItems = consolidatedItems.slice(0, halfway);
 	const bottomItems = consolidatedItems.slice(halfway);
 	// biome-ignore lint/suspicious/noExplicitAny: <dont care>
-	const renderItem = (item:any) => {
+	const renderItem = (item: any) => {
 		if ("items" in item) {
 			return (
 				<ConsolidatedTimelineItem
@@ -153,7 +179,8 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 			);
 		}
 
-		const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
+		const TimelineComponent =
+			timelineComponents[item.eventType as keyof typeof timelineComponents];
 		if (!TimelineComponent) return null;
 
 		return (
@@ -182,13 +209,16 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 
 							{/* load more middle button */}
 							{comments.hasNextPage && (
-								<div className="flex justify-center py-4">
+								<div className="flex justify-center py-12 my-12 border-t border-b">
 									<Button
 										onClick={() => comments.fetchNextPage?.()}
 										disabled={comments.isFetchingNextPage}
-										className="px-4 py-2 text-sm rounded bg-accent text-accent-foreground hover:opacity-80 disabled:opacity-50 transition"
+										// className="px-4 py-2 text-sm rounded bg-accent text-accent-foreground hover:opacity-80 disabled:opacity-50 transition"
+										variant={"primary"}
 									>
-										{comments.isFetchingNextPage ? "Loading more..." : "Load more"}
+										{comments.isFetchingNextPage
+											? "Loading more..."
+											: "Load more"}
 									</Button>
 								</div>
 							)}
@@ -198,13 +228,18 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 						</Timeline>
 					</div>
 
-					<div className="py-4 mt-auto border-t border-border bg-background">
+					<div className="py-4 mt-auto">
 						<TaskNewCommentContent
 							task={task}
 							onFinish={async () => {
 								// Refetch comments (all pages)
 								queryClient.invalidateQueries({
-									queryKey: ["timeline", "comments", task.id, task.organizationId],
+									queryKey: [
+										"timeline",
+										"comments",
+										task.id,
+										task.organizationId,
+									],
 								});
 							}}
 						/>
