@@ -68,7 +68,7 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 	>({
 		key: ["timeline", "comments", task.id, task.organizationId],
 		fetch: {
-			url: `${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/timeline/comments?org_id=${task.organizationId}&task_id=${task.id}&limit=5`,
+			url: `${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/timeline/comments?org_id=${task.organizationId}&task_id=${task.id}&limit=20`,
 			custom: async (url, pageParam) => {
 				const pageUrl = pageParam && pageParam > 1 ? `${url}&page=${pageParam}` : url;
 				const res = await fetch(pageUrl, { credentials: "include" });
@@ -140,7 +140,6 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 	const halfway = Math.floor(consolidatedItems.length / 2);
 	const topItems = consolidatedItems.slice(0, halfway);
 	const bottomItems = consolidatedItems.slice(halfway);
-
 	// biome-ignore lint/suspicious/noExplicitAny: <dont care>
 	const renderItem = (item:any) => {
 		if ("items" in item) {
@@ -176,7 +175,7 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 				</div>
 			) : (
 				<>
-					<div className="flex-grow overflow-y-auto">
+					<div className="grow overflow-y-auto">
 						<Timeline>
 							{/* top half */}
 							{topItems.map(renderItem)}
@@ -189,7 +188,7 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 										disabled={comments.isFetchingNextPage}
 										className="px-4 py-2 text-sm rounded bg-accent text-accent-foreground hover:opacity-80 disabled:opacity-50 transition"
 									>
-										{comments.isFetchingNextPage ? "Loading more..." : "Load comments"}
+										{comments.isFetchingNextPage ? "Loading more..." : "Load more"}
 									</Button>
 								</div>
 							)}
