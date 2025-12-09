@@ -8,11 +8,12 @@ import {
 	getMergedTaskActivity,
 	getOrganizationMembers,
 	getTaskById,
+	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -26,6 +27,7 @@ import {
 	findClientByWsId,
 	findClientsByUserId,
 } from "../ws";
+import { errorResponse, paginatedSuccessResponse } from "../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
@@ -487,4 +489,167 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 		success: true,
 		data: timeline,
 	});
+});
+
+apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
+	const query = c.req.query();
+	const org_id = query.org_id;
+	const task_id = query.task_id;
+	// --- Validate required parameters ---
+	const missingParams = [];
+	if (!org_id) missingParams.push("org_id");
+	if (!task_id) missingParams.push("task_id");
+	if (missingParams.length > 0) {
+		return c.json(
+			{
+				success: false,
+				error: "MISSING_PARAMETERS",
+				message: `The following parameters are required: ${missingParams.join(", ")}`,
+			},
+			400
+		);
+	}
+	const timeline = await getTaskTimeline(org_id || "", task_id || "");
+	return c.json({
+		success: true,
+		data: timeline,
+	});
+});
+
+apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
+	try {
+		const query = c.req.query();
+
+		// --- Required params ---
+		const orgId = query.org_id;
+		const taskId = query.task_id;
+
+		const missingParams: string[] = [];
+		if (!orgId) missingParams.push("org_id");
+		if (!taskId) missingParams.push("task_id");
+
+		if (missingParams.length > 0) {
+			return c.json(
+				{
+					success: false,
+					error: "MISSING_PARAMETERS",
+					message: `The following parameters are required: ${missingParams.join(", ")}`,
+				},
+				400
+			);
+		}
+		if (!orgId || !taskId) {
+			return c.json(
+				{
+					success: false,
+					error: "MISSING_PARAMETERS",
+					message: `The following parameters are required: ${missingParams.join(", ")}`,
+				},
+				400
+			);
+		}
+
+		// --- Pagination setup ---
+		const MAX_LIMIT = 20;
+		const page = Math.max(Number(query.page) || 1, 1); // ✅ Added page variable
+		const limit = Math.min(Number(query.limit) || 10, MAX_LIMIT);
+
+		// Split half (odd number gets extra on newest side)
+		const oldestLimit = Math.floor(limit / 2);
+		const newestLimit = limit - oldestLimit;
+
+		// --- Access check ---
+		const session = c.get("session");
+		const isPublic = !session || !(await checkMembershipRole(session?.userId, orgId || ""));
+
+		// --- Base filter ---
+		const baseWhere = and(
+			eq(schema.taskComment.organizationId, orgId),
+			eq(schema.taskComment.taskId, taskId),
+			isPublic ? eq(schema.taskComment.visibility, "public") : undefined
+		);
+
+		// --- Total count ---
+		const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.taskComment).where(baseWhere);
+
+		const totalItems = Number(countResult?.count ?? 0);
+		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
+
+		// --- Fetch oldest (ASC) ---
+		const oldestRaw = await db.query.taskComment.findMany({
+			where: () => baseWhere,
+			orderBy: (tC, { asc }) => asc(tC.createdAt),
+			limit: oldestLimit,
+			offset: (page - 1) * oldestLimit, // ✅ optional offset to page oldest
+			with: {
+				createdBy: {
+					columns: { name: true, image: true },
+				},
+			},
+		});
+
+		// --- Fetch newest (DESC) ---
+		const newestRaw = await db.query.taskComment.findMany({
+			where: () => baseWhere,
+			orderBy: (tC, { desc }) => desc(tC.createdAt),
+			limit: newestLimit,
+			offset: (page - 1) * newestLimit, // ✅ optional offset here too
+			with: {
+				createdBy: {
+					columns: { name: true, image: true },
+				},
+			},
+		});
+
+		// --- Map fields ---
+		const mapWithEventType = (items: typeof newestRaw) =>
+			items.map((item) => ({
+				...item,
+				eventType: "comment" as const,
+				actor: item.createdBy,
+			}));
+
+		const oldest = mapWithEventType(oldestRaw);
+		const newest = mapWithEventType(newestRaw);
+
+		// --- Merge and sort chronologically ---
+		const data = [...oldest, ...newest].sort(
+			(a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+		);
+
+		// --- Pagination metadata ---
+		const hasMore = totalItems > page * limit;
+
+		// --- Return response ---
+		return c.json({
+			success: true,
+			data,
+			pagination: {
+				page, // ✅ now included
+				limit,
+				totalItems,
+				totalPages,
+				hasMore,
+			},
+		});
+	} catch (error) {
+		console.error("🚨 Timeline Comments Error:", error);
+
+		let readableError = "Database error";
+		let detailedMessage = "Unexpected error";
+
+		try {
+			const parsed = JSON.parse((error as Error).message);
+			readableError = (Array.isArray(parsed) ? parsed[0]?.message : parsed?.message) ?? readableError;
+			detailedMessage =
+				(Array.isArray(parsed)
+					? parsed[0]?.detail || parsed[0]?.hint || parsed[0]?.message
+					: parsed?.detail || parsed?.message) ?? detailedMessage;
+		} catch {
+			readableError = (error as Error)?.message || (typeof error === "string" ? error : "Unknown error");
+			detailedMessage = readableError;
+		}
+
+		return c.json(errorResponse(readableError, detailedMessage), 500);
+	}
 });

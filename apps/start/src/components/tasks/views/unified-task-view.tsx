@@ -128,7 +128,7 @@ export function UnifiedTaskView({
 				sendWindowMessage(
 					window,
 					{
-						type: "timeline-update",
+						type: "timeline-update-comment",
 						payload: msg.data.id,
 					},
 					"*",
