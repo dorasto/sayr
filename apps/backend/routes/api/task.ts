@@ -611,9 +611,14 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 
 		const oldest = mapWithEventType(oldestRaw);
 		const newest = mapWithEventType(newestRaw);
+		// --- Merge and remove duplicates ---
+		const merged = [...oldest, ...newest];
 
+		const uniqueData = Array.from(
+			new Map(merged.map((item) => [item.id, item])).values()
+		);
 		// --- Merge and sort chronologically ---
-		const data = [...oldest, ...newest].sort(
+		const data =uniqueData.sort(
 			(a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
 		);
 

@@ -118,7 +118,7 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 
 	// Include all activity inside, before, or after the visible comment date range
 	const visibleActivity = useMemo(() => {
-		if (!activity.data || !oldestCommentTime || !newestCommentTime) return [];
+		if (!activity.data || !oldestCommentTime || !newestCommentTime) return activity.data||[]
 		const now = Date.now();
 
 		return activity.data.filter((a) => {
