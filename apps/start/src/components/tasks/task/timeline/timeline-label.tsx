@@ -5,7 +5,7 @@ import type { TimelineItemProps } from "./types";
 
 export function TimelineLabelAdded({ item, labels = [] }: TimelineItemProps) {
 	const value = item.toValue as string;
-	const label = labels.find((label) => label.id === value.replaceAll('"', ""));
+	const label = labels.find((label) => label.id === value?.replaceAll('"', ""));
 	if (!label) {
 		return (
 			<TimelineItemWrapper item={item} icon={IconTagPlus} color="bg-accent text-muted-foreground">
@@ -22,7 +22,7 @@ export function TimelineLabelAdded({ item, labels = [] }: TimelineItemProps) {
 }
 export function TimelineLabelRemoved({ item, labels = [] }: TimelineItemProps) {
 	const value = item.toValue as string;
-	const label = labels.find((label) => label.id === value.replaceAll('"', ""));
+	const label = labels.find((label) => label.id === value?.replaceAll('"', ""));
 	if (!label) {
 		return (
 			<TimelineItemWrapper item={item} icon={IconTagMinus} color="bg-accent text-muted-foreground">

@@ -13,13 +13,13 @@ export function ConsolidatedTimelineLabels({
 	const addedLabels = consolidatedItem.items
 		.filter((item) => item.eventType === "label_added")
 		.map((item) => item.toValue as string)
-		.map((value) => labels.find((label) => label.id === value.replaceAll('"', "")))
+		.map((value) => labels.find((label) => label.id === value?.replaceAll('"', "")))
 		.filter(Boolean) as (typeof labels)[number][];
 
 	const removedLabels = consolidatedItem.items
 		.filter((item) => item.eventType === "label_removed")
 		.map((item) => item.toValue as string)
-		.map((value) => labels.find((label) => label.id === value.replaceAll('"', "")))
+		.map((value) => labels.find((label) => label.id === value?.replaceAll('"', "")))
 		.filter(Boolean) as (typeof labels)[number][];
 
 	const renderContent = () => {
