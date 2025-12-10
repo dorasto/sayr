@@ -798,6 +798,7 @@ setInterval(() => {
 			console.log("Closing dead socket", wsClient);
 			socket.close();
 			unsubscribe(socket);
+			wsClients.delete(socket);
 		} else {
 			try {
 				const pingTs = Date.now();

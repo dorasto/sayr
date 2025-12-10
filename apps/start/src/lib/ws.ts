@@ -5,7 +5,6 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
 
-// import { toast as sonnerToast } from "sonner";
 
 // import { useLogger } from "@/app/lib/axiom/client";
 
@@ -24,8 +23,7 @@ const useWebSocket = () => {
 				setWSStatus("Connecting");
 				webSocket = new WebSocket(import.meta.env.VITE_WS_URL || "/ws");
 				webSocket.onopen = () => {
-					console.log("✅ WebSocket connection established");
-					// log.info("WebSocket connection established");
+					console.info("WebSocket connection established");
 					lastMessageTimestamp = Date.now();
 					setWs(webSocket);
 				};
@@ -33,8 +31,6 @@ const useWebSocket = () => {
 					"message",
 					(event) => {
 						lastMessageTimestamp = Date.now();
-						// Log raw message for debugging
-						console.log("⬇️ WS Recv:", event.data);
 						try {
 							const data: WSMessage = JSON.parse(event.data);
 							switch (data.type) {
@@ -42,16 +38,16 @@ const useWebSocket = () => {
 									if (data.data.authenticated) {
 										setWSStatus("Connected");
 										setWSClientId(data.data.wsClientId);
-										// log.info("WebSocket authenticated", { wsClientId: data.data.wsClientId });
+										console.info("WebSocket authenticated", { wsClientId: data.data.wsClientId });
 										headlessToast.success({
 											id: "ws-connection-status",
 											title: "WebSocket Connected",
 											description: "Successfully connected to server",
 										});
 									} else {
+										webSocket?.close();
 										webSocket = null;
-										console.log("WebSocket disconnected (unauthenticated). Attempting to reconnect...");
-										// log.warn("WebSocket disconnected (unauthenticated)");
+										console.warn("WebSocket disconnected (unauthenticated)");
 										setWs(null);
 										setWSStatus("Reconnecting");
 										headlessToast.error({
@@ -64,13 +60,10 @@ const useWebSocket = () => {
 											},
 											duration: Infinity, // Make it persistent
 										});
-										connectWebSocket();
 									}
 									return;
 								case "PING": {
-									console.log("🚀 ~ WebSocket ~ PING:", data);
 									const pong = { type: "PONG", meta: { ts: Date.now() } } as WSMessage;
-									console.log("⬆️ Sending PONG:", pong);
 									webSocket?.send(JSON.stringify(pong));
 									return;
 								}
@@ -91,24 +84,18 @@ const useWebSocket = () => {
 									break;
 							}
 						} catch (error) {
-							console.log("📩 Raw (parse error):", event.data, error);
-							// log.error("WebSocket message parse error", { error, data: event.data });
+							console.error("WebSocket message parse error", { error, data: event.data });
 						}
 					},
 					{ signal: abortController.signal }
 				);
 				webSocket.onclose = (event) => {
 					webSocket = null;
-					console.log("WebSocket disconnected. Attempting to reconnect...", {
+					console.info("WebSocket disconnected", {
 						code: event.code,
 						reason: event.reason,
 						wasClean: event.wasClean,
 					});
-					// log.info("WebSocket disconnected", {
-					// 	code: event.code,
-					// 	reason: event.reason,
-					// 	wasClean: event.wasClean,
-					// });
 					setWs(null);
 					setWSClientId("");
 					setWSStatus("Reconnecting");
@@ -126,8 +113,7 @@ const useWebSocket = () => {
 				};
 
 				webSocket.onerror = (error) => {
-					console.error("WebSocket error:", error);
-					// log.error("WebSocket error", { error });
+					console.error("WebSocket error", { error });
 					if (webSocket && webSocket.readyState === WebSocket.OPEN) {
 						webSocket.close();
 					}
@@ -167,15 +153,13 @@ const useWebSocket = () => {
 
 		// Online/Offline listeners
 		const handleOnline = () => {
-			console.log("🌐 Browser is ONLINE");
-			// log.info("Browser online");
+			console.info("Browser online");
 			if (!webSocket || webSocket.readyState === WebSocket.CLOSED) {
 				connectWebSocket();
 			}
 		};
 		const handleOffline = () => {
-			console.log("🔌 Browser is OFFLINE");
-			// log.info("Browser offline");
+			console.info("Browser offline");
 		};
 		window.addEventListener("online", handleOnline);
 		window.addEventListener("offline", handleOffline);
@@ -188,8 +172,6 @@ const useWebSocket = () => {
 			window.removeEventListener("offline", handleOffline);
 			webSocket?.close();
 			abortController.abort();
-			// Clean up any persistent toast
-			// sonnerToast.dismiss("ws-connection-status");
 		};
 	}, [setWSStatus, setWSClientId]);
 	return ws;
