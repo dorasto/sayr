@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
+import NotFound from "./components/NotFound";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
@@ -13,6 +14,7 @@ export const getRouter = () => {
 		context: { queryClient },
 		defaultPreload: "intent",
 		scrollRestoration: true,
+		defaultNotFoundComponent:NotFound,
 		// Cache loader data for 30 seconds to prevent unnecessary refetches
 		// during hydration and same-route navigations
 		defaultPreloadStaleTime: 1000 * 30,

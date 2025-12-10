@@ -20,6 +20,7 @@ import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import NotFound from "@/components/NotFound";
 import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import appCss from "../styles.css?url";
+import { DefaultCatchBoundary } from "@/components/Error";
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
 	account?: schema.userType;
@@ -45,6 +46,7 @@ export const Route = createRootRouteWithContext<{
 		],
 	}),
 	notFoundComponent: NotFound,
+	errorComponent:DefaultCatchBoundary,
 	shellComponent: RootDocument,
 });
 
