@@ -44,7 +44,7 @@ export default function OrganizationTaskIdPage() {
 	return (
 		<div className="relative flex flex-col h-full max-h-full">
 			<div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
-				<Link to=".." className="">
+				<Link to=".." search={(prev) => prev} className="">
 					<Button
 						variant={"ghost"}
 						className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg"
