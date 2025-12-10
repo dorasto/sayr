@@ -1,6 +1,7 @@
 import { IconTag, IconUserMinus, IconUserPlus } from "@tabler/icons-react";
 import { nanoid } from "nanoid";
 import { Fragment } from "react";
+import { InlineLabel } from "../../shared/inlinelabel";
 import { RenderLabel } from "../../shared/label";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
 import { TimelineUpdated } from "./timeline-updated";
@@ -13,20 +14,24 @@ export function ConsolidatedTimelineLabels({
 	const addedLabels = consolidatedItem.items
 		.filter((item) => item.eventType === "label_added")
 		.map((item) => item.toValue as string)
-		.map((value) => labels.find((label) => label.id === value?.replaceAll('"', "")))
+		.map((value) =>
+			labels.find((label) => label.id === value?.replaceAll('"', "")),
+		)
 		.filter(Boolean) as (typeof labels)[number][];
 
 	const removedLabels = consolidatedItem.items
 		.filter((item) => item.eventType === "label_removed")
 		.map((item) => item.toValue as string)
-		.map((value) => labels.find((label) => label.id === value?.replaceAll('"', "")))
+		.map((value) =>
+			labels.find((label) => label.id === value?.replaceAll('"', "")),
+		)
 		.filter(Boolean) as (typeof labels)[number][];
 
 	const renderContent = () => {
 		return (
 			<>
-				<AvatarWithName
-					name={consolidatedItem.actor?.name || "Unknown"}
+				<InlineLabel
+					text={consolidatedItem.actor?.name || "Unknown"}
 					image={consolidatedItem.actor?.image || ""}
 				/>
 				{addedLabels.length > 0 && (
@@ -34,7 +39,10 @@ export function ConsolidatedTimelineLabels({
 						{" added "}
 						{addedLabels.map((label, index) => (
 							<Fragment key={label.id + nanoid(5)}>
-								<RenderLabel label={label} className="inline-flex !bg-transparent" />
+								<RenderLabel
+									label={label}
+									className="inline-flex !bg-transparent"
+								/>
 								{index < addedLabels.length - 1 && " "}
 							</Fragment>
 						))}
@@ -46,7 +54,10 @@ export function ConsolidatedTimelineLabels({
 						{" removed "}
 						{removedLabels.map((label, index) => (
 							<Fragment key={label.id + nanoid(5)}>
-								<RenderLabel label={label} className="inline-flex !bg-transparent" />
+								<RenderLabel
+									label={label}
+									className="inline-flex !bg-transparent"
+								/>
 								{index < removedLabels.length - 1 && " "}
 							</Fragment>
 						))}
@@ -65,7 +76,11 @@ export function ConsolidatedTimelineLabels({
 	} as Parameters<typeof TimelineItemWrapper>[0]["item"];
 
 	return (
-		<TimelineItemWrapper item={mockItem} icon={IconTag} color="bg-accent text-primary-foreground">
+		<TimelineItemWrapper
+			item={mockItem}
+			icon={IconTag}
+			color="bg-accent text-primary-foreground"
+		>
 			{renderContent()}
 		</TimelineItemWrapper>
 	);
@@ -88,8 +103,8 @@ export function ConsolidatedTimelineAssignees({
 	const renderContent = () => {
 		return (
 			<>
-				<AvatarWithName
-					name={consolidatedItem.actor?.name || "Unknown"}
+				<InlineLabel
+					text={consolidatedItem.actor?.name || "Unknown"}
 					image={consolidatedItem.actor?.image || ""}
 				/>
 				{addedAssignees.length > 0 && (
@@ -97,7 +112,10 @@ export function ConsolidatedTimelineAssignees({
 						{" assigned "}
 						{addedAssignees.map((user, index) => (
 							<Fragment key={user.id + nanoid(5)}>
-								<AvatarWithName name={user.name || "Unknown"} image={user.image || ""} />
+								<InlineLabel
+									text={user.name || "Unknown"}
+									image={user.image || ""}
+								/>
 								{index < addedAssignees.length - 1 && " "}
 							</Fragment>
 						))}
@@ -109,7 +127,10 @@ export function ConsolidatedTimelineAssignees({
 						{" removed "}
 						{removedAssignees.map((user, index) => (
 							<Fragment key={user.id + nanoid(5)}>
-								<AvatarWithName name={user.name || "Unknown"} image={user.image || ""} />
+								<InlineLabel
+									text={user.name || "Unknown"}
+									image={user.image || ""}
+								/>
 								{index < removedAssignees.length - 1 && " "}
 							</Fragment>
 						))}
@@ -130,18 +151,26 @@ export function ConsolidatedTimelineAssignees({
 	const icon = addedAssignees.length > 0 ? IconUserPlus : IconUserMinus;
 
 	return (
-		<TimelineItemWrapper item={mockItem} icon={icon} color="bg-accent text-primary-foreground">
+		<TimelineItemWrapper
+			item={mockItem}
+			icon={icon}
+			color="bg-accent text-primary-foreground"
+		>
 			{renderContent()}
 		</TimelineItemWrapper>
 	);
 }
 
-export function ConsolidatedTimelineItem({ consolidatedItem, labels, availableUsers }: ConsolidatedTimelineItemProps) {
+export function ConsolidatedTimelineItem({
+	consolidatedItem,
+	labels,
+	availableUsers,
+}: ConsolidatedTimelineItemProps) {
 	const hasLabelEvents = consolidatedItem.eventTypes.some(
-		(type) => type === "label_added" || type === "label_removed"
+		(type) => type === "label_added" || type === "label_removed",
 	);
 	const hasAssigneeEvents = consolidatedItem.eventTypes.some(
-		(type) => type === "assignee_added" || type === "assignee_removed"
+		(type) => type === "assignee_added" || type === "assignee_removed",
 	);
 
 	const firstItem = consolidatedItem.items[0];
@@ -150,11 +179,19 @@ export function ConsolidatedTimelineItem({ consolidatedItem, labels, availableUs
 	return (
 		<>
 			{/* 🔖 Labels */}
-			{hasLabelEvents && <ConsolidatedTimelineLabels consolidatedItem={consolidatedItem} labels={labels} />}
+			{hasLabelEvents && (
+				<ConsolidatedTimelineLabels
+					consolidatedItem={consolidatedItem}
+					labels={labels}
+				/>
+			)}
 
 			{/* 👤 Assignees */}
 			{hasAssigneeEvents && (
-				<ConsolidatedTimelineAssignees consolidatedItem={consolidatedItem} availableUsers={availableUsers} />
+				<ConsolidatedTimelineAssignees
+					consolidatedItem={consolidatedItem}
+					availableUsers={availableUsers}
+				/>
 			)}
 
 			{/* 🧩 Fallback */}

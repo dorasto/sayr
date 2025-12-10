@@ -151,7 +151,7 @@ export function RenderLabel({
 				<div className="shrink-0 absolute inset-y-0 flex items-center justify-center end-0 pe-1">
 					<XIcon
 						size={12}
-						className="cursor-pointer hover:bg-muted rounded-sm shrink-0 opacity-0 group-hover/label:opacity-100"
+						className="cursor-pointer hover:bg-muted rounded-sm shrink-0"
 						onClick={(e) => {
 							e.stopPropagation();
 							onRemove(label.id);

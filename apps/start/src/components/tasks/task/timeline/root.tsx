@@ -202,7 +202,7 @@ export default function GlobalTimeline({
 				</div>
 			) : (
 				<>
-					<div className="grow overflow-y-auto">
+					<div className="grow">
 						<Timeline>
 							{/* top half */}
 							{topItems.map(renderItem)}

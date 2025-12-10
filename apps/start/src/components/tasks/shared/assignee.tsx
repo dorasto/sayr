@@ -266,7 +266,7 @@ export function RenderAssignee({
 	return (
 		<Button
 			key={assignee.id}
-			variant="accent"
+			variant="primary"
 			className={cn(
 				"justify-start group/assignee relative h-auto py-1 bg-transparent border-transparent px-1",
 				showRemove && "pr-6",
@@ -274,7 +274,7 @@ export function RenderAssignee({
 			)}
 			onClick={onClick ? (e) => onClick(e, assignee.id) : undefined}
 		>
-			<Avatar className="h-6 w-6">
+			<Avatar className="h-4 w-4">
 				<AvatarImage src={assignee.image || undefined} alt={assignee.name} />
 				<AvatarFallback className="text-xs">
 					{assignee.name
@@ -285,7 +285,7 @@ export function RenderAssignee({
 						.slice(0, 2)}
 				</AvatarFallback>
 			</Avatar>
-			<span className="truncate">{assignee.name}</span>
+			<span className="truncate text-xs">{assignee.name}</span>
 			{showRemove && onRemove && (
 				<div className="shrink-0 absolute inset-y-0 flex items-center justify-center end-0 pr-1">
 					<XIcon

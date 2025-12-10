@@ -23,6 +23,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
 import { IconLock } from "@tabler/icons-react";
 import { Editor } from "@/components/blocknote/Editor";
+import { InlineLabel } from "../../shared/inlinelabel";
 import type { TimelineItemWrapperProps } from "./types";
 
 export function TimelineItemWrapper({
@@ -41,17 +42,17 @@ export function TimelineItemWrapper({
 				<TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
 				<TimelineTitle className="mt-0.5">
 					<Label
-						variant={"heading"}
-						className="text-sm font-normal leading-relaxed items-center flex flex-wrap gap-2"
+						variant={"description"}
+						className="text-foreground items-center flex flex-wrap gap-2"
 					>
 						<span>{children}</span>
 						{!item.blockNote && (
 							<Tooltip delayDuration={500}>
 								<TooltipTrigger asChild>
-									<span className="text-sm">
+									<Label variant={"description"} className="text-foreground">
 										{" "}
 										{formatDateTimeFromNow(item.createdAt as Date)}
-									</span>
+									</Label>
 								</TooltipTrigger>
 								<TooltipContent side="top">
 									{formatDateTime(item.createdAt as Date)}
@@ -77,31 +78,17 @@ export function TimelineItemWrapper({
 				>
 					<div className="flex flex-col gap-1">
 						<div className="flex items-center gap-3">
-							<AvatarWithName
-								name={item.actor?.name || "Unknown"}
+							<InlineLabel
+								text={item.actor?.name || "Unknown"}
 								image={item.actor?.image || ""}
-								custom={
-									<div className="flex items-center gap-2">
-										<Avatar className={cn("rounded-full bg-primary h-8 w-8")}>
-											<AvatarImage
-												src={item.actor?.image || "/avatar.jpg"}
-												alt={item.actor?.name}
-											/>
-											<AvatarFallback className="rounded-full bg-transparent uppercase">
-												{item.actor?.name.slice(0, 2)}
-											</AvatarFallback>
-										</Avatar>
-										<Label variant={"heading"}>{item.actor?.name}</Label>
-									</div>
-								}
 							/>
 							<Label
-								variant={"heading"}
-								className="text-sm font-normal leading-relaxed items-center flex flex-wrap gap-2"
+								variant={"description"}
+								className="text-foreground items-center flex flex-wrap gap-2"
 							>
 								<Tooltip delayDuration={500}>
 									<TooltipTrigger asChild>
-										<span className="text-sm">
+										<span>
 											{" "}
 											{formatDateTimeFromNow(item.createdAt as Date)}
 										</span>
@@ -128,7 +115,6 @@ export function TimelineItemWrapper({
 		</TimelineItem>
 	);
 }
-
 export function AvatarWithName({
 	name,
 	image,

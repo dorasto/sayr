@@ -2,6 +2,7 @@ import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { IconArrowRight } from "@tabler/icons-react";
 import { RenderCategory } from "../../shared/category";
+import { InlineLabel } from "../../shared/inlinelabel";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 
@@ -13,8 +14,8 @@ export function TimelineCategoryChange({
 		if (!item.fromValue && !item.toValue) {
 			return (
 				<>
-					<AvatarWithName
-						name={item.actor?.name || "Unknown"}
+					<InlineLabel
+						text={item.actor?.name || "Unknown"}
 						image={item.actor?.image || ""}
 					/>{" "}
 					changed the category
@@ -32,8 +33,8 @@ export function TimelineCategoryChange({
 
 		return (
 			<>
-				<AvatarWithName
-					name={item.actor?.name || "Unknown"}
+				<InlineLabel
+					text={item.actor?.name || "Unknown"}
 					image={item.actor?.image || ""}
 				/>{" "}
 				changed the category{" "}
