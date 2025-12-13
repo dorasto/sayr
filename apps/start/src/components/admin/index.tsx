@@ -84,7 +84,7 @@ export default function AdminHomePage() {
 			) : (
 				<div className="text-yellow-600">⏳ Waiting for subscription...</div>
 			)}
-			<Editor />
+			<Editor readonly={false} />
 		</div>
 	);
 }

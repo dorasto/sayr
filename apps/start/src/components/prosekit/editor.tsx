@@ -1,15 +1,16 @@
 import "prosekit/basic/style.css";
 import "prosekit/basic/typography.css";
 
-import { createEditor } from "prosekit/core";
+import { createEditor, type NodeJSON } from "prosekit/core";
+import type { Uploader } from "prosekit/extensions/file";
 import { ProseKit } from "prosekit/react";
 import { useMemo } from "react";
 
 import { defineExtension } from "./extension";
 import { sampleDocFull } from "./sample/sample-doc-full";
 import { sampleUploader } from "./sample/sample-uploader";
-import { tags } from "./sample/tag-data";
-import { users } from "./sample/user-data";
+import { tags as defaultTags } from "./sample/tag-data";
+import { users as defaultUsers } from "./sample/user-data";
 import BlockHandle from "./ui/block-handle";
 import CodeBlockView from "./ui/code-block-view";
 import DropIndicator from "./ui/drop-indicator";
@@ -25,17 +26,31 @@ import UserMenu from "./ui/user-menu";
 
 export interface EditorProps {
 	readonly?: boolean;
+	placeholder?: string;
+	defaultContent?: NodeJSON;
+	uploader?: Uploader<string>;
+	users?: Array<{ id: number; name: string; image?: string }>;
+	tags?: Array<{ id: number; label: string }>;
+	className?: string;
 }
 
-export default function Editor({ readonly = false }: EditorProps) {
+export default function Editor({
+	readonly = false,
+	placeholder,
+	defaultContent = sampleDocFull,
+	uploader = sampleUploader,
+	users = defaultUsers,
+	tags = defaultTags,
+	className,
+}: EditorProps) {
 	const editor = useMemo(() => {
-		const extension = defineExtension({ readonly });
-		return createEditor({ extension, defaultContent: sampleDocFull });
-	}, [readonly]);
+		const extension = defineExtension({ readonly, placeholder });
+		return createEditor({ extension, defaultContent });
+	}, [readonly, placeholder, defaultContent]);
 
 	return (
 		<ProseKit editor={editor}>
-			<div className="">
+			<div className={className}>
 				{/* <div className="z-10 box-border border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
 					<Toolbar />
 				</div> */}
@@ -54,7 +69,7 @@ export default function Editor({ readonly = false }: EditorProps) {
 				<TableHandle />
 				<DropIndicator />
 				<ImageUploadPopover
-					uploader={sampleUploader}
+					uploader={uploader}
 					tooltip="Upload Image"
 					disabled={false}
 				>

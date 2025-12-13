@@ -44,7 +44,7 @@ export const sampleDocFull: NodeJSON = {
 				{ type: "text", text: " that stands out. Create " },
 				{
 					type: "text",
-					marks: [{ type: "link", attrs: { href: "https://prosekit.dev" } }],
+					marks: [{ type: "link", attrs: { href: "https://doras.to" } }],
 					text: "links",
 				},
 				{ type: "text", text: " that connect." },
