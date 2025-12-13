@@ -25,7 +25,7 @@ function MentionViewInner(props: ReactNodeViewProps) {
 	// Fallback for other mentions (like tags)
 	// Replicating the style from editor.tsx: [&_span[data-mention="tag"]]:text-violet-500
 	if (kind === "tag") {
-		return <span className="text-violet-500">{value}</span>;
+		return <span className="text-primary">{value}</span>;
 	}
 
 	return <span>{value}</span>;

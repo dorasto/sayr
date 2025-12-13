@@ -1,3 +1,8 @@
+import {
+	IconArrowsDiagonal2,
+	IconLoader2,
+	IconResize,
+} from "@tabler/icons-react";
 import { UploadTask } from "prosekit/extensions/file";
 import type { ImageAttrs } from "prosekit/extensions/image";
 import type { ReactNodeViewProps } from "prosekit/react";
@@ -57,19 +62,19 @@ export default function ImageView(props: ReactNodeViewProps) {
 			aspectRatio={aspectRatio}
 			onResizeEnd={(event) => props.setAttrs(event.detail)}
 			data-selected={props.selected ? "" : undefined}
-			className="relative flex items-center justify-center box-border overflow-hidden my-2 group max-h-[600px] max-w-full min-h-16 min-w-16 outline-2 outline-transparent data-selected:outline-blue-500 outline-solid"
+			className="relative flex items-center justify-center box-border overflow-hidden my-2 group max-h-[600px] max-w-full min-h-16 min-w-16 outline-transparent! border-transparent! rounded-lg"
 		>
 			{url && !error && (
 				<img
 					src={url}
 					onLoad={handleImageLoad}
 					alt="upload preview"
-					className="h-full w-full max-w-full max-h-full object-contain"
+					className="h-full w-full max-w-full max-h-full object-contain border-0 outline-0"
 				/>
 			)}
 			{uploading && !error && (
 				<div className="absolute bottom-0 left-0 m-1 flex content-center items-center gap-2 rounded-sm bg-gray-800/60 p-1.5 text-xs text-white/80 transition">
-					<div className="i-lucide-loader-circle size-4 animate-spin block"></div>
+					<IconLoader2 className="size-4 animate-spin block" />
 					<div>{Math.round(progress * 100)}%</div>
 				</div>
 			)}
@@ -82,10 +87,10 @@ export default function ImageView(props: ReactNodeViewProps) {
 				</div>
 			)}
 			<ResizableHandle
-				className="absolute bottom-0 right-0 rounded-sm m-1.5 p-1 transition bg-gray-900/30 active:bg-gray-800/60 hover:bg-gray-800/60 text-white/50 active:text-white/80 active:translate-x-0.5 active:translate-y-0.5 opacity-0 hover:opacity-100 group-hover:opacity-100 group-data-resizing:opacity-100"
+				className="absolute bottom-0 right-0 rounded-sm m-1.5 p-1 transition bg-accent/50 active:bg-accent hover:bg-accent/80 text-foreground/50 active:text-foreground/80 active:translate-x-0.5 active:translate-y-0.5 opacity-0 hover:opacity-100 group-hover:opacity-100 group-data-resizing:opacity-100"
 				position="bottom-right"
 			>
-				<div className="i-lucide-arrow-down-right size-4 block"></div>
+				<IconArrowsDiagonal2 className="size-4 block" />
 			</ResizableHandle>
 		</ResizableRoot>
 	);
