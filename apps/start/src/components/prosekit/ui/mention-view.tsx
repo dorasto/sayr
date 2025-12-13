@@ -14,7 +14,7 @@ function MentionViewInner(props: ReactNodeViewProps) {
 
 		return (
 			<InlineLabel
-				className="text-base ps-6 align-middle bg-accent pe-2 rounded-lg"
+				className="text-sm ps-6 align-bottom shrink-0 bg-accent pr-1 rounded-lg"
 				avatarClassName="size-4"
 				text={username}
 				image={image}

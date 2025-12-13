@@ -39,7 +39,11 @@ export function InlineLabel({
 						<Avatar
 							className={cn("rounded-full bg-primary h-3 w-3", avatarClassName)}
 						>
-							<AvatarImage src={image || "/avatar.jpg"} alt={text} />
+							<AvatarImage
+								src={image || "/avatar.jpg"}
+								className="m-0!"
+								alt={text}
+							/>
 							<AvatarFallback className="rounded-full bg-transparent uppercase">
 								{text.slice(0, 2)}
 							</AvatarFallback>
