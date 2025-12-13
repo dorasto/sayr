@@ -25,5 +25,19 @@
 		"@octokit/rest": "^22.0.1",
 		"drizzle-orm": "^0.44.5"
 	},
+	"pnpm": {
+		"overrides": {
+			"prosemirror-model": "1.24.1",
+			"prosemirror-state": "1.4.3",
+			"prosemirror-view": "1.37.0",
+			"prosemirror-transform": "1.10.2",
+			"prosemirror-commands": "1.6.2",
+			"prosemirror-history": "1.4.1",
+			"prosemirror-inputrules": "1.4.0",
+			"prosemirror-keymap": "1.2.2",
+			"prosemirror-schema-basic": "1.2.3",
+			"prosemirror-schema-list": "1.5.0"
+		}
+	},
 	"packageManager": "pnpm@10.6.2"
 }

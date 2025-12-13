@@ -4,10 +4,14 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useLayoutData } from "../generic/Context";
+import Editor from "../prosekit/editor";
 
 export default function AdminHomePage() {
 	const { account, ws } = useLayoutData();
-	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
+	const { value: wsStatus } = useStateManagement<string>(
+		"ws-status",
+		"Disconnected",
+	);
 	const { wsSubscribedState } = useWebSocketSubscription({
 		ws,
 	});
@@ -65,7 +69,9 @@ export default function AdminHomePage() {
 				<span className="font-medium">WebSocket Status:</span>
 				<span
 					className={`px-2 py-1 rounded text-sm ${
-						wsStatus === "Connected" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+						wsStatus === "Connected"
+							? "bg-green-100 text-green-700"
+							: "bg-red-100 text-red-700"
 					}`}
 				>
 					{wsStatus}
@@ -78,6 +84,7 @@ export default function AdminHomePage() {
 			) : (
 				<div className="text-yellow-600">⏳ Waiting for subscription...</div>
 			)}
+			<Editor />
 		</div>
 	);
 }

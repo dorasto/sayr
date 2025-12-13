@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -24,6 +25,11 @@ import { Route as AdminOrgIdTasksIndexRouteImport } from './routes/admin/$orgId/
 import { Route as AdminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/route'
 import { Route as AdminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/index'
 
+const ProsekitTestRoute = ProsekitTestRouteImport.update({
+  id: '/prosekit-test',
+  path: '/prosekit-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -99,6 +105,7 @@ const AdminOrgIdTasksTaskShortIdIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
+  '/prosekit-test': typeof ProsekitTestRoute
   '/admin/$orgId': typeof AdminOrgIdRouteRouteWithChildren
   '/admin/mine': typeof AdminMineRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/admin/$orgId/tasks/$taskShortId/': typeof AdminOrgIdTasksTaskShortIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/prosekit-test': typeof ProsekitTestRoute
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
   '/admin': typeof AdminIndexRoute
   '/home': typeof HomeIndexRoute
@@ -127,6 +135,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/admin': typeof AdminRouteRouteWithChildren
+  '/prosekit-test': typeof ProsekitTestRoute
   '/admin/$orgId': typeof AdminOrgIdRouteRouteWithChildren
   '/admin/mine': typeof AdminMineRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/admin'
+    | '/prosekit-test'
     | '/admin/$orgId'
     | '/admin/mine'
     | '/orgs/$orgSlug'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/admin/$orgId/tasks/$taskShortId/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/prosekit-test'
     | '/orgs/$orgSlug'
     | '/admin'
     | '/home'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/admin'
+    | '/prosekit-test'
     | '/admin/$orgId'
     | '/admin/mine'
     | '/orgs/$orgSlug'
@@ -189,6 +201,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  ProsekitTestRoute: typeof ProsekitTestRoute
   OrgsOrgSlugRoute: typeof OrgsOrgSlugRoute
   HomeIndexRoute: typeof HomeIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -197,6 +210,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/prosekit-test': {
+      id: '/prosekit-test'
+      path: '/prosekit-test'
+      fullPath: '/prosekit-test'
+      preLoaderRoute: typeof ProsekitTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -370,6 +390,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AdminRouteRoute: AdminRouteRouteWithChildren,
+  ProsekitTestRoute: ProsekitTestRoute,
   OrgsOrgSlugRoute: OrgsOrgSlugRoute,
   HomeIndexRoute: HomeIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
