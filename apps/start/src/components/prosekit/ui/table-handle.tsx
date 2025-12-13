@@ -1,3 +1,16 @@
+import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
+import {
+	IconColumnInsertLeft,
+	IconColumnInsertRight,
+	IconGripHorizontal,
+	IconGripVertical,
+	IconRowInsertBottom,
+	IconRowInsertTop,
+	IconTextDecrease,
+	IconTrash,
+	IconX,
+} from "@tabler/icons-react";
 import type { Editor } from "prosekit/core";
 import type { TableExtension } from "prosekit/extensions/table";
 import { useEditorDerivedValue } from "prosekit/react";
@@ -61,107 +74,133 @@ export default function TableHandle(props: Props) {
 		<TableHandleRoot className="contents">
 			<TableHandleDragPreview />
 			<TableHandleDropIndicator />
-			<TableHandleColumnRoot className="h-[1.2em] w-[1.5em] translate-y-[80%] flex items-center box-border justify-center bg-white dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm text-gray-500/50 dark:text-gray-500/50 border border-gray-200 dark:border-gray-800 border-solid p-0 overflow-hidden duration-150 transition-discrete transition data-[state=closed]:opacity-0 starting:opacity-0 opacity-100 data-[state=closed]:scale-95 starting:scale-95 scale-100">
+			<TableHandleColumnRoot className="h-[1.2em] w-[1.5em] translate-y-[80%] flex items-center box-border justify-center bg-accent hover:bg-muted rounded-lg p-0 overflow-hidden duration-150 transition-discrete transition data-[state=closed]:opacity-0 starting:opacity-0 opacity-100 data-[state=closed]:scale-95 starting:scale-95 scale-100">
 				<TableHandleColumnTrigger className="flex items-center justify-center">
-					<div className="i-lucide-grip-horizontal size-5 block"></div>
+					<IconGripHorizontal className="size-3" />
 				</TableHandleColumnTrigger>
-				<TableHandlePopoverContent className="relative block max-h-100 min-w-32 select-none overflow-auto whitespace-nowrap p-1 z-10 box-border rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg [&:not([data-state])]:hidden">
+				<TableHandlePopoverContent className="relative block max-h-100 min-w-32 select-none overflow-auto whitespace-nowrap p-1 z-10 box-border rounded-lg border bg-popover shadow-lg [&:not([data-state])]:hidden space-y-1">
 					{state.addTableColumnBefore.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							onSelect={state.addTableColumnBefore.command}
 						>
-							<span>Insert Left</span>
+							<div className="flex items-center gap-1">
+								<IconColumnInsertLeft className="size-4" />
+								<Label className="text-sm">Insert left</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
 					{state.addTableColumnAfter.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							onSelect={state.addTableColumnAfter.command}
 						>
-							<span>Insert Right</span>
+							<div className="flex items-center gap-1">
+								<IconColumnInsertRight className="size-4" />
+								<Label className="text-sm">Insert right</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
 					{state.deleteCellSelection.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							onSelect={state.deleteCellSelection.command}
 						>
-							<span>Clear Contents</span>
-							<span className="text-xs tracking-widest text-gray-500 dark:text-gray-500">
-								Del
-							</span>
+							<div className="flex items-center gap-1">
+								<IconX className="size-4" />
+								<Label className="text-sm">Clear content</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
 					{state.deleteTableColumn.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							onSelect={state.deleteTableColumn.command}
 						>
-							<span>Delete Column</span>
+							<div className="flex items-center gap-1">
+								<IconTrash className="size-4" />
+								<Label className="text-sm">Delete column</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
+					<Separator />
 					{state.deleteTable.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							data-danger=""
 							onSelect={state.deleteTable.command}
 						>
-							<span>Delete Table</span>
+							<div className="flex items-center gap-1">
+								<IconTrash className="size-4" />
+								<Label className="text-sm">Delete table</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
 				</TableHandlePopoverContent>
 			</TableHandleColumnRoot>
 			<TableHandleRowRoot
 				placement={props.dir === "rtl" ? "right" : "left"}
-				className="h-[1.5em] w-[1.2em] ltr:translate-x-[80%] rtl:translate-x-[-80%] flex items-center box-border justify-center bg-white dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm text-gray-500/50 dark:text-gray-500/50 border border-gray-200 dark:border-gray-800 border-solid p-0 overflow-hidden duration-150 transition-discrete transition data-[state=closed]:opacity-0 starting:opacity-0 opacity-100 data-[state=closed]:scale-95 starting:scale-95 scale-100"
+				className="h-[1.5em] w-[1.2em] ltr:translate-x-[80%] rtl:translate-x-[-80%] flex items-center box-border justify-center bg-accent hover:bg-muted rounded-lg p-0 overflow-hidden duration-150 transition-discrete transition data-[state=closed]:opacity-0 starting:opacity-0 opacity-100 data-[state=closed]:scale-95 starting:scale-95 scale-100"
 			>
 				<TableHandleRowTrigger className="flex items-center justify-center">
-					<div className="i-lucide-grip-vertical size-5 block"></div>
+					<IconGripVertical className="size-3" />
 				</TableHandleRowTrigger>
-				<TableHandlePopoverContent className="relative block max-h-100 min-w-32 select-none overflow-auto whitespace-nowrap p-1 z-10 box-border rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg [&:not([data-state])]:hidden">
+				<TableHandlePopoverContent className="relative block max-h-100 min-w-32 select-none overflow-auto whitespace-nowrap p-1 z-10 box-border rounded-lg border bg-popover shadow-lg [&:not([data-state])]:hidden space-y-1">
 					{state.addTableRowAbove.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							onSelect={state.addTableRowAbove.command}
 						>
-							<span>Insert Above</span>
+							<div className="flex items-center gap-1">
+								<IconRowInsertTop className="size-4" />
+								<Label className="text-sm">Insert above</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
 					{state.addTableRowBelow.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							onSelect={state.addTableRowBelow.command}
 						>
-							<span>Insert Below</span>
+							<div className="flex items-center gap-1">
+								<IconRowInsertBottom className="size-4" />
+								<Label className="text-sm">Insert below</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
 					{state.deleteCellSelection.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							onSelect={state.deleteCellSelection.command}
 						>
-							<span>Clear Contents</span>
-							<span className="text-xs tracking-widest text-gray-500 dark:text-gray-500">
-								Del
-							</span>
+							<div className="flex items-center gap-1">
+								<IconX className="size-4" />
+								<Label className="text-sm">Clear content</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
 					{state.deleteTableRow.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							onSelect={state.deleteTableRow.command}
 						>
-							<span>Delete Row</span>
+							<div className="flex items-center gap-1">
+								<IconTrash className="size-4" />
+								<Label className="text-sm">Delete row</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
+					<Separator />
 					{state.deleteTable.canExec && (
 						<TableHandlePopoverItem
-							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-red-500 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+							className="relative min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 flex items-center justify-between gap-8 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 hover:data-[disabled=true]:opacity-50 data-danger:text-destructive box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 							data-danger=""
 							onSelect={state.deleteTable.command}
 						>
-							<span>Delete Table</span>
+							<div className="flex items-center gap-1">
+								<IconTrash className="size-4" />
+								<Label className="text-sm">Delete table</Label>
+							</div>
 						</TableHandlePopoverItem>
 					)}
 				</TableHandlePopoverContent>

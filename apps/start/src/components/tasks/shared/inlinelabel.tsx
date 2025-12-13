@@ -11,6 +11,7 @@ export interface InlineLabelProps {
 	image?: string | null;
 	icon?: React.ReactNode;
 	className?: string;
+	avatarClassName?: string;
 	custom?: React.ReactNode;
 }
 
@@ -18,6 +19,7 @@ export function InlineLabel({
 	text,
 	image,
 	className,
+	avatarClassName,
 	icon,
 	custom,
 }: InlineLabelProps) {
@@ -34,7 +36,9 @@ export function InlineLabel({
 			{(image || icon) && (
 				<div className="shrink-0 absolute inset-y-0 flex items-center justify-center start-0 ps-1">
 					{image && (
-						<Avatar className="rounded-full bg-primary h-3 w-3">
+						<Avatar
+							className={cn("rounded-full bg-primary h-3 w-3", avatarClassName)}
+						>
 							<AvatarImage src={image || "/avatar.jpg"} alt={text} />
 							<AvatarFallback className="rounded-full bg-transparent uppercase">
 								{text.slice(0, 2)}
