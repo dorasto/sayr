@@ -16,6 +16,7 @@ import DropIndicator from "./ui/drop-indicator";
 import ImageUploadPopover from "./ui/image-upload-popover";
 import ImageView from "./ui/image-view";
 import InlineMenu from "./ui/inline-menu";
+import MentionView from "./ui/mention-view";
 import SlashMenu from "./ui/slash-menu";
 import TableHandle from "./ui/table-handle";
 import TagMenu from "./ui/tag-menu";
@@ -40,7 +41,7 @@ export default function Editor({ readonly = false }: EditorProps) {
 				</div> */}
 				<div
 					ref={editor.mount}
-					className='ProseMirror box-border min-h-full px-[max(4rem,_calc(50%-20rem))] py-8 outline-none outline-0 [&_span[data-mention="user"]]:text-blue-500 [&_span[data-mention="tag"]]:text-violet-500'
+					className='ProseMirror box-border min-h-full px-[max(4rem,_calc(50%-20rem))] py-8 outline-none outline-0 [&_span[data-mention="tag"]]:text-violet-500'
 				></div>
 				<InlineMenu />
 				<SlashMenu />
@@ -48,6 +49,7 @@ export default function Editor({ readonly = false }: EditorProps) {
 				<TagMenu tags={tags} />
 				<CodeBlockView />
 				<ImageView />
+				<MentionView />
 				<BlockHandle />
 				<TableHandle />
 				<DropIndicator />
