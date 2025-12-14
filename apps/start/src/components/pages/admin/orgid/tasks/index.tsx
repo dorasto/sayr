@@ -7,35 +7,21 @@ import {
 	type ResizablePanelHandle,
 } from "@repo/ui/components/resizable";
 import { Separator } from "@repo/ui/components/separator";
-import {
-	Sheet,
-	SheetContent,
-	SheetDescription,
-	SheetHeader,
-	SheetTitle,
-} from "@repo/ui/components/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@repo/ui/components/sheet";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	IconLayoutSidebarRight,
-	IconLayoutSidebarRightFilled,
-} from "@tabler/icons-react";
+import { IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
 import { useEffect, useRef } from "react";
 import { useLayoutData } from "@/components/generic/Context";
-import {
-	TaskFilterDropdown,
-	useTaskViewState,
-} from "@/components/tasks/filter";
+import { TaskFilterDropdown, useTaskViewState } from "@/components/tasks/filter";
 import ProjectSide from "@/components/tasks/side";
 import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
-import {
-	useWSMessageHandler,
-	type WSMessageHandler,
-} from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
+import CreateIssueDialog from "@/components/tasks/task/creator";
 
 export default function OrganizationTasksHomePage() {
 	const { viewState } = useTaskViewState();
@@ -102,8 +88,7 @@ export default function OrganizationTasksHomePage() {
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) =>
-			console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
 	});
 	useEffect(() => {
 		if (!ws) return;
@@ -114,8 +99,7 @@ export default function OrganizationTasksHomePage() {
 		};
 	}, [ws, handleMessage]);
 
-	const availableUsers =
-		organization?.members.map((member) => member.user) || [];
+	const availableUsers = organization?.members.map((member) => member.user) || [];
 	return (
 		<div className="relative flex flex-col h-full max-h-full">
 			{/* <div className="flex items-center gap-3 bg-card rounded p-3 w-full">
@@ -123,6 +107,7 @@ export default function OrganizationTasksHomePage() {
                     {project.name}
                 </Label>
             </div> */}
+			<CreateIssueDialog organization={organization} tasks={tasks} setTasks={setTasks} _labels={labels} />
 			<div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
 				<TaskFilterDropdown
 					tasks={tasks}
@@ -139,17 +124,9 @@ export default function OrganizationTasksHomePage() {
 					<Button
 						variant="accent"
 						className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
-						onClick={() =>
-							isProjectPanelOpen
-								? setProjectPanelOpen(false)
-								: setProjectPanelOpen(true)
-						}
+						onClick={() => (isProjectPanelOpen ? setProjectPanelOpen(false) : setProjectPanelOpen(true))}
 					>
-						{isProjectPanelOpen ? (
-							<IconLayoutSidebarRightFilled />
-						) : (
-							<IconLayoutSidebarRight />
-						)}
+						{isProjectPanelOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
 					</Button>
 				</div>
 			</div>
@@ -158,7 +135,7 @@ export default function OrganizationTasksHomePage() {
 					<div
 						className={cn(
 							"flex-1 overflow-y-auto h-full flex flex-col relative px-2",
-							viewState.viewMode === "kanban" && "pr-0",
+							viewState.viewMode === "kanban" && "pr-0"
 						)}
 					>
 						<UnifiedTaskView
@@ -173,17 +150,13 @@ export default function OrganizationTasksHomePage() {
 					</div>
 				</ResizablePanel>
 				{useMobile ? (
-					<Sheet
-						defaultOpen={false}
-						open={isProjectPanelOpen}
-						onOpenChange={setProjectPanelOpen}
-					>
+					<Sheet defaultOpen={false} open={isProjectPanelOpen} onOpenChange={setProjectPanelOpen}>
 						<SheetContent className="p-0" showClose={false}>
 							<SheetHeader className="sr-only">
 								<SheetTitle>Are you absolutely sure?</SheetTitle>
 								<SheetDescription>
-									This action cannot be undone. This will permanently delete
-									your account and remove your data from our servers.
+									This action cannot be undone. This will permanently delete your account and remove your data
+									from our servers.
 								</SheetDescription>
 							</SheetHeader>
 							<div className="flex-1 overflow-y-auto h-full flex flex-col relative p-3">

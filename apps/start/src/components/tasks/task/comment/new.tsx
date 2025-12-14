@@ -1,6 +1,5 @@
 "use client";
 
-import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { ButtonGroup } from "@repo/ui/components/button-group";
@@ -10,32 +9,28 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconLock, IconLockOpen2 } from "@tabler/icons-react";
 import { useState } from "react";
-import { Editor } from "@/components/blocknote/Editor";
-import { uploadFile } from "@/lib/fetches/file";
 import { CreateTaskCommentAction } from "@/lib/fetches/task";
-import { extractTextContent, useToastAction } from "@/lib/util";
+import { useToastAction } from "@/lib/util";
+import Editor from "@/components/prosekit/editor";
+import type { NodeJSON } from "prosekit/core";
+import processUploads from "@/components/prosekit/upload";
 
 type CommentVisibility = "internal" | "public";
 
 interface TaskNewCommentContentProps {
 	task: schema.TaskWithLabels;
+	availableUsers: schema.userType[];
 	onFinish?: () => void;
 }
-export function TaskNewCommentContent({
-	task,
-	onFinish,
-}: TaskNewCommentContentProps) {
+export function TaskNewCommentContent({ task, availableUsers, onFinish }: TaskNewCommentContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
-	const [newComment, setNewComment] = useState<undefined | PartialBlock[]>(
-		undefined,
-	);
+	const [newComment, setNewComment] = useState<undefined | NodeJSON>(undefined);
 	const [editorKey, setEditorKey] = useState(0);
 	const [visibility, setVisibility] = useState<CommentVisibility>("public");
-	const commentText = extractTextContent(newComment);
-	const disabled = isFetching || commentText.length === 0;
+	const disabled = isFetching || !newComment;
 	const handleSubmit = async () => {
-		if (!newComment || isFetching || commentText.length === 0) {
+		if (!newComment || isFetching) {
 			headlessToast.error({
 				title: "Cannot submit empty comment",
 				description: "Please enter some text before submitting your comment.",
@@ -43,74 +38,7 @@ export function TaskNewCommentContent({
 			});
 			return;
 		}
-
-		const updatedBlocks: PartialBlock[] = await Promise.all(
-			(newComment ?? []).map(async (block) => {
-				if (
-					(block.type === "image" ||
-						block.type === "file" ||
-						block.type === "video" ||
-						block.type === "audio") &&
-					typeof block.props === "object" &&
-					// biome-ignore lint/suspicious/noExplicitAny: <fix>
-					typeof (block.props as any).url === "string" &&
-					// biome-ignore lint/suspicious/noExplicitAny: <fix>
-					(block.props as any).url.startsWith("blob:")
-				) {
-					headlessToast.info({
-						title: "Uploading file...",
-						description: "Please wait while your file is being uploaded.",
-						id: "create-task-comment",
-					});
-					const props = block.props as { url: string; name?: string };
-					try {
-						const blob = await fetch(props.url).then((res) => res.blob());
-						const fileName = props.name || `upload-${Date.now()}`;
-						const file = new File([blob], fileName, { type: blob.type });
-						if (visibility === "internal") {
-							const result = await uploadFile(file, task.organizationId);
-							if (result.success && result.data?.url) {
-								console.log("✅ Uploaded file:", result.data.url);
-								URL.revokeObjectURL(props.url);
-								// Return updated block with new URL
-								return {
-									...block,
-									props: {
-										...block.props,
-										url: result.data.url,
-										name: fileName,
-									},
-								} satisfies PartialBlock;
-							} else {
-								console.error("❌ Upload failed:", result.error);
-							}
-						} else {
-							const result = await uploadFile(file);
-							if (result.success && result.data?.url) {
-								console.log("✅ Uploaded file:", result.data.url);
-								URL.revokeObjectURL(props.url);
-								// Return updated block with new URL
-								return {
-									...block,
-									props: {
-										...block.props,
-										url: result.data.url,
-										name: fileName,
-									},
-								} satisfies PartialBlock;
-							} else {
-								console.error("❌ Upload failed:", result.error);
-							}
-						}
-					} catch (err) {
-						console.error("⚠️ Blob upload failed:", err);
-					}
-				}
-
-				return block;
-			}),
-		);
-
+		const updatedContent = await processUploads(newComment, visibility, task.organizationId);
 		const data = await runWithToast(
 			"create-task-comment",
 			{
@@ -124,18 +52,10 @@ export function TaskNewCommentContent({
 				},
 				error: {
 					title: "Couldn't post comment",
-					description:
-						"The comment appears locally but could not be saved to the server. Please try again.",
+					description: "The comment appears locally but could not be saved to the server. Please try again.",
 				},
 			},
-			() =>
-				CreateTaskCommentAction(
-					task.organizationId,
-					task.id,
-					updatedBlocks,
-					visibility,
-					wsClientId,
-				),
+			() => CreateTaskCommentAction(task.organizationId, task.id, updatedContent, visibility, wsClientId)
 		);
 
 		if (data?.success && data.data && task && task.id === data.data.id) {
@@ -148,24 +68,10 @@ export function TaskNewCommentContent({
 		<div
 			className={cn(
 				"text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col",
-				visibility === "internal" && "border-primary/30 bg-primary/5",
+				visibility === "internal" && "border-primary/30 bg-primary/5"
 			)}
 		>
-			<Editor
-				key={editorKey} // 👈 force rerender when the key changes
-				emptyDocumentPlaceholder="Leave a comment"
-				trailing={false}
-				language="en"
-				value={newComment}
-				updateContent={newComment}
-				onChange={setNewComment}
-				onKeyDown={(e) => {
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-						e.preventDefault();
-						handleSubmit();
-					}
-				}}
-			/>
+			<Editor key={editorKey} users={availableUsers} onChange={setNewComment} />
 			<div className="flex items-center gap-2 ml-auto">
 				<ButtonGroup>
 					<Button
@@ -173,10 +79,7 @@ export function TaskNewCommentContent({
 						size={"sm"}
 						disabled={disabled}
 						onClick={handleSubmit}
-						className={cn(
-							"border-transparent",
-							visibility === "internal" && "bg-primary/10 hover:bg-primary/20",
-						)}
+						className={cn("border-transparent", visibility === "internal" && "bg-primary/10 hover:bg-primary/20")}
 					>
 						{visibility === "internal" ? "Internal comment" : "Post comment"}
 						<IconArrowBack />
@@ -186,15 +89,12 @@ export function TaskNewCommentContent({
 						size="sm"
 						className={cn(
 							"border-transparent hover:border-transparent",
-							visibility === "internal" &&
-								"bg-primary/10! hover:bg-primary/20!",
+							visibility === "internal" && "bg-primary/10! hover:bg-primary/20!"
 						)}
 						variant={visibility === "internal" ? "primary" : "accent"}
 						pressed={visibility === "internal"}
 						disabled={disabled}
-						onPressedChange={(pressed) =>
-							setVisibility(pressed ? "internal" : "public")
-						}
+						onPressedChange={(pressed) => setVisibility(pressed ? "internal" : "public")}
 						defaultPressed={true}
 					>
 						{visibility === "internal" ? <IconLock /> : <IconLockOpen2 />}

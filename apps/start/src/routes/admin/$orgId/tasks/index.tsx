@@ -6,6 +6,5 @@ export const Route = createFileRoute("/admin/$orgId/tasks/")({
 });
 
 function RouteComponent() {
-	const { orgId } = Route.useParams();
 	return <OrganizationTasksHomePage />;
 }

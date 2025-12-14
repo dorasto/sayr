@@ -20,6 +20,15 @@ export * from "./task.schema";
 export * from "./taskAssignee.schema";
 export * from "./taskComment.schema";
 export * from "./taskTimeline.schema";
+interface NodeJSON {
+	type: string;
+	// biome-ignore lint/suspicious/noExplicitAny: <any>
+	marks?: Array<{ type: string; attrs?: Record<string, any> }>;
+	text?: string;
+	content?: NodeJSON[];
+	// biome-ignore lint/suspicious/noExplicitAny: <any>
+	attrs?: Record<string, any>;
+}
 
 export interface OrganizationWithMembers extends organizationType {
 	members: (memberType & { user: userType })[];
@@ -31,13 +40,13 @@ export type TaskWithLabels = taskType & {
 	organization?: { id: string; name: string; slug: string };
 	comments?: CommentsWithAuthor;
 	githubIssue?: githubIssueType;
-	description: Array<string>;
+	description: NodeJSON;
 };
 
 export type CommentsWithAuthor = Array<
 	taskCommentType & {
 		createdBy: { id: string; name: string; image: string | null } | null;
-		blockNote: Array<string>;
+		blockNote: NodeJSON;
 	}
 >;
 

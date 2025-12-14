@@ -1,5 +1,6 @@
 import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
+import type { NodeJSON } from "prosekit/core";
 
 const API_URL = import.meta.env.VITE_EXTERNAL_API_URL;
 
@@ -45,14 +46,14 @@ export async function createTaskAction(
 	organizationId: string,
 	data: {
 		title: string;
-		description: PartialBlock[] | undefined;
+		description: NodeJSON | undefined;
 		status: string | undefined | null;
 		priority: string | undefined | null;
 		labels: string[];
 		category?: string | null;
 		assignees?: string[];
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	console.info("Creating task", { organizationId, title: data.title });
 	const result = await fetch(`${API_URL}/admin/organization/task/create`, {
@@ -128,7 +129,7 @@ export async function updateTaskAction(
 		priority?: string | null;
 		category?: string | null;
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -136,9 +137,7 @@ export async function updateTaskAction(
 		task_id: taskId,
 		// Merge only the fields passed in
 		...(data.title !== undefined ? { title: data.title } : {}),
-		...(data.description !== undefined
-			? { description: data.description }
-			: {}),
+		...(data.description !== undefined ? { description: data.description } : {}),
 		...(data.status !== undefined ? { status: data.status } : {}),
 		...(data.category !== undefined ? { category: data.category } : {}),
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
@@ -197,7 +196,7 @@ export async function updateLabelToTaskAction(
 	organizationId: string,
 	taskId: string,
 	labels: string[],
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.TaskWithLabels;
@@ -211,17 +210,14 @@ export async function updateLabelToTaskAction(
 		labels: labels,
 	};
 
-	const result = await fetch(
-		`${API_URL}/admin/organization/task/update-labels`,
-		{
-			method: "POST",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
+	const result = await fetch(`${API_URL}/admin/organization/task/update-labels`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
 		},
-	).then(async (e) => await e.json());
+		credentials: "include",
+	}).then(async (e) => await e.json());
 	return result as {
 		success: boolean;
 		data: schema.TaskWithLabels;
@@ -259,7 +255,7 @@ export async function updateAssigneesToTaskAction(
 	organizationId: string,
 	taskId: string,
 	assignees: string[],
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.TaskWithLabels;
@@ -273,17 +269,14 @@ export async function updateAssigneesToTaskAction(
 		assignees: assignees,
 	};
 
-	const result = await fetch(
-		`${API_URL}/admin/organization/task/update-assignees`,
-		{
-			method: "POST",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
+	const result = await fetch(`${API_URL}/admin/organization/task/update-assignees`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
 		},
-	).then(async (e) => await e.json());
+		credentials: "include",
+	}).then(async (e) => await e.json());
 	return result as {
 		success: boolean;
 		data: schema.TaskWithLabels;
@@ -321,9 +314,9 @@ export async function updateAssigneesToTaskAction(
 export async function CreateTaskCommentAction(
 	organizationId: string,
 	taskId: string,
-	blockNote: PartialBlock[] | undefined,
+	blockNote: NodeJSON | undefined,
 	visibility: schema.taskCommentType["visibility"],
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{
 	success: boolean;
 	data: { id: string };
@@ -338,17 +331,14 @@ export async function CreateTaskCommentAction(
 		blocknote: blockNote,
 	};
 
-	const result = await fetch(
-		`${API_URL}/admin/organization/task/create-comment`,
-		{
-			method: "POST",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
+	const result = await fetch(`${API_URL}/admin/organization/task/create-comment`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
 		},
-	).then(async (e) => await e.json());
+		credentials: "include",
+	}).then(async (e) => await e.json());
 	return result as {
 		success: boolean;
 		data: { id: string };

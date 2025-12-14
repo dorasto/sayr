@@ -1,11 +1,7 @@
 import type { Uploader } from "prosekit/extensions/file";
 import type { ImageExtension } from "prosekit/extensions/image";
 import { useEditor } from "prosekit/react";
-import {
-	PopoverContent,
-	PopoverRoot,
-	PopoverTrigger,
-} from "prosekit/react/popover";
+import { PopoverContent, PopoverRoot, PopoverTrigger } from "prosekit/react/popover";
 import { type ReactNode, useId, useState } from "react";
 
 import { Button } from "./button";
@@ -23,9 +19,7 @@ export default function ImageUploadPopover(props: {
 
 	const editor = useEditor<ImageExtension>();
 
-	const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (
-		event,
-	) => {
+	const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (event) => {
 		const file = event.target.files?.[0];
 
 		if (file) {
@@ -36,9 +30,7 @@ export default function ImageUploadPopover(props: {
 		}
 	};
 
-	const handleUrlChange: React.ChangeEventHandler<HTMLInputElement> = (
-		event,
-	) => {
+	const handleUrlChange: React.ChangeEventHandler<HTMLInputElement> = (event) => {
 		const url = event.target.value;
 
 		if (url) {
@@ -76,11 +68,7 @@ export default function ImageUploadPopover(props: {
 	return (
 		<PopoverRoot open={open} onOpenChange={handleOpenChange}>
 			<PopoverTrigger>
-				<Button
-					pressed={open}
-					disabled={props.disabled}
-					tooltip={props.tooltip}
-				>
+				<Button pressed={open} disabled={props.disabled} tooltip={props.tooltip}>
 					{props.children}
 				</Button>
 			</PopoverTrigger>

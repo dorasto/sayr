@@ -11,22 +11,23 @@ import {
 	AutocompletePopover,
 } from "prosekit/react/autocomplete";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
+import { schema } from "@repo/database";
 
 // Match inputs like "@", "@foo", "@foo bar" etc. Do not match "@ foo".
 const regex = canUseRegexLookbehind() ? /(?<!\S)@(\S.*)?$/u : /@(\S.*)?$/u;
 
 export default function UserMenu(props: {
-	users: { id: number; name: string; image?: string | null }[];
+	users: schema.userType[];
 	loading?: boolean;
 	onQueryChange?: (query: string) => void;
 	onOpenChange?: (open: boolean) => void;
 }) {
 	const editor = useEditor<Union<[MentionExtension, BasicExtension]>>();
 
-	const handleUserInsert = (id: number, username: string) => {
+	const handleUserInsert = (id: string, username: string) => {
 		editor.commands.insertMention({
-			id: id.toString(),
-			value: "@" + username,
+			id: id,
+			value: `@${username}`,
 			kind: "user",
 		});
 		editor.commands.insertText({ text: " " });

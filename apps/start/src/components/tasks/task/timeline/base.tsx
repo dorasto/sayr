@@ -1,9 +1,5 @@
-import type { PartialBlock } from "@blocknote/core";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+// import type { PartialBlock } from "@blocknote/core";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Label } from "@repo/ui/components/label";
 import {
@@ -14,24 +10,17 @@ import {
 	TimelineSeparator,
 	TimelineTitle,
 } from "@repo/ui/components/tomui/timeline";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@repo/ui/components/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
 import { IconLock } from "@tabler/icons-react";
-import { Editor } from "@/components/blocknote/Editor";
+// import { Editor } from "@/components/blocknote/Editor";
 import { InlineLabel } from "../../shared/inlinelabel";
 import type { TimelineItemWrapperProps } from "./types";
+import Editor from "@/components/prosekit/editor";
+import { NodeJSON } from "prosekit/core";
 
-export function TimelineItemWrapper({
-	item,
-	icon: Icon,
-	color,
-	children,
-}: TimelineItemWrapperProps) {
+export function TimelineItemWrapper({ item, icon: Icon, color, children, availableUsers }: TimelineItemWrapperProps) {
 	return (
 		<TimelineItem
 			key={item.id}
@@ -41,10 +30,7 @@ export function TimelineItemWrapper({
 			<TimelineHeader>
 				<TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
 				<TimelineTitle className="mt-0.5">
-					<Label
-						variant={"description"}
-						className="text-foreground items-center flex flex-wrap gap-2"
-					>
+					<Label variant={"description"} className="text-foreground items-center flex flex-wrap gap-2">
 						<span>{children}</span>
 						{!item.blockNote && (
 							<Tooltip delayDuration={500}>
@@ -54,9 +40,7 @@ export function TimelineItemWrapper({
 										{formatDateTimeFromNow(item.createdAt as Date)}
 									</Label>
 								</TooltipTrigger>
-								<TooltipContent side="top">
-									{formatDateTime(item.createdAt as Date)}
-								</TooltipContent>
+								<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
 							</Tooltip>
 						)}
 					</Label>
@@ -73,29 +57,18 @@ export function TimelineItemWrapper({
 				<TimelineContent
 					className={cn(
 						"text-foreground rounded-lg border bg-accent/50 relative overflow-hidden px-4 py-3",
-						item.visibility === "internal" && "border-primary/30 bg-primary/5",
+						item.visibility === "internal" && "border-primary/30 bg-primary/5"
 					)}
 				>
 					<div className="flex flex-col gap-1">
 						<div className="flex items-center gap-3">
-							<InlineLabel
-								text={item.actor?.name || "Unknown"}
-								image={item.actor?.image || ""}
-							/>
-							<Label
-								variant={"description"}
-								className="text-foreground items-center flex flex-wrap gap-2"
-							>
+							<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} />
+							<Label variant={"description"} className="text-foreground items-center flex flex-wrap gap-2">
 								<Tooltip delayDuration={500}>
 									<TooltipTrigger asChild>
-										<span>
-											{" "}
-											{formatDateTimeFromNow(item.createdAt as Date)}
-										</span>
+										<span> {formatDateTimeFromNow(item.createdAt as Date)}</span>
 									</TooltipTrigger>
-									<TooltipContent side="top">
-										{formatDateTime(item.createdAt as Date)}
-									</TooltipContent>
+									<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
 								</Tooltip>
 							</Label>
 							{item.visibility === "internal" && (
@@ -108,7 +81,8 @@ export function TimelineItemWrapper({
 								</Badge>
 							)}
 						</div>
-						<Editor readonly={true} value={item.blockNote as PartialBlock[]} />
+						<Editor readonly defaultContent={item.blockNote as NodeJSON} users={availableUsers} />
+						{/* <Editor readonly={true} value={item.blockNote as PartialBlock[]} /> */}
 					</div>
 				</TimelineContent>
 			) : null}
@@ -131,16 +105,11 @@ export function AvatarWithName({
 	) : (
 		<Badge
 			variant={"secondary"}
-			className={cn(
-				"inline-flex items-center gap-1 justify-center h-5 border border-border",
-				className,
-			)}
+			className={cn("inline-flex items-center gap-1 justify-center h-5 border border-border", className)}
 		>
 			<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
 				<AvatarImage src={image || "/avatar.jpg"} alt={name} />
-				<AvatarFallback className="rounded-full bg-transparent uppercase">
-					{name.slice(0, 2)}
-				</AvatarFallback>
+				<AvatarFallback className="rounded-full bg-transparent uppercase">{name.slice(0, 2)}</AvatarFallback>
 			</Avatar>
 			<span>{name}</span>
 		</Badge>

@@ -13,6 +13,7 @@ export interface TimelineItemWrapperProps {
 	icon: React.ComponentType<{ size?: number }>;
 	color: string;
 	children?: React.ReactNode;
+	availableUsers: schema.userType[];
 }
 
 export interface GlobalTimelineProps {

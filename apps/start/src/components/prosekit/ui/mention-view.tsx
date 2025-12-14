@@ -1,10 +1,10 @@
-import type { ReactNodeViewProps } from "prosekit/react";
 import { defineReactNodeView, useExtension } from "prosekit/react";
 import { useMemo } from "react";
+import type { ReactNodeViewProps } from "prosekit/react";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
-import { users } from "../sample/user-data";
+import type { schema } from "@repo/database";
 
-function MentionViewInner(props: ReactNodeViewProps) {
+function MentionViewInner(props: ReactNodeViewProps, users: schema.userType[]) {
 	const { id, value, kind } = props.node.attrs;
 
 	if (kind === "user") {
@@ -31,14 +31,14 @@ function MentionViewInner(props: ReactNodeViewProps) {
 	return <span>{value}</span>;
 }
 
-export default function MentionView() {
+export default function MentionView({ users }: { users: schema.userType[] }) {
 	const extension = useMemo(
 		() =>
 			defineReactNodeView({
 				name: "mention",
-				component: MentionViewInner,
+				component: (props: ReactNodeViewProps) => MentionViewInner(props, users),
 			}),
-		[],
+		[users]
 	);
 
 	useExtension(extension);

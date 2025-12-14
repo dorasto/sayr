@@ -1,56 +1,29 @@
 import type { Uploader } from "prosekit/extensions/file";
 
 /**
- * Uploads the given file to https://tmpfiles.org/ and returns the URL of the
- * uploaded file.
- *
- * This function is only for demonstration purposes. All uploaded files will be
- * deleted by the server after 1 hour.
+ * "Uploads" the file locally by converting it to a Blob URL.
+ * No network request is made.
  */
-export const sampleUploader: Uploader<string> = ({
-	file,
-	onProgress,
-}): Promise<string> => {
-	return new Promise((resolve, reject) => {
-		const xhr = new XMLHttpRequest();
-		const formData = new FormData();
-		formData.append("file", file);
+export const sampleUploader: Uploader<string> = async ({ file, onProgress }): Promise<string> => {
+	return new Promise((resolve) => {
+		// Simulate progress
+		const total = file.size;
+		let loaded = 0;
 
-		xhr.upload.addEventListener("progress", (event) => {
-			if (event.lengthComputable) {
-				onProgress({
-					loaded: event.loaded,
-					total: event.total,
-				});
-			}
-		});
+		const chunkSize = Math.max(1024 * 64, Math.floor(total / 20)); // simulate 20 steps
+		const simulate = () => {
+			loaded = Math.min(loaded + chunkSize, total);
+			onProgress({ loaded, total });
 
-		xhr.addEventListener("load", () => {
-			if (xhr.status === 200) {
-				try {
-					const json = JSON.parse(xhr.responseText) as {
-						data: { url: string };
-					};
-					const url: string = json.data.url.replace(
-						"tmpfiles.org/",
-						"tmpfiles.org/dl/",
-					);
-
-					// Simulate a larger delay
-					setTimeout(() => resolve(url), 1000);
-				} catch (error) {
-					reject(new Error("Failed to parse response", { cause: error }));
-				}
+			if (loaded < total) {
+				setTimeout(simulate, 30);
 			} else {
-				reject(new Error(`Upload failed with status ${xhr.status}`));
+				// Create and return the Blob URL
+				const url = URL.createObjectURL(file);
+				resolve(url);
 			}
-		});
+		};
 
-		xhr.addEventListener("error", () => {
-			reject(new Error("Upload failed"));
-		});
-
-		xhr.open("POST", "https://tmpfiles.org/api/v1/upload", true);
-		xhr.send(formData);
+		simulate();
 	});
 };
