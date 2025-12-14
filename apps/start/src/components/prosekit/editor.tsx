@@ -1,11 +1,12 @@
 import "prosekit/basic/style.css";
 import "prosekit/basic/typography.css";
 
+import type { schema } from "@repo/database";
 import { createEditor, type NodeJSON } from "prosekit/core";
 import type { Uploader } from "prosekit/extensions/file";
 import { ProseKit, useDocChange } from "prosekit/react";
 import { useMemo } from "react";
-
+import { cn } from "@/lib/utils";
 import { defineExtension } from "./extension";
 import { sampleUploader } from "./sample/sample-uploader";
 import { tags as defaultTags } from "./sample/tag-data";
@@ -21,7 +22,6 @@ import TableHandle from "./ui/table-handle";
 import TagMenu from "./ui/tag-menu";
 import Toolbar from "./ui/toolbar";
 import UserMenu from "./ui/user-menu";
-import { schema } from "@repo/database";
 
 export interface EditorProps {
 	readonly?: boolean;
@@ -53,7 +53,7 @@ export default function Editor({
 			const json = editor.getDocJSON();
 			if (onChange) onChange(json); // ✅ send data to parent
 		},
-		{ editor }
+		{ editor },
 	);
 	return (
 		<ProseKit editor={editor}>
@@ -63,21 +63,36 @@ export default function Editor({
 				</div> */}
 				<div
 					ref={editor.mount}
-					className='ProseMirror box-border min-h-full px-[max(4rem,calc(50%-20rem))] py-8 outline-none outline-0 [&_span[data-mention="tag"]]:text-violet-500'
+					className={cn(
+						'ProseMirror box-border min-h-full px-12 py-0! outline-none outline-0 [&_span[data-mention="tag"]]:text-violet-500',
+						readonly && "px-0",
+					)}
 				></div>
-				<InlineMenu />
-				<SlashMenu />
-				<UserMenu users={users || []} />
-				<TagMenu tags={tags} />
+				{!readonly && (
+					<>
+						<InlineMenu />
+						<SlashMenu />
+						<UserMenu users={users || []} />
+						<TagMenu tags={tags} />
+					</>
+				)}
 				<CodeBlockView />
 				<ImageView />
 				<MentionView users={users || []} />
-				<BlockHandle />
-				<TableHandle />
-				<DropIndicator />
-				<ImageUploadPopover uploader={uploader} tooltip="Upload Image" disabled={false}>
-					<div className="i-lucide-image size-5" />
-				</ImageUploadPopover>
+				{!readonly && (
+					<>
+						<BlockHandle />
+						<TableHandle />
+						<DropIndicator />
+						<ImageUploadPopover
+							uploader={uploader}
+							tooltip="Upload Image"
+							disabled={false}
+						>
+							<div className="i-lucide-image size-5" />
+						</ImageUploadPopover>
+					</>
+				)}
 			</div>
 		</ProseKit>
 	);

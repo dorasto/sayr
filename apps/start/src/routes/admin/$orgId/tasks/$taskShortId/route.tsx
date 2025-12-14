@@ -11,6 +11,7 @@ export const Route = createFileRoute("/admin/$orgId/tasks/$taskShortId")({
 				taskShortId: parseInt(params.taskShortId),
 			},
 		}),
+	staleTime: 1000 * 60,
 	component: OrgTasksLayout,
 });
 

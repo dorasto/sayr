@@ -86,12 +86,14 @@ export default function ImageView(props: ReactNodeViewProps) {
 					</div>
 				</div>
 			)}
-			<ResizableHandle
-				className="absolute bottom-0 right-0 rounded-sm m-1.5 p-1 transition bg-accent/50 active:bg-accent hover:bg-accent/80 text-foreground/50 active:text-foreground/80 active:translate-x-0.5 active:translate-y-0.5 opacity-0 hover:opacity-100 group-hover:opacity-100 group-data-resizing:opacity-100"
-				position="bottom-right"
-			>
-				<IconArrowsDiagonal2 className="size-4 block" />
-			</ResizableHandle>
+			{props.view.editable && (
+				<ResizableHandle
+					className="absolute bottom-0 right-0 rounded-sm m-1.5 p-1 transition bg-accent/50 active:bg-accent hover:bg-accent/80 text-foreground/50 active:text-foreground/80 active:translate-x-0.5 active:translate-y-0.5 opacity-0 hover:opacity-100 group-hover:opacity-100 group-data-resizing:opacity-100"
+					position="bottom-right"
+				>
+					<IconArrowsDiagonal2 className="size-4 block" />
+				</ResizableHandle>
+			)}
 		</ResizableRoot>
 	);
 }

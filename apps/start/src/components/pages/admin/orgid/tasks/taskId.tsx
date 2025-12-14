@@ -5,16 +5,13 @@ import {
 	ResizablePanelGroup,
 	type ResizablePanelHandle,
 } from "@repo/ui/components/resizable";
-import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
 	IconArrowLeft,
-	IconArrowsDiagonalMinimize2,
 	IconLayoutSidebarRight,
 	IconLayoutSidebarRightFilled,
-	IconLink,
 } from "@tabler/icons-react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useRef, useState } from "react";
@@ -54,25 +51,26 @@ export default function OrganizationTaskIdPage() {
 						<span className="">Back</span>
 					</Button>
 				</Link>
-				<Button
-					variant="primary"
-					className={cn(
-						"gap-2 h-6 w-fit bg-accent border-transparent p-1 ml-auto",
-					)}
-					onClick={() => {
-						if (isPanelOpen) {
-							ref.current?.collapse();
-						} else {
-							ref.current?.expand();
-						}
-					}}
-				>
-					{isPanelOpen ? (
-						<IconLayoutSidebarRightFilled />
-					) : (
-						<IconLayoutSidebarRight />
-					)}
-				</Button>
+				<div></div>
+				<div className="flex items-center gap-2 ml-auto">
+					<Button
+						variant="primary"
+						className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
+						onClick={() => {
+							if (isPanelOpen) {
+								ref.current?.collapse();
+							} else {
+								ref.current?.expand();
+							}
+						}}
+					>
+						{isPanelOpen ? (
+							<IconLayoutSidebarRightFilled />
+						) : (
+							<IconLayoutSidebarRight />
+						)}
+					</Button>
+				</div>
 			</div>
 			<ResizablePanelGroup direction="horizontal" className="">
 				<ResizablePanel defaultSize={useMobile ? 100 : 80} minSize={70}>
@@ -92,8 +90,8 @@ export default function OrganizationTaskIdPage() {
 					collapsible
 					collapsedSize={0}
 					ref={ref}
-					onCollapse={() => setIsPanelOpen(false)}
-					onExpand={() => setIsPanelOpen(true)}
+					onCollapse={() => setTimeout(() => setIsPanelOpen(false), 0)}
+					onExpand={() => setTimeout(() => setIsPanelOpen(true), 0)}
 					className=""
 				>
 					<div className="flex-1 overflow-y-auto h-full flex flex-col relative">

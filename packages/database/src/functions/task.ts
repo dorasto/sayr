@@ -24,7 +24,9 @@ import { db, schema } from "..";
  * });
  * ```
  */
-export async function getTasksByOrganizationId(orgId: string): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByOrganizationId(
+	orgId: string,
+): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) => and(eq(t.organizationId, orgId)),
 		with: {
@@ -90,7 +92,10 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
  * }
  * ```
  */
-export async function getTaskByShortId(orgId: string, shortId: number): Promise<schema.TaskWithLabels | null> {
+export async function getTaskByShortId(
+	orgId: string,
+	shortId: number,
+): Promise<schema.TaskWithLabels | null> {
 	const task = await db.query.task.findFirst({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId)),
 		with: {
@@ -193,7 +198,7 @@ export async function createTask(
 		priority?: schema.taskType["priority"];
 		category: schema.taskType["category"];
 	},
-	createdBy?: string | null
+	createdBy?: string | null,
 ) {
 	// Get highest existing shortId for this project
 	const [max] = (await db
@@ -233,7 +238,7 @@ export async function addLogEventTask(
 	fromValue?: unknown,
 	toValue?: unknown,
 	actorId?: string,
-	blockNote?: unknown
+	blockNote?: unknown,
 ) {
 	return await db.insert(taskTimeline).values({
 		taskId: task_id,
@@ -251,7 +256,7 @@ export async function createComment(
 	task_id: string,
 	blockNote: unknown,
 	visibility: schema.taskCommentType["visibility"],
-	createdBy?: string
+	createdBy?: string,
 ) {
 	return await db.insert(taskComment).values({
 		organizationId: org_id,
@@ -302,7 +307,7 @@ export async function createComment(
 export async function getTaskComments(
 	orgId: string,
 	taskId: string,
-	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {}
+	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {},
 ) {
 	// Step 1: Paginated comments
 	const comments = await db.query.taskComment.findMany({
@@ -338,7 +343,11 @@ export async function getTaskTimeline(orgId: string, taskId: string) {
 	return timeline;
 }
 
-export async function getMergedTaskActivity(orgId: string, taskId: string, isPublic: boolean) {
+export async function getMergedTaskActivity(
+	orgId: string,
+	taskId: string,
+	isPublic: boolean,
+) {
 	const commentConditions = [
 		eq(schema.taskComment.organizationId, orgId),
 		eq(schema.taskComment.taskId, taskId),
@@ -400,7 +409,9 @@ export async function getMergedTaskActivity(orgId: string, taskId: string, isPub
  * });
  * ```
  */
-export async function getTasksByUserId(userId: string): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByUserId(
+	userId: string,
+): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) =>
 			sql`EXISTS (

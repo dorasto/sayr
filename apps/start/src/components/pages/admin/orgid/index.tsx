@@ -69,6 +69,7 @@ export default function OrganizationHomePage() {
 			ws.removeEventListener("message", handleMessage);
 		};
 	}, [ws, handleMessage]);
+	console.log("orghomepage organization:", organization);
 	return (
 		<SubWrapper
 			title={`${organization.name}`}
