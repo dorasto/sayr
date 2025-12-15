@@ -25,7 +25,7 @@
 	},
 	"dependencies": {
 		"@octokit/rest": "^22.0.1",
-		"drizzle-orm": "^0.44.5"
+		"drizzle-orm": "^0.45.1"
 	},
 	"packageManager": "pnpm@10.6.2"
 }
