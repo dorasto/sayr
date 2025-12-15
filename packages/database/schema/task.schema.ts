@@ -31,7 +31,7 @@ export const task = table("task", {
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	title: v.text("title"),
-	description: v.jsonb("content").$type<NodeJSON>(),
+	description: v.jsonb("description").$type<NodeJSON>(),
 	status: statusEnum("todo").notNull(),
 	priority: priorityEnum("none").notNull(),
 	createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),

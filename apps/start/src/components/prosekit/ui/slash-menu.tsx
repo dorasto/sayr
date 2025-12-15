@@ -121,14 +121,14 @@ export default function SlashMenu() {
 
 				<SlashMenuItem
 					label="Image"
-					kbd="/img"
+					kbd=""
 					icon={<IconPhoto className="size-4" />}
 					onSelect={() => handleMediaUpload(editor, "image")}
 				/>
 
 				<SlashMenuItem
 					label="Video"
-					kbd="/vid"
+					kbd=""
 					icon={<IconVideo className="size-4" />}
 					onSelect={() => handleMediaUpload(editor, "video")}
 				/>

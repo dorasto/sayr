@@ -18,7 +18,15 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconCategory, IconLabel, IconProgress, IconSlash, IconUserPlus, IconUsers } from "@tabler/icons-react";
+import {
+	IconCategory,
+	IconLabel,
+	IconPlus,
+	IconProgress,
+	IconSlash,
+	IconUserPlus,
+	IconUsers,
+} from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import { useMemo, useState } from "react";
 import { priorityConfig, statusConfig } from "../../shared/config";
@@ -35,8 +43,8 @@ interface Props {
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: schema.TaskWithLabels[]) => void;
 	_labels: schema.labelType[];
-	open?: boolean;
-	setOpen?: (open: boolean) => void;
+	// open?: boolean;
+	// setOpen?: (open: boolean) => void;
 }
 
 export default function CreateIssueDialog({
@@ -44,14 +52,14 @@ export default function CreateIssueDialog({
 	tasks,
 	setTasks,
 	_labels,
-	open,
-	setOpen = () => {
-		false;
-	},
+	// open,
+	// setOpen = () => {
+	// 	false;
+	// },
 }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { value: categories } = useStateManagement<schema.categoryType[]>("categories", [], 1);
-	// const [open, setOpen] = useState(false);
+	const [open, setOpen] = useState(false);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState<undefined | NodeJSON>(undefined);
 	const [status, setStatus] = useState<string | undefined | null>("backlog");
@@ -149,10 +157,10 @@ export default function CreateIssueDialog({
 	const selectedAssigneeCount = draftTask.assignees.length;
 	return (
 		<div className="flex items-center gap-3">
-			{/* <Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
+			<Button variant={"accent"} size={"sm"} onClick={() => setOpen(true)}>
 				<IconPlus />
 				<span className="text-inherit">New task</span>
-			</Button> */}
+			</Button>
 			<AdaptiveDialog open={open} onOpenChange={setOpen}>
 				<AdaptiveDialogContent className="z-50">
 					<AdaptiveDialogHeader className="!pb-0">
