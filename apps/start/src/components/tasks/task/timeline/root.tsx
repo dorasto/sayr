@@ -105,9 +105,22 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 	}, [activity.refetch, task.id, queryClient, task.organizationId]);
 
 	// --- Flatten comments from all pages ---
-	const allCommentPages = comments.data ?? [];
-	const flattenedComments = [...allCommentPages].reverse().flatMap((page) => page.data);
+	const flattenedComments = useMemo(() => {
+		if (!comments.data) return [];
+		const seen = new Set<string>();
+		const result: schema.taskTimelineWithActor[] = [];
 
+		for (let i = comments.data.length - 1; i >= 0; i--) {
+			const page = comments.data[i];
+			for (const item of page.data ?? []) {
+				if (!item?.id || seen.has(item.id)) continue;
+				seen.add(item.id);
+				result.push(item);
+			}
+		}
+
+		return result;
+	}, [comments.data]);
 	// --- Determine visible date range (oldest + newest) ---
 	const { oldestCommentTime, newestCommentTime } = useMemo(() => {
 		if (flattenedComments.length === 0) return { oldestCommentTime: null, newestCommentTime: null };
