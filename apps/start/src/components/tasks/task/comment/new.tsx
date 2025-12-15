@@ -38,7 +38,7 @@ export function TaskNewCommentContent({ task, availableUsers, onFinish }: TaskNe
 			});
 			return;
 		}
-		const updatedContent = await processUploads(newComment, visibility, task.organizationId);
+		const updatedContent = await processUploads(newComment, visibility, task.organizationId, "create-task-comment");
 		const data = await runWithToast(
 			"create-task-comment",
 			{

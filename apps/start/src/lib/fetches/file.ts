@@ -28,7 +28,7 @@ const API_URL = import.meta.env.VITE_EXTERNAL_API_URL;
  */
 export async function uploadFile(
 	file: File,
-	orgId?: string,
+	orgId?: string
 ): Promise<{
 	success: boolean;
 	data?: { url: string };
@@ -82,8 +82,7 @@ export async function uploadFile(
 			data: uploaded,
 		};
 	} catch (err) {
-		const errorMessage =
-			err instanceof Error ? err.message : "Unknown upload error";
+		const errorMessage = err instanceof Error ? err.message : "Unknown upload error";
 
 		console.error("client.upload.error", {
 			message: "File upload encountered an error",
@@ -165,8 +164,7 @@ export async function deleteFile(fileUrl: string): Promise<{
 			message: response.message ?? "Deleted successfully",
 		};
 	} catch (err) {
-		const errorMessage =
-			err instanceof Error ? err.message : "Unknown delete error";
+		const errorMessage = err instanceof Error ? err.message : "Unknown delete error";
 
 		console.error("client.delete.error", {
 			message: "File deletion encountered an error",

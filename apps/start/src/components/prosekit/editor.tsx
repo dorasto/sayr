@@ -8,12 +8,10 @@ import { ProseKit, useDocChange } from "prosekit/react";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { defineExtension } from "./extension";
-import { sampleUploader } from "./sample/sample-uploader";
 import { tags as defaultTags } from "./sample/tag-data";
 import BlockHandle from "./ui/block-handle";
 import CodeBlockView from "./ui/code-block-view";
 import DropIndicator from "./ui/drop-indicator";
-import ImageUploadPopover from "./ui/image-upload-popover";
 import ImageView from "./ui/image-view";
 import InlineMenu from "./ui/inline-menu";
 import MentionView from "./ui/mention-view";
@@ -38,7 +36,6 @@ export default function Editor({
 	readonly = false,
 	placeholder,
 	defaultContent,
-	uploader = sampleUploader,
 	users = [],
 	tags = defaultTags,
 	className,
@@ -53,7 +50,7 @@ export default function Editor({
 			const json = editor.getDocJSON();
 			if (onChange) onChange(json); // ✅ send data to parent
 		},
-		{ editor },
+		{ editor }
 	);
 	return (
 		<ProseKit editor={editor}>
@@ -65,7 +62,7 @@ export default function Editor({
 					ref={editor.mount}
 					className={cn(
 						'ProseMirror box-border min-h-full px-12 py-0! outline-none outline-0 [&_span[data-mention="tag"]]:text-violet-500',
-						readonly && "px-0",
+						readonly && "px-0"
 					)}
 				></div>
 				{!readonly && (
@@ -84,13 +81,6 @@ export default function Editor({
 						<BlockHandle />
 						<TableHandle />
 						<DropIndicator />
-						<ImageUploadPopover
-							uploader={uploader}
-							tooltip="Upload Image"
-							disabled={false}
-						>
-							<div className="i-lucide-image size-5" />
-						</ImageUploadPopover>
 					</>
 				)}
 			</div>

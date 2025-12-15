@@ -1,15 +1,13 @@
 import { defineBasicExtension } from "prosekit/basic";
 import { union } from "prosekit/core";
-import {
-	defineCodeBlock,
-	defineCodeBlockShiki,
-} from "prosekit/extensions/code-block";
+import { defineCodeBlock, defineCodeBlockShiki } from "prosekit/extensions/code-block";
 import { defineImage } from "prosekit/extensions/image";
 import { defineMention } from "prosekit/extensions/mention";
 import { definePlaceholder } from "prosekit/extensions/placeholder";
 import { defineReadonly } from "prosekit/extensions/readonly";
 import { defineReactMarkView } from "prosekit/react";
 import Link from "./ui/links";
+import { defineVideo } from "./video-extension";
 
 export function defineExtension({
 	readonly = false,
@@ -29,6 +27,7 @@ export function defineExtension({
 			name: "link",
 			component: Link,
 		}),
+		defineVideo(),
 	];
 
 	if (readonly) {

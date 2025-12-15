@@ -11,19 +11,19 @@ import {
 	IconListCheck,
 	IconListDetails,
 	IconListNumbers,
+	IconPhoto,
 	IconQuote,
 	IconSpace,
 	IconTable,
+	IconVideo,
 } from "@tabler/icons-react";
 import type { BasicExtension } from "prosekit/basic";
 import { canUseRegexLookbehind } from "prosekit/core";
 import { useEditor } from "prosekit/react";
-import {
-	AutocompleteList,
-	AutocompletePopover,
-} from "prosekit/react/autocomplete";
+import { AutocompleteList, AutocompletePopover } from "prosekit/react/autocomplete";
 import SlashMenuEmpty from "./slash-menu-empty";
 import SlashMenuItem from "./slash-menu-item";
+import { handleMediaUpload } from "../utils/uploadMedia";
 
 // Match inputs like "/", "/table", "/heading 1" etc. Do not match "/ heading".
 const regex = canUseRegexLookbehind() ? /(?<!\S)\/(\S.*)?$/u : /\/(\S.*)?$/u;
@@ -117,6 +117,20 @@ export default function SlashMenu() {
 					kbd="```"
 					icon={<IconCode className="size-4" />}
 					onSelect={() => editor.commands.setCodeBlock()}
+				/>
+
+				<SlashMenuItem
+					label="Image"
+					kbd="/img"
+					icon={<IconPhoto className="size-4" />}
+					onSelect={() => handleMediaUpload(editor, "image")}
+				/>
+
+				<SlashMenuItem
+					label="Video"
+					kbd="/vid"
+					icon={<IconVideo className="size-4" />}
+					onSelect={() => handleMediaUpload(editor, "video")}
 				/>
 
 				<SlashMenuEmpty />

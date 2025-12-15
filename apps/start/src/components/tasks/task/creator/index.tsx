@@ -107,7 +107,7 @@ export default function CreateIssueDialog({
 			});
 			return;
 		}
-		const updatedContent = await processUploads(description, "public", organization.id);
+		const updatedContent = await processUploads(description, "public", organization.id, "create-task");
 
 		const data = await runWithToast(
 			"create-task",

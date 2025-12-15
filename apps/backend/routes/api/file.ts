@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { checkMembershipRole } from "@/util";
-
+import mime from "mime-types";
 export const apiRouteFile = new Hono<AppEnv>();
 
 // Upload a file
@@ -23,7 +23,8 @@ apiRouteFile.put("/", async (c) => {
 		// Convert file to buffer
 		const buffer = Buffer.from(await file.arrayBuffer());
 		// Derive extension safely
-		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "bin";
+		const mimeType = file.type || mime.lookup(file.name || "") || "application/octet-stream";
+		const ext = mime.extension(mimeType) || "bin";
 		// Generate a secure, random file name (e.g. AES-grade hex string)
 		// Salt to make hashes unpredictable even if filename known
 		const salt = process.env.FILE_SALT || "";
