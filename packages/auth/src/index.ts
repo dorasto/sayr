@@ -8,6 +8,7 @@ export const auth = betterAuth({
 		provider: "pg",
 		schema: schema.auth,
 	}),
+	baseURL: process.env.VITE_URL_ROOT,
 	trustedOrigins: ["http://localhost:3000", process.env.VITE_URL_ROOT || ""],
 	user: {
 		additionalFields: {

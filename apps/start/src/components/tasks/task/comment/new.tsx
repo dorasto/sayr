@@ -10,7 +10,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconLock, IconLockOpen2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { CreateTaskCommentAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
+import { extractTextContent, useToastAction } from "@/lib/util";
 import Editor from "@/components/prosekit/editor";
 import type { NodeJSON } from "prosekit/core";
 import processUploads from "@/components/prosekit/upload";
@@ -28,9 +28,11 @@ export function TaskNewCommentContent({ task, availableUsers, onFinish }: TaskNe
 	const [newComment, setNewComment] = useState<undefined | NodeJSON>(undefined);
 	const [editorKey, setEditorKey] = useState(0);
 	const [visibility, setVisibility] = useState<CommentVisibility>("public");
-	const disabled = isFetching || !newComment;
+	const commentText = extractTextContent(newComment);
+	const disabled = isFetching || commentText.length === 0;
 	const handleSubmit = async () => {
-		if (!newComment || isFetching) {
+		if (!newComment || isFetching || commentText.length === 0) {
+			console.log(newComment);
 			headlessToast.error({
 				title: "Cannot submit empty comment",
 				description: "Please enter some text before submitting your comment.",

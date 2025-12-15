@@ -14,6 +14,7 @@ export const getUserOrganizations = createServerFn({ method: "GET" }).handler(as
 		const organizations = await getOrganizations(account.id);
 		return { account, organizations };
 	} catch (error) {
+		console.log("🚀 ~ error:", error);
 		// If it's already a redirect, re-throw it
 		if (error && typeof error === "object" && "redirect" in error) {
 			throw error;

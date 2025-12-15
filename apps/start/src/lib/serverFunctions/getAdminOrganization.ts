@@ -28,6 +28,7 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			});
 			return { organization, labels, views, categories };
 		} catch (error) {
+			console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;

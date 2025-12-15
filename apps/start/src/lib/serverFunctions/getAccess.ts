@@ -10,6 +10,7 @@ export const getAccess = async () => {
 	const cookie = getSessionCookie(h) ?? "anon";
 
 	if (!cookie || cookie === "anon") {
+		console.log("🚀 ~ getAccess ~ cookie:", cookie);
 		throw redirect({ to: "/home/login" });
 	}
 
@@ -25,6 +26,7 @@ export const getAccess = async () => {
 
 		throw redirect({ to: "/home/login" });
 	} catch (_error) {
+		console.log("🚀 ~ getAccess ~ _error:", _error);
 		throw redirect({ to: "/home/login" });
 	}
 };
