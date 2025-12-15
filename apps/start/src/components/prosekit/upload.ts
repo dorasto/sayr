@@ -5,66 +5,66 @@ import { uploadFile } from "@/lib/fetches/file";
 type CommentVisibility = "internal" | "public";
 
 /**
- * Processes uploads within a ProseKit document, replacing local blob URLs
- * with uploaded URLs from the storage service.
+ * Recursively processes uploads within a ProseKit document,
+ * replacing local blob URLs with uploaded URLs.
  */
 export default async function processUploads(
 	doc: NodeJSON,
 	visibility: CommentVisibility,
 	organizationId: string,
 	toastId: string
-) {
-	// If there's no content, nothing to process
+): Promise<NodeJSON> {
 	if (!doc?.content) return doc;
 
-	const updatedContent = await Promise.all(
-		doc.content.map(async (node) => {
-			const isMedia = node.type === "image" || node.type === "video";
-			const isLocalBlob = typeof node.attrs?.src === "string" && node.attrs.src.startsWith("blob:");
+	const processNode = async (node: NodeJSON): Promise<NodeJSON> => {
+		const isMedia = node.type === "image" || node.type === "video";
+		const isLocalBlob = typeof node.attrs?.src === "string" && node.attrs.src.startsWith("blob:");
 
-			if (isMedia && isLocalBlob) {
-				headlessToast.info({
-					title: "Uploading media...",
-					description: "Your file is being uploaded. This may take a few moments.",
-					id: toastId || "comment-upload-status",
-				});
+		// 1. If this node itself is an image/video with a local blob URL, upload it
+		if (isMedia && isLocalBlob) {
+			headlessToast.info({
+				title: "Uploading media...",
+				description: "Your file is being uploaded. This may take a few moments.",
+				id: toastId || "comment-upload-status",
+			});
 
-				try {
-					// Fetch and convert the blob from the local URL
-					const blob = await fetch(node.attrs?.src).then((res) => res.blob());
+			try {
+				const blob = await fetch(node?.attrs?.src).then((res) => res.blob());
+				const extension = blob.type.split("/")[1] || "bin";
+				const fileName = `upload-${Date.now()}.${extension}`;
+				const file = new File([blob], fileName, { type: blob.type });
 
-					const extension = blob.type.split("/")[1];
-					const fileName = `upload-${Date.now()}.${extension}`;
-					const file = new File([blob], fileName, { type: blob.type });
+				const result = visibility === "internal" ? await uploadFile(file, organizationId) : await uploadFile(file);
 
-					// Upload based on visibility (internal or public)
-					const result =
-						visibility === "internal" ? await uploadFile(file, organizationId) : await uploadFile(file);
-
-					if (result.success && result.data?.url) {
-						// Clean up the local blob
-						URL.revokeObjectURL(node.attrs?.src);
-
-						// Replace the node's src with the uploaded file URL
-						return {
-							...node,
-							attrs: { ...node.attrs, src: result.data.url },
-						};
-					}
-				} catch (err) {
-					console.error("⚠️ Failed to upload media:", err);
-					headlessToast.error({
-						title: "Upload failed",
-						description: "Something went wrong while uploading your file.",
-						id: "comment-upload-status",
-					});
+				if (result.success && result.data?.url) {
+					URL.revokeObjectURL(node.attrs?.src);
+					return {
+						...node,
+						attrs: { ...node.attrs, src: result.data.url },
+					};
 				}
+			} catch (err) {
+				console.error("⚠️ Failed to upload media:", err);
+				headlessToast.error({
+					title: "Upload failed",
+					description: "Something went wrong while uploading your file.",
+					id: "comment-upload-status",
+				});
 			}
+		}
 
-			// Return unchanged node if no upload is needed
-			return node;
-		})
-	);
+		// 2. If this node has nested content, process it recursively
+		if (Array.isArray(node.content) && node.content.length > 0) {
+			const newContent = await Promise.all(node.content.map(async (child) => await processNode(child)));
+			return { ...node, content: newContent };
+		}
+
+		// 3. Otherwise just return as-is
+		return node;
+	};
+
+	// Process the root content recursively
+	const updatedContent = await Promise.all(doc.content.map(async (node) => await processNode(node)));
 
 	return { ...doc, content: updatedContent };
 }

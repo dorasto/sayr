@@ -1,3 +1,4 @@
+import { Skeleton } from "@repo/ui/components/skeleton";
 import type { BasicExtension } from "prosekit/basic";
 import type { Union } from "prosekit/core";
 import type { MentionExtension } from "prosekit/extensions/mention";
@@ -9,17 +10,21 @@ import {
 	AutocompletePopover,
 } from "prosekit/react/autocomplete";
 
-const regex = /#[\da-z]*$/i;
+// Match inputs like "#", "#foo", "#foo_bar", etc.
+const regex = /#[\da-z_]*$/i;
 
 export default function TagMenu(props: {
 	tags: { id: number; label: string }[];
+	loading?: boolean;
+	onQueryChange?: (query: string) => void;
+	onOpenChange?: (open: boolean) => void;
 }) {
 	const editor = useEditor<Union<[MentionExtension, BasicExtension]>>();
 
 	const handleTagInsert = (id: number, label: string) => {
 		editor.commands.insertMention({
 			id: id.toString(),
-			value: "#" + label,
+			value: `#${label}`,
 			kind: "tag",
 		});
 		editor.commands.insertText({ text: " " });
@@ -28,20 +33,26 @@ export default function TagMenu(props: {
 	return (
 		<AutocompletePopover
 			regex={regex}
-			className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-10 box-border rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg [&:not([data-state])]:hidden"
+			className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-lg border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
+			onQueryChange={props.onQueryChange}
+			onOpenChange={props.onOpenChange}
 		>
 			<AutocompleteList>
-				<AutocompleteEmpty className="relative flex items-center justify-between min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800">
-					No results
+				<AutocompleteEmpty className="relative flex items-center justify-between min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 box-border cursor-default select-none whitespace-nowrap outline-hidden text-sm">
+					{props.loading ? "Loading..." : "No results"}
 				</AutocompleteEmpty>
 
 				{props.tags.map((tag) => (
 					<AutocompleteItem
 						key={tag.id}
-						className="relative flex items-center justify-between min-w-32 scroll-my-1 rounded-sm px-3 py-1.5 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-gray-100 dark:data-focused:bg-gray-800"
+						className="relative flex items-center justify-between min-w-32 scroll-my-1 rounded-lg px-3 py-1.5 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 						onSelect={() => handleTagInsert(tag.id, tag.label)}
 					>
-						#{tag.label}
+						{props.loading ? (
+							<Skeleton className="w-full" />
+						) : (
+							<span className="text-sm font-medium">#{tag.label}</span>
+						)}
 					</AutocompleteItem>
 				))}
 			</AutocompleteList>

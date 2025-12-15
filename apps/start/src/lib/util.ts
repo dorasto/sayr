@@ -130,6 +130,10 @@ export function extractTextContent(doc: NodeJSON | NodeJSON[] | null | undefined
 				return `[Video${src ? ` • ${src}` : ""}]`;
 			}
 
+			case "mention": {
+				return `[Mention${node.attrs?.value ? ` • ${node.attrs.value}` : ""}]`;
+			}
+
 			case "codeBlock": {
 				const txt = (node.content ?? []).map(walk).join(" ");
 				// shorten very long code blocks

@@ -1,4 +1,3 @@
-import { Label } from "@repo/ui/components/label";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import type { BasicExtension } from "prosekit/basic";
 import { canUseRegexLookbehind, type Union } from "prosekit/core";
@@ -11,7 +10,7 @@ import {
 	AutocompletePopover,
 } from "prosekit/react/autocomplete";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
-import { schema } from "@repo/database";
+import type { schema } from "@repo/database";
 
 // Match inputs like "@", "@foo", "@foo bar" etc. Do not match "@ foo".
 const regex = canUseRegexLookbehind() ? /(?<!\S)@(\S.*)?$/u : /@(\S.*)?$/u;

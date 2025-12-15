@@ -27,7 +27,6 @@ export interface EditorProps {
 	defaultContent?: NodeJSON;
 	uploader?: Uploader<string>;
 	users?: schema.userType[];
-	tags?: Array<{ id: number; label: string }>;
 	className?: string;
 	onChange?: (doc: NodeJSON) => void; // ✅ New prop
 }
@@ -37,7 +36,6 @@ export default function Editor({
 	placeholder,
 	defaultContent,
 	users = [],
-	tags = defaultTags,
 	className,
 	onChange,
 }: EditorProps) {
@@ -70,7 +68,7 @@ export default function Editor({
 						<InlineMenu />
 						<SlashMenu />
 						<UserMenu users={users || []} />
-						<TagMenu tags={tags} />
+						<TagMenu tags={defaultTags} />
 					</>
 				)}
 				<CodeBlockView />
