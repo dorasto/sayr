@@ -20,7 +20,7 @@ export * from "./task.schema";
 export * from "./taskAssignee.schema";
 export * from "./taskComment.schema";
 export * from "./taskTimeline.schema";
-interface NodeJSON {
+export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	marks?: Array<{ type: string; attrs?: Record<string, any> }>;
@@ -46,7 +46,7 @@ export type TaskWithLabels = taskType & {
 export type CommentsWithAuthor = Array<
 	taskCommentType & {
 		createdBy: { id: string; name: string; image: string | null } | null;
-		blockNote: NodeJSON;
+		content: NodeJSON;
 	}
 >;
 

@@ -5,6 +5,7 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
+import type { NodeJSON } from ".";
 
 export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
 	"status_change",
@@ -36,7 +37,7 @@ export const taskTimeline = table("task_timeline", {
 	eventType: timelineEventTypeEnum("event_type").notNull(),
 	fromValue: v.jsonb("from_value"),
 	toValue: v.jsonb("to_value"),
-	blockNote: v.jsonb("block_note"),
+	content: v.jsonb("content").$type<NodeJSON>(),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 });
 

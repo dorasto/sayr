@@ -420,7 +420,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 });
 // Create a comment on a task
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
-	const { org_id, wsClientId, task_id, blocknote, visibility } = await c.req.json();
+	const { org_id, wsClientId, task_id, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
@@ -428,7 +428,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	const key = `${org_id}:${task_id}`;
-	await createComment(org_id, task_id, blocknote, visibility, session?.userId);
+	await createComment(org_id, task_id, content, visibility, session?.userId);
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"], data: { id: task_id } };
 	broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
@@ -614,11 +614,9 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 		// --- Merge and remove duplicates ---
 		const merged = [...oldest, ...newest];
 
-		const uniqueData = Array.from(
-			new Map(merged.map((item) => [item.id, item])).values()
-		);
+		const uniqueData = Array.from(new Map(merged.map((item) => [item.id, item])).values());
 		// --- Merge and sort chronologically ---
-		const data =uniqueData.sort(
+		const data = uniqueData.sort(
 			(a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
 		);
 

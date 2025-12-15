@@ -5,6 +5,7 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
+import type { NodeJSON } from ".";
 export const taskCommentVisibilityEnum = v.pgEnum("task_comment_visibility", ["public", "internal"]);
 
 export const taskComment = table("task_comment", {
@@ -23,7 +24,7 @@ export const taskComment = table("task_comment", {
 	}),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
-	blockNote: v.jsonb("block_note"),
+	content: v.jsonb("content").$type<NodeJSON>(),
 	createdBy: v.text("created_by").references(() => user.id),
 	visibility: taskCommentVisibilityEnum("visibility").notNull().default("public"),
 });

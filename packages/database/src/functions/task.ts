@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db, schema } from "..";
+import { NodeJSON } from "../../schema";
 
 /**
  * Retrieves all tasks for a given project including their full label information.
@@ -24,9 +25,7 @@ import { db, schema } from "..";
  * });
  * ```
  */
-export async function getTasksByOrganizationId(
-	orgId: string,
-): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByOrganizationId(orgId: string): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) => and(eq(t.organizationId, orgId)),
 		with: {
@@ -92,10 +91,7 @@ export async function getTasksByOrganizationId(
  * }
  * ```
  */
-export async function getTaskByShortId(
-	orgId: string,
-	shortId: number,
-): Promise<schema.TaskWithLabels | null> {
+export async function getTaskByShortId(orgId: string, shortId: number): Promise<schema.TaskWithLabels | null> {
 	const task = await db.query.task.findFirst({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId)),
 		with: {
@@ -193,12 +189,12 @@ export async function createTask(
 	orgId: string,
 	data: {
 		title: string;
-		description?: unknown;
+		description?: NodeJSON;
 		status?: schema.taskType["status"];
 		priority?: schema.taskType["priority"];
 		category: schema.taskType["category"];
 	},
-	createdBy?: string | null,
+	createdBy?: string | null
 ) {
 	// Get highest existing shortId for this project
 	const [max] = (await db
@@ -215,7 +211,7 @@ export async function createTask(
 			organizationId: orgId,
 			shortId: nextShortId,
 			title: data.title,
-			description: data.description ?? [],
+			description: data.description,
 			status: data.status ?? "todo",
 			priority: data.priority ?? "none",
 			category: data.category,
@@ -238,7 +234,7 @@ export async function addLogEventTask(
 	fromValue?: unknown,
 	toValue?: unknown,
 	actorId?: string,
-	blockNote?: unknown,
+	content?: NodeJSON
 ) {
 	return await db.insert(taskTimeline).values({
 		taskId: task_id,
@@ -247,21 +243,21 @@ export async function addLogEventTask(
 		eventType: type,
 		fromValue: fromValue ? JSON.stringify(fromValue) : null,
 		toValue: toValue ? JSON.stringify(toValue) : null,
-		blockNote: blockNote ?? null,
+		content: content ?? null,
 	});
 }
 
 export async function createComment(
 	org_id: string,
 	task_id: string,
-	blockNote: unknown,
+	content: NodeJSON,
 	visibility: schema.taskCommentType["visibility"],
-	createdBy?: string,
+	createdBy?: string
 ) {
 	return await db.insert(taskComment).values({
 		organizationId: org_id,
 		taskId: task_id,
-		blockNote: blockNote,
+		content: content,
 		visibility: visibility,
 		createdBy: createdBy,
 	});
@@ -307,7 +303,7 @@ export async function createComment(
 export async function getTaskComments(
 	orgId: string,
 	taskId: string,
-	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {},
+	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {}
 ) {
 	// Step 1: Paginated comments
 	const comments = await db.query.taskComment.findMany({
@@ -343,11 +339,7 @@ export async function getTaskTimeline(orgId: string, taskId: string) {
 	return timeline;
 }
 
-export async function getMergedTaskActivity(
-	orgId: string,
-	taskId: string,
-	isPublic: boolean,
-) {
+export async function getMergedTaskActivity(orgId: string, taskId: string, isPublic: boolean) {
 	const commentConditions = [
 		eq(schema.taskComment.organizationId, orgId),
 		eq(schema.taskComment.taskId, taskId),
@@ -373,7 +365,7 @@ export async function getMergedTaskActivity(
 		eventType: item.eventType,
 		fromValue: item.fromValue,
 		toValue: item.toValue,
-		blockNote: item.blockNote,
+		content: item.content,
 	}));
 
 	const normalizedComments = comments.map((comment) => ({
@@ -381,7 +373,7 @@ export async function getMergedTaskActivity(
 		createdAt: comment.createdAt,
 		actor: comment.createdBy,
 		eventType: "comment" as const,
-		blockNote: comment.blockNote,
+		content: comment.content,
 		visibility: comment.visibility,
 	}));
 
@@ -409,9 +401,7 @@ export async function getMergedTaskActivity(
  * });
  * ```
  */
-export async function getTasksByUserId(
-	userId: string,
-): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByUserId(userId: string): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) =>
 			sql`EXISTS (

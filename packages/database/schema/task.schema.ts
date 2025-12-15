@@ -10,6 +10,7 @@ import { organization } from "./organization.schema";
 import { taskAssignee } from "./taskAssignee.schema";
 import { taskComment } from "./taskComment.schema";
 import { taskTimeline } from "./taskTimeline.schema";
+import type { NodeJSON } from ".";
 export const visibleEnum = v.pgEnum("visible", ["public", "private"]);
 export const statusEnum = v.pgEnum("status", ["backlog", "todo", "in-progress", "done", "canceled"]);
 export const priorityEnum = v.pgEnum("priority", ["none", "low", "medium", "high", "urgent"]);
@@ -30,7 +31,7 @@ export const task = table("task", {
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	title: v.text("title"),
-	description: v.jsonb("description").default([]),
+	description: v.jsonb("content").$type<NodeJSON>(),
 	status: statusEnum("todo").notNull(),
 	priority: priorityEnum("none").notNull(),
 	createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),

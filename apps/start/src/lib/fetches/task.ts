@@ -1,4 +1,3 @@
-import type { PartialBlock } from "@blocknote/core";
 import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
@@ -124,7 +123,7 @@ export async function updateTaskAction(
 	taskId: string,
 	data: {
 		title?: string;
-		description?: PartialBlock[];
+		description?: NodeJSON;
 		status?: string | null;
 		priority?: string | null;
 		category?: string | null;
@@ -288,11 +287,11 @@ export async function updateAssigneesToTaskAction(
 /**
  * Calls the `/admin/organization/task/create-comment` API to add a new comment to a task.
  *
- * Creates a comment attached to a specified task using the provided BlockNote content.
+ * Creates a comment attached to a specified task using the provided content.
  *
  * @param organizationId - The ID of the organization.
  * @param taskId - The ID of the task to comment on.
- * @param blockNote - The comment content as an array of BlockNote editor blocks.
+ * @param content - The comment content as an array of content editor blocks.
  * @param wsClientId - The WebSocket client ID (used for broadcasting updates).
  * @returns A promise resolving to:
  * - `success` — Whether the comment creation succeeded.
@@ -314,7 +313,7 @@ export async function updateAssigneesToTaskAction(
 export async function CreateTaskCommentAction(
 	organizationId: string,
 	taskId: string,
-	blockNote: NodeJSON | undefined,
+	content: NodeJSON | undefined,
 	visibility: schema.taskCommentType["visibility"],
 	wsClientId: string
 ): Promise<{
@@ -328,7 +327,7 @@ export async function CreateTaskCommentAction(
 		wsClientId,
 		task_id: taskId,
 		visibility: visibility,
-		blocknote: blockNote,
+		content: content,
 	};
 
 	const result = await fetch(`${API_URL}/admin/organization/task/create-comment`, {

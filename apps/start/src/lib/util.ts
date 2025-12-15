@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <needed dont ask> */
-import type { PartialBlock } from "@blocknote/core";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import type { NodeJSON } from "prosekit/core";
 import { useCallback, useState } from "react";
 
 /**
@@ -55,9 +55,7 @@ export function useToastAction() {
 				success: { title: string; description?: string };
 				error: { title: string; description?: string };
 			},
-			fn: () => Promise<
-				T & { success?: boolean; skipped?: boolean; error?: string }
-			>,
+			fn: () => Promise<T & { success?: boolean; skipped?: boolean; error?: string }>
 		): Promise<T | null> => {
 			headlessToast.loading({
 				id: actionId,
@@ -83,8 +81,7 @@ export function useToastAction() {
 					headlessToast.error({
 						id: actionId,
 						title: messages.error.title,
-						description:
-							result?.error || messages.error.description || "Unknown error",
+						description: result?.error || messages.error.description || "Unknown error",
 					});
 				}
 				setIsFetching(false);
@@ -99,83 +96,56 @@ export function useToastAction() {
 				return null;
 			}
 		},
-		[],
+		[]
 	);
 
 	return { runWithToast, isFetching };
 }
 
-export const extractTextContent = (
-	blocks: PartialBlock[] | undefined,
-): string => {
-	const getTextFromContent = (content: unknown): string => {
-		if (Array.isArray(content)) {
-			return content
-				.map((item: any) => (typeof item.text === "string" ? item.text : ""))
-				.join(" ");
-		} else if (
-			content &&
-			typeof content === "object" &&
-			"rows" in content &&
-			Array.isArray((content as any).rows)
-		) {
-			// Handle table content (rows → cells → text)
-			return (content as any).rows
-				.map((row: any) =>
-					row.cells
-						.map((cell: any) => getTextFromContent(cell.content ?? []))
-						.join(" • "),
-				)
-				.join(" | ");
+export function extractTextContent(doc: NodeJSON | NodeJSON[] | null | undefined): string {
+	if (!doc) return "";
+
+	const nodes = Array.isArray(doc) ? doc : [doc];
+
+	const walk = (node: NodeJSON): string => {
+		if (!node) return "";
+
+		// 1. Text node
+		if (node.type === "text") return node.text ?? "";
+
+		// 2. Contentful block nodes (paragraph, headings, etc.)
+		if (node.content && Array.isArray(node.content)) {
+			return node.content.map(walk).join(" ");
 		}
-		return "";
-	};
 
-	const extractFromBlock = (block: PartialBlock): string => {
-		switch (block.type) {
-			case "paragraph":
-			case "heading":
-			case "quote":
-			case "checkListItem":
-			case "bulletListItem":
-			case "numberedListItem":
-			case "toggleListItem":
-				return getTextFromContent(block.content);
-
+		// 3. Special block types we want custom labels for
+		switch (node.type) {
 			case "image": {
-				const src =
-					typeof (block.props as any)?.url === "string"
-						? (block.props as any).url
-						: "";
-				const caption = getTextFromContent(block.content) || "Image";
-				return `[Image: ${caption}${src ? ` • ${src}` : ""}]`;
+				const src = node.attrs?.src || "";
+				return `[Image${src ? ` • ${src}` : ""}]`;
 			}
 
 			case "video": {
-				const url =
-					typeof (block.props as any)?.url === "string"
-						? (block.props as any).url
-						: "";
-				return `[Video: ${url}]`;
+				const src = node.attrs?.src || "";
+				return `[Video${src ? ` • ${src}` : ""}]`;
 			}
 
 			case "codeBlock": {
-				const codeText = getTextFromContent(block.content);
-				return `[Code block: ${codeText.slice(0, 50)}${codeText.length > 50 ? "…" : ""}]`;
+				const txt = (node.content ?? []).map(walk).join(" ");
+				// shorten very long code blocks
+				const short = txt.slice(0, 50) + (txt.length > 50 ? "…" : "");
+				return `[Code block: ${short}]`;
 			}
 
 			case "table": {
-				const tableText = getTextFromContent(block.content);
-				return `[Table: ${tableText}]`;
+				const tableTxt = (node.content ?? []).map(walk).filter(Boolean).join(" | ");
+				return `[Table${tableTxt ? `: ${tableTxt}` : ""}]`;
 			}
 
 			default:
-				if (Array.isArray(block.children) && block.children.length > 0) {
-					return block.children.map(extractFromBlock).join(" ");
-				}
 				return "";
 		}
 	};
 
-	return blocks?.map(extractFromBlock).join(" ").trim() || "";
-};
+	return nodes.map(walk).join(" ").trim();
+}

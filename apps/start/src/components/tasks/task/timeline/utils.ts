@@ -3,7 +3,7 @@ import type { ConsolidatedTimelineItem } from "./types";
 
 /**
  * Consolidates timeline items that occur within a time window from the same actor.
- * Items with blockNote content are never consolidated to preserve individual comments.
+ * Items with content are never consolidated to preserve individual comments.
  *
  * @param items - Array of timeline items to consolidate
  * @param timeWindowMinutes - Time window in minutes for consolidation (default: 2)
@@ -23,22 +23,20 @@ export function consolidateTimelineItems(
 	const flushCurrentGroup = () => {
 		if (currentGroup.length === 0) return;
 
-		// Never consolidate items with blockNote content
-		const itemsWithBlockNote = currentGroup.filter((item) => item.blockNote);
-		const itemsWithoutBlockNote = currentGroup.filter((item) => !item.blockNote);
+		// Never consolidate items with content
+		const itemsWithContent = currentGroup.filter((item) => item.content);
+		const itemsWithoutContent = currentGroup.filter((item) => !item.content);
 
-		// Add items with blockNote individually
-		itemsWithBlockNote.forEach((item) => result.push(item));
+		// Add items with content individually
+		itemsWithContent.forEach((item) => result.push(item));
 
-		// Consolidate items without blockNote if there are multiple similar events
-		if (itemsWithoutBlockNote.length <= 1) {
-			itemsWithoutBlockNote.forEach((item) => result.push(item));
+		// Consolidate items without content if there are multiple similar events
+		if (itemsWithoutContent.length <= 1) {
+			itemsWithoutContent.forEach((item) => result.push(item));
 		} else {
 			const consolidatableTypes = ["label_added", "label_removed", "assignee_added", "assignee_removed"];
-			const consolidatableItems = itemsWithoutBlockNote.filter((item) =>
-				consolidatableTypes.includes(item.eventType)
-			);
-			const nonConsolidatableItems = itemsWithoutBlockNote.filter(
+			const consolidatableItems = itemsWithoutContent.filter((item) => consolidatableTypes.includes(item.eventType));
+			const nonConsolidatableItems = itemsWithoutContent.filter(
 				(item) => !consolidatableTypes.includes(item.eventType)
 			);
 

@@ -1,4 +1,3 @@
-// import type { PartialBlock } from "@blocknote/core";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Label } from "@repo/ui/components/label";
@@ -14,11 +13,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/too
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
 import { IconLock } from "@tabler/icons-react";
-// import { Editor } from "@/components/blocknote/Editor";
 import { InlineLabel } from "../../shared/inlinelabel";
 import type { TimelineItemWrapperProps } from "./types";
 import Editor from "@/components/prosekit/editor";
-import { NodeJSON } from "prosekit/core";
 
 export function TimelineItemWrapper({ item, icon: Icon, color, children, availableUsers }: TimelineItemWrapperProps) {
 	return (
@@ -32,7 +29,7 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children, availab
 				<TimelineTitle className="mt-0.5">
 					<Label variant={"description"} className="text-foreground items-center flex flex-wrap gap-2">
 						<span>{children}</span>
-						{!item.blockNote && (
+						{!item.content && (
 							<Tooltip delayDuration={500}>
 								<TooltipTrigger asChild>
 									<Label variant={"description"} className="text-foreground">
@@ -53,7 +50,7 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children, availab
 					</Avatar>
 				</TimelineIndicator>
 			</TimelineHeader>
-			{item.blockNote ? (
+			{item.content ? (
 				<TimelineContent
 					className={cn(
 						"text-foreground rounded-lg border bg-accent/50 relative overflow-hidden px-4 py-3",
@@ -81,8 +78,7 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children, availab
 								</Badge>
 							)}
 						</div>
-						<Editor readonly defaultContent={item.blockNote as NodeJSON} users={availableUsers} />
-						{/* <Editor readonly={true} value={item.blockNote as PartialBlock[]} /> */}
+						<Editor readonly defaultContent={item.content} users={availableUsers} />
 					</div>
 				</TimelineContent>
 			) : null}
