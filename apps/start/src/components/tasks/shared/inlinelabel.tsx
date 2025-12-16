@@ -8,6 +8,7 @@ import { cn } from "@repo/ui/lib/utils";
 
 export interface InlineLabelProps {
 	text: string;
+	textNode?: React.ReactNode;
 	image?: string | null;
 	icon?: React.ReactNode;
 	className?: string;
@@ -17,6 +18,7 @@ export interface InlineLabelProps {
 
 export function InlineLabel({
 	text,
+	textNode,
 	image,
 	className,
 	avatarClassName,
@@ -52,7 +54,7 @@ export function InlineLabel({
 					{icon && icon}
 				</div>
 			)}
-			<span>{text}</span>
+			<span>{textNode ?? text}</span>
 		</Label>
 	);
 }
