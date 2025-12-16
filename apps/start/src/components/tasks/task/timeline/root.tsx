@@ -25,6 +25,7 @@ import { consolidateTimelineItems } from "./utils";
 
 export default function GlobalTimeline({ task, labels, availableUsers, categories }: GlobalTimelineProps) {
 	const queryClient = useQueryClient();
+	const commentLimit = 20;
 	const timelineComponents = {
 		created: TimelineCreated,
 		status_change: TimelineStatusChange,
@@ -57,29 +58,82 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 		gcTime: 2000 * 60,
 		refetchOnWindowFocus: false,
 	});
-
 	// --- COMMENTS FETCH (infinite) ---
 	const { value: comments } = useStateManagementInfiniteFetch<
 		{
 			data: schema.taskTimelineWithActor[];
 			pagination?: {
+				pageFromStart: number;
+				pageFromEnd: number;
+				totalPages: number;
 				hasMore: boolean;
-				page: number;
 			};
 		},
 		Partial<schema.taskTimelineWithActor>
 	>({
 		key: ["timeline", "comments", task.id, task.organizationId],
 		fetch: {
-			url: `${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/timeline/comments?org_id=${task.organizationId}&task_id=${task.id}&limit=20`,
+			url: `${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/timeline/comments?org_id=${
+				task.organizationId
+			}&task_id=${task.id}&limit=${commentLimit / 2}`,
 			custom: async (url, pageParam) => {
-				const pageUrl = pageParam && pageParam > 1 ? `${url}&page=${pageParam}` : url;
-				const res = await fetch(pageUrl, { credentials: "include" });
-				if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
-				const data = await res.json();
-				return data; // { data, pagination }
+				// pageParam manages current outer pages
+				const { fromStart = 1, fromEnd } = pageParam ?? {};
+
+				// 1. get totalPages (once) using fromStart page
+				const firstUrl = `${url}&page=${fromStart}`;
+				const firstRes = await fetch(firstUrl, { credentials: "include" });
+				if (!firstRes.ok) throw new Error(`Failed: ${firstRes.statusText}`);
+				const firstData = await firstRes.json();
+
+				// totalPages known from first response
+				const totalPages = Number(firstData.pagination?.totalPages ?? 1);
+				const endPage = fromEnd ?? totalPages;
+
+				// 2. if same (only 1 page total), skip second fetch
+				let lastData = { data: [] };
+				if (endPage !== fromStart) {
+					const lastUrl = `${url}&page=${endPage}`;
+					const lastRes = await fetch(lastUrl, { credentials: "include" });
+					if (lastRes.ok) lastData = await lastRes.json();
+				}
+
+				const merged = [...(firstData.data || []), ...(lastData.data || [])];
+				const unique = Array.from(new Map(merged.map((i) => [i.id, i])).values()).sort(
+					(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+				);
+
+				const nextStart = fromStart + 1;
+				const nextEnd = endPage - 1;
+				const hasMore = nextStart <= nextEnd;
+
+				console.log("🟩 Outside‑in batch", {
+					fromStart,
+					fromEnd: endPage,
+					nextStart,
+					nextEnd,
+					hasMore,
+					merged: unique.length,
+				});
+
+				return {
+					data: unique,
+					pagination: {
+						pageFromStart: fromStart,
+						pageFromEnd: endPage,
+						totalPages,
+						hasMore,
+					},
+				};
 			},
-			getNextPageParam: (lastPage) => (lastPage.pagination?.hasMore ? lastPage.pagination.page + 1 : undefined),
+			getNextPageParam: (lastPage) => {
+				const p = lastPage.pagination;
+				if (!p || !p.hasMore) return undefined;
+				return {
+					fromStart: p.pageFromStart + 1,
+					fromEnd: p.pageFromEnd - 1,
+				};
+			},
 		},
 		staleTime: 1000,
 		gcTime: 2000 * 60,
@@ -112,7 +166,7 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 
 		for (let i = comments.data.length - 1; i >= 0; i--) {
 			const page = comments.data[i];
-			for (const item of page.data ?? []) {
+			for (const item of page?.data ?? []) {
 				if (!item?.id || seen.has(item.id)) continue;
 				seen.add(item.id);
 				result.push(item);
@@ -195,7 +249,6 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 						<Timeline>
 							{/* top half */}
 							{topItems.map(renderItem)}
-
 							{/* load more middle button */}
 							{comments.hasNextPage && (
 								<div className="flex justify-center py-12 my-12 border-t border-b">
@@ -209,7 +262,6 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 									</Button>
 								</div>
 							)}
-
 							{/* bottom half */}
 							{bottomItems.map(renderItem)}
 						</Timeline>
@@ -219,7 +271,6 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 						<TaskNewCommentContent
 							task={task}
 							onFinish={async () => {
-								// Refetch comments (all pages)
 								queryClient.invalidateQueries({
 									queryKey: ["timeline", "comments", task.id, task.organizationId],
 								});

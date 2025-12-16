@@ -13,7 +13,7 @@ import {
 	schema,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gt, gte, lt, lte, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -518,141 +518,102 @@ apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
 
 apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 	try {
-		const query = c.req.query();
+		console.time("⏱ comments");
+		const q = c.req.query();
+		const orgId = q.org_id;
+		const taskId = q.task_id;
 
-		// --- Required params ---
-		const orgId = query.org_id;
-		const taskId = query.task_id;
-
-		const missingParams: string[] = [];
-		if (!orgId) missingParams.push("org_id");
-		if (!taskId) missingParams.push("task_id");
-
-		if (missingParams.length > 0) {
-			return c.json(
-				{
-					success: false,
-					error: "MISSING_PARAMETERS",
-					message: `The following parameters are required: ${missingParams.join(", ")}`,
-				},
-				400
-			);
-		}
 		if (!orgId || !taskId) {
-			return c.json(
-				{
-					success: false,
-					error: "MISSING_PARAMETERS",
-					message: `The following parameters are required: ${missingParams.join(", ")}`,
-				},
-				400
-			);
+			return c.json({ success: false, error: "MISSING_PARAMETERS" }, 400);
 		}
 
-		// --- Pagination setup ---
-		const MAX_LIMIT = 20;
-		const page = Math.max(Number(query.page) || 1, 1); // ✅ Added page variable
-		const limit = Math.min(Number(query.limit) || 10, MAX_LIMIT);
-
-		// Split half (odd number gets extra on newest side)
-		const oldestLimit = Math.floor(limit / 2);
-		const newestLimit = limit - oldestLimit;
-
-		// --- Access check ---
 		const session = c.get("session");
 		const isPublic = !session || !(await checkMembershipRole(session?.userId, orgId || ""));
 
-		// --- Base filter ---
-		const baseWhere = and(
+		// --- Pagination setup
+		const page = Math.max(Number(q.page) || 1, 1);
+		const limit = Math.min(Number(q.limit) || 20, 50);
+		const offset = (page - 1) * limit;
+
+		const base = and(
 			eq(schema.taskComment.organizationId, orgId),
 			eq(schema.taskComment.taskId, taskId),
 			isPublic ? eq(schema.taskComment.visibility, "public") : undefined
 		);
 
-		// --- Total count ---
-		const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.taskComment).where(baseWhere);
+		// --- Count total
+		const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.taskComment).where(base);
 
 		const totalItems = Number(countResult?.count ?? 0);
 		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
 
-		// --- Fetch oldest (ASC) ---
-		const oldestRaw = await db.query.taskComment.findMany({
-			where: () => baseWhere,
-			orderBy: (tC, { asc }) => asc(tC.createdAt),
-			limit: oldestLimit,
-			offset: (page - 1) * oldestLimit, // ✅ optional offset to page oldest
+		// --- Fetch one page ordered by createdAt ASC (oldest first)
+		const pageRows = await db.query.taskComment.findMany({
+			where: () => base,
+			orderBy: (t, { asc }) => asc(t.createdAt),
+			limit,
+			offset,
 			with: {
 				createdBy: {
 					columns: { name: true, image: true },
 				},
 			},
 		});
-
-		// --- Fetch newest (DESC) ---
-		const newestRaw = await db.query.taskComment.findMany({
-			where: () => baseWhere,
-			orderBy: (tC, { desc }) => desc(tC.createdAt),
-			limit: newestLimit,
-			offset: (page - 1) * newestLimit, // ✅ optional offset here too
-			with: {
-				createdBy: {
-					columns: { name: true, image: true },
-				},
-			},
-		});
-
-		// --- Map fields ---
-		const mapWithEventType = (items: typeof newestRaw) =>
-			items.map((item) => ({
-				...item,
-				eventType: "comment" as const,
-				actor: item.createdBy,
-			}));
-
-		const oldest = mapWithEventType(oldestRaw);
-		const newest = mapWithEventType(newestRaw);
-		// --- Merge and remove duplicates ---
-		const merged = [...oldest, ...newest];
-
-		const uniqueData = Array.from(new Map(merged.map((item) => [item.id, item])).values());
-		// --- Merge and sort chronologically ---
-		const data = uniqueData.sort(
-			(a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-		);
-
-		// --- Pagination metadata ---
-		const hasMore = totalItems > page * limit;
-
-		// --- Return response ---
+		// --- Map to unified timeline format
+		const data = pageRows.map((item) => ({
+			...item,
+			eventType: "comment" as const,
+			actor: item.createdBy,
+		}));
+		console.timeEnd("⏱ comments");
+		// --- Return response
 		return c.json({
 			success: true,
 			data,
 			pagination: {
-				page, // ✅ now included
+				page,
 				limit,
 				totalItems,
 				totalPages,
-				hasMore,
+				hasMore: page < totalPages,
 			},
 		});
-	} catch (error) {
-		console.error("🚨 Timeline Comments Error:", error);
-
-		let readableError = "Database error";
-		let detailedMessage = "Unexpected error";
-
-		try {
-			const parsed = JSON.parse((error as Error).message);
-			readableError = (Array.isArray(parsed) ? parsed[0]?.message : parsed?.message) ?? readableError;
-			detailedMessage =
-				(Array.isArray(parsed)
-					? parsed[0]?.detail || parsed[0]?.hint || parsed[0]?.message
-					: parsed?.detail || parsed?.message) ?? detailedMessage;
-		} catch {
-			readableError = (error as Error)?.message || (typeof error === "string" ? error : "Unknown error");
-			detailedMessage = readableError;
-		}
-
-		return c.json(errorResponse(readableError, detailedMessage), 500);
+	} catch (err) {
+		console.error("🚨 timeline/comments error:", err);
+		return c.json({ success: false, message: (err as Error)?.message }, 500);
 	}
+});
+
+apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
+	// -------------------------------
+	// Just parse query params
+	// -------------------------------
+	const { org_id: orgId, task_id: taskId, limit } = c.req.query();
+	if (!orgId || !taskId) {
+		return c.json({ success: false, error: "MISSING_PARAMETERS" }, 400);
+	}
+	// Limit: optional, capped at 50 for sanity
+	const perPage = Math.min(Number(limit) || 9, 50);
+	console.time("⏱ quick-count");
+	// -------------------------------
+	// Super lightweight count
+	// -------------------------------
+	const result = await db.execute(
+		sql<{ count: number }>`
+      SELECT count(*)::int AS count
+      FROM task_comment
+      WHERE organization_id = ${orgId}
+        AND task_id = ${taskId};
+    `
+	);
+	console.timeEnd("⏱ quick-count");
+	const totalItems = Number(result[0]?.count ?? 0);
+	const totalPages = Math.max(Math.ceil(totalItems / perPage), 1);
+	// -------------------------------
+	// Respond — minimal JSON
+	// -------------------------------
+	return c.json({
+		success: true,
+		pagination: { totalItems, totalPages, limit: perPage },
+	});
 });
