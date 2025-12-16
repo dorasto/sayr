@@ -1,5 +1,5 @@
-import type { NodeJSON } from "prosekit/core";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import type { NodeJSON } from "prosekit/core";
 import { uploadFile } from "@/lib/fetches/file";
 
 type CommentVisibility = "internal" | "public";

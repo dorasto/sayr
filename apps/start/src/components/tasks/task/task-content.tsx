@@ -1,38 +1,18 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import {
-	Tile,
-	TileAction,
-	TileHeader,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
 import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
-import {
-	SplitDialog,
-	SplitDialogContent,
-	SplitDialogSide,
-} from "@repo/ui/components/tomui/split-dialog";
+import { SplitDialog, SplitDialogContent, SplitDialogSide } from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	IconArrowsDiagonal2,
-	IconArrowsDiagonalMinimize2,
-	IconCode,
-	IconLink,
-	IconTag,
-	IconX,
-} from "@tabler/icons-react";
+import { IconArrowsDiagonal2, IconArrowsDiagonalMinimize2, IconCode, IconLink, IconX } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { SubWrapper } from "@/components/generic/wrapper";
@@ -71,9 +51,7 @@ interface TaskContentSideContentProps {
 	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
 	availableUsers?: schema.userType[];
 	wsClientId: string;
-	runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-		? T
-		: never;
+	runWithToast: typeof useToastAction extends () => { runWithToast: infer T } ? T : never;
 	categories: schema.categoryType[];
 }
 
@@ -103,21 +81,14 @@ export function TaskContentSideContent({
 					},
 					error: {
 						title: "Save failed",
-						description:
-							"Your changes are showing, but we couldn't save them to the server. Please try again.",
+						description: "Your changes are showing, but we couldn't save them to the server. Please try again.",
 					},
 				},
-				() =>
-					updateLabelToTaskAction(
-						task.organizationId,
-						task.id,
-						values,
-						wsClientId,
-					),
+				() => updateLabelToTaskAction(task.organizationId, task.id, values, wsClientId)
 			);
 			return data;
 		},
-		1500, // debounce delay
+		1500 // debounce delay
 	);
 	return (
 		<div className="flex flex-col gap-1">
@@ -168,7 +139,7 @@ export function TaskContentSideContent({
 											...task,
 											priority: value as schema.TaskWithLabels["priority"],
 										}
-									: t,
+									: t
 							);
 							setTasks(updatedTasks);
 							if (task) {
@@ -182,8 +153,7 @@ export function TaskContentSideContent({
 								{
 									loading: {
 										title: "Updating task...",
-										description:
-											"Updating your task... changes are already visible.",
+										description: "Updating your task... changes are already visible.",
 									},
 									success: {
 										title: "Task saved",
@@ -202,13 +172,11 @@ export function TaskContentSideContent({
 										{
 											priority: value,
 										},
-										wsClientId,
-									),
+										wsClientId
+									)
 							);
 							if (data?.success && data.data) {
-								const finalTasks = tasks.map((t) =>
-									t.id === task.id && data.data ? data.data : t,
-								);
+								const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
 								setTasks(finalTasks);
 								if (task && task.id === data.data.id) {
 									setSelectedTask(data.data);
@@ -218,7 +186,7 @@ export function TaskContentSideContent({
 											type: "timeline-update",
 											payload: data.data.id,
 										},
-										"*",
+										"*"
 									);
 								}
 							}
@@ -291,11 +259,9 @@ export function TaskContentSideContent({
 								t.id === task.id
 									? {
 											...task,
-											labels: labels.filter((label) =>
-												values.includes(label.id),
-											),
+											labels: labels.filter((label) => values.includes(label.id)),
 										}
-									: t,
+									: t
 							);
 							setTasks(updatedTasks);
 							if (task) {
@@ -306,9 +272,7 @@ export function TaskContentSideContent({
 							}
 							const data = await debouncedUpdateLabels(values, wsClientId);
 							if (data?.success && data.data && !data.skipped) {
-								const finalTasks = tasks.map((t) =>
-									t.id === task.id && data.data ? data.data : t,
-								);
+								const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
 								setTasks(finalTasks);
 								if (task && task.id === data.data.id) {
 									setSelectedTask(data.data);
@@ -318,7 +282,7 @@ export function TaskContentSideContent({
 											type: "timeline-update",
 											payload: data.data.id,
 										},
-										"*",
+										"*"
 									);
 								}
 							}
@@ -332,6 +296,7 @@ export function TaskContentSideContent({
 
 interface TaskContentMainProps {
 	task: schema.TaskWithLabels;
+	tasks: schema.TaskWithLabels[];
 	labels: schema.labelType[];
 	availableUsers?: schema.userType[];
 	organization: schema.OrganizationWithMembers;
@@ -340,6 +305,7 @@ interface TaskContentMainProps {
 
 export function TaskContentMain({
 	task,
+	tasks,
 	labels,
 	availableUsers = [],
 	organization,
@@ -367,6 +333,7 @@ export function TaskContentMain({
 					labels={labels}
 					availableUsers={availableUsers}
 					categories={categories}
+					tasks={tasks}
 				/>
 			</SubWrapper>
 		</div>
@@ -392,8 +359,7 @@ export function TaskContent({
 	const { runWithToast } = useToastAction();
 	const [openData, onOpenDataChange] = useState(false);
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
-	const pathname =
-		rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
+	const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 	return !isDialog ? (
 		// FULL PAGE EXPERIENCE
 		<div className="flex flex-col h-full max-h-full min-h-full relative">
@@ -407,19 +373,13 @@ export function TaskContent({
 						backButton=".."
 						icon={
 							<Avatar>
-								<AvatarImage
-									src={organization.logo || ""}
-									alt={organization.name}
-								/>
+								<AvatarImage src={organization.logo || ""} alt={organization.name} />
 								<AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
 							</Avatar>
 						}
 						descriptionRender={
 							<div className="flex gap-1">
-								<Label
-									variant={"description"}
-									className="text-muted-foreground"
-								>
+								<Label variant={"description"} className="text-muted-foreground">
 									#{task.shortId}
 								</Label>
 							</div>
@@ -432,17 +392,13 @@ export function TaskContent({
 							{task.title}
 						</Label> */}
 						{task.githubIssue?.issueUrl}
-						<JsonViewer
-							data={task}
-							name="task"
-							open={openData}
-							onOpenChange={onOpenDataChange}
-						/>
+						<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 						<GlobalTimeline
 							task={task}
 							labels={labels}
 							availableUsers={availableUsers}
 							categories={categories}
+							tasks={tasks}
 						/>
 					</SubWrapper>
 				</div>
@@ -487,31 +443,17 @@ export function TaskContent({
 			title={
 				<div className="flex items-center w-full gap-4">
 					<div className="flex items-center gap-4 truncate">
-						<Label
-							variant={"heading"}
-							className={cn("text-left text-lg truncate")}
-						>
+						<Label variant={"heading"} className={cn("text-left text-lg truncate")}>
 							{task.title}
 						</Label>
-						<Label
-							variant={"heading"}
-							className={cn("text-left text-sm text-muted-foreground shrink-0")}
-						>
+						<Label variant={"heading"} className={cn("text-left text-sm text-muted-foreground shrink-0")}>
 							#{task.shortId}
 						</Label>
 						{task.githubIssue?.issueUrl}
 						{personal && (
-							<a
-								href={`/admin/${task.organizationId}/tasks`}
-								onClick={(e) => e.stopPropagation()}
-							>
-								<Badge
-									variant={"outline"}
-									className="flex items-center gap-1 w-full justify-start shrink-0"
-								>
-									<span className="text-xs truncate max-w-[150px]">
-										{task.organization?.name}
-									</span>
+							<a href={`/admin/${task.organizationId}/tasks`} onClick={(e) => e.stopPropagation()}>
+								<Badge variant={"outline"} className="flex items-center gap-1 w-full justify-start shrink-0">
+									<span className="text-xs truncate max-w-[150px]">{task.organization?.name}</span>
 									<span className="text-xs">/</span>
 									<span className="text-xs truncate max-w-[150px]">tasks</span>
 								</Badge>
@@ -526,10 +468,7 @@ export function TaskContent({
 							{status?.icon(`${status?.className || ""}`)}
 							{status.label}
 						</Badge>
-						<Link
-							to={`/admin/$orgId/tasks/$taskId`}
-							params={{ orgId: task.organizationId, taskId: task.id }}
-						>
+						<Link to={`/admin/$orgId/tasks/$taskId`} params={{ orgId: task.organizationId, taskId: task.id }}>
 							<Button size={"icon"} className="size-5" variant={"ghost"}>
 								<IconArrowsDiagonal2 />
 							</Button>
@@ -542,12 +481,7 @@ export function TaskContent({
 						>
 							<IconCode />
 						</Button>
-						<Button
-							size={"icon"}
-							className="size-5"
-							variant={"ghost"}
-							onClick={() => onOpenChange(false)}
-						>
+						<Button size={"icon"} className="size-5" variant={"ghost"} onClick={() => onOpenChange(false)}>
 							<IconX />
 						</Button>
 					</div>
@@ -556,17 +490,13 @@ export function TaskContent({
 			sidebarPosition="right"
 		>
 			<SplitDialogContent className="relative h-full">
-				<JsonViewer
-					data={task}
-					name="task"
-					open={openData}
-					onOpenChange={onOpenDataChange}
-				/>
+				<JsonViewer data={task} name="task" open={openData} onOpenChange={onOpenDataChange} />
 				<GlobalTimeline
 					task={task}
 					labels={labels}
 					availableUsers={availableUsers}
 					categories={categories}
+					tasks={tasks}
 				/>
 			</SplitDialogContent>
 			<SplitDialogSide className="p-2">

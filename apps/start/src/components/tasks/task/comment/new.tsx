@@ -21,8 +21,16 @@ interface TaskNewCommentContentProps {
 	task: schema.TaskWithLabels;
 	availableUsers: schema.userType[];
 	onFinish?: () => void;
+	categories: schema.categoryType[];
+	tasks: schema.TaskWithLabels[];
 }
-export function TaskNewCommentContent({ task, availableUsers, onFinish }: TaskNewCommentContentProps) {
+export function TaskNewCommentContent({
+	task,
+	availableUsers,
+	onFinish,
+	categories,
+	tasks,
+}: TaskNewCommentContentProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
 	const [newComment, setNewComment] = useState<undefined | NodeJSON>(undefined);
@@ -73,7 +81,13 @@ export function TaskNewCommentContent({ task, availableUsers, onFinish }: TaskNe
 				visibility === "internal" && "border-primary/30 bg-primary/5"
 			)}
 		>
-			<Editor key={editorKey} users={availableUsers} onChange={setNewComment} />
+			<Editor
+				key={editorKey}
+				users={availableUsers}
+				onChange={setNewComment}
+				categories={categories}
+				tasks={tasks}
+			/>
 			<div className="flex items-center gap-2 ml-auto">
 				<ButtonGroup>
 					<Button

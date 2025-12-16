@@ -17,7 +17,15 @@ import { InlineLabel } from "../../shared/inlinelabel";
 import type { TimelineItemWrapperProps } from "./types";
 import Editor from "@/components/prosekit/editor";
 
-export function TimelineItemWrapper({ item, icon: Icon, color, children, availableUsers }: TimelineItemWrapperProps) {
+export function TimelineItemWrapper({
+	item,
+	icon: Icon,
+	color,
+	children,
+	availableUsers,
+	categories,
+	tasks,
+}: TimelineItemWrapperProps) {
 	return (
 		<TimelineItem
 			key={item.id}
@@ -78,7 +86,13 @@ export function TimelineItemWrapper({ item, icon: Icon, color, children, availab
 								</Badge>
 							)}
 						</div>
-						<Editor readonly defaultContent={item.content} users={availableUsers} />
+						<Editor
+							readonly
+							defaultContent={item.content}
+							users={availableUsers}
+							categories={categories}
+							tasks={tasks}
+						/>
 					</div>
 				</TimelineContent>
 			) : null}

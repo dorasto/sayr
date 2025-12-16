@@ -8,7 +8,6 @@ import { ProseKit, useDocChange } from "prosekit/react";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { defineExtension } from "./extensions/index";
-import { tags as defaultTags } from "./sample/tag-data";
 import BlockHandle from "./ui/block-handle";
 import CodeBlockView from "./ui/code-block-view";
 import DropIndicator from "./ui/drop-indicator";
@@ -17,27 +16,32 @@ import InlineMenu from "./ui/inline-menu";
 import MentionView from "./ui/mention-view";
 import SlashMenu from "./ui/slash-menu";
 import TableHandle from "./ui/table-handle";
-import TagMenu from "./ui/tag-menu";
 import Toolbar from "./ui/toolbar";
 import UserMenu from "./ui/user-menu";
+import CategoryMenu from "./ui/category-menu";
+import TaskMenu from "./ui/task-menu";
 
 export interface EditorProps {
 	readonly?: boolean;
 	placeholder?: string;
 	defaultContent?: NodeJSON;
 	uploader?: Uploader<string>;
-	users?: schema.userType[];
 	className?: string;
 	onChange?: (doc: NodeJSON) => void; // ✅ New prop
+	users?: schema.userType[];
+	categories?: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
 }
 
 export default function Editor({
 	readonly = false,
 	placeholder,
 	defaultContent,
-	users = [],
 	className,
 	onChange,
+	users = [],
+	categories = [],
+	tasks = [],
 }: EditorProps) {
 	const editor = useMemo(() => {
 		const extension = defineExtension({ readonly, placeholder });
@@ -68,12 +72,13 @@ export default function Editor({
 						<InlineMenu />
 						<SlashMenu />
 						<UserMenu users={users || []} />
-						<TagMenu tags={defaultTags} />
+						<CategoryMenu categories={categories || []} />
+						<TaskMenu tasks={tasks || []} />
 					</>
 				)}
 				<CodeBlockView />
 				<ImageView />
-				<MentionView users={users || []} />
+				<MentionView users={users || []} categories={categories || []} tasks={tasks || []} />
 				{!readonly && (
 					<>
 						<BlockHandle />

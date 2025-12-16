@@ -4,7 +4,7 @@ import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useLayoutData } from "@/components/generic/Context";
-import { useWSMessageHandler,type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
@@ -15,14 +15,14 @@ export const Route = createFileRoute("/admin/$orgId/tasks/$taskShortId/")({
 });
 
 function RouteComponent() {
-		const { ws } = useLayoutData();
+	const { ws } = useLayoutData();
 	const { tasks, setTasks } = useLayoutTasks();
 	const { task, setTask } = useLayoutTask();
-	const { organization,setOrganization, labels, categories ,setLabels,setViews,setCategories} = useLayoutOrganization();
+	const { organization, setOrganization, labels, categories, setLabels, setViews, setCategories } =
+		useLayoutOrganization();
 
-	const availableUsers =
-		organization?.members.map((member) => member.user) || [];
-			useWebSocketSubscription({
+	const availableUsers = organization?.members.map((member) => member.user) || [];
+	useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
 		organization: organization,
@@ -30,6 +30,11 @@ function RouteComponent() {
 		setOrganization: setOrganization,
 	});
 	const handlers: WSMessageHandler<WSMessage> = {
+		CREATE_TASK: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setTasks([...tasks, msg.data]);
+			}
+		},
 		UPDATE_LABELS: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
 				setLabels(msg.data);
@@ -88,6 +93,7 @@ function RouteComponent() {
 	return (
 		<TaskContentMain
 			task={task}
+			tasks={tasks}
 			labels={labels}
 			availableUsers={availableUsers}
 			organization={organization}

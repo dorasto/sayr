@@ -216,7 +216,12 @@ export default function CreateIssueDialog({
 								onChange={(e) => setTitle(e.target.value)}
 							/>
 							<div className="w-full max-h-96 overflow-scroll">
-								<Editor onChange={setDescription} users={availableUsers} />
+								<Editor
+									onChange={setDescription}
+									users={availableUsers}
+									categories={categories}
+									tasks={tasks}
+								/>
 							</div>
 							<div className="flex items-center flex-wrap gap-1 w-full">
 								<GlobalTaskStatus

@@ -13,8 +13,9 @@ export interface TimelineItemWrapperProps {
 	icon: React.ComponentType<{ size?: number }>;
 	color: string;
 	children?: React.ReactNode;
-	availableUsers: schema.userType[];
-	innerChildren?: React.ReactNode;
+	availableUsers?: schema.userType[];
+	categories?: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
 }
 
 export interface GlobalTimelineProps {
@@ -22,6 +23,7 @@ export interface GlobalTimelineProps {
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
 	categories: schema.categoryType[];
+	tasks: schema.TaskWithLabels[];
 }
 
 export interface TimelineItemProps {
@@ -29,6 +31,7 @@ export interface TimelineItemProps {
 	labels?: schema.labelType[];
 	availableUsers?: schema.userType[];
 	categories?: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
 }
 
 export interface ConsolidatedTimelineItemProps {

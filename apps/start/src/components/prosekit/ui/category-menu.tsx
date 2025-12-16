@@ -1,3 +1,5 @@
+import { RenderCategory } from "@/components/tasks";
+import { schema } from "@repo/database";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import type { BasicExtension } from "prosekit/basic";
 import type { Union } from "prosekit/core";
@@ -10,24 +12,24 @@ import {
 	AutocompletePopover,
 } from "prosekit/react/autocomplete";
 
-// Match inputs like "#", "#foo", "#foo_bar", etc.
-const regex = /#[\da-z_]*$/i;
+// Match inputs like "!", "!foo", "!foo_bar", etc.
+const regex = /![\da-z_]*$/i;
 
-export default function TagMenu(props: {
-	tags: { id: number; label: string }[];
+export default function CategoryMenu(props: {
+	categories: schema.categoryType[];
 	loading?: boolean;
 	onQueryChange?: (query: string) => void;
 	onOpenChange?: (open: boolean) => void;
 }) {
 	const editor = useEditor<Union<[MentionExtension, BasicExtension]>>();
 
-	const handleTagInsert = (id: number, label: string) => {
+	const handleTagInsert = (id: string, category: string) => {
 		editor.commands.insertMention({
 			id: id.toString(),
-			value: `#${label}`,
-			kind: "tag",
+			value: `!${category}`,
+			kind: "category",
 		});
-		editor.commands.insertText({ text: " " });
+		// editor.commands.insertText({ text: " " });
 	};
 
 	return (
@@ -42,17 +44,13 @@ export default function TagMenu(props: {
 					{props.loading ? "Loading..." : "No results"}
 				</AutocompleteEmpty>
 
-				{props.tags.map((tag) => (
+				{props.categories.map((category) => (
 					<AutocompleteItem
-						key={tag.id}
+						key={category.id}
 						className="relative flex items-center justify-between min-w-32 scroll-my-1 rounded-lg px-3 py-1.5 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
-						onSelect={() => handleTagInsert(tag.id, tag.label)}
+						onSelect={() => handleTagInsert(category.id, category.name)}
 					>
-						{props.loading ? (
-							<Skeleton className="w-full" />
-						) : (
-							<span className="text-sm font-medium">#{tag.label}</span>
-						)}
+						{props.loading ? <Skeleton className="w-full" /> : <RenderCategory category={category} />}
 					</AutocompleteItem>
 				))}
 			</AutocompleteList>

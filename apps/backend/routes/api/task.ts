@@ -13,7 +13,7 @@ import {
 	schema,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, eq, gt, gte, lt, lte, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -27,7 +27,6 @@ import {
 	findClientByWsId,
 	findClientsByUserId,
 } from "../ws";
-import { errorResponse, paginatedSuccessResponse } from "../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
@@ -95,11 +94,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	members.forEach((member) => {
 		const clients = findClientsByUserId(member.userId);
 		clients.forEach(
-			(c) =>
-				c.wsClientId !== wsClientId &&
-				c.orgId !== org_id &&
-				c.channel !== "tasks" &&
-				broadcastIndividual(c.socket, data, org_id)
+			(c) => c.wsClientId !== wsClientId && c.channel !== "tasks" && broadcastIndividual(c.socket, data, org_id)
 		);
 	});
 	const foundLink = await db.query.githubRepository.findFirst({
@@ -235,8 +230,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		clients.forEach(
 			(c) =>
 				c.wsClientId !== wsClientId &&
-				c.orgId !== org_id &&
-				(c.channel !== `task:${task_id}` || c.channel !== "tasks") &&
+				!(c.channel === `task:${task_id}` || c.channel === "tasks") &&
 				broadcastIndividual(c.socket, data, org_id)
 		);
 	});
@@ -310,8 +304,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 			clients.forEach(
 				(c) =>
 					c.wsClientId !== wsClientId &&
-					c.orgId !== org_id &&
-					(c.channel !== `task:${task_id}` || c.channel !== "tasks") &&
+					!(c.channel === `task:${task_id}` || c.channel === "tasks") &&
 					broadcastIndividual(c.socket, data, org_id)
 			);
 		});
@@ -403,8 +396,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 			clients.forEach(
 				(c) =>
 					c.wsClientId !== wsClientId &&
-					c.orgId !== org_id &&
-					(c.channel !== `task:${task_id}` || c.channel !== "tasks") &&
+					!(c.channel === `task:${task_id}` || c.channel === "tasks") &&
 					broadcastIndividual(c.socket, data, org_id)
 			);
 		});
@@ -431,7 +423,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	await createComment(org_id, task_id, content, visibility, session?.userId);
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"], data: { id: task_id } };
-	broadcastToRoom(org_id, `tasks;task:${task_id}`, data, found?.socket, true);
+	broadcastToRoom(org_id, `task:${task_id}`, data, found?.socket, false);
 	broadcastPublic(org_id, { ...data });
 	const members = await getOrganizationMembers(org_id);
 	members.forEach((member) => {
@@ -440,7 +432,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			(c) =>
 				c.wsClientId !== wsClientId &&
 				c.orgId !== org_id &&
-				(c.channel !== `task:${task_id}` || c.channel !== "tasks") &&
+				!(c.channel === `task:${task_id}` || c.channel === "tasks") &&
 				broadcastIndividual(c.socket, data, org_id)
 		);
 	});

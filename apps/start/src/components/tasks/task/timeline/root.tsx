@@ -23,7 +23,7 @@ import {
 import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
 
-export default function GlobalTimeline({ task, labels, availableUsers, categories }: GlobalTimelineProps) {
+export default function GlobalTimeline({ task, labels, availableUsers, categories, tasks }: GlobalTimelineProps) {
 	const queryClient = useQueryClient();
 	const commentLimit = 20;
 	const timelineComponents = {
@@ -233,6 +233,7 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 				labels={labels}
 				availableUsers={availableUsers}
 				categories={categories}
+				tasks={tasks}
 			/>
 		);
 	};
@@ -276,6 +277,8 @@ export default function GlobalTimeline({ task, labels, availableUsers, categorie
 								});
 							}}
 							availableUsers={availableUsers}
+							categories={categories}
+							tasks={tasks}
 						/>
 					</div>
 				</>

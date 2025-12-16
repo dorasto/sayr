@@ -1,11 +1,18 @@
 import { defineReactNodeView, useExtension } from "prosekit/react";
-import { useMemo } from "react";
-import type { ReactNodeViewProps } from "prosekit/react";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
+import type { ReactNodeViewProps } from "prosekit/react";
+import { RenderCategory } from "@/components/tasks";
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useMemo } from "react";
 
-function MentionViewInner(props: ReactNodeViewProps, users: schema.userType[], currentUserId?: string) {
+function MentionViewInner(
+	props: ReactNodeViewProps,
+	users: schema.userType[],
+	categories: schema.categoryType[],
+	tasks: schema.TaskWithLabels[],
+	currentUserId?: string
+) {
 	const { id, value, kind } = props.node.attrs;
 
 	if (kind === "user") {
@@ -27,24 +34,47 @@ function MentionViewInner(props: ReactNodeViewProps, users: schema.userType[], c
 		);
 	}
 
-	// Fallback for other mentions (like tags)
-	if (kind === "tag") {
+	if (kind === "category") {
+		const category = categories.find((c) => c.id.toString() === id);
+		if (category) {
+			return <RenderCategory category={category} className="inline-flex" />;
+		}
+		return <span className="text-primary">{value}</span>;
+	}
+
+	if (kind === "task") {
+		const task = tasks.find((c) => c.id.toString() === id);
+		if (task) {
+			return (
+				<span className="text-primary">
+					{task.title} + {task.status}
+				</span>
+			);
+		}
 		return <span className="text-primary">{value}</span>;
 	}
 
 	return <span>{value}</span>;
 }
 
-export default function MentionView({ users }: { users: schema.userType[] }) {
+export default function MentionView({
+	users,
+	categories,
+	tasks,
+}: {
+	users: schema.userType[];
+	categories: schema.categoryType[];
+	tasks: schema.TaskWithLabels[];
+}) {
 	const { value: Newaccount } = useStateManagement<schema.userType>("account", null);
 
 	const extension = useMemo(
 		() =>
 			defineReactNodeView({
 				name: "mention",
-				component: (props: ReactNodeViewProps) => MentionViewInner(props, users, Newaccount?.id),
+				component: (props: ReactNodeViewProps) => MentionViewInner(props, users, categories, tasks, Newaccount?.id),
 			}),
-		[users, Newaccount?.id]
+		[users, Newaccount?.id, categories, tasks]
 	);
 
 	useExtension(extension);
