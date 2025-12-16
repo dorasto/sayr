@@ -40,7 +40,7 @@ export default function OrganizationTaskIdPage() {
 
 	return (
 		<div className="relative flex flex-col h-full max-h-full">
-			<div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
+			{/* <div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
 				<Link to=".." search={(prev) => prev} className="">
 					<Button
 						variant={"ghost"}
@@ -71,7 +71,7 @@ export default function OrganizationTaskIdPage() {
 						)}
 					</Button>
 				</div>
-			</div>
+			</div> */}
 			<ResizablePanelGroup direction="horizontal" className="">
 				<ResizablePanel defaultSize={useMobile ? 100 : 80} minSize={70}>
 					<div
@@ -83,6 +83,27 @@ export default function OrganizationTaskIdPage() {
 					</div>
 				</ResizablePanel>
 				<ResizableHandle />
+				{!isPanelOpen && (
+					<Button
+						variant="primary"
+						className={cn(
+							"gap-2 h-6 w-fit bg-accent border-transparent p-1 fixed right-2 top-2 z-50",
+						)}
+						onClick={() => {
+							if (isPanelOpen) {
+								ref.current?.collapse();
+							} else {
+								ref.current?.expand();
+							}
+						}}
+					>
+						{isPanelOpen ? (
+							<IconLayoutSidebarRightFilled />
+						) : (
+							<IconLayoutSidebarRight />
+						)}
+					</Button>
+				)}
 				<ResizablePanel
 					defaultSize={20}
 					minSize={20}
@@ -90,8 +111,8 @@ export default function OrganizationTaskIdPage() {
 					collapsible
 					collapsedSize={0}
 					ref={ref}
-					onCollapse={() => setTimeout(() => setIsPanelOpen(false), 0)}
-					onExpand={() => setTimeout(() => setIsPanelOpen(true), 0)}
+					onCollapse={() => setIsPanelOpen(false)}
+					onExpand={() => setIsPanelOpen(true)}
 					className=""
 				>
 					<div className="flex-1 overflow-y-auto h-full flex flex-col relative">
@@ -116,6 +137,25 @@ export default function OrganizationTaskIdPage() {
 								</Button>
 							</Link>
 						</div> */}
+						<Button
+							variant="primary"
+							className={cn(
+								"gap-2 h-6 w-fit bg-accent border-transparent p-1 ml-auto mt-2 mr-2",
+							)}
+							onClick={() => {
+								if (isPanelOpen) {
+									ref.current?.collapse();
+								} else {
+									ref.current?.expand();
+								}
+							}}
+						>
+							{isPanelOpen ? (
+								<IconLayoutSidebarRightFilled />
+							) : (
+								<IconLayoutSidebarRight />
+							)}
+						</Button>
 						<TaskContentSideContent
 							task={task}
 							labels={labels}

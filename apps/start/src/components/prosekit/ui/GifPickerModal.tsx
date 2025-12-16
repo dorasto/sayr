@@ -1,6 +1,10 @@
-import type { BasicExtension } from "prosekit/basic";
-import { Dialog, DialogContent, DialogOverlay } from "@repo/ui/components/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogOverlay,
+} from "@repo/ui/components/dialog";
 import GifPicker from "gif-picker-react";
+import type { BasicExtension } from "prosekit/basic";
 import type { Editor } from "prosekit/core";
 
 type GifPickerModalProps = {
@@ -12,7 +16,11 @@ type GifPickerModalProps = {
 /**
  * Shadcn‑based Tenor GIF picker used inside the Slash Menu.
  */
-export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalProps) {
+export function GifPickerModal({
+	editor,
+	open,
+	onOpenChange,
+}: GifPickerModalProps) {
 	const handleGifSelect = (gif: { url?: string }) => {
 		if (!gif?.url) return onOpenChange(false);
 		const { state, view } = editor;
@@ -28,12 +36,12 @@ export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalPro
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogOverlay className="backdrop-blur-sm bg-black/50 data-[state=open]:animate-fade-in" />
 			<DialogContent
-				className="p-0 border-none overflow-hidden rounded-xl shadow-2xl
-                   border border-white/10 bg-[#1f1f1f] text-white
+				className="p-0 border-none overflow-hidden
+                   
                    w-[400px] max-w-[calc(100%-2rem)]
                    data-[state=open]:animate-scale-in"
+				showClose={false}
 			>
 				<GifPicker
 					tenorApiKey={import.meta.env.VITE_TENOR_API ?? ""}

@@ -266,3 +266,18 @@ p {
 ::-webkit-scrollbar-corner {
 	background: transparent;
 }
+
+
+/* gif */
+.GifPickerReact {
+    --gpr-search-input-bg-color: var(--muted) !important;
+    --gpr-search-input-bg-color-active: var(--accent) !important;
+    --gpr-search-input-padding: 0 32px;
+    --gpr-search-input-border-radius: var(--radius-lg) !important;
+    --gpr-search-input-height: 2.5rem !important;
+    --gpr-search-input-text-color: var(--foreground) !important;
+    --gpr-search-input-placeholder-color: var(--muted-foreground) !important;
+  
+    --gpr-search-border-color-active: var(--primary) !important;
+    --gpr-search-border-color-inactive: var(--gpr-search-input-bg-color);
+}
