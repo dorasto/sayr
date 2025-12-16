@@ -1,10 +1,13 @@
 import { defineReactNodeView, useExtension } from "prosekit/react";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import type { ReactNodeViewProps } from "prosekit/react";
-import { RenderCategory } from "@/components/tasks";
+import { RenderCategory, statusConfig } from "@/components/tasks";
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useMemo } from "react";
+import { Badge } from "@repo/ui/components/badge";
+import { cn } from "@/lib/utils";
+import { TaskMention } from "./TaskMention";
 
 function MentionViewInner(
 	props: ReactNodeViewProps,
@@ -45,11 +48,7 @@ function MentionViewInner(
 	if (kind === "task") {
 		const task = tasks.find((c) => c.id.toString() === id);
 		if (task) {
-			return (
-				<span className="text-primary">
-					{task.title} + {task.status}
-				</span>
-			);
+			return <TaskMention task={task} categories={categories} />;
 		}
 		return <span className="text-primary">{value}</span>;
 	}
