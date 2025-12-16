@@ -10,6 +10,7 @@ import {
 	AutocompleteList,
 	AutocompletePopover,
 } from "prosekit/react/autocomplete";
+import { TaskMention } from "./TaskMention";
 
 // Match inputs like "#1", "#23", "#456", etc. — strictly numeric after #
 const regex = /#\d*$/;
@@ -51,13 +52,7 @@ export default function TaskMenu(props: {
 						className="relative flex items-center justify-between min-w-32 scroll-my-1 rounded-lg px-3 py-1.5 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
 						onSelect={() => handleTagInsert(task.id, task.shortId as number)}
 					>
-						{props.loading ? (
-							<Skeleton className="w-full" />
-						) : (
-							<p>
-								#{task.shortId} {task.title}
-							</p>
-						)}
+						{props.loading ? <Skeleton className="w-full" /> : <TaskMention task={task} categories={[]} hide />}
 					</AutocompleteItem>
 				))}
 			</AutocompleteList>

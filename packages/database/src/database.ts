@@ -5,48 +5,51 @@ import postgres from "postgres";
 import * as auth from "../schema/auth";
 import * as schema from "../schema/index";
 
-const connectionString = process.env.DATABASE_URL;
-// Create Postgres client
-export const client = postgres(connectionString || "", {
-	connect_timeout: 100, // fail fast on bad conn
-	idle_timeout: 20, // recycle idle conn
-	max: 10, // max pool connections
-});
+// const connectionString = process.env.DATABASE_URL;
+// // Create Postgres client
+// export const client = postgres(connectionString || "", {
+// 	connect_timeout: 100, // fail fast on bad conn
+// 	idle_timeout: 20, // recycle idle conn
+// 	max: 10, // max pool connections
+// });
 
-// Merge schemas into one object
-export const db = drizzle(client, {
-	schema: {
-		...auth,
-		...schema,
-	},
-});
+// // Merge schemas into one object
+// export const db = drizzle(client, {
+// 	schema: {
+// 		...auth,
+// 		...schema,
+// 	},
+// });
 
-// // --- Types ---
-// export const combinedSchema = {
-// 	...auth,
-// 	...schema,
-// };
-// type DrizzleClient = ReturnType<typeof drizzle<typeof combinedSchema>>;
+// --- Types ---
+export const combinedSchema = {
+	...auth,
+	...schema,
+};
 
-// // --- Global declaration ---
-// declare global {
-// 	// eslint-disable-next-line no-var
-// 	var _db: DrizzleClient | undefined;
-// }
+// --- Global shared types ---
+type DrizzleClient = ReturnType<typeof drizzle<typeof combinedSchema>>;
+type PostgresClient = ReturnType<typeof postgres>;
 
-// // --- Initialize client only once ---
-// const client =
-// 	global._db ??
-// 	drizzle(
-// 		postgres(process.env.DATABASE_URL || "", {
-// 			connect_timeout: 100,
-// 			idle_timeout: 10,
-// 			max: 15,
-// 		}),
-// 		{ schema: combinedSchema }
-// 	);
+// --- Global declaration (TS) ---
+declare global {
+	// eslint-disable-next-line no-var
+	var _db: DrizzleClient | undefined;
+	// eslint-disable-next-line no-var
+	var _pgClient: PostgresClient | undefined;
+}
 
-// // Preserve singleton in dev
-// if (process.env.NODE_ENV !== "production") global._db = client;
+// --- Create or reuse client ---
+if (!global._pgClient) {
+	global._pgClient = postgres(process.env.DATABASE_URL || "", {
+		connect_timeout: 100,
+		idle_timeout: 1,
+		max: 25,
+	});
+}
+if (!global._db) {
+	global._db = drizzle(global._pgClient, { schema: combinedSchema });
+}
 
-// export const db = client;
+export const db = global._db;
+export const client = global._pgClient;

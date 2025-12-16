@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { inArray } from "drizzle-orm";
 
 export const getMyTasks = createServerFn({ method: "GET" }).handler(async () => {
-	const { getAccess } = await import("@/lib/serverFunctions/getAccess");
+	const { getAccess } = await import("@/getAccess");
 	const { db, getTasksByUserId, getLabels } = await import("@repo/database");
 	try {
 		const { account } = await getAccess();

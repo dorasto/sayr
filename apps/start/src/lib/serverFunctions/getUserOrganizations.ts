@@ -7,7 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
  */
 export const getUserOrganizations = createServerFn({ method: "GET" }).handler(async () => {
 	// Dynamic imports to ensure server-only modules don't leak to client bundle
-	const { getAccess } = await import("@/lib/serverFunctions/getAccess");
+	const { getAccess } = await import("@/getAccess");
 	const { getOrganizations } = await import("@repo/database");
 	try {
 		const { account } = await getAccess();
