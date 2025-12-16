@@ -1,6 +1,6 @@
 import { defineNodeSpec, union } from "prosekit/core";
 import { defineReactNodeView } from "prosekit/react";
-import VideoView from "./ui/VideoView";
+import VideoView from "../ui/video-view";
 
 function defineVideoSpec() {
 	return defineNodeSpec({

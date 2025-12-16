@@ -6,7 +6,7 @@ export const getAdminOrganizationTasks = createServerFn({ method: "GET" })
 	.handler(async ({ data }) => {
 		const { orgId } = data;
 		const { getOrganization, getTasksByOrganizationId } = await import("@repo/database");
-		const { getAccess } = await import("./getAccess");
+		const { getAccess } = await import("@/lib/serverFunctions/getAccess");
 		try {
 			const { account } = await getAccess();
 			if (!orgId) {

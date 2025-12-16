@@ -178,6 +178,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      gif-picker-react:
+        specifier: ^1.5.0
+        version: 1.5.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -6087,6 +6090,12 @@ packages:
 
   get-tsconfig@4.13.0:
     resolution: {integrity: sha512-1VKTZJCwBrvbd+Wn3AOgQP/2Av+TfTCOlE4AcRJE72W1ksZXbAx8PPBR9RzgTeSPzlPMHrbANMH3LbltH73wxQ==}
+
+  gif-picker-react@1.5.0:
+    resolution: {integrity: sha512-a2S2dRitzakqB70mvgKbmqNUgbrrLyU394mCgc36KDxZ1qDmKJ10UXyvpRLhiV3XV0qGXSImB3FfZWEmxLc/vA==}
+    peerDependencies:
+      react: '>=17'
+      react-dom: '>=17'
 
   glob-parent@5.1.2:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
@@ -14229,6 +14238,11 @@ snapshots:
   get-tsconfig@4.13.0:
     dependencies:
       resolve-pkg-maps: 1.0.0
+
+  gif-picker-react@1.5.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+    dependencies:
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
 
   glob-parent@5.1.2:
     dependencies:

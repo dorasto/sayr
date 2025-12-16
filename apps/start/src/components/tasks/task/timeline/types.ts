@@ -14,6 +14,7 @@ export interface TimelineItemWrapperProps {
 	color: string;
 	children?: React.ReactNode;
 	availableUsers: schema.userType[];
+	innerChildren?: React.ReactNode;
 }
 
 export interface GlobalTimelineProps {

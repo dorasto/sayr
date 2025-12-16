@@ -7,7 +7,7 @@ import type { Uploader } from "prosekit/extensions/file";
 import { ProseKit, useDocChange } from "prosekit/react";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { defineExtension } from "./extension";
+import { defineExtension } from "./extensions/index";
 import { tags as defaultTags } from "./sample/tag-data";
 import BlockHandle from "./ui/block-handle";
 import CodeBlockView from "./ui/code-block-view";

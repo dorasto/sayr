@@ -1,11 +1,16 @@
+import { AutocompleteList, AutocompletePopover } from "prosekit/react/autocomplete";
+import type { BasicExtension } from "prosekit/basic";
+import { canUseRegexLookbehind } from "prosekit/core";
+import { handleMediaUpload } from "../utils/uploadMedia";
+import SlashMenuEmpty from "./slash-menu-empty";
+import SlashMenuItem from "./slash-menu-item";
 import {
 	IconCode,
-	IconDivide,
+	IconLibraryPhoto,
 	IconH1,
 	IconH2,
 	IconH3,
 	IconLetterCase,
-	IconLine,
 	IconLineDashed,
 	IconList,
 	IconListCheck,
@@ -13,17 +18,10 @@ import {
 	IconListNumbers,
 	IconPhoto,
 	IconQuote,
-	IconSpace,
 	IconTable,
 	IconVideo,
 } from "@tabler/icons-react";
-import type { BasicExtension } from "prosekit/basic";
-import { canUseRegexLookbehind } from "prosekit/core";
 import { useEditor } from "prosekit/react";
-import { AutocompleteList, AutocompletePopover } from "prosekit/react/autocomplete";
-import SlashMenuEmpty from "./slash-menu-empty";
-import SlashMenuItem from "./slash-menu-item";
-import { handleMediaUpload } from "../utils/uploadMedia";
 
 // Match inputs like "/", "/table", "/heading 1" etc. Do not match "/ heading".
 const regex = canUseRegexLookbehind() ? /(?<!\S)\/(\S.*)?$/u : /\/(\S.*)?$/u;
@@ -121,17 +119,23 @@ export default function SlashMenu() {
 
 				<SlashMenuItem
 					label="Image"
-					kbd=""
 					icon={<IconPhoto className="size-4" />}
 					onSelect={() => handleMediaUpload(editor, "image")}
 				/>
 
 				<SlashMenuItem
 					label="Video"
-					kbd=""
 					icon={<IconVideo className="size-4" />}
 					onSelect={() => handleMediaUpload(editor, "video")}
 				/>
+
+				{import.meta.env.VITE_TENOR_API && (
+					<SlashMenuItem
+						label="GIF"
+						icon={<IconLibraryPhoto className="size-4" />}
+						onSelect={() => handleMediaUpload(editor, "gif")}
+					/>
+				)}
 
 				<SlashMenuEmpty />
 			</AutocompleteList>

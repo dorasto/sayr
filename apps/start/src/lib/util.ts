@@ -130,6 +130,11 @@ export function extractTextContent(doc: NodeJSON | NodeJSON[] | null | undefined
 				return `[Video${src ? ` • ${src}` : ""}]`;
 			}
 
+			case "gif": {
+				const src = node.attrs?.src || "";
+				return `[Gif${src ? ` • ${src}` : ""}]`;
+			}
+
 			case "mention": {
 				return `[Mention${node.attrs?.value ? ` • ${node.attrs.value}` : ""}]`;
 			}

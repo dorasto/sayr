@@ -6,7 +6,8 @@ import { defineMention } from "prosekit/extensions/mention";
 import { definePlaceholder } from "prosekit/extensions/placeholder";
 import { defineReadonly } from "prosekit/extensions/readonly";
 import { defineReactMarkView } from "prosekit/react";
-import Link from "./ui/links";
+import Link from "../ui/links";
+import { defineGif } from "./gif-extension";
 import { defineVideo } from "./video-extension";
 
 export function defineExtension({
@@ -28,6 +29,7 @@ export function defineExtension({
 			component: Link,
 		}),
 		defineVideo(),
+		defineGif(),
 	];
 
 	if (readonly) {
