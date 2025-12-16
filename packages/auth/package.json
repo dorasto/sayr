@@ -13,7 +13,7 @@
     "scripts": {},
     "dependencies": {
         "@repo/database": "workspace:*",
-        "better-auth": "^1.3.31"
+        "better-auth": "^1.4.5"
     },
     "devDependencies": {
         "@repo/typescript-config": "workspace:*",
