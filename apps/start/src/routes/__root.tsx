@@ -11,26 +11,11 @@ import NotFound from "@/components/NotFound";
 import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import appCss from "../styles.css?url";
 import { DefaultCatchBoundary } from "@/components/Error";
-import { createServerFn } from "@tanstack/react-start";
-import { getAccess } from "@/getAccess";
-
-const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
-	const { account } = await getAccess();
-	return {
-		account,
-	};
-});
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
 	account?: schema.userType;
 }>()({
-	beforeLoad: async () => {
-		const { account } = await fetchAuth();
-		return {
-			account,
-		};
-	},
 	head: () => ({
 		meta: [
 			{

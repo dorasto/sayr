@@ -4,8 +4,22 @@ import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper } from "@/components/generic/wrapper";
 import { getUserOrganizations } from "@/lib/serverFunctions/getUserOrganizations";
+import { createServerFn } from "@tanstack/react-start";
+import { getAccess } from "@/getAccess";
+const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
+	const { account } = await getAccess();
+	return {
+		account,
+	};
+});
 
 export const Route = createFileRoute("/admin")({
+	beforeLoad: async () => {
+		const { account } = await fetchAuth();
+		return {
+			account,
+		};
+	},
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/home/login" });
