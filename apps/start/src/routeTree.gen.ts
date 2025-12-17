@@ -31,6 +31,8 @@ import { Route as AdminSettingsOrgOrgIdRouteRouteImport } from './routes/admin/s
 import { Route as AdminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/route'
 import { Route as AdminSettingsOrgOrgIdIndexRouteImport } from './routes/admin/settings/org/$orgId/index'
 import { Route as AdminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/index'
+import { Route as AdminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/admin/settings/org/$orgId/connections/index'
+import { Route as AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport } from './routes/admin/settings/org/$orgId/connections/$connectionId/index'
 
 const ProsekitTestRoute = ProsekitTestRouteImport.update({
   id: '/prosekit-test',
@@ -148,6 +150,18 @@ const AdminOrgIdTasksTaskShortIdIndexRoute =
     path: '/',
     getParentRoute: () => AdminOrgIdTasksTaskShortIdRouteRoute,
   } as any)
+const AdminSettingsOrgOrgIdConnectionsIndexRoute =
+  AdminSettingsOrgOrgIdConnectionsIndexRouteImport.update({
+    id: '/connections/',
+    path: '/connections/',
+    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute =
+  AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport.update({
+    id: '/connections/$connectionId/',
+    path: '/connections/$connectionId/',
+    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
@@ -172,6 +186,8 @@ export interface FileRoutesByFullPath {
   '/admin/settings/connections/': typeof AdminSettingsConnectionsIndexRoute
   '/admin/$orgId/tasks/$taskShortId/': typeof AdminOrgIdTasksTaskShortIdIndexRoute
   '/admin/settings/org/$orgId/': typeof AdminSettingsOrgOrgIdIndexRoute
+  '/admin/settings/org/$orgId/connections': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
+  '/admin/settings/org/$orgId/connections/$connectionId': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/prosekit-test': typeof ProsekitTestRoute
@@ -188,6 +204,8 @@ export interface FileRoutesByTo {
   '/admin/settings/connections': typeof AdminSettingsConnectionsIndexRoute
   '/admin/$orgId/tasks/$taskShortId': typeof AdminOrgIdTasksTaskShortIdIndexRoute
   '/admin/settings/org/$orgId': typeof AdminSettingsOrgOrgIdIndexRoute
+  '/admin/settings/org/$orgId/connections': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
+  '/admin/settings/org/$orgId/connections/$connectionId': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -213,6 +231,8 @@ export interface FileRoutesById {
   '/admin/settings/connections/': typeof AdminSettingsConnectionsIndexRoute
   '/admin/$orgId/tasks/$taskShortId/': typeof AdminOrgIdTasksTaskShortIdIndexRoute
   '/admin/settings/org/$orgId/': typeof AdminSettingsOrgOrgIdIndexRoute
+  '/admin/settings/org/$orgId/connections/': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
+  '/admin/settings/org/$orgId/connections/$connectionId/': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -239,6 +259,8 @@ export interface FileRouteTypes {
     | '/admin/settings/connections/'
     | '/admin/$orgId/tasks/$taskShortId/'
     | '/admin/settings/org/$orgId/'
+    | '/admin/settings/org/$orgId/connections'
+    | '/admin/settings/org/$orgId/connections/$connectionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/prosekit-test'
@@ -255,6 +277,8 @@ export interface FileRouteTypes {
     | '/admin/settings/connections'
     | '/admin/$orgId/tasks/$taskShortId'
     | '/admin/settings/org/$orgId'
+    | '/admin/settings/org/$orgId/connections'
+    | '/admin/settings/org/$orgId/connections/$connectionId'
   id:
     | '__root__'
     | '/admin'
@@ -279,6 +303,8 @@ export interface FileRouteTypes {
     | '/admin/settings/connections/'
     | '/admin/$orgId/tasks/$taskShortId/'
     | '/admin/settings/org/$orgId/'
+    | '/admin/settings/org/$orgId/connections/'
+    | '/admin/settings/org/$orgId/connections/$connectionId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -447,6 +473,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrgIdTasksTaskShortIdIndexRouteImport
       parentRoute: typeof AdminOrgIdTasksTaskShortIdRouteRoute
     }
+    '/admin/settings/org/$orgId/connections/': {
+      id: '/admin/settings/org/$orgId/connections/'
+      path: '/connections'
+      fullPath: '/admin/settings/org/$orgId/connections'
+      preLoaderRoute: typeof AdminSettingsOrgOrgIdConnectionsIndexRouteImport
+      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+    }
+    '/admin/settings/org/$orgId/connections/$connectionId/': {
+      id: '/admin/settings/org/$orgId/connections/$connectionId/'
+      path: '/connections/$connectionId'
+      fullPath: '/admin/settings/org/$orgId/connections/$connectionId'
+      preLoaderRoute: typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport
+      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+    }
   }
 }
 
@@ -520,11 +560,17 @@ const AdminSettingsConnectionsRouteRouteWithChildren =
 
 interface AdminSettingsOrgOrgIdRouteRouteChildren {
   AdminSettingsOrgOrgIdIndexRoute: typeof AdminSettingsOrgOrgIdIndexRoute
+  AdminSettingsOrgOrgIdConnectionsIndexRoute: typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
+  AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute: typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
 }
 
 const AdminSettingsOrgOrgIdRouteRouteChildren: AdminSettingsOrgOrgIdRouteRouteChildren =
   {
     AdminSettingsOrgOrgIdIndexRoute: AdminSettingsOrgOrgIdIndexRoute,
+    AdminSettingsOrgOrgIdConnectionsIndexRoute:
+      AdminSettingsOrgOrgIdConnectionsIndexRoute,
+    AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute:
+      AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute,
   }
 
 const AdminSettingsOrgOrgIdRouteRouteWithChildren =
