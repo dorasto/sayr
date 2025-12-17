@@ -105,7 +105,7 @@ export function Preview({
 					contentClassName,
 				)}
 			>
-				<a href={url} className="no-underline!">
+				<a href={url} className="no-underline! pointer-events-auto! block">
 					{loading ? (
 						<div className="flex items-center justify-center py-4">
 							<div className="text-sm text-muted-foreground">Loading...</div>

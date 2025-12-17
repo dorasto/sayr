@@ -14,9 +14,13 @@ export default function Link(props: ReactMarkViewProps) {
 		/>
 	);
 
-	// if (isEditable) {
-	// 	return content;
-	// }
+	if (isEditable) {
+		return content;
+	}
 
-	return <Preview url={href}>{content}</Preview>;
+	return (
+		<Preview url={href} className=" pointer-events-auto!">
+			{content}
+		</Preview>
+	);
 }

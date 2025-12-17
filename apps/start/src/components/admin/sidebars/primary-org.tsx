@@ -176,6 +176,24 @@ export default function OrgSection({
 							</SidebarMenuButton>
 						</Link>
 					</SidebarMenuItem>
+					<SidebarMenuItem
+						className="cursor-pointer px-0"
+						isActive={pathname.includes(`/admin/${organization.id}/tasks`)}
+					>
+						<Link
+							to={`/admin/settings/org/$orgId`}
+							params={{ orgId: organization.id }}
+							className="w-full cursor-pointer"
+						>
+							<SidebarMenuButton
+								className="cursor-pointer"
+								icon={<IconSettings size={16} />}
+								tooltip={"Manage"}
+							>
+								<span>Manage</span>
+							</SidebarMenuButton>
+						</Link>
+					</SidebarMenuItem>
 				</CollapsibleContent>
 			</SidebarGroup>
 		</Collapsible>

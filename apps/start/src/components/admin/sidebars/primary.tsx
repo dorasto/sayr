@@ -15,6 +15,7 @@ import { cn } from "@repo/ui/lib/utils";
 import {
 	IconLayoutSidebar,
 	IconLayoutSidebarFilled,
+	IconSettings,
 	IconShield,
 } from "@tabler/icons-react";
 import { Link, useLocation, useRouterState } from "@tanstack/react-router";
@@ -118,6 +119,7 @@ export function PrimarySidebar() {
 				<SidebarMenu>
 					<SidebarMenuItem className="">
 						<SidebarMenuButton
+							tooltip={isSidebarOpen ? "Collapse" : "Expand"}
 							onClick={() => sidebarActions.toggleSidebar(sidebarId)}
 							icon={
 								isSidebarOpen ? (
@@ -133,13 +135,23 @@ export function PrimarySidebar() {
 					</SidebarMenuItem>
 					{account.role === "admin" && (
 						<SidebarMenuItem className="">
-							<Link to={"/admin"} className="w-full">
-								<SidebarMenuButton icon={<IconShield />}>
-									Admin Console
+							<Link to={"/admin/"} className="w-full">
+								<SidebarMenuButton
+									icon={<IconShield />}
+									tooltip="Admin console"
+								>
+									Admin console
 								</SidebarMenuButton>
 							</Link>
 						</SidebarMenuItem>
 					)}
+					<SidebarMenuItem className="">
+						<Link to={"/admin/settings"} className="w-full">
+							<SidebarMenuButton icon={<IconSettings />} tooltip="Settings">
+								Settings
+							</SidebarMenuButton>
+						</Link>
+					</SidebarMenuItem>
 					<UserDropdown />
 				</SidebarMenu>
 			</SidebarFooter>

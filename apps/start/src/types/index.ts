@@ -1,0 +1,60 @@
+export type GithubUserType = {
+	login: string;
+	id: number;
+	node_id: string;
+	avatar_url: string;
+	gravatar_id: string;
+	url: string;
+	html_url: string;
+	followers_url: string;
+	following_url: string;
+	gists_url: string;
+	starred_url: string;
+	subscriptions_url: string;
+	organizations_url: string;
+	repos_url: string;
+	events_url: string;
+	received_events_url: string;
+	type: string;
+	user_view_type: string;
+	site_admin: boolean;
+	name: string;
+	company: string;
+	blog: string;
+	location: string | null;
+	email: string | null;
+	hireable: boolean | null;
+	bio: string;
+	twitter_username: string;
+	notification_email: string | null | undefined;
+	public_repos: number;
+	public_gists: number;
+	followers: number;
+	following: number;
+	created_at: string;
+	updated_at: string;
+};
+export type DorasUserType = {
+	email: string;
+	id: string;
+	created_at: string;
+	updated_at: string;
+	username: string;
+	displayname: string;
+	pic: string;
+	bio: string;
+	account_type: string;
+	is_brand: boolean;
+	design: {
+		profile_pic_shape: string;
+	};
+	domain: {
+		domain: string;
+		verfied: boolean;
+	};
+	settings: {
+		branding: boolean;
+		location: string;
+		pronouns: string;
+	};
+};

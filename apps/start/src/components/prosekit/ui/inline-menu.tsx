@@ -191,7 +191,7 @@ export default function InlineMenu() {
 					open={linkMenuOpen}
 					onOpenChange={setLinkMenuOpen}
 					data-testid="inline-menu-link"
-					className="z-10 box-border border bg-popover shadow-lg [&:not([data-state])]:hidden relative flex flex-col w-fit max-w-fit overflow-x-hidden rounded-lg p-0"
+					className="z-10 box-border border bg-popover shadow-lg [&:not([data-state])]:hidden relative flex flex-col w-fit max-w-fit overflow-hidden rounded-lg p-0"
 				>
 					{linkMenuOpen && (
 						<form
