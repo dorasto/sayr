@@ -16,10 +16,9 @@ import {
 } from "@repo/ui/components/input-group";
 import { Separator } from "@repo/ui/components/separator";
 import { IconCheck, IconUser } from "@tabler/icons-react";
-import { useLayoutOrganization } from "@/app/admin/[organization_id]/Context";
-import { useLayoutData } from "@/app/admin/Context";
-import { useLayoutOrganizationSettings } from "@/app/admin/settings/org/[org_id]/Context";
-import { useWebSocketSubscription } from "@/app/hooks/useWebSocketSubscription";
+import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 
 export default function SettingsOrganizationPage() {
 	const { ws } = useLayoutData();
