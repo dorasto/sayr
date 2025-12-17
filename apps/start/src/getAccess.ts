@@ -19,13 +19,11 @@ export const getAccess = async () => {
 		});
 
 		if (session?.user) {
-			console.log("🚀 ~ getAccess ~ session:", session);
 			return { account: session.user as schema.userType };
 		}
 
 		return { account: null };
 	} catch (_error) {
-		console.log("🚀 ~ getAccess ~ _error:", _error);
 		return { account: null };
 	}
 };
