@@ -43,8 +43,8 @@ declare global {
 if (!global._pgClient) {
 	global._pgClient = postgres(process.env.DATABASE_URL || "", {
 		connect_timeout: 100,
-		idle_timeout: 1,
-		max: 25,
+		idle_timeout: 20,
+		max: 20,
 	});
 }
 if (!global._db) {
