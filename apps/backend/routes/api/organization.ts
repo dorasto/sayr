@@ -7,12 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { checkMembershipRole } from "@/util";
-import {
-	broadcast,
-	broadcastByUserId,
-	broadcastPublic,
-	findClientByWsId,
-} from "../ws";
+import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
@@ -29,11 +24,8 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		.update(schema.organization)
 		.set({
 			...data,
-			logo:
-				data.logo && `organization/${org_id}/${getFileNameFromUrl(data.logo)}`,
-			bannerImg:
-				data.bannerImg &&
-				`organization/${org_id}/${getFileNameFromUrl(data.bannerImg)}`,
+			logo: data.logo && `organization/${org_id}/${getFileNameFromUrl(data.logo)}`,
+			bannerImg: data.bannerImg && `organization/${org_id}/${getFileNameFromUrl(data.bannerImg)}`,
 			updatedAt: new Date(),
 		})
 		.where(eq(schema.organization.id, org_id))
@@ -93,20 +85,13 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
 		const objectName = `/logo.${ext}`;
 		if (oldLogo) {
-			await removeObject(
-				`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`,
-			);
+			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`);
 		}
 		// 3. Upload to storage
-		const imagelogo = await uploadObject(
-			objectName,
-			buffer,
-			`organization/${orgId}`,
-			{
-				"Content-Type": file.type || "application/octet-stream",
-				originalName: objectName,
-			},
-		);
+		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
+			"Content-Type": file.type || "application/octet-stream",
+			originalName: objectName,
+		});
 
 		// 4. Build result payload
 		return c.json({
@@ -147,20 +132,13 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
 		const objectName = `banner.${ext}`;
 		if (oldBanner) {
-			await removeObject(
-				`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`,
-			);
+			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`);
 		}
 		// 3. Upload to storage
-		const imagebanner = await uploadObject(
-			objectName,
-			buffer,
-			`organization/${orgId}`,
-			{
-				"Content-Type": file.type || "application/octet-stream",
-				originalName: objectName,
-			},
-		);
+		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
+			"Content-Type": file.type || "application/octet-stream",
+			originalName: objectName,
+		});
 
 		// 4. Build result payload
 		return c.json({
@@ -227,9 +205,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 			name,
 			color: color ?? "hsla(0, 0%, 0%, 1)",
 		})
-		.where(
-			and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)),
-		)
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)))
 		.returning();
 	if (!edit) {
 		return c.json({ success: false, error: "Failed to edit label." }, 500);
@@ -261,13 +237,7 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	}
 	const [removed] = await db
 		.delete(schema.label)
-		.where(
-			and(
-				eq(schema.label.id, id),
-				eq(schema.label.organizationId, org_id),
-				eq(schema.label.id, id),
-			),
-		)
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id), eq(schema.label.id, id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove label." }, 500);
@@ -345,12 +315,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 			color: color ?? "hsla(0, 0%, 0%, 1)",
 			icon,
 		})
-		.where(
-			and(
-				eq(schema.category.id, id),
-				eq(schema.category.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id)))
 		.returning();
 	if (!edit) {
 		return c.json({ success: false, error: "Failed to edit category." }, 500);
@@ -384,13 +349,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	}
 	const [removed] = await db
 		.delete(schema.category)
-		.where(
-			and(
-				eq(schema.category.id, id),
-				eq(schema.category.organizationId, org_id),
-				eq(schema.category.id, id),
-			),
-		)
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id), eq(schema.category.id, id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove category." }, 500);
@@ -419,8 +378,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 // Create saved view with name and filter params
 apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const session = c.get("session");
-	const { org_id, wsClientId, name, value, logo, slug, viewConfig } =
-		await c.req.json();
+	const { org_id, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -463,8 +421,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 // Update saved view
 apiRouteAdminOrganization.patch("/update-view", async (c) => {
 	const session = c.get("session");
-	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } =
-		await c.req.json();
+	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -479,12 +436,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 			viewConfig: viewConfig,
 			updatedAt: new Date(),
 		})
-		.where(
-			and(
-				eq(schema.savedView.id, id),
-				eq(schema.savedView.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
 		.returning();
 	if (!view) {
 		return c.json({ success: false, error: "Failed to update view." }, 500);
@@ -519,12 +471,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 	}
 	const [removed] = await db
 		.delete(schema.savedView)
-		.where(
-			and(
-				eq(schema.savedView.id, id),
-				eq(schema.savedView.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove view." }, 500);
@@ -550,8 +497,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 });
 apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 	const session = c.get("session");
-	const { org_id, repo_id, repo_name, installation_id, category_id } =
-		await c.req.json();
+	const { org_id, repo_id, repo_name, installation_id, category_id } = await c.req.json();
 	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -561,7 +507,7 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 			eq(schema.githubRepository.installationId, installation_id),
 			eq(schema.githubRepository.repoId, repo_id),
 			eq(schema.githubRepository.organizationId, org_id),
-			eq(schema.githubRepository.categoryId, category_id),
+			eq(schema.githubRepository.categoryId, category_id)
 		),
 	});
 	if (found) {
@@ -586,13 +532,10 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 
 apiRouteAdminOrganization.post("/member", async (c) => {
 	const session = c.get("session");
-	const { org_id, emails }: { org_id: string; emails: string[] } =
-		await c.req.json();
+	const { org_id, emails }: { org_id: string; emails: string[] } = await c.req.json();
 
 	// --- Permissions ---
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id, [
-		"owner",
-	]);
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id, ["owner"]);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
@@ -610,10 +553,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 			// Already exists as member?
 			const existingMember = user
 				? await db.query.member.findFirst({
-						where: and(
-							eq(schema.member.organizationId, org_id),
-							eq(schema.member.userId, user.id),
-						),
+						where: and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user.id)),
 					})
 				: null;
 
@@ -621,10 +561,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 			// Already invited?
 			const existingInvite = await db.query.invite.findFirst({
-				where: and(
-					eq(schema.invite.organizationId, org_id),
-					eq(schema.invite.email, email),
-				),
+				where: and(eq(schema.invite.organizationId, org_id), eq(schema.invite.email, email)),
 			});
 
 			if (existingInvite) continue;
@@ -664,20 +601,13 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 apiRouteAdminOrganization.delete("/member", async (c) => {
 	const session = c.get("session");
 	const { org_id, user_id } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id, [
-		"owner",
-	]);
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id, ["owner"]);
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 	const [removed] = await db
 		.delete(schema.member)
-		.where(
-			and(
-				eq(schema.member.organizationId, org_id),
-				eq(schema.member.userId, user_id),
-			),
-		)
+		.where(and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user_id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove member." }, 500);
@@ -716,18 +646,13 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 	const githubConnectionsReq = await db.query.githubRepository.findMany({
 		where: and(
 			eq(schema.githubRepository.organizationId, orgId),
-			eq(
-				schema.githubRepository.installationId,
-				githubInfo?.installationId ?? -1,
-			),
+			eq(schema.githubRepository.installationId, githubInfo?.installationId ?? -1)
 		),
 	});
 
 	const githubConnections = githubConnectionsReq.map((conn) => ({
 		...conn,
-		repoName:
-			githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name ||
-			"Unknown repo",
+		repoName: githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name || "Unknown repo",
 		avatarUrl: githubInfo?.account?.avatar_url,
 	}));
 
@@ -737,33 +662,6 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 			githubInfo,
 			githubConnections,
 		},
-	});
-});
-
-// Sync GitHub repo
-apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
-	const { org_id, installation_id, repo_id, repo_name, category_id } =
-		await c.req.json();
-	const session = c.get("session");
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
-	if (!isAuthorized) {
-		return c.json({ error: "UNAUTHORIZED" }, 401);
-	}
-
-	// Insert into githubRepository
-	await db.insert(schema.githubRepository).values({
-		id: randomUUID(),
-		organizationId: org_id,
-		installationId: installation_id,
-		repoId: repo_id,
-		repoName: repo_name,
-		categoryId: category_id,
-		userId: session?.userId,
-	});
-
-	return c.json({
-		success: true,
-		data: [],
 	});
 });
 
