@@ -1,9 +1,10 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
+import { getAdminOrganizationSettings } from "@/lib/serverFunctions/getAdminOrganizationSettings";
+import { SettingsProviderOrganization } from "@/contexts/ContextOrgSettings";
 
 export const Route = createFileRoute("/admin/settings/org/$orgId")({
 	loader: async ({ params }) =>
-		await getAdminOrganization({
+		await getAdminOrganizationSettings({
 			data: {
 				orgId: params.orgId,
 			},
@@ -12,6 +13,16 @@ export const Route = createFileRoute("/admin/settings/org/$orgId")({
 });
 
 function RouteComponent() {
-	const { organization, labels, views, categories } = Route.useLoaderData();
-	return <Outlet />;
+	const { organization, labels, views, categories, tasks } = Route.useLoaderData();
+	return (
+		<SettingsProviderOrganization
+			organization={organization}
+			labels={labels}
+			views={views}
+			categories={categories}
+			tasks={tasks}
+		>
+			<Outlet />
+		</SettingsProviderOrganization>
+	);
 }

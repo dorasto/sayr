@@ -1,12 +1,7 @@
 "use client";
 
 import { Button } from "@repo/ui/components/button";
-import {
-	Tile,
-	TileAction,
-	TileHeader,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -17,12 +12,12 @@ import {
 import { Separator } from "@repo/ui/components/separator";
 import { IconCheck, IconUser } from "@tabler/icons-react";
 import { useLayoutData } from "@/components/generic/Context";
-import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 
 export default function SettingsOrganizationPage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization } = useLayoutOrganization();
+	const { organization, setOrganization } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -51,10 +46,7 @@ export default function SettingsOrganizationPage() {
 				</TileHeader>
 				<TileAction className="w-full">
 					<InputGroup className="bg-accent border-0 shadow-none transition-all">
-						<InputGroupInput
-							placeholder="My Organization"
-							value={organization.name}
-						/>
+						<InputGroupInput placeholder="My Organization" value={organization.name} />
 
 						<InputGroupAddon align="inline-end">
 							<InputGroupButton variant={"ghost"} size={"icon-sm"}>
@@ -87,10 +79,7 @@ export default function SettingsOrganizationPage() {
 				</TileHeader>
 				<TileAction className="w-full">
 					<InputGroup className="bg-accent border-0 shadow-none transition-all">
-						<InputGroupInput
-							placeholder="Description"
-							value={organization.description || ""}
-						/>
+						<InputGroupInput placeholder="Description" value={organization.description || ""} />
 
 						<InputGroupAddon align="inline-end">
 							<InputGroupButton variant={"ghost"} size={"icon-sm"}>
