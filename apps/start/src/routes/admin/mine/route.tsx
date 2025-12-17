@@ -1,9 +1,14 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { RootProviderMyTasks } from "@/contexts/ContextMine";
 import { getMyTasks } from "@/lib/serverFunctions/myTasks";
 
 export const Route = createFileRoute("/admin/mine")({
-	loader: async () => await getMyTasks(),
+	loader: async ({ context }) => {
+		if (!context.account) {
+			throw redirect({ to: "/home/login" });
+		}
+		return await getMyTasks({ data: { account: context.account } });
+	},
 	component: MineLayout,
 });
 

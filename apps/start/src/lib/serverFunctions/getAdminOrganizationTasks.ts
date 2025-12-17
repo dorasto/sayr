@@ -1,14 +1,12 @@
-import { getOrganization, getTasksByOrganizationId } from "@repo/database";
+import { getOrganization, getTasksByOrganizationId, type schema } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { getAccess } from "@/getAccess";
 
 export const getAdminOrganizationTasks = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.inputValidator((data: { account: schema.userType; orgId: string }) => data)
 	.handler(async ({ data }) => {
-		const { orgId } = data;
+		const { account, orgId } = data;
 		try {
-			const { account } = await getAccess();
 			if (!orgId) {
 				console.log("🚀 ~ orgId:", orgId);
 				throw redirect({ to: "/admin" });

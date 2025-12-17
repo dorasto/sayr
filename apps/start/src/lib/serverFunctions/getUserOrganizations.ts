@@ -1,18 +1,17 @@
-import { getOrganizations } from "@repo/database";
+import { getOrganizations, type schema } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { getAccess } from "@/getAccess";
 
 /**
  * Combined server function to get both access and organizations in one call.
  * This is more efficient for loaders that need both.
  */
-export const getUserOrganizations = createServerFn({ method: "GET" }).handler(
-	async () => {
+export const getUserOrganizations = createServerFn({ method: "GET" })
+	.inputValidator((data: { account: schema.userType }) => data)
+	.handler(async ({ data }) => {
 		try {
-			const { account } = await getAccess();
-			const organizations = await getOrganizations(account.id);
-			return { account, organizations };
+			const organizations = await getOrganizations(data.account.id);
+			return { account: data.account, organizations };
 		} catch (error) {
 			console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it
@@ -21,5 +20,4 @@ export const getUserOrganizations = createServerFn({ method: "GET" }).handler(
 			}
 			throw redirect({ to: "/home/login" });
 		}
-	},
-);
+	});

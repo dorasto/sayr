@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import AdminNavigation from "@/components/generic/AdminNavigation";
 import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
@@ -7,7 +7,16 @@ import { getUserOrganizations } from "@/lib/serverFunctions/getUserOrganizations
 import { authMiddleware } from "@/middleware/auth";
 
 export const Route = createFileRoute("/admin")({
-	loader: async () => await getUserOrganizations(),
+	loader: async ({ context }) => {
+		if (!context.account) {
+			throw redirect({ to: "/home/login" });
+		}
+		return await getUserOrganizations({
+			data: {
+				account: context.account,
+			},
+		});
+	},
 	component: AdminLayout,
 	server: {
 		middleware: [authMiddleware],

@@ -1,14 +1,19 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { RootProviderOrganization } from "@/contexts/ContextOrg";
 import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
 
 export const Route = createFileRoute("/admin/$orgId")({
-	loader: async ({ params }) =>
-		await getAdminOrganization({
+	loader: async ({ params, context }) => {
+		if (!context.account) {
+			throw redirect({ to: "/home/login" });
+		}
+		return await getAdminOrganization({
 			data: {
+				account: context.account,
 				orgId: params.orgId,
 			},
-		}),
+		});
+	},
 	component: OrgLayout,
 });
 

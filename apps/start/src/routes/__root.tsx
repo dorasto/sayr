@@ -1,30 +1,36 @@
 import type { schema } from "@repo/database";
 import { HeadlessToastConfig } from "@repo/ui/components/headless-toast";
 import { Toaster } from "@repo/ui/components/sonner";
-import {
-	IconAlertCircle,
-	IconAlertCircleFilled,
-	IconCheck,
-	IconInfoCircle,
-	IconLoader2,
-} from "@tabler/icons-react";
+import { IconAlertCircle, IconAlertCircleFilled, IconCheck, IconInfoCircle, IconLoader2 } from "@tabler/icons-react";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import {
-	createRootRouteWithContext,
-	HeadContent,
-	Scripts,
-} from "@tanstack/react-router";
+import { createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import NotFound from "@/components/NotFound";
 import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import appCss from "../styles.css?url";
 import { DefaultCatchBoundary } from "@/components/Error";
+import { createServerFn } from "@tanstack/react-start";
+import { getAccess } from "@/getAccess";
+
+const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
+	const { account } = await getAccess();
+	return {
+		account,
+	};
+});
+
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
 	account?: schema.userType;
 }>()({
+	beforeLoad: async () => {
+		const { account } = await fetchAuth();
+		return {
+			account,
+		};
+	},
 	head: () => ({
 		meta: [
 			{
@@ -46,7 +52,7 @@ export const Route = createRootRouteWithContext<{
 		],
 	}),
 	notFoundComponent: NotFound,
-	errorComponent:DefaultCatchBoundary,
+	errorComponent: DefaultCatchBoundary,
 	shellComponent: RootDocument,
 });
 

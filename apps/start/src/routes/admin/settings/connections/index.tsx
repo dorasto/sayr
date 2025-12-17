@@ -1,9 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SubWrapper } from "@/components/generic/wrapper";
 import UserConnections from "@/components/pages/admin/settings/connections";
 import { getConnections } from "@/lib/serverFunctions/getConnections";
 export const Route = createFileRoute("/admin/settings/connections/")({
-	loader: async () => await getConnections(),
+	loader: async ({ context }) => {
+		if (!context.account) {
+			throw redirect({ to: "/home/login" });
+		}
+		return await getConnections({ data: { account: context.account } });
+	},
 	component: RouteComponent,
 });
 

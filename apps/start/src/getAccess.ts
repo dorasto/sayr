@@ -1,6 +1,5 @@
 import { auth } from "@repo/auth";
 import type { schema } from "@repo/database";
-import { redirect } from "@tanstack/react-router";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getSessionCookie } from "better-auth/cookies";
 
@@ -10,8 +9,7 @@ export const getAccess = async () => {
 	const cookie = getSessionCookie(h) ?? "anon";
 
 	if (!cookie || cookie === "anon") {
-		console.log("🚀 ~ getAccess ~ cookie:", cookie);
-		throw redirect({ to: "/home/login" });
+		return { account: null };
 	}
 
 	try {
@@ -21,12 +19,13 @@ export const getAccess = async () => {
 		});
 
 		if (session?.user) {
+			console.log("🚀 ~ getAccess ~ session:", session);
 			return { account: session.user as schema.userType };
 		}
 
-		throw redirect({ to: "/home/login" });
+		return { account: null };
 	} catch (_error) {
 		console.log("🚀 ~ getAccess ~ _error:", _error);
-		throw redirect({ to: "/home/login" });
+		return { account: null };
 	}
 };

@@ -3,16 +3,13 @@ import { db, getLabels, getTasksByUserId } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { inArray } from "drizzle-orm";
-import { getAccess } from "@/getAccess";
 
-export const getMyTasks = createServerFn({ method: "GET" }).handler(
-	async () => {
+export const getMyTasks = createServerFn({ method: "GET" })
+	.inputValidator((data: { account: schema.userType }) => data)
+	.handler(async ({ data }) => {
 		try {
-			const { account } = await getAccess();
-			const tasks = await getTasksByUserId(account.id);
-			const organizationIds = Array.from(
-				new Set(tasks.map((task) => task.organizationId)),
-			);
+			const tasks = await getTasksByUserId(data.account.id);
+			const organizationIds = Array.from(new Set(tasks.map((task) => task.organizationId)));
 			const labelsPromises = organizationIds.map((orgId) => getLabels(orgId));
 			const labelsArrays = await Promise.all(labelsPromises);
 			const allLabels: schema.labelType[] = labelsArrays.flat();
@@ -30,5 +27,4 @@ export const getMyTasks = createServerFn({ method: "GET" }).handler(
 			}
 			throw redirect({ to: "/admin" });
 		}
-	},
-);
+	});

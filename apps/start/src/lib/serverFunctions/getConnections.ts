@@ -1,27 +1,20 @@
-import { auth, db } from "@repo/database";
+import { auth, db, type schema } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
-import { getAccess } from "@/getAccess";
 import { getUserInfoDoras, getUserInfoGithub } from "@/lib/fetches/connections";
 import type { DorasUserType, GithubUserType } from "@/types";
 
-export const getConnections = createServerFn({ method: "GET" }).handler(
-	async () => {
+export const getConnections = createServerFn({ method: "GET" })
+	.inputValidator((data: { account: schema.userType }) => data)
+	.handler(async ({ data }) => {
 		try {
-			const { account } = await getAccess();
 			// Find GitHub account association for this user
 			const github = await db.query.account.findFirst({
-				where: and(
-					eq(auth.account.userId, account?.id),
-					eq(auth.account.providerId, "github"),
-				),
+				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "github")),
 			});
 			const doras = await db.query.account.findFirst({
-				where: and(
-					eq(auth.account.userId, account?.id),
-					eq(auth.account.providerId, "doras"),
-				),
+				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "doras")),
 			});
 
 			let githubUser: GithubUserType | null = null;
@@ -54,5 +47,4 @@ export const getConnections = createServerFn({ method: "GET" }).handler(
 			}
 			throw redirect({ to: "/admin" });
 		}
-	},
-);
+	});
