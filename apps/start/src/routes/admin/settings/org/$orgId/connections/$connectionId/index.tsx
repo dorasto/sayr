@@ -9,9 +9,7 @@ import SettingsOrganizationConnectionsGitHubPage, {
 	SettingsOrganizationConnectionsGitHubSync,
 } from "@/components/pages/admin/settings/orgId/connections/github";
 
-export const Route = createFileRoute(
-	"/admin/settings/org/$orgId/connections/$connectionId/",
-)({
+export const Route = createFileRoute("/admin/settings/org/$orgId/connections/$connectionId/")({
 	component: RouteComponent,
 });
 
@@ -24,6 +22,7 @@ function RouteComponent() {
 		queryFn: async () => {
 			const res = await fetch(
 				`${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/${orgId}/connections/github`,
+				{ credentials: "include" }
 			);
 			if (!res.ok) throw new Error("Failed to fetch");
 			return res.json();
@@ -50,8 +49,7 @@ function RouteComponent() {
 								<div className="flex flex-col">
 									<Label variant="heading">GitHub connections</Label>
 									<Label variant="description">
-										Link your GitHub organizations and repositories to your Sayr
-										organization.
+										Link your GitHub organizations and repositories to your Sayr organization.
 									</Label>
 								</div>
 								<a
@@ -65,9 +63,7 @@ function RouteComponent() {
 								</a>
 							</div>
 
-							<SettingsOrganizationConnectionsGitHubPage
-								githubInfo={githubInfo}
-							/>
+							<SettingsOrganizationConnectionsGitHubPage githubInfo={githubInfo} />
 						</div>
 
 						{/* Task Sync Section */}
