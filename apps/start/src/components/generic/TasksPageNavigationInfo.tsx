@@ -8,27 +8,21 @@ import {
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
-	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@repo/ui/components/breadcrumb";
 import { Button } from "@repo/ui/components/button";
 import { ensureCdnUrl } from "@repo/util";
 import { IconUsers } from "@tabler/icons-react";
 import { Link, useMatch } from "@tanstack/react-router";
+import TasksPageActions from "./TasksPageActions";
 
-export default function TaskNavigationInfo() {
-	// Get organization from parent route (same pattern as TasksPageNavigationInfo)
-	const orgMatch = useMatch({ from: "/admin/$orgId", shouldThrow: false });
-	const organization = orgMatch?.loaderData?.organization;
+export default function TasksPageNavigationInfo() {
+	// Use route match to get organization data instead of context
+	// This avoids the context provider requirement at the AdminNavigation level
+	const match = useMatch({ from: "/admin/$orgId", shouldThrow: false });
+	const organization = match?.loaderData?.organization;
 
-	// Get task from the task detail route
-	const taskMatch = useMatch({
-		from: "/admin/$orgId/tasks/$taskShortId",
-		shouldThrow: false,
-	});
-	const task = taskMatch?.loaderData?.task;
-
-	if (!task || !organization) return null;
+	if (!organization) return null;
 
 	return (
 		<div className="flex items-center gap-2 text-sm">
@@ -65,7 +59,9 @@ export default function TaskNavigationInfo() {
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbPage>#{task.shortId}</BreadcrumbPage>
+						<BreadcrumbLink asChild>
+							<TasksPageActions />
+						</BreadcrumbLink>
 					</BreadcrumbItem>
 				</BreadcrumbList>
 			</Breadcrumb>

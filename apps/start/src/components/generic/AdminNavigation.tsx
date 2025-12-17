@@ -1,7 +1,7 @@
 "use client";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
-import { Link, MatchRoute } from "@tanstack/react-router";
+import { Link, useMatch } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 
 // import { StatusBar } from "@/app/components/admin/global/status";
@@ -20,39 +20,54 @@ import AdminCommand from "./AdminCommand";
 // import TasksPage from "./TasksPage";
 import { StatusBar } from "./status";
 import TaskNavigationInfo from "./TaskNavigationInfo";
+import TasksPageActions from "./TasksPageActions";
+import TasksPageNavigationInfo from "./TasksPageNavigationInfo";
 
 export default function AdminNavigation() {
-	const primarySidebar = useStore(sidebarStore, (state) => state.sidebars["primary-sidebar"]);
+	const primarySidebar = useStore(
+		sidebarStore,
+		(state) => state.sidebars["primary-sidebar"],
+	);
 	const isSidebarOpen = primarySidebar?.open ?? true;
 	const isMobile = useIsMobile();
-	// const { isOrgPage, isTaskPage, isMinePage, isTasksPage } = useAdminRoute();
-	// console.log("AdminNavigation location:", location);
+
+	// Use useMatch to determine which route we're on
+	const tasksMatch = useMatch({
+		from: "/admin/$orgId/tasks",
+		shouldThrow: false,
+	});
+	const taskDetailMatch = useMatch({
+		from: "/admin/$orgId/tasks/$taskShortId",
+		shouldThrow: false,
+	});
+
+	// Determine if we're on the tasks list page (not the detail page)
+	const isTasksListPage = tasksMatch && !taskDetailMatch;
+	const isTaskDetailPage = !!taskDetailMatch;
+
 	return (
 		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center">
 			<div className="flex w-full items-center gap-2 p-1 pr-4">
 				<div
-					className={cn("flex items-center gap-1 font-bold shrink-0", isSidebarOpen && !isMobile && "w-[16rem]")}
+					className={cn(
+						"flex items-center gap-1 font-bold shrink-0",
+						isSidebarOpen && !isMobile && "w-[16rem]",
+					)}
 				>
 					<SidebarSection sidebarIsOpen={isSidebarOpen} isMobile={isMobile} />
 				</div>
 
 				<div className="flex items-center w-full gap-2">
-					<MatchRoute to="/admin/$orgId/tasks/$taskShortId">
+					{isTasksListPage && (
 						<div className="flex items-center gap-2">
-							<Link to=".." search={(prev) => prev} className="">
-								<Button
-									variant={"ghost"}
-									className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg"
-									size={"sm"}
-								>
-									<IconArrowLeft className="size-3!" />
-									<span className="">Back</span>
-								</Button>
-							</Link>
-							<Separator orientation="vertical" className="h-3" />
+							<TasksPageNavigationInfo />
+						</div>
+					)}
+					{isTaskDetailPage && (
+						<div className="flex items-center gap-2">
 							<TaskNavigationInfo />
 						</div>
-					</MatchRoute>
+					)}
 				</div>
 
 				<div className="flex items-center gap-1 ml-auto">
