@@ -1,20 +1,9 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
-import {
-	Tile,
-	TileAction,
-	TileDescription,
-	TileHeader,
-	TileIcon,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { IconBrandGithub, IconBrandGithubFilled } from "@tabler/icons-react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
@@ -90,11 +79,7 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 								variant="accent"
 								size="sm"
 								disabled={!bothConnected} // 🔒 Only allow disconnect if both linked
-								title={
-									bothConnected
-										? "Disconnect Doras"
-										: "You must connect GitHub first to disconnect Doras"
-								}
+								title={bothConnected ? "Disconnect Doras" : "You must connect GitHub first to disconnect Doras"}
 								onClick={async () => {
 									await authClient.unlinkAccount({ providerId: "doras" });
 									window.location.reload();
@@ -128,9 +113,7 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 						</TileIcon>
 						<TileTitle>GitHub</TileTitle>
 						<TileDescription className="text-xs">
-							{githubUser?.login
-								? `${githubUser.name} - (${githubUser.login})`
-								: "Connect to sync activity"}
+							{githubUser?.login ? `${githubUser.name} - (${githubUser.login})` : "Connect to sync activity"}
 						</TileDescription>
 					</TileHeader>
 
@@ -140,8 +123,8 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 								variant="accent"
 								size="sm"
 								onClick={async () => {
-									await authClient.oauth2.link({
-										providerId: "github",
+									await authClient.linkSocial({
+										provider: "github",
 										callbackURL: "/admin/settings/connections",
 									});
 								}}
@@ -154,9 +137,7 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 								size="sm"
 								disabled={!bothConnected} // 🔒 Only allow disconnect if both linked
 								title={
-									bothConnected
-										? "Disconnect GitHub"
-										: "You must connect Doras first to disconnect GitHub"
+									bothConnected ? "Disconnect GitHub" : "You must connect Doras first to disconnect GitHub"
 								}
 								onClick={async () => {
 									await authClient.unlinkAccount({ providerId: "github" });

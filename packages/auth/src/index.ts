@@ -23,10 +23,9 @@ export const auth = betterAuth({
 	},
 	socialProviders: {
 		github: {
-			disableSignUp: true,
 			clientId: process.env.GITHUB_CLIENT_ID as string,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-			redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/oauth2/callback/github`,
+			redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/callback/github`,
 			mapProfileToUser: async (profile) => {
 				return {
 					id: String(profile.id),
