@@ -2,12 +2,48 @@ import type { schema } from "@repo/database";
 
 const API_URL = import.meta.env.VITE_EXTERNAL_API_URL;
 
+export interface CreateOrganizationData {
+	name: string;
+	slug: string;
+	description?: string;
+}
+
 export interface UpdateOrganizationData {
 	name: string;
 	slug: string;
 	logo?: string;
 	bannerImg?: string;
 	description?: string;
+}
+
+/**
+ * Calls the `/admin/organization/create` API to create a new organization.
+ *
+ * @param data - The organization data to create.
+ * @returns A promise resolving to the creation result.
+ */
+export async function createOrganizationAction(
+	data: CreateOrganizationData,
+): Promise<{
+	success: boolean;
+	data?: schema.organizationType;
+	error?: string;
+}> {
+	console.info("Creating organization", { data });
+	const result = await fetch(`${API_URL}/admin/organization/create`, {
+		method: "POST",
+		body: JSON.stringify(data),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (e) => await e.json());
+	if (!result.success) {
+		console.error("Failed to create organization", {
+			error: result.error,
+		});
+	}
+	return result;
 }
 
 /**

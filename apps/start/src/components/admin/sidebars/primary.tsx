@@ -15,12 +15,14 @@ import { cn } from "@repo/ui/lib/utils";
 import {
 	IconLayoutSidebar,
 	IconLayoutSidebarFilled,
+	IconPlus,
 	IconSettings,
 	IconShield,
 } from "@tabler/icons-react";
-import { Link, useLocation, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { useLayoutData } from "@/components/generic/Context";
+import CreateOrganizationDialog from "@/components/organization/CreateOrganizationDialog";
 import { heading, navigation } from "@/lib/routemap";
 import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 import OrgSection from "./primary-org";
@@ -112,6 +114,18 @@ export function PrimarySidebar() {
 								// <div key={org.id}></div>
 							])
 							.filter(Boolean)}
+						<SidebarMenuItem>
+							<CreateOrganizationDialog
+								trigger={
+									<SidebarMenuButton
+										tooltip="Create Organization"
+										icon={<IconPlus size={16} />}
+									>
+										<span>New Organization</span>
+									</SidebarMenuButton>
+								}
+							/>
+						</SidebarMenuItem>
 					</SidebarMenu>
 				</SidebarGroup>
 			</SidebarContent>

@@ -13,7 +13,7 @@ import {
 } from "@repo/ui/components/breadcrumb";
 import { Button } from "@repo/ui/components/button";
 import { ensureCdnUrl } from "@repo/util";
-import { IconUsers } from "@tabler/icons-react";
+import { IconSlash, IconUsers } from "@tabler/icons-react";
 import { Link, useMatch } from "@tanstack/react-router";
 
 export default function TaskNavigationInfo() {
@@ -63,7 +63,9 @@ export default function TaskNavigationInfo() {
 							</Link>
 						</BreadcrumbLink>
 					</BreadcrumbItem>
-					<BreadcrumbSeparator />
+					<BreadcrumbSeparator>
+						<IconSlash />
+					</BreadcrumbSeparator>
 					<BreadcrumbItem>
 						<BreadcrumbPage>#{task.shortId}</BreadcrumbPage>
 					</BreadcrumbItem>

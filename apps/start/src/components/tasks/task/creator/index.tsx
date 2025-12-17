@@ -32,6 +32,7 @@ import {
 	IconUserPlus,
 	IconUsers,
 } from "@tabler/icons-react";
+import { redirect } from "@tanstack/react-router";
 import type { NodeJSON } from "prosekit/core";
 import { useMemo, useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -187,6 +188,9 @@ export default function CreateIssueDialog({
 			setLabels([]);
 			setAssignees([]);
 			setTasks([...tasks, data.data]);
+			redirect({
+				href: `/admin/${organization.id}/tasks/${data.data.shortId}`,
+			});
 		}
 	};
 	const statusconfig =
@@ -199,7 +203,7 @@ export default function CreateIssueDialog({
 		<div className="flex items-center gap-3">
 			<Button
 				variant={"primary"}
-				className="w-fit text-xs p-1 h-auto rounded-lg"
+				className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
 				size={"sm"}
 				onClick={() => setOpen(true)}
 			>

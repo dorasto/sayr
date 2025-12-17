@@ -178,7 +178,9 @@ export default function OrgSection({
 					</SidebarMenuItem>
 					<SidebarMenuItem
 						className="cursor-pointer px-0"
-						isActive={pathname.includes(`/admin/${organization.id}/tasks`)}
+						isActive={pathname.includes(
+							`/admin/settings/org/${organization.id}`,
+						)}
 					>
 						<Link
 							to={`/admin/settings/org/$orgId`}
