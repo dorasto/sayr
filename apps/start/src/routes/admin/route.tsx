@@ -4,7 +4,6 @@ import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper } from "@/components/generic/wrapper";
 import { getUserOrganizations } from "@/lib/serverFunctions/getUserOrganizations";
-import { authMiddleware } from "@/middleware/auth";
 
 export const Route = createFileRoute("/admin")({
 	loader: async ({ context }) => {
@@ -18,9 +17,6 @@ export const Route = createFileRoute("/admin")({
 		});
 	},
 	component: AdminLayout,
-	server: {
-		middleware: [authMiddleware],
-	},
 });
 
 function AdminLayout() {
