@@ -1,14 +1,13 @@
-import { schema } from "@repo/database";
+import { db, getLabels, getOrganization, schema } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
+import { getAccess } from "@/getAccess";
 
 export const getAdminOrganization = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		const { orgId } = data;
-		const { db, getOrganization, getLabels } = await import("@repo/database");
-		const { getAccess } = await import("@/getAccess");
 		try {
 			const { account } = await getAccess();
 			if (!orgId) {

@@ -1,12 +1,12 @@
+import { getOrganization, getTasksByOrganizationId } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { getAccess } from "@/getAccess";
 
 export const getAdminOrganizationTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		const { orgId } = data;
-		const { getOrganization, getTasksByOrganizationId } = await import("@repo/database");
-		const { getAccess } = await import("@/getAccess");
 		try {
 			const { account } = await getAccess();
 			if (!orgId) {
