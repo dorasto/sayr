@@ -127,7 +127,7 @@ export default function OrganizationHomePage() {
 					</Tile>
 				</Link>
 				<Link
-					to={`/admin/settings/org/$orgId/team`}
+					to={`/admin/settings/org/$orgId/members`}
 					params={{ orgId: organization.id }}
 					className="col-span-3"
 				>

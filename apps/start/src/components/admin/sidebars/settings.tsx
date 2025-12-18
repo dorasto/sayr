@@ -74,8 +74,8 @@ export function SettingsSidebar() {
 			matchType: "includes",
 		},
 		{
-			title: "Team",
-			slug: "team",
+			title: "Members",
+			slug: "members",
 			icon: IconUsers,
 			activeIcon: IconUsers,
 			activeClass: "fill-white",

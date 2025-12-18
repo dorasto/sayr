@@ -5,7 +5,11 @@ import { SubWrapper } from "@/app/components/layout/wrapper";
 
 export default async function SettingsOrgPage() {
 	return (
-		<SubWrapper title="Labels" description="Create and manage labels to organize your tasks." style="compact">
+		<SubWrapper
+			title="Labels"
+			description="Create and manage labels to organize your tasks."
+			style="compact"
+		>
 			<div className="flex flex-col gap-3">
 				<SettingsOrganizationLabelsPage />
 			</div>

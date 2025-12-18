@@ -1,14 +1,18 @@
-import { SubWrapper } from "@/components/generic/wrapper";
-import SettingsOrganizationPageTeam from "@/components/pages/admin/settings/orgId/team";
 import { db } from "@repo/database";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { SubWrapper } from "@/components/generic/wrapper";
+import SettingsOrganizationPageTeam from "@/components/pages/admin/settings/orgId/members";
 
 const fetchInvites = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		const invites = await db.query.invite.findMany({
-			where: (invites, { eq, and }) => and(eq(invites.status, "pending"), eq(invites.organizationId, data.orgId)),
+			where: (invites, { eq, and }) =>
+				and(
+					eq(invites.status, "pending"),
+					eq(invites.organizationId, data.orgId),
+				),
 			with: {
 				user: {},
 			},
@@ -16,7 +20,7 @@ const fetchInvites = createServerFn({ method: "GET" })
 		return { invites };
 	});
 
-export const Route = createFileRoute("/admin/settings/org/$orgId/team/")({
+export const Route = createFileRoute("/admin/settings/org/$orgId/members/")({
 	loader: async ({ params }) => {
 		return await fetchInvites({
 			data: {
@@ -31,7 +35,7 @@ function RouteComponent() {
 	const { invites } = Route.useLoaderData();
 
 	return (
-		<SubWrapper title="Team" style="compact">
+		<SubWrapper title="Team members" style="compact">
 			<div className="flex flex-col gap-3">
 				<SettingsOrganizationPageTeam invites={invites} />
 			</div>
