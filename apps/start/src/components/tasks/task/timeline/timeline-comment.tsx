@@ -1,30 +1,49 @@
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@repo/ui/components/collapsible";
+import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@repo/ui/components/dialog";
+import {
+	Tile,
+	TileDescription,
+	TileHeader,
+	TileIcon,
+	TileTitle,
+} from "@repo/ui/components/doras-ui/tile";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
+import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Label } from "@repo/ui/components/label";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import {
+	IconArrowRight,
 	IconDots,
 	IconHistory,
 	IconMessageDots,
 	IconPencil,
+	IconProgress,
 } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { NodeJSON } from "prosekit/core";
 import { useEffect, useState } from "react";
-import { TaskEditCommentContent } from "../comment/edit";
+import { processUploadsAndDeletions } from "@/components/prosekit/upload";
+import { UpdateTaskCommentAction } from "@/lib/fetches/task";
+import { extractTextContent, useToastAction } from "@/lib/util";
+import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 
@@ -81,16 +100,20 @@ function CommentHistoryDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden bg-background text-foreground border border-border shadow-xl">
-				<DialogHeader>
-					<DialogTitle>Comment History</DialogTitle>
-					<DialogDescription>
-						Previous versions of this comment.
+			<DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden p-0 gap-0">
+				<DialogHeader className="p-3 border-b">
+					<DialogTitle asChild>
+						<Label variant={"heading"}>Comment History</Label>
+					</DialogTitle>
+					<DialogDescription asChild>
+						<Label variant={"description"}>
+							Previous versions of this comment.
+						</Label>
 					</DialogDescription>
 				</DialogHeader>
 
 				{/* Scrollable content area */}
-				<div className="flex-1 overflow-y-auto pr-1">
+				<div className="flex-1 overflow-y-auto p-3">
 					{loading && (
 						<p className="text-sm text-muted-foreground animate-pulse">
 							Loading…
@@ -99,8 +122,12 @@ function CommentHistoryDialog({
 
 					{error && <p className="text-sm text-destructive">Error: {error}</p>}
 
-					{!loading && !error && history.length === 0 && (
+					{!loading && !error && history.length === 0 ? (
 						<p className="text-sm text-muted-foreground">No history found.</p>
+					) : (
+						<p className="text-sm text-muted-foreground">
+							{history.length} edits
+						</p>
 					)}
 
 					{!loading &&
@@ -110,83 +137,54 @@ function CommentHistoryDialog({
 								(user) => user.id === entry.editedBy,
 							);
 							return (
-								<TimelineItemWrapper
+								<Collapsible
 									key={entry.id}
-									item={{
-										id: entry.id,
-										organizationId: entry.organizationId,
-										taskId: entry.taskId || "",
-										createdAt: entry.editedAt,
-										updatedAt: entry.editedAt,
-										eventType: "comment",
-										actor,
-										content: entry.content,
-										visibility,
-										toValue: "",
-										fromValue: "",
-										actorId: entry.editedBy,
-									}}
-									icon={IconMessageDots}
-									color="bg-accent text-primary-foreground"
-									availableUsers={availableUsers || []}
-									categories={categories || []}
-									tasks={tasks || []}
-								/>
+									className="data-[state=open]:bg-accent p-2 rounded-lg hover:bg-accent"
+								>
+									<CollapsibleTrigger asChild>
+										<div className="flex items-center gap-2 w-full data-[state=open]:[&_svg]:rotate-90">
+											<InlineLabel
+												text={actor?.name || ""}
+												textNode={
+													<InlineLabel
+														text={actor?.name || ""}
+														image={actor?.image}
+													/>
+												}
+												icon={
+													<IconArrowRight className="size-3 transition-all text-foreground" />
+												}
+											/>
+											<Label variant={"description"}> - 9 minutes ago</Label>
+										</div>
+									</CollapsibleTrigger>
+									<CollapsibleContent>
+										<TimelineItemWrapper
+											item={{
+												id: entry.id,
+												organizationId: entry.organizationId,
+												taskId: entry.taskId || "",
+												createdAt: entry.editedAt,
+												updatedAt: entry.editedAt,
+												eventType: "comment",
+												actor,
+												content: entry.content,
+												visibility,
+												toValue: "",
+												fromValue: "",
+												actorId: entry.editedBy,
+											}}
+											icon={IconMessageDots}
+											color="bg-accent text-primary-foreground"
+											availableUsers={availableUsers || []}
+											categories={categories || []}
+											tasks={tasks || []}
+										/>
+									</CollapsibleContent>
+								</Collapsible>
 							);
 						})}
 				</div>
-
-				<DialogFooter className="pt-4">
-					<Button variant="secondary" onClick={() => onOpenChange(false)}>
-						Close
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
-	);
-}
-
-// --------------------
-// CommentEditDialog
-// --------------------
-function CommentEditDialog({
-	item,
-	availableUsers,
-	categories,
-	tasks,
-	onFinish,
-	open,
-	onOpenChange,
-}: {
-	item: schema.taskCommentType;
-	availableUsers: schema.userType[];
-	categories: schema.categoryType[];
-	tasks: schema.TaskWithLabels[];
-	onFinish?: () => void;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-}) {
-	const task = tasks.find((t) => t.id === item.taskId);
-	if (!task) return null;
-	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-2xl">
-				<DialogHeader>
-					<DialogTitle>Edit Comment</DialogTitle>
-					<DialogDescription>Modify your comment below.</DialogDescription>
-				</DialogHeader>
-				<TaskEditCommentContent
-					task={task}
-					comment={item}
-					availableUsers={availableUsers}
-					categories={categories}
-					tasks={tasks}
-					onFinish={() => {
-						onOpenChange(false);
-						onFinish?.();
-					}}
-					onCancel={() => onOpenChange(false)}
-				/>
 			</DialogContent>
 		</Dialog>
 	);
@@ -196,62 +194,159 @@ function CommentEditDialog({
 // CommentActionsMenu
 // --------------------
 function CommentActionsMenu({
+	showHistory,
+	onEdit,
+	onViewHistory,
+}: {
+	showHistory: boolean;
+	onEdit: () => void;
+	onViewHistory: () => void;
+}) {
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button
+					variant="ghost"
+					size="icon"
+					className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
+				>
+					<IconDots size={16} />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end">
+				<DropdownMenuItem onSelect={onEdit}>
+					<IconPencil size={16} />
+					Edit
+				</DropdownMenuItem>
+				{showHistory ? (
+					<DropdownMenuItem onSelect={onViewHistory}>
+						<IconHistory size={16} />
+						See edits
+					</DropdownMenuItem>
+				) : (
+					<DropdownMenuItem disabled>
+						<IconHistory size={16} />
+						No edit history
+					</DropdownMenuItem>
+				)}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
+
+// --------------------
+// TimelineComment
+// --------------------
+export function TimelineComment({
 	item,
 	availableUsers,
 	categories,
 	tasks,
-	showHistory,
-	onEditFinish,
-}: {
-	item: schema.taskCommentType;
-	availableUsers: schema.userType[];
-	categories: schema.categoryType[];
-	tasks: schema.TaskWithLabels[];
-	showHistory: boolean;
-	onEditFinish?: () => void;
-}) {
-	const [editOpen, setEditOpen] = useState(false);
+}: TimelineItemProps) {
+	const queryClient = useQueryClient();
+	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { runWithToast, isFetching } = useToastAction();
+
+	const [isEditing, setIsEditing] = useState(false);
+	const [editedContent, setEditedContent] = useState<NodeJSON | undefined>(
+		item.content as NodeJSON | undefined,
+	);
 	const [historyOpen, setHistoryOpen] = useState(false);
+
+	const showHistory =
+		item.createdAt && item.updatedAt && item.createdAt !== item.updatedAt;
+
+	const oldCommentText = extractTextContent(item.content);
+	const newCommentText = extractTextContent(editedContent);
+	const canSave =
+		newCommentText.trim().length > 0 && oldCommentText !== newCommentText;
+
+	const task = tasks?.find((t) => t.id === item.taskId);
+
+	async function handleSave() {
+		if (!editedContent || !canSave || !task) {
+			headlessToast.error({
+				title: "Cannot update comment",
+				description:
+					"Please make sure there is content before updating this comment.",
+				id: "update-task-comment",
+			});
+			return;
+		}
+
+		const processed = await processUploadsAndDeletions(
+			item.content as NodeJSON,
+			editedContent,
+			item.visibility,
+			item.organizationId,
+			"update-task-comment",
+		);
+
+		const data = await runWithToast(
+			"update-task-comment",
+			{
+				loading: {
+					title: "Updating comment...",
+					description: "Saving your changes.",
+				},
+				success: {
+					title: "Comment updated",
+					description: "Your edits were saved successfully.",
+				},
+				error: {
+					title: "Couldn't update comment",
+					description:
+						"The comment appears locally but could not be updated on the server.",
+				},
+			},
+			() =>
+				UpdateTaskCommentAction(
+					item.organizationId,
+					task.id,
+					item.id,
+					processed,
+					item.visibility,
+					wsClientId,
+				),
+		);
+
+		if (data?.success) {
+			setIsEditing(false);
+			queryClient.invalidateQueries({
+				queryKey: ["timeline", "comments", item.taskId, item.organizationId],
+			});
+		}
+	}
+
+	function handleCancel() {
+		setEditedContent(item.content as NodeJSON | undefined);
+		setIsEditing(false);
+	}
 
 	return (
 		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
-					>
-						<IconDots size={16} />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					<DropdownMenuItem onSelect={() => setEditOpen(true)}>
-						<IconPencil size={16} />
-						Edit
-					</DropdownMenuItem>
-					{showHistory ? (
-						<DropdownMenuItem onSelect={() => setHistoryOpen(true)}>
-							<IconHistory size={16} />
-							See edits
-						</DropdownMenuItem>
-					) : (
-						<DropdownMenuItem disabled>
-							<IconHistory size={16} />
-							No edit history
-						</DropdownMenuItem>
-					)}
-				</DropdownMenuContent>
-			</DropdownMenu>
-
-			<CommentEditDialog
+			<TimelineItemWrapper
 				item={item}
-				availableUsers={availableUsers}
-				categories={categories}
-				tasks={tasks}
-				open={editOpen}
-				onOpenChange={setEditOpen}
-				onFinish={onEditFinish}
+				availableUsers={availableUsers || []}
+				categories={categories || []}
+				tasks={tasks || []}
+				icon={IconMessageDots}
+				color="bg-accent text-primary-foreground"
+				isEditing={isEditing}
+				onContentChange={setEditedContent}
+				onSave={handleSave}
+				onCancel={handleCancel}
+				isSaving={isFetching}
+				canSave={canSave}
+				actionButtons={
+					!isEditing ? (
+						<CommentActionsMenu
+							showHistory={!!showHistory}
+							onEdit={() => setIsEditing(true)}
+							onViewHistory={() => setHistoryOpen(true)}
+						/>
+					) : undefined
+				}
 			/>
 
 			{showHistory && (
@@ -268,53 +363,5 @@ function CommentActionsMenu({
 				/>
 			)}
 		</>
-	);
-}
-
-// --------------------
-// TimelineComment
-// --------------------
-export function TimelineComment({
-	item,
-	availableUsers,
-	categories,
-	tasks,
-}: TimelineItemProps) {
-	const queryClient = useQueryClient();
-	const showHistory =
-		item.createdAt && item.updatedAt && item.createdAt !== item.updatedAt;
-
-	return (
-		<TimelineItemWrapper
-			item={item}
-			availableUsers={availableUsers || []}
-			categories={categories || []}
-			tasks={tasks || []}
-			icon={IconMessageDots}
-			color="bg-accent text-primary-foreground"
-			actionButtons={
-				<CommentActionsMenu
-					item={{
-						...item,
-						createdBy: item.actorId,
-						updatedAt: item.createdAt,
-					}}
-					availableUsers={availableUsers || []}
-					categories={categories || []}
-					tasks={tasks || []}
-					showHistory={!!showHistory}
-					onEditFinish={() => {
-						queryClient.invalidateQueries({
-							queryKey: [
-								"timeline",
-								"comments",
-								item.taskId,
-								item.organizationId,
-							],
-						});
-					}}
-				/>
-			}
-		/>
 	);
 }

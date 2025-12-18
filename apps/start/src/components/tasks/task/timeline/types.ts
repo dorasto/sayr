@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import type { NodeJSON } from "prosekit/core";
 
 export type ConsolidatedTimelineItem = {
 	id: string;
@@ -17,6 +18,13 @@ export interface TimelineItemWrapperProps {
 	categories?: schema.categoryType[];
 	tasks?: schema.TaskWithLabels[];
 	actionButtons?: React.ReactNode;
+	// Inline editing props
+	isEditing?: boolean;
+	onContentChange?: (content: NodeJSON | undefined) => void;
+	onSave?: () => void;
+	onCancel?: () => void;
+	isSaving?: boolean;
+	canSave?: boolean;
 }
 
 export interface GlobalTimelineProps {

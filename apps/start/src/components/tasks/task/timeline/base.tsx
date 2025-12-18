@@ -4,6 +4,7 @@ import {
 	AvatarImage,
 } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import {
 	TimelineContent,
@@ -20,7 +21,8 @@ import {
 } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
-import { IconLock } from "@tabler/icons-react";
+import { IconCheck, IconLock, IconX } from "@tabler/icons-react";
+import type { NodeJSON } from "prosekit/core";
 import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
 import type { TimelineItemWrapperProps } from "./types";
@@ -34,6 +36,12 @@ export function TimelineItemWrapper({
 	categories,
 	tasks,
 	actionButtons,
+	isEditing,
+	onContentChange,
+	onSave,
+	onCancel,
+	isSaving,
+	canSave,
 }: TimelineItemWrapperProps) {
 	return (
 		<TimelineItem
@@ -116,13 +124,46 @@ export function TimelineItemWrapper({
 								</div>
 							)}
 						</div>
-						<Editor
-							readonly
-							defaultContent={item.content}
-							users={availableUsers}
-							categories={categories}
-							tasks={tasks}
-						/>
+						{isEditing ? (
+							<>
+								<Editor
+									defaultContent={item.content as NodeJSON}
+									users={availableUsers}
+									categories={categories}
+									tasks={tasks}
+									onChange={onContentChange}
+								/>
+								<div className="flex items-center gap-2 mt-2 justify-end">
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={onCancel}
+										disabled={isSaving}
+										className="text-muted-foreground hover:text-foreground"
+									>
+										<IconX size={16} />
+										Cancel
+									</Button>
+									<Button
+										variant="default"
+										size="sm"
+										onClick={onSave}
+										disabled={isSaving || !canSave}
+									>
+										<IconCheck size={16} />
+										{isSaving ? "Saving..." : "Save"}
+									</Button>
+								</div>
+							</>
+						) : (
+							<Editor
+								readonly
+								defaultContent={item.content}
+								users={availableUsers}
+								categories={categories}
+								tasks={tasks}
+							/>
+						)}
 					</div>
 				</TimelineContent>
 			) : null}
