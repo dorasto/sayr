@@ -145,13 +145,13 @@ export function TimelineItemWrapper({
 										Cancel
 									</Button>
 									<Button
-										variant="default"
+										variant="primary"
 										size="sm"
 										onClick={onSave}
 										disabled={isSaving || !canSave}
 									>
 										<IconCheck size={16} />
-										{isSaving ? "Saving..." : "Save"}
+										{isSaving ? "Saving..." : "Update comment"}
 									</Button>
 								</div>
 							</>
