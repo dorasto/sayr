@@ -20,6 +20,7 @@ export * from "./task.schema";
 export * from "./taskAssignee.schema";
 export * from "./taskComment.schema";
 export * from "./taskTimeline.schema";
+export * from "./taskCommentHistory.schema";
 export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>

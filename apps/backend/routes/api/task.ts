@@ -13,7 +13,7 @@ import {
 	schema,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -419,7 +419,6 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
-	const key = `${org_id}:${task_id}`;
 	await createComment(org_id, task_id, content, visibility, session?.userId);
 	const found = findClientByWsId(wsClientId);
 	const data = { type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"], data: { id: task_id } };
@@ -436,9 +435,92 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				broadcastIndividual(c.socket, data, org_id)
 		);
 	});
-	console.log("key:", key);
 	return c.json({ success: true, data: { id: task_id } });
 });
+
+// Edit a comment on a task
+apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
+	const { org_id, wsClientId, comment_id, content, visibility } = await c.req.json();
+	const session = c.get("session");
+
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const comment = await db.query.taskComment.findFirst({
+		where: (t) => eq(t.id, comment_id as string),
+	});
+
+	if (!comment) {
+		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
+	}
+
+	// Update comment and record the new state in history
+	await db.transaction(async (tx) => {
+		await tx
+			.update(schema.taskComment)
+			.set({
+				content,
+				visibility: visibility ?? comment.visibility,
+				updatedAt: new Date(),
+			})
+			.where(eq(schema.taskComment.id, comment_id));
+
+		await tx.insert(schema.taskCommentHistory).values({
+			organizationId: comment.organizationId,
+			taskId: comment.taskId,
+			commentId: comment.id,
+			editedBy: session?.userId,
+			content: content, // new content snapshot
+		});
+	});
+
+	const found = findClientByWsId(wsClientId);
+	const data = { type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"], data: { id: comment.taskId } };
+	broadcastToRoom(org_id, `task:${comment.taskId}`, data, found?.socket, false);
+	broadcastPublic(org_id, { ...data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) =>
+				c.wsClientId !== wsClientId &&
+				c.orgId !== org_id &&
+				!(c.channel === `task:${comment.taskId}` || c.channel === "tasks") &&
+				broadcastIndividual(c.socket, data, org_id)
+		);
+	});
+	return c.json({ success: true, data: { id: comment.taskId } });
+});
+
+apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
+	const query = await c.req.query();
+	const org_id = query.org_id;
+	const task_id = query.task_id;
+	const comment_id = query.comment_id;
+	const session = c.get("session");
+
+	if (!org_id || !task_id || !comment_id) {
+		return c.json({ success: false, error: "Missing params" }, 400);
+	}
+
+	// Basic org-level check
+	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	// Directly query history (faster: skip extra join with main comment table)
+	const history = await db
+		.select()
+		.from(schema.taskCommentHistory)
+		.where((t) => and(eq(t.organizationId, org_id), eq(t.taskId, task_id), eq(t.commentId, comment_id)))
+		.orderBy((t) => [desc(t.editedAt)]);
+
+	return c.json({ success: true, data: history });
+});
+
 // Get merged task activity timeline
 apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	const query = c.req.query();

@@ -20,26 +20,33 @@ export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
 	"category_change",
 ]);
 
-export const taskTimeline = table("task_timeline", {
-	id: v
-		.text("id")
-		.primaryKey()
-		.$defaultFn(() => randomUUID()),
-	taskId: v
-		.text("task_id")
-		.notNull()
-		.references(() => task.id, { onDelete: "cascade" }),
-	organizationId: v
-		.text("organization_id")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
-	actorId: v.text("actor_id").references(() => user.id),
-	eventType: timelineEventTypeEnum("event_type").notNull(),
-	fromValue: v.jsonb("from_value"),
-	toValue: v.jsonb("to_value"),
-	content: v.jsonb("content").$type<NodeJSON>(),
-	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
-});
+export const taskTimeline = table(
+	"task_timeline",
+	{
+		id: v
+			.text("id")
+			.primaryKey()
+			.$defaultFn(() => randomUUID()),
+		taskId: v
+			.text("task_id")
+			.notNull()
+			.references(() => task.id, { onDelete: "cascade" }),
+		organizationId: v
+			.text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		actorId: v.text("actor_id").references(() => user.id),
+		eventType: timelineEventTypeEnum("event_type").notNull(),
+		fromValue: v.jsonb("from_value"),
+		toValue: v.jsonb("to_value"),
+		content: v.jsonb("content").$type<NodeJSON>(),
+		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
+	},
+	(t) => [
+		v.index("idx_task_timeline_task").on(t.organizationId, t.taskId, t.createdAt),
+		v.index("idx_task_timeline_actor").on(t.organizationId, t.actorId),
+	]
+);
 
 export type taskTimelineType = typeof taskTimeline.$inferSelect;
 

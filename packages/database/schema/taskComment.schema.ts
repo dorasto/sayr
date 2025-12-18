@@ -8,26 +8,31 @@ import { task } from "./task.schema";
 import type { NodeJSON } from ".";
 export const taskCommentVisibilityEnum = v.pgEnum("task_comment_visibility", ["public", "internal"]);
 
-export const taskComment = table("task_comment", {
-	id: v
-		.text("id")
-		.primaryKey()
-		.$defaultFn(() => {
-			return randomUUID();
+export const taskComment = table(
+	"task_comment",
+	{
+		id: v
+			.text("id")
+			.primaryKey()
+			.$defaultFn(() => randomUUID()),
+		organizationId: v
+			.text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		taskId: v.text("task_id").references(() => task.id, {
+			onDelete: "cascade",
 		}),
-	organizationId: v
-		.text("organization_id")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
-	taskId: v.text("task_id").references(() => task.id, {
-		onDelete: "cascade",
-	}),
-	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
-	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
-	content: v.jsonb("content").$type<NodeJSON>(),
-	createdBy: v.text("created_by").references(() => user.id),
-	visibility: taskCommentVisibilityEnum("visibility").notNull().default("public"),
-});
+		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
+		updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
+		content: v.jsonb("content").$type<NodeJSON>(),
+		createdBy: v.text("created_by").references(() => user.id),
+		visibility: taskCommentVisibilityEnum("visibility").notNull().default("public"),
+	},
+	(t) => [
+		v.index("idx_task_comment_task").on(t.organizationId, t.taskId, t.createdAt),
+		v.index("idx_task_comment_creator").on(t.createdBy),
+	]
+);
 
 export type taskCommentType = typeof taskComment.$inferSelect;
 

@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import type { NodeJSON } from "../../schema";
+import { taskCommentHistory, type NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db, schema } from "..";
@@ -25,9 +25,7 @@ import { db, schema } from "..";
  * });
  * ```
  */
-export async function getTasksByOrganizationId(
-	orgId: string,
-): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByOrganizationId(orgId: string): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) => and(eq(t.organizationId, orgId)),
 		with: {
@@ -93,10 +91,7 @@ export async function getTasksByOrganizationId(
  * }
  * ```
  */
-export async function getTaskByShortId(
-	orgId: string,
-	shortId: number,
-): Promise<schema.TaskWithLabels | null> {
+export async function getTaskByShortId(orgId: string, shortId: number): Promise<schema.TaskWithLabels | null> {
 	const task = await db.query.task.findFirst({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId)),
 		with: {
@@ -199,7 +194,7 @@ export async function createTask(
 		priority?: schema.taskType["priority"];
 		category?: schema.taskType["category"];
 	},
-	createdBy?: string | null,
+	createdBy?: string | null
 ) {
 	// Get highest existing shortId for this project
 	const [max] = (await db
@@ -239,7 +234,7 @@ export async function addLogEventTask(
 	fromValue?: unknown,
 	toValue?: unknown,
 	actorId?: string,
-	content?: NodeJSON,
+	content?: NodeJSON
 ) {
 	return await db.insert(taskTimeline).values({
 		taskId: task_id,
@@ -257,15 +252,31 @@ export async function createComment(
 	task_id: string,
 	content: NodeJSON,
 	visibility: schema.taskCommentType["visibility"],
-	createdBy?: string,
+	createdBy?: string
 ) {
-	return await db.insert(taskComment).values({
-		organizationId: org_id,
-		taskId: task_id,
-		content: content,
-		visibility: visibility,
-		createdBy: createdBy,
-	});
+	const [newComment] = await db
+		.insert(taskComment)
+		.values({
+			organizationId: org_id,
+			taskId: task_id,
+			content,
+			visibility,
+			createdBy,
+		})
+		.returning();
+
+	// Record the initial version in history
+	if (newComment) {
+		await db.insert(taskCommentHistory).values({
+			organizationId: org_id,
+			taskId: task_id,
+			commentId: newComment.id,
+			editedBy: createdBy,
+			content: content,
+		});
+	}
+
+	return newComment;
 }
 
 /**
@@ -308,7 +319,7 @@ export async function createComment(
 export async function getTaskComments(
 	orgId: string,
 	taskId: string,
-	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {},
+	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {}
 ) {
 	// Step 1: Paginated comments
 	const comments = await db.query.taskComment.findMany({
@@ -344,11 +355,7 @@ export async function getTaskTimeline(orgId: string, taskId: string) {
 	return timeline;
 }
 
-export async function getMergedTaskActivity(
-	orgId: string,
-	taskId: string,
-	isPublic: boolean,
-) {
+export async function getMergedTaskActivity(orgId: string, taskId: string, isPublic: boolean) {
 	const commentConditions = [
 		eq(schema.taskComment.organizationId, orgId),
 		eq(schema.taskComment.taskId, taskId),
@@ -410,9 +417,7 @@ export async function getMergedTaskActivity(
  * });
  * ```
  */
-export async function getTasksByUserId(
-	userId: string,
-): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByUserId(userId: string): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) =>
 			sql`EXISTS (
