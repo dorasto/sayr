@@ -90,39 +90,49 @@ export function TimelineItemWrapper({
 					<div className="flex flex-col gap-1">
 						<div className="flex items-center gap-3">
 							<InlineLabel
+								className="ps-6"
+								avatarClassName="size-4!"
 								text={item.actor?.name || "Unknown"}
 								image={item.actor?.image || ""}
+								textNode={
+									<div className="flex items-center gap-3">
+										<Label
+											className="text-base text-foreground"
+											variant={"description"}
+										>
+											{item.actor?.name || "Unknown"}
+										</Label>
+										<Tooltip delayDuration={500}>
+											<TooltipTrigger asChild>
+												<Label variant={"description"}>
+													{" "}
+													{formatDateTimeFromNow(item.createdAt as Date)}
+												</Label>
+											</TooltipTrigger>
+											<TooltipContent side="top">
+												{formatDateTime(item.createdAt as Date)}
+											</TooltipContent>
+										</Tooltip>
+									</div>
+								}
 							/>
-							<Label
-								variant={"description"}
-								className="text-foreground items-center flex flex-wrap gap-2"
-							>
-								<Tooltip delayDuration={500}>
-									<TooltipTrigger asChild>
-										<span>
-											{" "}
-											{formatDateTimeFromNow(item.createdAt as Date)}
-										</span>
-									</TooltipTrigger>
-									<TooltipContent side="top">
-										{formatDateTime(item.createdAt as Date)}
-									</TooltipContent>
-								</Tooltip>
-							</Label>
-							{item.visibility === "internal" && (
-								<Badge
-									variant={"secondary"}
-									className="w-fit bg-transparent pointer-events-none rounded-lg gap-1 text-sm"
-								>
-									<IconLock className="size-4" />
-									Internal comment
-								</Badge>
-							)}
-							{actionButtons && (
-								<div className="flex items-center gap-2 ml-auto">
-									{actionButtons}
-								</div>
-							)}
+
+							<div className="flex items-center gap-1 ml-auto">
+								{item.visibility === "internal" && (
+									<Badge
+										variant={"secondary"}
+										className="w-fit bg-transparent pointer-events-none rounded-lg gap-1 text-sm "
+									>
+										<IconLock className="size-4" />
+										Internal comment
+									</Badge>
+								)}
+								{actionButtons && (
+									<div className="flex items-center gap-2 ml-auto">
+										{actionButtons}
+									</div>
+								)}
+							</div>
 						</div>
 						{isEditing ? (
 							<>
