@@ -1,0 +1,17 @@
+import { SubWrapper } from "@/components/generic/wrapper";
+import SettingsOrganizationLabelsPage from "@/components/pages/admin/settings/orgId/labels";
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/admin/settings/org/$orgId/labels/")({
+	component: RouteComponent,
+});
+
+function RouteComponent() {
+	return (
+		<SubWrapper title="Labels" description="Create and manage labels to organize your tasks." style="compact">
+			<div className="flex flex-col gap-3">
+				<SettingsOrganizationLabelsPage />
+			</div>
+		</SubWrapper>
+	);
+}
