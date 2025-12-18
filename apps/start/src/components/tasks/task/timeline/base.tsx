@@ -25,6 +25,7 @@ export function TimelineItemWrapper({
 	availableUsers,
 	categories,
 	tasks,
+	outerChildren,
 }: TimelineItemWrapperProps) {
 	return (
 		<TimelineItem
@@ -35,6 +36,7 @@ export function TimelineItemWrapper({
 			<TimelineHeader>
 				<TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
 				<TimelineTitle className="mt-0.5">
+					{outerChildren}
 					<Label variant={"description"} className="text-foreground items-center flex flex-wrap gap-2">
 						<span>{children}</span>
 						{!item.content && (

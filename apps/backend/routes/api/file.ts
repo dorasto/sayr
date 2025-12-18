@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { db } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
-import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
+import { ensureCdnUrl, extractPrivateIdFromUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
@@ -102,7 +102,11 @@ apiRouteFile.delete("/", async (c) => {
 		if (!url || typeof url !== "string") {
 			return c.json({ success: false, error: "No file URL provided" }, 400);
 		}
-		await removeObject(`files/${getFileNameFromUrl(url)}`);
+		const { hasPrivateId, privateId } = extractPrivateIdFromUrl(url);
+		const storagePath = hasPrivateId
+			? `files/${privateId}/${getFileNameFromUrl(url)}`
+			: `files/${getFileNameFromUrl(url)}`;
+		await removeObject(storagePath);
 		return c.json({
 			success: true,
 			message: "File deleted successfully",

@@ -16,6 +16,7 @@ export interface TimelineItemWrapperProps {
 	availableUsers?: schema.userType[];
 	categories?: schema.categoryType[];
 	tasks?: schema.TaskWithLabels[];
+	outerChildren?: React.ReactNode;
 }
 
 export interface GlobalTimelineProps {

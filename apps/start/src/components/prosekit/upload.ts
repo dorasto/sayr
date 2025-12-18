@@ -1,6 +1,6 @@
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import type { NodeJSON } from "prosekit/core";
-import { uploadFile } from "@/lib/fetches/file";
+import { deleteFile, uploadFile } from "@/lib/fetches/file";
 
 type CommentVisibility = "internal" | "public";
 
@@ -67,4 +67,66 @@ export default async function processUploads(
 	const updatedContent = await Promise.all(doc.content.map(async (node) => await processNode(node)));
 
 	return { ...doc, content: updatedContent };
+}
+
+/**
+ * Upload new media and detect removed uploads for cleanup.
+ */
+export async function processUploadsAndDeletions(
+	oldDoc: NodeJSON,
+	newDoc: NodeJSON,
+	visibility: CommentVisibility,
+	organizationId: string,
+	toastId: string
+): Promise<NodeJSON> {
+	// --- 1️⃣ Upload new files ---
+	const processedNewDoc = await processUploads(newDoc, visibility, organizationId, toastId);
+
+	// --- 2️⃣ Collect all media URLs before and after ---
+	const collectMediaUrls = (node: NodeJSON): string[] => {
+		let urls: string[] = [];
+		if (!node) return urls;
+
+		if ((node.type === "image" || node.type === "video") && typeof node.attrs?.src === "string") {
+			urls.push(node.attrs.src);
+		}
+
+		if (Array.isArray(node.content)) {
+			for (const child of node.content) {
+				urls = urls.concat(collectMediaUrls(child));
+			}
+		}
+
+		return urls;
+	};
+
+	const oldUrls = new Set(collectMediaUrls(oldDoc));
+	const newUrls = new Set(collectMediaUrls(processedNewDoc));
+
+	// --- 3️⃣ Find URLs that existed before but not now ---
+	const removedUrls: string[] = [];
+	for (const url of oldUrls) {
+		if (!newUrls.has(url)) removedUrls.push(url);
+	}
+
+	// --- 4️⃣ Delete removed URLs (best effort) ---
+	if (removedUrls.length > 0) {
+		headlessToast.info({
+			title: "Cleaning up removed files…",
+			description: `${removedUrls.length} file(s) will be deleted.`,
+			id: toastId || "comment-deletion-status",
+		});
+
+		await Promise.allSettled(
+			removedUrls.map(async (url) => {
+				try {
+					await deleteFile(url);
+				} catch (err) {
+					console.warn("Failed to delete file:", url, err);
+				}
+			})
+		);
+	}
+
+	return processedNewDoc;
 }

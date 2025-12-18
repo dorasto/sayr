@@ -1,4 +1,32 @@
 /**
+ * Extracts the private ID (orgKey) if present in a Sayr file URL.
+ */
+export function extractPrivateIdFromUrl(url?: string): {
+	hasPrivateId: boolean;
+	privateId: string | null;
+} {
+	if (!url) return { hasPrivateId: false, privateId: null };
+
+	try {
+		const parsed = new URL(url);
+		const parts = parsed.pathname.split("/").filter(Boolean);
+		const filesIndex = parts.indexOf("files");
+		if (filesIndex === -1) return { hasPrivateId: false, privateId: null };
+
+		const afterFiles = parts.slice(filesIndex + 1);
+
+		if (afterFiles.length > 1) {
+			const privateId = afterFiles[0];
+			if (privateId) return { hasPrivateId: true, privateId };
+		}
+
+		return { hasPrivateId: false, privateId: null };
+	} catch {
+		return { hasPrivateId: false, privateId: null };
+	}
+}
+
+/**
  * Extracts the file name (last path segment) from a given URL or path.
  *
  * @param url - A full URL or path string.

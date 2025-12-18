@@ -345,3 +345,27 @@ export async function CreateTaskCommentAction(
 		error?: string;
 	};
 }
+
+export async function UpdateTaskCommentAction(
+	orgId: string,
+	taskId: string,
+	commentId: string,
+	content: NodeJSON,
+	visibility: "internal" | "public",
+	wsClientId: string
+) {
+	const res = await fetch(`${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/edit-comment`, {
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify({
+			org_id: orgId,
+			task_id: taskId,
+			comment_id: commentId,
+			content,
+			visibility,
+			wsClientId,
+		}),
+	});
+	return res.json();
+}
