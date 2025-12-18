@@ -1,20 +1,32 @@
-import { useState, useEffect } from "react";
-import { IconMessageDots, IconPencil } from "@tabler/icons-react";
-import { TimelineItemWrapper } from "./base";
-import type { TimelineItemProps } from "./types";
+import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import {
 	Dialog,
-	DialogTrigger,
 	DialogContent,
-	DialogHeader,
-	DialogTitle,
 	DialogDescription,
 	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
 } from "@repo/ui/components/dialog";
-import type { schema } from "@repo/database";
-import { TaskEditCommentContent } from "../comment/edit";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import {
+	IconDots,
+	IconHistory,
+	IconMessageDots,
+	IconPencil,
+} from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { TaskEditCommentContent } from "../comment/edit";
+import { TimelineItemWrapper } from "./base";
+import type { TimelineItemProps } from "./types";
 
 // --------------------
 // CommentHistoryDialog
@@ -27,6 +39,8 @@ function CommentHistoryDialog({
 	tasks,
 	categories,
 	availableUsers,
+	open,
+	onOpenChange,
 }: {
 	orgId: string;
 	taskId: string;
@@ -35,8 +49,9 @@ function CommentHistoryDialog({
 	tasks?: schema.TaskWithLabels[];
 	availableUsers?: schema.userType[];
 	categories?: schema.categoryType[];
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 }) {
-	const [open, setOpen] = useState(false);
 	const [history, setHistory] = useState<schema.taskCommentHistoryType[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -65,22 +80,22 @@ function CommentHistoryDialog({
 	}, [open, orgId, taskId, commentId]);
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<Button variant="outline" size="sm">
-					View History
-				</Button>
-			</DialogTrigger>
-
+		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden bg-background text-foreground border border-border shadow-xl">
 				<DialogHeader>
 					<DialogTitle>Comment History</DialogTitle>
-					<DialogDescription>Previous versions of this comment.</DialogDescription>
+					<DialogDescription>
+						Previous versions of this comment.
+					</DialogDescription>
 				</DialogHeader>
 
 				{/* Scrollable content area */}
 				<div className="flex-1 overflow-y-auto pr-1">
-					{loading && <p className="text-sm text-muted-foreground animate-pulse">Loading…</p>}
+					{loading && (
+						<p className="text-sm text-muted-foreground animate-pulse">
+							Loading…
+						</p>
+					)}
 
 					{error && <p className="text-sm text-destructive">Error: {error}</p>}
 
@@ -91,7 +106,9 @@ function CommentHistoryDialog({
 					{!loading &&
 						!error &&
 						history.map((entry) => {
-							const actor = availableUsers?.find((user) => user.id === entry.editedBy);
+							const actor = availableUsers?.find(
+								(user) => user.id === entry.editedBy,
+							);
 							return (
 								<TimelineItemWrapper
 									key={entry.id}
@@ -120,7 +137,7 @@ function CommentHistoryDialog({
 				</div>
 
 				<DialogFooter className="pt-4">
-					<Button variant="secondary" onClick={() => setOpen(false)}>
+					<Button variant="secondary" onClick={() => onOpenChange(false)}>
 						Close
 					</Button>
 				</DialogFooter>
@@ -138,23 +155,21 @@ function CommentEditDialog({
 	categories,
 	tasks,
 	onFinish,
+	open,
+	onOpenChange,
 }: {
 	item: schema.taskCommentType;
 	availableUsers: schema.userType[];
 	categories: schema.categoryType[];
 	tasks: schema.TaskWithLabels[];
 	onFinish?: () => void;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 }) {
-	const [open, setOpen] = useState(false);
 	const task = tasks.find((t) => t.id === item.taskId);
 	if (!task) return null;
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<Button variant="outline" size="sm" className="ml-2">
-					<IconPencil size={16} className="mr-1" /> Edit
-				</Button>
-			</DialogTrigger>
+		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Edit Comment</DialogTitle>
@@ -167,10 +182,10 @@ function CommentEditDialog({
 					categories={categories}
 					tasks={tasks}
 					onFinish={() => {
-						setOpen(false);
+						onOpenChange(false);
 						onFinish?.();
 					}}
-					onCancel={() => setOpen(false)}
+					onCancel={() => onOpenChange(false)}
 				/>
 			</DialogContent>
 		</Dialog>
@@ -178,11 +193,96 @@ function CommentEditDialog({
 }
 
 // --------------------
+// CommentActionsMenu
+// --------------------
+function CommentActionsMenu({
+	item,
+	availableUsers,
+	categories,
+	tasks,
+	showHistory,
+	onEditFinish,
+}: {
+	item: schema.taskCommentType;
+	availableUsers: schema.userType[];
+	categories: schema.categoryType[];
+	tasks: schema.TaskWithLabels[];
+	showHistory: boolean;
+	onEditFinish?: () => void;
+}) {
+	const [editOpen, setEditOpen] = useState(false);
+	const [historyOpen, setHistoryOpen] = useState(false);
+
+	return (
+		<>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
+					>
+						<IconDots size={16} />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end">
+					<DropdownMenuItem onSelect={() => setEditOpen(true)}>
+						<IconPencil size={16} />
+						Edit
+					</DropdownMenuItem>
+					{showHistory ? (
+						<DropdownMenuItem onSelect={() => setHistoryOpen(true)}>
+							<IconHistory size={16} />
+							See edits
+						</DropdownMenuItem>
+					) : (
+						<DropdownMenuItem disabled>
+							<IconHistory size={16} />
+							No edit history
+						</DropdownMenuItem>
+					)}
+				</DropdownMenuContent>
+			</DropdownMenu>
+
+			<CommentEditDialog
+				item={item}
+				availableUsers={availableUsers}
+				categories={categories}
+				tasks={tasks}
+				open={editOpen}
+				onOpenChange={setEditOpen}
+				onFinish={onEditFinish}
+			/>
+
+			{showHistory && (
+				<CommentHistoryDialog
+					commentId={item.id}
+					orgId={item.organizationId}
+					taskId={item.taskId ?? ""}
+					availableUsers={availableUsers}
+					categories={categories}
+					tasks={tasks}
+					visibility={item.visibility}
+					open={historyOpen}
+					onOpenChange={setHistoryOpen}
+				/>
+			)}
+		</>
+	);
+}
+
+// --------------------
 // TimelineComment
 // --------------------
-export function TimelineComment({ item, availableUsers, categories, tasks }: TimelineItemProps) {
+export function TimelineComment({
+	item,
+	availableUsers,
+	categories,
+	tasks,
+}: TimelineItemProps) {
 	const queryClient = useQueryClient();
-	const showHistory = item.createdAt && item.updatedAt && item.createdAt !== item.updatedAt;
+	const showHistory =
+		item.createdAt && item.updatedAt && item.createdAt !== item.updatedAt;
 
 	return (
 		<TimelineItemWrapper
@@ -192,33 +292,28 @@ export function TimelineComment({ item, availableUsers, categories, tasks }: Tim
 			tasks={tasks || []}
 			icon={IconMessageDots}
 			color="bg-accent text-primary-foreground"
-			outerChildren={
-				<div className="flex flex-col gap-2">
-					<div className="flex gap-2">
-						{showHistory && (
-							<CommentHistoryDialog
-								commentId={item.id}
-								orgId={item.organizationId}
-								taskId={item.taskId}
-								availableUsers={availableUsers}
-								categories={categories}
-								tasks={tasks}
-								visibility={item.visibility}
-							/>
-						)}
-						<CommentEditDialog
-							item={{ ...item, createdBy: item.actorId, updatedAt: item.createdAt }}
-							availableUsers={availableUsers || []}
-							categories={categories || []}
-							tasks={tasks || []}
-							onFinish={() => {
-								queryClient.invalidateQueries({
-									queryKey: ["timeline", "comments", item.taskId, item.organizationId],
-								});
-							}}
-						/>
-					</div>
-				</div>
+			actionButtons={
+				<CommentActionsMenu
+					item={{
+						...item,
+						createdBy: item.actorId,
+						updatedAt: item.createdAt,
+					}}
+					availableUsers={availableUsers || []}
+					categories={categories || []}
+					tasks={tasks || []}
+					showHistory={!!showHistory}
+					onEditFinish={() => {
+						queryClient.invalidateQueries({
+							queryKey: [
+								"timeline",
+								"comments",
+								item.taskId,
+								item.organizationId,
+							],
+						});
+					}}
+				/>
 			}
 		/>
 	);
