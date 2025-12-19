@@ -730,5 +730,80 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 	});
 });
 
+//Teams
+apiRouteAdminOrganization.post("/create-team", async (c) => {
+	const session = c.get("session");
+	const { org_id, name, description, permissions } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "teams");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
+	}
+	const [team] = await db
+		.insert(schema.team)
+		.values({
+			id: crypto.randomUUID(),
+			organizationId: org_id,
+			name,
+			description,
+			permissions: {
+				administrator: permissions?.administrator || false,
+				members: permissions?.members || false,
+				teams: permissions?.teams || false,
+				categories: permissions?.categories || false,
+				labels: permissions?.labels || false,
+			},
+		})
+		.returning();
+	if (!team) {
+		return c.json({ success: false, error: "Failed to create team." }, 500);
+	}
+	return c.json({
+		success: true,
+		data: team,
+	});
+});
+apiRouteAdminOrganization.patch("add-team-member", async (c) => {
+	const session = c.get("session");
+	const { org_id, team_id, member_id } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "teams");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
+	}
+	const [memberTeam] = await db
+		.insert(schema.memberTeam)
+		.values({
+			id: crypto.randomUUID(),
+			teamId: team_id,
+			memberId: member_id,
+		})
+		.returning();
+	if (!memberTeam) {
+		return c.json({ success: false, error: "Failed to add member to team." }, 500);
+	}
+	return c.json({
+		success: true,
+		data: memberTeam,
+	});
+});
+apiRouteAdminOrganization.delete("remove-team-member", async (c) => {
+	const session = c.get("session");
+	const { org_id, team_id, member_id } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "teams");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
+	}
+	const [removed] = await db
+		.delete(schema.memberTeam)
+		.where(and(eq(schema.memberTeam.teamId, team_id), eq(schema.memberTeam.memberId, member_id)))
+		.returning();
+	if (!removed) {
+		return c.json({ success: false, error: "Failed to remove member from team." }, 500);
+	}
+	return c.json({
+		success: true,
+		data: removed,
+	});
+});
+
 // Task routes
 apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);
