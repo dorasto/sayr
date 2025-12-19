@@ -10,21 +10,10 @@ import {
 	AdaptiveDialogTitle,
 	AdaptiveDialogTrigger,
 } from "@repo/ui/components/adaptive-dialog";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import {
-	Tile,
-	TileAction,
-	TileDescription,
-	TileHeader,
-	TileIcon,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -54,17 +43,11 @@ import { useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
-import {
-	deleteOrganizationMemberAction,
-	inviteOrganizationMembersAction,
-} from "@/lib/fetches/organization";
+import { deleteOrganizationMemberAction, inviteOrganizationMembersAction } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
 
-export default function SettingsOrganizationPageTeams({
-	invites,
-}: {
-	invites: schema.inviteType[];
-}) {
+export default function SettingsOrganizationPageTeams({ teams }: { teams: schema.OrganizationTeamWithMembersType[] }) {
+	console.log("🚀 ~ SettingsOrganizationPageTeams ~ teams:", teams);
 	const { ws, account } = useLayoutData();
 	const { organization, setOrganization } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
@@ -81,7 +64,7 @@ export default function SettingsOrganizationPageTeams({
 					<Badge
 						variant={"outline"}
 						className={cn(
-							"bg-destructive/10 border border-destructive text-destructive-foreground gap-1 text-xs",
+							"bg-destructive/10 border border-destructive text-destructive-foreground gap-1 text-xs"
 						)}
 					>
 						<IconCrown className="size-5" />
@@ -92,9 +75,7 @@ export default function SettingsOrganizationPageTeams({
 				return (
 					<Badge
 						variant={"outline"}
-						className={cn(
-							"bg-primary/10 border border-primary text-primary-foreground gap-1 text-xs",
-						)}
+						className={cn("bg-primary/10 border border-primary text-primary-foreground gap-1 text-xs")}
 					>
 						<IconShield className="size-5" />
 						Admin
@@ -105,9 +86,7 @@ export default function SettingsOrganizationPageTeams({
 				return (
 					<Badge
 						variant={"outline"}
-						className={cn(
-							"bg-accent/10 border border-accent text-accent-foreground gap-1 text-xs",
-						)}
+						className={cn("bg-accent/10 border border-accent text-accent-foreground gap-1 text-xs")}
 					>
 						<IconUser className="size-5" />
 						User
@@ -141,7 +120,7 @@ export default function SettingsOrganizationPageTeams({
 	}
 	const mergeMembersAndInvites = [
 		...organization.members,
-		...invites.map((invite) => ({
+		...[].map((invite) => ({
 			id: invite.id,
 			userId: invite.userId,
 			//@ts-expect-error invite.user can be null
@@ -161,10 +140,7 @@ export default function SettingsOrganizationPageTeams({
 				to="/admin/settings/org/$orgId/teams/owner" //eventually map
 				params={{ orgId: organization.id }}
 			>
-				<Tile
-					className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-					variant={"transparent"}
-				>
+				<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
 					<TileHeader className="md:w-full">
 						<TileIcon className="bg-transparent">
 							<Avatar className="h-10 w-10 rounded-full">
@@ -216,9 +192,7 @@ export default function SettingsOrganizationPageTeams({
 								<TileDescription>{member.user.email}</TileDescription>
 							</TileHeader>
 							<TileAction className="">
-								<TileDescription asChild>
-									{roleBadge(member.role)}
-								</TileDescription>
+								<TileDescription asChild>{roleBadge(member.role)}</TileDescription>
 								{/* @ts-expect-error status can be string */}
 								{member.status && (
 									<span className="mx-2 text-muted-foreground">
@@ -235,11 +209,7 @@ export default function SettingsOrganizationPageTeams({
 					<DropdownMenuContent align="end">
 						<DropdownMenuLabel className="flex items-center gap-1">
 							<Avatar className="h-4 w-4 rounded-md">
-								<AvatarImage
-									src={member.user.image || ""}
-									alt={member.user.name}
-									className="rounded-none"
-								/>
+								<AvatarImage src={member.user.image || ""} alt={member.user.name} className="rounded-none" />
 								<AvatarFallback className="rounded-md uppercase text-xs">
 									<IconUsers className="h-6 w-6" />
 								</AvatarFallback>
@@ -257,13 +227,10 @@ export default function SettingsOrganizationPageTeams({
 									return;
 								}
 								const confirmed = window.confirm(
-									"You are about to remove this member from the organization. Are you sure?",
+									"You are about to remove this member from the organization. Are you sure?"
 								);
 								if (!confirmed) return;
-								await deleteOrganizationMemberAction(
-									organization.id,
-									member.user.id,
-								);
+								await deleteOrganizationMemberAction(organization.id, member.user.id);
 								window.location.reload();
 							}}
 						>
@@ -281,10 +248,7 @@ export default function SettingsOrganizationPageTeams({
 			<Separator />
 			<AdaptiveDialog open={open} onOpenChange={setOpen}>
 				<AdaptiveDialogTrigger asChild>
-					<Tile
-						className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-						variant={"transparent"}
-					>
+					<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
 						<TileHeader className="md:w-full">
 							<TileIcon className="bg-transparent">
 								<Avatar className="h-10 w-10 rounded-md">
@@ -304,9 +268,7 @@ export default function SettingsOrganizationPageTeams({
 						<AdaptiveDialogTitle asChild>
 							<Label variant={"heading"}>Invite</Label>
 						</AdaptiveDialogTitle>
-						<AdaptiveDialogDescription>
-							Bring more users to your organization
-						</AdaptiveDialogDescription>
+						<AdaptiveDialogDescription>Bring more users to your organization</AdaptiveDialogDescription>
 					</AdaptiveDialogHeader>
 					<AdaptiveDialogBody>
 						<div className="flex flex-wrap gap-2 p-2 rounded-lg bg-accent">
@@ -322,18 +284,15 @@ export default function SettingsOrganizationPageTeams({
 							<Input
 								variant={"ghost"}
 								className="flex-1 bg-transparent focus-visible:bg-transparent outline-none min-w-[120px] text-sm h-6"
-								placeholder={
-									emails.length === 0 ? "Type email and press Enter..." : ""
-								}
+								placeholder={emails.length === 0 ? "Type email and press Enter..." : ""}
 								value={inputValue}
 								onChange={(e) => setInputValue(e.target.value)}
 								onKeyDown={handleKeyDown}
 							/>
 						</div>
 						<Label variant={"description"} className="leading-tight text-sm">
-							Enter multiple email addresses. All invited users will receive an
-							invitation email to join the organization, and granted the user
-							role which can be changed later.
+							Enter multiple email addresses. All invited users will receive an invitation email to join the
+							organization, and granted the user role which can be changed later.
 						</Label>
 					</AdaptiveDialogBody>
 					<AdaptiveDialogFooter>
@@ -349,17 +308,14 @@ export default function SettingsOrganizationPageTeams({
 											},
 											success: {
 												title: "Members invited",
-												description:
-													"The members have been successfully invited.",
+												description: "The members have been successfully invited.",
 											},
 											error: {
 												title: "Failed to invite members",
-												description:
-													"An error occurred while inviting the members.",
+												description: "An error occurred while inviting the members.",
 											},
 										},
-										() =>
-											inviteOrganizationMembersAction(organization.id, emails),
+										() => inviteOrganizationMembersAction(organization.id, emails)
 									);
 									if (data?.success) {
 										setEmails([]);

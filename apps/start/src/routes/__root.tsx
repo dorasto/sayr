@@ -15,6 +15,7 @@ import { DefaultCatchBoundary } from "@/components/Error";
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
 	account?: schema.userType;
+	permissions?: NonNullable<(typeof schema.team.$inferSelect)["permissions"]>;
 }>()({
 	head: () => ({
 		meta: [
