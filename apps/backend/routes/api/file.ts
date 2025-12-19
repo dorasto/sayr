@@ -1,11 +1,10 @@
 import { createHash, randomBytes } from "node:crypto";
-import { db } from "@repo/database";
+import { db, hasOrgPermission } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, extractPrivateIdFromUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { checkMembershipRole } from "@/util";
 import mime from "mime-types";
 export const apiRouteFile = new Hono<AppEnv>();
 
@@ -36,7 +35,7 @@ apiRouteFile.put("/", async (c) => {
 
 		const objectName = `${fullHash}.${ext}`;
 		if (orgId !== "public" && typeof orgId === "string") {
-			const isAuthorized = await checkMembershipRole(session?.userId, orgId);
+			const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "members");
 			if (!isAuthorized) {
 				// Upload to storage
 				const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
@@ -96,7 +95,7 @@ apiRouteFile.delete("/", async (c) => {
 	try {
 		const session = c.get("session");
 		if (!session?.userId) {
-			return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+			return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 		}
 		const { url } = await c.req.json();
 		if (!url || typeof url !== "string") {

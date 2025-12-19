@@ -9,6 +9,7 @@ import {
 	getOrganizationMembers,
 	getTaskById,
 	getTaskTimeline,
+	hasOrgPermission,
 	removeLabelFromTask,
 	schema,
 } from "@repo/database";
@@ -17,7 +18,6 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
-import { checkMembershipRole } from "@/util";
 // import { enqueueJob } from "@/queue";
 import {
 	broadcast,
@@ -34,9 +34,10 @@ export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 apiRouteAdminProjectTask.post("/create", async (c) => {
 	const { org_id, wsClientId, title, description, status, priority, labels, assignees, category } = await c.req.json();
 	const session = c.get("session");
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
+
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const task = await createTask(
 		org_id,
@@ -138,7 +139,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const { org_id, wsClientId, task_id, ...updates } = await c.req.json();
 	const session = c.get("session");
 	const systemAccountCheck = session?.userId === process.env.SYSTEM_ACCOUNT_ID;
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (systemAccountCheck) {
 		console.log("✅ System account authorized to update task", {
 			task_id,
@@ -150,7 +151,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		});
 	}
 	if (!isAuthorized && !systemAccountCheck) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	// 🔎 Check task existence
 	const existingTask = await db.query.task.findFirst({
@@ -241,9 +242,9 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	const { org_id, wsClientId, task_id, labels } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	// const key = `${org_id}:${project_id}:${task_id}`;
 
@@ -323,9 +324,9 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	const { org_id, wsClientId, task_id, assignees } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	// const key = `${org_id}:${project_id}:${task_id}`;
 	try {
@@ -415,9 +416,9 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const { org_id, wsClientId, task_id, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	await createComment(org_id, task_id, content, visibility, session?.userId);
 	const found = findClientByWsId(wsClientId);
@@ -443,9 +444,9 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	const { org_id, wsClientId, comment_id, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 
 	const comment = await db.query.taskComment.findFirst({
@@ -506,9 +507,9 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 	}
 
 	// Basic org-level check
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 
 	// Directly query history (faster: skip extra join with main comment table)
@@ -546,7 +547,7 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	const session = c.get("session");
 
 	// --- Authorization ---
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id || "");
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id || "", "members");
 	if (!isAuthorized) {
 		// --- Fetch task & comments ---
 		const timeline = await getMergedTaskActivity(org_id || "", task_id || "", true);
@@ -602,7 +603,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 		}
 
 		const session = c.get("session");
-		const isPublic = !session || !(await checkMembershipRole(session?.userId, orgId || ""));
+		const isPublic = !session || !(await hasOrgPermission(session?.userId, orgId || "", "members"));
 
 		// --- Pagination setup
 		const page = Math.max(Number(q.page) || 1, 1);

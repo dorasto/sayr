@@ -1,18 +1,12 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { db, getLabels, getOrganizationMembers, schema } from "@repo/database";
+import { db, getLabels, getOrganizationMembers, hasOrgPermission, schema } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { checkMembershipRole } from "@/util";
-import {
-	broadcast,
-	broadcastByUserId,
-	broadcastPublic,
-	findClientByWsId,
-} from "../ws";
+import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
@@ -21,7 +15,7 @@ export const apiRouteAdminOrganization = new Hono<AppEnv>();
 apiRouteAdminOrganization.post("/create", async (c) => {
 	const session = c.get("session");
 	if (!session?.userId) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 
 	const { name, slug, description } = await c.req.json();
@@ -36,10 +30,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 	});
 
 	if (existingOrg) {
-		return c.json(
-			{ success: false, error: "Organization slug is already taken" },
-			400,
-		);
+		return c.json({ success: false, error: "Organization slug is already taken" }, 400);
 	}
 
 	const orgId = randomUUID();
@@ -56,10 +47,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 		.returning();
 
 	if (!newOrg) {
-		return c.json(
-			{ success: false, error: "Failed to create organization" },
-			500,
-		);
+		return c.json({ success: false, error: "Failed to create organization" }, 500);
 	}
 
 	// Add the creator as an owner member
@@ -69,19 +57,13 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 			id: randomUUID(),
 			userId: session.userId,
 			organizationId: orgId,
-			role: "owner",
 		})
 		.returning();
 
 	if (!membership) {
 		// Rollback organization creation if membership fails
-		await db
-			.delete(schema.organization)
-			.where(eq(schema.organization.id, orgId));
-		return c.json(
-			{ success: false, error: "Failed to create organization membership" },
-			500,
-		);
+		await db.delete(schema.organization).where(eq(schema.organization.id, orgId));
+		return c.json({ success: false, error: "Failed to create organization membership" }, 500);
 	}
 
 	return c.json({
@@ -98,19 +80,16 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 apiRouteAdminOrganization.post("/update", async (c) => {
 	const { org_id, wsClientId, data } = await c.req.json();
 	const session = c.get("session");
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ error: "UNAUTHORIZED" }, 401);
+		return c.json({ error: "You don’t have permission to do that." }, 401);
 	}
 	const [result] = await db
 		.update(schema.organization)
 		.set({
 			...data,
-			logo:
-				data.logo && `organization/${org_id}/${getFileNameFromUrl(data.logo)}`,
-			bannerImg:
-				data.bannerImg &&
-				`organization/${org_id}/${getFileNameFromUrl(data.bannerImg)}`,
+			logo: data.logo && `organization/${org_id}/${getFileNameFromUrl(data.logo)}`,
+			bannerImg: data.bannerImg && `organization/${org_id}/${getFileNameFromUrl(data.bannerImg)}`,
 			updatedAt: new Date(),
 		})
 		.where(eq(schema.organization.id, org_id))
@@ -152,9 +131,9 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		const orgId = c.req.param("orgId");
 		const oldLogo = c.req.header("X-old-file");
 
-		const isAuthorized = await checkMembershipRole(session?.userId, orgId);
+		const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "members");
 		if (!isAuthorized) {
-			return c.json({ error: "UNAUTHORIZED" }, 401);
+			return c.json({ error: "You don’t have permission to do that." }, 401);
 		}
 
 		// 2. Parse multipart body
@@ -170,20 +149,13 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
 		const objectName = `/logo.${ext}`;
 		if (oldLogo) {
-			await removeObject(
-				`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`,
-			);
+			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`);
 		}
 		// 3. Upload to storage
-		const imagelogo = await uploadObject(
-			objectName,
-			buffer,
-			`organization/${orgId}`,
-			{
-				"Content-Type": file.type || "application/octet-stream",
-				originalName: objectName,
-			},
-		);
+		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
+			"Content-Type": file.type || "application/octet-stream",
+			originalName: objectName,
+		});
 
 		// 4. Build result payload
 		return c.json({
@@ -206,9 +178,9 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		const orgId = c.req.param("orgId");
 		const oldBanner = c.req.header("X-old-file");
 
-		const isAuthorized = await checkMembershipRole(session?.userId, orgId);
+		const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "members");
 		if (!isAuthorized) {
-			return c.json({ error: "UNAUTHORIZED" }, 401);
+			return c.json({ error: "You don’t have permission to do that." }, 401);
 		}
 
 		// 2. Parse multipart body
@@ -224,20 +196,13 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
 		const objectName = `banner.${ext}`;
 		if (oldBanner) {
-			await removeObject(
-				`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`,
-			);
+			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`);
 		}
 		// 3. Upload to storage
-		const imagebanner = await uploadObject(
-			objectName,
-			buffer,
-			`organization/${orgId}`,
-			{
-				"Content-Type": file.type || "application/octet-stream",
-				originalName: objectName,
-			},
-		);
+		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
+			"Content-Type": file.type || "application/octet-stream",
+			originalName: objectName,
+		});
 
 		// 4. Build result payload
 		return c.json({
@@ -258,9 +223,10 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 apiRouteAdminOrganization.post("/create-label", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, color } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "labels");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		//fix this wording for dont have the permission
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [created] = await db
 		.insert(schema.label)
@@ -294,9 +260,9 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id, name, color } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "labels");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [edit] = await db
 		.update(schema.label)
@@ -304,9 +270,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 			name,
 			color: color ?? "hsla(0, 0%, 0%, 1)",
 		})
-		.where(
-			and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)),
-		)
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)))
 		.returning();
 	if (!edit) {
 		return c.json({ success: false, error: "Failed to edit label." }, 500);
@@ -332,19 +296,13 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "labels");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [removed] = await db
 		.delete(schema.label)
-		.where(
-			and(
-				eq(schema.label.id, id),
-				eq(schema.label.organizationId, org_id),
-				eq(schema.label.id, id),
-			),
-		)
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id), eq(schema.label.id, id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove label." }, 500);
@@ -372,9 +330,9 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 apiRouteAdminOrganization.post("/create-category", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, name, color, icon } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "categories");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [created] = await db
 		.insert(schema.category)
@@ -411,9 +369,9 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id, name, color, icon } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "categories");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [edit] = await db
 		.update(schema.category)
@@ -422,12 +380,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 			color: color ?? "hsla(0, 0%, 0%, 1)",
 			icon,
 		})
-		.where(
-			and(
-				eq(schema.category.id, id),
-				eq(schema.category.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id)))
 		.returning();
 	if (!edit) {
 		return c.json({ success: false, error: "Failed to edit category." }, 500);
@@ -455,19 +408,13 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "categories");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [removed] = await db
 		.delete(schema.category)
-		.where(
-			and(
-				eq(schema.category.id, id),
-				eq(schema.category.organizationId, org_id),
-				eq(schema.category.id, id),
-			),
-		)
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id), eq(schema.category.id, id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove category." }, 500);
@@ -496,11 +443,10 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 // Create saved view with name and filter params
 apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const session = c.get("session");
-	const { org_id, wsClientId, name, value, logo, slug, viewConfig } =
-		await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const { org_id, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [view] = await db
 		.insert(schema.savedView)
@@ -540,11 +486,10 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 // Update saved view
 apiRouteAdminOrganization.patch("/update-view", async (c) => {
 	const session = c.get("session");
-	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } =
-		await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [view] = await db
 		.update(schema.savedView)
@@ -556,12 +501,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 			viewConfig: viewConfig,
 			updatedAt: new Date(),
 		})
-		.where(
-			and(
-				eq(schema.savedView.id, id),
-				eq(schema.savedView.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
 		.returning();
 	if (!view) {
 		return c.json({ success: false, error: "Failed to update view." }, 500);
@@ -590,18 +530,13 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 	const session = c.get("session");
 	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [removed] = await db
 		.delete(schema.savedView)
-		.where(
-			and(
-				eq(schema.savedView.id, id),
-				eq(schema.savedView.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove view." }, 500);
@@ -627,18 +562,17 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 });
 apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 	const session = c.get("session");
-	const { org_id, repo_id, repo_name, installation_id, category_id } =
-		await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id);
+	const { org_id, repo_id, repo_name, installation_id, category_id } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "administrator");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const found = await db.query.githubRepository.findFirst({
 		where: and(
 			eq(schema.githubRepository.installationId, installation_id),
 			eq(schema.githubRepository.repoId, repo_id),
 			eq(schema.githubRepository.organizationId, org_id),
-			eq(schema.githubRepository.categoryId, category_id),
+			eq(schema.githubRepository.categoryId, category_id)
 		),
 	});
 	if (found) {
@@ -663,15 +597,12 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 
 apiRouteAdminOrganization.post("/member", async (c) => {
 	const session = c.get("session");
-	const { org_id, emails }: { org_id: string; emails: string[] } =
-		await c.req.json();
+	const { org_id, emails }: { org_id: string; emails: string[] } = await c.req.json();
 
 	// --- Permissions ---
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id, [
-		"owner",
-	]);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "administrator");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 
 	const invites = [];
@@ -687,10 +618,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 			// Already exists as member?
 			const existingMember = user
 				? await db.query.member.findFirst({
-						where: and(
-							eq(schema.member.organizationId, org_id),
-							eq(schema.member.userId, user.id),
-						),
+						where: and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user.id)),
 					})
 				: null;
 
@@ -698,10 +626,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 			// Already invited?
 			const existingInvite = await db.query.invite.findFirst({
-				where: and(
-					eq(schema.invite.organizationId, org_id),
-					eq(schema.invite.email, email),
-				),
+				where: and(eq(schema.invite.organizationId, org_id), eq(schema.invite.email, email)),
 			});
 
 			if (existingInvite) continue;
@@ -741,20 +666,13 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 apiRouteAdminOrganization.delete("/member", async (c) => {
 	const session = c.get("session");
 	const { org_id, user_id } = await c.req.json();
-	const isAuthorized = await checkMembershipRole(session?.userId, org_id, [
-		"owner",
-	]);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "administrator");
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const [removed] = await db
 		.delete(schema.member)
-		.where(
-			and(
-				eq(schema.member.organizationId, org_id),
-				eq(schema.member.userId, user_id),
-			),
-		)
+		.where(and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user_id)))
 		.returning();
 	if (!removed) {
 		return c.json({ success: false, error: "Failed to remove member." }, 500);
@@ -773,9 +691,9 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 	const orgId = c.req.param("orgId");
 	const session = c.get("session");
-	const isAuthorized = await checkMembershipRole(session?.userId, orgId);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "administrator");
 	if (!isAuthorized) {
-		return c.json({ error: "UNAUTHORIZED" }, 401);
+		return c.json({ error: "You don’t have permission to do that." }, 401);
 	}
 
 	// Step 1: Fetch installation record
@@ -793,18 +711,13 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 	const githubConnectionsReq = await db.query.githubRepository.findMany({
 		where: and(
 			eq(schema.githubRepository.organizationId, orgId),
-			eq(
-				schema.githubRepository.installationId,
-				githubInfo?.installationId ?? -1,
-			),
+			eq(schema.githubRepository.installationId, githubInfo?.installationId ?? -1)
 		),
 	});
 
 	const githubConnections = githubConnectionsReq.map((conn) => ({
 		...conn,
-		repoName:
-			githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name ||
-			"Unknown repo",
+		repoName: githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name || "Unknown repo",
 		avatarUrl: githubInfo?.account?.avatar_url,
 	}));
 
