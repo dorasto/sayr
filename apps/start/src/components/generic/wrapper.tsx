@@ -19,13 +19,19 @@ export function Wrapper({ children, className }: Props) {
 	return (
 		<div className="h-full w-full max-h-[calc(100dvh-var(--header-height))]!">
 			<div className="flex flex-1 h-full w-full transition-all pb-2 pr-2">
-				{isSettingsPage ? <SettingsSidebar /> : isStaffPage ? <StaffSidebar /> : <PrimarySidebar />}
+				{isSettingsPage ? (
+					<SettingsSidebar />
+				) : isStaffPage ? (
+					<StaffSidebar />
+				) : (
+					<PrimarySidebar />
+				)}
 
 				<div
 					className={cn(
 						"h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout",
 						isTaskPage && "pt-0 pr-0",
-						className
+						className,
 					)}
 				>
 					{children}
@@ -74,7 +80,11 @@ export function SubWrapper({
 						</Button>
 					</Link>
 				) : (
-					<Button variant={"ghost"} className="w-fit text-xs p-1 h-auto invisible" size={"sm"}>
+					<Button
+						variant={"ghost"}
+						className="w-fit text-xs p-1 h-auto invisible"
+						size={"sm"}
+					>
 						<IconArrowLeft className="size-3!" />
 						<span className="hidden lg:block">Back</span>
 					</Button>
@@ -82,22 +92,30 @@ export function SubWrapper({
 			</div>
 			<div
 				className={cn(
-					"flex flex-col gap-9",
-					style === "compact" && "max-w-prose mx-auto p-3 md:p-6 md:pt-0",
-					className
+					"flex flex-col gap-9 md:p-6 md:pt-0",
+					style === "compact" && "max-w-prose mx-auto p-3 md:pt-0",
+					className,
 				)}
 			>
 				{title && (
 					<div className="flex flex-col">
 						{icon ? (
 							<div className="flex gap-2">
-								<div className="bg-accent p-1 rounded-lg [&_svg]:size-10! h-fit">{icon}</div>
+								<div className="bg-accent p-1 rounded-lg [&_svg]:size-10! h-fit">
+									{icon}
+								</div>
 								<div className="flex flex-col">
-									<Label variant={"heading"} className="text-2xl text-foreground">
+									<Label
+										variant={"heading"}
+										className="text-2xl text-foreground"
+									>
 										{title}
 									</Label>
 									{description && (
-										<Label variant={"subheading"} className="text-muted-foreground">
+										<Label
+											variant={"subheading"}
+											className="text-muted-foreground"
+										>
 											{description}
 										</Label>
 									)}

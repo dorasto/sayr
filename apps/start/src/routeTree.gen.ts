@@ -32,11 +32,13 @@ import { Route as AdminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/ad
 import { Route as AdminSettingsOrgOrgIdIndexRouteImport } from './routes/admin/settings/org/$orgId/index'
 import { Route as AdminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/index'
 import { Route as AdminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/admin/settings/org/$orgId/views/index'
+import { Route as AdminSettingsOrgOrgIdTeamsIndexRouteImport } from './routes/admin/settings/org/$orgId/teams/index'
 import { Route as AdminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/admin/settings/org/$orgId/members/index'
 import { Route as AdminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/admin/settings/org/$orgId/labels/index'
 import { Route as AdminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/admin/settings/org/$orgId/connections/index'
 import { Route as AdminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/admin/settings/org/$orgId/categories/index'
 import { Route as AdminSettingsOrgOrgIdViewsViewIdIndexRouteImport } from './routes/admin/settings/org/$orgId/views/$viewId/index'
+import { Route as AdminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/admin/settings/org/$orgId/teams/$teamId/index'
 import { Route as AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport } from './routes/admin/settings/org/$orgId/connections/$connectionId/index'
 
 const ProsekitTestRoute = ProsekitTestRouteImport.update({
@@ -161,6 +163,12 @@ const AdminSettingsOrgOrgIdViewsIndexRoute =
     path: '/views/',
     getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
   } as any)
+const AdminSettingsOrgOrgIdTeamsIndexRoute =
+  AdminSettingsOrgOrgIdTeamsIndexRouteImport.update({
+    id: '/teams/',
+    path: '/teams/',
+    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+  } as any)
 const AdminSettingsOrgOrgIdMembersIndexRoute =
   AdminSettingsOrgOrgIdMembersIndexRouteImport.update({
     id: '/members/',
@@ -189,6 +197,12 @@ const AdminSettingsOrgOrgIdViewsViewIdIndexRoute =
   AdminSettingsOrgOrgIdViewsViewIdIndexRouteImport.update({
     id: '/views/$viewId/',
     path: '/views/$viewId/',
+    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute =
+  AdminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport.update({
+    id: '/teams/$teamId/',
+    path: '/teams/$teamId/',
     getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
   } as any)
 const AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute =
@@ -225,8 +239,10 @@ export interface FileRoutesByFullPath {
   '/admin/settings/org/$orgId/connections': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
   '/admin/settings/org/$orgId/labels': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
   '/admin/settings/org/$orgId/members': typeof AdminSettingsOrgOrgIdMembersIndexRoute
+  '/admin/settings/org/$orgId/teams': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
   '/admin/settings/org/$orgId/views': typeof AdminSettingsOrgOrgIdViewsIndexRoute
   '/admin/settings/org/$orgId/connections/$connectionId': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  '/admin/settings/org/$orgId/teams/$teamId': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
   '/admin/settings/org/$orgId/views/$viewId': typeof AdminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -248,8 +264,10 @@ export interface FileRoutesByTo {
   '/admin/settings/org/$orgId/connections': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
   '/admin/settings/org/$orgId/labels': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
   '/admin/settings/org/$orgId/members': typeof AdminSettingsOrgOrgIdMembersIndexRoute
+  '/admin/settings/org/$orgId/teams': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
   '/admin/settings/org/$orgId/views': typeof AdminSettingsOrgOrgIdViewsIndexRoute
   '/admin/settings/org/$orgId/connections/$connectionId': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  '/admin/settings/org/$orgId/teams/$teamId': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
   '/admin/settings/org/$orgId/views/$viewId': typeof AdminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesById {
@@ -280,8 +298,10 @@ export interface FileRoutesById {
   '/admin/settings/org/$orgId/connections/': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
   '/admin/settings/org/$orgId/labels/': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
   '/admin/settings/org/$orgId/members/': typeof AdminSettingsOrgOrgIdMembersIndexRoute
+  '/admin/settings/org/$orgId/teams/': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
   '/admin/settings/org/$orgId/views/': typeof AdminSettingsOrgOrgIdViewsIndexRoute
   '/admin/settings/org/$orgId/connections/$connectionId/': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  '/admin/settings/org/$orgId/teams/$teamId/': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
   '/admin/settings/org/$orgId/views/$viewId/': typeof AdminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -313,8 +333,10 @@ export interface FileRouteTypes {
     | '/admin/settings/org/$orgId/connections'
     | '/admin/settings/org/$orgId/labels'
     | '/admin/settings/org/$orgId/members'
+    | '/admin/settings/org/$orgId/teams'
     | '/admin/settings/org/$orgId/views'
     | '/admin/settings/org/$orgId/connections/$connectionId'
+    | '/admin/settings/org/$orgId/teams/$teamId'
     | '/admin/settings/org/$orgId/views/$viewId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -336,8 +358,10 @@ export interface FileRouteTypes {
     | '/admin/settings/org/$orgId/connections'
     | '/admin/settings/org/$orgId/labels'
     | '/admin/settings/org/$orgId/members'
+    | '/admin/settings/org/$orgId/teams'
     | '/admin/settings/org/$orgId/views'
     | '/admin/settings/org/$orgId/connections/$connectionId'
+    | '/admin/settings/org/$orgId/teams/$teamId'
     | '/admin/settings/org/$orgId/views/$viewId'
   id:
     | '__root__'
@@ -367,8 +391,10 @@ export interface FileRouteTypes {
     | '/admin/settings/org/$orgId/connections/'
     | '/admin/settings/org/$orgId/labels/'
     | '/admin/settings/org/$orgId/members/'
+    | '/admin/settings/org/$orgId/teams/'
     | '/admin/settings/org/$orgId/views/'
     | '/admin/settings/org/$orgId/connections/$connectionId/'
+    | '/admin/settings/org/$orgId/teams/$teamId/'
     | '/admin/settings/org/$orgId/views/$viewId/'
   fileRoutesById: FileRoutesById
 }
@@ -545,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsOrgOrgIdViewsIndexRouteImport
       parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
     }
+    '/admin/settings/org/$orgId/teams/': {
+      id: '/admin/settings/org/$orgId/teams/'
+      path: '/teams'
+      fullPath: '/admin/settings/org/$orgId/teams'
+      preLoaderRoute: typeof AdminSettingsOrgOrgIdTeamsIndexRouteImport
+      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+    }
     '/admin/settings/org/$orgId/members/': {
       id: '/admin/settings/org/$orgId/members/'
       path: '/members'
@@ -578,6 +611,13 @@ declare module '@tanstack/react-router' {
       path: '/views/$viewId'
       fullPath: '/admin/settings/org/$orgId/views/$viewId'
       preLoaderRoute: typeof AdminSettingsOrgOrgIdViewsViewIdIndexRouteImport
+      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+    }
+    '/admin/settings/org/$orgId/teams/$teamId/': {
+      id: '/admin/settings/org/$orgId/teams/$teamId/'
+      path: '/teams/$teamId'
+      fullPath: '/admin/settings/org/$orgId/teams/$teamId'
+      preLoaderRoute: typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport
       parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
     }
     '/admin/settings/org/$orgId/connections/$connectionId/': {
@@ -664,8 +704,10 @@ interface AdminSettingsOrgOrgIdRouteRouteChildren {
   AdminSettingsOrgOrgIdConnectionsIndexRoute: typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
   AdminSettingsOrgOrgIdLabelsIndexRoute: typeof AdminSettingsOrgOrgIdLabelsIndexRoute
   AdminSettingsOrgOrgIdMembersIndexRoute: typeof AdminSettingsOrgOrgIdMembersIndexRoute
+  AdminSettingsOrgOrgIdTeamsIndexRoute: typeof AdminSettingsOrgOrgIdTeamsIndexRoute
   AdminSettingsOrgOrgIdViewsIndexRoute: typeof AdminSettingsOrgOrgIdViewsIndexRoute
   AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute: typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute: typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
   AdminSettingsOrgOrgIdViewsViewIdIndexRoute: typeof AdminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 
@@ -680,9 +722,12 @@ const AdminSettingsOrgOrgIdRouteRouteChildren: AdminSettingsOrgOrgIdRouteRouteCh
       AdminSettingsOrgOrgIdLabelsIndexRoute,
     AdminSettingsOrgOrgIdMembersIndexRoute:
       AdminSettingsOrgOrgIdMembersIndexRoute,
+    AdminSettingsOrgOrgIdTeamsIndexRoute: AdminSettingsOrgOrgIdTeamsIndexRoute,
     AdminSettingsOrgOrgIdViewsIndexRoute: AdminSettingsOrgOrgIdViewsIndexRoute,
     AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute:
       AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute,
+    AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute:
+      AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute,
     AdminSettingsOrgOrgIdViewsViewIdIndexRoute:
       AdminSettingsOrgOrgIdViewsViewIdIndexRoute,
   }
