@@ -1,18 +1,6 @@
 import { Button } from "@repo/ui/components/button";
-import {
-	Tabs,
-	TabsList,
-	TabsPanel,
-	TabsTab,
-} from "@repo/ui/components/cossui/tabs";
-import {
-	Tile,
-	TileAction,
-	TileDescription,
-	TileHeader,
-	TileIcon,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@repo/ui/components/cossui/tabs";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -21,32 +9,24 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupButton,
-	InputGroupInput,
-} from "@repo/ui/components/input-group";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import { Label } from "@repo/ui/components/label";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@repo/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { Separator } from "@repo/ui/components/separator";
 import { Switch } from "@repo/ui/components/switch";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
-import {
-	IconCheck,
-	IconCircleFilled,
-	IconProgress,
-	IconSearch,
-} from "@tabler/icons-react";
+import { IconCheck, IconCircleFilled, IconProgress, IconSearch } from "@tabler/icons-react";
 import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { cn } from "@/lib/utils";
+import { type schema } from "@repo/database";
 
-export default function SettingsOrganizationPageTeamSettings() {
+export default function SettingsOrganizationPageTeamSettings({
+	team,
+}: {
+	team: schema.OrganizationTeamWithMembersType;
+}) {
+	console.log("🚀 ~ SettingsOrganizationPageTeamSettings ~ team:", team);
 	return (
 		<Tabs defaultValue="settings" className={"max-w-prose w-full min-w-full"}>
 			<div className="w-full min-w-full border-b">
@@ -111,9 +91,8 @@ export default function SettingsOrganizationPageTeamSettings() {
 						<TileHeader className="w-full">
 							<TileTitle>Administrator</TileTitle>
 							<TileDescription>
-								Overrides organization-wide settings, granting full access to
-								all aspects of the organization, excluding billing. Any member
-								of this team will become an organization admin.
+								Overrides organization-wide settings, granting full access to all aspects of the organization,
+								excluding billing. Any member of this team will become an organization admin.
 							</TileDescription>
 						</TileHeader>
 						<TileAction>
@@ -122,45 +101,31 @@ export default function SettingsOrganizationPageTeamSettings() {
 					</Tile>
 
 					<Separator />
-					<Tile
-						className="md:w-full items-start has-data-[state=checked]:bg-primary/5"
-						variant={"transparent"}
-					>
+					<Tile className="md:w-full items-start has-data-[state=checked]:bg-primary/5" variant={"transparent"}>
 						<TileHeader className="w-full">
 							<TileTitle>Members</TileTitle>
-							<TileDescription>
-								Can invite, remove, and manage members of the organization.
-							</TileDescription>
+							<TileDescription>Can invite, remove, and manage members of the organization.</TileDescription>
 						</TileHeader>
 						<TileAction>
 							<Switch />
 						</TileAction>
 					</Tile>
 					<Separator />
-					<Tile
-						className="md:w-full items-start has-data-[state=checked]:bg-primary/5"
-						variant={"transparent"}
-					>
+					<Tile className="md:w-full items-start has-data-[state=checked]:bg-primary/5" variant={"transparent"}>
 						<TileHeader className="w-full">
 							<TileTitle>Teams</TileTitle>
-							<TileDescription>
-								Can create, edit, and delete teams within the organization.
-							</TileDescription>
+							<TileDescription>Can create, edit, and delete teams within the organization.</TileDescription>
 						</TileHeader>
 						<TileAction>
 							<Switch />
 						</TileAction>
 					</Tile>
 					<Separator />
-					<Tile
-						className="md:w-full items-start has-data-[state=checked]:bg-primary/5"
-						variant={"transparent"}
-					>
+					<Tile className="md:w-full items-start has-data-[state=checked]:bg-primary/5" variant={"transparent"}>
 						<TileHeader className="w-full">
 							<TileTitle>Categories</TileTitle>
 							<TileDescription>
-								Allows creating, editing, and deleting project categories within
-								the organization.
+								Allows creating, editing, and deleting project categories within the organization.
 							</TileDescription>
 						</TileHeader>
 						<TileAction>
@@ -168,30 +133,21 @@ export default function SettingsOrganizationPageTeamSettings() {
 						</TileAction>
 					</Tile>
 					<Separator />
-					<Tile
-						className="md:w-full items-start has-data-[state=checked]:bg-primary/5"
-						variant={"transparent"}
-					>
+					<Tile className="md:w-full items-start has-data-[state=checked]:bg-primary/5" variant={"transparent"}>
 						<TileHeader className="w-full">
 							<TileTitle>Labels</TileTitle>
-							<TileDescription>
-								Allows creating, editing, and deleting labels.
-							</TileDescription>
+							<TileDescription>Allows creating, editing, and deleting labels.</TileDescription>
 						</TileHeader>
 						<TileAction>
 							<Switch />
 						</TileAction>
 					</Tile>
 					<Separator />
-					<Tile
-						className="md:w-full items-start has-data-[state=checked]:bg-primary/5"
-						variant={"transparent"}
-					>
+					<Tile className="md:w-full items-start has-data-[state=checked]:bg-primary/5" variant={"transparent"}>
 						<TileHeader className="w-full">
 							<TileTitle>Categories</TileTitle>
 							<TileDescription>
-								Allows creating, editing, and deleting project categories within
-								the organization.
+								Allows creating, editing, and deleting project categories within the organization.
 							</TileDescription>
 						</TileHeader>
 						<TileAction>
