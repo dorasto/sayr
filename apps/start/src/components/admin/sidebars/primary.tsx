@@ -12,13 +12,7 @@ import {
 } from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
-import {
-	IconLayoutSidebar,
-	IconLayoutSidebarFilled,
-	IconPlus,
-	IconSettings,
-	IconShield,
-} from "@tabler/icons-react";
+import { IconLayoutSidebar, IconLayoutSidebarFilled, IconPlus, IconSettings, IconShield } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { useLayoutData } from "@/components/generic/Context";
@@ -32,8 +26,7 @@ export function PrimarySidebar() {
 	const isMobile = useIsMobile();
 
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
-	const pathname =
-		rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
+	const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 	const { account, organizations } = useLayoutData();
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 	const isSidebarOpen = sidebar?.open ?? true;
@@ -49,16 +42,12 @@ export function PrimarySidebar() {
 					<SidebarMenu key={section.title}>
 						{section.items.map((item) => {
 							const isActive = pathname === item.url;
-							const IconComponent =
-								isActive && item.activeIcon ? item.activeIcon : item.icon;
+							const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
 
 							return (
 								<SidebarMenuItem key={item.title} isActive={isActive}>
 									<Link className="w-full" to={item.url}>
-										<SidebarMenuButton
-											tooltip={item.title}
-											icon={<IconComponent size={16} />}
-										>
+										<SidebarMenuButton tooltip={item.title} icon={<IconComponent size={16} />}>
 											<span>{item.title}</span>
 										</SidebarMenuButton>
 									</Link>
@@ -71,22 +60,16 @@ export function PrimarySidebar() {
 			<SidebarContent>
 				{navigation.map((section) => (
 					<SidebarGroup key={section.title}>
-						{section.title === "Overview" ? null : (
-							<SidebarGroupLabel>{section.title}</SidebarGroupLabel>
-						)}
+						{section.title === "Overview" ? null : <SidebarGroupLabel>{section.title}</SidebarGroupLabel>}
 						<SidebarMenu>
 							{section.items.map((item) => {
 								const isActive = pathname === item.url;
-								const IconComponent =
-									isActive && item.activeIcon ? item.activeIcon : item.icon;
+								const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
 
 								return (
 									<SidebarMenuItem key={item.title} isActive={isActive}>
 										<Link to={item.url} className="w-full">
-											<SidebarMenuButton
-												icon={<IconComponent size={16} />}
-												tooltip={item.title}
-											>
+											<SidebarMenuButton icon={<IconComponent size={16} />} tooltip={item.title}>
 												<span>{item.title}</span>
 											</SidebarMenuButton>
 										</Link>
@@ -97,30 +80,19 @@ export function PrimarySidebar() {
 					</SidebarGroup>
 				))}
 				<SidebarGroup>
-					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>
-						Organizations
-					</SidebarGroupLabel>
+					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>Organizations</SidebarGroupLabel>
 
-					<SidebarMenu
-						className={cn("org-sidebar-menu", isSidebarOpen && "gap-2")}
-					>
+					<SidebarMenu className={cn("org-sidebar-menu", isSidebarOpen && "gap-2")}>
 						{organizations
 							.flatMap((org) => [
-								<OrgSection
-									closeMobileSidebar={closeMobileSidebar}
-									key={org.id}
-									organization={org}
-								/>,
+								<OrgSection closeMobileSidebar={closeMobileSidebar} key={org.id} organization={org} />,
 								// <div key={org.id}></div>
 							])
 							.filter(Boolean)}
 						<SidebarMenuItem>
 							<CreateOrganizationDialog
 								trigger={
-									<SidebarMenuButton
-										tooltip="Create Organization"
-										icon={<IconPlus size={16} />}
-									>
+									<SidebarMenuButton tooltip="Create Organization" icon={<IconPlus size={16} />}>
 										<span>New Organization</span>
 									</SidebarMenuButton>
 								}
@@ -135,13 +107,7 @@ export function PrimarySidebar() {
 						<SidebarMenuButton
 							tooltip={isSidebarOpen ? "Collapse" : "Expand"}
 							onClick={() => sidebarActions.toggleSidebar(sidebarId)}
-							icon={
-								isSidebarOpen ? (
-									<IconLayoutSidebarFilled />
-								) : (
-									<IconLayoutSidebar />
-								)
-							}
+							icon={isSidebarOpen ? <IconLayoutSidebarFilled /> : <IconLayoutSidebar />}
 						>
 							{" "}
 							{isSidebarOpen ? "Collapse" : "Expand"}
@@ -149,11 +115,8 @@ export function PrimarySidebar() {
 					</SidebarMenuItem>
 					{account.role === "admin" && (
 						<SidebarMenuItem className="">
-							<Link to={"/admin/"} className="w-full">
-								<SidebarMenuButton
-									icon={<IconShield />}
-									tooltip="Admin console"
-								>
+							<Link to={"/admin/console"} className="w-full">
+								<SidebarMenuButton icon={<IconShield />} tooltip="Admin console">
 									Admin console
 								</SidebarMenuButton>
 							</Link>
