@@ -37,6 +37,10 @@ export const team = table(
 				labels: false,
 			}),
 		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
+		updatedAt: v
+			.timestamp("updated_at")
+			.notNull()
+			.$defaultFn(() => new Date()),
 	},
 	(t) => [v.index("idx_team_org_name").on(t.organizationId, t.name)]
 );

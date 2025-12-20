@@ -22,9 +22,7 @@ export interface UpdateOrganizationData {
  * @param data - The organization data to create.
  * @returns A promise resolving to the creation result.
  */
-export async function createOrganizationAction(
-	data: CreateOrganizationData,
-): Promise<{
+export async function createOrganizationAction(data: CreateOrganizationData): Promise<{
 	success: boolean;
 	data?: schema.organizationType;
 	error?: string;
@@ -57,7 +55,7 @@ export async function createOrganizationAction(
 export async function updateOrganizationAction(
 	organizationId: string,
 	data: UpdateOrganizationData,
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.organizationType;
@@ -95,7 +93,7 @@ export async function updateOrganizationAction(
 export async function uploadOrganizationLogo(
 	organizationId: string,
 	file: File,
-	old: string | undefined | null,
+	old: string | undefined | null
 ): Promise<{
 	success: boolean;
 	image: string;
@@ -105,17 +103,14 @@ export async function uploadOrganizationLogo(
 	const formData = new FormData();
 	formData.append("file", file);
 
-	const res = await fetch(
-		`${API_URL}/admin/organization/${organizationId}/logo`,
-		{
-			method: "PUT",
-			body: formData,
-			credentials: "include",
-			headers: {
-				"X-old-file": old || "",
-			},
+	const res = await fetch(`${API_URL}/admin/organization/${organizationId}/logo`, {
+		method: "PUT",
+		body: formData,
+		credentials: "include",
+		headers: {
+			"X-old-file": old || "",
 		},
-	);
+	});
 
 	if (!res.ok) {
 		throw new Error("Logo upload failed");
@@ -134,7 +129,7 @@ export async function uploadOrganizationLogo(
 export async function uploadOrganizationBanner(
 	organizationId: string,
 	file: File,
-	old: string | undefined | null,
+	old: string | undefined | null
 ): Promise<{
 	success: boolean;
 	image: string;
@@ -144,17 +139,14 @@ export async function uploadOrganizationBanner(
 	const formData = new FormData();
 	formData.append("file", file);
 
-	const res = await fetch(
-		`${API_URL}/admin/organization/${organizationId}/banner`,
-		{
-			method: "PUT",
-			body: formData,
-			credentials: "include",
-			headers: {
-				"X-old-file": old || "",
-			},
+	const res = await fetch(`${API_URL}/admin/organization/${organizationId}/banner`, {
+		method: "PUT",
+		body: formData,
+		credentials: "include",
+		headers: {
+			"X-old-file": old || "",
 		},
-	);
+	});
 
 	if (!res.ok) {
 		throw new Error("Banner upload failed");
@@ -171,7 +163,7 @@ export async function uploadOrganizationBanner(
  */
 export async function inviteAction(
 	invite: schema.inviteType,
-	type: "accept" | "deny",
+	type: "accept" | "deny"
 ): Promise<{
 	success: boolean;
 	error?: string;
@@ -210,7 +202,7 @@ export async function inviteAction(
  */
 export async function inviteOrganizationMembersAction(
 	organizationId: string,
-	emails: string[],
+	emails: string[]
 ): Promise<{
 	success: boolean;
 	data?: schema.inviteType[];
@@ -262,8 +254,8 @@ export async function inviteOrganizationMembersAction(
  */
 export async function deleteOrganizationMemberAction(
 	organizationId: string,
-	userId: string,
-): Promise<{ success: boolean; data: schema.memberType; error?: string }> {
+	userId: string
+): Promise<{ success: boolean; data: schema.OrganizationMemberType; error?: string }> {
 	console.info("Deleting organization member", { organizationId, userId });
 	const result = await fetch(`${API_URL}/admin/organization/member`, {
 		method: "DELETE",
@@ -298,7 +290,7 @@ export async function createLabelAction(
 		name: string;
 		color: string;
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -339,7 +331,7 @@ export async function editLabelAction(
 		name: string;
 		color: string;
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -379,7 +371,7 @@ export async function deleteLabelAction(
 	data: {
 		id: string;
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -421,7 +413,7 @@ export async function createSavedViewAction(
 		value?: string;
 		viewConfig: schema.savedViewType["viewConfig"];
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -467,7 +459,7 @@ export async function updateSavedViewAction(
 		value?: string;
 		viewConfig?: schema.savedViewType["viewConfig"];
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -509,7 +501,7 @@ export async function deleteSavedViewAction(
 	data: {
 		id: string;
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -549,7 +541,7 @@ export async function createCategoryAction(
 		color: string;
 		icon: string;
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -592,7 +584,7 @@ export async function editCategoryAction(
 		color: string;
 		icon: string;
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -633,7 +625,7 @@ export async function deleteCategoryAction(
 	data: {
 		id: string;
 	},
-	wsClientId: string,
+	wsClientId: string
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -672,7 +664,7 @@ export async function createGithubSyncConnectionAction(
 		repoId: number;
 		repoName: string;
 		categoryId: string;
-	},
+	}
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -682,17 +674,14 @@ export async function createGithubSyncConnectionAction(
 		category_id: data.categoryId,
 	};
 
-	const result = await fetch(
-		`${API_URL}/admin/organization/connections/github/sync-repo`,
-		{
-			method: "POST",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
+	const result = await fetch(`${API_URL}/admin/organization/connections/github/sync-repo`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
 		},
-	).then(async (res) => {
+		credentials: "include",
+	}).then(async (res) => {
 		const json = await res.json();
 		if (!res.ok) {
 			throw new Error(json?.error || "Failed to add sync repo");
@@ -700,5 +689,181 @@ export async function createGithubSyncConnectionAction(
 		return json;
 	});
 
+	return result;
+}
+
+/**
+ * Creates a new team within an organization.
+ * @param organizationId - The ID of the organization to which the team will belong.
+ * @param data - The team properties (name, description, permissions).
+ * @returns A promise resolving to the creation result.
+ */
+export async function createOrganizationTeamAction(
+	organizationId: string,
+	data: {
+		name: string;
+		description: string;
+		permissions: schema.OrganizationTeamType["permissions"];
+	}
+): Promise<{ success: boolean; data: schema.OrganizationTeamType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		name: data.name,
+		description: data.description,
+		permissions: data.permissions,
+	};
+	const result = await fetch(`${API_URL}/admin/organization/team`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to create team");
+		}
+		return json;
+	});
+	return result;
+}
+
+/**
+ * Edit a team within an organization.
+ * @param organizationId - The ID of the organization to which the team will belong.
+ * @param teamId - The ID of the team
+ * @param data - The team properties (name, description, permissions).
+ * @returns A promise resolving to the edit result.
+ */
+export async function editOrganizationTeamAction(
+	organizationId: string,
+	teamId: string,
+	data: {
+		name: string;
+		description: string;
+		permissions: schema.OrganizationTeamType["permissions"];
+	}
+): Promise<{ success: boolean; data: schema.OrganizationTeamType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		team_id: teamId,
+		name: data.name,
+		description: data.description,
+		permissions: data.permissions,
+	};
+	const result = await fetch(`${API_URL}/admin/organization/team`, {
+		method: "PATCH",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to edit team");
+		}
+		return json;
+	});
+	return result;
+}
+
+/**
+ * Delete a team within an organization.
+ * @param organizationId - The ID of the organization to which the team will belong.
+ * @param teamId - The ID of the team
+ * @returns A promise resolving to the deletion result.
+ */
+export async function deleteOrganizationTeamAction(
+	organizationId: string,
+	teamId: string
+): Promise<{ success: boolean; data: schema.OrganizationTeamType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		team_id: teamId,
+	};
+	const result = await fetch(`${API_URL}/admin/organization/team`, {
+		method: "DELETE",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to delete team");
+		}
+		return json;
+	});
+	return result;
+}
+
+/**
+ * Adds a member to a team within an organization.
+ * @param organizationId - The ID of the organization.
+ * @param teamId - The ID of the team to which the member will be added.
+ * @param memberId - The ID of the member to add to the team.
+ * @returns A promise resolving to the addition result.
+ */
+export async function addOrganizationMemberToTeamAction(
+	organizationId: string,
+	teamId: string,
+	memberId: string
+): Promise<{ success: boolean; data: schema.OrganizationMemberType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		team_id: teamId,
+		member_id: memberId,
+	};
+	const result = await fetch(`${API_URL}/admin/organization/team-member`, {
+		method: "POST",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to add member to team");
+		}
+		return json;
+	});
+	return result;
+}
+
+/**
+ * Removes a member from a team within an organization.
+ * @param organizationId - The ID of the organization.
+ * @param teamId - The ID of the team from which the member will be removed.
+ * @param memberId - The ID of the member to remove from the team.
+ * @returns A promise resolving to the removal result.
+ */
+export async function removeOrganizationMemberFromTeamAction(
+	organizationId: string,
+	teamId: string,
+	memberId: string
+): Promise<{ success: boolean; data: schema.OrganizationMemberType; error?: string }> {
+	const payload = {
+		org_id: organizationId,
+		team_id: teamId,
+		member_id: memberId,
+	};
+	const result = await fetch(`${API_URL}/admin/organization/team-member`, {
+		method: "DELETE",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(json?.error || "Failed to remove member from team");
+		}
+		return json;
+	});
 	return result;
 }
