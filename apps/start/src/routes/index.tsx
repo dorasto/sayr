@@ -2,7 +2,7 @@ import { Button } from "@repo/ui/components/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as RouteIcon, Server, Shield, Sparkles, Waves, Zap } from "lucide-react";
 
-export const Route = createFileRoute("/home/")({ component: App });
+export const Route = createFileRoute("/")({ component: App });
 
 function App() {
 	const features = [
@@ -82,7 +82,7 @@ function App() {
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{features.map((feature, index) => (
 						<div
-							key={index}
+							key={index as number}
 							className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10"
 						>
 							<div className="mb-4">{feature.icon}</div>

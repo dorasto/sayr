@@ -34,7 +34,7 @@ export const getMyTasks = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/admin/mine")({
 	loader: async ({ context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 		return await getMyTasks({ data: { account: context.account } });
 	},

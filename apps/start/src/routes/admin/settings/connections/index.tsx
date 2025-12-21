@@ -54,7 +54,7 @@ export const getConnections = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/admin/settings/connections/")({
 	loader: async ({ context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 		return await getConnections({ data: { account: context.account } });
 	},

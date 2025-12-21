@@ -14,20 +14,23 @@ export const getRouter = () => {
 		context: { queryClient },
 		defaultPreload: "intent",
 		scrollRestoration: true,
-		defaultNotFoundComponent:NotFound,
+		defaultNotFoundComponent: NotFound,
 		// Cache loader data for 30 seconds to prevent unnecessary refetches
 		// during hydration and same-route navigations
 		defaultPreloadStaleTime: 1000 * 30,
 		rewrite: {
 			input: ({ url }) => {
 				const hostname = url.hostname;
+				if (url.pathname.startsWith("/invite")) {
+					return url;
+				}
 				if (url.pathname.startsWith("/api")) {
 					return url;
 				}
 				// 1. Admin Subdomain
 				if (hostname.startsWith("admin.")) {
 					if (!url.pathname.startsWith("/admin")) {
-						url.pathname = `/home`;
+						url.pathname = `/`;
 						return url;
 					}
 				}
@@ -69,11 +72,11 @@ export const getRouter = () => {
 				// If no subdomain, rewrite to /home
 				if (!subdomain && !hostname.startsWith("admin.")) {
 					if (
-						!url.pathname.startsWith("/home") &&
+						!url.pathname.startsWith("/") &&
 						!url.pathname.startsWith("/admin") &&
 						!url.pathname.startsWith("/orgs")
 					) {
-						url.pathname = `/home${url.pathname === "/" ? "" : url.pathname}`;
+						url.pathname = `/${url.pathname === "/" ? "" : url.pathname}`;
 						return url;
 					}
 				}

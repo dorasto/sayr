@@ -5,7 +5,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/admin/console/")({
 	loader: async ({ context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 		return await getUsers();
 	},

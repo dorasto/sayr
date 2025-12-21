@@ -25,7 +25,7 @@ export const getUserOrgPermissions = createServerFn({ method: "GET" })
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;
 			}
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 	});
 /**
@@ -34,7 +34,7 @@ export const getUserOrgPermissions = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/admin/$orgId")({
 	beforeLoad: async ({ params, context }) => {
 		const { account } = context;
-		if (!account) throw redirect({ to: "/home/login" });
+		if (!account) throw redirect({ to: "/login" });
 		const { permissions } = await getUserOrgPermissions({
 			data: {
 				account,
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/admin/$orgId")({
 	},
 	loader: async ({ params, context }) => {
 		const { account } = context;
-		if (!account) throw redirect({ to: "/home/login" });
+		if (!account) throw redirect({ to: "/login" });
 		return await getAdminOrganization({
 			data: {
 				account,

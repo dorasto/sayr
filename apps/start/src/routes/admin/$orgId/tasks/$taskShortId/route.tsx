@@ -6,7 +6,7 @@ import { getAdminOrganizationTask } from "@/lib/serverFunctions/getAdminOrganiza
 export const Route = createFileRoute("/admin/$orgId/tasks/$taskShortId")({
 	loader: async ({ params, context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 		return await getAdminOrganizationTask({
 			data: {

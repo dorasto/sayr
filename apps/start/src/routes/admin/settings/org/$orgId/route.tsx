@@ -39,7 +39,7 @@ export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/admin/settings/org/$orgId")({
 	loader: async ({ params, context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 		return await getAdminOrganizationSettings({
 			data: {

@@ -5,7 +5,7 @@ import { getUsers } from "@/lib/serverFunctions";
 export const Route = createFileRoute("/admin/console/connections/")({
 	loader: async ({ context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 		return await getUsers();
 	},

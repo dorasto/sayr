@@ -25,7 +25,7 @@ export const getUserOrganizations = createServerFn({ method: "GET" })
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;
 			}
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 	});
 
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/admin")({
 	},
 	loader: async ({ context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/home/login" });
+			throw redirect({ to: "/login" });
 		}
 		return await getUserOrganizations({
 			data: {
