@@ -110,7 +110,7 @@ export async function getOrganization(orgId: string, userId: string): Promise<sc
  * });
  * ```
  */
-export async function getOrganizationMembers(orgId: string): Promise<schema.memberType[]> {
+export async function getOrganizationMembers(orgId: string): Promise<schema.OrganizationMemberType[]> {
 	return db.query.member.findMany({
 		where: (member) => eq(member.organizationId, orgId),
 	});
@@ -134,9 +134,14 @@ export async function getOrganizationMembers(orgId: string): Promise<schema.memb
  * }
  * ```
  */
-export async function getOrganizationPublic(orgSlug: string): Promise<schema.organizationType | null> {
+export async function getOrganizationPublic(orgSlug: string): Promise<schema.OrganizationWithMembers | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.slug, orgSlug),
+		with: {
+			members: {
+				with: { user: true },
+			},
+		},
 	});
 	if (organization) {
 		return {
