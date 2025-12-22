@@ -109,7 +109,7 @@ app.get(
 				version: "1.0.0",
 				description: "Sayr.io public API",
 			},
-			servers: [{ url: `${process.env.NEXT_PUBLIC_API_SERVER}` || "", description: "Production" }],
+			servers: [{ url: `${process.env.VITE_EXTERNAL_API_URL?.split("/api")[0]}` || "", description: "Production" }],
 		},
 	})
 );
@@ -190,7 +190,7 @@ app.get("/github/org-check", async (c) => {
 		})
 		.where(eq(schema.githubInstallation.installationId, installationId));
 
-	const root = process.env.NEXT_PUBLIC_URL_ROOT || "http://localhost:3000/";
+	const root = process.env.VITE_URL_ROOT || "http://localhost:3000/";
 	const redirectUrl = new URL(`/admin/settings/org/${orgId}/connections/github`, root).toString();
 
 	return c.redirect(redirectUrl, 302);
