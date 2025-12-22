@@ -13,7 +13,9 @@
 		"check-types": "turbo check-types",
 		"docker": "docker-compose down --remove-orphans --volumes && docker container prune -f && docker-compose up --build -d",
 		"docker:build": "docker-compose -f docker-compose.yml build",
-		"release": "changeset tag && git push origin --tags"
+		"release": "changeset tag && git push origin --tags",
+		"env:all": "bash -c 'bash ./gen.sh Sayr sayr-dev ./apps/worker/.env && bash ./gen.sh Sayr sayr-dev ./apps/backend/.env && bash ./gen.sh Sayr sayr-dev ./apps/start/.env'",
+		"env:ps:all": "powershell -Command \"./gen.ps1 Sayr sayr-dev ./apps/worker/.env; ./gen.ps1 Sayr sayr-dev ./apps/backend/.env; ./gen.ps1 Sayr sayr-dev ./apps/start/.env\""
 	},
 	"devDependencies": {
 		"@changesets/cli": "^2.29.7",

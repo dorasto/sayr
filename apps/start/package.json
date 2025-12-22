@@ -4,9 +4,13 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev --port 3000",
+		"internal:dev": "op run --env-file .env -- bun run dev",
 		"build": "vite build",
+		"internal:build": "op run --env-file .env -- bun run build",
 		"serve": "vite preview",
+		"internal:serve": "op run --env-file .env -- bun run serve",
 		"start": "bun run .output/server/index.mjs",
+		"internal:start": "op run --env-file .env -- bun run start",
 		"test": "vitest run",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",

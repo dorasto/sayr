@@ -4,8 +4,10 @@
 	"private": false,
 	"scripts": {
 		"dev": "bun --watch run index.ts github",
+		"internal:dev": "op run --env-file .env -- bun run dev",
 		"build": "bun build index.ts --target=bun --outdir ./dist",
 		"start": "bun ./dist/index.js",
+		"internal:start": "op run --env-file .env -- bun run start",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",
 		"format": "biome format --write ."
