@@ -23,6 +23,12 @@ if ! command -v op &>/dev/null; then
   exit 1
 fi
 
+# === Check for jq (required for JSON parsing) ===
+if ! command -v jq &>/dev/null; then
+  echo "❌ jq not found in PATH. Install it with: sudo apt install jq"
+  exit 1
+fi
+
 # === Fetch 1Password item JSON ===
 FIELDS_JSON="$(op item get "$ITEM" --vault "$VAULT" --format json 2>/dev/null || true)"
 
@@ -31,11 +37,8 @@ if [[ -z "$FIELDS_JSON" ]]; then
   exit 1
 fi
 
-# === Extract field labels ===
-FIELDS=$(echo "$FIELDS_JSON" \
-  | grep -oE '"label": *"[^"]+"' \
-  | sed -E 's/.*"label": *"([^"]+)".*/\1/' \
-  | tr -d '\r')
+# === Extract field labels using jq for proper JSON parsing ===
+FIELDS=$(echo "$FIELDS_JSON" | jq -r '.fields[]? | .label // empty' | tr -d '\r')
 
 if [[ -z "$FIELDS" ]]; then
   echo "❌ No fields found in item '$ITEM'."
@@ -53,7 +56,7 @@ while IFS= read -r field; do
   # Convert spaces or weird chars in label to safe var names
   safe_field=$(echo "$field" | tr ' ' '_' | tr -cd 'A-Za-z0-9_')
   printf '%s="op://%s/%s/%s"\n' "$safe_field" "$VAULT" "$ITEM" "$field" >>"$OUTPUT_FILE"
-  ((count++))
+  ((count++)) || true
 done <<<"$FIELDS"
 
 # === Re‑normalize line endings ===
