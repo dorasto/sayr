@@ -3,6 +3,7 @@ import { RootProviderOrganization } from "@/contexts/ContextOrg";
 import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
 import { createServerFn } from "@tanstack/react-start";
 import { getOrgPermissions, type schema } from "@repo/database";
+import { seo } from "@/seo";
 
 /**
  * Fetches all merged organization-level permissions for a user.
@@ -32,6 +33,7 @@ export const getUserOrgPermissions = createServerFn({ method: "GET" })
  * Route configuration
  */
 export const Route = createFileRoute("/admin/$orgId")({
+
 	beforeLoad: async ({ params, context }) => {
 		const { account } = context;
 		if (!account) throw redirect({ to: "/login" });
@@ -54,6 +56,11 @@ export const Route = createFileRoute("/admin/$orgId")({
 		});
 	},
 	component: OrgLayout,
+	head: ({ loaderData }) => ({
+		meta: seo({
+			title: `${loaderData?.organization.name || "Organization"}`,
+		}),
+	}),
 });
 
 /**

@@ -19,6 +19,7 @@
 		"env:ps:all": "powershell -Command \"./gen.ps1 Sayr sayr-dev ./apps/worker/.env; ./gen.ps1 Sayr sayr-dev ./apps/backend/.env; ./gen.ps1 Sayr sayr-dev ./apps/start/.env\""
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^2.1.1",
 		"@changesets/cli": "^2.29.7",
 		"@types/node": "^24.0.14",
 		"turbo": "^2.5.4",

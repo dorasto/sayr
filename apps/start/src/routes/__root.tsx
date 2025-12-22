@@ -11,6 +11,7 @@ import NotFound from "@/components/NotFound";
 import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import appCss from "../styles.css?url";
 import { DefaultCatchBoundary } from "@/components/Error";
+import { seo } from "@/seo";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
@@ -26,9 +27,7 @@ export const Route = createRootRouteWithContext<{
 				name: "viewport",
 				content: "width=device-width, initial-scale=1",
 			},
-			{
-				title: "TanStack Start Starter",
-			},
+			...seo({}),
 		],
 		links: [
 			{

@@ -91,11 +91,11 @@ export function TaskContentSideContent({
 		1500 // debounce delay
 	);
 	return (
-		<div className="flex flex-col gap-1">
+		<div className="flex flex-col gap-3 pt-3">
 			{/* <GlobalTaskCreatedAt task={task} />
 					<Separator /> */}
 
-			<Tile className="md:w-full" variant={"transparent"}>
+			<Tile className="md:w-full py-0" variant={"transparent"}>
 				<TileHeader>
 					<TileTitle asChild>
 						<Label variant={"description"} className="text-xs">
@@ -117,7 +117,7 @@ export function TaskContentSideContent({
 					/>
 				</TileAction>
 			</Tile>
-			<Tile className="md:w-full" variant={"transparent"}>
+			<Tile className="md:w-full py-0" variant={"transparent"}>
 				<TileHeader>
 					<TileTitle asChild>
 						<Label variant={"description"} className="text-xs">
@@ -194,7 +194,7 @@ export function TaskContentSideContent({
 					/>
 				</TileAction>
 			</Tile>
-			<Tile className="md:w-full items-start" variant={"transparent"}>
+			<Tile className="md:w-full items-start py-0" variant={"transparent"}>
 				<TileHeader>
 					<TileTitle asChild>
 						<Label variant={"description"} className="text-xs">
@@ -217,7 +217,7 @@ export function TaskContentSideContent({
 					/>
 				</TileAction>
 			</Tile>
-			<Tile className="md:w-full" variant={"transparent"}>
+			<Tile className="md:w-full py-0" variant={"transparent"}>
 				<TileHeader>
 					<TileTitle asChild>
 						<Label variant={"description"} className="text-xs">
@@ -240,7 +240,7 @@ export function TaskContentSideContent({
 					/>
 				</TileAction>
 			</Tile>
-			<Tile className="md:w-full items-start" variant={"transparent"}>
+			<Tile className="md:w-full items-start py-0" variant={"transparent"}>
 				<TileHeader>
 					<TileTitle asChild>
 						<Label variant={"description"} className="text-xs">

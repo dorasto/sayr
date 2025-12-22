@@ -6,6 +6,7 @@ import { Wrapper } from "@/components/generic/wrapper";
 import { createServerFn } from "@tanstack/react-start";
 import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
+import { seo } from "@/seo";
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
 	const { account } = await getAccess();
 	return {
@@ -30,6 +31,11 @@ export const getUserOrganizations = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/admin")({
+	head: () => ({
+		meta: seo({
+			title: "Admin",
+		}),
+	}),
 	beforeLoad: async () => {
 		const { account } = await fetchAuth();
 		return {
