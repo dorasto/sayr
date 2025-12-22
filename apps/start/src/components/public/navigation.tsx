@@ -6,8 +6,12 @@ import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { SearchIcon } from "lucide-react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { authClient } from "@repo/auth/client";
 
 export default function PublicNavigation() {
+	const { data: session } = authClient.useSession();
+	console.log("🚀 ~ PublicNavigation ~ session:", session);
+
 	const { organization } = usePublicOrganizationLayout();
 	return (
 		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center rounded-b-2xl">
@@ -34,7 +38,7 @@ export default function PublicNavigation() {
 					</div>
 				</div>
 				<div className="flex flex-1 items-center justify-end gap-2">
-					<Button>Sign in</Button>
+					{session ? session.user.name : <Button>Sign in</Button>}
 				</div>
 			</div>
 		</header>
