@@ -39,15 +39,15 @@ export function PrimarySidebar() {
 		<Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
 			<SidebarHeader className="pb-0">
 				{heading.map((section) => (
-					<SidebarMenu key={section.title}>
+					<SidebarMenu key={section.title} className="gap-0.5">
 						{section.items.map((item) => {
 							const isActive = pathname === item.url;
 							const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
 
 							return (
-								<SidebarMenuItem key={item.title} isActive={isActive}>
+								<SidebarMenuItem key={item.title} isActive={isActive} className="min-h-0">
 									<Link className="w-full" to={item.url}>
-										<SidebarMenuButton tooltip={item.title} icon={<IconComponent size={16} />}>
+										<SidebarMenuButton size="small" tooltip={item.title} icon={<IconComponent size={16} />}>
 											<span>{item.title}</span>
 										</SidebarMenuButton>
 									</Link>
@@ -61,15 +61,19 @@ export function PrimarySidebar() {
 				{navigation.map((section) => (
 					<SidebarGroup key={section.title}>
 						{section.title === "Overview" ? null : <SidebarGroupLabel>{section.title}</SidebarGroupLabel>}
-						<SidebarMenu>
+						<SidebarMenu className="gap-0.5">
 							{section.items.map((item) => {
 								const isActive = pathname === item.url;
 								const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
 
 								return (
-									<SidebarMenuItem key={item.title} isActive={isActive}>
+									<SidebarMenuItem className="min-h-auto" key={item.title} isActive={isActive}>
 										<Link to={item.url} className="w-full">
-											<SidebarMenuButton icon={<IconComponent size={16} />} tooltip={item.title}>
+											<SidebarMenuButton
+												size="small"
+												icon={<IconComponent size={16} />}
+												tooltip={item.title}
+											>
 												<span>{item.title}</span>
 											</SidebarMenuButton>
 										</Link>
@@ -82,22 +86,22 @@ export function PrimarySidebar() {
 				<SidebarGroup>
 					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>Organizations</SidebarGroupLabel>
 
-					<SidebarMenu className={cn("org-sidebar-menu", isSidebarOpen && "gap-2")}>
+					<SidebarMenu className={cn("org-sidebar-menu", isSidebarOpen && "gap-0.5")}>
+						<SidebarMenuItem className="min-h-auto">
+							<CreateOrganizationDialog
+								trigger={
+									<SidebarMenuButton size="small" tooltip="Create Organization" icon={<IconPlus size={16} />}>
+										<span>New Organization</span>
+									</SidebarMenuButton>
+								}
+							/>
+						</SidebarMenuItem>
 						{organizations
 							.flatMap((org) => [
 								<OrgSection closeMobileSidebar={closeMobileSidebar} key={org.id} organization={org} />,
 								// <div key={org.id}></div>
 							])
 							.filter(Boolean)}
-						<SidebarMenuItem>
-							<CreateOrganizationDialog
-								trigger={
-									<SidebarMenuButton tooltip="Create Organization" icon={<IconPlus size={16} />}>
-										<span>New Organization</span>
-									</SidebarMenuButton>
-								}
-							/>
-						</SidebarMenuItem>
 					</SidebarMenu>
 				</SidebarGroup>
 			</SidebarContent>
@@ -114,17 +118,17 @@ export function PrimarySidebar() {
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					{account.role === "admin" && (
-						<SidebarMenuItem className="">
+						<SidebarMenuItem className="min-h-auto">
 							<Link to={"/admin/console"} className="w-full">
-								<SidebarMenuButton icon={<IconShield />} tooltip="Admin console">
+								<SidebarMenuButton size="small" icon={<IconShield />} tooltip="Admin console">
 									Admin console
 								</SidebarMenuButton>
 							</Link>
 						</SidebarMenuItem>
 					)}
-					<SidebarMenuItem className="">
+					<SidebarMenuItem className="min-h-auto">
 						<Link to={"/admin/settings"} className="w-full">
-							<SidebarMenuButton icon={<IconSettings />} tooltip="Settings">
+							<SidebarMenuButton size="small" icon={<IconSettings />} tooltip="Settings">
 								Settings
 							</SidebarMenuButton>
 						</Link>

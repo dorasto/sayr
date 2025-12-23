@@ -23,10 +23,11 @@ export default function UserDropdown() {
 	// const [isUserUpdateOpen, setIsUserUpdateOpen] = useState(false);
 	return (
 		<>
-			<SidebarMenuItem>
+			<SidebarMenuItem className="min-h-auto">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<SidebarMenuButton
+							size="small"
 							icon={
 								<Avatar className="h-4 w-4 rounded-lg">
 									<AvatarImage src={account.image || ""} alt={account.name} />
