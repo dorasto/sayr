@@ -34,6 +34,10 @@ export const Route = createRootRouteWithContext<{
 				rel: "stylesheet",
 				href: appCss,
 			},
+			{
+				rel: "manifest",
+				href: "/manifest.json",
+			},
 		],
 	}),
 	notFoundComponent: NotFound,
