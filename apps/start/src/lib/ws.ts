@@ -5,7 +5,6 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useState } from "react";
 
-
 // import { useLogger } from "@/app/lib/axiom/client";
 
 let webSocket: WebSocket | null = null;
@@ -39,11 +38,11 @@ const useWebSocket = () => {
 										setWSStatus("Connected");
 										setWSClientId(data.data.wsClientId);
 										console.info("WebSocket authenticated", { wsClientId: data.data.wsClientId });
-										headlessToast.success({
-											id: "ws-connection-status",
-											title: "WebSocket Connected",
-											description: "Successfully connected to server",
-										});
+										// headlessToast.success({
+										// 	id: "ws-connection-status",
+										// 	title: "WebSocket Connected",
+										// 	description: "Successfully connected to server",
+										// });
 									} else {
 										webSocket?.close();
 										webSocket = null;
