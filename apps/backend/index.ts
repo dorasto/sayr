@@ -1,3 +1,5 @@
+import { initTracing } from "./tracing";
+initTracing();
 import type { auth } from "@repo/auth/index";
 import { db, schema } from "@repo/database";
 import { Scalar } from "@scalar/hono-api-reference";
@@ -14,7 +16,8 @@ import { apiPublicRoute } from "./routes/api/public";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
 import { checkMembershipRole } from "./util";
-import { type WideEvent, wideEventMiddleware } from "./tracing/wideEvent";
+import { type RecordWideEvent, wideEventMiddleware } from "./tracing/wideEvent";
+import { rootSpanMiddleware } from "@/tracing/rootSpanMiddleware";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -22,7 +25,7 @@ export type AppEnv = {
 	Variables: {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
-		wideEvent: WideEvent;
+		recordWideEvent: RecordWideEvent;
 	};
 };
 
@@ -63,6 +66,7 @@ app.get("/ws-test", serveStatic({ path: "./public/ws.html" }));
 app.get("/file-test", serveStatic({ path: "./public/file-test.html" }));
 app.route("/ws", wsRoute);
 app.route("/webhook", webhookRoute);
+app.use("*", rootSpanMiddleware());
 app.use("*", wideEventMiddleware());
 app.route("/api/public", apiPublicRoute);
 app.get(
@@ -74,7 +78,12 @@ app.get(
 				version: "1.0.0",
 				description: "Sayr.io public API",
 			},
-			servers: [{ url: `${process.env.VITE_EXTERNAL_API_URL?.split("/api")[0]}` || "", description: "Production" }],
+			servers: [
+				{
+					url: `${process.env.VITE_EXTERNAL_API_URL?.split("/api")[0]}` || "",
+					description: "Production",
+				},
+			],
 		},
 	})
 );
@@ -99,13 +108,39 @@ app.get(
 	})
 );
 app.use("*", async (c, next) => {
+	const recordWideEvent = c.get("recordWideEvent");
 	const session = await safeGetSession(c.req.raw.headers);
+
 	if (!session) {
-		console.warn(`⚠️  No session for ${c.req.method} ${c.req.path}`);
+		// record failed authentication event
+		await recordWideEvent({
+			name: "session.missing",
+			description: "No active session found for this request",
+			data: {
+				method: c.req.method,
+				path: c.req.path,
+			},
+		});
+
+		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
 		return next();
 	}
+
+	// add user + session to context
 	c.set("user", session.user);
 	c.set("session", session.session);
+
+	// record successful session retrieval
+	await recordWideEvent({
+		name: "session.retrieved",
+		description: "User session verified and attached to context",
+		data: {
+			user_id: session.user.id,
+			user_name: session.user.name,
+			user_role: session.user.role,
+		},
+	});
+
 	return next();
 });
 app.get("/github/org-check", async (c) => {
@@ -165,14 +200,6 @@ app.route("/api", apiRoute);
 // 404 fallback
 app.all("*", (c) => {
 	console.warn(`🚫  Route not found: ${c.req.method} ${c.req.path}`);
-	const wideEvent = c.get("wideEvent");
-	wideEvent.description = "Route not found";
-	wideEvent.error = {
-		type: "RouteError",
-		code: "NotFound",
-		message: `Route ${c.req.method}:${c.req.path} not found`,
-	};
-	wideEvent.outcome = "error";
 	return c.json(
 		{
 			message: `Route ${c.req.method}:${c.req.path} not found`,
@@ -191,13 +218,6 @@ app.onError((err, c) => {
 	console.error("  Path:", c.req.path);
 	console.error("  Method:", c.req.method);
 	console.error("  Stack:", err.stack ?? "No stack trace");
-	const wideEvent = c.get("wideEvent");
-	wideEvent.description = "Unhandled error";
-	wideEvent.error = {
-		type: err.name,
-		message: err.message,
-		stack: err.stack,
-	};
 	return c.json(
 		{
 			success: false,

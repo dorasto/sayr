@@ -71,24 +71,30 @@ apiPublicRoute.get(
 		tags: ["Organization"],
 	}),
 	async (c) => {
-		const wideEvent = c.get("wideEvent");
-		wideEvent.description = "Fetch public organization data by slug";
-		wideEvent.service = "sayr-public-api";
+		const recordWideEvent = c.get("recordWideEvent");
 		const orgSlug = c.req.param("org_slug");
 		const organization = await getOrganizationPublic(orgSlug);
 		if (!organization) {
-			wideEvent.error = {
-				type: "OrganizationError",
-				code: "NotFound",
-				message: "No organization found",
-				orgSlug: orgSlug,
-			};
+			await recordWideEvent({
+				name: "getOrganizationPublic",
+				description: "No organization found for given slug",
+				data: {
+					type: "OrganizationError",
+					code: "NotFound",
+					message: "No organization found",
+					orgSlug: orgSlug,
+				},
+			});
 			return c.json(errorResponse("No organization found"), 404);
 		}
-		wideEvent.organization = {
-			id: organization.id,
-			slug: organization.slug,
-		};
+		await recordWideEvent({
+			name: "getOrganizationPublic",
+			description: "Fetched public organization data by slug",
+			data: {
+				id: organization.id,
+				slug: organization.slug,
+			},
+		});
 		// biome-ignore lint/correctness/noUnusedVariables: <needed>
 		const { privateId, ...publicOrg } = organization;
 		return c.json(successResponse(publicOrg));
@@ -118,25 +124,32 @@ apiPublicRoute.get(
 		tags: ["Organization"],
 	}),
 	async (c) => {
-		const wideEvent = c.get("wideEvent");
-		wideEvent.description = "Fetch public organization labels";
-		wideEvent.service = "sayr-public-api";
+		const recordWideEvent = c.get("recordWideEvent");
 		const orgSlug = c.req.param("org_slug");
 		const organization = await getOrganizationPublic(orgSlug);
 		if (!organization) {
-			wideEvent.error = {
-				type: "OrganizationError",
-				code: "NotFound",
-				message: "No organization found for labels",
-				orgSlug: orgSlug,
-			};
+			await recordWideEvent({
+				name: "getLabels",
+				description: "No organization found for labels",
+				data: {
+					type: "OrganizationError",
+					code: "NotFound",
+					message: "No organization found for labels",
+					orgSlug: orgSlug,
+				},
+			});
 			return c.json(errorResponse("No organization found"), 404);
 		}
 		const labels = await getLabels(organization.id);
-		wideEvent.organization = {
-			id: organization.id,
-			slug: organization.slug,
-		};
+		await recordWideEvent({
+			name: "getLabels",
+			description: "Fetched public organization labels",
+			data: {
+				orgId: organization.id,
+				slug: organization.slug,
+				count: labels.length,
+			},
+		});
 		return c.json(successResponse(labels));
 	},
 );
@@ -164,27 +177,34 @@ apiPublicRoute.get(
 		tags: ["Organization"],
 	}),
 	async (c) => {
-		const wideEvent = c.get("wideEvent");
-		wideEvent.description = "Fetch public organization categories";
-		wideEvent.service = "sayr-public-api";
+		const recordWideEvent = c.get("recordWideEvent");
 		const orgSlug = c.req.param("org_slug");
 		const organization = await getOrganizationPublic(orgSlug);
 		if (!organization) {
-			wideEvent.error = {
-				type: "OrganizationError",
-				code: "NotFound",
-				message: "No organization found for labels",
-				orgSlug: orgSlug,
-			};
+			await recordWideEvent({
+				name: "getCategories",
+				description: "No organization found for categories",
+				data: {
+					type: "OrganizationError",
+					code: "NotFound",
+					message: "No organization found for categories",
+					orgSlug: orgSlug,
+				},
+			});
 			return c.json(errorResponse("No organization found"), 404);
 		}
 		const categories = await db.query.category.findMany({
 			where: (category) => eq(category.organizationId, organization.id),
 		});
-		wideEvent.organization = {
-			id: organization.id,
-			slug: organization.slug,
-		};
+		await recordWideEvent({
+			name: "getCategories",
+			description: "Fetched public organization categories",
+			data: {
+				orgId: organization.id,
+				slug: organization.slug,
+				count: categories.length,
+			},
+		});
 		return c.json(successResponse(categories));
 	},
 );
@@ -218,36 +238,36 @@ apiPublicRoute.get(
 	}),
 	async (c) => {
 		try {
-			const wideEvent = c.get("wideEvent");
-			wideEvent.description = "List public organization tasks (paginated)";
-			wideEvent.service = "sayr-public-api";
-			// --- Query + Params ---
+			const recordWideEvent = c.get("recordWideEvent");
 			const query = c.req.query();
 			const limit = Math.min(Number(query.limit) || 5, API_LIMITS.tasks);
 			const page = Math.max(Number(query.page) || 1, 1);
-
 			const offset = (page - 1) * limit;
-
 			const orgSlug = c.req.param("org_slug");
 			const organization = await getOrganizationPublic(orgSlug);
 			if (!organization) {
-				wideEvent.error = {
-					type: "OrganizationError",
-					code: "NotFound",
-					message: "No organization found for tasks",
-					orgSlug: orgSlug,
-				};
+				await recordWideEvent({
+					name: "getTasks",
+					description: "No organization found for tasks",
+					data: {
+						type: "OrganizationError",
+						code: "NotFound",
+						message: "No organization found for tasks",
+						orgSlug: orgSlug,
+					},
+				});
 				return c.json(errorResponse("Organization not found"), 404);
 			}
-
-			// ---- CHECK: limit overflow ----
 			if (Number(query.limit) > API_LIMITS.tasks) {
-				wideEvent.error = {
-					type: "PaginationError",
-					code: "LimitOverflow",
-					message: `Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.tasks}`,
-					requestedLimit: Number(query.limit),
-				};
+				await recordWideEvent({
+					name: "getTasks",
+					description: "Invalid limit for paginated tasks",
+					data: {
+						type: "PaginationError",
+						code: "LimitOverflow",
+						requestedLimit: Number(query.limit),
+					},
+				});
 				return c.json(
 					errorResponse(
 						"Invalid limit",
@@ -256,24 +276,23 @@ apiPublicRoute.get(
 					400,
 				);
 			}
-
-			// --- Total count ---
 			const [countResult] = await db
 				.select({ count: sql<number>`count(*)` })
 				.from(schema.task)
 				.where(eq(schema.task.organizationId, organization.id));
-
 			const totalItems = Number(countResult?.count ?? 0);
 			const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
-
-			// ---- CHECK: page overflow ----
 			if (page > totalPages && totalItems > 0) {
-				wideEvent.error = {
-					type: "PaginationError",
-					code: "PageOverflow",
-					message: `Valid pages range from 1 to ${totalPages}`,
-					requestedPage: page,
-				};
+				await recordWideEvent({
+					name: "getTasks",
+					description: "Page overflow for paginated tasks",
+					data: {
+						type: "PaginationError",
+						code: "PageOverflow",
+						requestedPage: page,
+						totalPages,
+					},
+				});
 				return c.json(
 					errorResponse(
 						`Page ${page} not found`,
@@ -282,8 +301,6 @@ apiPublicRoute.get(
 					400,
 				);
 			}
-
-			// --- Fetch tasks using Drizzle ---
 			const tasks = await db.query.task.findMany({
 				orderBy: (t, { desc }) => desc(t.createdAt),
 				where: (t) => eq(t.organizationId, organization.id),
@@ -294,17 +311,19 @@ apiPublicRoute.get(
 					category: { columns: { id: true, name: true } },
 				},
 			});
-			wideEvent.organization = {
-				id: organization.id,
-				slug: organization.slug,
-			};
-			wideEvent.pagination = {
-				limit,
-				page,
-				totalPages,
-				totalItems,
-			};
-			// --- Response payload ---
+			await recordWideEvent({
+				name: "getTasks",
+				description: "Fetched public organization tasks (paginated)",
+				data: {
+					orgId: organization.id,
+					slug: organization.slug,
+					page,
+					limit,
+					totalPages,
+					totalItems,
+					taskCount: tasks.length,
+				},
+			});
 			return c.json(
 				paginatedSuccessResponse(tasks, {
 					limit,
@@ -315,28 +334,8 @@ apiPublicRoute.get(
 				}),
 			);
 		} catch (error) {
-			// --- Safe error handler ---
 			console.error("🚀 Pagination Error:", error);
-
-			let readableError = "Database error";
-			let detailedMessage = "Unexpected error";
-
-			try {
-				const parsed = JSON.parse((error as Error).message);
-				readableError =
-					(Array.isArray(parsed) ? parsed[0]?.message : parsed?.message) ??
-					readableError;
-				detailedMessage =
-					(Array.isArray(parsed)
-						? parsed[0]?.detail || parsed[0]?.hint || parsed[0]?.message
-						: parsed?.detail || parsed?.message) ?? detailedMessage;
-			} catch {
-				readableError =
-					(error as Error)?.message ||
-					(typeof error === "string" ? error : "Unknown error");
-				detailedMessage = readableError;
-			}
-			return c.json(errorResponse(readableError, detailedMessage), 500);
+			return c.json(errorResponse("Database error", "Unexpected error"), 500);
 		}
 	},
 );
@@ -363,55 +362,62 @@ apiPublicRoute.get(
 		tags: ["Organization"],
 	}),
 	async (c) => {
-		const wideEvent = c.get("wideEvent");
-		wideEvent.description = "Fetch public task data";
-		wideEvent.service = "sayr-public-api";
+		const recordWideEvent = c.get("recordWideEvent");
 		const orgSlug = c.req.param("org_slug");
 		const taskShortIdRaw = c.req.param("task_short_id");
 		const taskShortId = Number(taskShortIdRaw);
-
 		if (Number.isNaN(taskShortId)) {
-			wideEvent.error = {
-				type: "TaskError",
-				code: "InvalidID",
-				message: "Invalid task_short_id, must be a number",
-				taskShortId: taskShortIdRaw,
-			};
+			await recordWideEvent({
+				name: "getTaskByShortId",
+				description: "Invalid task_short_id, must be a number",
+				data: {
+					type: "TaskError",
+					code: "InvalidID",
+					taskShortIdRaw,
+				},
+			});
 			return c.json(
 				errorResponse("Invalid task_short_id", "Must be a number"),
 				400,
 			);
 		}
-
 		const organization = await getOrganizationPublic(orgSlug);
 		if (!organization) {
-			wideEvent.error = {
-				type: "OrganizationError",
-				code: "NotFound",
-				message: "No organization found for tasks",
-				orgSlug: orgSlug,
-			};
+			await recordWideEvent({
+				name: "getTaskByShortId",
+				description: "No organization found for tasks",
+				data: {
+					type: "OrganizationError",
+					code: "NotFound",
+					orgSlug,
+				},
+			});
 			return c.json(errorResponse("No organization found"), 404);
 		}
-
 		const task = await getTaskByShortId(organization.id, taskShortId);
 		if (!task) {
-			wideEvent.error = {
-				type: "TaskError",
-				code: "NotFound",
-				message: "No Task found",
-				taskShortId: taskShortId,
-			};
+			await recordWideEvent({
+				name: "getTaskByShortId",
+				description: "Task not found",
+				data: {
+					type: "TaskError",
+					code: "NotFound",
+					orgId: organization.id,
+					taskShortId,
+				},
+			});
 			return c.json(errorResponse("No Task found"), 404);
 		}
-		wideEvent.organization = {
-			id: organization.id,
-			slug: organization.slug,
-		};
-		wideEvent.task = {
-			id: task.id,
-			shortId: task.shortId,
-		};
+		await recordWideEvent({
+			name: "getTaskByShortId",
+			description: "Fetched public task data",
+			data: {
+				orgId: organization.id,
+				orgSlug: organization.slug,
+				taskId: task.id,
+				shortId: task.shortId,
+			},
+		});
 		return c.json(successResponse(task));
 	},
 );
@@ -458,63 +464,66 @@ apiPublicRoute.get(
 	}),
 	async (c) => {
 		try {
-			const wideEvent = c.get("wideEvent");
-			wideEvent.description = "List comments for a public task (paginated)";
-			wideEvent.service = "sayr-public-api";
+			const recordWideEvent = c.get("recordWideEvent");
 			const query = c.req.query();
 			const limit = Math.min(Number(query.limit) || 5, API_LIMITS.comments);
 			const page = Math.max(Number(query.page) || 1, 1);
 			const offset = (page - 1) * limit;
-
 			const orgSlug = c.req.param("org_slug");
 			const taskShortIdRaw = c.req.param("task_short_id");
 			const taskShortId = Number(taskShortIdRaw);
-
 			if (Number.isNaN(taskShortId)) {
-				wideEvent.error = {
-					type: "TaskError",
-					code: "InvalidID",
-					message: "Invalid task_short_id, must be a number",
-					taskShortId: taskShortIdRaw,
-				};
+				await recordWideEvent({
+					name: "getComments",
+					description: "Invalid task_short_id, must be a number",
+					data: {
+						type: "TaskError",
+						code: "InvalidID",
+						taskShortIdRaw,
+					},
+				});
 				return c.json(
 					errorResponse("Invalid task_short_id", "Must be a number"),
 					400,
 				);
 			}
-
-			// --- Get org ---
 			const org = await getOrganizationPublic(orgSlug);
 			if (!org) {
-				wideEvent.error = {
-					type: "OrganizationError",
-					code: "NotFound",
-					message: "No organization found for tasks",
-					orgSlug: orgSlug,
-				};
+				await recordWideEvent({
+					name: "getComments",
+					description: "No organization found for tasks",
+					data: {
+						type: "OrganizationError",
+						code: "NotFound",
+						orgSlug,
+					},
+				});
 				return c.json(errorResponse("Organization not found"), 404);
 			}
-
-			// --- Get task ---
 			const task = await getTaskByShortId(org.id, taskShortId);
 			if (!task) {
-				wideEvent.error = {
-					type: "TaskError",
-					code: "NotFound",
-					message: "No Task found",
-					taskShortId: taskShortId,
-				};
+				await recordWideEvent({
+					name: "getComments",
+					description: "Task not found for comments query",
+					data: {
+						type: "TaskError",
+						code: "NotFound",
+						orgId: org.id,
+						taskShortId,
+					},
+				});
 				return c.json(errorResponse("Task not found"), 404);
 			}
-
-			// ---- CHECK: limit overflow ----
 			if (Number(query.limit) > API_LIMITS.comments) {
-				wideEvent.error = {
-					type: "PaginationError",
-					code: "LimitOverflow",
-					message: `Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.comments}`,
-					requestedLimit: Number(query.limit),
-				};
+				await recordWideEvent({
+					name: "getComments",
+					description: "Limit overflow on comments pagination",
+					data: {
+						type: "PaginationError",
+						code: "LimitOverflow",
+						requestedLimit: Number(query.limit),
+					},
+				});
 				return c.json(
 					errorResponse(
 						"Invalid limit",
@@ -523,8 +532,6 @@ apiPublicRoute.get(
 					400,
 				);
 			}
-
-			// --- Total count of comments ---
 			const [countResult] = await db
 				.select({ count: sql<number>`count(*)` })
 				.from(schema.taskComment)
@@ -535,18 +542,19 @@ apiPublicRoute.get(
 						eq(schema.taskComment.visibility, "public"),
 					),
 				);
-
 			const totalItems = Number(countResult?.count ?? 0);
 			const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
-
-			// ---- CHECK: page overflow ----
 			if (page > totalPages && totalItems > 0) {
-				wideEvent.error = {
-					type: "PaginationError",
-					code: "PageOverflow",
-					message: `Valid pages range from 1 to ${totalPages}`,
-					requestedPage: page,
-				};
+				await recordWideEvent({
+					name: "getComments",
+					description: "Page overflow on comments pagination",
+					data: {
+						type: "PaginationError",
+						code: "PageOverflow",
+						requestedPage: page,
+						totalPages,
+					},
+				});
 				return c.json(
 					errorResponse(
 						`Page ${page} not found`,
@@ -555,8 +563,6 @@ apiPublicRoute.get(
 					400,
 				);
 			}
-
-			// --- Fetch comments ---
 			const comments = await db.query.taskComment.findMany({
 				where: (tC) =>
 					and(
@@ -576,21 +582,18 @@ apiPublicRoute.get(
 					},
 				},
 			});
-			wideEvent.organization = {
-				id: org.id,
-				slug: org.slug,
-			};
-			wideEvent.task = {
-				id: task.id,
-				shortId: task.shortId,
-			};
-			wideEvent.pagination = {
-				limit,
-				page,
-				totalPages,
-				totalItems,
-			};
-			// --- Response payload ---
+			await recordWideEvent({
+				name: "getComments",
+				description: "Fetched comments for public task (paginated)",
+				data: {
+					orgId: org.id,
+					orgSlug: org.slug,
+					taskId: task.id,
+					totalItems,
+					limit,
+					page,
+				},
+			});
 			return c.json(
 				paginatedSuccessResponse(comments, {
 					limit,
@@ -602,27 +605,7 @@ apiPublicRoute.get(
 			);
 		} catch (error) {
 			console.error("🚀 Comments Pagination Error:", error);
-
-			let readableError = "Database error";
-			let detailedMessage = "Unexpected error";
-
-			try {
-				const parsed = JSON.parse((error as Error).message);
-				readableError =
-					(Array.isArray(parsed) ? parsed[0]?.message : parsed?.message) ??
-					readableError;
-				detailedMessage =
-					(Array.isArray(parsed)
-						? parsed[0]?.detail || parsed[0]?.hint || parsed[0]?.message
-						: parsed?.detail || parsed?.message) ?? detailedMessage;
-			} catch {
-				readableError =
-					(error as Error)?.message ||
-					(typeof error === "string" ? error : "Unknown error");
-				detailedMessage = readableError;
-			}
-
-			return c.json(errorResponse(readableError, detailedMessage), 500);
+			return c.json(errorResponse("Database error", "Unexpected error"), 500);
 		}
 	},
 );

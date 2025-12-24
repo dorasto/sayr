@@ -1,175 +1,56 @@
-import { hostname } from "os";
+import {
+	context,
+	trace,
+	SpanStatusCode,
+	type Attributes,
+} from "@opentelemetry/api";
 import type { Context, Next } from "hono";
+import { getTracer } from "./index";
 
-// types/wideEvent.ts
-export interface WideEventContext {
-	ip: string | null | undefined;
-	user_agent: string | null | undefined;
-	host: string | null | undefined;
-	referer: string | null | undefined;
-	origin: string | null | undefined;
-	content_type: string | null | undefined;
-	url: string | null | undefined;
-	query: Record<string, string | string[]>;
-}
-
-export interface WideEventMetadata {
-	env: string | undefined;
-	region: string | undefined;
-	deployment_id: string | undefined;
-	version: string | undefined;
-	runtime: string;
-	pid: number;
-	memory_rss_mb: number;
-	uptime_s: number;
-	hostname: string;
-	platform: string;
-	arch: string;
-	heap_used_mb: number;
-}
-
-/**
- * Core event type — everything required by the middleware.
- * You can extend this using the generic parameter
- * for domain-specific fields (cart, user, payment, etc.).
- */
-export interface WideEventBase {
-	request_id: string;
-	timestamp: string;
-	method: string;
-	path: string;
-	service: string;
+export interface WideEvent {
 	name: string;
-	environment: string;
-	description: string;
-	context: WideEventContext;
-	metadata: WideEventMetadata;
-	status_code?: number;
-	outcome?: "success" | "error";
-	duration_ms?: number;
-	error?: Record<string, unknown>;
+	description?: string;
+	data: Record<string, unknown>; // your custom payload
 }
+
+export type RecordWideEvent = (wide: WideEvent) => Promise<void>;
 
 /**
- * Extensible typed event.
- * Every extension must remain an object (Record<string, unknown>),
- * so anything you append is guaranteed structured.
+ * Middleware that attaches a helper to record a custom‑data span.
+ * Requires rootSpanMiddleware (or another active OTel span) above it.
  */
-export type WideEvent<Custom extends Record<string, unknown> = Record<string, unknown>> = WideEventBase & Custom;
+export function wideEventMiddleware() {
+	return async (c: Context, next: Next) => {
+		c.set("recordWideEvent", async (wide: WideEvent) => {
+			const tracer = getTracer();
+			const parentCtx = context.active();
+			const parentSpan = trace.getSpan(parentCtx);
 
-export type WideEventSender = (event: Record<string, unknown>) => Promise<void> | void;
+			if (!parentSpan) {
+				console.warn("No active span found; wide event ignored.");
+				return;
+			}
+			const spanName = wide.name ?? "custom-data";
+			const span = tracer.startSpan(spanName, undefined, parentCtx);
+			try {
+				// inside the middleware
+				const attrs: Attributes = {
+					custom: JSON.stringify(wide.data),
+				};
+				if (wide.description) attrs.description = wide.description;
+				span.setAttributes(attrs);
+				span.setStatus({ code: SpanStatusCode.OK });
+			} catch (err) {
+				span.setStatus({
+					code: SpanStatusCode.ERROR,
+					message: (err as Error).message,
+				});
+				span.recordException(err as Error);
+			} finally {
+				span.end();
+			}
+		});
 
-export interface WideEventOptions {
-	// Optional override function to send the event (default = POST to AXIOM_BACKEND_OTEL_* env)
-	sendEvent?: WideEventSender;
-	// Automatically include request method, path, service, etc.
-	serviceName?: string;
-}
-
-export function wideEventMiddleware(opts: WideEventOptions = {}): (c: Context, next: Next) => Promise<void> {
-	const { sendEvent = defaultAxiomSend, serviceName = "sayr-backend-service" } = opts;
-
-	return async (c, next) => {
-		const start = Date.now();
-
-		// We'll let handlers attach app-specific fields to the event
-		const event: WideEvent = {
-			request_id: c.get("requestId"),
-			timestamp: new Date().toISOString(),
-			method: c.req.method,
-			path: c.req.path,
-			service: serviceName,
-			name: "sayr_backend_custom_event",
-			environment: process.env.NODE_ENV || "development",
-			description: "",
-			context: {
-				ip: c.req.header("x-forwarded-for") ?? c.req.header("cf-connecting-ip") ?? c.req.header("x-real-ip"),
-				user_agent: c.req.header("user-agent"),
-				host: c.req.header("host"),
-				referer: c.req.header("referer"),
-				origin: c.req.header("origin"),
-				content_type: c.req.header("content-type"),
-				url: c.req.url,
-				query: Object.fromEntries(Object.entries(c.req.query())), // safe lightweight version
-			},
-			metadata: {
-				env: process.env.NODE_ENV,
-				region: process.env.REGION,
-				deployment_id: process.env.DEPLOYMENT_ID,
-				version: process.env.SERVICE_VERSION,
-				runtime: `bun-${Bun.version}`,
-				pid: process.pid,
-				memory_rss_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
-				uptime_s: Math.floor(process.uptime()),
-				hostname: process.env.HOSTNAME ?? hostname(),
-				platform: process.platform,
-				arch: process.arch,
-				heap_used_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-			},
-		};
-
-		// Allow downstream handlers to enrich data
-		c.set("wideEvent", event);
-
-		try {
-			await next();
-			event.status_code = c.res.status;
-			event.outcome = c.res.status && c.res.status < 500 ? "success" : "error";
-		} catch (err) {
-			event.status_code = 500;
-			event.outcome = "error";
-			event.error = serializeError(err);
-			throw err;
-		} finally {
-			event.duration_ms = Date.now() - start;
-
-			// Send asynchronously
-			queueMicrotask(async () => {
-				try {
-					await sendEvent(event);
-				} catch (err) {
-					console.error("Failed to send wide event:", (err as Error).message);
-				}
-			});
-		}
+		await next();
 	};
-}
-
-// Default behaviour: POST to Axiom
-async function defaultAxiomSend(event: Record<string, unknown>) {
-	const domain = process.env.AXIOM_BACKEND_OTEL_DOMAIN;
-	const token = process.env.AXIOM_BACKEND_OTEL_TOKEN;
-	const dataset = process.env.AXIOM_BACKEND_OTEL_DATASET;
-
-	if (!domain || !token || !dataset) {
-		console.warn("Axiom env vars not set — skipping event send");
-		return;
-	}
-
-	await fetch(`https://${domain}/api/v1/datasets/${dataset}/ingest`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${token}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify([event]),
-		keepalive: true,
-	});
-}
-
-// Converts thrown errors to safe serializable form
-function serializeError(error: unknown) {
-	if (error instanceof Error) {
-		return {
-			type: error.name,
-			message: error.message,
-			// biome-ignore lint/suspicious/noExplicitAny: <any>
-			code: (error as any).code,
-			...Object.fromEntries(
-				// biome-ignore lint/suspicious/noExplicitAny: <any>
-				Object.entries(error as any).filter(([k]) => typeof k === "string")
-			),
-		};
-	}
-	return { message: String(error) };
 }
