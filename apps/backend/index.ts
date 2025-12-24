@@ -1,6 +1,3 @@
-import { httpInstrumentationMiddleware } from "@hono/otel";
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import { NodeSDK } from "@opentelemetry/sdk-node";
 import type { auth } from "@repo/auth/index";
 import { db, schema } from "@repo/database";
 import { Scalar } from "@scalar/hono-api-reference";
@@ -17,7 +14,7 @@ import { apiPublicRoute } from "./routes/api/public";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
 import { checkMembershipRole } from "./util";
-
+import { wideEventMiddleware } from "./tracing/wideEvent";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -25,47 +22,14 @@ export type AppEnv = {
 	Variables: {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
+		wideEvent: Record<string, unknown>;
 	};
 };
 
-const traceExporter = new OTLPTraceExporter({
-	url: `https://${process.env.AXIOM_BACKEND_OTEL_DOMAIN}/v1/traces`,
-	headers: {
-		Authorization: `Bearer ${process.env.AXIOM_BACKEND_OTEL_TOKEN}`,
-		"X-Axiom-Dataset": process.env.AXIOM_BACKEND_OTEL_DATASET || "",
-	},
-});
-
-// Create the OTEL SDK
-const openTelemetrySDK = new NodeSDK({
-	traceExporter,
-});
-
-// Start OTEL
-openTelemetrySDK.start();
-
-// -----------------------------------------------------------------------------
+// // -----------------------------------------------------------------------------
 // App setup
 // -----------------------------------------------------------------------------
 const app = new Hono<AppEnv>();
-// Optional request tracing instrumentation
-app.use(
-	httpInstrumentationMiddleware({
-		serviceName: "hono-with-axiom",
-		serviceVersion: process.env.APP_VERSION || "dev",
-		captureRequestHeaders: [
-			"user-agent",
-			"x-request-id",
-			"x-forwarded-for",
-			"x-real-ip",
-			"content-type",
-			"accept",
-			"origin",
-			"referer",
-		],
-		captureResponseHeaders: ["content-type", "content-length", "x-service-name", "x-organization-name"],
-	})
-);
 // -----------------------------------------------------------------------------
 // CORS
 // -----------------------------------------------------------------------------
@@ -99,6 +63,7 @@ app.get("/ws-test", serveStatic({ path: "./public/ws.html" }));
 app.get("/file-test", serveStatic({ path: "./public/file-test.html" }));
 app.route("/ws", wsRoute);
 app.route("/webhook", webhookRoute);
+app.use("*", wideEventMiddleware());
 app.route("/api/public", apiPublicRoute);
 app.get(
 	"/api/public/openapi.json",
@@ -200,6 +165,14 @@ app.route("/api", apiRoute);
 // 404 fallback
 app.all("*", (c) => {
 	console.warn(`🚫  Route not found: ${c.req.method} ${c.req.path}`);
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Route not found";
+	wideEvent.error = {
+		type: "RouteError",
+		code: "NotFound",
+		message: `Route ${c.req.method}:${c.req.path} not found`,
+	};
+	wideEvent.outcome = "error";
 	return c.json(
 		{
 			message: `Route ${c.req.method}:${c.req.path} not found`,
@@ -218,6 +191,13 @@ app.onError((err, c) => {
 	console.error("  Path:", c.req.path);
 	console.error("  Method:", c.req.method);
 	console.error("  Stack:", err.stack ?? "No stack trace");
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Unhandled error";
+	wideEvent.error = {
+		type: err.name,
+		message: err.message,
+		stack: err.stack,
+	};
 	return c.json(
 		{
 			success: false,

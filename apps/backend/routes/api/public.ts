@@ -1,12 +1,25 @@
-import { db, getLabels, getOrganizationPublic, getTaskByShortId, schema } from "@repo/database";
+import {
+	db,
+	getLabels,
+	getOrganizationPublic,
+	getTaskByShortId,
+	schema,
+} from "@repo/database";
 import { and, eq, sql } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import z from "zod";
 import type { AppEnv } from "@/index";
-import { describeOkNotFound, describePaginatedRoute } from "../../openapi/helpers";
-import { errorResponse, paginatedSuccessResponse, successResponse } from "../../responses";
+import {
+	describeOkNotFound,
+	describePaginatedRoute,
+} from "../../openapi/helpers";
+import {
+	errorResponse,
+	paginatedSuccessResponse,
+	successResponse,
+} from "../../responses";
 
 const API_LIMITS = {
 	comments: 30,
@@ -21,7 +34,7 @@ apiPublicRoute.use(
 		allowMethods: ["GET"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		credentials: false,
-	})
+	}),
 );
 apiPublicRoute.use("*", async (c, next) => {
 	c.header("X-API-Version", "1.0.0");
@@ -33,8 +46,14 @@ apiPublicRoute.use("*", async (c, next) => {
 const OrganizationSchema = createSelectSchema(schema.organization)
 	.omit({ privateId: true })
 	.extend({
-		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+		createdAt: z.preprocess(
+			(v) => (v instanceof Date ? v.toISOString() : v),
+			z.string(),
+		),
+		updatedAt: z.preprocess(
+			(v) => (v instanceof Date ? v.toISOString() : v),
+			z.string(),
+		),
 	});
 apiPublicRoute.get(
 	"/organization/:org_slug",
@@ -52,18 +71,36 @@ apiPublicRoute.get(
 		tags: ["Organization"],
 	}),
 	async (c) => {
+		const wideEvent = c.get("wideEvent");
+		wideEvent.description = "Fetch public organization data by slug";
+		wideEvent.service = "sayr-public-api";
 		const orgSlug = c.req.param("org_slug");
 		const organization = await getOrganizationPublic(orgSlug);
-		if (!organization) return c.json(errorResponse("No organization found"), 404);
+		if (!organization) {
+			wideEvent.error = {
+				type: "OrganizationError",
+				code: "NotFound",
+				message: "No organization found",
+				orgSlug: orgSlug,
+			};
+			return c.json(errorResponse("No organization found"), 404);
+		}
+		wideEvent.organization = {
+			id: organization.id,
+			slug: organization.slug,
+		};
 		// biome-ignore lint/correctness/noUnusedVariables: <needed>
 		const { privateId, ...publicOrg } = organization;
 		return c.json(successResponse(publicOrg));
-	}
+	},
 );
 
 //@ts-expect-error
 const LabelSchema = createSelectSchema(schema.label).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	createdAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/labels",
@@ -81,17 +118,35 @@ apiPublicRoute.get(
 		tags: ["Organization"],
 	}),
 	async (c) => {
+		const wideEvent = c.get("wideEvent");
+		wideEvent.description = "Fetch public organization labels";
+		wideEvent.service = "sayr-public-api";
 		const orgSlug = c.req.param("org_slug");
 		const organization = await getOrganizationPublic(orgSlug);
-		if (!organization) return c.json(errorResponse("No organization found"), 404);
+		if (!organization) {
+			wideEvent.error = {
+				type: "OrganizationError",
+				code: "NotFound",
+				message: "No organization found for labels",
+				orgSlug: orgSlug,
+			};
+			return c.json(errorResponse("No organization found"), 404);
+		}
 		const labels = await getLabels(organization.id);
+		wideEvent.organization = {
+			id: organization.id,
+			slug: organization.slug,
+		};
 		return c.json(successResponse(labels));
-	}
+	},
 );
 
 //@ts-expect-error
 const CategorySchema = createSelectSchema(schema.category).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	createdAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/categories",
@@ -109,32 +164,63 @@ apiPublicRoute.get(
 		tags: ["Organization"],
 	}),
 	async (c) => {
+		const wideEvent = c.get("wideEvent");
+		wideEvent.description = "Fetch public organization categories";
+		wideEvent.service = "sayr-public-api";
 		const orgSlug = c.req.param("org_slug");
 		const organization = await getOrganizationPublic(orgSlug);
-		if (!organization) return c.json(errorResponse("No organization found"), 404);
+		if (!organization) {
+			wideEvent.error = {
+				type: "OrganizationError",
+				code: "NotFound",
+				message: "No organization found for labels",
+				orgSlug: orgSlug,
+			};
+			return c.json(errorResponse("No organization found"), 404);
+		}
 		const categories = await db.query.category.findMany({
 			where: (category) => eq(category.organizationId, organization.id),
 		});
+		wideEvent.organization = {
+			id: organization.id,
+			slug: organization.slug,
+		};
 		return c.json(successResponse(categories));
-	}
+	},
 );
 
 //@ts-expect-error
 const TaskSchema = createSelectSchema(schema.task).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	createdAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
+	updatedAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks",
 	describePaginatedRoute({
 		description: "List organization tasks (paginated)",
 		dataSchema: TaskSchema,
-		parameters: [{ name: "org_slug", in: "path", required: true, schema: { type: "string" } }],
+		parameters: [
+			{
+				name: "org_slug",
+				in: "path",
+				required: true,
+				schema: { type: "string" },
+			},
+		],
 		maxLimit: API_LIMITS.tasks,
 		tags: ["Organization"],
 	}),
 	async (c) => {
 		try {
+			const wideEvent = c.get("wideEvent");
+			wideEvent.description = "List public organization tasks (paginated)";
+			wideEvent.service = "sayr-public-api";
 			// --- Query + Params ---
 			const query = c.req.query();
 			const limit = Math.min(Number(query.limit) || 5, API_LIMITS.tasks);
@@ -145,17 +231,29 @@ apiPublicRoute.get(
 			const orgSlug = c.req.param("org_slug");
 			const organization = await getOrganizationPublic(orgSlug);
 			if (!organization) {
+				wideEvent.error = {
+					type: "OrganizationError",
+					code: "NotFound",
+					message: "No organization found for tasks",
+					orgSlug: orgSlug,
+				};
 				return c.json(errorResponse("Organization not found"), 404);
 			}
 
 			// ---- CHECK: limit overflow ----
 			if (Number(query.limit) > API_LIMITS.tasks) {
+				wideEvent.error = {
+					type: "PaginationError",
+					code: "LimitOverflow",
+					message: `Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.tasks}`,
+					requestedLimit: Number(query.limit),
+				};
 				return c.json(
 					errorResponse(
 						"Invalid limit",
-						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.tasks}`
+						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.tasks}`,
 					),
-					400
+					400,
 				);
 			}
 
@@ -170,7 +268,19 @@ apiPublicRoute.get(
 
 			// ---- CHECK: page overflow ----
 			if (page > totalPages && totalItems > 0) {
-				return c.json(errorResponse(`Page ${page} not found`, `Valid pages range from 1 to ${totalPages}`), 400);
+				wideEvent.error = {
+					type: "PaginationError",
+					code: "PageOverflow",
+					message: `Valid pages range from 1 to ${totalPages}`,
+					requestedPage: page,
+				};
+				return c.json(
+					errorResponse(
+						`Page ${page} not found`,
+						`Valid pages range from 1 to ${totalPages}`,
+					),
+					400,
+				);
 			}
 
 			// --- Fetch tasks using Drizzle ---
@@ -184,7 +294,16 @@ apiPublicRoute.get(
 					category: { columns: { id: true, name: true } },
 				},
 			});
-
+			wideEvent.organization = {
+				id: organization.id,
+				slug: organization.slug,
+			};
+			wideEvent.pagination = {
+				limit,
+				page,
+				totalPages,
+				totalItems,
+			};
 			// --- Response payload ---
 			return c.json(
 				paginatedSuccessResponse(tasks, {
@@ -193,7 +312,7 @@ apiPublicRoute.get(
 					totalPages,
 					totalItems,
 					hasMore: page < totalPages,
-				})
+				}),
 			);
 		} catch (error) {
 			// --- Safe error handler ---
@@ -204,19 +323,22 @@ apiPublicRoute.get(
 
 			try {
 				const parsed = JSON.parse((error as Error).message);
-				readableError = (Array.isArray(parsed) ? parsed[0]?.message : parsed?.message) ?? readableError;
+				readableError =
+					(Array.isArray(parsed) ? parsed[0]?.message : parsed?.message) ??
+					readableError;
 				detailedMessage =
 					(Array.isArray(parsed)
 						? parsed[0]?.detail || parsed[0]?.hint || parsed[0]?.message
 						: parsed?.detail || parsed?.message) ?? detailedMessage;
 			} catch {
-				readableError = (error as Error)?.message || (typeof error === "string" ? error : "Unknown error");
+				readableError =
+					(error as Error)?.message ||
+					(typeof error === "string" ? error : "Unknown error");
 				detailedMessage = readableError;
 			}
-
 			return c.json(errorResponse(readableError, detailedMessage), 500);
 		}
-	}
+	},
 );
 
 apiPublicRoute.get(
@@ -241,32 +363,69 @@ apiPublicRoute.get(
 		tags: ["Organization"],
 	}),
 	async (c) => {
+		const wideEvent = c.get("wideEvent");
+		wideEvent.description = "Fetch public task data";
+		wideEvent.service = "sayr-public-api";
 		const orgSlug = c.req.param("org_slug");
 		const taskShortIdRaw = c.req.param("task_short_id");
 		const taskShortId = Number(taskShortIdRaw);
 
 		if (Number.isNaN(taskShortId)) {
-			return c.json(errorResponse("Invalid task_short_id", "Must be a number"), 400);
+			wideEvent.error = {
+				type: "TaskError",
+				code: "InvalidID",
+				message: "Invalid task_short_id, must be a number",
+				taskShortId: taskShortIdRaw,
+			};
+			return c.json(
+				errorResponse("Invalid task_short_id", "Must be a number"),
+				400,
+			);
 		}
 
 		const organization = await getOrganizationPublic(orgSlug);
 		if (!organization) {
+			wideEvent.error = {
+				type: "OrganizationError",
+				code: "NotFound",
+				message: "No organization found for tasks",
+				orgSlug: orgSlug,
+			};
 			return c.json(errorResponse("No organization found"), 404);
 		}
 
 		const task = await getTaskByShortId(organization.id, taskShortId);
 		if (!task) {
+			wideEvent.error = {
+				type: "TaskError",
+				code: "NotFound",
+				message: "No Task found",
+				taskShortId: taskShortId,
+			};
 			return c.json(errorResponse("No Task found"), 404);
 		}
-
+		wideEvent.organization = {
+			id: organization.id,
+			slug: organization.slug,
+		};
+		wideEvent.task = {
+			id: task.id,
+			shortId: task.shortId,
+		};
 		return c.json(successResponse(task));
-	}
+	},
 );
 
 //@ts-expect-error
 const CommentSchema = createSelectSchema(schema.taskComment).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	createdAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
+	updatedAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
 	createdBy: z
 		.object({
 			name: z.string().nullable(),
@@ -299,6 +458,9 @@ apiPublicRoute.get(
 	}),
 	async (c) => {
 		try {
+			const wideEvent = c.get("wideEvent");
+			wideEvent.description = "List comments for a public task (paginated)";
+			wideEvent.service = "sayr-public-api";
 			const query = c.req.query();
 			const limit = Math.min(Number(query.limit) || 5, API_LIMITS.comments);
 			const page = Math.max(Number(query.page) || 1, 1);
@@ -309,29 +471,56 @@ apiPublicRoute.get(
 			const taskShortId = Number(taskShortIdRaw);
 
 			if (Number.isNaN(taskShortId)) {
-				return c.json(errorResponse("Invalid task_short_id", "Must be a number"), 400);
+				wideEvent.error = {
+					type: "TaskError",
+					code: "InvalidID",
+					message: "Invalid task_short_id, must be a number",
+					taskShortId: taskShortIdRaw,
+				};
+				return c.json(
+					errorResponse("Invalid task_short_id", "Must be a number"),
+					400,
+				);
 			}
 
 			// --- Get org ---
 			const org = await getOrganizationPublic(orgSlug);
 			if (!org) {
+				wideEvent.error = {
+					type: "OrganizationError",
+					code: "NotFound",
+					message: "No organization found for tasks",
+					orgSlug: orgSlug,
+				};
 				return c.json(errorResponse("Organization not found"), 404);
 			}
 
 			// --- Get task ---
 			const task = await getTaskByShortId(org.id, taskShortId);
 			if (!task) {
+				wideEvent.error = {
+					type: "TaskError",
+					code: "NotFound",
+					message: "No Task found",
+					taskShortId: taskShortId,
+				};
 				return c.json(errorResponse("Task not found"), 404);
 			}
 
 			// ---- CHECK: limit overflow ----
 			if (Number(query.limit) > API_LIMITS.comments) {
+				wideEvent.error = {
+					type: "PaginationError",
+					code: "LimitOverflow",
+					message: `Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.comments}`,
+					requestedLimit: Number(query.limit),
+				};
 				return c.json(
 					errorResponse(
 						"Invalid limit",
-						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.comments}`
+						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.comments}`,
 					),
-					400
+					400,
 				);
 			}
 
@@ -343,8 +532,8 @@ apiPublicRoute.get(
 					and(
 						eq(schema.taskComment.taskId, task.id),
 						eq(schema.taskComment.organizationId, org.id),
-						eq(schema.taskComment.visibility, "public")
-					)
+						eq(schema.taskComment.visibility, "public"),
+					),
 				);
 
 			const totalItems = Number(countResult?.count ?? 0);
@@ -352,13 +541,29 @@ apiPublicRoute.get(
 
 			// ---- CHECK: page overflow ----
 			if (page > totalPages && totalItems > 0) {
-				return c.json(errorResponse(`Page ${page} not found`, `Valid pages range from 1 to ${totalPages}`), 400);
+				wideEvent.error = {
+					type: "PaginationError",
+					code: "PageOverflow",
+					message: `Valid pages range from 1 to ${totalPages}`,
+					requestedPage: page,
+				};
+				return c.json(
+					errorResponse(
+						`Page ${page} not found`,
+						`Valid pages range from 1 to ${totalPages}`,
+					),
+					400,
+				);
 			}
 
 			// --- Fetch comments ---
 			const comments = await db.query.taskComment.findMany({
 				where: (tC) =>
-					and(eq(tC.taskId, task.id), eq(tC.organizationId, org.id), eq(schema.taskComment.visibility, "public")),
+					and(
+						eq(tC.taskId, task.id),
+						eq(tC.organizationId, org.id),
+						eq(schema.taskComment.visibility, "public"),
+					),
 				orderBy: (tC, { desc }) => desc(tC.createdAt),
 				limit,
 				offset,
@@ -371,7 +576,20 @@ apiPublicRoute.get(
 					},
 				},
 			});
-
+			wideEvent.organization = {
+				id: org.id,
+				slug: org.slug,
+			};
+			wideEvent.task = {
+				id: task.id,
+				shortId: task.shortId,
+			};
+			wideEvent.pagination = {
+				limit,
+				page,
+				totalPages,
+				totalItems,
+			};
 			// --- Response payload ---
 			return c.json(
 				paginatedSuccessResponse(comments, {
@@ -380,7 +598,7 @@ apiPublicRoute.get(
 					totalPages,
 					totalItems,
 					hasMore: page < totalPages,
-				})
+				}),
 			);
 		} catch (error) {
 			console.error("🚀 Comments Pagination Error:", error);
@@ -390,17 +608,21 @@ apiPublicRoute.get(
 
 			try {
 				const parsed = JSON.parse((error as Error).message);
-				readableError = (Array.isArray(parsed) ? parsed[0]?.message : parsed?.message) ?? readableError;
+				readableError =
+					(Array.isArray(parsed) ? parsed[0]?.message : parsed?.message) ??
+					readableError;
 				detailedMessage =
 					(Array.isArray(parsed)
 						? parsed[0]?.detail || parsed[0]?.hint || parsed[0]?.message
 						: parsed?.detail || parsed?.message) ?? detailedMessage;
 			} catch {
-				readableError = (error as Error)?.message || (typeof error === "string" ? error : "Unknown error");
+				readableError =
+					(error as Error)?.message ||
+					(typeof error === "string" ? error : "Unknown error");
 				detailedMessage = readableError;
 			}
 
 			return c.json(errorResponse(readableError, detailedMessage), 500);
 		}
-	}
+	},
 );

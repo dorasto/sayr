@@ -11,12 +11,19 @@ export const apiRouteFile = new Hono<AppEnv>();
 // Upload a file
 apiRouteFile.put("/", async (c) => {
 	try {
+		const wideEvent = c.get("wideEvent");
+		wideEvent.description = "File upload requested";
 		const session = c.get("session");
 		const orgId = c.req.header("X-File-Privacy");
 		// Parse multipart body
 		const body = await c.req.parseBody();
 		const file = body.file;
 		if (!file || !(file instanceof File)) {
+			wideEvent.error = {
+				type: "UploadError",
+				code: "NoFileUploaded",
+				message: "No file uploaded in the request",
+			};
 			return c.json({ success: false, error: "No file uploaded" }, 400);
 		}
 		// Convert file to buffer
@@ -37,6 +44,10 @@ apiRouteFile.put("/", async (c) => {
 		if (orgId !== "public" && typeof orgId === "string") {
 			const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "members");
 			if (!isAuthorized) {
+				wideEvent.upload = {
+					organizationId: orgId,
+					public: true,
+				};
 				// Upload to storage
 				const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
 					"Content-Type": file.type || "application/octet-stream",
@@ -52,6 +63,10 @@ apiRouteFile.put("/", async (c) => {
 				where: (org) => eq(org.id, orgId),
 			});
 			if (!organization) {
+				wideEvent.upload = {
+					organizationId: orgId,
+					public: true,
+				};
 				// Upload to storage
 				const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
 					"Content-Type": file.type || "application/octet-stream",
@@ -63,6 +78,10 @@ apiRouteFile.put("/", async (c) => {
 					url,
 				});
 			}
+			wideEvent.upload = {
+				organizationId: orgId,
+				public: false,
+			};
 			// Upload to storage
 			const uploadedUrl = await uploadObject(objectName, buffer, `files/${organization?.privateId}`, {
 				"Content-Type": file.type || "application/octet-stream",
@@ -74,6 +93,9 @@ apiRouteFile.put("/", async (c) => {
 				url,
 			});
 		}
+		wideEvent.upload = {
+			public: true,
+		};
 		// Upload to storage
 		const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
 			"Content-Type": file.type || "application/octet-stream",
@@ -93,12 +115,24 @@ apiRouteFile.put("/", async (c) => {
 
 apiRouteFile.delete("/", async (c) => {
 	try {
+		const wideEvent = c.get("wideEvent");
+		wideEvent.description = "File delete requested";
 		const session = c.get("session");
 		if (!session?.userId) {
+			wideEvent.error = {
+				type: "AuthorizationError",
+				code: "Unauthorized",
+				message: "User not authenticated",
+			};
 			return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 		}
 		const { url } = await c.req.json();
 		if (!url || typeof url !== "string") {
+			wideEvent.error = {
+				type: "DeleteError",
+				code: "NoFileUrlProvided",
+				message: "No file URL provided in the request",
+			};
 			return c.json({ success: false, error: "No file URL provided" }, 400);
 		}
 		const { hasPrivateId, privateId } = extractPrivateIdFromUrl(url);
@@ -106,6 +140,9 @@ apiRouteFile.delete("/", async (c) => {
 			? `files/${privateId}/${getFileNameFromUrl(url)}`
 			: `files/${getFileNameFromUrl(url)}`;
 		await removeObject(storagePath);
+		wideEvent.delete = {
+			success: true,
+		};
 		return c.json({
 			success: true,
 			message: "File deleted successfully",

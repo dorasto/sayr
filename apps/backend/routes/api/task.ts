@@ -32,11 +32,18 @@ export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
 // Create a new task
 apiRouteAdminProjectTask.post("/create", async (c) => {
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Create task requested";
 	const { org_id, wsClientId, title, description, status, priority, labels, assignees, category } = await c.req.json();
 	const session = c.get("session");
 	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 
 	if (!isAuthorized) {
+		wideEvent.error = {
+			type: "AuthorizationError",
+			code: "Unauthorized",
+			message: "User does not have permission to create tasks",
+		};
 		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	const task = await createTask(
@@ -52,6 +59,11 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	);
 
 	if (!task) {
+		wideEvent.error = {
+			type: "DatabaseError",
+			code: "TaskCreationFailed",
+			message: "Failed to create task in database",
+		};
 		return c.json({ success: false, path: c.req.path, error: "Failed to create task" }, 500);
 	}
 	if (labels && labels.length > 0) {
@@ -129,6 +141,12 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			});
 		}
 	}
+	wideEvent.taskCreation = {
+		organizationId: org_id,
+		createdByUserId: session?.userId || "",
+		taskId: task.id,
+		title: title,
+	};
 	return c.json({
 		success: true,
 		data: taskWithData,
@@ -136,11 +154,14 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 });
 // Update task details
 apiRouteAdminProjectTask.patch("/update", async (c) => {
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Update task requested";
 	const { org_id, wsClientId, task_id, ...updates } = await c.req.json();
 	const session = c.get("session");
 	const systemAccountCheck = session?.userId === process.env.SYSTEM_ACCOUNT_ID;
 	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (systemAccountCheck) {
+		wideEvent.systemAccountUpdate = true;
 		console.log("✅ System account authorized to update task", {
 			task_id,
 			org_id,
@@ -151,6 +172,11 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		});
 	}
 	if (!isAuthorized && !systemAccountCheck) {
+		wideEvent.error = {
+			type: "AuthorizationError",
+			code: "Unauthorized",
+			message: "User does not have permission to update tasks",
+		};
 		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	// 🔎 Check task existence
@@ -158,6 +184,11 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id)),
 	});
 	if (!existingTask) {
+		wideEvent.error = {
+			type: "NotFoundError",
+			code: "TaskNotFound",
+			message: "Task not found in database",
+		};
 		return c.json({ success: false, error: "Task not found" }, 404);
 	}
 
@@ -235,15 +266,27 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				broadcastIndividual(c.socket, data, org_id)
 		);
 	});
+	wideEvent.taskUpdate = {
+		organizationId: org_id,
+		updatedByUserId: session?.userId || "",
+		taskId: task_id,
+		updates: allowed,
+	};
 	return c.json({ success: true, data: taskWithData });
 });
 // Update task labels
 apiRouteAdminProjectTask.post("/update-labels", async (c) => {
+	const wideEvent = c.get("wideEvent");
 	const { org_id, wsClientId, task_id, labels } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
+		wideEvent.error = {
+			type: "AuthorizationError",
+			code: "Unauthorized",
+			message: "User does not have permission to update task labels",
+		};
 		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	// const key = `${org_id}:${project_id}:${task_id}`;
@@ -259,6 +302,11 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 		});
 
 		if (!existingTask) {
+			wideEvent.error = {
+				type: "NotFoundError",
+				code: "TaskNotFound",
+				message: "Task not found in database",
+			};
 			return c.json({ success: false, error: "Task not found" }, 404);
 		}
 
@@ -309,6 +357,12 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 					broadcastIndividual(c.socket, data, org_id)
 			);
 		});
+		wideEvent.taskLabelUpdate = {
+			organizationId: org_id,
+			updatedByUserId: session?.userId || "",
+			taskId: task_id,
+			newLabels: labels,
+		};
 		return c.json({ success: true, data: taskWithData });
 	} catch (err) {
 		console.error("update-labels error:", err);
@@ -321,11 +375,18 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 });
 // Update task assignees
 apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Update task assignees requested";
 	const { org_id, wsClientId, task_id, assignees } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
+		wideEvent.error = {
+			type: "AuthorizationError",
+			code: "Unauthorized",
+			message: "User does not have permission to update task assignees",
+		};
 		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	// const key = `${org_id}:${project_id}:${task_id}`;
@@ -342,6 +403,11 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 		});
 
 		if (!existingTask) {
+			wideEvent.error = {
+				type: "NotFoundError",
+				code: "TaskNotFound",
+				message: "Task not found in database",
+			};
 			return c.json({ success: false, error: "Task not found" }, 404);
 		}
 		// Normalize assignees for the task
@@ -401,6 +467,12 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 					broadcastIndividual(c.socket, data, org_id)
 			);
 		});
+		wideEvent.taskUpdate = {
+			organizationId: org_id,
+			updatedByUserId: session?.userId || "",
+			taskId: task_id,
+			newAssignees: assignees,
+		};
 		return c.json({ success: true, data: taskWithData });
 	} catch (err) {
 		console.error("update-assignees error:", err);
@@ -413,11 +485,18 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 });
 // Create a comment on a task
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Create task comment requested";
 	const { org_id, wsClientId, task_id, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
+		wideEvent.error = {
+			type: "AuthorizationError",
+			code: "Unauthorized",
+			message: "User does not have permission to create task comments",
+		};
 		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 	await createComment(org_id, task_id, content, visibility, session?.userId);
@@ -436,16 +515,29 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				broadcastIndividual(c.socket, data, org_id)
 		);
 	});
+	wideEvent.taskCommentCreation = {
+		organizationId: org_id,
+		createdByUserId: session?.userId || "",
+		taskId: task_id,
+		visibility: visibility,
+	};
 	return c.json({ success: true, data: { id: task_id } });
 });
 
 // Edit a comment on a task
 apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Edit task comment requested";
 	const { org_id, wsClientId, comment_id, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
+		wideEvent.error = {
+			type: "AuthorizationError",
+			code: "Unauthorized",
+			message: "User does not have permission to edit task comments",
+		};
 		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 
@@ -454,6 +546,11 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	});
 
 	if (!comment) {
+		wideEvent.error = {
+			type: "NotFoundError",
+			code: "COMMENT_NOT_FOUND",
+			message: "Comment not found in database",
+		};
 		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
 	}
 
@@ -492,23 +589,42 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 				broadcastIndividual(c.socket, data, org_id)
 		);
 	});
+	wideEvent.taskCommentEdit = {
+		organizationId: org_id,
+		editedByUserId: session?.userId || "",
+		commentId: comment_id,
+		taskId: comment.taskId,
+		visibility: visibility,
+	};
 	return c.json({ success: true, data: { id: comment.taskId } });
 });
 
 apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
-	const query = await c.req.query();
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Get task comment history requested";
+	const query = c.req.query();
 	const org_id = query.org_id;
 	const task_id = query.task_id;
 	const comment_id = query.comment_id;
 	const session = c.get("session");
 
 	if (!org_id || !task_id || !comment_id) {
+		wideEvent.error = {
+			type: "ValidationError",
+			code: "MISSING_PARAMETERS",
+			message: "One or more required parameters are missing",
+		};
 		return c.json({ success: false, error: "Missing params" }, 400);
 	}
 
 	// Basic org-level check
 	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "members");
 	if (!isAuthorized) {
+		wideEvent.error = {
+			type: "AuthorizationError",
+			code: "Unauthorized",
+			message: "User does not have permission to view task comment history",
+		};
 		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 
@@ -519,11 +635,20 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 		.where((t) => and(eq(t.organizationId, org_id), eq(t.taskId, task_id), eq(t.commentId, comment_id)))
 		.orderBy((t) => [desc(t.editedAt)]);
 
+	wideEvent.taskCommentHistoryFetch = {
+		organizationId: org_id,
+		requestedByUserId: session?.userId || "",
+		taskId: task_id,
+		commentId: comment_id,
+		historyCount: history.length,
+	};
 	return c.json({ success: true, data: history });
 });
 
 // Get merged task activity timeline
 apiRouteAdminProjectTask.get("/timeline", async (c) => {
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Get task timeline requested";
 	const query = c.req.query();
 	const org_id = query.org_id;
 	const task_id = query.task_id;
@@ -534,6 +659,11 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	if (!task_id) missingParams.push("task_id");
 
 	if (missingParams.length > 0) {
+		wideEvent.error = {
+			type: "ValidationError",
+			code: "MISSING_PARAMETERS",
+			message: `The following parameters are required: ${missingParams.join(", ")}`,
+		};
 		return c.json(
 			{
 				success: false,
@@ -551,7 +681,12 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	if (!isAuthorized) {
 		// --- Fetch task & comments ---
 		const timeline = await getMergedTaskActivity(org_id || "", task_id || "", true);
-
+		wideEvent.taskTimelineFetch = {
+			organizationId: org_id,
+			requestedByUserId: session?.userId || "",
+			taskId: task_id,
+			authorized: false,
+		};
 		return c.json({
 			success: true,
 			data: timeline,
@@ -559,7 +694,12 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 	}
 	// --- Fetch task & comments ---
 	const timeline = await getMergedTaskActivity(org_id || "", task_id || "", false);
-
+	wideEvent.taskTimelineFetch = {
+		organizationId: org_id,
+		requestedByUserId: session?.userId || "",
+		taskId: task_id,
+		authorized: true,
+	};
 	return c.json({
 		success: true,
 		data: timeline,
@@ -567,6 +707,8 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 });
 
 apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Get task timeline activity requested";
 	const query = c.req.query();
 	const org_id = query.org_id;
 	const task_id = query.task_id;
@@ -575,6 +717,11 @@ apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
 	if (!org_id) missingParams.push("org_id");
 	if (!task_id) missingParams.push("task_id");
 	if (missingParams.length > 0) {
+		wideEvent.error = {
+			type: "ValidationError",
+			code: "MISSING_PARAMETERS",
+			message: `The following parameters are required: ${missingParams.join(", ")}`,
+		};
 		return c.json(
 			{
 				success: false,
@@ -585,6 +732,10 @@ apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
 		);
 	}
 	const timeline = await getTaskTimeline(org_id || "", task_id || "");
+	wideEvent.taskTimelineActivityFetch = {
+		organizationId: org_id,
+		taskId: task_id,
+	};
 	return c.json({
 		success: true,
 		data: timeline,
@@ -593,12 +744,19 @@ apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
 
 apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 	try {
+		const wideEvent = c.get("wideEvent");
+		wideEvent.description = "Get task comments requested";
 		console.time("⏱ comments");
 		const q = c.req.query();
 		const orgId = q.org_id;
 		const taskId = q.task_id;
 
 		if (!orgId || !taskId) {
+			wideEvent.error = {
+				type: "ValidationError",
+				code: "MISSING_PARAMETERS",
+				message: "org_id and task_id are required",
+			};
 			return c.json({ success: false, error: "MISSING_PARAMETERS" }, 400);
 		}
 
@@ -641,6 +799,16 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 			actor: item.createdBy,
 		}));
 		console.timeEnd("⏱ comments");
+		wideEvent.taskTimelineCommentsFetch = {
+			organizationId: orgId,
+			requestedByUserId: session?.userId || "",
+			taskId: taskId,
+			page,
+			limit,
+			totalItems,
+			totalPages,
+			isPublic,
+		};
 		// --- Return response
 		return c.json({
 			success: true,
@@ -660,11 +828,18 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 });
 
 apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
+	const wideEvent = c.get("wideEvent");
+	wideEvent.description = "Get task comments count requested";
 	// -------------------------------
 	// Just parse query params
 	// -------------------------------
 	const { org_id: orgId, task_id: taskId, limit } = c.req.query();
 	if (!orgId || !taskId) {
+		wideEvent.error = {
+			type: "ValidationError",
+			code: "MISSING_PARAMETERS",
+			message: "org_id and task_id are required",
+		};
 		return c.json({ success: false, error: "MISSING_PARAMETERS" }, 400);
 	}
 	// Limit: optional, capped at 50 for sanity
@@ -687,6 +862,13 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 	// -------------------------------
 	// Respond — minimal JSON
 	// -------------------------------
+	wideEvent.taskTimelineCommentsCountFetch = {
+		organizationId: orgId,
+		taskId: taskId,
+		totalItems,
+		totalPages,
+		limit: perPage,
+	};
 	return c.json({
 		success: true,
 		pagination: { totalItems, totalPages, limit: perPage },
