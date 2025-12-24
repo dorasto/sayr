@@ -14,7 +14,7 @@ import { apiPublicRoute } from "./routes/api/public";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
 import { checkMembershipRole } from "./util";
-import { wideEventMiddleware } from "./tracing/wideEvent";
+import { type WideEvent, wideEventMiddleware } from "./tracing/wideEvent";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -22,7 +22,7 @@ export type AppEnv = {
 	Variables: {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
-		wideEvent: Record<string, unknown>;
+		wideEvent: WideEvent;
 	};
 };
 

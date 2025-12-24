@@ -1,6 +1,62 @@
 import { hostname } from "os";
 import type { Context, Next } from "hono";
 
+// types/wideEvent.ts
+export interface WideEventContext {
+	ip: string | null | undefined;
+	user_agent: string | null | undefined;
+	host: string | null | undefined;
+	referer: string | null | undefined;
+	origin: string | null | undefined;
+	content_type: string | null | undefined;
+	url: string | null | undefined;
+	query: Record<string, string | string[]>;
+}
+
+export interface WideEventMetadata {
+	env: string | undefined;
+	region: string | undefined;
+	deployment_id: string | undefined;
+	version: string | undefined;
+	runtime: string;
+	pid: number;
+	memory_rss_mb: number;
+	uptime_s: number;
+	hostname: string;
+	platform: string;
+	arch: string;
+	heap_used_mb: number;
+}
+
+/**
+ * Core event type — everything required by the middleware.
+ * You can extend this using the generic parameter
+ * for domain-specific fields (cart, user, payment, etc.).
+ */
+export interface WideEventBase {
+	request_id: string;
+	timestamp: string;
+	method: string;
+	path: string;
+	service: string;
+	name: string;
+	environment: string;
+	description: string;
+	context: WideEventContext;
+	metadata: WideEventMetadata;
+	status_code?: number;
+	outcome?: "success" | "error";
+	duration_ms?: number;
+	error?: Record<string, unknown>;
+}
+
+/**
+ * Extensible typed event.
+ * Every extension must remain an object (Record<string, unknown>),
+ * so anything you append is guaranteed structured.
+ */
+export type WideEvent<Custom extends Record<string, unknown> = Record<string, unknown>> = WideEventBase & Custom;
+
 export type WideEventSender = (event: Record<string, unknown>) => Promise<void> | void;
 
 export interface WideEventOptions {
@@ -17,7 +73,7 @@ export function wideEventMiddleware(opts: WideEventOptions = {}): (c: Context, n
 		const start = Date.now();
 
 		// We'll let handlers attach app-specific fields to the event
-		const event: Record<string, unknown> = {
+		const event: WideEvent = {
 			request_id: c.get("requestId"),
 			timestamp: new Date().toISOString(),
 			method: c.req.method,
