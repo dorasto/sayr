@@ -6,6 +6,22 @@ import type {
 	FilterState,
 } from "./types";
 
+// Browser-compatible base64 encoding/decoding with UTF-8 support
+const toBase64 = (str: string): string => {
+	// Handle UTF-8 by encoding to percent-escaped string first
+	return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16))));
+};
+
+const fromBase64 = (str: string): string => {
+	// Decode base64 and then handle UTF-8
+	return decodeURIComponent(
+		atob(str)
+			.split("")
+			.map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+			.join("")
+	);
+};
+
 export const serializeFilters = (state: FilterState): string => {
 	try {
 		const minimal = state.groups.map((g) =>
@@ -15,17 +31,17 @@ export const serializeFilters = (state: FilterState): string => {
 			return "";
 		}
 		const json = JSON.stringify(minimal);
-		return encodeURIComponent(Buffer.from(json, "utf-8").toString("base64"));
-	} catch {
+		return encodeURIComponent(toBase64(json));
+	} catch (e) {
+		console.error("[serializeFilters] Error:", e);
 		return "";
 	}
 };
 
 export const deserializeFilters = (value: string): FilterState | null => {
 	try {
-		const decoded = Buffer.from(decodeURIComponent(value), "base64").toString(
-			"utf-8",
-		);
+		if (!value) return null;
+		const decoded = fromBase64(decodeURIComponent(value));
 		const minimal: [string, string, unknown][][] = JSON.parse(decoded);
 		const groups: FilterGroup[] = minimal.map((conditions, gi) => ({
 			id: `group-${gi}`,
@@ -44,7 +60,8 @@ export const deserializeFilters = (value: string): FilterState | null => {
 			}),
 		}));
 		return { groups, operator: "AND" };
-	} catch {
+	} catch (e) {
+		console.error("[deserializeFilters] Error:", e);
 		return null;
 	}
 };

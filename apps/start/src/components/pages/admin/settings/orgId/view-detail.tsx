@@ -41,7 +41,7 @@ import {
 	IconTrash,
 } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ViewFilterEditor } from "./view-filter-editor";
 import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS, TaskGroupingId } from "@/components/tasks";
 
@@ -83,8 +83,25 @@ export default function SettingsOrganizationViewDetailPage({
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "", 1);
 
 	const contextView = views.find((v) => v.id === viewId);
-	// Use initialView if contextView is missing or stale (missing slug property)
-	const view = initialView && (!contextView || !("slug" in contextView)) ? initialView : contextView || initialView;
+	// Prefer initialView (fresh from server) over contextView (potentially stale cache)
+	// Fall back to contextView only if initialView is not available
+	const view = initialView ?? contextView;
+
+	// Sync fresh initialView into the views cache so WebSocket updates have correct baseline
+	const syncedViewIdRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (initialView && syncedViewIdRef.current !== initialView.id) {
+			syncedViewIdRef.current = initialView.id;
+			const idx = views.findIndex((v) => v.id === initialView.id);
+			if (idx >= 0) {
+				const updated = [...views];
+				updated[idx] = initialView;
+				setViews(updated);
+			} else {
+				setViews([...views, initialView]);
+			}
+		}
+	}, [initialView, views, setViews]);
 
 	const [name, setName] = useState(view?.name || "");
 	const [filterParams, setFilterParams] = useState(view?.filterParams || "");
