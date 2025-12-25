@@ -52,6 +52,7 @@ export function TaskFilterDropdown({
 		"filters",
 		parseAsString.withDefault(""),
 	);
+	const [viewParam] = useQueryState("view", parseAsString.withDefault(""));
 	const { value: filterState, setValue: setFilterState } =
 		useStateManagement<FilterState>(
 			"task-filters",
@@ -64,10 +65,19 @@ export function TaskFilterDropdown({
 	const pathname =
 		rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 
+	// Only sync filters to URL when NOT using a saved view
+	// When a saved view is active, filters are derived from the view itself
 	useEffect(() => {
+		if (viewParam) {
+			// Clear the filters param when a saved view is active
+			if (filtersParam) {
+				setFiltersParam(null);
+			}
+			return;
+		}
 		const serialized = serializeFilters(filterState);
-		setFiltersParam(serialized);
-	}, [filterState, setFiltersParam]);
+		setFiltersParam(serialized || null);
+	}, [filterState, setFiltersParam, viewParam, filtersParam]);
 
 	// Local UI state
 	const [mainSearch, setMainSearch] = useState("");
@@ -122,10 +132,15 @@ export function TaskFilterDropdown({
 	const clearFilters = () => setFilterState({ groups: [], operator: "AND" });
 
 	const shareUrl = useMemo(() => {
-		const serialized = serializeFilters(filterState);
 		if (typeof window === "undefined") return "";
+		// If a saved view is active, share the view URL (no filters param needed)
+		if (viewParam) {
+			return `${window.location.origin}${pathname}?view=${viewParam}`;
+		}
+		// Otherwise, share with filters param
+		const serialized = serializeFilters(filterState);
 		return `${window.location.origin}${pathname}${serialized ? `?filters=${serialized}` : ""}`;
-	}, [filterState, pathname]);
+	}, [filterState, pathname, viewParam]);
 
 	const currentFiltersString = useMemo(
 		() => serializeFilters(filterState),
