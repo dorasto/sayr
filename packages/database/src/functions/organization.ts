@@ -22,7 +22,9 @@ import { db, type schema } from "..";
  * });
  * ```
  */
-export async function getOrganizations(userId: string): Promise<schema.OrganizationWithMembers[]> {
+export async function getOrganizations(
+	userId: string,
+): Promise<schema.OrganizationWithMembers[]> {
 	// Step 1: Find orgIds the user belongs to
 	const memberships = await db.query.member.findMany({
 		where: (member) => eq(member.userId, userId),
@@ -75,7 +77,10 @@ export async function getOrganizations(userId: string): Promise<schema.Organizat
  * }
  * ```
  */
-export async function getOrganization(orgId: string, userId: string): Promise<schema.OrganizationWithMembers | null> {
+export async function getOrganization(
+	orgId: string,
+	userId: string,
+): Promise<schema.OrganizationWithMembers | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.id, orgId),
 		with: {
@@ -92,7 +97,9 @@ export async function getOrganization(orgId: string, userId: string): Promise<sc
 	return {
 		...organization,
 		logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
-		bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
+		bannerImg: organization.bannerImg
+			? ensureCdnUrl(organization.bannerImg)
+			: null,
 	};
 }
 
@@ -110,7 +117,9 @@ export async function getOrganization(orgId: string, userId: string): Promise<sc
  * });
  * ```
  */
-export async function getOrganizationMembers(orgId: string): Promise<schema.OrganizationMemberType[]> {
+export async function getOrganizationMembers(
+	orgId: string,
+): Promise<schema.OrganizationMemberType[]> {
 	return db.query.member.findMany({
 		where: (member) => eq(member.organizationId, orgId),
 	});
@@ -134,12 +143,23 @@ export async function getOrganizationMembers(orgId: string): Promise<schema.Orga
  * }
  * ```
  */
-export async function getOrganizationPublic(orgSlug: string): Promise<schema.OrganizationWithMembers | null> {
+export async function getOrganizationPublic(
+	orgSlug: string,
+): Promise<schema.OrganizationWithMembers | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.slug, orgSlug),
 		with: {
 			members: {
-				with: { user: true },
+				with: {
+					user: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+							createdAt: true,
+						},
+					},
+				},
 			},
 		},
 	});
@@ -147,7 +167,9 @@ export async function getOrganizationPublic(orgSlug: string): Promise<schema.Org
 		return {
 			...organization,
 			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
-			bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
+			bannerImg: organization.bannerImg
+				? ensureCdnUrl(organization.bannerImg)
+				: null,
 			privateId: null,
 		};
 	}
@@ -172,7 +194,9 @@ export async function getOrganizationPublic(orgSlug: string): Promise<schema.Org
  * }
  * ```
  */
-export async function getOrganizationPublicById(orgId: string): Promise<schema.organizationType | null> {
+export async function getOrganizationPublicById(
+	orgId: string,
+): Promise<schema.organizationType | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.id, orgId),
 	});
@@ -180,7 +204,9 @@ export async function getOrganizationPublicById(orgId: string): Promise<schema.o
 		return {
 			...organization,
 			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
-			bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
+			bannerImg: organization.bannerImg
+				? ensureCdnUrl(organization.bannerImg)
+				: null,
 			privateId: null,
 		};
 	}
