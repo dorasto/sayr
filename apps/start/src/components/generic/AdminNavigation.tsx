@@ -18,63 +18,74 @@ import AdminCommand from "./AdminCommand";
 // import SidebarSection from "./SidebarSection";
 // import TaskPage from "./TaskPage";
 // import TasksPage from "./TasksPage";
+import SettingsNavigationInfo from "./SettingsNavigationInfo";
 import { StatusBar } from "./status";
 import TaskNavigationInfo from "./TaskNavigationInfo";
 import TasksPageActions from "./TasksPageActions";
 import TasksPageNavigationInfo from "./TasksPageNavigationInfo";
 
 export default function AdminNavigation() {
-	const primarySidebar = useStore(
-		sidebarStore,
-		(state) => state.sidebars["primary-sidebar"],
-	);
-	const isSidebarOpen = primarySidebar?.open ?? true;
-	const isMobile = useIsMobile();
+  const primarySidebar = useStore(
+    sidebarStore,
+    (state) => state.sidebars["primary-sidebar"],
+  );
+  const isSidebarOpen = primarySidebar?.open ?? true;
+  const isMobile = useIsMobile();
 
-	// Use useMatch to determine which route we're on
-	const tasksMatch = useMatch({
-		from: "/admin/$orgId/tasks",
-		shouldThrow: false,
-	});
-	const taskDetailMatch = useMatch({
-		from: "/admin/$orgId/tasks/$taskShortId",
-		shouldThrow: false,
-	});
+  // Use useMatch to determine which route we're on
+  const tasksMatch = useMatch({
+    from: "/admin/$orgId/tasks",
+    shouldThrow: false,
+  });
+  const taskDetailMatch = useMatch({
+    from: "/admin/$orgId/tasks/$taskShortId",
+    shouldThrow: false,
+  });
+  const settingsMatch = useMatch({
+    from: "/admin/settings",
+    shouldThrow: false,
+  });
 
-	// Determine if we're on the tasks list page (not the detail page)
-	const isTasksListPage = tasksMatch && !taskDetailMatch;
-	const isTaskDetailPage = !!taskDetailMatch;
+  // Determine if we're on the tasks list page (not the detail page)
+  const isTasksListPage = tasksMatch && !taskDetailMatch;
+  const isTaskDetailPage = !!taskDetailMatch;
+  const isSettingsPage = !!settingsMatch;
 
-	return (
-		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center">
-			<div className="flex w-full items-center gap-2 p-1 pr-4">
-				<div
-					className={cn(
-						"flex items-center gap-1 font-bold shrink-0",
-						isSidebarOpen && !isMobile && "w-[16rem]",
-					)}
-				>
-					<SidebarSection sidebarIsOpen={isSidebarOpen} isMobile={isMobile} />
-				</div>
+  return (
+    <header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center">
+      <div className="flex w-full items-center gap-2 p-1 pr-4">
+        <div
+          className={cn(
+            "flex items-center gap-1 font-bold shrink-0",
+            isSidebarOpen && !isMobile && "w-[16rem]",
+          )}
+        >
+          <SidebarSection sidebarIsOpen={isSidebarOpen} isMobile={isMobile} />
+        </div>
 
-				<div className="flex items-center w-full gap-2">
-					{isTasksListPage && (
-						<div className="flex items-center gap-2">
-							<TasksPageNavigationInfo />
-						</div>
-					)}
-					{isTaskDetailPage && (
-						<div className="flex items-center gap-2">
-							<TaskNavigationInfo />
-						</div>
-					)}
-				</div>
+        <div className="flex items-center w-full gap-2">
+          {isTasksListPage && (
+            <div className="flex items-center gap-2">
+              <TasksPageNavigationInfo />
+            </div>
+          )}
+          {isTaskDetailPage && (
+            <div className="flex items-center gap-2">
+              <TaskNavigationInfo />
+            </div>
+          )}
+          {isSettingsPage && (
+            <div className="flex items-center gap-2">
+              <SettingsNavigationInfo />
+            </div>
+          )}
+        </div>
 
-				<div className="flex items-center gap-1 ml-auto">
-					<StatusBar />
-					<AdminCommand />
-				</div>
-			</div>
-		</header>
-	);
+        <div className="flex items-center gap-1 ml-auto">
+          <StatusBar />
+          <AdminCommand />
+        </div>
+      </div>
+    </header>
+  );
 }
