@@ -412,7 +412,7 @@ export function UnifiedTaskView({
                 </div>
                 <Badge
                   variant="outline"
-                  className="rounded pointer-events-none border-transparent text-muted-foreground bg-background"
+                  className="rounded pointer-events-none border-transparent text-muted-foreground bg-transparent"
                 >
                   {kanbanData.filter((t) => t.column === column.id).length}
                 </Badge>
