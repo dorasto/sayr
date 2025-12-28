@@ -26,6 +26,7 @@ import { updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import { Button } from "@repo/ui/components/button";
 import { Link } from "@tanstack/react-router";
+import { InlineLabel } from "./inlinelabel";
 
 interface GlobalTaskCategoryProps {
   task: schema.TaskWithLabels;
@@ -242,24 +243,25 @@ export function RenderCategory({
 }: RenderCategoryProps) {
   return (
     <Badge
+      data-no-propagate
       key={category.id}
       variant="secondary"
       className={cn(
-        "flex items-center justify-center gap-1 text-xs h-5 border border-border rounded-2xl truncate group/category cursor-pointer w-fit relative ps-5",
+        "flex items-center justify-center gap-1 bg-accent ps-0 text-xs h-5 border border-border rounded-2xl truncate group/category cursor-pointer w-fit relative",
         showRemove && "pe-5",
         className,
       )}
-      style={{
-        borderColor: category.color
-          ? `hsla(${extractHslValues(category.color)}, 0.5)`
-          : undefined,
-        background: category.color
-          ? `hsla(${extractHslValues(category.color)}, 0.1)`
-          : undefined,
-      }}
+      // style={{
+      //   borderColor: category.color
+      //     ? `hsla(${extractHslValues(category.color)}, 0.5)`
+      //     : undefined,
+      //   // background: category.color
+      //   //   ? `hsla(${extractHslValues(category.color)}, 0.1)`
+      //   //   : undefined,
+      // }}
       onClick={onClick ? (e) => onClick(e, category.id) : undefined}
     >
-      <div className="shrink-0 absolute inset-y-0 flex items-center justify-center start-0 ps-1">
+      {/*<div className="shrink-0 absolute inset-y-0 flex items-center justify-center start-0 ps-1">
         <RenderIcon
           iconName={category.icon || "IconCircleFilled"}
           size={12}
@@ -268,7 +270,19 @@ export function RenderCategory({
           className="size-3 [&_svg]:size-3"
         />
       </div>
-      <span className="truncate">{category.name}</span>
+      <span className="truncate">{category.name}</span>*/}
+      <InlineLabel
+        text={category.name}
+        icon={
+          <RenderIcon
+            iconName={category.icon || "IconCategory"}
+            size={12}
+            color={category.color || undefined}
+            raw
+          />
+        }
+        className=""
+      />
       {showRemove && onRemove && (
         <div className="shrink-0 absolute inset-y-0 flex items-center justify-center end-0 pe-1">
           <XIcon

@@ -42,6 +42,7 @@ import { InlineLabel } from "../shared/inlinelabel";
 import { RenderLabel } from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
+import { RenderCategory } from "../shared";
 
 interface UnifiedTaskItemProps {
   task: schema.TaskWithLabels;
@@ -294,18 +295,7 @@ export function UnifiedTaskItem({
               (() => {
                 const category = categories.find((c) => c.id === task.category);
                 return category ? (
-                  <InlineLabel
-                    text={category.name}
-                    icon={
-                      <RenderIcon
-                        iconName={category.icon || "IconCategory"}
-                        size={12}
-                        color={category.color || undefined}
-                        raw
-                      />
-                    }
-                    className="hidden sm:inline-flex h-5 text-xs rounded-full border pr-2"
-                  />
+                  <RenderCategory category={category} data-no-propagate />
                 ) : null;
               })()}
             {/* Labels */}
