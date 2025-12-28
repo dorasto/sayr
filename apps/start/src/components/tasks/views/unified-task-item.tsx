@@ -474,6 +474,13 @@ export function UnifiedTaskItem({
 
       <div className="flex items-center justify-between mt-auto pt-2">
         <div className="flex items-center gap-1">
+          {task.category &&
+            (() => {
+              const category = categories.find((c) => c.id === task.category);
+              return category ? (
+                <RenderCategory category={category} data-no-propagate />
+              ) : null;
+            })()}
           <GlobalTaskStatus
             task={task}
             editable={true}

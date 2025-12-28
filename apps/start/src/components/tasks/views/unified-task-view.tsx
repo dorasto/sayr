@@ -381,14 +381,15 @@ export function UnifiedTaskView({
           columns={columns}
           data={kanbanData}
           onDataChange={handleKanbanDataChange}
+          className="px-2"
         >
           {(column) => (
             <KanbanBoard
               key={column.id}
               id={column.id}
-              className="bg-card border-0 rounded-lg shadow-none flex flex-col h-full w-full min-w-96 max-w-96 px-2"
+              className="bg-transparent border-0 rounded-lg shadow-none flex flex-col h-full w-full min-w-96 max-w-96"
             >
-              <KanbanHeader className="pb-2 flex items-center justify-between bg-muted border-0 rounded-lg shrink-0 min-h-[42px]">
+              <KanbanHeader className="pb-2 flex items-center justify-between bg-card border-0 rounded-lg shrink-0 min-h-[42px]">
                 <div className="flex items-center gap-2">
                   {column.icon && (
                     <span
@@ -431,6 +432,7 @@ export function UnifiedTaskView({
                     setTasks={setTasks}
                     availableUsers={availableUsers}
                     onTaskUpdate={handleTaskUpdate}
+                    categories={categories}
                   />
                 )}
               </KanbanCards>
