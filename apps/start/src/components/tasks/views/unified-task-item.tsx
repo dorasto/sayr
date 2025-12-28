@@ -32,10 +32,17 @@ import {
   IconLink,
   IconUserOff,
 } from "@tabler/icons-react";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { Link } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
+import { parseAsString, useQueryState } from "nuqs";
 import { useRef, useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
+import {
+  DEFAULT_TASK_VIEW_STATE,
+  type FilterState,
+  useTaskViewState,
+} from "../filter";
 import GlobalTaskAssignees from "../shared/assignee";
 import { priorityConfig, statusConfig } from "../shared/config";
 import { InlineLabel } from "../shared/inlinelabel";
@@ -92,6 +99,45 @@ export function UnifiedTaskItem({
   const [priorityPopoverOpen, setPriorityPopoverOpen] = useState(false);
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
   const preventClickRef = useRef(false);
+
+  // Filter state for category click
+  const { setValue: setFilterState } = useStateManagement<FilterState>(
+    "task-filters",
+    { groups: [], operator: "AND" },
+    1,
+  );
+  const [, setSelectedViewSlug] = useQueryState("view", {
+    ...parseAsString,
+    clearOnDefault: true,
+  });
+  const { setViewState } = useTaskViewState();
+
+  const handleCategoryClick = (categoryId: string) => {
+    preventClickRef.current = true;
+    setTimeout(() => {
+      preventClickRef.current = false;
+    }, 200);
+
+    setSelectedViewSlug(null);
+    setFilterState({
+      groups: [
+        {
+          id: `category-${categoryId}-group`,
+          operator: "AND",
+          conditions: [
+            {
+              id: `category-any-${categoryId}`,
+              field: "category",
+              operator: "any",
+              value: categoryId,
+            },
+          ],
+        },
+      ],
+      operator: "AND",
+    });
+    setViewState(DEFAULT_TASK_VIEW_STATE);
+  };
 
   // Check if any popover is currently open
   const hasOpenPopover =
@@ -295,7 +341,18 @@ export function UnifiedTaskItem({
               (() => {
                 const category = categories.find((c) => c.id === task.category);
                 return category ? (
-                  <RenderCategory category={category} data-no-propagate />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCategoryClick(category.id);
+                    }}
+                    data-no-propagate
+                    className="cursor-pointer"
+                  >
+                    <RenderCategory category={category} />
+                  </button>
                 ) : null;
               })()}
             {/* Labels */}
@@ -478,7 +535,18 @@ export function UnifiedTaskItem({
             (() => {
               const category = categories.find((c) => c.id === task.category);
               return category ? (
-                <RenderCategory category={category} data-no-propagate />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleCategoryClick(category.id);
+                  }}
+                  data-no-propagate
+                  className="cursor-pointer"
+                >
+                  <RenderCategory category={category} />
+                </button>
               ) : null;
             })()}
           <GlobalTaskStatus
