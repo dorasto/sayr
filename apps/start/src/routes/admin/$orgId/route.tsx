@@ -56,6 +56,10 @@ export const Route = createFileRoute("/admin/$orgId")({
 			},
 		});
 	},
+	// Prevent revalidation when only search params change (filters, view, task)
+	shouldRevalidate: ({ currentParams, nextParams }) => {
+		return currentParams.orgId !== nextParams.orgId;
+	},
 	component: OrgLayout,
 	head: ({ loaderData }) => ({
 		meta: seo({

@@ -54,6 +54,32 @@ export const DEFAULT_COMBINED_STATE: TaskViewCombinedState = {
 const TASK_VIEW_COMBINED_KEY = "task-view-combined";
 
 /**
+ * Check if two filter states are equal
+ */
+function areFiltersEqual(a: FilterState, b: FilterState): boolean {
+	return serializeFilters(a) === serializeFilters(b);
+}
+
+/**
+ * Check if two view configs are equal
+ */
+function areViewConfigsEqual(a: TaskViewState, b: TaskViewState): boolean {
+	return (
+		a.grouping === b.grouping &&
+		a.viewMode === b.viewMode &&
+		a.showEmptyGroups === b.showEmptyGroups &&
+		a.showCompletedTasks === b.showCompletedTasks
+	);
+}
+
+/**
+ * Check if two combined states are equal
+ */
+function areStatesEqual(a: TaskViewCombinedState, b: TaskViewCombinedState): boolean {
+	return areFiltersEqual(a.filters, b.filters) && areViewConfigsEqual(a.viewConfig, b.viewConfig);
+}
+
+/**
  * Maps a saved view's config to TaskViewState
  */
 function mapViewConfigToState(
@@ -85,6 +111,15 @@ export function useTaskViewManager() {
 	// Track click handling to prevent useEffect from duplicating updates
 	const isHandlingAction = useRef(false);
 
+	// Throttle mechanism to prevent rapid clicks from causing issues
+	const lastUpdateTime = useRef(0);
+	const pendingUpdate = useRef<{
+		state: TaskViewCombinedState;
+		urlParams: { view?: string | null; filters?: string | null };
+	} | null>(null);
+	const throttleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const THROTTLE_MS = 100; // Minimum time between updates
+
 	// Single state for filters + view config
 	const { value: combinedState, setValue: setCombinedState } = useStateManagement<TaskViewCombinedState>(
 		TASK_VIEW_COMBINED_KEY,
@@ -105,13 +140,14 @@ export function useTaskViewManager() {
 	const showCompletedTasks = viewConfig.showCompletedTasks;
 
 	/**
-	 * Internal helper to update state and URL atomically
+	 * Internal helper to execute the actual state + URL update
 	 */
-	const updateStateAndUrl = useCallback((
+	const executeUpdate = useCallback((
 		newState: TaskViewCombinedState,
 		urlParams: { view?: string | null; filters?: string | null }
 	) => {
 		isHandlingAction.current = true;
+		lastUpdateTime.current = Date.now();
 		setCombinedState(newState);
 		setSearchParams(urlParams);
 		// Reset flag after current event loop
@@ -121,9 +157,69 @@ export function useTaskViewManager() {
 	}, [setCombinedState, setSearchParams]);
 
 	/**
+	 * Internal helper to update state and URL atomically with throttling.
+	 * Prevents rapid clicks from overwhelming the system.
+	 * - Skips update entirely if nothing actually changes (prevents unnecessary re-renders)
+	 * - If enough time has passed, executes immediately
+	 * - If called too rapidly, queues the latest update and executes after throttle period
+	 */
+	const updateStateAndUrl = useCallback((
+		newState: TaskViewCombinedState,
+		urlParams: { view?: string | null; filters?: string | null }
+	) => {
+		// CRITICAL: Skip if nothing actually changes - this prevents re-render cascades
+		const currentUrlView = viewSlug;
+		const newUrlView = urlParams.view;
+		const stateUnchanged = areStatesEqual(state, newState);
+		const urlUnchanged = currentUrlView === newUrlView;
+
+		if (stateUnchanged && urlUnchanged) {
+			// Nothing to do - early return prevents unnecessary updates
+			return;
+		}
+
+		const now = Date.now();
+		const timeSinceLastUpdate = now - lastUpdateTime.current;
+
+		// If enough time has passed, execute immediately
+		if (timeSinceLastUpdate >= THROTTLE_MS) {
+			// Clear any pending scheduled update
+			if (throttleTimeout.current) {
+				clearTimeout(throttleTimeout.current);
+				throttleTimeout.current = null;
+			}
+			pendingUpdate.current = null;
+			executeUpdate(newState, urlParams);
+			return;
+		}
+
+		// Otherwise, queue this update (replacing any previous pending update)
+		pendingUpdate.current = { state: newState, urlParams };
+
+		// Schedule execution if not already scheduled
+		if (!throttleTimeout.current) {
+			const timeToWait = THROTTLE_MS - timeSinceLastUpdate;
+			throttleTimeout.current = setTimeout(() => {
+				throttleTimeout.current = null;
+				if (pendingUpdate.current) {
+					executeUpdate(pendingUpdate.current.state, pendingUpdate.current.urlParams);
+					pendingUpdate.current = null;
+				}
+			}, timeToWait);
+		}
+	}, [executeUpdate, state, viewSlug]);
+
+	/**
 	 * Switch to a saved view - updates everything atomically
 	 */
 	const selectView = useCallback((view: schema.savedViewType) => {
+		const targetViewSlug = view.slug || view.id;
+
+		// Skip if already on this view
+		if (viewSlug === targetViewSlug) {
+			return;
+		}
+
 		const viewFilters = deserializeFilters(view.filterParams) || DEFAULT_FILTER_STATE;
 		const viewConfigFromView = view.viewConfig
 			? mapViewConfigToState(view.viewConfig)
@@ -131,9 +227,9 @@ export function useTaskViewManager() {
 
 		updateStateAndUrl(
 			{ filters: viewFilters, viewConfig: viewConfigFromView },
-			{ view: view.slug || view.id, filters: null }
+			{ view: targetViewSlug, filters: null }
 		);
-	}, [updateStateAndUrl]);
+	}, [updateStateAndUrl, viewSlug]);
 
 	/**
 	 * Clear current view and reset to defaults (optionally with new filters)
@@ -167,6 +263,11 @@ export function useTaskViewManager() {
 	 * Update filters (for filter dropdown UI) - doesn't change view config
 	 */
 	const setFilters = useCallback((newFilters: FilterState) => {
+		// Skip if filters haven't actually changed
+		if (areFiltersEqual(state.filters, newFilters)) {
+			return;
+		}
+
 		isHandlingAction.current = true;
 		setCombinedState({ ...state, filters: newFilters });
 
@@ -228,9 +329,16 @@ export function useTaskViewManager() {
 	 * Update view config (grouping, viewMode, etc.) - doesn't change filters
 	 */
 	const setViewConfig = useCallback((updates: Partial<TaskViewState>) => {
+		const newViewConfig = { ...state.viewConfig, ...updates };
+
+		// Skip if view config hasn't actually changed
+		if (areViewConfigsEqual(state.viewConfig, newViewConfig)) {
+			return;
+		}
+
 		setCombinedState({
 			...state,
-			viewConfig: { ...state.viewConfig, ...updates },
+			viewConfig: newViewConfig,
 		});
 	}, [state, setCombinedState]);
 
