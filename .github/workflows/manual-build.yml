@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [web, backend, worker]
+        app: [start, backend, worker]
         platform:
           - linux/amd64
           - linux/arm64
@@ -28,9 +28,9 @@ jobs:
       - name: Determine Docker Config
         id: config
         run: |
-          if [[ "${{ matrix.app }}" == "web" ]]; then
-            echo "dockerfile=./apps/web/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-web" >> $GITHUB_OUTPUT
+          if [[ "${{ matrix.app }}" == "start" ]]; then
+            echo "dockerfile=./apps/start/Dockerfile" >> $GITHUB_OUTPUT
+            echo "image_suffix=-start" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "backend" ]]; then
             echo "dockerfile=./apps/backend/Dockerfile" >> $GITHUB_OUTPUT
             echo "image_suffix=-backend" >> $GITHUB_OUTPUT
@@ -92,13 +92,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [web, backend, worker]
+        app: [start, backend, worker]
     steps:
       - name: Determine Docker Config
         id: config
         run: |
-          if [[ "${{ matrix.app }}" == "web" ]]; then
-            echo "image_suffix=-web" >> $GITHUB_OUTPUT
+          if [[ "${{ matrix.app }}" == "start" ]]; then
+            echo "image_suffix=-start" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "backend" ]]; then
             echo "image_suffix=-backend" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
