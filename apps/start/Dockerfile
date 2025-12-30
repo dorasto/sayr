@@ -31,41 +31,43 @@ COPY --from=builder /app/out/full/ .
 
 RUN pnpm install
 
-# Build arguments for Next.js (with placeholders for runtime replacement)
-ARG NEXT_PUBLIC_URL_ROOT="___NEXT_PUBLIC_URL_ROOT___"
-ARG NEXT_PUBLIC_API_SERVER="___NEXT_PUBLIC_API_SERVER___"
-ARG NEXT_PUBLIC_PROJECT_NAME="___NEXT_PUBLIC_PROJECT_NAME___"
-ARG NEXT_PUBLIC_WS_URL="___NEXT_PUBLIC_WS_URL___"
-ARG NEXT_PUBLIC_ROOT_DOMAIN="___NEXT_PUBLIC_ROOT_DOMAIN___"
-ARG NEXT_PUBLIC_EXTERNAL_API_URL="___NEXT_PUBLIC_EXTERNAL_API_URL___"
-ARG NEXT_PUBLIC_SAYR_FRONTEND_AXIOM_TOKEN="___NEXT_PUBLIC_SAYR_FRONTEND_AXIOM_TOKEN___"
-ARG NEXT_PUBLIC_SAYR_FRONTEND_AXIOM_DATASET="___NEXT_PUBLIC_SAYR_FRONTEND_AXIOM_DATASET___"
+# Build arguments for Vite/TanStack Start (with placeholders for runtime replacement)
+ARG VITE_URL_ROOT="___VITE_URL_ROOT___"
+ARG VITE_PROJECT_NAME="___VITE_PROJECT_NAME___"
+ARG VITE_WS_URL="___VITE_WS_URL___"
+ARG VITE_ROOT_DOMAIN="___VITE_ROOT_DOMAIN___"
+ARG VITE_EXTERNAL_API_URL="___VITE_EXTERNAL_API_URL___"
+ARG VITE_GITHUB_APP_NAME="___VITE_GITHUB_APP_NAME___"
+ARG VITE_SAYR_FRONTEND_AXIOM_DATASET="___VITE_SAYR_FRONTEND_AXIOM_DATASET___"
+ARG VITE_SAYR_FRONTEND_AXIOM_TOKEN="___VITE_SAYR_FRONTEND_AXIOM_TOKEN___"
+ARG VITE_TENOR_API="___VITE_TENOR_API___"
+
 # Set environment variables for build time
-ENV NEXT_PUBLIC_URL_ROOT=$NEXT_PUBLIC_URL_ROOT
-ENV NEXT_PUBLIC_API_SERVER=$NEXT_PUBLIC_API_SERVER
-ENV NEXT_PUBLIC_PROJECT_NAME=$NEXT_PUBLIC_PROJECT_NAME
-ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
-ENV NEXT_PUBLIC_ROOT_DOMAIN=$NEXT_PUBLIC_ROOT_DOMAIN
-ENV NEXT_PUBLIC_EXTERNAL_API_URL=$NEXT_PUBLIC_EXTERNAL_API_URL
-ENV NEXT_PUBLIC_SAYR_FRONTEND_AXIOM_TOKEN=$NEXT_PUBLIC_SAYR_FRONTEND_AXIOM_TOKEN
-ENV NEXT_PUBLIC_SAYR_FRONTEND_AXIOM_DATASET=$NEXT_PUBLIC_SAYR_FRONTEND_AXIOM_DATASET
+ENV VITE_URL_ROOT=$VITE_URL_ROOT
+ENV VITE_PROJECT_NAME=$VITE_PROJECT_NAME
+ENV VITE_WS_URL=$VITE_WS_URL
+ENV VITE_ROOT_DOMAIN=$VITE_ROOT_DOMAIN
+ENV VITE_EXTERNAL_API_URL=$VITE_EXTERNAL_API_URL
+ENV VITE_GITHUB_APP_NAME=$VITE_GITHUB_APP_NAME
+ENV VITE_SAYR_FRONTEND_AXIOM_DATASET=$VITE_SAYR_FRONTEND_AXIOM_DATASET
+ENV VITE_SAYR_FRONTEND_AXIOM_TOKEN=$VITE_SAYR_FRONTEND_AXIOM_TOKEN
+ENV VITE_TENOR_API=$VITE_TENOR_API
 
-ENV IS_DOCKER 1
+ENV IS_DOCKER=1
 
-# Build the Next.js application
-RUN cd apps/web && pnpm exec next telemetry disable && pnpm run build
+# Build the application
+RUN cd apps/start && pnpm run build
 
 FROM base AS runner
 WORKDIR /app
 
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-USER nextjs
+RUN adduser --system --uid 1001 reactjs
+USER reactjs
 
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV IS_DOCKER=1
 ENV PORT=3000
 
@@ -79,28 +81,29 @@ ENV STORAGE_ACCESS_KEY=""
 ENV STORAGE_SECRET_KEY=""
 ENV FILE_SALT=""
 ENV FILE_CDN=""
-ENV GITHUB_CLIENT_ID=""
-ENV GITHUB_CLIENT_SECRET=""
+ENV INTERNAL_SECRET=""
+ENV SYSTEM_ACCOUNT_ID=""
 ENV GITHUB_APP_ID=""
 ENV GITHUB_APP_PRIVATE_KEY=""
 ENV GITHUB_WEBHOOK_SECRET=""
-ENV STORAGE_PORT=""
-ENV FILE_NAME_HASH_LENGTH=""
+ENV QUEUE_MODE=""
+ENV GITHUB_CLIENT_ID=""
+ENV GITHUB_CLIENT_SECRET=""
+ENV SAYR_EMAIL=""
 ENV DORAS_ORGANIZATION=""
-ENV BETTER_AUTH_SECRET=""
+ENV AXIOM_BACKEND_OTEL_TOKEN=""
+ENV AXIOM_BACKEND_OTEL_DATASET=""
+ENV AXIOM_BACKEND_OTEL_DOMAIN=""
 
 # Copy entrypoint script
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/entrypoint.sh ./entrypoint.sh
+COPY --from=builder --chown=reactjs:nodejs /app/apps/start/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-# Copy necessary files for running Next.js
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
+# Copy necessary files
+# TanStack Start / Nitro outputs to .output
+COPY --from=installer --chown=reactjs:nodejs /app/apps/start/.output ./.output
 
 EXPOSE 3000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["node", "apps/web/server.js"]
+CMD ["node", ".output/server/index.mjs"]
