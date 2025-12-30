@@ -33,10 +33,11 @@ export const getUserOrgPermissions = createServerFn({ method: "GET" })
  * Route configuration
  */
 export const Route = createFileRoute("/admin/$orgId")({
-
 	beforeLoad: async ({ params, context }) => {
 		const { account } = context;
-		if (!account) throw redirect({ to: "/login" });
+		if (!account) {
+			throw redirect({ to: "/login" });
+		}
 		const { permissions } = await getUserOrgPermissions({
 			data: {
 				account,

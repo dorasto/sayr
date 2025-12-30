@@ -28,9 +28,8 @@ import {
 	IconLayoutRows,
 } from "@tabler/icons-react";
 import { useMemo } from "react";
+import { useTaskViewManager, type TaskGroupingId } from "@/hooks/useTaskViewManager";
 import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "../shared/config";
-import type { TaskGroupingId } from "../filter/types";
-import { useTaskViewState } from "../filter/use-task-view-state";
 
 const VIEW_MODE_OPTIONS = [
 	{ id: "list", label: "List", icon: <IconLayoutList className="h-4 w-4" /> },
@@ -45,17 +44,19 @@ type ViewMode = (typeof VIEW_MODE_OPTIONS)[number]["id"];
 
 export function TaskViewDropdown() {
 	const {
-		viewState,
+		grouping,
+		showEmptyGroups,
+		showCompletedTasks,
+		viewMode,
 		setGrouping,
 		setShowEmptyGroups,
 		setShowCompletedTasks,
 		setViewMode,
-	} = useTaskViewState();
+	} = useTaskViewManager();
 
-	const activeGrouping =
-		TASK_GROUPINGS[viewState.grouping] ?? TASK_GROUPINGS.status;
+	const activeGrouping = TASK_GROUPINGS[grouping] ?? TASK_GROUPINGS.status;
 
-	const activeViewMode: ViewMode = viewState.viewMode;
+	const activeViewMode: ViewMode = viewMode;
 
 	const groupingOptions = useMemo(() => TASK_GROUPING_OPTIONS, []);
 
@@ -117,35 +118,35 @@ export function TaskViewDropdown() {
 							</DropdownMenuTrigger>
 							<DropdownMenuContent className="w-64" side="bottom" align="end">
 								<DropdownMenuRadioGroup
-									value={viewState.grouping}
+									value={grouping}
 									onValueChange={(value) =>
 										setGrouping(value as TaskGroupingId)
 									}
 								>
-									{groupingOptions.map((grouping) => (
+									{groupingOptions.map((option) => (
 										<DropdownMenuRadioItem
-											key={grouping.id}
-											value={grouping.id}
+											key={option.id}
+											value={option.id}
 											className="pl-8"
 										>
 											<span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
-												{grouping.icon}
+												{option.icon}
 											</span>
 											<span
 												className={cn(
 													"text-sm",
-													grouping.id === viewState.grouping &&
+													option.id === grouping &&
 														"text-foreground font-medium",
 												)}
 											>
-												{grouping.label}
+												{option.label}
 											</span>
 										</DropdownMenuRadioItem>
 									))}
 								</DropdownMenuRadioGroup>
 
 								<DropdownMenuCheckboxItem
-									checked={viewState.showEmptyGroups}
+									checked={showEmptyGroups}
 									onCheckedChange={(checked) =>
 										setShowEmptyGroups(Boolean(checked))
 									}
@@ -161,7 +162,7 @@ export function TaskViewDropdown() {
 					icon={<IconCheck className="h-4 w-4" />}
 					customSide={
 						<Switch
-							checked={viewState.showCompletedTasks}
+							checked={showCompletedTasks}
 							onCheckedChange={(checked) =>
 								setShowCompletedTasks(Boolean(checked))
 							}
@@ -173,7 +174,7 @@ export function TaskViewDropdown() {
 					icon={<IconEyeOff className="h-4 w-4" />}
 					customSide={
 						<Switch
-							checked={viewState.showEmptyGroups}
+							checked={showEmptyGroups}
 							onCheckedChange={(checked) =>
 								setShowEmptyGroups(Boolean(checked))
 							}

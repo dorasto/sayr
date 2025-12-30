@@ -32,15 +32,12 @@ import {
 	IconUsers,
 } from "@tabler/icons-react";
 import { Link, useMatch } from "@tanstack/react-router";
-import { parseAsString, useQueryState } from "nuqs";
 import RenderIcon from "@/components/generic/RenderIcon";
 import {
-	DEFAULT_TASK_VIEW_STATE,
-	deserializeFilters,
+	useTaskViewManager,
 	type FilterState,
-	serializeFilters,
-	useTaskViewState,
-} from "@/components/tasks/filter";
+} from "@/hooks/useTaskViewManager";
+import { serializeFilters } from "@/components/tasks/filter";
 import { useLayoutData } from "./Context";
 import TasksPageActions from "./TasksPageActions";
 
@@ -61,20 +58,15 @@ export default function TasksPageNavigationInfo() {
 		[],
 		1,
 	);
-	const { setValue: setFilterState } = useStateManagement<FilterState>(
-		"task-filters",
-		{ groups: [], operator: "AND" },
-		1,
-	);
-	const [filtersParam] = useQueryState(
-		"filters",
-		parseAsString.withDefault(""),
-	);
-	const [selectedViewSlug, setSelectedViewSlug] = useQueryState("view", {
-		...parseAsString,
-		clearOnDefault: true,
-	});
-	const { setViewState } = useTaskViewState();
+
+	// Consolidated task view state management
+	const {
+		filters,
+		viewSlug: selectedViewSlug,
+		selectView,
+		clearView,
+		applyFilter,
+	} = useTaskViewManager();
 	const { account } = useLayoutData();
 
 	// Create "My Assigned" filter state for current user
@@ -115,24 +107,19 @@ export default function TasksPageNavigationInfo() {
 		operator: "AND",
 	});
 
-	// Helper to map view config to state
-	const mapConfigToState = (
-		config: NonNullable<schema.savedViewType["viewConfig"]>,
-	) => ({
-		grouping: config.groupBy,
-		showEmptyGroups: config.showEmptyGroups,
-		showCompletedTasks: config.showCompletedTasks,
-		viewMode: config.mode,
-	});
+	// Check if all tasks (no filters active)
+	const currentFiltersSerialized = serializeFilters(filters);
+	const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
+	const isMyAssignedActive = currentFiltersSerialized === serializeFilters(myAssignedFilterState);
 
 	// Determine current view name and icon
 	let currentViewName = "All tasks";
 	let CurrentViewIcon = <IconStack2 className="size-3.5 text-muted-foreground" />;
 
-	if (filtersParam === "" && !selectedViewSlug) {
+	if (isAllTasksActive) {
 		currentViewName = "All tasks";
 		CurrentViewIcon = <IconStack2 className="size-3.5 text-muted-foreground" />;
-	} else if (filtersParam === serializeFilters(myAssignedFilterState)) {
+	} else if (isMyAssignedActive) {
 		currentViewName = "Your tasks";
 		CurrentViewIcon = <IconUser className="size-3.5 text-muted-foreground" />;
 	} else if (selectedViewSlug) {
@@ -154,7 +141,7 @@ export default function TasksPageNavigationInfo() {
 	} else {
 		// Check for category filter
 		const category = categories.find(
-			(c) => serializeFilters(createCategoryFilter(c.id)) === filtersParam,
+			(c) => serializeFilters(createCategoryFilter(c.id)) === currentFiltersSerialized,
 		);
 		if (category) {
 			currentViewName = category.name;
@@ -168,7 +155,7 @@ export default function TasksPageNavigationInfo() {
 			);
 		} else {
 			// Check for custom view by filter params (fallback)
-			const view = views.find((v) => v.filterParams === filtersParam);
+			const view = views.find((v) => v.filterParams === currentFiltersSerialized);
 			if (view) {
 				currentViewName = view.name;
 				CurrentViewIcon = (
@@ -182,20 +169,6 @@ export default function TasksPageNavigationInfo() {
 			}
 		}
 	}
-
-	const handleViewSelect = (
-		filterState: FilterState,
-		viewSlug?: string | null,
-		viewConfig?: schema.savedViewType["viewConfig"],
-	) => {
-		setSelectedViewSlug(viewSlug ?? null);
-		setFilterState(filterState);
-		if (viewConfig) {
-			setViewState(mapConfigToState(viewConfig));
-		} else {
-			setViewState(DEFAULT_TASK_VIEW_STATE);
-		}
-	};
 
 	if (!organization) return null;
 
@@ -245,23 +218,19 @@ export default function TasksPageNavigationInfo() {
 								</BreadcrumbPage>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="start" className="w-56">
-								<DropdownMenuItem
-									onClick={() =>
-										handleViewSelect({ groups: [], operator: "AND" })
-									}
-								>
+								<DropdownMenuItem onClick={() => clearView()}>
 									<IconStack2 className="size-4 text-muted-foreground" />
 									All tasks
-									{filtersParam === "" && !selectedViewSlug && (
+									{isAllTasksActive && (
 										<IconCheck className="ml-auto size-4" />
 									)}
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={() => handleViewSelect(myAssignedFilterState)}
+									onClick={() => applyFilter(myAssignedFilterState)}
 								>
 									<IconUser className="size-4 text-muted-foreground" />
 									Your tasks
-									{filtersParam === serializeFilters(myAssignedFilterState) && (
+									{isMyAssignedActive && (
 										<IconCheck className="ml-auto size-4" />
 									)}
 								</DropdownMenuItem>
@@ -271,15 +240,14 @@ export default function TasksPageNavigationInfo() {
 										<DropdownMenuSeparator />
 										<DropdownMenuLabel>Categories</DropdownMenuLabel>
 										{categories.map((category) => {
+											const categoryFilter = createCategoryFilter(category.id);
 											const isActive =
-												filtersParam ===
-												serializeFilters(createCategoryFilter(category.id));
+												currentFiltersSerialized ===
+												serializeFilters(categoryFilter);
 											return (
 												<DropdownMenuItem
 													key={category.id}
-													onClick={() =>
-														handleViewSelect(createCategoryFilter(category.id))
-													}
+													onClick={() => applyFilter(categoryFilter)}
 												>
 													<RenderIcon
 														iconName={category.icon || "IconCircleFilled"}
@@ -305,16 +273,7 @@ export default function TasksPageNavigationInfo() {
 											return (
 												<DropdownMenuItem
 													key={view.id}
-													onClick={() =>
-														handleViewSelect(
-															deserializeFilters(view.filterParams) || {
-																groups: [],
-																operator: "AND",
-															},
-															viewSlug,
-															view.viewConfig,
-														)
-													}
+													onClick={() => selectView(view)}
 												>
 													<RenderIcon
 														iconName={view.viewConfig?.icon || "IconStack2"}

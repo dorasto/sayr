@@ -12,8 +12,9 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconLoader2 } from "@tabler/icons-react";
-import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
+import { useTaskDetailParam } from "@/hooks/useTasksSearchParams";
+import { useTaskViewManager } from "@/hooks/useTaskViewManager";
 import {
   useWSMessageHandler,
   type WSMessageHandler,
@@ -25,8 +26,6 @@ import {
 import { useToastAction } from "@/lib/util";
 import type { WSMessage } from "@/lib/ws";
 import { applyFilters } from "../filter/filter-config";
-import type { FilterState } from "../filter/types";
-import { useTaskViewState } from "../filter/use-task-view-state";
 import { TASK_GROUPINGS } from "../shared/config";
 import { TaskContent } from "../task/task-content";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
@@ -51,6 +50,7 @@ export function UnifiedTaskView({
   organization,
   categories,
 }: UnifiedTaskViewProps) {
+  console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -60,17 +60,16 @@ export function UnifiedTaskView({
   // Shared State
   const { value: selectedTask, setValue: setSelectedTask } =
     useStateManagement<schema.TaskWithLabels | null>("task", null, 3000);
-  const { value: filterState } = useStateManagement<FilterState>(
-    "task-filters",
-    { groups: [], operator: "AND" },
-    1,
-  );
-  const [taskContentOpen, setTaskContentOpen] = useQueryState(
-    "task",
-    parseAsInteger.withDefault(0),
-  );
-  const { viewState } = useTaskViewState();
-  const { grouping, showEmptyGroups, showCompletedTasks, viewMode } = viewState;
+  const [taskContentOpen, setTaskContentOpen] = useTaskDetailParam();
+
+  // Consolidated task view state management
+  const {
+    filters,
+    grouping,
+    showEmptyGroups,
+    showCompletedTasks,
+    viewMode,
+  } = useTaskViewManager();
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
@@ -88,20 +87,22 @@ export function UnifiedTaskView({
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
-    return applyFilters(tasks, filterState);
-  }, [tasks, filterState]);
+    return applyFilters(tasks, filters);
+  }, [tasks, filters]);
 
   // Sync selected task with query param
   useEffect(() => {
     if (taskContentOpen === 0) {
       setSelectedTask(null);
+      return;
     }
     const task = filteredTasks.find((t) => t.shortId === taskContentOpen);
     if (task) {
       setSelectedTask(task);
-      setTaskContentOpen(task.shortId);
+      // Only update URL if the value is different (prevents unnecessary URL updates)
+      // This can happen when filteredTasks changes but the selected task is still the same
     }
-  }, [taskContentOpen, setSelectedTask, filteredTasks, setTaskContentOpen]);
+  }, [taskContentOpen, setSelectedTask, filteredTasks]);
 
   // WebSocket Handlers
   const handlers: WSMessageHandler<WSMessage> = {

@@ -22,11 +22,9 @@ import {
 } from "@tabler/icons-react";
 import { useEffect, useRef } from "react";
 import { useLayoutData } from "@/components/generic/Context";
-import {
-  TaskFilterDropdown,
-  useTaskViewState,
-} from "@/components/tasks/filter";
+import { TaskFilterDropdown } from "@/components/tasks/filter";
 import ProjectSide from "@/components/tasks/side";
+import { useTaskViewManager } from "@/hooks/useTaskViewManager";
 import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
@@ -38,7 +36,7 @@ import {
 import type { WSMessage } from "@/lib/ws";
 
 export default function OrganizationTasksHomePage() {
-  const { viewState } = useTaskViewState();
+  const { viewMode } = useTaskViewManager();
   const { ws } = useLayoutData();
   const {
     organization,
@@ -155,13 +153,13 @@ export default function OrganizationTasksHomePage() {
       </div>
       <ResizablePanelGroup
         direction="horizontal"
-        className={cn(viewState.viewMode === "kanban" && "")}
+        className={cn(viewMode === "kanban" && "")}
       >
         <ResizablePanel defaultSize={useMobile ? 100 : 70} minSize={70}>
           <div
             className={cn(
               "flex-1 overflow-y-auto h-full flex flex-col relative px-2",
-              viewState.viewMode === "kanban" && "px-0",
+              viewMode === "kanban" && "px-0",
             )}
           >
             <UnifiedTaskView

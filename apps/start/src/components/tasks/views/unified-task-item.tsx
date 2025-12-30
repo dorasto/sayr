@@ -32,17 +32,11 @@ import {
   IconLink,
   IconUserOff,
 } from "@tabler/icons-react";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { Link } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
-import { parseAsString, useQueryState } from "nuqs";
 import { useRef, useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
-import {
-  DEFAULT_TASK_VIEW_STATE,
-  type FilterState,
-  useTaskViewState,
-} from "../filter";
+import { useTaskViewManager, type FilterState } from "@/hooks/useTaskViewManager";
 import GlobalTaskAssignees from "../shared/assignee";
 import { priorityConfig, statusConfig } from "../shared/config";
 import { InlineLabel } from "../shared/inlinelabel";
@@ -100,17 +94,8 @@ export function UnifiedTaskItem({
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
   const preventClickRef = useRef(false);
 
-  // Filter state for category click
-  const { setValue: setFilterState } = useStateManagement<FilterState>(
-    "task-filters",
-    { groups: [], operator: "AND" },
-    1,
-  );
-  const [, setSelectedViewSlug] = useQueryState("view", {
-    ...parseAsString,
-    clearOnDefault: true,
-  });
-  const { setViewState } = useTaskViewState();
+  // Consolidated task view state management
+  const { applyFilter } = useTaskViewManager();
 
   const handleCategoryClick = (categoryId: string) => {
     preventClickRef.current = true;
@@ -118,8 +103,7 @@ export function UnifiedTaskItem({
       preventClickRef.current = false;
     }, 200);
 
-    setSelectedViewSlug(null);
-    setFilterState({
+    const categoryFilter: FilterState = {
       groups: [
         {
           id: `category-${categoryId}-group`,
@@ -135,8 +119,8 @@ export function UnifiedTaskItem({
         },
       ],
       operator: "AND",
-    });
-    setViewState(DEFAULT_TASK_VIEW_STATE);
+    };
+    applyFilter(categoryFilter);
   };
 
   // Check if any popover is currently open

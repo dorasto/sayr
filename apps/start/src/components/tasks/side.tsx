@@ -43,22 +43,16 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 
-import { parseAsString, useQueryState } from "nuqs";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useTaskViewManager, type FilterState } from "@/hooks/useTaskViewManager";
 import { useSticky } from "@/hooks/use-sticky";
 import { useLayoutData } from "../generic/Context";
 import RenderIcon from "../generic/RenderIcon";
-import {
-	DEFAULT_TASK_VIEW_STATE,
-	deserializeFilters,
-	type FilterState,
-	serializeFilters,
-	type TaskViewState,
-	useTaskViewState,
-} from "./filter";
+import { serializeFilters } from "./filter";
 import { type PriorityKey, priorityConfig } from "./shared";
 
 export default function ProjectSide() {
+	console.log("[RENDER] ProjectSide");
 	const { stuck, stickyRef } = useSticky();
 	const { value: organization } =
 		useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
@@ -72,60 +66,22 @@ export default function ProjectSide() {
 		[],
 		3,
 	);
-	const { value: labels, setValue: setLabels } = useStateManagement<
-		schema.labelType[]
-	>("labels", [], 1);
-	const { value: categories, setValue: setCategories } = useStateManagement<
+	const { value: categories } = useStateManagement<
 		schema.categoryType[]
 	>("categories", [], 1);
-	const [filtersParam] = useQueryState(
-		"filters",
-		parseAsString.withDefault(""),
-	);
-	const [selectedViewSlug, setSelectedViewSlug] = useQueryState("view", {
-		...parseAsString,
-		clearOnDefault: true,
-	});
-	const { setValue: setFilterState } = useStateManagement<FilterState>(
-		"task-filters",
-		{ groups: [], operator: "AND" },
-		1,
-	);
-	const { setViewState } = useTaskViewState();
-	const [openSettings, setOpenSettings] = useState(false);
+
+	// Consolidated task view state management
+	const {
+		filters,
+		viewSlug: selectedViewSlug,
+		selectView,
+		clearView,
+		applyFilter,
+	} = useTaskViewManager();
+
 	const [editingView, setEditingView] = useState<schema.savedViewType | null>(
 		null,
 	);
-
-	const mapConfigToState = useCallback(
-		(
-			config: NonNullable<schema.savedViewType["viewConfig"]>,
-		): TaskViewState => ({
-			grouping: config.groupBy,
-			showEmptyGroups: config.showEmptyGroups,
-			showCompletedTasks: config.showCompletedTasks,
-			viewMode: config.mode,
-		}),
-		[],
-	);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <needed>
-	useEffect(() => {
-		if (selectedViewSlug && views.length > 0) {
-			const view = views.find((v) => (v.slug || v.id) === selectedViewSlug);
-			if (view) {
-				setFilterState(
-					deserializeFilters(view.filterParams) || {
-						groups: [],
-						operator: "AND",
-					},
-				);
-				if (view.viewConfig) {
-					setViewState(mapConfigToState(view.viewConfig));
-				}
-			}
-		}
-	}, [views]);
 
 	const { account } = useLayoutData();
 
@@ -150,7 +106,7 @@ export default function ProjectSide() {
 
 	// Check if "My Assigned" view is active
 	const isMyAssignedActive =
-		filtersParam === serializeFilters(myAssignedFilterState);
+		serializeFilters(filters) === serializeFilters(myAssignedFilterState);
 
 	// Prebuilt priority views
 	const priorityViews: Array<{ key: PriorityKey; label: string }> = [
@@ -197,23 +153,6 @@ export default function ProjectSide() {
 		],
 		operator: "AND",
 	});
-	const createLabelFilter = (labelId: string): FilterState => ({
-		groups: [
-			{
-				id: `label-${labelId}-group`,
-				operator: "AND",
-				conditions: [
-					{
-						id: `label-any-${labelId}`,
-						field: "label",
-						operator: "any",
-						value: labelId,
-					},
-				],
-			},
-		],
-		operator: "AND",
-	});
 	// Filter out done and canceled tasks to get open issues count
 	const opentaskCount = tasks.filter(
 		(task) => task.status !== "done" && task.status !== "canceled",
@@ -230,6 +169,9 @@ export default function ProjectSide() {
 			<Skeleton className="flex items-center gap-2 shrink-0 rounded bg-accent border px-3 py-0.5 h-9 w-full justify-start" />
 		);
 	}
+	// Check if no filters are active (showing all open tasks)
+	const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
+
 	return (
 		<div className="flex flex-col gap-3 w-full relative">
 			<Tile className="bg-card md:w-full md:h-11">
@@ -266,20 +208,15 @@ export default function ProjectSide() {
 				<Tile
 					className={cn(
 						"bg-card md:w-full cursor-pointer select-none",
-						filtersParam === "" ? "bg-accent" : "bg-card hover:bg-accent",
+						isAllTasksActive ? "bg-accent" : "bg-card hover:bg-accent",
 					)}
-					onClick={() => {
-						// Clear filters if already active
-						setSelectedViewSlug(null);
-						setFilterState({ groups: [], operator: "AND" });
-						setViewState(DEFAULT_TASK_VIEW_STATE);
-					}}
+					onClick={() => clearView()}
 				>
 					<TileHeader>
 						<TileTitle className="flex items-center gap-2">
 							<TileIcon
 								className={cn(
-									filtersParam === ""
+									isAllTasksActive
 										? "text-foreground bg-muted-foreground/20"
 										: "text-muted-foreground",
 								)}
@@ -299,16 +236,11 @@ export default function ProjectSide() {
 						isMyAssignedActive ? "bg-accent" : "bg-card hover:bg-accent",
 					)}
 					onClick={() => {
-						setSelectedViewSlug(null);
 						if (isMyAssignedActive) {
-							// Clear filters if already active
-							setFilterState({ groups: [], operator: "AND" });
+							clearView();
 						} else {
-							// Apply "My Assigned" filter
-							// setFiltersParam(myAssignedFilterParam);
-							setFilterState(myAssignedFilterState);
+							applyFilter(myAssignedFilterState);
 						}
-						setViewState(DEFAULT_TASK_VIEW_STATE);
 					}}
 				>
 					<TileHeader>
@@ -330,9 +262,9 @@ export default function ProjectSide() {
 					</TileHeader>
 				</Tile>
 				{categories.map((category) => {
+					const categoryFilter = createCategoryFilter(category.id);
 					const isActive =
-						filtersParam ===
-						serializeFilters(createCategoryFilter(category.id));
+						serializeFilters(filters) === serializeFilters(categoryFilter);
 					const categoryTaskCount = tasks.filter(
 						(task) => task.category === category.id,
 					).length;
@@ -345,13 +277,11 @@ export default function ProjectSide() {
 							)}
 							key={category.id}
 							onClick={() => {
-								setSelectedViewSlug(null);
 								if (isActive) {
-									setFilterState({ groups: [], operator: "AND" });
+									clearView();
 								} else {
-									setFilterState(createCategoryFilter(category.id));
+									applyFilter(categoryFilter);
 								}
-								setViewState(DEFAULT_TASK_VIEW_STATE);
 							}}
 						>
 							<TileHeader>
@@ -429,19 +359,7 @@ export default function ProjectSide() {
 						</TabsTrigger>
 					</TabsList>
 
-					{stuck && (
-						<div className="flex items-center gap-2 ml-auto">
-							<Button
-								variant={"accent"}
-								className="data-[state=active]:bg-card bg-transparent rounded-lg border-transparent aspect-square"
-								size={"sm"}
-								onClick={() => setOpenSettings(true)}
-							>
-								<IconSettings />
-							</Button>
-						</div>
-					)}
-				</div>
+					</div>
 				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-0.5">
 						{views.map((view) => {
@@ -464,20 +382,9 @@ export default function ProjectSide() {
 										className="h-fit w-full p-3 flex-1"
 										onClick={() => {
 											if (isActive) {
-												setSelectedViewSlug(null);
-												setFilterState({ groups: [], operator: "AND" });
-												setViewState(DEFAULT_TASK_VIEW_STATE);
+												clearView();
 											} else {
-												setSelectedViewSlug(viewSlug);
-												setFilterState(
-													deserializeFilters(view.filterParams) || {
-														groups: [],
-														operator: "AND",
-													},
-												);
-												if (view.viewConfig) {
-													setViewState(mapConfigToState(view.viewConfig));
-												}
+												selectView(view);
 											}
 										}}
 									>
@@ -525,8 +432,9 @@ export default function ProjectSide() {
 				<TabsContent value="priority" className="mt-0">
 					<div className="flex flex-col gap-0.5">
 						{priorityViews.map(({ key, label }) => {
+							const priorityFilter = createPriorityFilter(key);
 							const isActive =
-								filtersParam === serializeFilters(createPriorityFilter(key));
+								serializeFilters(filters) === serializeFilters(priorityFilter);
 							const config = priorityConfig[key];
 
 							return (
@@ -538,14 +446,10 @@ export default function ProjectSide() {
 									key={key}
 									onClick={() => {
 										if (isActive) {
-											// setFiltersParam("");
-											setFilterState({ groups: [], operator: "AND" });
+											clearView();
 										} else {
-											// setFiltersParam(filterParam);
-											setFilterState(createPriorityFilter(key));
+											applyFilter(priorityFilter);
 										}
-										setSelectedViewSlug(null);
-										setViewState(DEFAULT_TASK_VIEW_STATE);
 									}}
 								>
 									<TileHeader>

@@ -1,32 +1,24 @@
 "use client";
 import type { schema } from "@repo/database";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useRouterState } from "@tanstack/react-router";
-// import { usePathname } from "next/navigation";
-import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import {
+	useTaskViewManager,
+	type FilterCondition,
+	type FilterField,
+	type FilterOperator,
+} from "@/hooks/useTaskViewManager";
 import { FilterBadges } from "./FilterBadges";
 import { FilterMenu } from "./FilterMenu";
 import { FILTER_FIELD_CONFIGS } from "./filter-config";
 import {
 	getFieldConfig,
 	isMultiCondition,
-	mergeOrAppendCondition,
-	toggleMultiValue as toggleValueHelper,
-	updateConditionOperator,
 } from "./multi-select";
 import { NewViewPopover } from "./NewView";
 import { getOperatorLabel } from "./operators"; // re-exported below
-import { deserializeFilters, serializeFilters } from "./serialization";
-import type {
-	FilterCondition,
-	FilterField,
-	FilterGroup,
-	FilterOperator,
-	FilterState,
-} from "./types";
-import { useTaskViewState } from "./use-task-view-state";
+import { serializeFilters } from "./serialization";
 
 interface Props {
 	tasks: schema.TaskWithLabels[];
@@ -47,37 +39,23 @@ export function TaskFilterDropdown({
 	views,
 	categories,
 }: Props) {
-	// Query + persisted state
-	const [filtersParam, setFiltersParam] = useQueryState(
-		"filters",
-		parseAsString.withDefault(""),
-	);
-	const [viewParam] = useQueryState("view", parseAsString.withDefault(""));
-	const { value: filterState, setValue: setFilterState } =
-		useStateManagement<FilterState>(
-			"task-filters",
-			deserializeFilters(filtersParam) || { groups: [], operator: "AND" },
-			1,
-		);
-	const { viewState } = useTaskViewState();
+	console.log("[RENDER] TaskFilterDropdown");
+
+	// Consolidated task view state management
+	const {
+		filters,
+		viewSlug,
+		viewConfig,
+		addFilter: hookAddFilter,
+		removeFilter: hookRemoveFilter,
+		updateFilterOperator: hookUpdateFilterOperator,
+		toggleFilterValue,
+		clearFilters: hookClearFilters,
+	} = useTaskViewManager();
 
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
 	const pathname =
 		rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
-
-	// Only sync filters to URL when NOT using a saved view
-	// When a saved view is active, filters are derived from the view itself
-	useEffect(() => {
-		if (viewParam) {
-			// Clear the filters param when a saved view is active
-			if (filtersParam) {
-				setFiltersParam(null);
-			}
-			return;
-		}
-		const serialized = serializeFilters(filterState);
-		setFiltersParam(serialized || null);
-	}, [filterState, setFiltersParam, viewParam, filtersParam]);
 
 	// Local UI state
 	const [mainSearch, setMainSearch] = useState("");
@@ -85,37 +63,12 @@ export function TaskFilterDropdown({
 
 	const activeFiltersCount = useMemo(
 		() =>
-			filterState.groups.reduce(
+			filters.groups.reduce(
 				(count, group) => count + group.conditions.length,
 				0,
 			),
-		[filterState],
+		[filters],
 	);
-
-	// Helpers (no functional updater since setValue expects final value)
-	const addFilter = (condition: FilterCondition) => {
-		setFilterState(mergeOrAppendCondition(filterState, condition));
-	};
-
-	const removeFilter = (filterId: string) => {
-		const newGroups: FilterGroup[] = filterState.groups
-			.map((g: FilterGroup) => ({
-				...g,
-				conditions: g.conditions.filter(
-					(c: FilterCondition) => c.id !== filterId,
-				),
-			}))
-			.filter((g: FilterGroup) => g.conditions.length > 0);
-		setFilterState({ ...filterState, groups: newGroups });
-	};
-
-	const updateFilterOperator = (filterId: string, op: FilterOperator) => {
-		setFilterState(updateConditionOperator(filterState, filterId, op));
-	};
-
-	const toggleMultiValue = (conditionId: string, value: string) => {
-		setFilterState(toggleValueHelper(filterState, conditionId, value));
-	};
 
 	const getAvailableOperators = (field: FilterField): FilterOperator[] => {
 		const config = FILTER_FIELD_CONFIGS.find((c) => c.field === field);
@@ -129,32 +82,30 @@ export function TaskFilterDropdown({
 			: [];
 	};
 
-	const clearFilters = () => setFilterState({ groups: [], operator: "AND" });
-
 	const shareUrl = useMemo(() => {
 		if (typeof window === "undefined") return "";
 		// If a saved view is active, share the view URL (no filters param needed)
-		if (viewParam) {
-			return `${window.location.origin}${pathname}?view=${viewParam}`;
+		if (viewSlug) {
+			return `${window.location.origin}${pathname}?view=${viewSlug}`;
 		}
 		// Otherwise, share with filters param
-		const serialized = serializeFilters(filterState);
+		const serialized = serializeFilters(filters);
 		return `${window.location.origin}${pathname}${serialized ? `?filters=${serialized}` : ""}`;
-	}, [filterState, pathname, viewParam]);
+	}, [filters, pathname, viewSlug]);
 
 	const currentFiltersString = useMemo(
-		() => serializeFilters(filterState),
-		[filterState],
+		() => serializeFilters(filters),
+		[filters],
 	);
 
 	const currentViewConfig = useMemo(
 		() => ({
-			mode: viewState.viewMode,
-			groupBy: viewState.grouping,
-			showCompletedTasks: viewState.showCompletedTasks,
-			showEmptyGroups: viewState.showEmptyGroups,
+			mode: viewConfig.viewMode,
+			groupBy: viewConfig.grouping,
+			showCompletedTasks: viewConfig.showCompletedTasks,
+			showEmptyGroups: viewConfig.showEmptyGroups,
 		}),
-		[viewState],
+		[viewConfig],
 	);
 
 	const showNewViewPopover = useMemo(() => {
@@ -180,7 +131,7 @@ export function TaskFilterDropdown({
 		operator: FilterOperator,
 		value: string,
 	) => {
-		addFilter({
+		hookAddFilter({
 			id: `${field}-${operator}-${value}-${Date.now()}`,
 			field: field as FilterField,
 			operator,
@@ -221,12 +172,12 @@ export function TaskFilterDropdown({
 	return (
 		<div className="flex items-center gap-2">
 			<FilterBadges
-				conditions={filterState.groups.flatMap((g) => g.conditions)}
+				conditions={filters.groups.flatMap((g) => g.conditions)}
 				labels={labels}
 				availableUsers={availableUsers}
-				removeFilter={removeFilter}
-				updateFilterOperator={updateFilterOperator}
-				toggleValue={toggleMultiValue}
+				removeFilter={hookRemoveFilter}
+				updateFilterOperator={hookUpdateFilterOperator}
+				toggleValue={toggleFilterValue}
 				getAvailableOptions={getAvailableOptions}
 				getAvailableOperators={getAvailableOperators}
 				renderFilterValue={renderFilterValue}
@@ -239,7 +190,7 @@ export function TaskFilterDropdown({
 				setMainSearch={setMainSearch}
 				subSearch={subSearch}
 				setSubSearch={setSubSearch}
-				clearFilters={clearFilters}
+				clearFilters={hookClearFilters}
 				handleFilterAdd={handleFilterAdd}
 				getAvailableOptions={getAvailableOptions}
 			/>
