@@ -48,7 +48,12 @@ export function TaskNewCommentContent({
 			});
 			return;
 		}
-		const updatedContent = await processUploads(newComment, visibility, task.organizationId, "create-task-comment");
+		const updatedContent = await processUploads(
+			newComment,
+			visibility,
+			task.organizationId,
+			"create-task-comment",
+		);
 		const data = await runWithToast(
 			"create-task-comment",
 			{
@@ -62,10 +67,18 @@ export function TaskNewCommentContent({
 				},
 				error: {
 					title: "Couldn't post comment",
-					description: "The comment appears locally but could not be saved to the server. Please try again.",
+					description:
+						"The comment appears locally but could not be saved to the server. Please try again.",
 				},
 			},
-			() => CreateTaskCommentAction(task.organizationId, task.id, updatedContent, visibility, wsClientId)
+			() =>
+				CreateTaskCommentAction(
+					task.organizationId,
+					task.id,
+					updatedContent,
+					visibility,
+					wsClientId,
+				),
 		);
 
 		if (data?.success && data.data && task && task.id === data.data.id) {
@@ -78,7 +91,7 @@ export function TaskNewCommentContent({
 		<div
 			className={cn(
 				"text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col",
-				visibility === "internal" && "border-primary/30 bg-primary/5"
+				visibility === "internal" && "border-primary/30 bg-primary/5",
 			)}
 		>
 			<Editor
@@ -87,6 +100,7 @@ export function TaskNewCommentContent({
 				onChange={setNewComment}
 				categories={categories}
 				tasks={tasks}
+				submit={handleSubmit}
 			/>
 			<div className="flex items-center gap-2 ml-auto">
 				<ButtonGroup>
@@ -95,7 +109,10 @@ export function TaskNewCommentContent({
 						size={"sm"}
 						disabled={disabled}
 						onClick={handleSubmit}
-						className={cn("border-transparent", visibility === "internal" && "bg-primary/10 hover:bg-primary/20")}
+						className={cn(
+							"border-transparent",
+							visibility === "internal" && "bg-primary/10 hover:bg-primary/20",
+						)}
 					>
 						{visibility === "internal" ? "Internal comment" : "Post comment"}
 						<IconArrowBack />
@@ -105,12 +122,15 @@ export function TaskNewCommentContent({
 						size="sm"
 						className={cn(
 							"border-transparent hover:border-transparent",
-							visibility === "internal" && "bg-primary/10! hover:bg-primary/20!"
+							visibility === "internal" &&
+								"bg-primary/10! hover:bg-primary/20!",
 						)}
 						variant={visibility === "internal" ? "primary" : "accent"}
 						pressed={visibility === "internal"}
 						disabled={disabled}
-						onPressedChange={(pressed) => setVisibility(pressed ? "internal" : "public")}
+						onPressedChange={(pressed) =>
+							setVisibility(pressed ? "internal" : "public")
+						}
 						defaultPressed={true}
 					>
 						{visibility === "internal" ? <IconLock /> : <IconLockOpen2 />}

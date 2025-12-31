@@ -142,6 +142,7 @@ export function TimelineItemWrapper({
 									categories={categories}
 									tasks={tasks}
 									onChange={onContentChange}
+									submit={onSave}
 								/>
 								<div className="flex items-center gap-2 mt-2 justify-end">
 									<Button
