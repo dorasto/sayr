@@ -3,18 +3,27 @@
 import type { schema } from "@repo/database";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useEffect, useState } from "react";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { useEffect, useRef, useState } from "react";
 
 // import { useLogger } from "@/app/lib/axiom/client";
 
 let webSocket: WebSocket | null = null;
 let lastMessageTimestamp: number = Date.now();
-
+// track reconnect timings
 const useWebSocket = () => {
 	// const log = useLogger();
 	const [ws, setWs] = useState<WebSocket | null>(null);
-	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
-	const { setValue: setWSClientId } = useStateManagement<string>("ws-clientId", "");
+	const { setValue: setWSStatus } = useStateManagement<string>(
+		"ws-status",
+		"Disconnected",
+	);
+	const { setValue: setWSClientId } = useStateManagement<string>(
+		"ws-clientId",
+		"",
+	);
+	const disconnectTimeRef = useRef<number | null>(null);
+	const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 	useEffect(() => {
 		const abortController = new AbortController();
 		const connectWebSocket = () => {
@@ -37,12 +46,22 @@ const useWebSocket = () => {
 									if (data.data.authenticated) {
 										setWSStatus("Connected");
 										setWSClientId(data.data.wsClientId);
-										console.info("WebSocket authenticated", { wsClientId: data.data.wsClientId });
-										// headlessToast.success({
-										// 	id: "ws-connection-status",
-										// 	title: "WebSocket Connected",
-										// 	description: "Successfully connected to server",
-										// });
+										console.info("WebSocket authenticated", {
+											wsClientId: data.data.wsClientId,
+										});
+										// ✅ After reconnect — broadcast if stable for 2 sec
+										if (disconnectTimeRef.current !== null) {
+											if (reconnectTimerRef.current)
+												clearTimeout(reconnectTimerRef.current);
+											reconnectTimerRef.current = setTimeout(() => {
+												sendWindowMessage(
+													window,
+													{ type: "WS_RECONNECTED" },
+													"*",
+												);
+												disconnectTimeRef.current = null;
+											}, 2000);
+										}
 									} else {
 										webSocket?.close();
 										webSocket = null;
@@ -62,7 +81,10 @@ const useWebSocket = () => {
 									}
 									return;
 								case "PING": {
-									const pong = { type: "PONG", meta: { ts: Date.now() } } as WSMessage;
+									const pong = {
+										type: "PONG",
+										meta: { ts: Date.now() },
+									} as WSMessage;
 									webSocket?.send(JSON.stringify(pong));
 									return;
 								}
@@ -71,7 +93,8 @@ const useWebSocket = () => {
 										headlessToast.info({
 											id: "org-member-removed",
 											title: "Removed from organization",
-											description: "You have been removed from the organization. Redirecting...",
+											description:
+												"You have been removed from the organization. Redirecting...",
 										});
 										setTimeout(() => {
 											window.location.href = "/admin";
@@ -83,10 +106,13 @@ const useWebSocket = () => {
 									break;
 							}
 						} catch (error) {
-							console.error("WebSocket message parse error", { error, data: event.data });
+							console.error("WebSocket message parse error", {
+								error,
+								data: event.data,
+							});
 						}
 					},
-					{ signal: abortController.signal }
+					{ signal: abortController.signal },
 				);
 				webSocket.onclose = (event) => {
 					webSocket = null;
@@ -95,6 +121,7 @@ const useWebSocket = () => {
 						reason: event.reason,
 						wasClean: event.wasClean,
 					});
+					disconnectTimeRef.current = Date.now();
 					setWs(null);
 					setWSClientId("");
 					setWSStatus("Reconnecting");
@@ -143,7 +170,9 @@ const useWebSocket = () => {
 			if (webSocket && webSocket.readyState === WebSocket.OPEN) {
 				const timeSinceLastMessage = Date.now() - lastMessageTimestamp;
 				if (timeSinceLastMessage > 45000) {
-					console.warn(`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`);
+					console.warn(
+						`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`,
+					);
 					// log.warn("WebSocket watchdog timeout", { timeSinceLastMessage });
 					webSocket.close(4000, "Watchdog timeout");
 				}
