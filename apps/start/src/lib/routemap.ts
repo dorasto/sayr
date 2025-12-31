@@ -72,7 +72,7 @@ export const orgSettingsNavigation = [
     icon: Icon.IconUsers,
     activeIcon: Icon.IconUsers,
     activeClass: "fill-white",
-    matchType: "exact" as const,
+    matchType: "includes" as const,
   },
   {
     title: "Teams",
@@ -80,7 +80,7 @@ export const orgSettingsNavigation = [
     icon: Icon.IconUsersGroup,
     activeIcon: Icon.IconUsersGroup,
     activeClass: "fill-white",
-    matchType: "exact" as const,
+    matchType: "includes" as const,
   },
   {
     title: "Labels",

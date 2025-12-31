@@ -1075,7 +1075,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 		const session = c.get("session");
 		const isPublic =
 			!session ||
-			!(await hasOrgPermission(session?.userId, orgId || "", "members"));
+			!(await hasOrgPermission(session?.userId, orgId || "", "tasks.changeStatus"));
 
 		const page = Math.max(Number(q.page) || 1, 1);
 		const limit = Math.min(Number(q.limit) || 20, 50);

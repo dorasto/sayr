@@ -1,10 +1,14 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import {
+	addMemberToAdminTeam,
+	bootstrapOrganizationAdminTeam,
 	db,
+	defaultTeamPermissions,
 	getLabels,
 	getOrganizationMembers,
 	hasOrgPermission,
 	schema,
+	type TeamPermissions,
 } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
@@ -135,6 +139,15 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 			500,
 		);
 	}
+
+	// Create default Administrators team and add the creator to it
+	try {
+		await bootstrapOrganizationAdminTeam(orgId);
+	} catch (err) {
+		console.error("Failed to create default admin team:", err);
+		// Don't fail org creation if admin team creation fails
+	}
+
 	await recordWideEvent({
 		name: "organization.create",
 		description: "Organization successfully created",
@@ -166,7 +179,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"members",
+		"admin.manageMembers",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -247,7 +260,7 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		const isAuthorized = await hasOrgPermission(
 			session?.userId || "",
 			orgId,
-			"members",
+			"admin.manageMembers",
 		);
 		if (!isAuthorized) {
 			await recordWideEvent({
@@ -349,7 +362,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		const isAuthorized = await hasOrgPermission(
 			session?.userId || "",
 			orgId,
-			"members",
+			"admin.manageMembers",
 		);
 		if (!isAuthorized) {
 			await recordWideEvent({
@@ -450,7 +463,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"labels",
+		"content.manageLabels",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -534,7 +547,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"labels",
+		"content.manageLabels",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -619,7 +632,7 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"labels",
+		"content.manageLabels",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -705,7 +718,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"categories",
+		"content.manageCategories",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -794,7 +807,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"categories",
+		"content.manageCategories",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -888,7 +901,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"categories",
+		"content.manageCategories",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -980,7 +993,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"members",
+		"admin.manageMembers",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1073,7 +1086,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"members",
+		"admin.manageMembers",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1170,7 +1183,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"members",
+		"admin.manageMembers",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1259,7 +1272,7 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"administrator",
+		"admin.administrator",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1346,7 +1359,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"administrator",
+		"admin.administrator",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1452,7 +1465,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"administrator",
+		"admin.administrator",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1525,7 +1538,7 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		orgId,
-		"administrator",
+		"admin.administrator",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1606,7 +1619,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"teams",
+		"admin.manageTeams",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1624,6 +1637,16 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 		);
 	}
 
+	// Merge provided permissions with defaults
+	const teamPermissions: TeamPermissions = permissions
+		? {
+				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+				content: { ...defaultTeamPermissions.content, ...permissions.content },
+				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+				moderation: { ...defaultTeamPermissions.moderation, ...permissions.moderation },
+			}
+		: defaultTeamPermissions;
+
 	const [team] = await db
 		.insert(schema.team)
 		.values({
@@ -1631,13 +1654,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 			organizationId: org_id,
 			name,
 			description,
-			permissions: {
-				administrator: permissions?.administrator || false,
-				members: permissions?.members || false,
-				teams: permissions?.teams || false,
-				categories: permissions?.categories || false,
-				labels: permissions?.labels || false,
-			},
+			permissions: teamPermissions,
 		})
 		.returning();
 
@@ -1684,7 +1701,7 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"teams",
+		"admin.manageTeams",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1702,18 +1719,22 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 		);
 	}
 
+	// Merge provided permissions with defaults
+	const teamPermissions: TeamPermissions = permissions
+		? {
+				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+				content: { ...defaultTeamPermissions.content, ...permissions.content },
+				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+				moderation: { ...defaultTeamPermissions.moderation, ...permissions.moderation },
+			}
+		: defaultTeamPermissions;
+
 	const [team] = await db
 		.update(schema.team)
 		.set({
 			name,
 			description,
-			permissions: {
-				administrator: permissions?.administrator || false,
-				members: permissions?.members || false,
-				teams: permissions?.teams || false,
-				categories: permissions?.categories || false,
-				labels: permissions?.labels || false,
-			},
+			permissions: teamPermissions,
 			updatedAt: new Date(),
 		})
 		.where(
@@ -1763,7 +1784,7 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"teams",
+		"admin.manageTeams",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1830,7 +1851,7 @@ apiRouteAdminOrganization.post("/team-member", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"teams",
+		"admin.manageTeams",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1906,7 +1927,7 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 	const isAuthorized = await hasOrgPermission(
 		session?.userId || "",
 		org_id,
-		"teams",
+		"admin.manageTeams",
 	);
 	if (!isAuthorized) {
 		await recordWideEvent({
@@ -1969,5 +1990,78 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 		data: removed,
 	});
 });
+
+// Bootstrap default Administrators team for an existing organization
+apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
+	const recordWideEvent = c.get("recordWideEvent");
+	await recordWideEvent({
+		name: "team.bootstrap",
+		description: "Bootstrap admin team requested",
+		data: {},
+	});
+
+	const session = c.get("session");
+	const { org_id } = await c.req.json();
+
+	// Only the org creator or existing admin should be able to do this
+	// For now, just check if user is a member of the org
+	const membership = await db.query.member.findFirst({
+		where: and(
+			eq(schema.member.organizationId, org_id),
+			eq(schema.member.userId, session?.userId || ""),
+		),
+	});
+
+	if (!membership) {
+		await recordWideEvent({
+			name: "team.bootstrap",
+			description: "Unauthorized to bootstrap admin team",
+			data: {
+				type: "AuthorizationError",
+				code: "Unauthorized",
+				message: "User is not a member of this organization",
+			},
+		});
+		return c.json(
+			{ success: false, error: "You must be a member of this organization." },
+			401,
+		);
+	}
+
+	try {
+		const adminTeam = await bootstrapOrganizationAdminTeam(org_id);
+
+		await recordWideEvent({
+			name: "team.bootstrap",
+			description: "Admin team bootstrapped successfully",
+			data: {
+				organizationId: org_id,
+				teamId: adminTeam.id,
+				bootstrappedByUserId: session?.userId || "",
+			},
+		});
+
+		return c.json({
+			success: true,
+			data: adminTeam,
+		});
+	} catch (err) {
+		console.error("Failed to bootstrap admin team:", err);
+		await recordWideEvent({
+			name: "team.bootstrap",
+			description: "Failed to bootstrap admin team",
+			data: {
+				type: "DatabaseError",
+				code: "BootstrapFailed",
+				message: "Failed to create admin team",
+			},
+		});
+		return c.json(
+			{ success: false, error: "Failed to create admin team." },
+			500,
+		);
+	}
+});
+
 // Task routes
 apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);

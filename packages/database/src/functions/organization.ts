@@ -1,6 +1,8 @@
+import crypto from "node:crypto";
 import { ensureCdnUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
-import { db, type schema } from "..";
+import { db, schema } from "..";
+import { defaultTeamPermissions, type TeamPermissions } from "../../schema/member.schema";
 
 /**
  * Retrieves all organizations that a given user belongs to, including
@@ -211,4 +213,135 @@ export async function getOrganizationPublicById(
 		};
 	}
 	return null;
+}
+
+/** Full admin permissions - all flags set to true */
+const fullAdminPermissions: TeamPermissions = {
+	admin: {
+		administrator: true,
+		manageMembers: true,
+		manageTeams: true,
+	},
+	content: {
+		manageCategories: true,
+		manageLabels: true,
+		manageViews: true,
+	},
+	tasks: {
+		create: true,
+		editAny: true,
+		deleteAny: true,
+		assign: true,
+		changeStatus: true,
+		changePriority: true,
+	},
+	moderation: {
+		manageComments: true,
+		approveSubmissions: true,
+		manageVotes: true,
+	},
+};
+
+/**
+ * Creates a default "Administrators" team for an organization with full permissions
+ * and adds all existing organization members to it.
+ *
+ * This function is idempotent - if an "Administrators" team already exists,
+ * it will just ensure all members are added to it.
+ *
+ * @param orgId - The ID of the organization to bootstrap.
+ * @returns The created or existing Administrators team.
+ *
+ * @example
+ * ```ts
+ * // On org creation
+ * const adminTeam = await bootstrapOrganizationAdminTeam("org_123");
+ *
+ * // For existing orgs that need the admin team
+ * await bootstrapOrganizationAdminTeam("existing_org_456");
+ * ```
+ */
+export async function bootstrapOrganizationAdminTeam(
+	orgId: string,
+): Promise<schema.OrganizationTeamType> {
+	// Check if Administrators team already exists
+	let adminTeam = await db.query.team.findFirst({
+		where: (t, { and, eq }) =>
+			and(eq(t.organizationId, orgId), eq(t.name, "Administrators")),
+	});
+
+	// Create if it doesn't exist
+	if (!adminTeam) {
+		const [created] = await db
+			.insert(schema.team)
+			.values({
+				id: crypto.randomUUID(),
+				organizationId: orgId,
+				name: "Administrators",
+				description: "Full access to all organization settings and content",
+				permissions: fullAdminPermissions,
+			})
+			.returning();
+
+		if (!created) {
+			throw new Error("Failed to create Administrators team");
+		}
+		adminTeam = created;
+	}
+
+	// Get all organization members
+	const members = await db.query.member.findMany({
+		where: (m) => eq(m.organizationId, orgId),
+	});
+
+	// Get existing team memberships
+	const existingMemberships = await db.query.memberTeam.findMany({
+		where: (mt) => eq(mt.teamId, adminTeam.id),
+	});
+
+	const existingMemberIds = new Set(existingMemberships.map((mt) => mt.memberId));
+
+	// Add any members not already in the team
+	const membersToAdd = members.filter((m) => !existingMemberIds.has(m.id));
+
+	if (membersToAdd.length > 0) {
+		await db.insert(schema.memberTeam).values(
+			membersToAdd.map((m) => ({
+				id: crypto.randomUUID(),
+				memberId: m.id,
+				teamId: adminTeam.id,
+			})),
+		);
+	}
+
+	return adminTeam;
+}
+
+/**
+ * Adds a member to the default Administrators team when they join an organization.
+ * If the Administrators team doesn't exist, it will be created first.
+ *
+ * @param orgId - The ID of the organization.
+ * @param memberId - The ID of the member to add.
+ */
+export async function addMemberToAdminTeam(
+	orgId: string,
+	memberId: string,
+): Promise<void> {
+	// Ensure admin team exists
+	const adminTeam = await bootstrapOrganizationAdminTeam(orgId);
+
+	// Check if already a member
+	const existing = await db.query.memberTeam.findFirst({
+		where: (mt, { and, eq }) =>
+			and(eq(mt.teamId, adminTeam.id), eq(mt.memberId, memberId)),
+	});
+
+	if (!existing) {
+		await db.insert(schema.memberTeam).values({
+			id: crypto.randomUUID(),
+			memberId,
+			teamId: adminTeam.id,
+		});
+	}
 }

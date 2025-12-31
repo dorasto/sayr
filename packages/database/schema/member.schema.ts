@@ -21,20 +21,32 @@ export const team = table(
 		description: v.text("description"),
 		permissions: v
 			.json("permissions")
-			.$type<{
-				administrator: boolean;
-				members: boolean;
-				teams: boolean;
-				categories: boolean;
-				labels: boolean;
-			}>()
+			.$type<TeamPermissions>()
 			.notNull()
 			.default({
-				administrator: false,
-				members: false,
-				teams: false,
-				categories: false,
-				labels: false,
+				admin: {
+					administrator: false,
+					manageMembers: false,
+					manageTeams: false,
+				},
+				content: {
+					manageCategories: false,
+					manageLabels: false,
+					manageViews: false,
+				},
+				tasks: {
+					create: true,
+					editAny: false,
+					deleteAny: false,
+					assign: false,
+					changeStatus: true,
+					changePriority: true,
+				},
+				moderation: {
+					manageComments: false,
+					approveSubmissions: false,
+					manageVotes: false,
+				},
 			}),
 		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 		updatedAt: v
@@ -131,6 +143,82 @@ export const memberTeamRelations = relations(memberTeam, ({ one }) => ({
  *  TYPES
  * ────────────────────────────────
  */
+
+/**
+ * Team permissions structure - granular control over what team members can do.
+ * Uses Discord-style permission inheritance: if ANY team grants a permission, user has it.
+ */
+export interface TeamPermissions {
+	/** Organization-level administration */
+	admin: {
+		/** Full access - overrides all other permissions */
+		administrator: boolean;
+		/** Invite, remove, and manage organization members */
+		manageMembers: boolean;
+		/** Create, edit, and delete teams */
+		manageTeams: boolean;
+	};
+	/** Content and settings management */
+	content: {
+		/** Create, edit, and delete project categories */
+		manageCategories: boolean;
+		/** Create, edit, and delete labels */
+		manageLabels: boolean;
+		/** Create, edit, and delete saved views */
+		manageViews: boolean;
+	};
+	/** Task/issue permissions */
+	tasks: {
+		/** Create new tasks */
+		create: boolean;
+		/** Edit any task (not just own/assigned) */
+		editAny: boolean;
+		/** Delete any task */
+		deleteAny: boolean;
+		/** Assign tasks to other members */
+		assign: boolean;
+		/** Change task status */
+		changeStatus: boolean;
+		/** Change task priority */
+		changePriority: boolean;
+	};
+	/** Public-facing moderation permissions */
+	moderation: {
+		/** Edit or delete any comment */
+		manageComments: boolean;
+		/** Approve or reject public submissions */
+		approveSubmissions: boolean;
+		/** Manage votes (reset, fraud detection) */
+		manageVotes: boolean;
+	};
+}
+
+/** Default permissions for new teams */
+export const defaultTeamPermissions: TeamPermissions = {
+	admin: {
+		administrator: false,
+		manageMembers: false,
+		manageTeams: false,
+	},
+	content: {
+		manageCategories: false,
+		manageLabels: false,
+		manageViews: false,
+	},
+	tasks: {
+		create: true,
+		editAny: false,
+		deleteAny: false,
+		assign: false,
+		changeStatus: true,
+		changePriority: true,
+	},
+	moderation: {
+		manageComments: false,
+		approveSubmissions: false,
+		manageVotes: false,
+	},
+};
 
 // a single team row
 export type OrganizationTeamType = typeof team.$inferSelect;

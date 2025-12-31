@@ -1,4 +1,4 @@
-import type { schema } from "@repo/database";
+import type { schema, TeamPermissions } from "@repo/database";
 
 const API_URL = import.meta.env.VITE_EXTERNAL_API_URL;
 
@@ -703,7 +703,7 @@ export async function createOrganizationTeamAction(
 	data: {
 		name: string;
 		description: string;
-		permissions: schema.OrganizationTeamType["permissions"];
+		permissions: TeamPermissions;
 	}
 ): Promise<{ success: boolean; data: schema.OrganizationTeamType; error?: string }> {
 	const payload = {
@@ -742,7 +742,7 @@ export async function editOrganizationTeamAction(
 	data: {
 		name: string;
 		description: string;
-		permissions: schema.OrganizationTeamType["permissions"];
+		permissions: TeamPermissions;
 	}
 ): Promise<{ success: boolean; data: schema.OrganizationTeamType; error?: string }> {
 	const payload = {
