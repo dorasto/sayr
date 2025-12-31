@@ -9,19 +9,11 @@ import {
 	AdaptiveDialogHeader,
 	AdaptiveDialogTitle,
 } from "@repo/ui/components/adaptive-dialog";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@repo/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import {
 	IconCategory,
@@ -32,7 +24,6 @@ import {
 	IconUserPlus,
 	IconUsers,
 } from "@tabler/icons-react";
-import { redirect } from "@tanstack/react-router";
 import type { NodeJSON } from "prosekit/core";
 import { useMemo, useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -46,7 +37,7 @@ import { priorityConfig, statusConfig } from "../../shared/config";
 import GlobalTaskLabels from "../../shared/label";
 import GlobalTaskPriority from "../../shared/priority";
 import GlobalTaskStatus from "../../shared/status";
-
+import { useNavigate } from "@tanstack/react-router";
 interface Props {
 	organization: schema.OrganizationWithMembers;
 	tasks: schema.TaskWithLabels[];
@@ -66,38 +57,24 @@ export default function CreateIssueDialog({
 	// 	false;
 	// },
 }: Props) {
+	const navigate = useNavigate();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const { value: categories } = useStateManagement<schema.categoryType[]>(
-		"categories",
-		[],
-		1,
-	);
+	const { value: categories } = useStateManagement<schema.categoryType[]>("categories", [], 1);
 	const [open, setOpen] = useState(false);
 	const [title, setTitle] = useState("");
-	const [description, setDescription] = useState<undefined | NodeJSON>(
-		undefined,
-	);
+	const [description, setDescription] = useState<undefined | NodeJSON>(undefined);
 	const [status, setStatus] = useState<string | undefined | null>("backlog");
 	const [priority, setPriority] = useState<string | undefined | null>("none");
 	const [category, setCategory] = useState<string>("");
 	const [labels, setLabels] = useState<string[]>([]);
 	const [assignees, setAssignees] = useState<string[]>([]);
 	const { runWithToast, isFetching } = useToastAction();
-	const selectedLabels = useMemo(
-		() => _labels.filter((label) => labels.includes(label.id)),
-		[_labels, labels],
-	);
-	const selectedCategory = useMemo(
-		() => categories.find((c) => c.id === category),
-		[categories, category],
-	);
-	const availableUsers = useMemo(
-		() => organization.members.map((m) => m.user),
-		[organization.members],
-	);
+	const selectedLabels = useMemo(() => _labels.filter((label) => labels.includes(label.id)), [_labels, labels]);
+	const selectedCategory = useMemo(() => categories.find((c) => c.id === category), [categories, category]);
+	const availableUsers = useMemo(() => organization.members.map((m) => m.user), [organization.members]);
 	const selectedAssignees = useMemo(
 		() => availableUsers.filter((user) => assignees.includes(user.id)),
-		[availableUsers, assignees],
+		[availableUsers, assignees]
 	);
 	const resolvedStatus = (status ?? "backlog") || "backlog";
 	const resolvedPriority = (priority ?? "none") || "none";
@@ -128,24 +105,18 @@ export default function CreateIssueDialog({
 			title,
 			category,
 			selectedAssignees,
-		],
+		]
 	);
 	const handleUpdate = async () => {
 		if (!description || isFetching) {
 			headlessToast.error({
 				title: "Cannot submit empty description",
-				description:
-					"Please enter some text before submitting your description.",
+				description: "Please enter some text before submitting your description.",
 				id: "create-task",
 			});
 			return;
 		}
-		const updatedContent = await processUploads(
-			description,
-			"public",
-			organization.id,
-			"create-task",
-		);
+		const updatedContent = await processUploads(description, "public", organization.id, "create-task");
 
 		const data = await runWithToast(
 			"create-task",
@@ -175,8 +146,8 @@ export default function CreateIssueDialog({
 						category,
 						assignees,
 					},
-					wsClientId,
-				),
+					wsClientId
+				)
 		);
 		if (data?.success && data.data) {
 			setOpen(false);
@@ -188,15 +159,17 @@ export default function CreateIssueDialog({
 			setLabels([]);
 			setAssignees([]);
 			setTasks([...tasks, data.data]);
-			redirect({
-				href: `/admin/${organization.id}/tasks/${data.data.shortId}`,
+			navigate({
+				to: "/admin/$orgId/tasks/$taskShortId",
+				params: {
+					orgId: organization.id,
+					taskShortId: data.data.shortId?.toString() || "0",
+				},
 			});
 		}
 	};
-	const statusconfig =
-		statusConfig[resolvedStatus as keyof typeof statusConfig];
-	const priorityconfig =
-		priorityConfig[resolvedPriority as keyof typeof priorityConfig];
+	const statusconfig = statusConfig[resolvedStatus as keyof typeof statusConfig];
+	const priorityconfig = priorityConfig[resolvedPriority as keyof typeof priorityConfig];
 	const selectedLabelCount = draftTask.labels.length;
 	const selectedAssigneeCount = draftTask.assignees.length;
 	return (
@@ -216,18 +189,10 @@ export default function CreateIssueDialog({
 						<AdaptiveDialogTitle asChild>
 							<Popover>
 								<PopoverTrigger asChild>
-									<Button
-										variant={"accent"}
-										className="w-fit text-xs h-7"
-										size={"sm"}
-									>
+									<Button variant={"accent"} className="w-fit text-xs h-7" size={"sm"}>
 										<div className="flex items-center gap-1">
 											<Avatar className="h-4 w-4 rounded-md duration-200 transition-none select-none group-hover/coltrig:h-0 bg-accent">
-												<AvatarImage
-													src={organization.logo || ""}
-													alt={organization.name}
-													className=""
-												/>
+												<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
 												<AvatarFallback className="rounded-md uppercase text-xs">
 													<IconUsers className="h-4 w-4" />
 												</AvatarFallback>
@@ -242,18 +207,10 @@ export default function CreateIssueDialog({
 									</Button>
 								</PopoverTrigger>
 								<PopoverContent className="w-56 p-0" align="start">
-									<Button
-										variant={"accent"}
-										className="justify-start w-full text-xs"
-										size={"sm"}
-									>
+									<Button variant={"accent"} className="justify-start w-full text-xs" size={"sm"}>
 										<div className="flex items-center gap-1">
 											<Avatar className="h-4 w-4 rounded-md duration-200 transition-none select-none group-hover/coltrig:h-0 bg-accent">
-												<AvatarImage
-													src={organization.logo || ""}
-													alt={organization.name}
-													className=""
-												/>
+												<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
 												<AvatarFallback className="rounded-md uppercase text-xs">
 													<IconUsers className="h-4 w-4" />
 												</AvatarFallback>
@@ -269,9 +226,7 @@ export default function CreateIssueDialog({
 								</PopoverContent>
 							</Popover>
 						</AdaptiveDialogTitle>
-						<AdaptiveDialogDescription className="sr-only">
-							Create a new task
-						</AdaptiveDialogDescription>
+						<AdaptiveDialogDescription className="sr-only">Create a new task</AdaptiveDialogDescription>
 					</AdaptiveDialogHeader>
 					<div className="flex flex-col gap-3 w-full p-3">
 						<div className="flex flex-col gap-1 w-full">
@@ -296,14 +251,8 @@ export default function CreateIssueDialog({
 									editable
 									onChange={(value) => setStatus(value)}
 									customTrigger={
-										<Button
-											variant={"primary"}
-											className="w-fit text-xs h-7"
-											size={"sm"}
-										>
-											{statusconfig?.icon(
-												`h-3.5 w-3.5 ${statusconfig?.className || ""}`,
-											)}
+										<Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
+											{statusconfig?.icon(`h-3.5 w-3.5 ${statusconfig?.className || ""}`)}
 											{statusconfig?.label}
 										</Button>
 									}
@@ -313,14 +262,8 @@ export default function CreateIssueDialog({
 									editable
 									onChange={(value) => setPriority(value)}
 									customTrigger={
-										<Button
-											variant={"primary"}
-											className="w-fit text-xs h-7"
-											size={"sm"}
-										>
-											{priorityconfig?.icon(
-												`h-3.5 w-3.5 ${priorityconfig?.className || ""}`,
-											)}
+										<Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
+											{priorityconfig?.icon(`h-3.5 w-3.5 ${priorityconfig?.className || ""}`)}
 											{priorityconfig?.label}
 										</Button>
 									}
@@ -332,11 +275,7 @@ export default function CreateIssueDialog({
 									onLabelsChange={setLabels}
 									customChildren
 									customTrigger={
-										<Button
-											variant={"primary"}
-											className="w-fit text-xs h-7 line-clamp-1"
-											size={"sm"}
-										>
+										<Button variant={"primary"} className="w-fit text-xs h-7 line-clamp-1" size={"sm"}>
 											{selectedLabelCount > 1 ? (
 												<div className="flex items-center gap-2">
 													<div className="flex -space-x-1">
@@ -357,8 +296,7 @@ export default function CreateIssueDialog({
 													<span
 														className="h-2 w-2 shrink-0 rounded-full mr-2"
 														style={{
-															backgroundColor:
-																draftTask.labels[0]?.color || "#cccccc",
+															backgroundColor: draftTask.labels[0]?.color || "#cccccc",
 														}}
 													/>
 													<span>{draftTask.labels[0]?.name}</span>
@@ -378,23 +316,13 @@ export default function CreateIssueDialog({
 									availableUsers={availableUsers}
 									onChange={(value) => setAssignees(value)}
 									customTrigger={
-										<Button
-											variant={"primary"}
-											className="w-fit text-xs h-7 line-clamp-1"
-											size={"sm"}
-										>
+										<Button variant={"primary"} className="w-fit text-xs h-7 line-clamp-1" size={"sm"}>
 											{selectedAssigneeCount > 1 ? (
 												<div className="flex items-center gap-2">
 													<div className="flex -space-x-1">
 														{draftTask.assignees.map((assignee) => (
-															<Avatar
-																key={assignee.id}
-																className="h-4 w-4 border border-background"
-															>
-																<AvatarImage
-																	src={assignee.image || undefined}
-																	alt={assignee.name}
-																/>
+															<Avatar key={assignee.id} className="h-4 w-4 border border-background">
+																<AvatarImage src={assignee.image || undefined} alt={assignee.name} />
 																<AvatarFallback className="text-[8px]">
 																	{assignee.name
 																		.split(" ")
@@ -441,17 +369,11 @@ export default function CreateIssueDialog({
 									categories={categories}
 									onChange={(value) => setCategory(value)}
 									customTrigger={
-										<Button
-											variant={"primary"}
-											className="w-fit text-xs h-7"
-											size={"sm"}
-										>
+										<Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
 											{selectedCategory ? (
 												<>
 													<RenderIcon
-														iconName={
-															selectedCategory.icon || "IconCircleFilled"
-														}
+														iconName={selectedCategory.icon || "IconCircleFilled"}
 														className="size-3.5! [&_svg]:size-3.5! mr-1"
 														color={selectedCategory.color || undefined}
 														button
@@ -472,11 +394,7 @@ export default function CreateIssueDialog({
 					</div>
 					<AdaptiveDialogFooter className="mt-auto bg-background flex !flex-col gap-2">
 						<div className="flex items-center gap-2 ml-auto">
-							<Button
-								variant={"primary"}
-								onClick={handleUpdate}
-								disabled={isFetching || !title.trim()}
-							>
+							<Button variant={"primary"} onClick={handleUpdate} disabled={isFetching || !title.trim()}>
 								Create task
 							</Button>
 						</div>
