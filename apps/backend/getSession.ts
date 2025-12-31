@@ -12,7 +12,7 @@ const sessionCache = new Map<string, { value: SessionValue | null; expiresAt: nu
 
 function getSessionToken(headers: Headers): string {
 	const cookieHeader = headers.get("cookie") ?? "";
-	const match = cookieHeader.match(/better-auth\.session_token=([^;]+)/);
+	const match = cookieHeader.match(/__Secure-?better-auth\.session_token=([^;]+)/);
 	return match?.[1] ?? "anonymous";
 }
 
