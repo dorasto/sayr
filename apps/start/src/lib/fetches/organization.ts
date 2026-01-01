@@ -3,17 +3,17 @@ import type { schema, TeamPermissions } from "@repo/database";
 const API_URL = import.meta.env.VITE_EXTERNAL_API_URL;
 
 export interface CreateOrganizationData {
-	name: string;
-	slug: string;
-	description?: string;
+  name: string;
+  slug: string;
+  description?: string;
 }
 
 export interface UpdateOrganizationData {
-	name: string;
-	slug: string;
-	logo?: string;
-	bannerImg?: string;
-	description?: string;
+  name: string;
+  slug: string;
+  logo?: string;
+  bannerImg?: string;
+  description?: string;
 }
 
 /**
@@ -22,26 +22,28 @@ export interface UpdateOrganizationData {
  * @param data - The organization data to create.
  * @returns A promise resolving to the creation result.
  */
-export async function createOrganizationAction(data: CreateOrganizationData): Promise<{
-	success: boolean;
-	data?: schema.organizationType;
-	error?: string;
+export async function createOrganizationAction(
+  data: CreateOrganizationData,
+): Promise<{
+  success: boolean;
+  data?: schema.organizationType;
+  error?: string;
 }> {
-	console.info("Creating organization", { data });
-	const result = await fetch(`${API_URL}/admin/organization/create`, {
-		method: "POST",
-		body: JSON.stringify(data),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (e) => await e.json());
-	if (!result.success) {
-		console.error("Failed to create organization", {
-			error: result.error,
-		});
-	}
-	return result;
+  console.info("Creating organization", { data });
+  const result = await fetch(`${API_URL}/admin/organization/create`, {
+    method: "POST",
+    body: JSON.stringify(data),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (e) => await e.json());
+  if (!result.success) {
+    console.error("Failed to create organization", {
+      error: result.error,
+    });
+  }
+  return result;
 }
 
 /**
@@ -53,34 +55,34 @@ export async function createOrganizationAction(data: CreateOrganizationData): Pr
  * @returns A promise resolving to the update result.
  */
 export async function updateOrganizationAction(
-	organizationId: string,
-	data: UpdateOrganizationData,
-	wsClientId: string
+  organizationId: string,
+  data: UpdateOrganizationData,
+  wsClientId: string,
 ): Promise<{
-	success: boolean;
-	data: schema.organizationType;
-	error?: string;
+  success: boolean;
+  data: schema.organizationType;
+  error?: string;
 }> {
-	console.info("Updating organization", { organizationId, data });
-	const result = await fetch(`${API_URL}/admin/organization/update`, {
-		method: "POST",
-		body: JSON.stringify({
-			org_id: organizationId,
-			wsClientId,
-			data: data,
-		}),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (e) => await e.json());
-	if (!result.success) {
-		console.error("Failed to update organization", {
-			error: result.error,
-			organizationId,
-		});
-	}
-	return result;
+  console.info("Updating organization", { organizationId, data });
+  const result = await fetch(`${API_URL}/admin/organization/update`, {
+    method: "POST",
+    body: JSON.stringify({
+      org_id: organizationId,
+      wsClientId,
+      data: data,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (e) => await e.json());
+  if (!result.success) {
+    console.error("Failed to update organization", {
+      error: result.error,
+      organizationId,
+    });
+  }
+  return result;
 }
 
 /**
@@ -91,32 +93,35 @@ export async function updateOrganizationAction(
  * @param old - The URL of the logo file being replaced, or null if uploading for the first time.
  */
 export async function uploadOrganizationLogo(
-	organizationId: string,
-	file: File,
-	old: string | undefined | null
+  organizationId: string,
+  file: File,
+  old: string | undefined | null,
 ): Promise<{
-	success: boolean;
-	image: string;
-	orgId: string;
-	originalName: string;
+  success: boolean;
+  image: string;
+  orgId: string;
+  originalName: string;
 }> {
-	const formData = new FormData();
-	formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-	const res = await fetch(`${API_URL}/admin/organization/${organizationId}/logo`, {
-		method: "PUT",
-		body: formData,
-		credentials: "include",
-		headers: {
-			"X-old-file": old || "",
-		},
-	});
+  const res = await fetch(
+    `${API_URL}/admin/organization/${organizationId}/logo`,
+    {
+      method: "PUT",
+      body: formData,
+      credentials: "include",
+      headers: {
+        "X-old-file": old || "",
+      },
+    },
+  );
 
-	if (!res.ok) {
-		throw new Error("Logo upload failed");
-	}
+  if (!res.ok) {
+    throw new Error("Logo upload failed");
+  }
 
-	return res.json();
+  return res.json();
 }
 
 /**
@@ -127,32 +132,35 @@ export async function uploadOrganizationLogo(
  * @param old - The URL of the previous banner, or null if adding a new one.
  */
 export async function uploadOrganizationBanner(
-	organizationId: string,
-	file: File,
-	old: string | undefined | null
+  organizationId: string,
+  file: File,
+  old: string | undefined | null,
 ): Promise<{
-	success: boolean;
-	image: string;
-	orgId: string;
-	originalName: string;
+  success: boolean;
+  image: string;
+  orgId: string;
+  originalName: string;
 }> {
-	const formData = new FormData();
-	formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-	const res = await fetch(`${API_URL}/admin/organization/${organizationId}/banner`, {
-		method: "PUT",
-		body: formData,
-		credentials: "include",
-		headers: {
-			"X-old-file": old || "",
-		},
-	});
+  const res = await fetch(
+    `${API_URL}/admin/organization/${organizationId}/banner`,
+    {
+      method: "PUT",
+      body: formData,
+      credentials: "include",
+      headers: {
+        "X-old-file": old || "",
+      },
+    },
+  );
 
-	if (!res.ok) {
-		throw new Error("Banner upload failed");
-	}
+  if (!res.ok) {
+    throw new Error("Banner upload failed");
+  }
 
-	return res.json();
+  return res.json();
 }
 
 /**
@@ -162,36 +170,36 @@ export async function uploadOrganizationBanner(
  * @param type - The action to perform: "accept" or "deny".
  */
 export async function inviteAction(
-	invite: schema.inviteType,
-	type: "accept" | "deny"
+  invite: schema.inviteType,
+  type: "accept" | "deny",
 ): Promise<{
-	success: boolean;
-	error?: string;
+  success: boolean;
+  error?: string;
 }> {
-	console.info("Inviting organization member", { invite, type });
-	const result = await fetch(`${API_URL}/admin/invite`, {
-		method: "POST",
-		body: JSON.stringify({ invite, type }),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (e) => await e.json());
-	if (!result.success) {
-		console.error("Failed to invite member", {
-			error: result.error,
-			invite,
-			type,
-		});
-		return {
-			success: false,
-			error: result.error,
-		};
-	}
-	console.info("Invite accepted", { invite, type });
-	return {
-		success: true,
-	};
+  console.info("Inviting organization member", { invite, type });
+  const result = await fetch(`${API_URL}/admin/invite`, {
+    method: "POST",
+    body: JSON.stringify({ invite, type }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (e) => await e.json());
+  if (!result.success) {
+    console.error("Failed to invite member", {
+      error: result.error,
+      invite,
+      type,
+    });
+    return {
+      success: false,
+      error: result.error,
+    };
+  }
+  console.info("Invite accepted", { invite, type });
+  return {
+    success: true,
+  };
 }
 
 /**
@@ -201,49 +209,49 @@ export async function inviteAction(
  * @param emails - An array of email addresses to invite.
  */
 export async function inviteOrganizationMembersAction(
-	organizationId: string,
-	emails: string[]
+  organizationId: string,
+  emails: string[],
 ): Promise<{
-	success: boolean;
-	data?: schema.inviteType[];
-	errors?: string[];
-	error?: string;
+  success: boolean;
+  data?: schema.inviteType[];
+  errors?: string[];
+  error?: string;
 }> {
-	console.info("Inviting organization members", { organizationId });
+  console.info("Inviting organization members", { organizationId });
 
-	try {
-		const response = await fetch(`${API_URL}/admin/organization/member`, {
-			method: "POST",
-			body: JSON.stringify({
-				org_id: organizationId,
-				emails,
-			}),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
-		});
+  try {
+    const response = await fetch(`${API_URL}/admin/organization/member`, {
+      method: "POST",
+      body: JSON.stringify({
+        org_id: organizationId,
+        emails,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
 
-		const result = await response.json();
+    const result = await response.json();
 
-		if (!result.success) {
-			console.error("Failed to invite members", {
-				organizationId,
-				error: result.error ?? result.errors,
-			});
-		}
+    if (!result.success) {
+      console.error("Failed to invite members", {
+        organizationId,
+        error: result.error ?? result.errors,
+      });
+    }
 
-		return result;
-	} catch (err) {
-		console.error("Unexpected error inviting members", {
-			error: err,
-			organizationId,
-		});
-		return {
-			success: false,
-			error: "Unexpected error inviting members",
-		};
-	}
+    return result;
+  } catch (err) {
+    console.error("Unexpected error inviting members", {
+      error: err,
+      organizationId,
+    });
+    return {
+      success: false,
+      error: "Unexpected error inviting members",
+    };
+  }
 }
 
 /**
@@ -253,28 +261,32 @@ export async function inviteOrganizationMembersAction(
  * @param userId - The ID of the user to remove from the organization.
  */
 export async function deleteOrganizationMemberAction(
-	organizationId: string,
-	userId: string
-): Promise<{ success: boolean; data: schema.OrganizationMemberType; error?: string }> {
-	console.info("Deleting organization member", { organizationId, userId });
-	const result = await fetch(`${API_URL}/admin/organization/member`, {
-		method: "DELETE",
-		body: JSON.stringify({
-			org_id: organizationId,
-			user_id: userId,
-		}),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (e) => await e.json());
-	if (!result.success) {
-		console.error("Failed to delete organization member", {
-			error: result.error,
-			organizationId,
-		});
-	}
-	return result;
+  organizationId: string,
+  userId: string,
+): Promise<{
+  success: boolean;
+  data: schema.OrganizationMemberType;
+  error?: string;
+}> {
+  console.info("Deleting organization member", { organizationId, userId });
+  const result = await fetch(`${API_URL}/admin/organization/member`, {
+    method: "DELETE",
+    body: JSON.stringify({
+      org_id: organizationId,
+      user_id: userId,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (e) => await e.json());
+  if (!result.success) {
+    console.error("Failed to delete organization member", {
+      error: result.error,
+      organizationId,
+    });
+  }
+  return result;
 }
 
 /**
@@ -285,36 +297,36 @@ export async function deleteOrganizationMemberAction(
  * @param wsClientId - The WebSocket client ID (for broadcasting updates).
  */
 export async function createLabelAction(
-	organizationId: string,
-	data: {
-		name: string;
-		color: string;
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    name: string;
+    color: string;
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		name: data.name,
-		color: data.color,
-		wsClientId,
-	};
+  const payload = {
+    org_id: organizationId,
+    name: data.name,
+    color: data.color,
+    wsClientId,
+  };
 
-	const result = await fetch(`${API_URL}/admin/organization/create-label`, {
-		method: "POST",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to create label");
-		}
-		return json;
-	});
+  const result = await fetch(`${API_URL}/admin/organization/create-label`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to create label");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -325,38 +337,38 @@ export async function createLabelAction(
  * @param wsClientId - The WebSocket client ID (for broadcasting updates).
  */
 export async function editLabelAction(
-	organizationId: string,
-	data: {
-		id: string;
-		name: string;
-		color: string;
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    id: string;
+    name: string;
+    color: string;
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		id: data.id,
-		name: data.name,
-		color: data.color,
-		wsClientId,
-	};
+  const payload = {
+    org_id: organizationId,
+    id: data.id,
+    name: data.name,
+    color: data.color,
+    wsClientId,
+  };
 
-	const result = await fetch(`${API_URL}/admin/organization/edit-label`, {
-		method: "PATCH",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to edit label");
-		}
-		return json;
-	});
+  const result = await fetch(`${API_URL}/admin/organization/edit-label`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to edit label");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -367,34 +379,34 @@ export async function editLabelAction(
  * @param wsClientId - The WebSocket client ID (for pushing changes).
  */
 export async function deleteLabelAction(
-	organizationId: string,
-	data: {
-		id: string;
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    id: string;
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		id: data.id,
-		wsClientId,
-	};
+  const payload = {
+    org_id: organizationId,
+    id: data.id,
+    wsClientId,
+  };
 
-	const result = await fetch(`${API_URL}/admin/organization/delete-label`, {
-		method: "DELETE",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to delete label");
-		}
-		return json;
-	});
+  const result = await fetch(`${API_URL}/admin/organization/delete-label`, {
+    method: "DELETE",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to delete label");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -405,41 +417,41 @@ export async function deleteLabelAction(
  * @param wsClientId - The WebSocket client ID (for pushing changes).
  */
 export async function createSavedViewAction(
-	organizationId: string,
-	data: {
-		name: string;
-		slug: string;
-		logo: string;
-		value?: string;
-		viewConfig: schema.savedViewType["viewConfig"];
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    name: string;
+    slug: string;
+    logo: string;
+    value?: string;
+    viewConfig: schema.savedViewType["viewConfig"];
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		name: data.name,
-		slug: data.slug,
-		logo: data.logo,
-		value: data.value,
-		viewConfig: data.viewConfig,
-		wsClientId,
-	};
-	const result = await fetch(`${API_URL}/admin/organization/create-view`, {
-		method: "POST",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to create view");
-		}
-		return json;
-	});
+  const payload = {
+    org_id: organizationId,
+    name: data.name,
+    slug: data.slug,
+    logo: data.logo,
+    value: data.value,
+    viewConfig: data.viewConfig,
+    wsClientId,
+  };
+  const result = await fetch(`${API_URL}/admin/organization/create-view`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to create view");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -450,43 +462,43 @@ export async function createSavedViewAction(
  * @param wsClientId - The WebSocket client ID (for pushing changes).
  */
 export async function updateSavedViewAction(
-	organizationId: string,
-	data: {
-		id: string;
-		name?: string;
-		slug?: string;
-		logo?: string;
-		value?: string;
-		viewConfig?: schema.savedViewType["viewConfig"];
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    id: string;
+    name?: string;
+    slug?: string;
+    logo?: string;
+    value?: string;
+    viewConfig?: schema.savedViewType["viewConfig"];
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		id: data.id,
-		name: data.name,
-		slug: data.slug,
-		logo: data.logo,
-		value: data.value,
-		viewConfig: data.viewConfig,
-		wsClientId,
-	};
-	const result = await fetch(`${API_URL}/admin/organization/update-view`, {
-		method: "PATCH",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to update view");
-		}
-		return json;
-	});
+  const payload = {
+    org_id: organizationId,
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+    logo: data.logo,
+    value: data.value,
+    viewConfig: data.viewConfig,
+    wsClientId,
+  };
+  const result = await fetch(`${API_URL}/admin/organization/update-view`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to update view");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -497,34 +509,34 @@ export async function updateSavedViewAction(
  * @param wsClientId - The WebSocket client ID (for pushing changes).
  */
 export async function deleteSavedViewAction(
-	organizationId: string,
-	data: {
-		id: string;
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    id: string;
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		id: data.id,
-		wsClientId,
-	};
+  const payload = {
+    org_id: organizationId,
+    id: data.id,
+    wsClientId,
+  };
 
-	const result = await fetch(`${API_URL}/admin/organization/delete-view`, {
-		method: "DELETE",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to delete view");
-		}
-		return json;
-	});
+  const result = await fetch(`${API_URL}/admin/organization/delete-view`, {
+    method: "DELETE",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to delete view");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -535,38 +547,38 @@ export async function deleteSavedViewAction(
  * @param wsClientId - The WebSocket client ID (for broadcasting updates).
  */
 export async function createCategoryAction(
-	organizationId: string,
-	data: {
-		name: string;
-		color: string;
-		icon: string;
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    name: string;
+    color: string;
+    icon: string;
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		name: data.name,
-		color: data.color,
-		icon: data.icon,
-		wsClientId,
-	};
+  const payload = {
+    org_id: organizationId,
+    name: data.name,
+    color: data.color,
+    icon: data.icon,
+    wsClientId,
+  };
 
-	const result = await fetch(`${API_URL}/admin/organization/create-category`, {
-		method: "POST",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to create category");
-		}
-		return json;
-	});
+  const result = await fetch(`${API_URL}/admin/organization/create-category`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to create category");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -577,40 +589,40 @@ export async function createCategoryAction(
  * @param wsClientId - The WebSocket client ID (used for pushing updates).
  */
 export async function editCategoryAction(
-	organizationId: string,
-	data: {
-		id: string;
-		name: string;
-		color: string;
-		icon: string;
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		id: data.id,
-		name: data.name,
-		color: data.color,
-		icon: data.icon,
-		wsClientId,
-	};
+  const payload = {
+    org_id: organizationId,
+    id: data.id,
+    name: data.name,
+    color: data.color,
+    icon: data.icon,
+    wsClientId,
+  };
 
-	const result = await fetch(`${API_URL}/admin/organization/edit-category`, {
-		method: "PATCH",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to edit category");
-		}
-		return json;
-	});
+  const result = await fetch(`${API_URL}/admin/organization/edit-category`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to edit category");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -621,34 +633,34 @@ export async function editCategoryAction(
  * @param wsClientId - The WebSocket client ID (for pushing changes).
  */
 export async function deleteCategoryAction(
-	organizationId: string,
-	data: {
-		id: string;
-	},
-	wsClientId: string
+  organizationId: string,
+  data: {
+    id: string;
+  },
+  wsClientId: string,
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		id: data.id,
-		wsClientId,
-	};
+  const payload = {
+    org_id: organizationId,
+    id: data.id,
+    wsClientId,
+  };
 
-	const result = await fetch(`${API_URL}/admin/organization/delete-category`, {
-		method: "DELETE",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to delete category");
-		}
-		return json;
-	});
+  const result = await fetch(`${API_URL}/admin/organization/delete-category`, {
+    method: "DELETE",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to delete category");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -658,38 +670,41 @@ export async function deleteCategoryAction(
  * @param data - Repository sync details (installationId, repoId, repoName, categoryId).
  */
 export async function createGithubSyncConnectionAction(
-	organizationId: string,
-	data: {
-		installationId: number;
-		repoId: number;
-		repoName: string;
-		categoryId: string;
-	}
+  organizationId: string,
+  data: {
+    installationId: number;
+    repoId: number;
+    repoName: string;
+    categoryId: string;
+  },
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		installation_id: data.installationId,
-		repo_id: data.repoId,
-		repo_name: data.repoName,
-		category_id: data.categoryId,
-	};
+  const payload = {
+    org_id: organizationId,
+    installation_id: data.installationId,
+    repo_id: data.repoId,
+    repo_name: data.repoName,
+    category_id: data.categoryId,
+  };
 
-	const result = await fetch(`${API_URL}/admin/organization/connections/github/sync-repo`, {
-		method: "POST",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to add sync repo");
-		}
-		return json;
-	});
+  const result = await fetch(
+    `${API_URL}/admin/organization/connections/github/sync-repo`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    },
+  ).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to add sync repo");
+    }
+    return json;
+  });
 
-	return result;
+  return result;
 }
 
 /**
@@ -699,34 +714,38 @@ export async function createGithubSyncConnectionAction(
  * @returns A promise resolving to the creation result.
  */
 export async function createOrganizationTeamAction(
-	organizationId: string,
-	data: {
-		name: string;
-		description: string;
-		permissions: TeamPermissions;
-	}
-): Promise<{ success: boolean; data: schema.OrganizationTeamType; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		name: data.name,
-		description: data.description,
-		permissions: data.permissions,
-	};
-	const result = await fetch(`${API_URL}/admin/organization/team`, {
-		method: "POST",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to create team");
-		}
-		return json;
-	});
-	return result;
+  organizationId: string,
+  data: {
+    name: string;
+    description: string;
+    permissions: TeamPermissions;
+  },
+): Promise<{
+  success: boolean;
+  data: schema.OrganizationTeamType;
+  error?: string;
+}> {
+  const payload = {
+    org_id: organizationId,
+    name: data.name,
+    description: data.description,
+    permissions: data.permissions,
+  };
+  const result = await fetch(`${API_URL}/admin/organization/team`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to create team");
+    }
+    return json;
+  });
+  return result;
 }
 
 /**
@@ -737,36 +756,40 @@ export async function createOrganizationTeamAction(
  * @returns A promise resolving to the edit result.
  */
 export async function editOrganizationTeamAction(
-	organizationId: string,
-	teamId: string,
-	data: {
-		name: string;
-		description: string;
-		permissions: TeamPermissions;
-	}
-): Promise<{ success: boolean; data: schema.OrganizationTeamType; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		team_id: teamId,
-		name: data.name,
-		description: data.description,
-		permissions: data.permissions,
-	};
-	const result = await fetch(`${API_URL}/admin/organization/team`, {
-		method: "PATCH",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to edit team");
-		}
-		return json;
-	});
-	return result;
+  organizationId: string,
+  teamId: string,
+  data: {
+    name: string;
+    description: string;
+    permissions: TeamPermissions;
+  },
+): Promise<{
+  success: boolean;
+  data: schema.OrganizationTeamType;
+  error?: string;
+}> {
+  const payload = {
+    org_id: organizationId,
+    team_id: teamId,
+    name: data.name,
+    description: data.description,
+    permissions: data.permissions,
+  };
+  const result = await fetch(`${API_URL}/admin/organization/team`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to edit team");
+    }
+    return json;
+  });
+  return result;
 }
 
 /**
@@ -776,28 +799,32 @@ export async function editOrganizationTeamAction(
  * @returns A promise resolving to the deletion result.
  */
 export async function deleteOrganizationTeamAction(
-	organizationId: string,
-	teamId: string
-): Promise<{ success: boolean; data: schema.OrganizationTeamType; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		team_id: teamId,
-	};
-	const result = await fetch(`${API_URL}/admin/organization/team`, {
-		method: "DELETE",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to delete team");
-		}
-		return json;
-	});
-	return result;
+  organizationId: string,
+  teamId: string,
+): Promise<{
+  success: boolean;
+  data: schema.OrganizationTeamType;
+  error?: string;
+}> {
+  const payload = {
+    org_id: organizationId,
+    team_id: teamId,
+  };
+  const result = await fetch(`${API_URL}/admin/organization/team`, {
+    method: "DELETE",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to delete team");
+    }
+    return json;
+  });
+  return result;
 }
 
 /**
@@ -808,30 +835,34 @@ export async function deleteOrganizationTeamAction(
  * @returns A promise resolving to the addition result.
  */
 export async function addOrganizationMemberToTeamAction(
-	organizationId: string,
-	teamId: string,
-	memberId: string
-): Promise<{ success: boolean; data: schema.OrganizationMemberType; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		team_id: teamId,
-		member_id: memberId,
-	};
-	const result = await fetch(`${API_URL}/admin/organization/team-member`, {
-		method: "POST",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to add member to team");
-		}
-		return json;
-	});
-	return result;
+  organizationId: string,
+  teamId: string,
+  memberId: string,
+): Promise<{
+  success: boolean;
+  data: schema.OrganizationMemberType;
+  error?: string;
+}> {
+  const payload = {
+    org_id: organizationId,
+    team_id: teamId,
+    member_id: memberId,
+  };
+  const result = await fetch(`${API_URL}/admin/organization/team-member`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to add member to team");
+    }
+    return json;
+  });
+  return result;
 }
 
 /**
@@ -842,28 +873,32 @@ export async function addOrganizationMemberToTeamAction(
  * @returns A promise resolving to the removal result.
  */
 export async function removeOrganizationMemberFromTeamAction(
-	organizationId: string,
-	teamId: string,
-	memberId: string
-): Promise<{ success: boolean; data: schema.OrganizationMemberType; error?: string }> {
-	const payload = {
-		org_id: organizationId,
-		team_id: teamId,
-		member_id: memberId,
-	};
-	const result = await fetch(`${API_URL}/admin/organization/team-member`, {
-		method: "DELETE",
-		body: JSON.stringify(payload),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	}).then(async (res) => {
-		const json = await res.json();
-		if (!res.ok) {
-			throw new Error(json?.error || "Failed to remove member from team");
-		}
-		return json;
-	});
-	return result;
+  organizationId: string,
+  teamId: string,
+  memberId: string,
+): Promise<{
+  success: boolean;
+  data: schema.OrganizationMemberType;
+  error?: string;
+}> {
+  const payload = {
+    org_id: organizationId,
+    team_id: teamId,
+    member_id: memberId,
+  };
+  const result = await fetch(`${API_URL}/admin/organization/team-member`, {
+    method: "DELETE",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to remove member from team");
+    }
+    return json;
+  });
+  return result;
 }
