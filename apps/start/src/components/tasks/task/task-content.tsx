@@ -438,7 +438,7 @@ export function TaskContentMain({
     <div className="">
       <SubWrapper
         style="compact"
-        className="max-w-6xl"
+        className="max-w-6xl gap-3"
         title={task.title || "No title"}
         // description={`#${task.shortId}`}
       >
