@@ -1,9 +1,5 @@
 import { IconPlus } from "@tabler/icons-react";
-import {
-  AvatarWithName,
-  TimelineCreatedItem,
-  TimelineItemWrapper,
-} from "./base";
+import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 import { AvatarImage } from "@repo/ui/components/avatar";
 import { InlineLabel } from "../../shared/inlinelabel";

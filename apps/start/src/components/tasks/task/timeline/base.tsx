@@ -194,40 +194,6 @@ export function TimelineItemWrapper({
   );
 }
 
-export function TimelineCreatedItem({
-  item,
-  icon: Icon,
-  color,
-}: Pick<TimelineItemWrapperProps, "item" | "icon" | "color">) {
-  return (
-    <div className="flex items-center gap-2 pb-4 mb-2">
-      <Avatar className={cn("h-6 w-6 rounded-full", color)}>
-        <AvatarImage src={item.actor?.image || ""} />
-        <AvatarFallback className="rounded-full bg-transparent">
-          <Icon size={16} />
-        </AvatarFallback>
-      </Avatar>
-      <Label
-        variant={"description"}
-        className="text-foreground items-center flex flex-wrap gap-1"
-      >
-        {item.actor?.name || "Unknown"}
-        <span>created this task</span>
-        <Tooltip delayDuration={500}>
-          <TooltipTrigger asChild>
-            <Label variant={"description"} className="text-foreground">
-              {formatDateTimeFromNow(item.createdAt as Date)}
-            </Label>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            {formatDateTime(item.createdAt as Date)}
-          </TooltipContent>
-        </Tooltip>
-      </Label>
-    </div>
-  );
-}
-
 export function AvatarWithName({
   name,
   image,
