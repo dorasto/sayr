@@ -43,10 +43,7 @@ const fullPermissions: TeamPermissions = {
  * Platform admins bypass all org-level permission checks.
  */
 export async function isPlatformAdmin(userId: string): Promise<boolean> {
-	const [u] = await db
-		.select({ role: user.role })
-		.from(user)
-		.where(eq(user.id, userId));
+	const [u] = await db.select({ role: user.role }).from(user).where(eq(user.id, userId));
 	return u?.role === "admin";
 }
 
@@ -58,7 +55,8 @@ type PermissionPath =
 	| `admin.${keyof TeamPermissions["admin"]}`
 	| `content.${keyof TeamPermissions["content"]}`
 	| `tasks.${keyof TeamPermissions["tasks"]}`
-	| `moderation.${keyof TeamPermissions["moderation"]}`;
+	| `moderation.${keyof TeamPermissions["moderation"]}`
+	| "members";
 
 /**
  * Determines whether a user has a specific organization-level permission.
@@ -83,6 +81,11 @@ export async function hasOrgPermission(userId: string, orgId: string, permPath: 
 		.where(and(eq(member.userId, userId), eq(member.organizationId, orgId)));
 
 	if (!m) return false;
+
+	// ✅ Handle simple membership permission
+	if (permPath === "members") {
+		return true;
+	}
 
 	// 2️⃣ Get connected teams
 	const joins = await db.select({ teamId: memberTeam.teamId }).from(memberTeam).where(eq(memberTeam.memberId, m.id));
