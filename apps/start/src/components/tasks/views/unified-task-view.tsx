@@ -63,13 +63,8 @@ export function UnifiedTaskView({
   const [taskContentOpen, setTaskContentOpen] = useTaskDetailParam();
 
   // Consolidated task view state management
-  const {
-    filters,
-    grouping,
-    showEmptyGroups,
-    showCompletedTasks,
-    viewMode,
-  } = useTaskViewManager();
+  const { filters, grouping, showEmptyGroups, showCompletedTasks, viewMode } =
+    useTaskViewManager();
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
@@ -441,7 +436,7 @@ export function UnifiedTaskView({
           )}
         </KanbanProvider>
       ) : (
-        <div className="rounded h-full">
+        <div className="rounded h-full px-2">
           {groupedTasks.length > 0 ? (
             groupedTasks.map((group) => {
               const isCollapsed = collapsedSections.has(group.id);

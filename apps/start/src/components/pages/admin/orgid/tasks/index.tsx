@@ -155,10 +155,14 @@ export default function OrganizationTasksHomePage() {
         direction="horizontal"
         className={cn(viewMode === "kanban" && "")}
       >
-        <ResizablePanel defaultSize={useMobile ? 100 : 70} minSize={70}>
+        <ResizablePanel
+          defaultSize={useMobile ? 100 : 70}
+          minSize={70}
+          className={cn(viewMode === "list" && "")}
+        >
           <div
             className={cn(
-              "flex-1 overflow-y-auto h-full flex flex-col relative px-2",
+              "flex-1 overflow-y-auto h-full flex flex-col relative",
               viewMode === "kanban" && "px-0",
             )}
           >

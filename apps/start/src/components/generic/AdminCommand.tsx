@@ -1,5 +1,4 @@
 "use client";
-import { Button } from "@repo/ui/components/button";
 import {
   CommandDialog,
   CommandEmpty,
@@ -11,22 +10,22 @@ import {
   CommandShortcut,
 } from "@repo/ui/components/command";
 import { DialogTitle } from "@repo/ui/components/dialog";
-import { Kbd } from "@repo/ui/components/kbd";
 import {
   IconArrowBack,
   IconArrowLeft,
   IconArrowsUpDown,
-  IconSearch,
 } from "@tabler/icons-react";
+import { useStore } from "@tanstack/react-store";
 import * as React from "react";
 import { useCommandRegistry } from "@/hooks/use-command-registry";
+import { commandActions, commandStore } from "@/lib/command-store";
 import type {
   CommandGroup as CommandGroupType,
   CommandItem as CommandItemType,
 } from "@/types/command";
 
 export default function AdminCommand() {
-  const [open, setOpen] = React.useState(false);
+  const open = useStore(commandStore, (state) => state.open);
   const [viewStack, setViewStack] = React.useState<string[]>(["root"]);
   const [search, setSearch] = React.useState("");
   const commands = useCommandRegistry();
@@ -38,7 +37,7 @@ export default function AdminCommand() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((open) => !open);
+        commandActions.toggle();
       }
     };
 
@@ -63,7 +62,7 @@ export default function AdminCommand() {
     } else if (item.action) {
       item.action();
       if (item.closeOnSelect !== false) {
-        setOpen(false);
+        commandActions.close();
       }
     }
   };
@@ -88,7 +87,7 @@ export default function AdminCommand() {
 				</span>
 				<Kbd className="ms-12 -me-1 inline-flex h-5 bg-accent text-muted-foreground">⌘K</Kbd>
 			</Button>*/}
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={commandActions.setOpen}>
         <DialogTitle className="sr-only">Search input</DialogTitle>
         <CommandInput
           placeholder="Type a command or search..."

@@ -28,10 +28,10 @@ import { useStore } from "@tanstack/react-store";
 import { useLayoutData } from "@/components/generic/Context";
 import CreateOrganizationDialog from "@/components/organization/CreateOrganizationDialog";
 import { heading, navigation } from "@/lib/routemap";
+import { commandActions } from "@/lib/command-store";
 import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 import OrgSection from "./primary-org";
 import UserDropdown from "./user-dropdown";
-import AdminCommand from "@/components/generic/AdminCommand";
 import { Kbd } from "@repo/ui/components/kbd";
 export function PrimarySidebar() {
   const sidebarId = "primary-sidebar";
@@ -120,6 +120,15 @@ export function PrimarySidebar() {
           <SidebarMenu
             className={cn("org-sidebar-menu", isSidebarOpen && "gap-0.5")}
           >
+            {organizations
+              .flatMap((org) => [
+                <OrgSection
+                  closeMobileSidebar={closeMobileSidebar}
+                  key={org.id}
+                  organization={org}
+                />,
+              ])
+              .filter(Boolean)}
             <SidebarMenuItem className="min-h-auto">
               <CreateOrganizationDialog
                 trigger={
@@ -128,21 +137,11 @@ export function PrimarySidebar() {
                     tooltip="Create Organization"
                     icon={<IconPlus size={16} />}
                   >
-                    <span>New Organization</span>
+                    <span>Create</span>
                   </SidebarMenuButton>
                 }
               />
             </SidebarMenuItem>
-            {organizations
-              .flatMap((org) => [
-                <OrgSection
-                  closeMobileSidebar={closeMobileSidebar}
-                  key={org.id}
-                  organization={org}
-                />,
-                // <div key={org.id}></div>
-              ])
-              .filter(Boolean)}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
@@ -153,6 +152,7 @@ export function PrimarySidebar() {
               size="small"
               tooltip={"Search"}
               icon={<IconSearch />}
+              onClick={() => commandActions.open()}
             >
               {" "}
               Search

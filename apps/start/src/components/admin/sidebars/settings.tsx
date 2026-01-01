@@ -50,13 +50,14 @@ export function SettingsSidebar() {
     <Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
       <SidebarHeader className="pb-0">
         <SidebarMenu>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="min-h-auto">
             <Link className="w-full" to={lastDashboardRoute}>
               <SidebarMenuButton
-                tooltip="Back to Dashboard"
+                tooltip="Back to dashboard"
+                size="small"
                 icon={<IconArrowLeft size={16} />}
               >
-                <span>Back to Dashboard</span>
+                <span>Dashboard</span>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
