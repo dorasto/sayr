@@ -7,16 +7,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
 import { seo } from "@/seo";
+import AdminCommand from "@/components/generic/AdminCommand";
 
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
-	const { account } = await getAccess();
-	return {
-		account,
-	};
+  const { account } = await getAccess();
+  return {
+    account,
+  };
 });
 
 // Client-side auth cache to prevent redundant server calls during rapid interactions
-let authCache: { account: schema.userType | null; timestamp: number } | null = null;
+let authCache: { account: schema.userType | null; timestamp: number } | null =
+  null;
 let authInFlight: Promise<{ account: schema.userType | null }> | null = null;
 const AUTH_CACHE_TTL = 30000; // 30 seconds
 
@@ -31,89 +33,91 @@ const AUTH_CACHE_TTL = 30000; // 30 seconds
  * - Only caches successful auth results
  */
 async function getCachedAuth(): Promise<{ account: schema.userType | null }> {
-	const now = Date.now();
+  const now = Date.now();
 
-	// Return cached result if still valid
-	if (authCache && (now - authCache.timestamp) < AUTH_CACHE_TTL) {
-		return { account: authCache.account };
-	}
+  // Return cached result if still valid
+  if (authCache && now - authCache.timestamp < AUTH_CACHE_TTL) {
+    return { account: authCache.account };
+  }
 
-	// If there's already a request in flight, wait for it instead of making a new one
-	if (authInFlight) {
-		return authInFlight;
-	}
+  // If there's already a request in flight, wait for it instead of making a new one
+  if (authInFlight) {
+    return authInFlight;
+  }
 
-	// Fetch fresh auth with deduplication
-	authInFlight = fetchAuth().then((result) => {
-		// Only cache successful auth (account exists)
-		// Don't cache null results to allow retry on next navigation
-		if (result.account) {
-			authCache = { account: result.account, timestamp: Date.now() };
-		}
-		return result;
-	}).finally(() => {
-		authInFlight = null;
-	});
+  // Fetch fresh auth with deduplication
+  authInFlight = fetchAuth()
+    .then((result) => {
+      // Only cache successful auth (account exists)
+      // Don't cache null results to allow retry on next navigation
+      if (result.account) {
+        authCache = { account: result.account, timestamp: Date.now() };
+      }
+      return result;
+    })
+    .finally(() => {
+      authInFlight = null;
+    });
 
-	return authInFlight;
+  return authInFlight;
 }
 
 export const getUserOrganizations = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType }) => data)
-	.handler(async ({ data }) => {
-		try {
-			const organizations = await getOrganizations(data.account.id);
-			return { account: data.account, organizations };
-		} catch (error) {
-			console.log("🚀 ~ error:", error);
-			// If it's already a redirect, re-throw it
-			if (error && typeof error === "object" && "redirect" in error) {
-				throw error;
-			}
-			throw redirect({ to: "/login" });
-		}
-	});
+  .inputValidator((data: { account: schema.userType }) => data)
+  .handler(async ({ data }) => {
+    try {
+      const organizations = await getOrganizations(data.account.id);
+      return { account: data.account, organizations };
+    } catch (error) {
+      console.log("🚀 ~ error:", error);
+      // If it's already a redirect, re-throw it
+      if (error && typeof error === "object" && "redirect" in error) {
+        throw error;
+      }
+      throw redirect({ to: "/login" });
+    }
+  });
 
 export const Route = createFileRoute("/admin")({
-	head: () => ({
-		meta: seo({
-			title: "Admin",
-		}),
-	}),
-	beforeLoad: async () => {
-		const { account } = await getCachedAuth();
-		return {
-			account,
-		};
-	},
-	loader: async ({ context }) => {
-		if (!context.account) {
-			throw redirect({ to: "/login" });
-		}
-		return await getUserOrganizations({
-			data: {
-				account: context.account,
-			},
-		});
-	},
-	// Prevent revalidation when only search params change in child routes
-	shouldRevalidate: () => false,
-	component: AdminLayout,
+  head: () => ({
+    meta: seo({
+      title: "Admin",
+    }),
+  }),
+  beforeLoad: async () => {
+    const { account } = await getCachedAuth();
+    return {
+      account,
+    };
+  },
+  loader: async ({ context }) => {
+    if (!context.account) {
+      throw redirect({ to: "/login" });
+    }
+    return await getUserOrganizations({
+      data: {
+        account: context.account,
+      },
+    });
+  },
+  // Prevent revalidation when only search params change in child routes
+  shouldRevalidate: () => false,
+  component: AdminLayout,
 });
 
 function AdminLayout() {
-	const { account, organizations } = Route.useLoaderData();
-	return (
-		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
-			<RootProvider account={account} organizations={organizations}>
-				<NavigationTracker />
-				<AdminNavigation />
-				<Wrapper>
-					<div className="relative h-full max-h-full">
-						<Outlet />
-					</div>
-				</Wrapper>
-			</RootProvider>
-		</div>
-	);
+  const { account, organizations } = Route.useLoaderData();
+  return (
+    <div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
+      <RootProvider account={account} organizations={organizations}>
+        <NavigationTracker />
+        <AdminNavigation />
+        <Wrapper>
+          <div className="relative h-full max-h-full">
+            <Outlet />
+          </div>
+        </Wrapper>
+      </RootProvider>
+    </div>
+  );
 }
