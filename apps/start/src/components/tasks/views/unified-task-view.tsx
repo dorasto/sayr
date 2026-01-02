@@ -228,6 +228,7 @@ export function UnifiedTaskView({
 		return groupedTasks.flatMap((g) => g.tasks.map((t) => ({ ...t, column: g.id, name: t.title || "Untitled" })));
 	}, [groupedTasks]);
 
+	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	const handleKanbanDragEnd = async ({ active, over }: { active: any; over: any }) => {
 		if (!over) return;
 
@@ -238,6 +239,7 @@ export function UnifiedTaskView({
 		const findColumnId = (id: string): string | null => {
 			if (id.startsWith("status:")) return id;
 			for (const [columnId, column] of Object.entries(kanbanData)) {
+				// biome-ignore lint/suspicious/noExplicitAny: <any>
 				if ((column as any).items?.includes(id)) return columnId;
 			}
 			return null;
@@ -254,6 +256,7 @@ export function UnifiedTaskView({
 
 		// === STATUS GROUPING ===
 		if (grouping === "status" && newColumnId.startsWith("status:")) {
+			// biome-ignore lint/suspicious/noExplicitAny: <any>
 			const status = newColumnId.replace("status:", "") as any;
 
 			updateLocal({ status });
@@ -270,6 +273,7 @@ export function UnifiedTaskView({
 
 		// === PRIORITY GROUPING ===
 		else if (grouping === "priority") {
+			// biome-ignore lint/suspicious/noExplicitAny: <any>
 			const priority = newColumnId as any;
 			updateLocal({ priority });
 			await runWithToast(
@@ -340,43 +344,7 @@ export function UnifiedTaskView({
 	return (
 		<div className="h-full overflow-x-auto rounded">
 			{viewMode === "kanban" ? (
-				<KanbanProvider
-					columns={columns}
-					data={kanbanData}
-					className="px-2"
-					onDragEnd={handleKanbanDragEnd}
-					//     onDragEnd={async ({ active, over }) => {
-
-					//       if (!over) return;
-
-					//       const overId = over.id as string;
-					//       const itemId = active.id as string; // 👈 This is the item that was dragged
-					//           const updateLocal = (updates: Partial<schema.TaskWithLabels>) => {
-					//   const updatedTasks = tasks.map((t) =>
-					//     t.id === itemId ? { ...t, ...updates } : t,
-					//   );
-					//   setTasks(updatedTasks);
-					// };
-					//       if (overId.startsWith('status:')) {
-					//         // biome-ignore lint/suspicious/noExplicitAny: <any>
-					//         const status:schema.TaskWithLabels["status"] = overId.replace('status:', '') as any;
-					//         updateLocal({ status });
-					//          await runWithToast(
-					//           "update-task",
-					//           {
-					//             loading: { title: "Updating status..." },
-					//             success: { title: "Status updated" },
-					//             error: { title: "Failed to update status" },
-					//           },
-					//           () =>
-					//             updateTaskAction(organization.id, itemId, { status }, wsClientId),
-					//         );
-					//       } else {
-					//         console.log('Dropped item:', itemId);
-					//         console.log('Dropped over item:', overId);
-					//       }
-					// 		}}
-				>
+				<KanbanProvider columns={columns} data={kanbanData} className="px-2" onDragEnd={handleKanbanDragEnd}>
 					{(column) => (
 						<KanbanBoard
 							key={column.id}
