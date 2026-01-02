@@ -16,12 +16,7 @@ import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import {
-	broadcast,
-	broadcastByUserId,
-	broadcastPublic,
-	findClientByWsId,
-} from "../ws";
+import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
@@ -45,10 +40,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 				message: "User not authenticated",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You don’t have permission to do that." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
 	}
 
 	const { name, slug, description } = await c.req.json();
@@ -80,10 +72,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 				message: "Organization slug is already taken",
 			},
 		});
-		return c.json(
-			{ success: false, error: "Organization slug is already taken" },
-			400,
-		);
+		return c.json({ success: false, error: "Organization slug is already taken" }, 400);
 	}
 
 	const orgId = randomUUID();
@@ -107,10 +96,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 				code: "OrgCreationFailed",
 			},
 		});
-		return c.json(
-			{ success: false, error: "Failed to create organization" },
-			500,
-		);
+		return c.json({ success: false, error: "Failed to create organization" }, 500);
 	}
 
 	const [membership] = await db
@@ -131,13 +117,8 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 				code: "MembershipCreationFailed",
 			},
 		});
-		await db
-			.delete(schema.organization)
-			.where(eq(schema.organization.id, orgId));
-		return c.json(
-			{ success: false, error: "Failed to create organization membership" },
-			500,
-		);
+		await db.delete(schema.organization).where(eq(schema.organization.id, orgId));
+		return c.json({ success: false, error: "Failed to create organization membership" }, 500);
 	}
 
 	// Create default Administrators team and add the creator to it
@@ -176,11 +157,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	});
 	const { org_id, wsClientId, data } = await c.req.json();
 	const session = c.get("session");
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageMembers",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageMembers");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "organization.update",
@@ -197,11 +174,8 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		.update(schema.organization)
 		.set({
 			...data,
-			logo:
-				data.logo && `organization/${org_id}/${getFileNameFromUrl(data.logo)}`,
-			bannerImg:
-				data.bannerImg &&
-				`organization/${org_id}/${getFileNameFromUrl(data.bannerImg)}`,
+			logo: data.logo && `organization/${org_id}/${getFileNameFromUrl(data.logo)}`,
+			bannerImg: data.bannerImg && `organization/${org_id}/${getFileNameFromUrl(data.bannerImg)}`,
 			updatedAt: new Date(),
 		})
 		.where(eq(schema.organization.id, org_id))
@@ -223,7 +197,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		});
 		const members = await getOrganizationMembers(org_id);
 		members.forEach((member) => {
-			broadcastByUserId(member.userId, wsClientId, org_id, dataMsg, "");
+			broadcastByUserId(member.userId, "", org_id, dataMsg, "");
 		});
 		await recordWideEvent({
 			name: "organization.update",
@@ -257,11 +231,7 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		const orgId = c.req.param("orgId");
 		const oldLogo = c.req.header("X-old-file");
 
-		const isAuthorized = await hasOrgPermission(
-			session?.userId || "",
-			orgId,
-			"admin.manageMembers",
-		);
+		const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers");
 		if (!isAuthorized) {
 			await recordWideEvent({
 				name: "organization.logoUpload",
@@ -304,20 +274,13 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 					removedByUserId: session?.userId || "",
 				},
 			});
-			await removeObject(
-				`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`,
-			);
+			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`);
 		}
 
-		const imagelogo = await uploadObject(
-			objectName,
-			buffer,
-			`organization/${orgId}`,
-			{
-				"Content-Type": file.type || "application/octet-stream",
-				originalName: objectName,
-			},
-		);
+		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
+			"Content-Type": file.type || "application/octet-stream",
+			originalName: objectName,
+		});
 
 		await recordWideEvent({
 			name: "organization.logoUpload",
@@ -359,11 +322,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		const orgId = c.req.param("orgId");
 		const oldBanner = c.req.header("X-old-file");
 
-		const isAuthorized = await hasOrgPermission(
-			session?.userId || "",
-			orgId,
-			"admin.manageMembers",
-		);
+		const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers");
 		if (!isAuthorized) {
 			await recordWideEvent({
 				name: "organization.bannerUpload",
@@ -371,8 +330,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 				data: {
 					type: "AuthorizationError",
 					code: "Unauthorized",
-					message:
-						"User does not have permission to upload organization banner",
+					message: "User does not have permission to upload organization banner",
 				},
 			});
 			return c.json({ error: "You don’t have permission to do that." }, 401);
@@ -406,20 +364,13 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 					removedByUserId: session?.userId || "",
 				},
 			});
-			await removeObject(
-				`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`,
-			);
+			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`);
 		}
 
-		const imagebanner = await uploadObject(
-			objectName,
-			buffer,
-			`organization/${orgId}`,
-			{
-				"Content-Type": file.type || "application/octet-stream",
-				originalName: objectName,
-			},
-		);
+		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
+			"Content-Type": file.type || "application/octet-stream",
+			originalName: objectName,
+		});
 
 		await recordWideEvent({
 			name: "organization.bannerUpload",
@@ -460,11 +411,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, wsClientId, name, color } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"content.manageLabels",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageLabels");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "label.create",
@@ -476,10 +423,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 			},
 		});
 		// wording fix: clearer explanation
-		return c.json(
-			{ success: false, error: "You don’t have permission to create labels." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to create labels." }, 401);
 	}
 
 	const [created] = await db
@@ -544,11 +488,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, wsClientId, id, name, color } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"content.manageLabels",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageLabels");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "label.edit",
@@ -559,10 +499,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 				message: "User does not have permission to edit labels",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You don’t have permission to edit labels." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to edit labels." }, 401);
 	}
 
 	const [edit] = await db
@@ -571,9 +508,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 			name,
 			color: color ?? "hsla(0, 0%, 0%, 1)",
 		})
-		.where(
-			and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)),
-		)
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)))
 		.returning();
 
 	if (!edit) {
@@ -629,11 +564,7 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"content.manageLabels",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageLabels");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "label.delete",
@@ -644,21 +575,12 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 				message: "User does not have permission to delete labels",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You don’t have permission to delete labels." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to delete labels." }, 401);
 	}
 
 	const [removed] = await db
 		.delete(schema.label)
-		.where(
-			and(
-				eq(schema.label.id, id),
-				eq(schema.label.organizationId, org_id),
-				eq(schema.label.id, id),
-			),
-		)
+		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id), eq(schema.label.id, id)))
 		.returning();
 
 	if (!removed) {
@@ -715,11 +637,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, wsClientId, name, color, icon } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"content.manageCategories",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageCategories");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "category.create",
@@ -735,7 +653,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 				success: false,
 				error: "You don’t have permission to create categories.",
 			},
-			401,
+			401
 		);
 	}
 
@@ -804,11 +722,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, wsClientId, id, name, color, icon } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"content.manageCategories",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageCategories");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "category.edit",
@@ -824,7 +738,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 				success: false,
 				error: "You don’t have permission to edit categories.",
 			},
-			401,
+			401
 		);
 	}
 
@@ -835,12 +749,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 			color: color ?? "hsla(0, 0%, 0%, 1)",
 			icon,
 		})
-		.where(
-			and(
-				eq(schema.category.id, id),
-				eq(schema.category.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id)))
 		.returning();
 
 	if (!edit) {
@@ -898,11 +807,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"content.manageCategories",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageCategories");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "category.delete",
@@ -918,19 +823,13 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 				success: false,
 				error: "You don’t have permission to delete categories.",
 			},
-			401,
+			401
 		);
 	}
 
 	const [removed] = await db
 		.delete(schema.category)
-		.where(
-			and(
-				eq(schema.category.id, id),
-				eq(schema.category.organizationId, org_id),
-				eq(schema.category.id, id),
-			),
-		)
+		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id), eq(schema.category.id, id)))
 		.returning();
 
 	if (!removed) {
@@ -988,13 +887,8 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	});
 
 	const session = c.get("session");
-	const { org_id, wsClientId, name, value, logo, slug, viewConfig } =
-		await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageMembers",
-	);
+	const { org_id, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageMembers");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "savedView.create",
@@ -1010,7 +904,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 				success: false,
 				error: "You don’t have permission to create saved views.",
 			},
-			401,
+			401
 		);
 	}
 
@@ -1081,13 +975,8 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 	});
 
 	const session = c.get("session");
-	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } =
-		await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageMembers",
-	);
+	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageMembers");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "savedView.update",
@@ -1103,7 +992,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 				success: false,
 				error: "You don’t have permission to update saved views.",
 			},
-			401,
+			401
 		);
 	}
 
@@ -1117,12 +1006,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 			viewConfig: viewConfig,
 			updatedAt: new Date(),
 		})
-		.where(
-			and(
-				eq(schema.savedView.id, id),
-				eq(schema.savedView.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
 		.returning();
 
 	if (!view) {
@@ -1180,11 +1064,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageMembers",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageMembers");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "savedView.delete",
@@ -1200,18 +1080,13 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 				success: false,
 				error: "You don’t have permission to delete saved views.",
 			},
-			401,
+			401
 		);
 	}
 
 	const [removed] = await db
 		.delete(schema.savedView)
-		.where(
-			and(
-				eq(schema.savedView.id, id),
-				eq(schema.savedView.organizationId, org_id),
-			),
-		)
+		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
 		.returning();
 
 	if (!removed) {
@@ -1267,13 +1142,8 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 	});
 
 	const session = c.get("session");
-	const { org_id, repo_id, repo_name, installation_id, category_id } =
-		await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.administrator",
-	);
+	const { org_id, repo_id, repo_name, installation_id, category_id } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.administrator");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "github.syncRepo",
@@ -1289,7 +1159,7 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 				success: false,
 				error: "You don’t have permission to sync repositories.",
 			},
-			401,
+			401
 		);
 	}
 
@@ -1298,7 +1168,7 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 			eq(schema.githubRepository.installationId, installation_id),
 			eq(schema.githubRepository.repoId, repo_id),
 			eq(schema.githubRepository.organizationId, org_id),
-			eq(schema.githubRepository.categoryId, category_id),
+			eq(schema.githubRepository.categoryId, category_id)
 		),
 	});
 
@@ -1352,15 +1222,10 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 	});
 
 	const session = c.get("session");
-	const { org_id, emails }: { org_id: string; emails: string[] } =
-		await c.req.json();
+	const { org_id, emails }: { org_id: string; emails: string[] } = await c.req.json();
 
 	// --- Permissions ---
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.administrator",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.administrator");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "member.invite",
@@ -1371,10 +1236,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 				message: "User does not have permission to invite members",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You don’t have permission to invite members." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to invite members." }, 401);
 	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
@@ -1391,10 +1253,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 			// Already exists as member?
 			const existingMember = user
 				? await db.query.member.findFirst({
-						where: and(
-							eq(schema.member.organizationId, org_id),
-							eq(schema.member.userId, user.id),
-						),
+						where: and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user.id)),
 					})
 				: null;
 
@@ -1402,10 +1261,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 			// Already invited?
 			const existingInvite = await db.query.invite.findFirst({
-				where: and(
-					eq(schema.invite.organizationId, org_id),
-					eq(schema.invite.email, email),
-				),
+				where: and(eq(schema.invite.organizationId, org_id), eq(schema.invite.email, email)),
 			});
 
 			if (existingInvite) continue;
@@ -1462,11 +1318,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, user_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.administrator",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.administrator");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "member.remove",
@@ -1477,19 +1329,11 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 				message: "User does not have permission to remove members",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You don’t have permission to remove members." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to remove members." }, 401);
 	}
 	const [removed] = await db
 		.delete(schema.member)
-		.where(
-			and(
-				eq(schema.member.organizationId, org_id),
-				eq(schema.member.userId, user_id),
-			),
-		)
+		.where(and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user_id)))
 		.returning();
 	if (!removed) {
 		await recordWideEvent({
@@ -1535,11 +1379,7 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 
 	const orgId = c.req.param("orgId");
 	const session = c.get("session");
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		orgId,
-		"admin.administrator",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "admin.administrator");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "github.connections.fetch",
@@ -1550,10 +1390,7 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 				message: "User does not have permission to fetch GitHub connections",
 			},
 		});
-		return c.json(
-			{ error: "You don’t have permission to fetch connections." },
-			401,
-		);
+		return c.json({ error: "You don’t have permission to fetch connections." }, 401);
 	}
 
 	// Step 1: Fetch installation record
@@ -1571,18 +1408,13 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 	const githubConnectionsReq = await db.query.githubRepository.findMany({
 		where: and(
 			eq(schema.githubRepository.organizationId, orgId),
-			eq(
-				schema.githubRepository.installationId,
-				githubInfo?.installationId ?? -1,
-			),
+			eq(schema.githubRepository.installationId, githubInfo?.installationId ?? -1)
 		),
 	});
 
 	const githubConnections = githubConnectionsReq.map((conn) => ({
 		...conn,
-		repoName:
-			githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name ||
-			"Unknown repo",
+		repoName: githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name || "Unknown repo",
 		avatarUrl: githubInfo?.account?.avatar_url,
 	}));
 
@@ -1616,11 +1448,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, name, description, permissions } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageTeams",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "team.create",
@@ -1631,10 +1459,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 				message: "User does not have permission to create teams",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You don’t have permission to create teams." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to create teams." }, 401);
 	}
 
 	// Merge provided permissions with defaults
@@ -1696,13 +1521,8 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 	});
 
 	const session = c.get("session");
-	const { org_id, team_id, name, description, permissions } =
-		await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageTeams",
-	);
+	const { org_id, team_id, name, description, permissions } = await c.req.json();
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "team.edit",
@@ -1713,10 +1533,7 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 				message: "User does not have permission to edit teams",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You don’t have permission to edit teams." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to edit teams." }, 401);
 	}
 
 	// Merge provided permissions with defaults
@@ -1737,9 +1554,7 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 			permissions: teamPermissions,
 			updatedAt: new Date(),
 		})
-		.where(
-			and(eq(schema.team.id, team_id), eq(schema.team.organizationId, org_id)),
-		)
+		.where(and(eq(schema.team.id, team_id), eq(schema.team.organizationId, org_id)))
 		.returning();
 
 	if (!team) {
@@ -1781,11 +1596,7 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, team_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageTeams",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "team.delete",
@@ -1796,17 +1607,12 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 				message: "User does not have permission to remove teams",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You don’t have permission to remove teams." },
-			401,
-		);
+		return c.json({ success: false, error: "You don’t have permission to remove teams." }, 401);
 	}
 
 	const [removed] = await db
 		.delete(schema.team)
-		.where(
-			and(eq(schema.team.id, team_id), eq(schema.team.organizationId, org_id)),
-		)
+		.where(and(eq(schema.team.id, team_id), eq(schema.team.organizationId, org_id)))
 		.returning();
 
 	if (!removed) {
@@ -1848,11 +1654,7 @@ apiRouteAdminOrganization.post("/team-member", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, team_id, member_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageTeams",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "team.member.add",
@@ -1868,7 +1670,7 @@ apiRouteAdminOrganization.post("/team-member", async (c) => {
 				success: false,
 				error: "You don’t have permission to add members to teams.",
 			},
-			401,
+			401
 		);
 	}
 
@@ -1891,10 +1693,7 @@ apiRouteAdminOrganization.post("/team-member", async (c) => {
 				message: "Failed to add member to team",
 			},
 		});
-		return c.json(
-			{ success: false, error: "Failed to add member to team." },
-			500,
-		);
+		return c.json({ success: false, error: "Failed to add member to team." }, 500);
 	}
 
 	await recordWideEvent({
@@ -1924,11 +1723,7 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 
 	const session = c.get("session");
 	const { org_id, team_id, member_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(
-		session?.userId || "",
-		org_id,
-		"admin.manageTeams",
-	);
+	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
 	if (!isAuthorized) {
 		await recordWideEvent({
 			name: "team.member.remove",
@@ -1944,18 +1739,13 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 				success: false,
 				error: "You don’t have permission to remove members from teams.",
 			},
-			401,
+			401
 		);
 	}
 
 	const [removed] = await db
 		.delete(schema.memberTeam)
-		.where(
-			and(
-				eq(schema.memberTeam.teamId, team_id),
-				eq(schema.memberTeam.memberId, member_id),
-			),
-		)
+		.where(and(eq(schema.memberTeam.teamId, team_id), eq(schema.memberTeam.memberId, member_id)))
 		.returning();
 
 	if (!removed) {
@@ -1968,10 +1758,7 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 				message: "Failed to remove member from team",
 			},
 		});
-		return c.json(
-			{ success: false, error: "Failed to remove member from team." },
-			500,
-		);
+		return c.json({ success: false, error: "Failed to remove member from team." }, 500);
 	}
 
 	await recordWideEvent({
@@ -2006,10 +1793,7 @@ apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
 	// Only the org creator or existing admin should be able to do this
 	// For now, just check if user is a member of the org
 	const membership = await db.query.member.findFirst({
-		where: and(
-			eq(schema.member.organizationId, org_id),
-			eq(schema.member.userId, session?.userId || ""),
-		),
+		where: and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, session?.userId || "")),
 	});
 
 	if (!membership) {
@@ -2022,10 +1806,7 @@ apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
 				message: "User is not a member of this organization",
 			},
 		});
-		return c.json(
-			{ success: false, error: "You must be a member of this organization." },
-			401,
-		);
+		return c.json({ success: false, error: "You must be a member of this organization." }, 401);
 	}
 
 	try {
@@ -2056,10 +1837,7 @@ apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
 				message: "Failed to create admin team",
 			},
 		});
-		return c.json(
-			{ success: false, error: "Failed to create admin team." },
-			500,
-		);
+		return c.json({ success: false, error: "Failed to create admin team." }, 500);
 	}
 });
 

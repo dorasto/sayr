@@ -36,7 +36,7 @@ apiRoute.get(
 				},
 			],
 		};
-	}),
+	})
 );
 apiRoute.route("/public", apiPublicRoute);
 apiRoute.get(
@@ -55,7 +55,7 @@ apiRoute.get(
 				},
 			],
 		},
-	}),
+	})
 );
 apiRoute.use("*", async (c, next) => {
 	const recordWideEvent = c.get("recordWideEvent");
@@ -129,10 +129,7 @@ apiRoute.get("/github/org-check", async (c) => {
 		})
 		.where(eq(schema.githubInstallation.installationId, installationId));
 	const root = process.env.VITE_URL_ROOT || "http://localhost:3000/";
-	const redirectUrl = new URL(
-		`/admin/settings/org/${orgId}/connections/github`,
-		root,
-	).toString();
+	const redirectUrl = new URL(`/admin/settings/org/${orgId}/connections/github`, root).toString();
 
 	return c.redirect(redirectUrl, 302);
 });

@@ -11,11 +11,34 @@ type SessionValue = Awaited<ReturnType<typeof auth.api.getSession>>;
 const sessionCache = new Map<string, { value: SessionValue | null; expiresAt: number }>();
 
 function getSessionToken(headers: Headers): string {
-	const cookieHeader = headers.get("cookie") ?? "";
-	const match = cookieHeader.match(/__Secure-?better-auth\.session_token=([^;]+)/);
-	return match?.[1] ?? "anonymous";
-}
+	const cookieHeader = headers.get("cookie");
+	if (!cookieHeader) {
+		return "anonymous";
+	}
 
+	// Split and clean up each cookie pair
+	const cookies = cookieHeader.split(";").map((c) => c.trim());
+
+	// Possible cookie names (with and without the __Secure- prefix)
+	const cookieNames = ["__Secure-better-auth.session_token", "better-auth.session_token"];
+
+	// Try to find the first cookie that matches any of the allowed names
+	const sessionCookie = cookies.find((c) => cookieNames.some((name) => c.startsWith(`${name}=`)));
+
+	if (!sessionCookie) {
+		return "anonymous";
+	}
+
+	// Extract everything after the first "=" safely
+	const [, rawValue] = sessionCookie.split("=", 2);
+
+	try {
+		return decodeURIComponent(rawValue as string);
+	} catch {
+		// Handle malformed or non-encoded cookies gracefully
+		return rawValue || "anonymous";
+	}
+}
 // 🧠 Simple in-memory cache for system account existence
 const systemAccountCache = {
 	exists: false,

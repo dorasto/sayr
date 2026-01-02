@@ -19,7 +19,7 @@ export const getAccess = async () => {
 		});
 
 		if (session?.user) {
-			return { account: session.user as schema.userType };
+			return { account: session.user as schema.userType, sessionId: session.session.id };
 		}
 
 		return { account: null };
