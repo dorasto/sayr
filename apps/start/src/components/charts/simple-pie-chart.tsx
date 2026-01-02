@@ -91,7 +91,7 @@ export function SimplePieChart({
   return (
     <ChartContainer
       config={chartConfig}
-      className={cn("aspect-square", sizeConfig.container, className)}
+      className={cn("aspect-square w-full", sizeConfig.container, className)}
     >
       <PieChart>
         <ChartTooltip

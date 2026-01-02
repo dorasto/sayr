@@ -158,7 +158,7 @@ export default function OrgSection({
           })}
         </SidebarMenuItem>
         <SidebarGroup className={cn("")}>
-          <CollapsibleContent className="flex flex-col gap-0.5 pl-4">
+          <CollapsibleContent className="flex flex-col gap-0.5 ml-2 pl-2 border-l">
             <SidebarMenuItem
               className="cursor-pointer min-h-auto"
               isActive={pathname.includes(`/admin/${organization.id}/tasks`)}

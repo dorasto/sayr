@@ -21,7 +21,15 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { TaskStatusChart, ALL_STATUSES } from "@/components/charts";
+import {
+  TaskStatusChart,
+  TaskPriorityBar,
+  TaskAssigneeChart,
+  TaskCategoryChart,
+  TaskCompletionChart,
+  TaskTimelineChart,
+  ALL_STATUSES,
+} from "@/components/charts";
 import { useLayoutData } from "@/components/generic/Context";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
@@ -38,8 +46,14 @@ export default function OrganizationHomePage() {
   const { tasks } = OrgIndexRoute.useLoaderData();
   console.log("🚀 ~ OrganizationHomePage ~ permissions:", permissions);
   const { ws } = useLayoutData();
-  const { organization, setOrganization, setLabels, setViews, setCategories } =
-    useLayoutOrganization();
+  const {
+    organization,
+    setOrganization,
+    setLabels,
+    setViews,
+    setCategories,
+    categories,
+  } = useLayoutOrganization();
   useWebSocketSubscription({
     ws,
     orgId: organization.id,
@@ -87,12 +101,13 @@ export default function OrganizationHomePage() {
         </Avatar>
       }
       style="compact"
+      className="max-w-4xl"
     >
-      <div className="grid md:grid-cols-12 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         <Link
           to={`/admin/$orgId/tasks`}
           params={{ orgId: organization.id }}
-          className="col-span-full md:col-span-8"
+          className="col-span-full w-full"
         >
           <Tile className="md:w-full hover:bg-accent">
             <TileHeader className="w-full">
@@ -108,7 +123,7 @@ export default function OrganizationHomePage() {
         <Link
           to={`/admin/settings/org/$orgId/categories`}
           params={{ orgId: organization.id }}
-          className="col-span-6 row-span-2"
+          className="md:col-span-6 col-span-full md:row-span-2"
         >
           <Tile className="md:w-full hover:bg-accent h-full">
             <TileHeader className="w-full">
@@ -122,7 +137,7 @@ export default function OrganizationHomePage() {
         <Link
           to={`/admin/settings/org/$orgId/labels`}
           params={{ orgId: organization.id }}
-          className="col-span-3"
+          className="md:col-span-3 col-span-full"
         >
           <Tile className="md:w-full hover:bg-accent h-full">
             <TileHeader className="w-full">
@@ -136,7 +151,7 @@ export default function OrganizationHomePage() {
         <Link
           to={`/admin/settings/org/$orgId/members`}
           params={{ orgId: organization.id }}
-          className="col-span-3"
+          className="md:col-span-3 col-span-full"
         >
           <Tile className="md:w-full hover:bg-accent">
             <TileHeader className="w-full">
@@ -150,7 +165,7 @@ export default function OrganizationHomePage() {
         <Link
           to={`/admin/settings/org/$orgId/connections`}
           params={{ orgId: organization.id }}
-          className="col-span-6"
+          className="md:col-span-6 col-span-full"
         >
           <Tile className="md:w-full hover:bg-accent">
             <TileHeader className="w-full">
@@ -162,16 +177,61 @@ export default function OrganizationHomePage() {
           </Tile>
         </Link>
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <Tile className="md:w-full flex-col">
+      {/* Dashboard Charts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+        <Tile className="md:w-full md:col-span-full flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Activity Timeline</TileTitle>
+            <TileDescription>Tasks completed over time</TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskTimelineChart tasks={tasks} days={14} showCompleted={true} />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Status Distribution</TileTitle>
+            <TileDescription>Open tasks by status</TileDescription>
+          </TileHeader>
           <div className="h-full w-full">
             <TaskStatusChart
               tasks={tasks}
               statuses={ALL_STATUSES}
-              size="sm"
               className="mx-auto"
               totalLabel="Open tasks"
             />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Priority</TileTitle>
+            <TileDescription>Current priority distribution</TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskPriorityBar tasks={tasks} />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Categories</TileTitle>
+            <TileDescription>Open tasks by category</TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskCategoryChart
+              tasks={tasks}
+              categories={categories}
+              className="mx-auto"
+              totalLabel="Total"
+            />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Assignee Workload</TileTitle>
+            <TileDescription>Tasks assigned to each member</TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskAssigneeChart tasks={tasks} maxItems={6} />
           </div>
         </Tile>
       </div>
