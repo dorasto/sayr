@@ -10,7 +10,7 @@ export const organization = table("organization", {
 	slug: v.text("slug").notNull(),
 	logo: v.text("logo"),
 	bannerImg: v.text("banner_img"),
-	description: v.text("description").default(""),
+	description: v.text("description").default("").notNull(),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	privateId: v.text("private_id").$defaultFn(() => generatePrivateId()),

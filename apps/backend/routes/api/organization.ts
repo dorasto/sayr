@@ -170,6 +170,16 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		});
 		return c.json({ error: "You don’t have permission to do that." }, 401);
 	}
+	if (data.slug) {
+		const [existing] = await db
+			.select()
+			.from(schema.organization)
+			.where(eq(schema.organization.slug, data.slug))
+			.limit(1);
+		if (existing && existing.id !== org_id) {
+			return c.json({ error: "Slug already in use by another organization." }, 400);
+		}
+	}
 	const [result] = await db
 		.update(schema.organization)
 		.set({

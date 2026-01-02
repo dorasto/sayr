@@ -1,7 +1,7 @@
 import type { account, session, user, verification } from "./auth";
 import type { githubIssueType } from "./github_issue.schema";
 import type { labelType } from "./label.schema";
-import type { memberType } from "./member.schema";
+import type { OrganizationMemberType } from "./member.schema";
 import type { organizationType } from "./organization.schema";
 import type { taskType } from "./task.schema";
 import type { taskCommentType } from "./taskComment.schema";
@@ -32,7 +32,7 @@ export interface NodeJSON {
 }
 
 export interface OrganizationWithMembers extends organizationType {
-	members: (memberType & { user: userType })[];
+	members: (OrganizationMemberType & { user: userType })[];
 }
 export type TaskWithLabels = taskType & {
 	labels: labelType[];
