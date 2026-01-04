@@ -1,25 +1,14 @@
-import {
-	db,
-	getLabels,
-	getOrganizationPublic,
-	getTaskByShortId,
-	schema,
-} from "@repo/database";
+import { db, getLabels, getOrganizationPublic, getTaskByShortId, schema } from "@repo/database";
 import { and, eq, sql } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import z from "zod";
 import type { AppEnv } from "@/index";
-import {
-	describeOkNotFound,
-	describePaginatedRoute,
-} from "../../openapi/helpers";
-import {
-	errorResponse,
-	paginatedSuccessResponse,
-	successResponse,
-} from "../../responses";
+import { describeOkNotFound, describePaginatedRoute } from "../../openapi/helpers";
+import { errorResponse, paginatedSuccessResponse, successResponse } from "../../responses";
+import { prosekitJSONToHTML } from "@/prosekit/html";
+import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 
 const API_LIMITS = {
 	comments: 30,
@@ -34,7 +23,7 @@ apiPublicRoute.use(
 		allowMethods: ["GET"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		credentials: false,
-	}),
+	})
 );
 apiPublicRoute.use("*", async (c, next) => {
 	c.header("X-API-Version", "1.0.0");
@@ -46,14 +35,8 @@ apiPublicRoute.use("*", async (c, next) => {
 const OrganizationSchema = createSelectSchema(schema.organization)
 	.omit({ privateId: true })
 	.extend({
-		createdAt: z.preprocess(
-			(v) => (v instanceof Date ? v.toISOString() : v),
-			z.string(),
-		),
-		updatedAt: z.preprocess(
-			(v) => (v instanceof Date ? v.toISOString() : v),
-			z.string(),
-		),
+		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 	});
 apiPublicRoute.get(
 	"/organization/:org_slug",
@@ -98,15 +81,12 @@ apiPublicRoute.get(
 		// biome-ignore lint/correctness/noUnusedVariables: <needed>
 		const { privateId, ...publicOrg } = organization;
 		return c.json(successResponse(publicOrg));
-	},
+	}
 );
 
 //@ts-expect-error
 const LabelSchema = createSelectSchema(schema.label).extend({
-	createdAt: z.preprocess(
-		(v) => (v instanceof Date ? v.toISOString() : v),
-		z.string(),
-	),
+	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/labels",
@@ -151,15 +131,12 @@ apiPublicRoute.get(
 			},
 		});
 		return c.json(successResponse(labels));
-	},
+	}
 );
 
 //@ts-expect-error
 const CategorySchema = createSelectSchema(schema.category).extend({
-	createdAt: z.preprocess(
-		(v) => (v instanceof Date ? v.toISOString() : v),
-		z.string(),
-	),
+	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/categories",
@@ -173,12 +150,26 @@ apiPublicRoute.get(
 				required: true,
 				schema: { type: "string" },
 			},
+			{
+				name: "order",
+				in: "query",
+				required: false,
+				schema: {
+					type: "string",
+					enum: ["asc", "desc"],
+					default: "desc",
+				},
+				description: "Sort order for comments. Use 'asc' for oldest first, 'desc' for newest first (default).",
+			},
 		],
 		tags: ["Organization"],
 	}),
 	async (c) => {
 		const recordWideEvent = c.get("recordWideEvent");
+		const query = c.req.query();
 		const orgSlug = c.req.param("org_slug");
+		const order = query.order === "asc" ? "asc" : "desc"; // default desc if not given
+
 		const organization = await getOrganizationPublic(orgSlug);
 		if (!organization) {
 			await recordWideEvent({
@@ -194,6 +185,7 @@ apiPublicRoute.get(
 			return c.json(errorResponse("No organization found"), 404);
 		}
 		const categories = await db.query.category.findMany({
+			orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
 			where: (category) => eq(category.organizationId, organization.id),
 		});
 		await recordWideEvent({
@@ -206,19 +198,15 @@ apiPublicRoute.get(
 			},
 		});
 		return c.json(successResponse(categories));
-	},
+	}
 );
 
 //@ts-expect-error
 const TaskSchema = createSelectSchema(schema.task).extend({
-	createdAt: z.preprocess(
-		(v) => (v instanceof Date ? v.toISOString() : v),
-		z.string(),
-	),
-	updatedAt: z.preprocess(
-		(v) => (v instanceof Date ? v.toISOString() : v),
-		z.string(),
-	),
+	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	descriptionHtml: z.string(),
+	descriptionMarkdown: z.string(),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks",
@@ -232,6 +220,17 @@ apiPublicRoute.get(
 				required: true,
 				schema: { type: "string" },
 			},
+			{
+				name: "order",
+				in: "query",
+				required: false,
+				schema: {
+					type: "string",
+					enum: ["asc", "desc"],
+					default: "desc",
+				},
+				description: "Sort order for comments. Use 'asc' for oldest first, 'desc' for newest first (default).",
+			},
 		],
 		maxLimit: API_LIMITS.tasks,
 		tags: ["Organization"],
@@ -241,6 +240,7 @@ apiPublicRoute.get(
 			const recordWideEvent = c.get("recordWideEvent");
 			const query = c.req.query();
 			const limit = Math.min(Number(query.limit) || 5, API_LIMITS.tasks);
+			const order = query.order === "asc" ? "asc" : "desc"; // default desc if not given
 			const page = Math.max(Number(query.page) || 1, 1);
 			const offset = (page - 1) * limit;
 			const orgSlug = c.req.param("org_slug");
@@ -271,9 +271,9 @@ apiPublicRoute.get(
 				return c.json(
 					errorResponse(
 						"Invalid limit",
-						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.tasks}`,
+						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.tasks}`
 					),
-					400,
+					400
 				);
 			}
 			const [countResult] = await db
@@ -293,16 +293,10 @@ apiPublicRoute.get(
 						totalPages,
 					},
 				});
-				return c.json(
-					errorResponse(
-						`Page ${page} not found`,
-						`Valid pages range from 1 to ${totalPages}`,
-					),
-					400,
-				);
+				return c.json(errorResponse(`Page ${page} not found`, `Valid pages range from 1 to ${totalPages}`), 400);
 			}
 			const tasks = await db.query.task.findMany({
-				orderBy: (t, { desc }) => desc(t.createdAt),
+				orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
 				where: (t) => eq(t.organizationId, organization.id),
 				limit,
 				offset,
@@ -311,6 +305,11 @@ apiPublicRoute.get(
 					category: { columns: { id: true, name: true } },
 				},
 			});
+			const tasksNew = tasks.map((t) => ({
+				...t,
+				descriptionHtml: t.description && prosekitJSONToHTML(t.description),
+				descriptionMarkdown: t.description && prosekitJSONToMarkdown(t.description),
+			}));
 			await recordWideEvent({
 				name: "getTasks",
 				description: "Fetched public organization tasks (paginated)",
@@ -325,19 +324,19 @@ apiPublicRoute.get(
 				},
 			});
 			return c.json(
-				paginatedSuccessResponse(tasks, {
+				paginatedSuccessResponse(tasksNew, {
 					limit,
 					page,
 					totalPages,
 					totalItems,
 					hasMore: page < totalPages,
-				}),
+				})
 			);
 		} catch (error) {
 			console.error("🚀 Pagination Error:", error);
 			return c.json(errorResponse("Database error", "Unexpected error"), 500);
 		}
-	},
+	}
 );
 
 apiPublicRoute.get(
@@ -376,10 +375,7 @@ apiPublicRoute.get(
 					taskShortIdRaw,
 				},
 			});
-			return c.json(
-				errorResponse("Invalid task_short_id", "Must be a number"),
-				400,
-			);
+			return c.json(errorResponse("Invalid task_short_id", "Must be a number"), 400);
 		}
 		const organization = await getOrganizationPublic(orgSlug);
 		if (!organization) {
@@ -418,20 +414,20 @@ apiPublicRoute.get(
 				shortId: task.shortId,
 			},
 		});
-		return c.json(successResponse(task));
-	},
+		return c.json(
+			successResponse({
+				...task,
+				descriptionHtml: task.description && prosekitJSONToHTML(task.description),
+				descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
+			})
+		);
+	}
 );
 
 //@ts-expect-error
 const CommentSchema = createSelectSchema(schema.taskComment).extend({
-	createdAt: z.preprocess(
-		(v) => (v instanceof Date ? v.toISOString() : v),
-		z.string(),
-	),
-	updatedAt: z.preprocess(
-		(v) => (v instanceof Date ? v.toISOString() : v),
-		z.string(),
-	),
+	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 	createdBy: z
 		.object({
 			name: z.string().nullable(),
@@ -439,6 +435,8 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 		})
 		.nullable()
 		.optional(),
+	descriptionHtml: z.string(),
+	descriptionMarkdown: z.string(),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks/:task_short_id/comments",
@@ -458,6 +456,17 @@ apiPublicRoute.get(
 				required: true,
 				schema: { type: "integer" },
 			},
+			{
+				name: "order",
+				in: "query",
+				required: false,
+				schema: {
+					type: "string",
+					enum: ["asc", "desc"],
+					default: "desc",
+				},
+				description: "Sort order for comments. Use 'asc' for oldest first, 'desc' for newest first (default).",
+			},
 		],
 		maxLimit: API_LIMITS.comments,
 		tags: ["Organization"],
@@ -468,6 +477,7 @@ apiPublicRoute.get(
 			const query = c.req.query();
 			const limit = Math.min(Number(query.limit) || 5, API_LIMITS.comments);
 			const page = Math.max(Number(query.page) || 1, 1);
+			const order = query.order === "asc" ? "asc" : "desc"; // default desc if not given
 			const offset = (page - 1) * limit;
 			const orgSlug = c.req.param("org_slug");
 			const taskShortIdRaw = c.req.param("task_short_id");
@@ -482,10 +492,7 @@ apiPublicRoute.get(
 						taskShortIdRaw,
 					},
 				});
-				return c.json(
-					errorResponse("Invalid task_short_id", "Must be a number"),
-					400,
-				);
+				return c.json(errorResponse("Invalid task_short_id", "Must be a number"), 400);
 			}
 			const org = await getOrganizationPublic(orgSlug);
 			if (!org) {
@@ -527,9 +534,9 @@ apiPublicRoute.get(
 				return c.json(
 					errorResponse(
 						"Invalid limit",
-						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.comments}`,
+						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.comments}`
 					),
-					400,
+					400
 				);
 			}
 			const [countResult] = await db
@@ -539,8 +546,8 @@ apiPublicRoute.get(
 					and(
 						eq(schema.taskComment.taskId, task.id),
 						eq(schema.taskComment.organizationId, org.id),
-						eq(schema.taskComment.visibility, "public"),
-					),
+						eq(schema.taskComment.visibility, "public")
+					)
 				);
 			const totalItems = Number(countResult?.count ?? 0);
 			const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
@@ -555,22 +562,12 @@ apiPublicRoute.get(
 						totalPages,
 					},
 				});
-				return c.json(
-					errorResponse(
-						`Page ${page} not found`,
-						`Valid pages range from 1 to ${totalPages}`,
-					),
-					400,
-				);
+				return c.json(errorResponse(`Page ${page} not found`, `Valid pages range from 1 to ${totalPages}`), 400);
 			}
 			const comments = await db.query.taskComment.findMany({
 				where: (tC) =>
-					and(
-						eq(tC.taskId, task.id),
-						eq(tC.organizationId, org.id),
-						eq(schema.taskComment.visibility, "public"),
-					),
-				orderBy: (tC, { desc }) => desc(tC.createdAt),
+					and(eq(tC.taskId, task.id), eq(tC.organizationId, org.id), eq(schema.taskComment.visibility, "public")),
+				orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
 				limit,
 				offset,
 				with: {
@@ -594,18 +591,24 @@ apiPublicRoute.get(
 					page,
 				},
 			});
+			const commentsNew = comments.map((c) => ({
+				...c,
+				contentHtml: c.content && prosekitJSONToHTML(c.content),
+				contentMarkdown: c.content && prosekitJSONToMarkdown(c.content),
+			}));
+
 			return c.json(
-				paginatedSuccessResponse(comments, {
+				paginatedSuccessResponse(commentsNew, {
 					limit,
 					page,
 					totalPages,
 					totalItems,
 					hasMore: page < totalPages,
-				}),
+				})
 			);
 		} catch (error) {
 			console.error("🚀 Comments Pagination Error:", error);
 			return c.json(errorResponse("Database error", "Unexpected error"), 500);
 		}
-	},
+	}
 );

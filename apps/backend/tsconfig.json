@@ -8,7 +8,8 @@
 			"@/queue": ["./queue.ts"],
 			"@/util": ["./util.ts"],
 			"@/getSession": ["./getSession.ts"],
-			"@/tracing/*": ["./tracing/*.ts"]
+			"@/tracing/*": ["./tracing/*.ts"],
+			"@/prosekit/*": ["./prosekit/*.ts"]
 		}
 	},
 	"include": [
@@ -18,7 +19,8 @@
 		"queue.ts",
 		"github",
 		"responses.ts",
-		"openapi"
+		"openapi",
+		"prosekit"
 	],
 	"exclude": ["node_modules"]
 }
