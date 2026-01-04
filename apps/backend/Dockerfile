@@ -19,7 +19,7 @@ RUN npm install -g pnpm
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
-
+ENV NODE_ENV=production
 # Install dependencies
 RUN pnpm install
 
@@ -70,4 +70,4 @@ ENV NODE_ENV="production"
 # Expose the port the app runs on
 EXPOSE 5468
 
-CMD ["sh", "-c", "NODE_ENV=$NODE_ENV bun run dist/index.js"]
+CMD ["bun", "run", "dist/index.js"]
