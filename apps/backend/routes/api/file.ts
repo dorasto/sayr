@@ -1,227 +1,176 @@
 import { createHash, randomBytes } from "node:crypto";
 import { db, hasOrgPermission } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
-import {
-	ensureCdnUrl,
-	extractPrivateIdFromUrl,
-	getFileNameFromUrl,
-} from "@repo/util";
+import { ensureCdnUrl, extractPrivateIdFromUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import mime from "mime-types";
+import { createTraceAsync } from "@/tracing/wideEvent";
 export const apiRouteFile = new Hono<AppEnv>();
 
 // Upload a file
 apiRouteFile.put("/", async (c) => {
-	try {
-		const recordWideEvent = c.get("recordWideEvent");
-		await recordWideEvent({
-			name: "file.upload",
-			description: "File upload requested",
-			data: {},
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const recordWideEvent = c.get("recordWideEvent");
+
+	const session = c.get("session");
+	const orgId = c.req.header("X-File-Privacy");
+
+	const body = await c.req.parseBody();
+	const file = body.file;
+
+	if (!file || !(file instanceof File)) {
+		await recordWideError({
+			name: "file.upload.validation",
+			error: new Error("No file uploaded"),
+			code: "NO_FILE_UPLOADED",
+			message: "No file uploaded in the request",
+			contextData: { userId: session?.userId },
 		});
-
-		const session = c.get("session");
-		const orgId = c.req.header("X-File-Privacy");
-		// Parse multipart body
-		const body = await c.req.parseBody();
-		const file = body.file;
-		if (!file || !(file instanceof File)) {
-			await recordWideEvent({
-				name: "file.upload",
-				description: "No file uploaded in the request",
-				data: {
-					type: "UploadError",
-					code: "NoFileUploaded",
-					message: "No file uploaded in the request",
-				},
-			});
-			return c.json({ success: false, error: "No file uploaded" }, 400);
-		}
-		// Convert file to buffer
-		const buffer = Buffer.from(await file.arrayBuffer());
-		// Derive extension safely
-		const mimeType =
-			file.type || mime.lookup(file.name || "") || "application/octet-stream";
-		const ext = mime.extension(mimeType) || "bin";
-		// Generate a secure, random file name (e.g. AES-grade hex string)
-		const salt = process.env.FILE_SALT || "";
-		const randomName = randomBytes(32).toString("hex"); // 64 chars of entropy
-		const fullHash = createHash("sha256")
-			.update(session?.userId + randomName + salt)
-			.digest("hex");
-
-		const objectName = `${fullHash}.${ext}`;
-		if (orgId !== "public" && typeof orgId === "string") {
-			const isAuthorized = await hasOrgPermission(
-				session?.userId || "",
-				orgId,
-				"members",
-			);
-			if (!isAuthorized) {
-				await recordWideEvent({
-					name: "file.upload",
-					description: "User not authorized, file uploaded as public",
-					data: {
-						organizationId: orgId,
-						public: true,
-					},
-				});
-				// Upload to storage
-				const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
-					"Content-Type": file.type || "application/octet-stream",
-				});
-				const url = ensureCdnUrl(uploadedUrl);
-
-				return c.json({
-					success: true,
-					url,
-				});
-			}
-			const organization = await db.query.organization.findFirst({
-				where: (org) => eq(org.id, orgId),
-			});
-			if (!organization) {
-				await recordWideEvent({
-					name: "file.upload",
-					description: "Organization not found; uploaded file as public",
-					data: {
-						organizationId: orgId,
-						public: true,
-					},
-				});
-				// Upload to storage
-				const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
-					"Content-Type": file.type || "application/octet-stream",
-				});
-				const url = ensureCdnUrl(uploadedUrl);
-
-				return c.json({
-					success: true,
-					url,
-				});
-			}
-			await recordWideEvent({
-				name: "file.upload",
-				description: "Authorized upload to organization directory",
-				data: {
-					organizationId: orgId,
-					public: false,
-				},
-			});
-			// Upload to storage
-			const uploadedUrl = await uploadObject(
-				objectName,
-				buffer,
-				`files/${organization?.privateId}`,
-				{
-					"Content-Type": file.type || "application/octet-stream",
-				},
-			);
-			const url = ensureCdnUrl(uploadedUrl);
-
-			return c.json({
-				success: true,
-				url,
-			});
-		}
-
-		await recordWideEvent({
-			name: "file.upload",
-			description: "Public file uploaded (no orgId provided)",
-			data: {
-				public: true,
-			},
-		});
-		// Upload to storage
-		const uploadedUrl = await uploadObject(objectName, buffer, `files`, {
-			"Content-Type": file.type || "application/octet-stream",
-		});
-		const url = ensureCdnUrl(uploadedUrl);
-
-		return c.json({
-			success: true,
-			url,
-		});
-	} catch (err: unknown) {
-		const message = err instanceof Error ? err.message : "Upload failed";
-		console.error("Upload failed:", message);
-		const recordWideEvent = c.get("recordWideEvent");
-		await recordWideEvent({
-			name: "file.upload",
-			description: "File upload failed",
-			data: { error: message },
-		});
-		return c.json({ success: false, error: "Upload failed" }, 500);
+		return c.json({ success: false, error: "No file uploaded" }, 400);
 	}
+
+	const buffer = Buffer.from(await file.arrayBuffer());
+
+	const mimeType = file.type || mime.lookup(file.name || "") || "application/octet-stream";
+	const ext = mime.extension(mimeType) || "bin";
+
+	const salt = process.env.FILE_SALT || "";
+	const randomName = randomBytes(32).toString("hex");
+	const fullHash = createHash("sha256")
+		.update(session?.userId + randomName + salt)
+		.digest("hex");
+
+	const objectName = `${fullHash}.${ext}`;
+	const contentType = file.type || "application/octet-stream";
+
+	const performUpload = async (path: string, isPrivate: boolean) => {
+		const uploadedUrl = await traceAsync(
+			"file.upload.storage",
+			() => uploadObject(objectName, buffer, path, { "Content-Type": contentType }),
+			{
+				description: `Uploading file to ${isPrivate ? "private" : "public"} storage`,
+				data: { objectName, path, isPrivate },
+				onSuccess: () => ({
+					description: "File uploaded successfully",
+					data: { objectName },
+				}),
+			}
+		);
+		return ensureCdnUrl(uploadedUrl);
+	};
+
+	// Public upload (no orgId or orgId === "public")
+	if (orgId === "public" || typeof orgId !== "string") {
+		await recordWideEvent({
+			name: "file.upload.public",
+			description: "Public file upload",
+			data: { userId: session?.userId },
+		});
+
+		const url = await performUpload("files", false);
+		return c.json({ success: true, url });
+	}
+
+	// Private upload - check authorization
+	const isAuthorized = await traceAsync(
+		"file.upload.auth_check",
+		() => hasOrgPermission(session?.userId || "", orgId, "members"),
+		{ description: "Checking org permission", data: { orgId, userId: session?.userId } }
+	);
+
+	if (!isAuthorized) {
+		await recordWideEvent({
+			name: "file.upload.fallback_public",
+			description: "User not authorized, uploading as public",
+			data: { orgId, userId: session?.userId },
+		});
+
+		const url = await performUpload("files", false);
+		return c.json({ success: true, url });
+	}
+
+	const organization = await traceAsync(
+		"file.upload.org_lookup",
+		() => db.query.organization.findFirst({ where: (org) => eq(org.id, orgId) }),
+		{ description: "Finding organization", data: { orgId } }
+	);
+
+	if (!organization) {
+		await recordWideEvent({
+			name: "file.upload.org_not_found",
+			description: "Organization not found, uploading as public",
+			data: { orgId },
+		});
+
+		const url = await performUpload("files", false);
+		return c.json({ success: true, url });
+	}
+
+	await recordWideEvent({
+		name: "file.upload.private",
+		description: "Authorized upload to organization directory",
+		data: { orgId, userId: session?.userId },
+	});
+
+	const url = await performUpload(`files/${organization.privateId}`, true);
+	return c.json({ success: true, url });
 });
 
 apiRouteFile.delete("/", async (c) => {
-	try {
-		const recordWideEvent = c.get("recordWideEvent");
-		await recordWideEvent({
-			name: "file.delete",
-			description: "File delete requested",
-			data: {},
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const recordWideEvent = c.get("recordWideEvent");
+
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		await recordWideError({
+			name: "file.delete.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User not authenticated",
+			contextData: {},
 		});
-
-		const session = c.get("session");
-		if (!session?.userId) {
-			await recordWideEvent({
-				name: "file.delete",
-				description: "Unauthorized file delete attempt",
-				data: {
-					type: "AuthorizationError",
-					code: "Unauthorized",
-					message: "User not authenticated",
-				},
-			});
-			return c.json(
-				{ success: false, error: "You don’t have permission to do that." },
-				401,
-			);
-		}
-
-		const { url } = await c.req.json();
-		if (!url || typeof url !== "string") {
-			await recordWideEvent({
-				name: "file.delete",
-				description: "File delete failed - no URL provided",
-				data: {
-					type: "DeleteError",
-					code: "NoFileUrlProvided",
-					message: "No file URL provided in the request",
-				},
-			});
-			return c.json({ success: false, error: "No file URL provided" }, 400);
-		}
-
-		const { hasPrivateId, privateId } = extractPrivateIdFromUrl(url);
-		const storagePath = hasPrivateId
-			? `files/${privateId}/${getFileNameFromUrl(url)}`
-			: `files/${getFileNameFromUrl(url)}`;
-		await removeObject(storagePath);
-
-		await recordWideEvent({
-			name: "file.delete",
-			description: "File deleted successfully",
-			data: { success: true },
-		});
-
-		return c.json({
-			success: true,
-			message: "File deleted successfully",
-		});
-	} catch (err: unknown) {
-		const message = err instanceof Error ? err.message : "Upload failed";
-		console.error("Upload failed:", message);
-		const recordWideEvent = c.get("recordWideEvent");
-		await recordWideEvent({
-			name: "file.delete",
-			description: "File delete failed",
-			data: { error: message },
-		});
-		return c.json({ success: false, error: "Upload failed" }, 500);
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
+
+	const { url } = await c.req.json();
+
+	if (!url || typeof url !== "string") {
+		await recordWideError({
+			name: "file.delete.validation",
+			error: new Error("No file URL provided"),
+			code: "NO_FILE_URL",
+			message: "No file URL provided in the request",
+			contextData: { userId: session.userId },
+		});
+		return c.json({ success: false, error: "No file URL provided" }, 400);
+	}
+
+	const { hasPrivateId, privateId } = extractPrivateIdFromUrl(url);
+	const fileName = getFileNameFromUrl(url);
+	const storagePath = hasPrivateId ? `files/${privateId}/${fileName}` : `files/${fileName}`;
+
+	await traceAsync("file.delete.storage", () => removeObject(storagePath), {
+		description: "Deleting file from storage",
+		data: { storagePath, userId: session.userId },
+		onSuccess: () => ({
+			description: "File deleted successfully",
+			data: { storagePath },
+		}),
+	});
+
+	await recordWideEvent({
+		name: "file.delete.success",
+		description: "File deleted successfully",
+		data: { storagePath, userId: session.userId },
+	});
+
+	return c.json({
+		success: true,
+		message: "File deleted successfully",
+	});
 });

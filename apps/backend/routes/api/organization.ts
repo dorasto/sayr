@@ -1,6 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import {
-	addMemberToAdminTeam,
 	bootstrapOrganizationAdminTeam,
 	db,
 	defaultTeamPermissions,
@@ -19,124 +18,130 @@ import type { AppEnv } from "@/index";
 import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../ws";
 import type { WSBaseMessage } from "../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
+import { createTraceAsync } from "@/tracing/wideEvent";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 // Create a new organization
 apiRouteAdminOrganization.post("/create", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "organization.create",
-		description: "Create organization requested",
-		data: {},
-	});
+
 	if (!session?.userId) {
-		await recordWideEvent({
-			name: "organization.create",
-			description: "User not authenticated on organization create",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User not authenticated",
-			},
+		await recordWideError({
+			name: "organization.create.auth",
+			error: new Error("User not authenticated"),
+			code: "UNAUTHORIZED",
+			message: "User not authenticated",
+			contextData: {},
 		});
-		return c.json({ success: false, error: "You don’t have permission to do that." }, 401);
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
 	const { name, slug, description } = await c.req.json();
 
 	if (!name || !slug) {
-		await recordWideEvent({
-			name: "organization.create",
-			description: "Validation error for missing name or slug",
-			data: {
-				type: "ValidationError",
-				code: "InvalidRequest",
-				message: "Name and slug are required",
-			},
+		await recordWideError({
+			name: "organization.create.validation",
+			error: new Error("Missing required fields"),
+			code: "INVALID_REQUEST",
+			message: "Name and slug are required",
+			contextData: { hasName: !!name, hasSlug: !!slug },
 		});
 		return c.json({ success: false, error: "Name and slug are required" }, 400);
 	}
 
-	const existingOrg = await db.query.organization.findFirst({
-		where: eq(schema.organization.slug, slug),
-	});
+	const existingOrg = await traceAsync(
+		"organization.create.check_slug",
+		() =>
+			db.query.organization.findFirst({
+				where: eq(schema.organization.slug, slug),
+			}),
+		{ description: "Checking if slug is taken", data: { slug } }
+	);
 
 	if (existingOrg) {
-		await recordWideEvent({
-			name: "organization.create",
-			description: "Slug already taken",
-			data: {
-				type: "ValidationError",
-				code: "SlugTaken",
-				message: "Organization slug is already taken",
-			},
+		await recordWideError({
+			name: "organization.create.slug_taken",
+			error: new Error("Slug already taken"),
+			code: "SLUG_TAKEN",
+			message: "Organization slug is already taken",
+			contextData: { slug },
 		});
 		return c.json({ success: false, error: "Organization slug is already taken" }, 400);
 	}
 
 	const orgId = randomUUID();
 
-	const [newOrg] = await db
-		.insert(schema.organization)
-		.values({
-			id: orgId,
-			name,
-			slug,
-			description: description || "",
-		})
-		.returning();
+	const newOrg = await traceAsync(
+		"organization.create.insert",
+		async () => {
+			const [org] = await db
+				.insert(schema.organization)
+				.values({
+					id: orgId,
+					name,
+					slug,
+					description: description || "",
+				})
+				.returning();
+			return org;
+		},
+		{ description: "Creating organization", data: { orgId, name, slug } }
+	);
 
 	if (!newOrg) {
-		await recordWideEvent({
-			name: "organization.create",
-			description: "Failed to create organization",
-			data: {
-				type: "DatabaseError",
-				code: "OrgCreationFailed",
-			},
+		await recordWideError({
+			name: "organization.create.insert_failed",
+			error: new Error("Failed to create organization"),
+			code: "ORG_CREATION_FAILED",
+			message: "Failed to create organization",
+			contextData: { orgId, name, slug },
 		});
 		return c.json({ success: false, error: "Failed to create organization" }, 500);
 	}
 
-	const [membership] = await db
-		.insert(schema.member)
-		.values({
-			id: randomUUID(),
-			userId: session.userId,
-			organizationId: orgId,
-		})
-		.returning();
+	const membership = await traceAsync(
+		"organization.create.membership",
+		async () => {
+			const [member] = await db
+				.insert(schema.member)
+				.values({
+					id: randomUUID(),
+					userId: session.userId,
+					organizationId: orgId,
+				})
+				.returning();
+			return member;
+		},
+		{ description: "Creating membership", data: { orgId, userId: session.userId } }
+	);
 
 	if (!membership) {
-		await recordWideEvent({
-			name: "organization.create",
-			description: "Failed to create membership, rolling back org",
-			data: {
-				type: "DatabaseError",
-				code: "MembershipCreationFailed",
-			},
+		await recordWideError({
+			name: "organization.create.membership_failed",
+			error: new Error("Failed to create membership"),
+			code: "MEMBERSHIP_CREATION_FAILED",
+			message: "Failed to create membership, rolling back org",
+			contextData: { orgId, userId: session.userId },
 		});
 		await db.delete(schema.organization).where(eq(schema.organization.id, orgId));
 		return c.json({ success: false, error: "Failed to create organization membership" }, 500);
 	}
 
-	// Create default Administrators team and add the creator to it
-	try {
-		await bootstrapOrganizationAdminTeam(orgId);
-	} catch (err) {
-		console.error("Failed to create default admin team:", err);
-		// Don't fail org creation if admin team creation fails
-	}
-
-	await recordWideEvent({
-		name: "organization.create",
-		description: "Organization successfully created",
-		data: {
-			organizationId: orgId,
-			createdByUserId: session.userId,
+	await traceAsync(
+		"organization.create.admin_team",
+		async () => {
+			try {
+				await bootstrapOrganizationAdminTeam(orgId);
+			} catch (err) {
+				console.error("Failed to create default admin team:", err);
+				// Don't fail org creation if admin team creation fails
+			}
 		},
-	});
+		{ description: "Bootstrapping admin team", data: { orgId } }
+	);
+
 	return c.json({
 		success: true,
 		data: {
@@ -149,337 +154,350 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 
 // Update organization details
 apiRouteAdminOrganization.post("/update", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "organization.update",
-		description: "Update organization requested",
-		data: {},
-	});
-	const { org_id, wsClientId, data } = await c.req.json();
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageMembers");
+
+	const { org_id: orgId, wsClientId, data } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"organization.update.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
+		{ description: "Checking update permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "organization.update",
-			description: "Unauthorized update attempt",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to update organization",
-			},
+		await recordWideError({
+			name: "organization.update.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to update organization",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ error: "You don’t have permission to do that." }, 401);
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
+
 	if (data.slug) {
-		const [existing] = await db
-			.select()
-			.from(schema.organization)
-			.where(eq(schema.organization.slug, data.slug))
-			.limit(1);
-		if (existing && existing.id !== org_id) {
-			return c.json({ error: "Slug already in use by another organization." }, 400);
+		const existing = await traceAsync(
+			"organization.update.check_slug",
+			async () => {
+				const [org] = await db
+					.select()
+					.from(schema.organization)
+					.where(eq(schema.organization.slug, data.slug))
+					.limit(1);
+				return org;
+			},
+			{ description: "Checking if slug is taken", data: { slug: data.slug } }
+		);
+
+		if (existing && existing.id !== orgId) {
+			await recordWideError({
+				name: "organization.update.slug_taken",
+				error: new Error("Slug already in use"),
+				code: "SLUG_TAKEN",
+				message: "Slug already in use by another organization",
+				contextData: { orgId, slug: data.slug, existingOrgId: existing.id },
+			});
+			return c.json({ success: false, error: "Slug already in use by another organization." }, 400);
 		}
 	}
-	const [result] = await db
-		.update(schema.organization)
-		.set({
-			...data,
-			logo: data.logo && `organization/${org_id}/${getFileNameFromUrl(data.logo)}`,
-			bannerImg: data.bannerImg && `organization/${org_id}/${getFileNameFromUrl(data.bannerImg)}`,
-			updatedAt: new Date(),
-		})
-		.where(eq(schema.organization.id, org_id))
-		.returning();
-	if (result) {
-		const found = findClientByWsId(wsClientId);
-		const dataMsg = {
-			type: "UPDATE_ORG" as WSBaseMessage["type"],
-			data: {
-				...result,
-				logo: result.logo ? ensureCdnUrl(result.logo) : null,
-				bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
-			},
-		};
-		broadcast(org_id, "admin", dataMsg, found?.socket);
-		broadcastPublic(org_id, {
-			...dataMsg,
-			data: { ...dataMsg.data, privateId: null },
+
+	const result = await traceAsync(
+		"organization.update.update",
+		async () => {
+			const [org] = await db
+				.update(schema.organization)
+				.set({
+					...data,
+					logo: data.logo && `organization/${orgId}/${getFileNameFromUrl(data.logo)}`,
+					bannerImg: data.bannerImg && `organization/${orgId}/${getFileNameFromUrl(data.bannerImg)}`,
+					updatedAt: new Date(),
+				})
+				.where(eq(schema.organization.id, orgId))
+				.returning();
+			return org;
+		},
+		{ description: "Updating organization", data: { orgId } }
+	);
+
+	if (!result) {
+		await recordWideError({
+			name: "organization.update.failed",
+			error: new Error("Failed to update organization"),
+			code: "UPDATE_FAILED",
+			message: "Failed to update organization",
+			contextData: { orgId },
 		});
-		const members = await getOrganizationMembers(org_id);
-		members.forEach((member) => {
-			broadcastByUserId(member.userId, "", org_id, dataMsg, "");
-		});
-		await recordWideEvent({
-			name: "organization.update",
-			description: "Organization updated successfully",
-			data: {
-				organizationId: org_id,
-				updatedByUserId: session?.userId || "",
-			},
-		});
-		return c.json({
-			success: true,
-			data: {
-				...result,
-				logo: result.logo ? ensureCdnUrl(result.logo) : null,
-				bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
-			},
-		});
+		return c.json({ success: false, error: "Failed to update organization" }, 500);
 	}
+
+	await traceAsync(
+		"organization.update.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const dataMsg = {
+				type: "UPDATE_ORG" as WSBaseMessage["type"],
+				data: {
+					...result,
+					logo: result.logo ? ensureCdnUrl(result.logo) : null,
+					bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
+				},
+			};
+
+			broadcast(orgId, "admin", dataMsg, found?.socket);
+			broadcastPublic(orgId, {
+				...dataMsg,
+				data: { ...dataMsg.data, privateId: null },
+			});
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, "", orgId, dataMsg, "");
+			});
+		},
+		{ description: "Broadcasting organization update" }
+	);
+
+	return c.json({
+		success: true,
+		data: {
+			...result,
+			logo: result.logo ? ensureCdnUrl(result.logo) : null,
+			bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
+		},
+	});
 });
 
 // Upload organization logo
 apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
-	try {
-		const recordWideEvent = c.get("recordWideEvent");
-		await recordWideEvent({
-			name: "organization.logoUpload",
-			description: "Organization logo upload requested",
-			data: {},
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+	const oldLogo = c.req.header("X-old-file");
+
+	const isAuthorized = await traceAsync(
+		"organization.logo.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
+		{ description: "Checking logo upload permission", data: { orgId, userId: session?.userId } }
+	);
+
+	if (!isAuthorized) {
+		await recordWideError({
+			name: "organization.logo.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to upload organization logo",
+			contextData: { orgId, userId: session?.userId },
 		});
-		const session = c.get("session");
-		const orgId = c.req.param("orgId");
-		const oldLogo = c.req.header("X-old-file");
-
-		const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers");
-		if (!isAuthorized) {
-			await recordWideEvent({
-				name: "organization.logoUpload",
-				description: "User not authorized to upload organization logo",
-				data: {
-					type: "AuthorizationError",
-					code: "Unauthorized",
-					message: "User does not have permission to upload organization logo",
-				},
-			});
-			return c.json({ error: "You don’t have permission to do that." }, 401);
-		}
-
-		// 2. Parse multipart body
-		const body = await c.req.parseBody();
-		const file = body.file;
-		if (!file || !(file instanceof File)) {
-			await recordWideEvent({
-				name: "organization.logoUpload",
-				description: "No file uploaded for organization logo",
-				data: {
-					type: "ValidationError",
-					code: "NoFileUploaded",
-					message: "No file uploaded for organization logo",
-				},
-			});
-			return c.text("No file uploaded", 400);
-		}
-
-		const buffer = Buffer.from(await file.arrayBuffer());
-
-		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
-		const objectName = `/logo.${ext}`;
-		if (oldLogo) {
-			await recordWideEvent({
-				name: "organization.logoUpload",
-				description: "Previous logo removed before new upload",
-				data: {
-					organizationId: orgId,
-					removedByUserId: session?.userId || "",
-				},
-			});
-			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`);
-		}
-
-		const imagelogo = await uploadObject(objectName, buffer, `organization/${orgId}`, {
-			"Content-Type": file.type || "application/octet-stream",
-			originalName: objectName,
-		});
-
-		await recordWideEvent({
-			name: "organization.logoUpload",
-			description: "Organization logo uploaded successfully",
-			data: {
-				organizationId: orgId,
-				uploadedByUserId: session?.userId || "",
-			},
-		});
-
-		return c.json({
-			success: true,
-			orgId,
-			originalName: file.name,
-			image: imagelogo,
-		});
-	} catch (err: any) {
-		console.error("Upload failed:", err.message);
-		const recordWideEvent = c.get("recordWideEvent");
-		await recordWideEvent({
-			name: "organization.logoUpload",
-			description: "Organization logo upload failed",
-			data: { error: err.message },
-		});
-		return c.text("Upload failed", 500);
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
+
+	const body = await c.req.parseBody();
+	const file = body.file;
+
+	if (!file || !(file instanceof File)) {
+		await recordWideError({
+			name: "organization.logo.validation",
+			error: new Error("No file uploaded"),
+			code: "NO_FILE",
+			message: "No file uploaded for organization logo",
+			contextData: { orgId },
+		});
+		return c.json({ success: false, error: "No file uploaded" }, 400);
+	}
+
+	const buffer = Buffer.from(await file.arrayBuffer());
+	const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
+	const objectName = `/logo.${ext}`;
+
+	if (oldLogo) {
+		await traceAsync(
+			"organization.logo.remove_old",
+			() => removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`),
+			{ description: "Removing old logo", data: { orgId, oldLogo } }
+		);
+	}
+
+	const imagelogo = await traceAsync(
+		"organization.logo.upload",
+		() =>
+			uploadObject(objectName, buffer, `organization/${orgId}`, {
+				"Content-Type": file.type || "application/octet-stream",
+				originalName: objectName,
+			}),
+		{
+			description: "Uploading organization logo",
+			data: { orgId, objectName, fileType: file.type },
+			onSuccess: () => ({
+				description: "Organization logo uploaded successfully",
+				data: { orgId, userId: session?.userId },
+			}),
+		}
+	);
+
+	return c.json({
+		success: true,
+		orgId,
+		originalName: file.name,
+		image: imagelogo,
+	});
 });
 
 // Upload organization banner
 apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
-	try {
-		const recordWideEvent = c.get("recordWideEvent");
-		await recordWideEvent({
-			name: "organization.bannerUpload",
-			description: "Organization banner upload requested",
-			data: {},
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+	const oldBanner = c.req.header("X-old-file");
+
+	const isAuthorized = await traceAsync(
+		"organization.banner.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
+		{ description: "Checking banner upload permission", data: { orgId, userId: session?.userId } }
+	);
+
+	if (!isAuthorized) {
+		await recordWideError({
+			name: "organization.banner.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to upload organization banner",
+			contextData: { orgId, userId: session?.userId },
 		});
-		const session = c.get("session");
-		const orgId = c.req.param("orgId");
-		const oldBanner = c.req.header("X-old-file");
-
-		const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers");
-		if (!isAuthorized) {
-			await recordWideEvent({
-				name: "organization.bannerUpload",
-				description: "User not authorized to upload organization banner",
-				data: {
-					type: "AuthorizationError",
-					code: "Unauthorized",
-					message: "User does not have permission to upload organization banner",
-				},
-			});
-			return c.json({ error: "You don’t have permission to do that." }, 401);
-		}
-
-		const body = await c.req.parseBody();
-		const file = body.file;
-		if (!file || !(file instanceof File)) {
-			await recordWideEvent({
-				name: "organization.bannerUpload",
-				description: "No file uploaded for organization banner",
-				data: {
-					type: "ValidationError",
-					code: "NoFileUploaded",
-					message: "No file uploaded for organization banner",
-				},
-			});
-			return c.text("No file uploaded", 400);
-		}
-
-		const buffer = Buffer.from(await file.arrayBuffer());
-		const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
-		const objectName = `banner.${ext}`;
-
-		if (oldBanner) {
-			await recordWideEvent({
-				name: "organization.bannerUpload",
-				description: "Previous banner removed before new upload",
-				data: {
-					organizationId: orgId,
-					removedByUserId: session?.userId || "",
-				},
-			});
-			await removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`);
-		}
-
-		const imagebanner = await uploadObject(objectName, buffer, `organization/${orgId}`, {
-			"Content-Type": file.type || "application/octet-stream",
-			originalName: objectName,
-		});
-
-		await recordWideEvent({
-			name: "organization.bannerUpload",
-			description: "Organization banner uploaded successfully",
-			data: {
-				organizationId: orgId,
-				uploadedByUserId: session?.userId || "",
-			},
-		});
-
-		return c.json({
-			success: true,
-			orgId,
-			originalName: file.name,
-			image: imagebanner,
-		});
-	} catch (err: any) {
-		console.error("Upload failed:", err.message);
-		const recordWideEvent = c.get("recordWideEvent");
-		await recordWideEvent({
-			name: "organization.bannerUpload",
-			description: "Organization banner upload failed",
-			data: { error: err.message },
-		});
-		return c.text("Upload failed", 500);
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
+
+	const body = await c.req.parseBody();
+	const file = body.file;
+
+	if (!file || !(file instanceof File)) {
+		await recordWideError({
+			name: "organization.banner.validation",
+			error: new Error("No file uploaded"),
+			code: "NO_FILE",
+			message: "No file uploaded for organization banner",
+			contextData: { orgId },
+		});
+		return c.json({ success: false, error: "No file uploaded" }, 400);
+	}
+
+	const buffer = Buffer.from(await file.arrayBuffer());
+	const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
+	const objectName = `banner.${ext}`;
+
+	if (oldBanner) {
+		await traceAsync(
+			"organization.banner.remove_old",
+			() => removeObject(`organization/${orgId}/${getFileNameFromUrl(oldBanner)}`),
+			{ description: "Removing old banner", data: { orgId, oldBanner } }
+		);
+	}
+
+	const imagebanner = await traceAsync(
+		"organization.banner.upload",
+		() =>
+			uploadObject(objectName, buffer, `organization/${orgId}`, {
+				"Content-Type": file.type || "application/octet-stream",
+				originalName: objectName,
+			}),
+		{
+			description: "Uploading organization banner",
+			data: { orgId, objectName, fileType: file.type },
+			onSuccess: () => ({
+				description: "Organization banner uploaded successfully",
+				data: { orgId, userId: session?.userId },
+			}),
+		}
+	);
+
+	return c.json({
+		success: true,
+		orgId,
+		originalName: file.name,
+		image: imagebanner,
+	});
 });
 
 // Label management
 // Create label with name and color
 apiRouteAdminOrganization.post("/create-label", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "label.create",
-		description: "Create label requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, name, color } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageLabels");
+
+	const { org_id: orgId, wsClientId, name, color } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"label.create.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "content.manageLabels"),
+		{ description: "Checking label create permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "label.create",
-			description: "Unauthorized to create labels",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to create labels",
-			},
+		await recordWideError({
+			name: "label.create.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to create labels",
+			contextData: { orgId, userId: session?.userId },
 		});
-		// wording fix: clearer explanation
-		return c.json({ success: false, error: "You don’t have permission to create labels." }, 401);
+		return c.json({ success: false, error: "You don't have permission to create labels." }, 401);
 	}
 
-	const [created] = await db
-		.insert(schema.label)
-		.values({
-			organizationId: org_id,
-			name,
-			color: color ?? "#cccccc",
-		})
-		.returning();
+	const created = await traceAsync(
+		"label.create.insert",
+		async () => {
+			const [label] = await db
+				.insert(schema.label)
+				.values({
+					organizationId: orgId,
+					name,
+					color: color ?? "#cccccc",
+				})
+				.returning();
+			return label;
+		},
+		{ description: "Creating label", data: { orgId, name, color } }
+	);
 
 	if (!created) {
-		await recordWideEvent({
-			name: "label.create",
-			description: "Database error creating label",
-			data: {
-				type: "DatabaseError",
-				code: "LabelCreationFailed",
-				message: "Failed to create label",
-			},
+		await recordWideError({
+			name: "label.create.insert_failed",
+			error: new Error("Failed to create label"),
+			code: "LABEL_CREATION_FAILED",
+			message: "Failed to create label",
+			contextData: { orgId, name },
 		});
 		return c.json({ success: false, error: "Failed to create label." }, 500);
 	}
 
-	const labels = await getLabels(org_id);
-	const found = findClientByWsId(wsClientId);
-	const data = {
-		type: "UPDATE_LABELS" as WSBaseMessage["type"],
-		data: labels,
-	};
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
+	const labels = await traceAsync("label.create.fetch_all", () => getLabels(orgId), {
+		description: "Fetching all labels",
+		data: { orgId },
 	});
 
-	await recordWideEvent({
-		name: "label.create",
-		description: "Label created successfully",
-		data: {
-			organizationId: org_id,
-			labelId: created.id,
-			createdByUserId: session?.userId || "",
+	await traceAsync(
+		"label.create.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				data: labels,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting label update" }
+	);
 
 	return c.json({
 		success: true,
@@ -489,73 +507,80 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 
 // Edit label name and color
 apiRouteAdminOrganization.patch("/edit-label", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "label.edit",
-		description: "Edit label requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, id, name, color } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageLabels");
+
+	const { org_id: orgId, wsClientId, id, name, color } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"label.edit.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "content.manageLabels"),
+		{ description: "Checking label edit permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "label.edit",
-			description: "Unauthorized to edit labels",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to edit labels",
-			},
+		await recordWideError({
+			name: "label.edit.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to edit labels",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ success: false, error: "You don’t have permission to edit labels." }, 401);
+		return c.json({ success: false, error: "You don't have permission to edit labels." }, 401);
 	}
 
-	const [edit] = await db
-		.update(schema.label)
-		.set({
-			name,
-			color: color ?? "hsla(0, 0%, 0%, 1)",
-		})
-		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id)))
-		.returning();
+	const edited = await traceAsync(
+		"label.edit.update",
+		async () => {
+			const [label] = await db
+				.update(schema.label)
+				.set({
+					name,
+					color: color ?? "hsla(0, 0%, 0%, 1)",
+				})
+				.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, orgId)))
+				.returning();
+			return label;
+		},
+		{ description: "Updating label", data: { orgId, labelId: id, name, color } }
+	);
 
-	if (!edit) {
-		await recordWideEvent({
-			name: "label.edit",
-			description: "Database error editing label",
-			data: {
-				type: "DatabaseError",
-				code: "LabelEditFailed",
-				message: "Failed to edit label",
-			},
+	if (!edited) {
+		await recordWideError({
+			name: "label.edit.update_failed",
+			error: new Error("Failed to edit label"),
+			code: "LABEL_EDIT_FAILED",
+			message: "Failed to edit label",
+			contextData: { orgId, labelId: id },
 		});
 		return c.json({ success: false, error: "Failed to edit label." }, 500);
 	}
 
-	const labels = await getLabels(org_id);
-	const found = findClientByWsId(wsClientId);
-	const data = {
-		type: "UPDATE_LABELS" as WSBaseMessage["type"],
-		data: labels,
-	};
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
+	const labels = await traceAsync("label.edit.fetch_all", () => getLabels(orgId), {
+		description: "Fetching all labels",
+		data: { orgId },
 	});
 
-	await recordWideEvent({
-		name: "label.edit",
-		description: "Label edited successfully",
-		data: {
-			organizationId: org_id,
-			labelId: edit.id,
-			editedByUserId: session?.userId || "",
+	await traceAsync(
+		"label.edit.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				data: labels,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting label update" }
+	);
 
 	return c.json({
 		success: true,
@@ -565,69 +590,76 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 
 // Delete label by label ID
 apiRouteAdminOrganization.delete("/delete-label", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "label.delete",
-		description: "Delete label requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageLabels");
+
+	const { org_id: orgId, wsClientId, id } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"label.delete.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "content.manageLabels"),
+		{ description: "Checking label delete permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "label.delete",
-			description: "Unauthorized to delete labels",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to delete labels",
-			},
+		await recordWideError({
+			name: "label.delete.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to delete labels",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ success: false, error: "You don’t have permission to delete labels." }, 401);
+		return c.json({ success: false, error: "You don't have permission to delete labels." }, 401);
 	}
 
-	const [removed] = await db
-		.delete(schema.label)
-		.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, org_id), eq(schema.label.id, id)))
-		.returning();
+	const removed = await traceAsync(
+		"label.delete.remove",
+		async () => {
+			const [label] = await db
+				.delete(schema.label)
+				.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, orgId)))
+				.returning();
+			return label;
+		},
+		{ description: "Deleting label", data: { orgId, labelId: id } }
+	);
 
 	if (!removed) {
-		await recordWideEvent({
-			name: "label.delete",
-			description: "Database error deleting label",
-			data: {
-				type: "DatabaseError",
-				code: "LabelDeletionFailed",
-				message: "Failed to remove label",
-			},
+		await recordWideError({
+			name: "label.delete.remove_failed",
+			error: new Error("Failed to remove label"),
+			code: "LABEL_DELETION_FAILED",
+			message: "Failed to remove label",
+			contextData: { orgId, labelId: id },
 		});
 		return c.json({ success: false, error: "Failed to remove label." }, 500);
 	}
 
-	const labels = await getLabels(org_id);
-	const found = findClientByWsId(wsClientId);
-	const data = {
-		type: "UPDATE_LABELS" as WSBaseMessage["type"],
-		data: labels,
-	};
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
+	const labels = await traceAsync("label.delete.fetch_all", () => getLabels(orgId), {
+		description: "Fetching all labels",
+		data: { orgId },
 	});
 
-	await recordWideEvent({
-		name: "label.delete",
-		description: "Label deleted successfully",
-		data: {
-			organizationId: org_id,
-			labelId: removed.id,
-			deletedByUserId: session?.userId || "",
+	await traceAsync(
+		"label.delete.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				data: labels,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting label update" }
+	);
 
 	return c.json({
 		success: true,
@@ -638,82 +670,85 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 // Category management
 // Create category with name, color, and icon
 apiRouteAdminOrganization.post("/create-category", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "category.create",
-		description: "Create category requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, name, color, icon } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageCategories");
+
+	const { org_id: orgId, wsClientId, name, color, icon } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"category.create.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "content.manageCategories"),
+		{ description: "Checking category create permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "category.create",
-			description: "Unauthorized to create categories",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to create categories",
-			},
+		await recordWideError({
+			name: "category.create.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to create categories",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to create categories.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to create categories." }, 401);
 	}
 
-	const [created] = await db
-		.insert(schema.category)
-		.values({
-			organizationId: org_id,
-			name,
-			color: color ?? "hsla(0, 0%, 0%, 1)",
-			icon,
-		})
-		.returning();
+	const created = await traceAsync(
+		"category.create.insert",
+		async () => {
+			const [category] = await db
+				.insert(schema.category)
+				.values({
+					organizationId: orgId,
+					name,
+					color: color ?? "hsla(0, 0%, 0%, 1)",
+					icon,
+				})
+				.returning();
+			return category;
+		},
+		{ description: "Creating category", data: { orgId, name, color, icon } }
+	);
 
 	if (!created) {
-		await recordWideEvent({
-			name: "category.create",
-			description: "Database error creating category",
-			data: {
-				type: "DatabaseError",
-				code: "CategoryCreationFailed",
-				message: "Failed to create category",
-			},
+		await recordWideError({
+			name: "category.create.insert_failed",
+			error: new Error("Failed to create category"),
+			code: "CATEGORY_CREATION_FAILED",
+			message: "Failed to create category",
+			contextData: { orgId, name },
 		});
 		return c.json({ success: false, error: "Failed to create category." }, 500);
 	}
 
-	const categories = await db.query.category.findMany({
-		where: (category) => eq(category.organizationId, org_id),
-	});
-	const found = findClientByWsId(wsClientId);
-	const data = {
-		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
-		data: categories,
-	};
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
-	});
+	const categories = await traceAsync(
+		"category.create.fetch_all",
+		() =>
+			db.query.category.findMany({
+				where: (category) => eq(category.organizationId, orgId),
+			}),
+		{ description: "Fetching all categories", data: { orgId } }
+	);
 
-	await recordWideEvent({
-		name: "category.create",
-		description: "Category created successfully",
-		data: {
-			organizationId: org_id,
-			categoryId: created.id,
-			createdByUserId: session?.userId || "",
+	await traceAsync(
+		"category.create.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				data: categories,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting category update" }
+	);
 
 	return c.json({
 		success: true,
@@ -723,82 +758,85 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 
 // Edit category name, color, and icon
 apiRouteAdminOrganization.patch("/edit-category", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "category.edit",
-		description: "Edit category requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, id, name, color, icon } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageCategories");
+
+	const { org_id: orgId, wsClientId, id, name, color, icon } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"category.edit.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "content.manageCategories"),
+		{ description: "Checking category edit permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "category.edit",
-			description: "Unauthorized to edit categories",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to edit categories",
-			},
+		await recordWideError({
+			name: "category.edit.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to edit categories",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to edit categories.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to edit categories." }, 401);
 	}
 
-	const [edit] = await db
-		.update(schema.category)
-		.set({
-			name,
-			color: color ?? "hsla(0, 0%, 0%, 1)",
-			icon,
-		})
-		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id)))
-		.returning();
+	const edited = await traceAsync(
+		"category.edit.update",
+		async () => {
+			const [category] = await db
+				.update(schema.category)
+				.set({
+					name,
+					color: color ?? "hsla(0, 0%, 0%, 1)",
+					icon,
+				})
+				.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, orgId)))
+				.returning();
+			return category;
+		},
+		{ description: "Updating category", data: { orgId, categoryId: id, name, color, icon } }
+	);
 
-	if (!edit) {
-		await recordWideEvent({
-			name: "category.edit",
-			description: "Database error editing category",
-			data: {
-				type: "DatabaseError",
-				code: "CategoryEditFailed",
-				message: "Failed to edit category",
-			},
+	if (!edited) {
+		await recordWideError({
+			name: "category.edit.update_failed",
+			error: new Error("Failed to edit category"),
+			code: "CATEGORY_EDIT_FAILED",
+			message: "Failed to edit category",
+			contextData: { orgId, categoryId: id },
 		});
 		return c.json({ success: false, error: "Failed to edit category." }, 500);
 	}
 
-	const categories = await db.query.category.findMany({
-		where: (category) => eq(category.organizationId, org_id),
-	});
-	const found = findClientByWsId(wsClientId);
-	const data = {
-		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
-		data: categories,
-	};
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
-	});
+	const categories = await traceAsync(
+		"category.edit.fetch_all",
+		() =>
+			db.query.category.findMany({
+				where: (category) => eq(category.organizationId, orgId),
+			}),
+		{ description: "Fetching all categories", data: { orgId } }
+	);
 
-	await recordWideEvent({
-		name: "category.edit",
-		description: "Category edited successfully",
-		data: {
-			organizationId: org_id,
-			categoryId: edit.id,
-			editedByUserId: session?.userId || "",
+	await traceAsync(
+		"category.edit.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				data: categories,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting category update" }
+	);
 
 	return c.json({
 		success: true,
@@ -808,77 +846,80 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 
 // Delete category by category ID
 apiRouteAdminOrganization.delete("/delete-category", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "category.delete",
-		description: "Delete category requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "content.manageCategories");
+
+	const { org_id: orgId, wsClientId, id } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"category.delete.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "content.manageCategories"),
+		{ description: "Checking category delete permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "category.delete",
-			description: "Unauthorized to delete categories",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to delete categories",
-			},
+		await recordWideError({
+			name: "category.delete.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to delete categories",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to delete categories.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to delete categories." }, 401);
 	}
 
-	const [removed] = await db
-		.delete(schema.category)
-		.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, org_id), eq(schema.category.id, id)))
-		.returning();
+	const removed = await traceAsync(
+		"category.delete.remove",
+		async () => {
+			const [category] = await db
+				.delete(schema.category)
+				.where(and(eq(schema.category.id, id), eq(schema.category.organizationId, orgId)))
+				.returning();
+			return category;
+		},
+		{ description: "Deleting category", data: { orgId, categoryId: id } }
+	);
 
 	if (!removed) {
-		await recordWideEvent({
-			name: "category.delete",
-			description: "Database error deleting category",
-			data: {
-				type: "DatabaseError",
-				code: "CategoryDeletionFailed",
-				message: "Failed to remove category",
-			},
+		await recordWideError({
+			name: "category.delete.remove_failed",
+			error: new Error("Failed to remove category"),
+			code: "CATEGORY_DELETION_FAILED",
+			message: "Failed to remove category",
+			contextData: { orgId, categoryId: id },
 		});
 		return c.json({ success: false, error: "Failed to remove category." }, 500);
 	}
 
-	const categories = await db.query.category.findMany({
-		where: (category) => eq(category.organizationId, org_id),
-	});
-	const found = findClientByWsId(wsClientId);
-	const data = {
-		type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
-		data: categories,
-	};
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
-	});
+	const categories = await traceAsync(
+		"category.delete.fetch_all",
+		() =>
+			db.query.category.findMany({
+				where: (category) => eq(category.organizationId, orgId),
+			}),
+		{ description: "Fetching all categories", data: { orgId } }
+	);
 
-	await recordWideEvent({
-		name: "category.delete",
-		description: "Category deleted successfully",
-		data: {
-			organizationId: org_id,
-			categoryId: removed.id,
-			deletedByUserId: session?.userId || "",
+	await traceAsync(
+		"category.delete.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				data: categories,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting category update" }
+	);
 
 	return c.json({
 		success: true,
@@ -889,85 +930,88 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 // Saved View management
 // Create saved view with name and filter params
 apiRouteAdminOrganization.post("/create-view", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "savedView.create",
-		description: "Create saved view requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageMembers");
+
+	const { org_id: orgId, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"savedView.create.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
+		{ description: "Checking view create permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "savedView.create",
-			description: "Unauthorized to create saved views",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to create saved views",
-			},
+		await recordWideError({
+			name: "savedView.create.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to create saved views",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to create saved views.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to create saved views." }, 401);
 	}
 
-	const [view] = await db
-		.insert(schema.savedView)
-		.values({
-			organizationId: org_id,
-			createdById: session?.userId,
-			name,
-			logo,
-			slug,
-			filterParams: value,
-			viewConfig: viewConfig,
-		})
-		.returning();
+	const view = await traceAsync(
+		"savedView.create.insert",
+		async () => {
+			const [created] = await db
+				.insert(schema.savedView)
+				.values({
+					organizationId: orgId,
+					createdById: session?.userId,
+					name,
+					logo,
+					slug,
+					filterParams: value,
+					viewConfig: viewConfig,
+				})
+				.returning();
+			return created;
+		},
+		{ description: "Creating saved view", data: { orgId, name, slug } }
+	);
 
 	if (!view) {
-		await recordWideEvent({
-			name: "savedView.create",
-			description: "Database error creating saved view",
-			data: {
-				type: "DatabaseError",
-				code: "SavedViewCreationFailed",
-				message: "Failed to create saved view",
-			},
+		await recordWideError({
+			name: "savedView.create.insert_failed",
+			error: new Error("Failed to create saved view"),
+			code: "SAVED_VIEW_CREATION_FAILED",
+			message: "Failed to create saved view",
+			contextData: { orgId, name },
 		});
 		return c.json({ success: false, error: "Failed to create view." }, 500);
 	}
 
-	const views = await db.query.savedView.findMany({
-		where: (view) => eq(view.organizationId, org_id),
-	});
-	const data = {
-		type: "UPDATE_VIEWS" as WSBaseMessage["type"],
-		data: views,
-	};
-	const found = findClientByWsId(wsClientId);
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
-	});
+	const views = await traceAsync(
+		"savedView.create.fetch_all",
+		() =>
+			db.query.savedView.findMany({
+				where: (view) => eq(view.organizationId, orgId),
+			}),
+		{ description: "Fetching all saved views", data: { orgId } }
+	);
 
-	await recordWideEvent({
-		name: "savedView.create",
-		description: "Saved view created successfully",
-		data: {
-			organizationId: org_id,
-			savedViewId: view.id,
-			createdByUserId: session?.userId || "",
+	await traceAsync(
+		"savedView.create.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				data: views,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting view update" }
+	);
 
 	return c.json({
 		success: true,
@@ -977,85 +1021,88 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 
 // Update saved view
 apiRouteAdminOrganization.patch("/update-view", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "savedView.update",
-		description: "Update saved view requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageMembers");
+
+	const { org_id: orgId, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"savedView.update.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
+		{ description: "Checking view update permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "savedView.update",
-			description: "Unauthorized to update saved views",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to update saved views",
-			},
+		await recordWideError({
+			name: "savedView.update.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to update saved views",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to update saved views.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to update saved views." }, 401);
 	}
 
-	const [view] = await db
-		.update(schema.savedView)
-		.set({
-			name,
-			slug,
-			logo,
-			filterParams: value,
-			viewConfig: viewConfig,
-			updatedAt: new Date(),
-		})
-		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
-		.returning();
+	const view = await traceAsync(
+		"savedView.update.update",
+		async () => {
+			const [updated] = await db
+				.update(schema.savedView)
+				.set({
+					name,
+					slug,
+					logo,
+					filterParams: value,
+					viewConfig: viewConfig,
+					updatedAt: new Date(),
+				})
+				.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, orgId)))
+				.returning();
+			return updated;
+		},
+		{ description: "Updating saved view", data: { orgId, viewId: id, name, slug } }
+	);
 
 	if (!view) {
-		await recordWideEvent({
-			name: "savedView.update",
-			description: "Database error updating saved view",
-			data: {
-				type: "DatabaseError",
-				code: "SavedViewUpdateFailed",
-				message: "Failed to update saved view",
-			},
+		await recordWideError({
+			name: "savedView.update.update_failed",
+			error: new Error("Failed to update saved view"),
+			code: "SAVED_VIEW_UPDATE_FAILED",
+			message: "Failed to update saved view",
+			contextData: { orgId, viewId: id },
 		});
 		return c.json({ success: false, error: "Failed to update view." }, 500);
 	}
 
-	const views = await db.query.savedView.findMany({
-		where: (view) => eq(view.organizationId, org_id),
-	});
-	const data = {
-		type: "UPDATE_VIEWS" as WSBaseMessage["type"],
-		data: views,
-	};
-	const found = findClientByWsId(wsClientId);
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
-	});
+	const views = await traceAsync(
+		"savedView.update.fetch_all",
+		() =>
+			db.query.savedView.findMany({
+				where: (view) => eq(view.organizationId, orgId),
+			}),
+		{ description: "Fetching all saved views", data: { orgId } }
+	);
 
-	await recordWideEvent({
-		name: "savedView.update",
-		description: "Saved view updated successfully",
-		data: {
-			organizationId: org_id,
-			savedViewId: view.id,
-			updatedByUserId: session?.userId || "",
+	await traceAsync(
+		"savedView.update.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				data: views,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting view update" }
+	);
 
 	return c.json({
 		success: true,
@@ -1065,77 +1112,80 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 
 // Delete saved view
 apiRouteAdminOrganization.delete("/delete-view", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "savedView.delete",
-		description: "Delete saved view requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, wsClientId, id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageMembers");
+
+	const { org_id: orgId, wsClientId, id } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"savedView.delete.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
+		{ description: "Checking view delete permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "savedView.delete",
-			description: "Unauthorized to delete saved views",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to delete saved views",
-			},
+		await recordWideError({
+			name: "savedView.delete.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to delete saved views",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to delete saved views.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to delete saved views." }, 401);
 	}
 
-	const [removed] = await db
-		.delete(schema.savedView)
-		.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, org_id)))
-		.returning();
+	const removed = await traceAsync(
+		"savedView.delete.remove",
+		async () => {
+			const [view] = await db
+				.delete(schema.savedView)
+				.where(and(eq(schema.savedView.id, id), eq(schema.savedView.organizationId, orgId)))
+				.returning();
+			return view;
+		},
+		{ description: "Deleting saved view", data: { orgId, viewId: id } }
+	);
 
 	if (!removed) {
-		await recordWideEvent({
-			name: "savedView.delete",
-			description: "Database error deleting saved view",
-			data: {
-				type: "DatabaseError",
-				code: "SavedViewDeletionFailed",
-				message: "Failed to remove saved view",
-			},
+		await recordWideError({
+			name: "savedView.delete.remove_failed",
+			error: new Error("Failed to remove saved view"),
+			code: "SAVED_VIEW_DELETION_FAILED",
+			message: "Failed to remove saved view",
+			contextData: { orgId, viewId: id },
 		});
 		return c.json({ success: false, error: "Failed to remove view." }, 500);
 	}
 
-	const views = await db.query.savedView.findMany({
-		where: (view) => eq(view.organizationId, org_id),
-	});
-	const data = {
-		type: "UPDATE_VIEWS" as WSBaseMessage["type"],
-		data: views,
-	};
-	const found = findClientByWsId(wsClientId);
-	broadcast(org_id, "admin", data, found?.socket);
-	broadcastPublic(org_id, { ...data, data: data });
-	const members = await getOrganizationMembers(org_id);
-	members.forEach((member) => {
-		broadcastByUserId(member.userId, wsClientId, org_id, data);
-	});
+	const views = await traceAsync(
+		"savedView.delete.fetch_all",
+		() =>
+			db.query.savedView.findMany({
+				where: (view) => eq(view.organizationId, orgId),
+			}),
+		{ description: "Fetching all saved views", data: { orgId } }
+	);
 
-	await recordWideEvent({
-		name: "savedView.delete",
-		description: "Saved view deleted successfully",
-		data: {
-			organizationId: org_id,
-			savedViewId: removed.id,
-			deletedByUserId: session?.userId || "",
+	await traceAsync(
+		"savedView.delete.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				data: views,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
 		},
-	});
+		{ description: "Broadcasting view update" }
+	);
 
 	return c.json({
 		success: true,
@@ -1144,76 +1194,81 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 });
 
 apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "github.syncRepo",
-		description: "Sync GitHub repository requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, repo_id, repo_name, installation_id, category_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.administrator");
+
+	const {
+		org_id: orgId,
+		repo_id: repoId,
+		repo_name: repoName,
+		installation_id: installationId,
+		category_id: categoryId,
+	} = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"github.syncRepo.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
+		{ description: "Checking repo sync permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "github.syncRepo",
-			description: "Unauthorized to sync GitHub repositories",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to sync GitHub repositories",
-			},
+		await recordWideError({
+			name: "github.syncRepo.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to sync GitHub repositories",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to sync repositories.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to sync repositories." }, 401);
 	}
 
-	const found = await db.query.githubRepository.findFirst({
-		where: and(
-			eq(schema.githubRepository.installationId, installation_id),
-			eq(schema.githubRepository.repoId, repo_id),
-			eq(schema.githubRepository.organizationId, org_id),
-			eq(schema.githubRepository.categoryId, category_id)
-		),
-	});
+	const existing = await traceAsync(
+		"github.syncRepo.check_existing",
+		() =>
+			db.query.githubRepository.findFirst({
+				where: and(
+					eq(schema.githubRepository.installationId, installationId),
+					eq(schema.githubRepository.repoId, repoId),
+					eq(schema.githubRepository.organizationId, orgId),
+					eq(schema.githubRepository.categoryId, categoryId)
+				),
+			}),
+		{ description: "Checking for existing sync", data: { orgId, repoId, installationId } }
+	);
 
-	if (found) {
-		await recordWideEvent({
-			name: "github.syncRepo",
-			description: "Repository already synced with this organization",
-			data: {
-				type: "ValidationError",
-				code: "RepoAlreadySynced",
-				message: "Repository is already synced with this organization",
-			},
+	if (existing) {
+		await recordWideError({
+			name: "github.syncRepo.already_synced",
+			error: new Error("Repository already synced"),
+			code: "REPO_ALREADY_SYNCED",
+			message: "Repository is already synced with this organization",
+			contextData: { orgId, repoId, installationId },
 		});
 		return c.json({ success: false, error: "Repository already synced." }, 400);
 	}
 
-	const result = await db.insert(schema.githubRepository).values({
-		id: crypto.randomUUID(),
-		installationId: installation_id,
-		repoId: repo_id,
-		repoName: repo_name,
-		organizationId: org_id,
-		categoryId: category_id,
-		userId: session?.userId || "",
-	});
-
-	await recordWideEvent({
-		name: "github.syncRepo",
-		description: "GitHub repository synced successfully",
-		data: {
-			organizationId: org_id,
-			repoId: repo_id,
-			syncedByUserId: session?.userId || "",
-		},
-	});
+	const result = await traceAsync(
+		"github.syncRepo.insert",
+		() =>
+			db.insert(schema.githubRepository).values({
+				id: crypto.randomUUID(),
+				installationId: installationId,
+				repoId: repoId,
+				repoName: repoName,
+				organizationId: orgId,
+				categoryId: categoryId,
+				userId: session?.userId || "",
+			}),
+		{
+			description: "Syncing GitHub repository",
+			data: { orgId, repoId, repoName, installationId },
+			onSuccess: () => ({
+				description: "GitHub repository synced successfully",
+				data: { orgId, repoId, userId: session?.userId },
+			}),
+		}
+	);
 
 	return c.json({
 		success: true,
@@ -1224,92 +1279,91 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 // team member routes
 
 apiRouteAdminOrganization.post("/member", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "member.invite",
-		description: "Invite members requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, emails }: { org_id: string; emails: string[] } = await c.req.json();
 
-	// --- Permissions ---
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.administrator");
+	const { org_id: orgId, emails }: { org_id: string; emails: string[] } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"member.invite.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
+		{ description: "Checking invite permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "member.invite",
-			description: "Unauthorized to invite members",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to invite members",
-			},
+		await recordWideError({
+			name: "member.invite.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to invite members",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ success: false, error: "You don’t have permission to invite members." }, 401);
+		return c.json({ success: false, error: "You don't have permission to invite members." }, 401);
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <any>
-	const invites: any[] = [];
-	const failedEmails: string[] = [];
+	const { invites, failedEmails } = await traceAsync(
+		"member.invite.process",
+		async () => {
+			// biome-ignore lint/suspicious/noExplicitAny: <any>
+			const invites: any[] = [];
+			const failedEmails: string[] = [];
 
-	for (const email of emails) {
-		try {
-			// Find existing user if any
-			const user = await db.query.user.findFirst({
-				where: (usr) => eq(usr.email, email),
-			});
+			for (const email of emails) {
+				try {
+					const user = await db.query.user.findFirst({
+						where: (usr) => eq(usr.email, email),
+					});
 
-			// Already exists as member?
-			const existingMember = user
-				? await db.query.member.findFirst({
-						where: and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user.id)),
-					})
-				: null;
+					const existingMember = user
+						? await db.query.member.findFirst({
+								where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
+							})
+						: null;
 
-			if (existingMember) continue;
+					if (existingMember) continue;
 
-			// Already invited?
-			const existingInvite = await db.query.invite.findFirst({
-				where: and(eq(schema.invite.organizationId, org_id), eq(schema.invite.email, email)),
-			});
+					const existingInvite = await db.query.invite.findFirst({
+						where: and(eq(schema.invite.organizationId, orgId), eq(schema.invite.email, email)),
+					});
 
-			if (existingInvite) continue;
+					if (existingInvite) continue;
 
-			// Generate secure invite code
-			const inviteCode = randomBytes(12).toString("hex");
+					const inviteCode = randomBytes(12).toString("hex");
 
-			const [newInvite] = await db
-				.insert(schema.invite)
-				.values({
-					id: randomBytes(8).toString("hex"),
-					organizationId: org_id,
-					email,
-					userId: user?.id ?? null,
-					invitedById: session?.userId || "",
-					status: "pending",
-					role: "user",
-					inviteCode,
-					expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
-				})
-				.returning();
+					const [newInvite] = await db
+						.insert(schema.invite)
+						.values({
+							id: randomBytes(8).toString("hex"),
+							organizationId: orgId,
+							email,
+							userId: user?.id ?? null,
+							invitedById: session?.userId || "",
+							status: "pending",
+							role: "user",
+							inviteCode,
+							expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
+						})
+						.returning();
 
-			invites.push(newInvite);
-		} catch (err) {
-			console.error("Failed to invite email:", email, err);
-			failedEmails.push(email);
-		}
-	}
+					invites.push(newInvite);
+				} catch (err) {
+					console.error("Failed to invite email:", email, err);
+					failedEmails.push(email);
+				}
+			}
 
-	await recordWideEvent({
-		name: "member.invite",
-		description: "Member invites processed",
-		data: {
-			organizationId: org_id,
-			invitedByUserId: session?.userId || "",
-			numberOfInvites: invites.length,
+			return { invites, failedEmails };
 		},
-	});
+		{
+			description: "Processing member invites",
+			data: { orgId, emailCount: emails.length },
+			onSuccess: (result) => ({
+				description: "Member invites processed",
+				data: { inviteCount: result.invites.length, failedCount: result.failedEmails.length },
+			}),
+		}
+	);
 
 	return c.json({
 		success: true,
@@ -1319,59 +1373,62 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 });
 
 apiRouteAdminOrganization.delete("/member", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "member.remove",
-		description: "Remove member requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, user_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.administrator");
+
+	const { org_id: orgId, user_id: userId } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"member.remove.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
+		{ description: "Checking member remove permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "member.remove",
-			description: "Unauthorized to remove members",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to remove members",
-			},
+		await recordWideError({
+			name: "member.remove.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to remove members",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ success: false, error: "You don’t have permission to remove members." }, 401);
+		return c.json({ success: false, error: "You don't have permission to remove members." }, 401);
 	}
-	const [removed] = await db
-		.delete(schema.member)
-		.where(and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, user_id)))
-		.returning();
+
+	const removed = await traceAsync(
+		"member.remove.delete",
+		async () => {
+			const [member] = await db
+				.delete(schema.member)
+				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
+				.returning();
+			return member;
+		},
+		{ description: "Removing member", data: { orgId, userId } }
+	);
+
 	if (!removed) {
-		await recordWideEvent({
-			name: "member.remove",
-			description: "Database error removing member",
-			data: {
-				type: "DatabaseError",
-				code: "MemberRemovalFailed",
-				message: "Failed to remove member",
-			},
+		await recordWideError({
+			name: "member.remove.delete_failed",
+			error: new Error("Failed to remove member"),
+			code: "MEMBER_REMOVAL_FAILED",
+			message: "Failed to remove member",
+			contextData: { orgId, userId },
 		});
 		return c.json({ success: false, error: "Failed to remove member." }, 500);
 	}
 
-	broadcastByUserId(user_id, "", org_id, {
-		type: "MEMBER_ACTIONS",
-		data: { orgId: org_id, userId: user_id, action: "REMOVED" },
-	});
-
-	await recordWideEvent({
-		name: "member.remove",
-		description: "Member removed successfully",
-		data: {
-			organizationId: org_id,
-			removedUserId: user_id,
-			removedByUserId: session?.userId || "",
+	await traceAsync(
+		"member.remove.broadcast",
+		async () => {
+			broadcastByUserId(userId, "", orgId, {
+				type: "MEMBER_ACTIONS",
+				data: { orgId, userId, action: "REMOVED" },
+			});
 		},
-	});
+		{ description: "Broadcasting member removal" }
+	);
 
 	return c.json({
 		success: true,
@@ -1380,63 +1437,74 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 
 // Get GitHub connection details
 apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "github.connections.fetch",
-		description: "Fetch GitHub connections requested",
-		data: {},
-	});
-
-	const orgId = c.req.param("orgId");
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "admin.administrator");
+	const orgId = c.req.param("orgId");
+
+	const isAuthorized = await traceAsync(
+		"github.connections.fetch.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
+		{ description: "Checking connections fetch permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "github.connections.fetch",
-			description: "Unauthorized to fetch GitHub connections",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to fetch GitHub connections",
-			},
+		await recordWideError({
+			name: "github.connections.fetch.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to fetch GitHub connections",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ error: "You don’t have permission to fetch connections." }, 401);
+		return c.json({ success: false, error: "You don't have permission to fetch connections." }, 401);
 	}
 
-	// Step 1: Fetch installation record
-	const githubInstall = await db.query.githubInstallation.findFirst({
-		where: eq(schema.githubInstallation.organizationId, orgId),
-		with: { user: true },
-	});
+	const githubInstall = await traceAsync(
+		"github.connections.fetch.installation",
+		() =>
+			db.query.githubInstallation.findFirst({
+				where: eq(schema.githubInstallation.organizationId, orgId),
+				with: { user: true },
+			}),
+		{ description: "Fetching GitHub installation", data: { orgId } }
+	);
 
-	let githubInfo = null;
-	if (githubInstall?.installationId) {
-		githubInfo = await getInstallationDetailsWithRepos(githubInstall);
-	}
-
-	// Step 3: Load synced repos
-	const githubConnectionsReq = await db.query.githubRepository.findMany({
-		where: and(
-			eq(schema.githubRepository.organizationId, orgId),
-			eq(schema.githubRepository.installationId, githubInfo?.installationId ?? -1)
-		),
-	});
-
-	const githubConnections = githubConnectionsReq.map((conn) => ({
-		...conn,
-		repoName: githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name || "Unknown repo",
-		avatarUrl: githubInfo?.account?.avatar_url,
-	}));
-
-	await recordWideEvent({
-		name: "github.connections.fetch",
-		description: "GitHub connections fetched successfully",
-		data: {
-			organizationId: orgId,
-			fetchedByUserId: session?.userId || "",
-			numberOfConnections: githubConnections.length,
+	const githubInfo = await traceAsync(
+		"github.connections.fetch.details",
+		async () => {
+			if (githubInstall?.installationId) {
+				return getInstallationDetailsWithRepos(githubInstall);
+			}
+			return null;
 		},
-	});
+		{ description: "Fetching installation details with repos", data: { orgId } }
+	);
+
+	const githubConnections = await traceAsync(
+		"github.connections.fetch.synced_repos",
+		async () => {
+			const repos = await db.query.githubRepository.findMany({
+				where: and(
+					eq(schema.githubRepository.organizationId, orgId),
+					eq(schema.githubRepository.installationId, githubInfo?.installationId ?? -1)
+				),
+			});
+
+			return repos.map((conn) => ({
+				...conn,
+				repoName: githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name || "Unknown repo",
+				avatarUrl: githubInfo?.account?.avatar_url,
+			}));
+		},
+		{
+			description: "Fetching synced repositories",
+			data: { orgId },
+			onSuccess: (result) => ({
+				description: "GitHub connections fetched successfully",
+				data: { connectionCount: result.length },
+			}),
+		}
+	);
 
 	return c.json({
 		success: true,
@@ -1449,30 +1517,29 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 
 // Teams
 apiRouteAdminOrganization.post("/team", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "team.create",
-		description: "Create team requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, name, description, permissions } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
+
+	const { org_id: orgId, name, description, permissions } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"team.create.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
+		{ description: "Checking team create permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "team.create",
-			description: "Unauthorized to create teams",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to create teams",
-			},
+		await recordWideError({
+			name: "team.create.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to create teams",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ success: false, error: "You don’t have permission to create teams." }, 401);
+		return c.json({ success: false, error: "You don't have permission to create teams." }, 401);
 	}
 
-	// Merge provided permissions with defaults
 	const teamPermissions: TeamPermissions = permissions
 		? {
 				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
@@ -1482,39 +1549,34 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 			}
 		: defaultTeamPermissions;
 
-	const [team] = await db
-		.insert(schema.team)
-		.values({
-			id: crypto.randomUUID(),
-			organizationId: org_id,
-			name,
-			description,
-			permissions: teamPermissions,
-		})
-		.returning();
+	const team = await traceAsync(
+		"team.create.insert",
+		async () => {
+			const [created] = await db
+				.insert(schema.team)
+				.values({
+					id: crypto.randomUUID(),
+					organizationId: orgId,
+					name,
+					description,
+					permissions: teamPermissions,
+				})
+				.returning();
+			return created;
+		},
+		{ description: "Creating team", data: { orgId, name } }
+	);
 
 	if (!team) {
-		await recordWideEvent({
-			name: "team.create",
-			description: "Database error creating team",
-			data: {
-				type: "DatabaseError",
-				code: "TeamCreationFailed",
-				message: "Failed to create team",
-			},
+		await recordWideError({
+			name: "team.create.insert_failed",
+			error: new Error("Failed to create team"),
+			code: "TEAM_CREATION_FAILED",
+			message: "Failed to create team",
+			contextData: { orgId, name },
 		});
 		return c.json({ success: false, error: "Failed to create team." }, 500);
 	}
-
-	await recordWideEvent({
-		name: "team.create",
-		description: "Team created successfully",
-		data: {
-			organizationId: org_id,
-			teamId: team.id,
-			createdByUserId: session?.userId || "",
-		},
-	});
 
 	return c.json({
 		success: true,
@@ -1523,30 +1585,29 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 });
 
 apiRouteAdminOrganization.patch("/team", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "team.edit",
-		description: "Edit team requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, team_id, name, description, permissions } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
+
+	const { org_id: orgId, team_id: teamId, name, description, permissions } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"team.edit.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
+		{ description: "Checking team edit permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "team.edit",
-			description: "Unauthorized to edit teams",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to edit teams",
-			},
+		await recordWideError({
+			name: "team.edit.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to edit teams",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ success: false, error: "You don’t have permission to edit teams." }, 401);
+		return c.json({ success: false, error: "You don't have permission to edit teams." }, 401);
 	}
 
-	// Merge provided permissions with defaults
 	const teamPermissions: TeamPermissions = permissions
 		? {
 				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
@@ -1556,39 +1617,34 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 			}
 		: defaultTeamPermissions;
 
-	const [team] = await db
-		.update(schema.team)
-		.set({
-			name,
-			description,
-			permissions: teamPermissions,
-			updatedAt: new Date(),
-		})
-		.where(and(eq(schema.team.id, team_id), eq(schema.team.organizationId, org_id)))
-		.returning();
+	const team = await traceAsync(
+		"team.edit.update",
+		async () => {
+			const [updated] = await db
+				.update(schema.team)
+				.set({
+					name,
+					description,
+					permissions: teamPermissions,
+					updatedAt: new Date(),
+				})
+				.where(and(eq(schema.team.id, teamId), eq(schema.team.organizationId, orgId)))
+				.returning();
+			return updated;
+		},
+		{ description: "Updating team", data: { orgId, teamId, name } }
+	);
 
 	if (!team) {
-		await recordWideEvent({
-			name: "team.edit",
-			description: "Database error editing team",
-			data: {
-				type: "DatabaseError",
-				code: "TeamEditFailed",
-				message: "Failed to edit team",
-			},
+		await recordWideError({
+			name: "team.edit.update_failed",
+			error: new Error("Failed to edit team"),
+			code: "TEAM_EDIT_FAILED",
+			message: "Failed to edit team",
+			contextData: { orgId, teamId },
 		});
 		return c.json({ success: false, error: "Failed to edit team." }, 500);
 	}
-
-	await recordWideEvent({
-		name: "team.edit",
-		description: "Team edited successfully",
-		data: {
-			organizationId: org_id,
-			teamId: team.id,
-			editedByUserId: session?.userId || "",
-		},
-	});
 
 	return c.json({
 		success: true,
@@ -1597,56 +1653,51 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 });
 
 apiRouteAdminOrganization.delete("/team", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "team.delete",
-		description: "Remove team requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, team_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
+
+	const { org_id: orgId, team_id: teamId } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"team.delete.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
+		{ description: "Checking team delete permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "team.delete",
-			description: "Unauthorized to remove teams",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to remove teams",
-			},
+		await recordWideError({
+			name: "team.delete.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to remove teams",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ success: false, error: "You don’t have permission to remove teams." }, 401);
+		return c.json({ success: false, error: "You don't have permission to remove teams." }, 401);
 	}
 
-	const [removed] = await db
-		.delete(schema.team)
-		.where(and(eq(schema.team.id, team_id), eq(schema.team.organizationId, org_id)))
-		.returning();
+	const removed = await traceAsync(
+		"team.delete.remove",
+		async () => {
+			const [team] = await db
+				.delete(schema.team)
+				.where(and(eq(schema.team.id, teamId), eq(schema.team.organizationId, orgId)))
+				.returning();
+			return team;
+		},
+		{ description: "Deleting team", data: { orgId, teamId } }
+	);
 
 	if (!removed) {
-		await recordWideEvent({
-			name: "team.delete",
-			description: "Database error removing team",
-			data: {
-				type: "DatabaseError",
-				code: "TeamRemovalFailed",
-				message: "Failed to remove team",
-			},
+		await recordWideError({
+			name: "team.delete.remove_failed",
+			error: new Error("Failed to remove team"),
+			code: "TEAM_REMOVAL_FAILED",
+			message: "Failed to remove team",
+			contextData: { orgId, teamId },
 		});
 		return c.json({ success: false, error: "Failed to remove team." }, 500);
 	}
-
-	await recordWideEvent({
-		name: "team.delete",
-		description: "Team removed successfully",
-		data: {
-			organizationId: org_id,
-			teamId: removed.id,
-			removedByUserId: session?.userId || "",
-		},
-	});
 
 	return c.json({
 		success: true,
@@ -1655,67 +1706,55 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 });
 
 apiRouteAdminOrganization.post("/team-member", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "team.member.add",
-		description: "Add member to team requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, team_id, member_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
+
+	const { org_id: orgId, team_id: teamId, member_id: memberId } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"team.member.add.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
+		{ description: "Checking team member add permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "team.member.add",
-			description: "Unauthorized to add members to team",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to add members to teams",
-			},
+		await recordWideError({
+			name: "team.member.add.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to add members to teams",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to add members to teams.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to add members to teams." }, 401);
 	}
 
-	const [memberTeam] = await db
-		.insert(schema.memberTeam)
-		.values({
-			id: crypto.randomUUID(),
-			teamId: team_id,
-			memberId: member_id,
-		})
-		.returning();
+	const memberTeam = await traceAsync(
+		"team.member.add.insert",
+		async () => {
+			const [created] = await db
+				.insert(schema.memberTeam)
+				.values({
+					id: crypto.randomUUID(),
+					teamId: teamId,
+					memberId: memberId,
+				})
+				.returning();
+			return created;
+		},
+		{ description: "Adding member to team", data: { orgId, teamId, memberId } }
+	);
 
 	if (!memberTeam) {
-		await recordWideEvent({
-			name: "team.member.add",
-			description: "Database error adding member to team",
-			data: {
-				type: "DatabaseError",
-				code: "TeamMemberAdditionFailed",
-				message: "Failed to add member to team",
-			},
+		await recordWideError({
+			name: "team.member.add.insert_failed",
+			error: new Error("Failed to add member to team"),
+			code: "TEAM_MEMBER_ADDITION_FAILED",
+			message: "Failed to add member to team",
+			contextData: { orgId, teamId, memberId },
 		});
 		return c.json({ success: false, error: "Failed to add member to team." }, 500);
 	}
-
-	await recordWideEvent({
-		name: "team.member.add",
-		description: "Member added to team successfully",
-		data: {
-			organizationId: org_id,
-			teamId: team_id,
-			memberId: member_id,
-			addedByUserId: session?.userId || "",
-		},
-	});
 
 	return c.json({
 		success: true,
@@ -1724,63 +1763,51 @@ apiRouteAdminOrganization.post("/team-member", async (c) => {
 });
 
 apiRouteAdminOrganization.delete("/team-member", async (c) => {
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "team.member.remove",
-		description: "Remove member from team requested",
-		data: {},
-	});
-
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-	const { org_id, team_id, member_id } = await c.req.json();
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id, "admin.manageTeams");
+
+	const { org_id: orgId, team_id: teamId, member_id: memberId } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"team.member.remove.auth",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
+		{ description: "Checking team member remove permission", data: { orgId, userId: session?.userId } }
+	);
+
 	if (!isAuthorized) {
-		await recordWideEvent({
-			name: "team.member.remove",
-			description: "Unauthorized to remove members from teams",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User does not have permission to remove members from teams",
-			},
+		await recordWideError({
+			name: "team.member.remove.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to remove members from teams",
+			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json(
-			{
-				success: false,
-				error: "You don’t have permission to remove members from teams.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to remove members from teams." }, 401);
 	}
 
-	const [removed] = await db
-		.delete(schema.memberTeam)
-		.where(and(eq(schema.memberTeam.teamId, team_id), eq(schema.memberTeam.memberId, member_id)))
-		.returning();
+	const removed = await traceAsync(
+		"team.member.remove.delete",
+		async () => {
+			const [member] = await db
+				.delete(schema.memberTeam)
+				.where(and(eq(schema.memberTeam.teamId, teamId), eq(schema.memberTeam.memberId, memberId)))
+				.returning();
+			return member;
+		},
+		{ description: "Removing member from team", data: { orgId, teamId, memberId } }
+	);
 
 	if (!removed) {
-		await recordWideEvent({
-			name: "team.member.remove",
-			description: "Database error removing member from team",
-			data: {
-				type: "DatabaseError",
-				code: "TeamMemberRemovalFailed",
-				message: "Failed to remove member from team",
-			},
+		await recordWideError({
+			name: "team.member.remove.delete_failed",
+			error: new Error("Failed to remove member from team"),
+			code: "TEAM_MEMBER_REMOVAL_FAILED",
+			message: "Failed to remove member from team",
+			contextData: { orgId, teamId, memberId },
 		});
 		return c.json({ success: false, error: "Failed to remove member from team." }, 500);
 	}
-
-	await recordWideEvent({
-		name: "team.member.remove",
-		description: "Member removed from team successfully",
-		data: {
-			organizationId: org_id,
-			teamId: team_id,
-			memberId: member_id,
-			removedByUserId: session?.userId || "",
-		},
-	});
 
 	return c.json({
 		success: true,
@@ -1790,65 +1817,64 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 
 // Bootstrap default Administrators team for an existing organization
 apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "team.bootstrap",
-		description: "Bootstrap admin team requested",
-		data: {},
-	});
 
 	const session = c.get("session");
-	const { org_id } = await c.req.json();
+	const { org_id: orgId } = await c.req.json();
 
-	// Only the org creator or existing admin should be able to do this
-	// For now, just check if user is a member of the org
-	const membership = await db.query.member.findFirst({
-		where: and(eq(schema.member.organizationId, org_id), eq(schema.member.userId, session?.userId || "")),
-	});
+	const membership = await traceAsync(
+		"team.bootstrap.membership_check",
+		() =>
+			db.query.member.findFirst({
+				where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, session?.userId || "")),
+			}),
+		{ description: "Checking user membership", data: { orgId, userId: session?.userId } }
+	);
 
 	if (!membership) {
-		await recordWideEvent({
-			name: "team.bootstrap",
-			description: "Unauthorized to bootstrap admin team",
-			data: {
-				type: "AuthorizationError",
-				code: "Unauthorized",
-				message: "User is not a member of this organization",
-			},
+		await recordWideError({
+			name: "team.bootstrap.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User is not a member of this organization",
+			contextData: { orgId, userId: session?.userId },
 		});
 		return c.json({ success: false, error: "You must be a member of this organization." }, 401);
 	}
 
-	try {
-		const adminTeam = await bootstrapOrganizationAdminTeam(org_id);
-
-		await recordWideEvent({
-			name: "team.bootstrap",
+	const adminTeam = await traceAsync("team.bootstrap.create", () => bootstrapOrganizationAdminTeam(orgId), {
+		description: "Bootstrapping admin team",
+		data: { orgId, userId: session?.userId },
+		onSuccess: (team) => ({
 			description: "Admin team bootstrapped successfully",
-			data: {
-				organizationId: org_id,
-				teamId: adminTeam.id,
-				bootstrappedByUserId: session?.userId || "",
-			},
-		});
+			data: { teamId: team.id },
+		}),
+	});
 
-		return c.json({
-			success: true,
-			data: adminTeam,
-		});
-	} catch (err) {
-		console.error("Failed to bootstrap admin team:", err);
-		await recordWideEvent({
-			name: "team.bootstrap",
-			description: "Failed to bootstrap admin team",
-			data: {
-				type: "DatabaseError",
-				code: "BootstrapFailed",
-				message: "Failed to create admin team",
-			},
+	if (!adminTeam) {
+		await recordWideError({
+			name: "team.bootstrap.failed",
+			error: new Error("Bootstrap failed"),
+			code: "BOOTSTRAP_FAILED",
+			message: "Failed to create admin team",
+			contextData: { orgId },
 		});
 		return c.json({ success: false, error: "Failed to create admin team." }, 500);
 	}
+
+	await recordWideEvent({
+		name: "team.bootstrap.success",
+		description: "Admin team bootstrapped successfully",
+		data: {
+			organizationId: orgId,
+			teamId: adminTeam.id,
+			bootstrappedByUserId: session?.userId || "",
+		},
+	});
+
+	return c.json({ success: true, data: adminTeam });
 });
 
 // Task routes

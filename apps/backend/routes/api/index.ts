@@ -10,6 +10,7 @@ import { safeGetSession } from "@/getSession";
 import { checkMembershipRole } from "@/util";
 import { db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
+import { createTraceAsync } from "@/tracing/wideEvent";
 
 // Main API router
 export const apiRoute = new Hono<AppEnv>();
@@ -57,7 +58,6 @@ apiRoute.get(
 	})
 );
 apiRoute.use("*", async (c, next) => {
-	const recordWideEvent = c.get("recordWideEvent");
 	const method = c.req.method;
 	const path = c.req.path;
 	const exists = routeExists(method, path);
@@ -65,27 +65,31 @@ apiRoute.use("*", async (c, next) => {
 		return next();
 	}
 	// otherwise continue with session logic
-	const session = await safeGetSession(c.req.raw.headers);
+	// const session = await safeGetSession(c.req.raw.headers);
+	const traceAsync = createTraceAsync();
+	const session = await traceAsync("session", () => safeGetSession(c.req.raw.headers), {
+		description: "Fetching user session",
+		data: {},
+		onSuccess: (result) =>
+			result
+				? {
+						description: "Session verified and attached",
+						data: {
+							user_id: result.user.id,
+							user_name: result.user.name,
+							user_role: result.user.role,
+						},
+					}
+				: {
+						description: "No active session found",
+					},
+	});
 	if (!session) {
-		await recordWideEvent({
-			name: "session.missing",
-			description: "No active session found for this request",
-			data: {},
-		});
 		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
 		return next();
 	}
 	c.set("user", session.user);
 	c.set("session", session.session);
-	await recordWideEvent({
-		name: "session.retrieved",
-		description: "User session verified and attached",
-		data: {
-			user_id: session.user.id,
-			user_name: session.user.name,
-			user_role: session.user.role,
-		},
-	});
 	return next();
 });
 apiRoute.get("/github/org-check", async (c) => {
