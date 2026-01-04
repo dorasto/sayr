@@ -59,16 +59,17 @@ apiRoute.get(
 );
 apiRoute.use("*", async (c, next) => {
 	const recordWideEvent = c.get("recordWideEvent");
+	// If no route matched, skip
+	if (!c.finalized) {
+		return next();
+	}
 	const session = await safeGetSession(c.req.raw.headers);
 	if (!session) {
 		// record failed authentication event
 		await recordWideEvent({
 			name: "session.missing",
 			description: "No active session found for this request",
-			data: {
-				method: c.req.method,
-				path: c.req.path,
-			},
+			data: {},
 		});
 		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
 		return next();
