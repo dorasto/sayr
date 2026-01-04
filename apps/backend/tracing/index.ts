@@ -6,6 +6,10 @@ import { trace } from "@opentelemetry/api";
 let globalTracer: ReturnType<typeof trace.getTracer> | undefined;
 
 export async function initTracing() {
+	// Detect environment
+	const env = process.env.NODE_ENV || "development";
+	const isProd = env === "production";
+	const serviceName = `sayr-backend-${isProd ? "prod" : "dev"}`;
 	const sdk = new NodeSDK({
 		traceExporter: new OTLPTraceExporter({
 			url: `https://${process.env.AXIOM_BACKEND_OTEL_DOMAIN}/v1/traces`,
@@ -14,22 +18,24 @@ export async function initTracing() {
 				"X-Axiom-Dataset": process.env.AXIOM_BACKEND_OTEL_DATASET || "",
 			},
 		}),
-		serviceName: "sayr-backend",
+		// Name appears in Axiom/Grafana/Jaeger as the OTel Service
+		serviceName,
 	});
 
-	await sdk.start(); // makes provider global
+	await sdk.start(); // sets as global provider
 
 	process.on("SIGTERM", () => sdk.shutdown());
 	process.on("SIGINT", () => sdk.shutdown());
 
-	globalTracer = trace.getTracer("sayr-wide-event");
-	console.log("✅ OpenTelemetry SDK started");
+	globalTracer = trace.getTracer(serviceName);
+	console.log(`✅ OpenTelemetry SDK started (${serviceName})`);
 }
 
 // simple accessor
 export function getTracer() {
 	if (!globalTracer) {
-		globalTracer = trace.getTracer("sayr-wide-event");
+		// Fallback name if initTracing not called yet
+		globalTracer = trace.getTracer("sayr-backend-uninitialized");
 	}
 	return globalTracer;
 }

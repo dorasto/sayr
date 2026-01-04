@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { AppEnv } from "@/index";
+import { routeExists, type AppEnv } from "@/index";
 import { apiRouteAdmin } from "./admin";
 import { apiRouteFile } from "./file";
 import { apiRouteConsole } from "./console";
@@ -59,13 +59,15 @@ apiRoute.get(
 );
 apiRoute.use("*", async (c, next) => {
 	const recordWideEvent = c.get("recordWideEvent");
-	// If no route matched, skip
-	if (!c.finalized) {
+	const method = c.req.method;
+	const path = c.req.path;
+	const exists = routeExists(method, path);
+	if (!exists) {
 		return next();
 	}
+	// otherwise continue with session logic
 	const session = await safeGetSession(c.req.raw.headers);
 	if (!session) {
-		// record failed authentication event
 		await recordWideEvent({
 			name: "session.missing",
 			description: "No active session found for this request",
@@ -74,20 +76,17 @@ apiRoute.use("*", async (c, next) => {
 		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
 		return next();
 	}
-	// add user + session to context
 	c.set("user", session.user);
 	c.set("session", session.session);
-	// record successful session retrieval
 	await recordWideEvent({
 		name: "session.retrieved",
-		description: "User session verified and attached to context",
+		description: "User session verified and attached",
 		data: {
 			user_id: session.user.id,
 			user_name: session.user.name,
 			user_role: session.user.role,
 		},
 	});
-
 	return next();
 });
 apiRoute.get("/github/org-check", async (c) => {

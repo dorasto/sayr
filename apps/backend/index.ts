@@ -132,6 +132,25 @@ app.onError(async (err, c) => {
 		500,
 	);
 });
+export function routeExists(method: string, urlPath: string): boolean {
+	if (!app.routes) return false;
+
+	const m = method.toUpperCase();
+	const path = urlPath.replace(/\/+$/, "") || "/";
+
+	for (const r of app.routes) {
+		if (r.method !== m) continue;
+
+		// Normalise each registered route
+		const full = r.path;
+		// Replace parameters such as :id → [^/]+
+		const pattern = `^${full.replace(/:[^/]+/g, "[^/]+")}$`;
+		if (new RegExp(pattern).test(path)) {
+			return true;
+		}
+	}
+	return false;
+}
 // Delete invites whose expiresAt is older than 24 hours ago
 new CronJob(
 	"0 0 * * *",
