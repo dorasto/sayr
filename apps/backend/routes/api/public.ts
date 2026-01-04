@@ -7,8 +7,8 @@ import z from "zod";
 import type { AppEnv } from "@/index";
 import { describeOkNotFound, describePaginatedRoute } from "../../openapi/helpers";
 import { errorResponse, paginatedSuccessResponse, successResponse } from "../../responses";
-import { prosekitJSONToHTML } from "@/prosekit/html";
-import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
+// import { prosekitJSONToHTML } from "@/prosekit/html";
+// import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 
 const API_LIMITS = {
 	comments: 30,
@@ -307,8 +307,8 @@ apiPublicRoute.get(
 			});
 			const tasksNew = tasks.map((t) => ({
 				...t,
-				descriptionHtml: t.description && prosekitJSONToHTML(t.description),
-				descriptionMarkdown: t.description && prosekitJSONToMarkdown(t.description),
+				// descriptionHtml: t.description && prosekitJSONToHTML(t.description),
+				// descriptionMarkdown: t.description && prosekitJSONToMarkdown(t.description),
 			}));
 			await recordWideEvent({
 				name: "getTasks",
@@ -417,8 +417,8 @@ apiPublicRoute.get(
 		return c.json(
 			successResponse({
 				...task,
-				descriptionHtml: task.description && prosekitJSONToHTML(task.description),
-				descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
+				// descriptionHtml: task.description && prosekitJSONToHTML(task.description),
+				// descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
 			})
 		);
 	}
@@ -593,8 +593,8 @@ apiPublicRoute.get(
 			});
 			const commentsNew = comments.map((c) => ({
 				...c,
-				contentHtml: c.content && prosekitJSONToHTML(c.content),
-				contentMarkdown: c.content && prosekitJSONToMarkdown(c.content),
+				// contentHtml: c.content && prosekitJSONToHTML(c.content),
+				// contentMarkdown: c.content && prosekitJSONToMarkdown(c.content),
 			}));
 
 			return c.json(
