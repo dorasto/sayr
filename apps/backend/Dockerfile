@@ -70,4 +70,4 @@ ENV NODE_ENV="production"
 # Expose the port the app runs on
 EXPOSE 5468
 
-CMD ["bun", "run", "dist/index.js"]
+CMD ["sh", "-c", "NODE_ENV=$NODE_ENV bun run dist/index.js"]
