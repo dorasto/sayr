@@ -73,10 +73,11 @@ export async function handleSayrKeywordParse(
 				summaryLines.push(`🚧 Blocked by ${m.taskKey}`);
 				break;
 			case "ref":
-			case "sayr":
-				await handleLinkKeyword(ctx);
-				summaryLines.push(`🔗 Linked to ${m.taskKey}`);
+			case "sayr": {
+				const linkResult = await handleLinkKeyword(ctx);
+				summaryLines.push(linkResult);
 				break;
+			}
 			default:
 				summaryLines.push(`⚙️ Unknown keyword ${m.keyword}`);
 				break;
