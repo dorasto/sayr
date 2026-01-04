@@ -1,19 +1,38 @@
-import { JobGroups } from "@repo/queue";
-import { handleBlockKeyword, handleCloseKeyword, handleLinkKeyword, type KeywordContext } from "./keywordActions";
+import type { JobGroups } from "@repo/queue";
+import {
+	handleBlockKeyword,
+	handleCloseKeyword,
+	handleLinkKeyword,
+	type KeywordContext,
+} from "./keywordActions";
 import { extractSayrKeywords } from "./keywords";
 import { getInstallationToken } from "@repo/util/github/auth";
 import { Octokit } from "@octokit/rest";
 
-export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: "sayr_keyword_parse" }) {
-	const { text, eventType, number, owner, repoId, repo, merged, installationId, organizationId, categoryId } =
-		job.payload;
+export async function handleSayrKeywordParse(
+	job: JobGroups["github"] & { type: "sayr_keyword_parse" },
+) {
+	const {
+		text,
+		eventType,
+		number,
+		owner,
+		repoId,
+		repo,
+		merged,
+		installationId,
+		organizationId,
+		categoryId,
+	} = job.payload;
 
 	if (!organizationId || !categoryId) {
 		console.log(`⚠️ Missing org or category for ${repo}#${number} — skipping.`);
 		return;
 	}
 
-	console.log(`🔍 [${repo}#${number}] Checking ${eventType} for Sayr keywords...`);
+	console.log(
+		`🔍 [${repo}#${number}] Checking ${eventType} for Sayr keywords...`,
+	);
 
 	const matches = extractSayrKeywords(text);
 	if (!matches.length) {

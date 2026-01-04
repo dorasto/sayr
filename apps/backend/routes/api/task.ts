@@ -313,6 +313,128 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	return c.json({ success: true, data: taskWithData });
 });
 
+// --- GitHub Link Task ---
+apiRouteAdminProjectTask.post("/github-link", async (c) => {
+	const recordWideEvent = c.get("recordWideEvent");
+	await recordWideEvent({
+		name: "task.github_link",
+		description: "GitHub task link requested",
+		data: {},
+	});
+
+	const { org_id, task_id, repo_id, issue_number, issue_url } = await c.req.json();
+
+	const session = c.get("session");
+	const systemAccountCheck = session?.userId === process.env.SYSTEM_ACCOUNT_ID;
+
+	if (!systemAccountCheck) {
+		await recordWideEvent({
+			name: "task.github_link",
+			description: "Unauthorized to link GitHub issue",
+			data: {
+				type: "AuthorizationError",
+				code: "Unauthorized",
+				message: "User does not have permission to link tasks.",
+			},
+		});
+		return c.json(
+			{
+				success: false,
+				error: "You don’t have permission to link GitHub issues.",
+			},
+			401
+		);
+	}
+
+	// Confirm task exists and belongs to org
+	const existingTask = await db.query.task.findFirst({
+		where: (t) => and(eq(t.id, task_id), eq(t.organizationId, org_id)),
+	});
+	if (!existingTask) {
+		await recordWideEvent({
+			name: "task.github_link",
+			description: "Task not found in organization",
+			data: {
+				type: "NotFoundError",
+				code: "TaskNotFound",
+				message: "Task not found in organization",
+			},
+		});
+		return c.json({ success: false, error: "Task not found" }, 404);
+	}
+
+	// Confirm repo exists
+	const repo = await db.query.githubRepository.findFirst({
+		where: (r) => and(eq(r.organizationId, org_id), eq(r.repoId, repo_id)),
+	});
+	if (!repo) {
+		await recordWideEvent({
+			name: "task.github_link",
+			description: "Repository mapping not found",
+			data: {
+				type: "NotFoundError",
+				code: "RepositoryNotFound",
+				message: "Repository not found in organization",
+			},
+		});
+		return c.json({ success: false, error: "Repository not found" }, 404);
+	}
+
+	// Check for existing link
+	const existingLink = await db.query.githubIssue.findFirst({
+		where: (gi) => and(eq(gi.organizationId, org_id), eq(gi.taskId, task_id)),
+	});
+	if (existingLink) {
+		return c.json({
+			success: false,
+			error: `Task already linked to GitHub issue #${existingLink.issueNumber}`,
+		});
+	}
+
+	// Create the association
+	const [newLink] = await db
+		.insert(schema.githubIssue)
+		.values({
+			repositoryId: repo.id,
+			organizationId: org_id,
+			issueNumber: issue_number,
+			issueUrl: issue_url,
+			taskId: task_id,
+		})
+		.returning();
+
+	await recordWideEvent({
+		name: "task.github_link",
+		description: "GitHub issue linked successfully",
+		data: {
+			organizationId: org_id,
+			taskId: task_id,
+			issueNumber: issue_number,
+			issueUrl: issue_url,
+		},
+	});
+	const taskWithData = await getTaskById(org_id, task_id);
+	const data = {
+		type: "UPDATE_TASK" as WSBaseMessage["type"],
+		data: taskWithData,
+	};
+	broadcastToRoom(org_id, `tasks;task:${task_id}`, data, undefined, true);
+	broadcastPublic(org_id, { ...data });
+	const members = await getOrganizationMembers(org_id);
+	members.forEach((member) => {
+		const clients = findClientsByUserId(member.userId);
+		clients.forEach(
+			(c) =>
+				!(c.channel === `task:${task_id}` || c.channel === "tasks") && broadcastIndividual(c.socket, data, org_id)
+		);
+	});
+	// Return new link record
+	return c.json({
+		success: true,
+		data: newLink,
+	});
+});
+
 // Update task labels
 apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	const recordWideEvent = c.get("recordWideEvent");
