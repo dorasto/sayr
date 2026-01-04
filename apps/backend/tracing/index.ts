@@ -6,6 +6,7 @@ import { trace } from "@opentelemetry/api";
 let globalTracer: ReturnType<typeof trace.getTracer> | undefined;
 
 export async function initTracing() {
+	console.log("🚀 ~ initTracing ~ process.env:", process.env);
 	// Detect environment
 	const env = process.env.NODE_ENV || "development";
 	const isProd = env === "production";
