@@ -8,6 +8,7 @@ let globalTracer: ReturnType<typeof trace.getTracer> | undefined;
 export async function initTracing() {
 	// Detect environment
 	const env = process.env.NODE_ENV || "development";
+	console.log("🚀 ~ initTracing ~ process.env:", process.env);
 	const isProd = env === "production";
 	const serviceName = `sayr-backend-${isProd ? "prod" : "dev"}`;
 	const sdk = new NodeSDK({
