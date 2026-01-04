@@ -17,7 +17,6 @@ apiRoute.use("*", async (c, next) => {
 	c.header("X-API-Version", "1.0.0");
 	return next();
 });
-apiRoute.get("/health", (c) => c.text("OK"));
 apiRoute.get(
 	"/",
 	Scalar(() => {

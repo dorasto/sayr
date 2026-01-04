@@ -70,6 +70,7 @@ app.get("/ws-test", serveStatic({ path: "./public/ws.html" }));
 app.get("/file-test", serveStatic({ path: "./public/file-test.html" }));
 app.route("/ws", wsRoute);
 app.route("/api/webhook", webhookRoute);
+apiRoute.get("/api/health", (c) => c.text("OK"));
 app.use("*", rootSpanMiddleware());
 app.use("*", wideEventMiddleware());
 app.route("/api", apiRoute);

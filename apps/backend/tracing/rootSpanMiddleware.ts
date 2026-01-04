@@ -30,9 +30,18 @@ export function rootSpanMiddleware() {
 
 export function getClientIP(req: Request): string {
 	const cf = req.headers.get("cf-connecting-ip");
+	if (cf) return cf;
+
 	const trueClient = req.headers.get("true-client-ip");
-	const xRealIP = req.headers.get("x-real-ip");
+	if (trueClient) return trueClient;
+
+	// const xRealIP = req.headers.get("x-real-ip");
+	// if (xRealIP) return xRealIP;
+
 	const xForwardedFor = req.headers.get("x-forwarded-for");
+	if (xForwardedFor)
+		// Proxy chains: first IP is original client
+		return xForwardedFor.split(",")[0]?.trim() || "";
 
 	// Hono's req.raw is a Fetch Request; reaching the socket requires the adapter
 	// biome-ignore lint/suspicious/noExplicitAny: <dont care>
@@ -42,20 +51,5 @@ export function getClientIP(req: Request): string {
 		raw?.connection?.remoteAddress ||
 		raw?._socket?.remoteAddress;
 
-	console.log("cf-connecting-ip:", cf);
-	console.log("true-client-ip:", trueClient);
-	console.log("x-real-ip:", xRealIP);
-	console.log("x-forwarded-for:", xForwardedFor);
-	console.log("raw socket info:", socketAddr);
-
-	let clientIP = "unknown";
-
-	if (cf) clientIP = cf;
-	else if (trueClient) clientIP = trueClient;
-	else if (xRealIP) clientIP = xRealIP;
-	else if (xForwardedFor) clientIP = xForwardedFor.split(",")[0]?.trim() || "";
-	else if (socketAddr) clientIP = socketAddr;
-
-	console.log("Resolved client IP:", clientIP);
-	return clientIP;
+	return socketAddr || "unknown";
 }
