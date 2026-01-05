@@ -87,6 +87,9 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 		data: { repo, number, keywordCount: matches.length },
 		onSuccess: () => ({
 			outcome: "Comment posted",
+			data: {
+				comment: comment,
+			},
 		}),
 	});
 }

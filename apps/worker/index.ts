@@ -69,7 +69,7 @@ async function main() {
 		process.exit(1);
 	}
 
-	initTracing(`worker-${groupArg}`);
+	initTracing(groupArg);
 	await workerLoop(groupArg);
 }
 

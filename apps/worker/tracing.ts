@@ -1,71 +1,81 @@
-import { context, trace, SpanStatusCode, type SpanContext, TraceFlags } from "@opentelemetry/api";
-import { BasicTracerProvider, BatchSpanProcessor, type SpanExporter } from "@opentelemetry/sdk-trace-base";
+import { context, trace, SpanStatusCode, TraceFlags, type SpanContext } from "@opentelemetry/api";
+import { NodeSDK } from "@opentelemetry/sdk-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 
-let tracer: ReturnType<typeof trace.getTracer>;
+/* ------------------------------------------------------------ */
 
-export function initTracing(serviceName: string) {
-	process.env.OTEL_SERVICE_NAME = serviceName;
+let globalTracer: ReturnType<typeof trace.getTracer> | undefined;
+let globalSDK: NodeSDK | undefined;
 
-	const domain = process.env.AXIOM_BACKEND_OTEL_DOMAIN || "api.axiom.co";
-	const token = process.env.AXIOM_BACKEND_OTEL_TOKEN;
-	const dataset = process.env.AXIOM_BACKEND_OTEL_DATASET;
-
-	if (!token || !dataset) {
-		console.warn("⚠️ Missing AXIOM_BACKEND_OTEL_TOKEN or AXIOM_BACKEND_OTEL_DATASET");
-	}
-
-	const exporterUrl = `https://${domain}/v1/traces`;
+/** ------------------------------------------------------------
+ *  Initialize tracing once at worker startup
+ * ----------------------------------------------------------- */
+export async function initTracing(servicename: string) {
+	const env = process.env.NODE_ENV || "development";
+	const isProd = env === "production";
+	const serviceName = `sayr-worker-${servicename}-${isProd ? "prod" : "dev"}`;
 
 	const exporter = new OTLPTraceExporter({
-		url: exporterUrl,
+		url: `https://${process.env.AXIOM_BACKEND_OTEL_DOMAIN}/v1/traces`,
 		headers: {
-			Authorization: `Bearer ${token}`,
-			"X-Axiom-Dataset": dataset || "",
+			Authorization: `Bearer ${process.env.AXIOM_BACKEND_OTEL_TOKEN}`,
+			"X-Axiom-Dataset": process.env.AXIOM_BACKEND_OTEL_DATASET || "",
 		},
-	}) as SpanExporter;
-
-	const provider = new BasicTracerProvider({
-		spanProcessors: [new BatchSpanProcessor(exporter)],
 	});
 
-	trace.setGlobalTracerProvider(provider);
-	tracer = trace.getTracer(serviceName);
+	const sdk = new NodeSDK({
+		serviceName,
+		traceExporter: exporter,
+	});
 
-	console.log(`📡 Tracing initialized for "${serviceName}"`);
+	await sdk.start();
+	globalSDK = sdk;
+
+	process.on("SIGTERM", () => sdk.shutdown());
+	process.on("SIGINT", () => sdk.shutdown());
+
+	globalTracer = trace.getTracer(serviceName);
+	console.log(`✅ OpenTelemetry SDK started (${serviceName})`);
 }
 
+/** ------------------------------------------------------------
+ *  Get a tracer that the NodeSDK registered globally
+ * ----------------------------------------------------------- */
 export function getTracer() {
-	if (!tracer) {
-		throw new Error("Tracing not initialized. Call initTracing() first.");
+	if (!globalTracer) {
+		globalTracer = trace.getTracer("sayr-worker-uninitialized");
 	}
-	return tracer;
+	return globalTracer;
 }
 
-type TraceContext = {
-	traceId?: string;
-	spanId?: string;
-	traceFlags?: number;
-};
-
+/** ------------------------------------------------------------
+ *  Link async work to an existing upstream trace
+ * ----------------------------------------------------------- */
 export async function withTraceContext<T>(
-	traceContext: TraceContext | undefined,
+	traceContext:
+		| {
+				traceId?: string;
+				spanId?: string;
+				traceFlags?: number;
+		  }
+		| undefined,
 	spanName: string,
 	fn: () => Promise<T>
 ): Promise<T> {
 	const t = getTracer();
 
+	// Re‑establish parent trace if metadata provided
 	if (traceContext?.traceId && traceContext?.spanId) {
-		const parentSpanContext: SpanContext = {
+		const parentSpan: SpanContext = {
 			traceId: traceContext.traceId,
 			spanId: traceContext.spanId,
 			traceFlags: traceContext.traceFlags ?? TraceFlags.SAMPLED,
 			isRemote: true,
 		};
 
-		const parentContext = trace.setSpanContext(context.active(), parentSpanContext);
+		const parentCtx = trace.setSpanContext(context.active(), parentSpan);
 
-		return context.with(parentContext, async () => {
+		return context.with(parentCtx, async () => {
 			const span = t.startSpan(spanName);
 			try {
 				const result = await fn();
@@ -84,6 +94,7 @@ export async function withTraceContext<T>(
 		});
 	}
 
+	// Otherwise, start a new root span
 	const span = t.startSpan(spanName);
 	return context.with(trace.setSpan(context.active(), span), async () => {
 		try {
@@ -103,29 +114,32 @@ export async function withTraceContext<T>(
 	});
 }
 
+/** ------------------------------------------------------------
+ *  Utility for simple traced async operations
+ * ----------------------------------------------------------- */
 export async function traceAsync<T>(
 	name: string,
 	fn: () => Promise<T>,
-	options?: {
+	opts?: {
 		description?: string;
 		data?: Record<string, unknown>;
 		onSuccess?: (result: T) => { data?: Record<string, unknown>; outcome?: string };
 	}
 ): Promise<T> {
-	const tracer = getTracer();
+	const t = getTracer();
 	const parentCtx = context.active();
-	const span = tracer.startSpan(name, undefined, parentCtx);
+	const span = t.startSpan(name, undefined, parentCtx);
 
-	if (options?.description) span.setAttribute("description", options.description);
-	if (options?.data) span.setAttribute("data", JSON.stringify(options.data));
+	if (opts?.description) span.setAttribute("description", opts.description);
+	if (opts?.data) span.setAttribute("data", JSON.stringify(opts.data));
 
 	try {
 		const result = await fn();
 
-		if (options?.onSuccess) {
-			const extra = options.onSuccess(result);
+		if (opts?.onSuccess) {
+			const extra = opts.onSuccess(result);
 			if (extra.data) {
-				span.setAttribute("data", JSON.stringify({ ...(options?.data ?? {}), ...extra.data }));
+				span.setAttribute("data", JSON.stringify({ ...(opts?.data ?? {}), ...extra.data }));
 			}
 			if (extra.outcome) span.setAttribute("outcome", extra.outcome);
 		}
@@ -142,5 +156,16 @@ export async function traceAsync<T>(
 		throw err;
 	} finally {
 		span.end();
+	}
+}
+
+/** ------------------------------------------------------------
+ *  Optional graceful teardown
+ * ----------------------------------------------------------- */
+export async function shutdownTracing() {
+	if (globalSDK) {
+		console.log("🛑  Shutting down OpenTelemetry...");
+		await globalSDK.shutdown();
+		globalTracer = undefined;
 	}
 }
