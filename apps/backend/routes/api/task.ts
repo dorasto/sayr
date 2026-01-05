@@ -1067,8 +1067,9 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 			const found = findClientByWsId(wsClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
-				data: { commentId },
+				data: { id: taskId },
 			};
+
 			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
 			broadcastPublic(orgId, { ...data });
 
