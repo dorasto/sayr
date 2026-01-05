@@ -1,44 +1,28 @@
 import type { JobGroups } from "@repo/queue";
-import {
-	handleBlockKeyword,
-	handleCloseKeyword,
-	handleLinkKeyword,
-	type KeywordContext,
-} from "./keywordActions";
+import { handleBlockKeyword, handleCloseKeyword, handleLinkKeyword, type KeywordContext } from "./keywordActions";
 import { extractSayrKeywords } from "./keywords";
 import { getInstallationToken } from "@repo/util/github/auth";
 import { Octokit } from "@octokit/rest";
+import { traceAsync } from "@/tracing";
 
-export async function handleSayrKeywordParse(
-	job: JobGroups["github"] & { type: "sayr_keyword_parse" },
-) {
-	const {
-		text,
-		eventType,
-		number,
-		owner,
-		repoId,
-		repo,
-		merged,
-		installationId,
-		organizationId,
-		categoryId,
-	} = job.payload;
+export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: "sayr_keyword_parse" }) {
+	const { text, eventType, number, owner, repoId, repo, merged, installationId, organizationId, categoryId } =
+		job.payload;
 
 	if (!organizationId || !categoryId) {
-		console.log(`⚠️ Missing org or category for ${repo}#${number} — skipping.`);
 		return;
 	}
 
-	console.log(
-		`🔍 [${repo}#${number}] Checking ${eventType} for Sayr keywords...`,
-	);
+	const matches = await traceAsync("github.keyword.extract", async () => extractSayrKeywords(text), {
+		description: "Extracting Sayr keywords from text",
+		data: { repo, number, eventType },
+		onSuccess: (result) => ({
+			outcome: result.length ? "Keywords found" : "No keywords found",
+			data: { matchCount: result.length },
+		}),
+	});
 
-	const matches = extractSayrKeywords(text);
-	if (!matches.length) {
-		console.log(`ℹ️ [${repo}#${number}] No Sayr keywords found.`);
-		return;
-	}
+	if (!matches.length) return;
 
 	const ctxBase: Omit<KeywordContext, "taskKey"> = {
 		owner,
@@ -57,31 +41,40 @@ export async function handleSayrKeywordParse(
 		const ctx: KeywordContext = { ...ctxBase, taskKey: m.taskKey };
 		const action = m.keyword.toLowerCase();
 
-		switch (action) {
-			case "fixes":
-			case "fixed":
-			case "closes":
-			case "closed":
-			case "resolves":
-			case "resolved": {
-				const closeResult = await handleCloseKeyword(ctx);
-				summaryLines.push(closeResult);
-				break;
+		await traceAsync(
+			`github.keyword.${action.replace(" ", "_")}`,
+			async () => {
+				switch (action) {
+					case "fixes":
+					case "fixed":
+					case "closes":
+					case "closed":
+					case "resolves":
+					case "resolved": {
+						const closeResult = await handleCloseKeyword(ctx);
+						summaryLines.push(closeResult);
+						break;
+					}
+					case "blocked by":
+						await handleBlockKeyword(ctx);
+						summaryLines.push(`🚧 Blocked by ${m.taskKey}`);
+						break;
+					case "ref":
+					case "sayr": {
+						const linkResult = await handleLinkKeyword(ctx);
+						summaryLines.push(linkResult);
+						break;
+					}
+					default:
+						summaryLines.push(`⚙️ Unknown keyword ${m.keyword}`);
+						break;
+				}
+			},
+			{
+				description: `Processing "${action}" keyword`,
+				data: { taskKey: m.taskKey, keyword: action, repo, number },
 			}
-			case "blocked by":
-				await handleBlockKeyword(ctx);
-				summaryLines.push(`🚧 Blocked by ${m.taskKey}`);
-				break;
-			case "ref":
-			case "sayr": {
-				const linkResult = await handleLinkKeyword(ctx);
-				summaryLines.push(linkResult);
-				break;
-			}
-			default:
-				summaryLines.push(`⚙️ Unknown keyword ${m.keyword}`);
-				break;
-		}
+		);
 	}
 
 	const comment =
@@ -89,8 +82,13 @@ export async function handleSayrKeywordParse(
 		summaryLines.join("\n") +
 		(merged ? "\n✅ PR merged!" : "");
 
-	await postGithubComment({ ...ctxBase, taskKey: 0 }, comment);
-	console.log(`💬 [${repo}#${number}] Comment posted to GitHub.`);
+	await traceAsync("github.comment.post", () => postGithubComment({ ...ctxBase, taskKey: 0 }, comment), {
+		description: "Posting summary comment to GitHub",
+		data: { repo, number, keywordCount: matches.length },
+		onSuccess: () => ({
+			outcome: "Comment posted",
+		}),
+	});
 }
 
 // --- GitHub comment summary (optional) ---

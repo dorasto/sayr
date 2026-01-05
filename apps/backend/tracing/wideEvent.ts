@@ -103,6 +103,17 @@ export function wideEventMiddleware() {
 		await next();
 	};
 }
+export function getTraceContext() {
+	const span = trace.getSpan(context.active());
+	if (!span) return undefined;
+
+	const spanContext = span.spanContext();
+	return {
+		traceId: spanContext.traceId,
+		spanId: spanContext.spanId,
+		traceFlags: spanContext.traceFlags,
+	};
+}
 
 export type TraceAsync = <T>(
 	name: string,

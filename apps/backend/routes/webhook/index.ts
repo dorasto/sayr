@@ -1,5 +1,5 @@
 import type { AppEnv } from "@/index";
-import { createTraceAsync } from "@/tracing/wideEvent";
+import { createTraceAsync, getTraceContext } from "@/tracing/wideEvent";
 import { db, schema } from "@repo/database";
 import { enqueue } from "@repo/queue";
 import { verifySignature } from "@repo/util/github/verify";
@@ -7,7 +7,6 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 
 export const webhookRoute = new Hono<AppEnv>();
-
 webhookRoute.post("/github", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
@@ -123,6 +122,8 @@ async function handleContentEvents(
 
 	if (!linked) return;
 
+	const traceContext = getTraceContext();
+
 	switch (event) {
 		case "issues":
 			if (payload.action === "opened") {
@@ -131,6 +132,7 @@ async function handleContentEvents(
 					() =>
 						enqueue("github", {
 							type: "sayr_keyword_parse",
+							traceContext,
 							payload: {
 								text: payload.issue.body ?? "",
 								title: payload.issue.title ?? "",
@@ -150,6 +152,7 @@ async function handleContentEvents(
 							issueNumber: payload.issue.number,
 							repoId,
 							organizationId: linked.organizationId,
+							traceId: traceContext?.traceId,
 						},
 						onSuccess: () => ({
 							outcome: "Issue enqueued successfully",
@@ -173,6 +176,7 @@ async function handleContentEvents(
 					() =>
 						enqueue("github", {
 							type: "sayr_keyword_parse",
+							traceContext,
 							payload: {
 								text: body,
 								title: "",
@@ -194,6 +198,7 @@ async function handleContentEvents(
 							commenter,
 							repoId,
 							organizationId: linked.organizationId,
+							traceId: traceContext?.traceId,
 						},
 						onSuccess: () => ({
 							outcome: "Comment enqueued successfully",

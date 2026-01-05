@@ -1,4 +1,5 @@
 import { dequeue, type JobGroups } from "@repo/queue";
+import { initTracing, withTraceContext } from "./tracing";
 import { handleSayrKeywordParse } from "./github";
 
 async function processGithubJob(job: JobGroups["github"]) {
@@ -12,16 +13,18 @@ async function processGithubJob(job: JobGroups["github"]) {
 }
 
 async function handleJob<G extends keyof JobGroups>(group: G, job: JobGroups[G]) {
-	const start = Date.now();
+	const traceContext = "traceContext" in job ? job.traceContext : undefined;
+
 	try {
-		switch (group) {
-			case "github":
-				await processGithubJob(job as JobGroups["github"]);
-				break;
-			default:
-				console.warn(`⚠️ No handler defined for group "${group}"`);
-		}
-		console.log(`✅ [${group}] ${job.type} done in ${Date.now() - start}ms`);
+		await withTraceContext(traceContext, `worker.${group}.${job.type}`, async () => {
+			switch (group) {
+				case "github":
+					await processGithubJob(job as JobGroups["github"]);
+					break;
+				default:
+					console.warn(`⚠️ No handler defined for group "${group}"`);
+			}
+		});
 	} catch (err) {
 		console.error(`❌ [${group}] ${job.type} failed:`, err);
 	}
@@ -31,15 +34,12 @@ async function workerLoop<G extends keyof JobGroups>(group: G) {
 	const MODE = process.env.QUEUE_MODE ?? "file";
 	console.log(`⚙️ Worker for "${group}" started (${MODE} mode)`);
 
-	// Redis mode doesn't need adaptive sleep; brpop() itself blocks.
 	if (MODE === "redis") {
 		while (true) {
 			const job = await dequeue(group);
 			if (job) await handleJob(group, job);
-			// BRPOP waits internally, so no need for Bun.sleep().
 		}
 	} else {
-		// File mode: adaptive sleep and backoff to mimic blocking I/O
 		let idleMs = 100;
 		while (true) {
 			const job = await dequeue(group);
@@ -55,6 +55,7 @@ async function workerLoop<G extends keyof JobGroups>(group: G) {
 		}
 	}
 }
+
 async function main() {
 	const groupArg = process.argv[2] as keyof JobGroups | undefined;
 
@@ -68,6 +69,7 @@ async function main() {
 		process.exit(1);
 	}
 
+	initTracing(`worker-${groupArg}`);
 	await workerLoop(groupArg);
 }
 
