@@ -1430,11 +1430,12 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 				onSuccess: (result) => {
 					return result
 						? {
-								description: "Permission granted",
-								data: { orgId, userId: session?.userId },
+								description: "Public organization (no member access required)",
+								data: { orgId },
 							}
 						: {
-								description: "public",
+								description: "Permission granted",
+								data: { orgId, userId: session?.userId },
 							};
 				},
 			},

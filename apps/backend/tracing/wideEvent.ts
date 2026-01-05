@@ -112,7 +112,11 @@ export type TraceAsync = <T>(
 		data?: Record<string, unknown>;
 		onSuccess?: (result: T) => {
 			data?: Record<string, unknown>;
+			/**
+			 * @deprecated Use `outcome` instead
+			 */
 			description?: string;
+			outcome?: string;
 		};
 	},
 ) => Promise<T>;
@@ -129,7 +133,11 @@ export function createTraceAsync(): TraceAsync {
 			data?: Record<string, unknown>;
 			onSuccess?: (result: T) => {
 				data?: Record<string, unknown>;
+				/**
+				 * @deprecated Use `outcome` instead
+				 */
 				description?: string;
+				outcome?: string;
 			};
 		},
 	): Promise<T> => {
@@ -152,14 +160,17 @@ export function createTraceAsync(): TraceAsync {
 						JSON.stringify({ ...(options?.data ?? {}), ...extra.data }),
 					);
 				}
-				if (extra.description) {
-					span.setAttribute("description", extra.description);
+				// Prefer outcome, fall back to deprecated description
+				const outcomeValue = extra.outcome ?? extra.description;
+				if (outcomeValue) {
+					span.setAttribute("outcome", outcomeValue);
 				}
 			}
 
 			span.setStatus({ code: SpanStatusCode.OK });
 			return result;
 		} catch (err) {
+			span.setAttribute("outcome", "failed");
 			span.recordException(err as Error);
 			span.setStatus({
 				code: SpanStatusCode.ERROR,

@@ -1,17 +1,29 @@
+import type { AppEnv } from "@/index";
+import { createTraceAsync } from "@/tracing/wideEvent";
 import { db, schema } from "@repo/database";
 import { enqueue } from "@repo/queue";
 import { verifySignature } from "@repo/util/github/verify";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 
-export const webhookRoute = new Hono();
+export const webhookRoute = new Hono<AppEnv>();
+
 webhookRoute.post("/github", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
 	const signature = c.req.header("x-hub-signature-256");
 	const event = c.req.header("x-github-event");
 	const rawBody = await c.req.text();
 
 	if (!verifySignature(signature ?? null, rawBody)) {
-		console.warn("❌ Invalid signature");
+		await recordWideError({
+			name: "webhook.github.signature",
+			error: new Error("Invalid signature"),
+			code: "INVALID_SIGNATURE",
+			message: "GitHub webhook signature verification failed",
+			contextData: { event },
+		});
 		return c.text("❌ invalid signature", 401);
 	}
 
@@ -19,37 +31,12 @@ webhookRoute.post("/github", async (c) => {
 
 	switch (event) {
 		case "installation":
-			if (payload.action === "created") {
-				const installation = payload.installation;
-				const installationId = installation.id;
+			return handleInstallationEvent(payload, traceAsync);
 
-				// ✅ Create only the installation record
-				await db.insert(schema.githubInstallation).values({
-					id: crypto.randomUUID(),
-					installationId,
-				});
-
-				console.log(`✅ Created installation record ${installationId}`);
-				return c.text("Installation registered ✅");
-			}
-
-			if (payload.action === "deleted") {
-				// Clean up if app is uninstalled
-				const installationId = payload.installation.id;
-				await db
-					.delete(schema.githubInstallation)
-					.where(eq(schema.githubInstallation.installationId, installationId));
-
-				console.log(`❌ Deleted installation record ${installationId}`);
-				return c.text("Installation deleted ✅");
-			}
-
-			break;
-		// other cases (issues, PRs, comments) unchanged
 		case "issues":
 		case "issue_comment":
 		case "pull_request":
-			await handleContentEvents(event, payload);
+			await handleContentEvents(event, payload, traceAsync);
 			break;
 
 		default:
@@ -59,43 +46,117 @@ webhookRoute.post("/github", async (c) => {
 	return c.text("✅ Job(s) received");
 });
 
-// biome-ignore lint/suspicious/noExplicitAny: <fix later>
-async function handleContentEvents(event: string, payload: any) {
+async function handleInstallationEvent(
+	payload: { action: string; installation: { id: number } },
+	traceAsync: ReturnType<typeof createTraceAsync>,
+) {
+	const installationId = payload.installation.id;
+
+	if (payload.action === "created") {
+		await traceAsync(
+			"webhook.github.installation.create",
+			() =>
+				db.insert(schema.githubInstallation).values({
+					id: crypto.randomUUID(),
+					installationId,
+				}),
+			{
+				description: "Creating GitHub installation record",
+				data: { installationId },
+				onSuccess: () => ({
+					outcome: "Installation record created",
+					data: { installationId },
+				}),
+			},
+		);
+
+		return new Response("Installation registered ✅");
+	}
+
+	if (payload.action === "deleted") {
+		await traceAsync(
+			"webhook.github.installation.delete",
+			() =>
+				db
+					.delete(schema.githubInstallation)
+					.where(eq(schema.githubInstallation.installationId, installationId)),
+			{
+				description: "Deleting GitHub installation record",
+				data: { installationId },
+				onSuccess: () => ({
+					outcome: "Installation record deleted",
+					data: { installationId },
+				}),
+			},
+		);
+
+		return new Response("Installation deleted ✅");
+	}
+
+	return new Response("✅ Job(s) received");
+}
+
+async function handleContentEvents(
+	event: string,
+	// biome-ignore lint/suspicious/noExplicitAny: <fix later>
+	payload: any,
+	traceAsync: ReturnType<typeof createTraceAsync>,
+) {
 	const { installation, repository } = payload;
 	const installationId = installation.id;
 	const repoId = repository.id;
 
-	// Check if this repo has been activated in Sayr
-	const linked = await db.query.githubRepository.findFirst({
-		where: and(
-			eq(schema.githubRepository.installationId, installationId),
-			eq(schema.githubRepository.repoId, repoId)
-		),
-	});
+	const linked = await traceAsync(
+		"webhook.github.repo_lookup",
+		() =>
+			db.query.githubRepository.findFirst({
+				where: and(
+					eq(schema.githubRepository.installationId, installationId),
+					eq(schema.githubRepository.repoId, repoId),
+				),
+			}),
+		{
+			description: "Checking if repository is linked",
+			data: { installationId, repoId },
+		},
+	);
 
-	if (!linked) {
-		console.log(`⚠️ Ignoring event for unlinked repo (${repoId})`);
-		return;
-	}
+	if (!linked) return;
+
 	switch (event) {
 		case "issues":
 			if (payload.action === "opened") {
-				console.log(`🪶 Issue opened: #${payload.issue.number}`);
-				enqueue("github", {
-					type: "sayr_keyword_parse",
-					payload: {
-						text: payload.issue.body ?? "",
-						title: payload.issue.title ?? "",
-						owner: payload.repository.owner.login,
-						repoId: payload.repository.id,
-						repo: payload.repository.name,
-						number: payload.issue.number,
-						installationId: payload.installation.id,
-						eventType: "issue",
-						organizationId: linked.organizationId,
-						categoryId: linked.categoryId,
+				await traceAsync(
+					"webhook.github.issue.enqueue",
+					() =>
+						enqueue("github", {
+							type: "sayr_keyword_parse",
+							payload: {
+								text: payload.issue.body ?? "",
+								title: payload.issue.title ?? "",
+								owner: repository.owner.login,
+								repoId: repository.id,
+								repo: repository.name,
+								number: payload.issue.number,
+								installationId,
+								eventType: "issue",
+								organizationId: linked.organizationId,
+								categoryId: linked.categoryId,
+							},
+						}),
+					{
+						description: "Enqueueing issue for processing",
+						data: {
+							issueNumber: payload.issue.number,
+							repoId,
+							organizationId: linked.organizationId,
+						},
+						onSuccess: () => ({
+							outcome: "Issue enqueued successfully",
+							data: { issueNumber: payload.issue.number },
+						}),
 					},
-				});
+				);
 			}
 			break;
 
@@ -104,47 +165,45 @@ async function handleContentEvents(event: string, payload: any) {
 				const issueNum = payload.issue.number;
 				const commenter = payload.comment?.user?.login ?? "unknown";
 				const body = payload.comment.body.trim();
+
 				if (commenter.endsWith("[bot]")) return;
-				console.log(`💬 Comment on #${issueNum} by ${commenter}`);
-				enqueue("github", {
-					type: "sayr_keyword_parse",
-					payload: {
-						text: body,
-						title: "",
-						owner: payload.repository.owner.login,
-						repoId: payload.repository.id,
-						repo: payload.repository.name,
-						number: issueNum,
-						installationId: payload.installation.id,
-						eventType: "comment",
-						merged: false,
-						organizationId: linked.organizationId,
-						categoryId: linked.categoryId,
+
+				await traceAsync(
+					"webhook.github.comment.enqueue",
+					() =>
+						enqueue("github", {
+							type: "sayr_keyword_parse",
+							payload: {
+								text: body,
+								title: "",
+								owner: repository.owner.login,
+								repoId: repository.id,
+								repo: repository.name,
+								number: issueNum,
+								installationId,
+								eventType: "comment",
+								merged: false,
+								organizationId: linked.organizationId,
+								categoryId: linked.categoryId,
+							},
+						}),
+					{
+						description: "Enqueueing comment for processing",
+						data: {
+							issueNum,
+							commenter,
+							repoId,
+							organizationId: linked.organizationId,
+						},
+						onSuccess: () => ({
+							outcome: "Comment enqueued successfully",
+							data: { issueNum, commenter },
+						}),
 					},
-				});
+				);
 			}
 			break;
 
-		// case "pull_request":
-		// 	if (["opened", "synchronize", "closed"].includes(payload.action)) {
-		// 		const prNum = payload.pull_request.number;
-		// 		console.log(`🔀 PR #${prNum} (${payload.action})`);
-		// 		enqueue({
-		// 			type: "sayr_keyword_parse",
-		// 			payload: {
-		// 				text: payload.pull_request.body ?? "",
-		// 				title: payload.pull_request.title ?? "",
-		// 				owner: payload.repository.owner.login,
-		// 				repoId: payload.repository.id,
-		// 				repo: payload.repository.name,
-		// 				number: prNum,
-		// 				installationId: payload.installation.id,
-		// 				eventType: "pr",
-		// 				merged: payload.pull_request.merged ?? false,
-		// 			},
-		// 		});
-		// 	}
-		// 	break;
 		default:
 			break;
 	}

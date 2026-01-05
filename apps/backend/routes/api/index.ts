@@ -75,7 +75,7 @@ apiRoute.use("*", async (c, next) => {
 			onSuccess: (result) =>
 				result
 					? {
-							description: "Session verified and attached",
+							outcome: "Session verified and attached",
 							data: {
 								user_id: result.user.id,
 								user_name: result.user.name,
@@ -83,7 +83,7 @@ apiRoute.use("*", async (c, next) => {
 							},
 						}
 					: {
-							description: "No active session found",
+							outcome: "No active session found",
 						},
 		},
 	);
