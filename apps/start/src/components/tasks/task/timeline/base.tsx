@@ -25,10 +25,7 @@ import { IconCheck, IconLock, IconX } from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
-import {
-  ReactionDisplay,
-  type ReactionEmoji,
-} from "./reactions";
+import { ReactionDisplay, type ReactionEmoji } from "./reactions";
 import type { TimelineItemWrapperProps } from "./types";
 
 export function TimelineItemWrapper({
@@ -136,20 +133,25 @@ export function TimelineItemWrapper({
               )}
 
               <div className="flex items-center gap-1 ml-auto">
-                {item.visibility === "internal" && (
-                  <Badge
-                    variant={"secondary"}
-                    className="w-fit bg-transparent pointer-events-none rounded-lg gap-1 text-sm "
-                  >
-                    <IconLock className="size-4" />
-                    Internal comment
-                  </Badge>
-                )}
                 {actionButtons && (
-                  <div className="flex items-center gap-2 ml-auto opacity-0 group-hover/timeline-item:opacity-100 has-data-[state=open]:opacity-100 transition-all">
-                    {/*has-[[data-state=open]]:opacity-100*/}
+                  <div className="flex items-center gap-2 opacity-0 group-hover/timeline-item:opacity-100 has-data-[state=open]:opacity-100 transition-all">
                     {actionButtons}
                   </div>
+                )}
+                {item.visibility === "internal" && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger>
+                      <Badge
+                        variant={"secondary"}
+                        className="w-fit bg-transparent pointer-events-none rounded-lg gap-1 text-sm"
+                      >
+                        <IconLock className="size-4" />
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>Internal comment</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>
@@ -195,13 +197,16 @@ export function TimelineItemWrapper({
               />
             )}
             {/* Reactions display */}
-            {item.reactions?.reactions && (
-              <ReactionDisplay
-                reactions={item.reactions?.reactions}
-                toggleReaction={(emoji) => onReactionToggle ? onReactionToggle(emoji) : ""}
-                users={availableUsers}
-              />
-            )}
+            {item.reactions?.reactions &&
+              Object.keys(item.reactions.reactions).length > 0 && (
+                <ReactionDisplay
+                  reactions={item.reactions.reactions}
+                  toggleReaction={(emoji) =>
+                    onReactionToggle ? onReactionToggle(emoji) : ""
+                  }
+                  users={availableUsers}
+                />
+              )}
           </div>
         </TimelineContent>
       ) : null}

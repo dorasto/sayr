@@ -196,7 +196,7 @@ export function ReactionDisplay({
                     className={cn(
                       "h-8 w-8 p-0 text-lg hover:bg-accent hover:scale-110 transition-transform",
                       reactedEmojis.includes(emoji) &&
-                      "bg-accent ring-1 ring-primary/20",
+                        "bg-accent ring-1 ring-primary/20",
                     )}
                     onClick={() => {
                       toggleReaction(emoji);
