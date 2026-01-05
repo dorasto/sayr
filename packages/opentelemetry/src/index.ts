@@ -8,7 +8,7 @@ export async function initTracing(_serviceName: string) {
 	const IS_CLOUD = process.env.IS_CLOUD === "true";
 	const env = process.env.NODE_ENV || "development";
 	const isProd = env === "production";
-	const serviceName = `${_serviceName}-${isProd ? "prod" : "dev"}`;
+	const serviceName = `${_serviceName}${isProd ? "" : "-dev"}`;
 
 	if (!IS_CLOUD) {
 		console.log(
