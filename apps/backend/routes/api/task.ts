@@ -6,7 +6,6 @@ import {
 	createOrToggleCommentReaction,
 	createTask,
 	db,
-	getCommentReactionsWithUsers,
 	getMergedTaskActivity,
 	getOrganizationMembers,
 	getTaskById,
@@ -1050,7 +1049,7 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 
 	// 2️⃣ Insert or toggle reaction
 	await traceAsync(
-		"task.comment.reaction.add",
+		"task.comment.reaction",
 		() => createOrToggleCommentReaction(orgId, taskId, commentId, emoji, session?.userId || ""),
 		{
 			description: "Adding or removing comment reaction",
@@ -1059,14 +1058,6 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 				description: result.added ? "Reaction added successfully" : "Reaction removed successfully",
 				data: result,
 			}),
-		}
-	);
-	// 3️⃣ Pull updated reactions with user IDs
-	const reactions = await traceAsync(
-		"task.comment.reaction.fetchCounts",
-		() => getCommentReactionsWithUsers(orgId, taskId, commentId),
-		{
-			description: "Fetching updated reactions for comment",
 		}
 	);
 	// 3️⃣ Broadcast to relevant clients
@@ -1097,7 +1088,7 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	);
 	return c.json({
 		success: true,
-		data: { commentId, reactions },
+		data: { commentId },
 	});
 });
 
@@ -1396,8 +1387,11 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 							grouped[reaction.emoji] = { count: 0, users: [] };
 						}
 
-						grouped[reaction.emoji].count++;
-						grouped[reaction.emoji].users.push(reaction.userId);
+						const reactionGroup = grouped[reaction.emoji];
+						if (reactionGroup) {
+							reactionGroup.count++;
+							reactionGroup.users.push(reaction.userId);
+						}
 					}
 
 					const total = Object.values(grouped).reduce((sum, r) => sum + r.count, 0);
