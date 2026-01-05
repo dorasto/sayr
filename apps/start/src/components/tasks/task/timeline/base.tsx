@@ -27,6 +27,7 @@ import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { ReactionDisplay, type ReactionEmoji } from "./reactions";
 import type { TimelineItemWrapperProps } from "./types";
+import { Separator } from "@repo/ui/components/separator";
 
 export function TimelineItemWrapper({
   item,
@@ -134,22 +135,32 @@ export function TimelineItemWrapper({
 
               <div className="flex items-center gap-1 ml-auto">
                 {actionButtons && (
-                  <div className="flex items-center gap-2 opacity-0 group-hover/timeline-item:opacity-100 has-data-[state=open]:opacity-100 transition-all">
+                  <div className="flex items-center gap-1 opacity-0 group-hover/timeline-item:opacity-100 has-data-[state=open]:opacity-100 transition-all">
                     {actionButtons}
                   </div>
                 )}
                 {item.visibility === "internal" && (
                   <Tooltip delayDuration={0}>
-                    <TooltipTrigger>
-                      <Badge
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
+                      >
+                        <IconLock size={16} />
+                      </Button>
+                      {/*<Badge
                         variant={"secondary"}
                         className="w-fit bg-transparent pointer-events-none rounded-lg gap-1 text-sm"
                       >
                         <IconLock className="size-4" />
-                      </Badge>
+                      </Badge>*/}
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                      <p>Internal comment</p>
+                      <p>
+                        This is an internal comment. Only team members can see
+                        it.
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 )}
