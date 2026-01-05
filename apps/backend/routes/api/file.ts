@@ -1,16 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
 import { db, hasOrgPermission } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
-import {
-	ensureCdnUrl,
-	extractPrivateIdFromUrl,
-	getFileNameFromUrl,
-} from "@repo/util";
+import { ensureCdnUrl, extractPrivateIdFromUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import mime from "mime-types";
-import { createTraceAsync } from "@/tracing/wideEvent";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 export const apiRouteFile = new Hono<AppEnv>();
 
 // Upload a file
@@ -38,8 +34,7 @@ apiRouteFile.put("/", async (c) => {
 
 	const buffer = Buffer.from(await file.arrayBuffer());
 
-	const mimeType =
-		file.type || mime.lookup(file.name || "") || "application/octet-stream";
+	const mimeType = file.type || mime.lookup(file.name || "") || "application/octet-stream";
 	const ext = mime.extension(mimeType) || "bin";
 
 	const salt = process.env.FILE_SALT || "";
@@ -54,8 +49,7 @@ apiRouteFile.put("/", async (c) => {
 	const performUpload = async (path: string, isPrivate: boolean) => {
 		const uploadedUrl = await traceAsync(
 			"file.upload.storage",
-			() =>
-				uploadObject(objectName, buffer, path, { "Content-Type": contentType }),
+			() => uploadObject(objectName, buffer, path, { "Content-Type": contentType }),
 			{
 				description: `Uploading file to ${isPrivate ? "private" : "public"} storage`,
 				data: { objectName, path, isPrivate },
@@ -63,7 +57,7 @@ apiRouteFile.put("/", async (c) => {
 					description: "File uploaded successfully",
 					data: { objectName },
 				}),
-			},
+			}
 		);
 		return ensureCdnUrl(uploadedUrl);
 	};
@@ -97,7 +91,7 @@ apiRouteFile.put("/", async (c) => {
 							description: "User does not have permission to do that",
 						};
 			},
-		},
+		}
 	);
 
 	if (!isAuthorized) {
@@ -112,9 +106,8 @@ apiRouteFile.put("/", async (c) => {
 
 	const organization = await traceAsync(
 		"file.upload.org_lookup",
-		() =>
-			db.query.organization.findFirst({ where: (org) => eq(org.id, orgId) }),
-		{ description: "Finding organization", data: { orgId } },
+		() => db.query.organization.findFirst({ where: (org) => eq(org.id, orgId) }),
+		{ description: "Finding organization", data: { orgId } }
 	);
 
 	if (!organization) {
@@ -146,10 +139,7 @@ apiRouteFile.delete("/", async (c) => {
 	const session = c.get("session");
 
 	if (!session?.userId) {
-		return c.json(
-			{ success: false, error: "You don't have permission to do that." },
-			401,
-		);
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
 	const { url } = await c.req.json();
@@ -167,9 +157,7 @@ apiRouteFile.delete("/", async (c) => {
 
 	const { hasPrivateId, privateId } = extractPrivateIdFromUrl(url);
 	const fileName = getFileNameFromUrl(url);
-	const storagePath = hasPrivateId
-		? `files/${privateId}/${fileName}`
-		: `files/${fileName}`;
+	const storagePath = hasPrivateId ? `files/${privateId}/${fileName}` : `files/${fileName}`;
 
 	await traceAsync("file.delete.storage", () => removeObject(storagePath), {
 		description: "Deleting file from storage",

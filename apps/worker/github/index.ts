@@ -3,9 +3,10 @@ import { handleBlockKeyword, handleCloseKeyword, handleLinkKeyword, type Keyword
 import { extractSayrKeywords } from "./keywords";
 import { getInstallationToken } from "@repo/util/github/auth";
 import { Octokit } from "@octokit/rest";
-import { traceAsync } from "@/tracing";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 
 export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: "sayr_keyword_parse" }) {
+	const traceAsync = createTraceAsync();
 	const { text, eventType, number, owner, repoId, repo, merged, installationId, organizationId, categoryId } =
 		job.payload;
 

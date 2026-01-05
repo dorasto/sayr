@@ -1,0 +1,28 @@
+{
+	"name": "@repo/opentelemetry",
+	"version": "0.0.7",
+	"private": true,
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*.ts"
+	},
+	"dependencies": {
+		"@opentelemetry/api": "^1.9.0",
+		"@opentelemetry/exporter-trace-otlp-http": "^0.208.0",
+		"@opentelemetry/sdk-node": "^0.208.0"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"format": "biome format --write ."
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.1.1",
+		"@repo/typescript-config": "workspace:*",
+		"@types/node": "^24.0.14"
+	}
+}

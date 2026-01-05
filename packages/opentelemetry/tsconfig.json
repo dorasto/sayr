@@ -1,10 +1,11 @@
 {
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
+		"esModuleInterop": true,
 		"paths": {
-			"@/index": ["./index.ts"]
+			"@repo/queue/*": ["./src/*"]
 		}
 	},
-	"include": ["routes", "public", "index.ts", "queue.ts", "github", "worker.ts", "tracing.ts"],
+	"include": ["src"],
 	"exclude": ["node_modules"]
 }

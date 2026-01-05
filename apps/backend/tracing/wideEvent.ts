@@ -1,11 +1,6 @@
-import {
-	context,
-	trace,
-	SpanStatusCode,
-	type Attributes,
-} from "@opentelemetry/api";
+import { context, trace, SpanStatusCode, type Attributes } from "@opentelemetry/api";
+import { getTracer } from "@repo/opentelemetry";
 import type { Context, Next } from "hono";
-import { getTracer } from "./index";
 
 export interface WideEvent {
 	name: string;
@@ -43,11 +38,7 @@ export function wideEventMiddleware() {
 		c.set("recordWideEvent", async (wide: WideEvent) => {
 			if (!parentSpan) return;
 
-			const span = tracer.startSpan(
-				wide.name ?? "custom-event",
-				undefined,
-				parentCtx,
-			);
+			const span = tracer.startSpan(wide.name ?? "custom-event", undefined, parentCtx);
 			try {
 				const attrs: Attributes = {
 					data: JSON.stringify(wide.data ?? {}),
@@ -101,95 +92,5 @@ export function wideEventMiddleware() {
 		});
 
 		await next();
-	};
-}
-export function getTraceContext() {
-	const span = trace.getSpan(context.active());
-	if (!span) return undefined;
-
-	const spanContext = span.spanContext();
-	return {
-		traceId: spanContext.traceId,
-		spanId: spanContext.spanId,
-		traceFlags: spanContext.traceFlags,
-	};
-}
-
-export type TraceAsync = <T>(
-	name: string,
-	fn: () => Promise<T>,
-	options?: {
-		description?: string;
-		data?: Record<string, unknown>;
-		onSuccess?: (result: T) => {
-			data?: Record<string, unknown>;
-			/**
-			 * @deprecated Use `outcome` instead
-			 */
-			description?: string;
-			outcome?: string;
-		};
-	},
-) => Promise<T>;
-
-export function createTraceAsync(): TraceAsync {
-	const tracer = getTracer();
-	const parentCtx = context.active();
-
-	return async <T>(
-		name: string,
-		fn: () => Promise<T>,
-		options?: {
-			description?: string;
-			data?: Record<string, unknown>;
-			onSuccess?: (result: T) => {
-				data?: Record<string, unknown>;
-				/**
-				 * @deprecated Use `outcome` instead
-				 */
-				description?: string;
-				outcome?: string;
-			};
-		},
-	): Promise<T> => {
-		const span = tracer.startSpan(name, undefined, parentCtx);
-
-		const attrs: Attributes = {
-			data: JSON.stringify(options?.data ?? {}),
-		};
-		if (options?.description) attrs.description = options.description;
-		span.setAttributes(attrs);
-
-		try {
-			const result = await fn();
-
-			if (options?.onSuccess) {
-				const extra = options.onSuccess(result);
-				if (extra.data) {
-					span.setAttribute(
-						"data",
-						JSON.stringify({ ...(options?.data ?? {}), ...extra.data }),
-					);
-				}
-				// Prefer outcome, fall back to deprecated description
-				const outcomeValue = extra.outcome ?? extra.description;
-				if (outcomeValue) {
-					span.setAttribute("outcome", outcomeValue);
-				}
-			}
-
-			span.setStatus({ code: SpanStatusCode.OK });
-			return result;
-		} catch (err) {
-			span.setAttribute("outcome", "failed");
-			span.recordException(err as Error);
-			span.setStatus({
-				code: SpanStatusCode.ERROR,
-				message: (err as Error).message,
-			});
-			throw err;
-		} finally {
-			span.end();
-		}
 	};
 }

@@ -1,7 +1,6 @@
 import { context, trace, SpanStatusCode } from "@opentelemetry/api";
 import type { Context, Next } from "hono";
-import { getTracer } from "./index";
-
+import { getTracer } from "@repo/opentelemetry";
 export function rootSpanMiddleware() {
 	return async (c: Context, next: Next) => {
 		const tracer = getTracer();
@@ -46,10 +45,7 @@ export function getClientIP(req: Request): string {
 	// Hono's req.raw is a Fetch Request; reaching the socket requires the adapter
 	// biome-ignore lint/suspicious/noExplicitAny: <dont care>
 	const raw = (req as any).raw;
-	const socketAddr =
-		raw?.socket?.remoteAddress ||
-		raw?.connection?.remoteAddress ||
-		raw?._socket?.remoteAddress;
+	const socketAddr = raw?.socket?.remoteAddress || raw?.connection?.remoteAddress || raw?._socket?.remoteAddress;
 
 	return socketAddr || "unknown";
 }

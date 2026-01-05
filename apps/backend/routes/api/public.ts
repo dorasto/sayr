@@ -7,7 +7,7 @@ import z from "zod";
 import type { AppEnv } from "@/index";
 import { describeOkNotFound, describePaginatedRoute } from "../../openapi/helpers";
 import { errorResponse, paginatedSuccessResponse, successResponse } from "../../responses";
-import { createTraceAsync } from "@/tracing/wideEvent";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 // import { prosekitJSONToHTML } from "@/prosekit/html";
 // import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 

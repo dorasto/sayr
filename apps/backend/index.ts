@@ -1,5 +1,5 @@
-import { initTracing } from "./tracing";
-initTracing();
+import { initTracing } from "@repo/opentelemetry";
+initTracing(`sayr-backend`);
 import type { auth } from "@repo/auth/index";
 import { db, schema } from "@repo/database";
 import { CronJob } from "cron";
@@ -11,11 +11,7 @@ import { requestId } from "hono/request-id";
 import { apiRoute } from "./routes/api";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
-import {
-	type RecordWideError,
-	type RecordWideEvent,
-	wideEventMiddleware,
-} from "./tracing/wideEvent";
+import { type RecordWideError, type RecordWideEvent, wideEventMiddleware } from "./tracing/wideEvent";
 import { rootSpanMiddleware } from "@/tracing/rootSpanMiddleware";
 // -----------------------------------------------------------------------------
 // Types
@@ -44,7 +40,7 @@ app.use(
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		maxAge: 600,
 		credentials: true,
-	}),
+	})
 );
 
 // -----------------------------------------------------------------------------
@@ -56,12 +52,7 @@ app.use("*", async (c, next) => {
 	c.header("X-Organization-Name", "Doras Media Limited");
 	return next();
 });
-app.get("/favicon.ico", (c) =>
-	c.redirect(
-		process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico",
-		302,
-	),
-);
+app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
@@ -97,7 +88,7 @@ app.all("*", async (c) => {
 			error: "Not Found",
 			status: 404,
 		},
-		404,
+		404
 	);
 });
 
@@ -130,7 +121,7 @@ app.onError(async (err, c) => {
 			path: c.req.path,
 			method: c.req.method,
 		},
-		500,
+		500
 	);
 });
 export function routeExists(method: string, urlPath: string): boolean {
@@ -158,16 +149,14 @@ new CronJob(
 	async () => {
 		try {
 			const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-			await db
-				.delete(schema.invite)
-				.where(lt(schema.invite.expiresAt, cutoffDate));
+			await db.delete(schema.invite).where(lt(schema.invite.expiresAt, cutoffDate));
 			console.log("Expired invites older than 24 hours deleted");
 		} catch (err) {
 			console.error("Error deleting expired invites:", err);
 		}
 	},
 	null,
-	true,
+	true
 );
 
 // -----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import type { AppEnv } from "@/index";
-import { createTraceAsync, getTraceContext } from "@/tracing/wideEvent";
+import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { db, schema } from "@repo/database";
 import { enqueue } from "@repo/queue";
 import { verifySignature } from "@repo/util/github/verify";
@@ -47,7 +47,7 @@ webhookRoute.post("/github", async (c) => {
 
 async function handleInstallationEvent(
 	payload: { action: string; installation: { id: number } },
-	traceAsync: ReturnType<typeof createTraceAsync>,
+	traceAsync: ReturnType<typeof createTraceAsync>
 ) {
 	const installationId = payload.installation.id;
 
@@ -66,7 +66,7 @@ async function handleInstallationEvent(
 					outcome: "Installation record created",
 					data: { installationId },
 				}),
-			},
+			}
 		);
 
 		return new Response("Installation registered ✅");
@@ -75,10 +75,7 @@ async function handleInstallationEvent(
 	if (payload.action === "deleted") {
 		await traceAsync(
 			"webhook.github.installation.delete",
-			() =>
-				db
-					.delete(schema.githubInstallation)
-					.where(eq(schema.githubInstallation.installationId, installationId)),
+			() => db.delete(schema.githubInstallation).where(eq(schema.githubInstallation.installationId, installationId)),
 			{
 				description: "Deleting GitHub installation record",
 				data: { installationId },
@@ -86,7 +83,7 @@ async function handleInstallationEvent(
 					outcome: "Installation record deleted",
 					data: { installationId },
 				}),
-			},
+			}
 		);
 
 		return new Response("Installation deleted ✅");
@@ -99,7 +96,7 @@ async function handleContentEvents(
 	event: string,
 	// biome-ignore lint/suspicious/noExplicitAny: <fix later>
 	payload: any,
-	traceAsync: ReturnType<typeof createTraceAsync>,
+	traceAsync: ReturnType<typeof createTraceAsync>
 ) {
 	const { installation, repository } = payload;
 	const installationId = installation.id;
@@ -111,13 +108,13 @@ async function handleContentEvents(
 			db.query.githubRepository.findFirst({
 				where: and(
 					eq(schema.githubRepository.installationId, installationId),
-					eq(schema.githubRepository.repoId, repoId),
+					eq(schema.githubRepository.repoId, repoId)
 				),
 			}),
 		{
 			description: "Checking if repository is linked",
 			data: { installationId, repoId },
-		},
+		}
 	);
 
 	if (!linked) return;
@@ -158,7 +155,7 @@ async function handleContentEvents(
 							outcome: "Issue enqueued successfully",
 							data: { issueNumber: payload.issue.number },
 						}),
-					},
+					}
 				);
 			}
 			break;
@@ -204,7 +201,7 @@ async function handleContentEvents(
 							outcome: "Comment enqueued successfully",
 							data: { issueNum, commenter },
 						}),
-					},
+					}
 				);
 			}
 			break;

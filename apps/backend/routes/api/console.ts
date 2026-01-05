@@ -1,7 +1,7 @@
 import { auth } from "@repo/auth";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { createTraceAsync } from "@/tracing/wideEvent";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 
 export const apiRouteConsole = new Hono<AppEnv>();
 
@@ -29,8 +29,7 @@ apiRouteConsole.post("/set-role", async (c) => {
 		return c.json({ success: false, error: "FORBIDDEN" }, 403);
 	}
 
-	const { userId, role }: { userId: string; role: "admin" | "user" } =
-		await c.req.json();
+	const { userId, role }: { userId: string; role: "admin" | "user" } = await c.req.json();
 
 	if (!userId || !role) {
 		await recordWideError({
@@ -57,7 +56,7 @@ apiRouteConsole.post("/set-role", async (c) => {
 				description: "User role updated successfully",
 				data: { userId, newRole: role },
 			}),
-		},
+		}
 	);
 
 	await recordWideEvent({

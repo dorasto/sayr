@@ -9,7 +9,7 @@ import { Scalar } from "@scalar/hono-api-reference";
 import { safeGetSession } from "@/getSession";
 import { db, hasOrgPermission, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
-import { createTraceAsync } from "@/tracing/wideEvent";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 
 // Main API router
 export const apiRoute = new Hono<AppEnv>();
@@ -35,7 +35,7 @@ apiRoute.get(
 				},
 			],
 		};
-	}),
+	})
 );
 apiRoute.route("/public", apiPublicRoute);
 apiRoute.get(
@@ -54,7 +54,7 @@ apiRoute.get(
 				},
 			],
 		},
-	}),
+	})
 );
 apiRoute.use("*", async (c, next) => {
 	const method = c.req.method;
@@ -66,27 +66,23 @@ apiRoute.use("*", async (c, next) => {
 	// otherwise continue with session logic
 	// const session = await safeGetSession(c.req.raw.headers);
 	const traceAsync = createTraceAsync();
-	const session = await traceAsync(
-		"session",
-		() => safeGetSession(c.req.raw.headers),
-		{
-			description: "Fetching user session",
-			data: {},
-			onSuccess: (result) =>
-				result
-					? {
-							outcome: "Session verified and attached",
-							data: {
-								user_id: result.user.id,
-								user_name: result.user.name,
-								user_role: result.user.role,
-							},
-						}
-					: {
-							outcome: "No active session found",
+	const session = await traceAsync("session", () => safeGetSession(c.req.raw.headers), {
+		description: "Fetching user session",
+		data: {},
+		onSuccess: (result) =>
+			result
+				? {
+						outcome: "Session verified and attached",
+						data: {
+							user_id: result.user.id,
+							user_name: result.user.name,
+							user_role: result.user.role,
 						},
-		},
-	);
+					}
+				: {
+						outcome: "No active session found",
+					},
+	});
 	if (!session) {
 		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
 		return next();
@@ -120,7 +116,7 @@ apiRoute.get("/github/org-check", async (c) => {
 							description: "User does not have permission to do that",
 						};
 			},
-		},
+		}
 	);
 
 	if (!isAuthorized) {
@@ -129,7 +125,7 @@ apiRoute.get("/github/org-check", async (c) => {
 				success: false,
 				error: "You don't have permission to do that",
 			},
-			401,
+			401
 		);
 	}
 	// Helper: retry wrapper
@@ -162,10 +158,7 @@ apiRoute.get("/github/org-check", async (c) => {
 		})
 		.where(eq(schema.githubInstallation.installationId, installationId));
 	const root = process.env.VITE_URL_ROOT || "http://localhost:3000/";
-	const redirectUrl = new URL(
-		`/admin/settings/org/${orgId}/connections/github`,
-		root,
-	).toString();
+	const redirectUrl = new URL(`/admin/settings/org/${orgId}/connections/github`, root).toString();
 
 	return c.redirect(redirectUrl, 302);
 });
