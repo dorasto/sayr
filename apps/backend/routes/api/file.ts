@@ -1,7 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
 import { db, hasOrgPermission } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
-import { ensureCdnUrl, extractPrivateIdFromUrl, getFileNameFromUrl } from "@repo/util";
+import {
+	ensureCdnUrl,
+	extractPrivateIdFromUrl,
+	getFileNameFromUrl,
+} from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
@@ -34,7 +38,8 @@ apiRouteFile.put("/", async (c) => {
 
 	const buffer = Buffer.from(await file.arrayBuffer());
 
-	const mimeType = file.type || mime.lookup(file.name || "") || "application/octet-stream";
+	const mimeType =
+		file.type || mime.lookup(file.name || "") || "application/octet-stream";
 	const ext = mime.extension(mimeType) || "bin";
 
 	const salt = process.env.FILE_SALT || "";
@@ -49,7 +54,8 @@ apiRouteFile.put("/", async (c) => {
 	const performUpload = async (path: string, isPrivate: boolean) => {
 		const uploadedUrl = await traceAsync(
 			"file.upload.storage",
-			() => uploadObject(objectName, buffer, path, { "Content-Type": contentType }),
+			() =>
+				uploadObject(objectName, buffer, path, { "Content-Type": contentType }),
 			{
 				description: `Uploading file to ${isPrivate ? "private" : "public"} storage`,
 				data: { objectName, path, isPrivate },
@@ -57,7 +63,7 @@ apiRouteFile.put("/", async (c) => {
 					description: "File uploaded successfully",
 					data: { objectName },
 				}),
-			}
+			},
 		);
 		return ensureCdnUrl(uploadedUrl);
 	};
@@ -76,9 +82,22 @@ apiRouteFile.put("/", async (c) => {
 
 	// Private upload - check authorization
 	const isAuthorized = await traceAsync(
-		"file.upload.auth_check",
+		"hasOrgPermission",
 		() => hasOrgPermission(session?.userId || "", orgId, "members"),
-		{ description: "Checking org permission", data: { orgId, userId: session?.userId } }
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
 	);
 
 	if (!isAuthorized) {
@@ -87,15 +106,15 @@ apiRouteFile.put("/", async (c) => {
 			description: "User not authorized, uploading as public",
 			data: { orgId, userId: session?.userId },
 		});
-
 		const url = await performUpload("files", false);
 		return c.json({ success: true, url });
 	}
 
 	const organization = await traceAsync(
 		"file.upload.org_lookup",
-		() => db.query.organization.findFirst({ where: (org) => eq(org.id, orgId) }),
-		{ description: "Finding organization", data: { orgId } }
+		() =>
+			db.query.organization.findFirst({ where: (org) => eq(org.id, orgId) }),
+		{ description: "Finding organization", data: { orgId } },
 	);
 
 	if (!organization) {
@@ -127,14 +146,10 @@ apiRouteFile.delete("/", async (c) => {
 	const session = c.get("session");
 
 	if (!session?.userId) {
-		await recordWideError({
-			name: "file.delete.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User not authenticated",
-			contextData: {},
-		});
-		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+		return c.json(
+			{ success: false, error: "You don't have permission to do that." },
+			401,
+		);
 	}
 
 	const { url } = await c.req.json();
@@ -152,7 +167,9 @@ apiRouteFile.delete("/", async (c) => {
 
 	const { hasPrivateId, privateId } = extractPrivateIdFromUrl(url);
 	const fileName = getFileNameFromUrl(url);
-	const storagePath = hasPrivateId ? `files/${privateId}/${fileName}` : `files/${fileName}`;
+	const storagePath = hasPrivateId
+		? `files/${privateId}/${fileName}`
+		: `files/${fileName}`;
 
 	await traceAsync("file.delete.storage", () => removeObject(storagePath), {
 		description: "Deleting file from storage",

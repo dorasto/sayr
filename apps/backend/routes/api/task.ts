@@ -50,29 +50,43 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	const session = c.get("session");
 
 	const isAuthorized = await traceAsync(
-		"task.create.auth",
-		() => hasOrgPermission(session?.userId ?? "", orgId, "tasks.create"),
-		{ description: "Checking permission for task creation" }
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "tasks.create"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
 	);
 
 	if (!isAuthorized) {
-		await recordWideError({
-			name: "task.create.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User does not have permission to create tasks",
-			contextData: { orgId, userId: session?.userId },
-		});
-		return c.json({ success: false, error: "You don't have permission to create tasks." }, 401);
+		return c.json(
+			{ success: false, error: "You don't have permission to create tasks." },
+			401,
+		);
 	}
 
 	const task = await traceAsync(
 		"task.create.insert",
-		() => createTask(orgId, { title, description, status, priority, category }, session?.userId),
+		() =>
+			createTask(
+				orgId,
+				{ title, description, status, priority, category },
+				session?.userId,
+			),
 		{
 			description: "Creating task record",
 			data: { orgId, title, status, priority, category },
-		}
+		},
 	);
 
 	if (!task) {
@@ -83,7 +97,10 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			message: "Failed to create task in database",
 			contextData: { orgId, title },
 		});
-		return c.json({ success: false, path: c.req.path, error: "Failed to create task" }, 500);
+		return c.json(
+			{ success: false, path: c.req.path, error: "Failed to create task" },
+			500,
+		);
 	}
 
 	await traceAsync(
@@ -111,7 +128,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				null,
 				{ status, priority, title, labels, assignees },
 				session?.userId,
-				description
+				description,
 			);
 		},
 		{
@@ -121,12 +138,16 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				labelCount: labels?.length ?? 0,
 				assigneeCount: assignees?.length ?? 0,
 			},
-		}
+		},
 	);
 
-	const taskWithData = await traceAsync("task.create.refetch", () => getTaskById(orgId, task.id), {
-		description: "Fetching created task with relations",
-	});
+	const taskWithData = await traceAsync(
+		"task.create.refetch",
+		() => getTaskById(orgId, task.id),
+		{
+			description: "Fetching created task with relations",
+		},
+	);
 
 	await traceAsync(
 		"task.create.broadcast",
@@ -147,11 +168,11 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 					(client) =>
 						client.wsClientId !== wsClientId &&
 						client.channel !== "tasks" &&
-						broadcastIndividual(client.socket, data, orgId)
+						broadcastIndividual(client.socket, data, orgId),
 				);
 			});
 		},
-		{ description: "Broadcasting new task to clients" }
+		{ description: "Broadcasting new task to clients" },
 	);
 
 	await traceAsync(
@@ -160,7 +181,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const foundLink = await db.query.githubRepository.findFirst({
 				where: and(
 					eq(schema.githubRepository.organizationId, orgId),
-					eq(schema.githubRepository.categoryId, category)
+					eq(schema.githubRepository.categoryId, category),
 				),
 			});
 
@@ -169,18 +190,24 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const token = await getInstallationToken(foundLink.installationId);
 			const octokit = new Octokit({ auth: token });
 
-			const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
-				repository_id: foundLink.repoId,
-			});
+			const { data: repoInfo } = await octokit.request(
+				"GET /repositories/{repository_id}",
+				{
+					repository_id: foundLink.repoId,
+				},
+			);
 
 			const owner = repoInfo.owner.login;
 			const repo = repoInfo.name;
 
-			const { data: issue } = await octokit.request("POST /repos/{owner}/{repo}/issues", {
-				owner,
-				repo,
-				title,
-			});
+			const { data: issue } = await octokit.request(
+				"POST /repos/{owner}/{repo}/issues",
+				{
+					owner,
+					repo,
+					title,
+				},
+			);
 
 			await db.insert(schema.githubIssue).values({
 				repositoryId: foundLink.id,
@@ -197,7 +224,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				description: "GitHub sync completed",
 				data: {},
 			}),
-		}
+		},
 	);
 
 	return c.json({ success: true, data: taskWithData });
@@ -208,28 +235,39 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, ...updates } = await c.req.json();
+	const {
+		org_id: orgId,
+		wsClientId,
+		task_id: taskId,
+		...updates
+	} = await c.req.json();
 	const session = c.get("session");
 	const isSystemAccount = session?.userId === process.env.SYSTEM_ACCOUNT_ID;
 
 	const isAuthorized = await traceAsync(
-		"task.update.auth",
-		() => hasOrgPermission(session?.userId ?? "", orgId, "members"),
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "members"),
 		{
-			description: "Checking permission for task update",
-			data: { isSystemAccount },
-		}
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
 	);
 
 	if (!isAuthorized && !isSystemAccount) {
-		await recordWideError({
-			name: "task.update.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User does not have permission to update tasks",
-			contextData: { orgId, userId: session?.userId },
-		});
-		return c.json({ success: false, error: "You don't have permission to update tasks." }, 401);
+		return c.json(
+			{ success: false, error: "You don't have permission to update tasks." },
+			401,
+		);
 	}
 
 	const existingTask = await traceAsync(
@@ -238,7 +276,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			db.query.task.findFirst({
 				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
 			}),
-		{ description: "Finding task to update", data: { orgId, taskId } }
+		{ description: "Finding task to update", data: { orgId, taskId } },
 	);
 
 	if (!existingTask) {
@@ -253,12 +291,14 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	}
 
 	const allowed: Partial<schema.taskType> = {};
-	["title", "description", "status", "priority", "category"].forEach((field) => {
-		if (updates[field] !== undefined) {
-			// @ts-expect-error dynamic field
-			allowed[field] = updates[field];
-		}
-	});
+	["title", "description", "status", "priority", "category"].forEach(
+		(field) => {
+			if (updates[field] !== undefined) {
+				// @ts-expect-error dynamic field
+				allowed[field] = updates[field];
+			}
+		},
+	);
 
 	await traceAsync(
 		"task.update.save",
@@ -267,7 +307,12 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				await db
 					.update(schema.task)
 					.set({ ...allowed, updatedAt: new Date() })
-					.where(and(eq(schema.task.id, taskId), eq(schema.task.organizationId, orgId)))
+					.where(
+						and(
+							eq(schema.task.id, taskId),
+							eq(schema.task.organizationId, orgId),
+						),
+					)
 					.returning();
 			}
 
@@ -278,11 +323,18 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"category_change",
 					existingTask.category,
 					updates.category,
-					session?.userId
+					session?.userId,
 				);
 			}
 			if (updates.status && updates.status !== existingTask.status) {
-				await addLogEventTask(taskId, orgId, "status_change", existingTask.status, updates.status, session?.userId);
+				await addLogEventTask(
+					taskId,
+					orgId,
+					"status_change",
+					existingTask.status,
+					updates.status,
+					session?.userId,
+				);
 			}
 			if (updates.priority && updates.priority !== existingTask.priority) {
 				await addLogEventTask(
@@ -291,13 +343,24 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"priority_change",
 					existingTask.priority,
 					updates.priority,
-					session?.userId
+					session?.userId,
 				);
 			}
 			if (updates.title && updates.title !== existingTask.title) {
-				await addLogEventTask(taskId, orgId, "updated", existingTask.title, updates.title, session?.userId);
+				await addLogEventTask(
+					taskId,
+					orgId,
+					"updated",
+					existingTask.title,
+					updates.title,
+					session?.userId,
+				);
 			}
-			if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
+			if (
+				updates.description &&
+				JSON.stringify(updates.description) !==
+					JSON.stringify(existingTask.description)
+			) {
 				await addLogEventTask(
 					taskId,
 					orgId,
@@ -305,7 +368,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					existingTask.description,
 					updates.description,
 					session?.userId,
-					updates.description
+					updates.description,
 				);
 			}
 		},
@@ -316,12 +379,16 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				description: "Task updated successfully",
 				data: { updates: allowed },
 			}),
-		}
+		},
 	);
 
-	const taskWithData = await traceAsync("task.update.refetch", () => getTaskById(orgId, taskId), {
-		description: "Refetching updated task data",
-	});
+	const taskWithData = await traceAsync(
+		"task.update.refetch",
+		() => getTaskById(orgId, taskId),
+		{
+			description: "Refetching updated task data",
+		},
+	);
 
 	await traceAsync(
 		"task.update.broadcast",
@@ -341,12 +408,14 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				clients.forEach(
 					(client) =>
 						client.wsClientId !== wsClientId &&
-						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						!(
+							client.channel === `task:${taskId}` || client.channel === "tasks"
+						) &&
+						broadcastIndividual(client.socket, data, orgId),
 				);
 			});
 		},
-		{ description: "Broadcasting task update to clients" }
+		{ description: "Broadcasting task update to clients" },
 	);
 
 	return c.json({ success: true, data: taskWithData });
@@ -376,7 +445,13 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 			message: "User does not have permission to link GitHub issues",
 			contextData: { orgId, userId: session?.userId },
 		});
-		return c.json({ success: false, error: "You don't have permission to link GitHub issues." }, 401);
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to link GitHub issues.",
+			},
+			401,
+		);
 	}
 
 	const existingTask = await traceAsync(
@@ -385,7 +460,7 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 			db.query.task.findFirst({
 				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
 			}),
-		{ description: "Finding task to link", data: { orgId, taskId } }
+		{ description: "Finding task to link", data: { orgId, taskId } },
 	);
 
 	if (!existingTask) {
@@ -405,7 +480,7 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 			db.query.githubRepository.findFirst({
 				where: (r) => and(eq(r.organizationId, orgId), eq(r.repoId, repoId)),
 			}),
-		{ description: "Finding repository", data: { orgId, repoId } }
+		{ description: "Finding repository", data: { orgId, repoId } },
 	);
 
 	if (!repo) {
@@ -425,7 +500,7 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 			db.query.githubIssue.findFirst({
 				where: (gi) => and(eq(gi.organizationId, orgId), eq(gi.taskId, taskId)),
 			}),
-		{ description: "Checking for existing link", data: { orgId, taskId } }
+		{ description: "Checking for existing link", data: { orgId, taskId } },
 	);
 
 	if (existingLink) {
@@ -434,7 +509,11 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 			error: new Error("Task already linked"),
 			code: "DUPLICATE_LINK",
 			message: `Task already linked to GitHub issue #${existingLink.issueNumber}`,
-			contextData: { orgId, taskId, existingIssueNumber: existingLink.issueNumber },
+			contextData: {
+				orgId,
+				taskId,
+				existingIssueNumber: existingLink.issueNumber,
+			},
 		});
 		return c.json({
 			success: false,
@@ -464,7 +543,7 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 				description: "GitHub issue linked successfully",
 				data: { issueUrl },
 			}),
-		}
+		},
 	);
 
 	await traceAsync(
@@ -484,12 +563,13 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 				const clients = findClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						!(
+							client.channel === `task:${taskId}` || client.channel === "tasks"
+						) && broadcastIndividual(client.socket, data, orgId),
 				);
 			});
 		},
-		{ description: "Broadcasting GitHub link update to clients" }
+		{ description: "Broadcasting GitHub link update to clients" },
 	);
 
 	return c.json({ success: true, data: newLink });
@@ -500,24 +580,38 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, labels } = await c.req.json();
+	const {
+		org_id: orgId,
+		wsClientId,
+		task_id: taskId,
+		labels,
+	} = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceAsync(
-		"task.labels.update.auth",
-		() => hasOrgPermission(session?.userId ?? "", orgId, "members"),
-		{ description: "Checking permission for label update" }
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "members"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
 	);
 
 	if (!isAuthorized) {
-		await recordWideError({
-			name: "task.labels.update.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User does not have permission to update task labels",
-			contextData: { orgId, userId: session?.userId },
-		});
-		return c.json({ success: false, error: "You don't have permission to update labels." }, 401);
+		return c.json(
+			{ success: false, error: "You don't have permission to update labels." },
+			401,
+		);
 	}
 
 	try {
@@ -528,7 +622,10 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 					where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
 					with: { labels: { with: { label: true } } },
 				}),
-			{ description: "Finding task with current labels", data: { orgId, taskId } }
+			{
+				description: "Finding task with current labels",
+				data: { orgId, taskId },
+			},
 		);
 
 		if (!existingTask) {
@@ -551,14 +648,28 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 				for (const labelId of incomingLabelIds) {
 					if (!currentLabelIds.includes(labelId)) {
 						await addLabelToTask(orgId, taskId, labelId);
-						await addLogEventTask(taskId, orgId, "label_added", null, labelId, session?.userId);
+						await addLogEventTask(
+							taskId,
+							orgId,
+							"label_added",
+							null,
+							labelId,
+							session?.userId,
+						);
 					}
 				}
 
 				for (const labelId of currentLabelIds) {
 					if (!incomingLabelIds.includes(labelId)) {
 						await removeLabelFromTask(orgId, taskId, labelId);
-						await addLogEventTask(taskId, orgId, "label_removed", null, labelId, session?.userId);
+						await addLogEventTask(
+							taskId,
+							orgId,
+							"label_removed",
+							null,
+							labelId,
+							session?.userId,
+						);
 					}
 				}
 			},
@@ -573,16 +684,24 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 				onSuccess: () => ({
 					description: "Task labels synced successfully",
 					data: {
-						added: incomingLabelIds.filter((id) => !currentLabelIds.includes(id)),
-						removed: currentLabelIds.filter((id) => !incomingLabelIds.includes(id)),
+						added: incomingLabelIds.filter(
+							(id) => !currentLabelIds.includes(id),
+						),
+						removed: currentLabelIds.filter(
+							(id) => !incomingLabelIds.includes(id),
+						),
 					},
 				}),
-			}
+			},
 		);
 
-		const taskWithData = await traceAsync("task.labels.update.refetch", () => getTaskById(orgId, taskId), {
-			description: "Refetching updated task data",
-		});
+		const taskWithData = await traceAsync(
+			"task.labels.update.refetch",
+			() => getTaskById(orgId, taskId),
+			{
+				description: "Refetching updated task data",
+			},
+		);
 
 		await traceAsync(
 			"task.labels.update.broadcast",
@@ -593,7 +712,13 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 					data: taskWithData,
 				};
 
-				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+				broadcastToRoom(
+					orgId,
+					`tasks;task:${taskId}`,
+					data,
+					found?.socket,
+					true,
+				);
 				broadcastPublic(orgId, { ...data });
 
 				const members = await getOrganizationMembers(orgId);
@@ -602,12 +727,15 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 					clients.forEach(
 						(client) =>
 							client.wsClientId !== wsClientId &&
-							!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-							broadcastIndividual(client.socket, data, orgId)
+							!(
+								client.channel === `task:${taskId}` ||
+								client.channel === "tasks"
+							) &&
+							broadcastIndividual(client.socket, data, orgId),
 					);
 				});
 			},
-			{ description: "Broadcasting label update to clients" }
+			{ description: "Broadcasting label update to clients" },
 		);
 
 		return c.json({ success: true, data: taskWithData });
@@ -630,24 +758,41 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, assignees } = await c.req.json();
+	const {
+		org_id: orgId,
+		wsClientId,
+		task_id: taskId,
+		assignees,
+	} = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceAsync(
-		"task.assignees.update.auth",
-		() => hasOrgPermission(session?.userId ?? "", orgId, "tasks.assign"),
-		{ description: "Checking permission for assignee update" }
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "tasks.assign"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
 	);
 
 	if (!isAuthorized) {
-		await recordWideError({
-			name: "task.assignees.update.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User does not have permission to update task assignees",
-			contextData: { orgId, userId: session?.userId },
-		});
-		return c.json({ success: false, error: "You don't have permission to update assignees." }, 401);
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to update assignees.",
+			},
+			401,
+		);
 	}
 
 	try {
@@ -658,11 +803,16 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 					where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
 					with: {
 						assignees: {
-							with: { user: { columns: { id: true, name: true, image: true } } },
+							with: {
+								user: { columns: { id: true, name: true, image: true } },
+							},
 						},
 					},
 				}),
-			{ description: "Finding task with current assignees", data: { orgId, taskId } }
+			{
+				description: "Finding task with current assignees",
+				data: { orgId, taskId },
+			},
 		);
 
 		if (!existingTask) {
@@ -688,7 +838,14 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 							.insert(schema.taskAssignee)
 							.values({ taskId, organizationId: orgId, userId })
 							.onConflictDoNothing();
-						await addLogEventTask(taskId, orgId, "assignee_added", null, userId, session?.userId);
+						await addLogEventTask(
+							taskId,
+							orgId,
+							"assignee_added",
+							null,
+							userId,
+							session?.userId,
+						);
 					}
 				}
 
@@ -700,10 +857,17 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 								and(
 									eq(schema.taskAssignee.taskId, taskId),
 									eq(schema.taskAssignee.organizationId, orgId),
-									eq(schema.taskAssignee.userId, userId)
-								)
+									eq(schema.taskAssignee.userId, userId),
+								),
 							);
-						await addLogEventTask(taskId, orgId, "assignee_removed", null, userId, session?.userId);
+						await addLogEventTask(
+							taskId,
+							orgId,
+							"assignee_removed",
+							null,
+							userId,
+							session?.userId,
+						);
 					}
 				}
 			},
@@ -718,16 +882,24 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 				onSuccess: () => ({
 					description: "Task assignees synced successfully",
 					data: {
-						added: incomingAssigneeIds.filter((id) => !currentAssigneeIds.includes(id)),
-						removed: currentAssigneeIds.filter((id) => !incomingAssigneeIds.includes(id)),
+						added: incomingAssigneeIds.filter(
+							(id) => !currentAssigneeIds.includes(id),
+						),
+						removed: currentAssigneeIds.filter(
+							(id) => !incomingAssigneeIds.includes(id),
+						),
 					},
 				}),
-			}
+			},
 		);
 
-		const taskWithData = await traceAsync("task.assignees.update.refetch", () => getTaskById(orgId, taskId), {
-			description: "Refetching updated task data",
-		});
+		const taskWithData = await traceAsync(
+			"task.assignees.update.refetch",
+			() => getTaskById(orgId, taskId),
+			{
+				description: "Refetching updated task data",
+			},
+		);
 
 		await traceAsync(
 			"task.assignees.update.broadcast",
@@ -738,7 +910,13 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 					data: taskWithData,
 				};
 
-				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+				broadcastToRoom(
+					orgId,
+					`tasks;task:${taskId}`,
+					data,
+					found?.socket,
+					true,
+				);
 				broadcastPublic(orgId, { ...data });
 
 				const members = await getOrganizationMembers(orgId);
@@ -747,12 +925,15 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 					clients.forEach(
 						(client) =>
 							client.wsClientId !== wsClientId &&
-							!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-							broadcastIndividual(client.socket, data, orgId)
+							!(
+								client.channel === `task:${taskId}` ||
+								client.channel === "tasks"
+							) &&
+							broadcastIndividual(client.socket, data, orgId),
 					);
 				});
 			},
-			{ description: "Broadcasting assignee update to clients" }
+			{ description: "Broadcasting assignee update to clients" },
 		);
 
 		return c.json({ success: true, data: taskWithData });
@@ -776,24 +957,42 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility } = await c.req.json();
+	const {
+		org_id: orgId,
+		wsClientId,
+		task_id: taskId,
+		content,
+		visibility,
+	} = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceAsync(
-		"task.comment.create.auth",
-		() => hasOrgPermission(session?.userId ?? "", orgId, "members"),
-		{ description: "Checking org membership for comment creation" }
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "members"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
 	);
 
 	if (!isAuthorized) {
-		await recordWideError({
-			name: "task.comment.create.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User does not have permission to create task comments",
-			contextData: { orgId, userId: session?.userId },
-		});
-		return c.json({ success: false, error: "You don't have permission to create comments." }, 401);
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to create comments.",
+			},
+			401,
+		);
 	}
 
 	await traceAsync(
@@ -806,7 +1005,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				description: "Task comment created successfully",
 				data: {},
 			}),
-		}
+		},
 	);
 
 	await traceAsync(
@@ -828,12 +1027,14 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 					(client) =>
 						client.wsClientId !== wsClientId &&
 						client.orgId !== orgId &&
-						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						!(
+							client.channel === `task:${taskId}` || client.channel === "tasks"
+						) &&
+						broadcastIndividual(client.socket, data, orgId),
 				);
 			});
 		},
-		{ description: "Broadcasting new comment to clients" }
+		{ description: "Broadcasting new comment to clients" },
 	);
 
 	return c.json({ success: true, data: { id: taskId } });
@@ -844,30 +1045,45 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, comment_id: commentId, content, visibility } = await c.req.json();
+	const {
+		org_id: orgId,
+		wsClientId,
+		comment_id: commentId,
+		content,
+		visibility,
+	} = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceAsync(
-		"task.comment.edit.auth",
-		() => hasOrgPermission(session?.userId ?? "", orgId, "members"),
-		{ description: "Checking org membership for comment edit" }
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "members"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
 	);
 
 	if (!isAuthorized) {
-		await recordWideError({
-			name: "task.comment.edit.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User does not have permission to edit task comments",
-			contextData: { orgId, userId: session?.userId },
-		});
-		return c.json({ success: false, error: "You don't have permission to edit comments." }, 401);
+		return c.json(
+			{ success: false, error: "You don't have permission to edit comments." },
+			401,
+		);
 	}
 
 	const comment = await traceAsync(
 		"task.comment.edit.lookup",
 		() => db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) }),
-		{ description: "Finding comment to edit", data: { commentId } }
+		{ description: "Finding comment to edit", data: { commentId } },
 	);
 
 	if (!comment) {
@@ -904,12 +1120,17 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 			}),
 		{
 			description: "Updating comment and inserting history",
-			data: { orgId, commentId, taskId: comment.taskId, userId: session?.userId },
+			data: {
+				orgId,
+				commentId,
+				taskId: comment.taskId,
+				userId: session?.userId,
+			},
 			onSuccess: () => ({
 				description: "Task comment edited successfully",
 				data: { visibility: visibility ?? comment.visibility },
 			}),
-		}
+		},
 	);
 
 	await traceAsync(
@@ -921,7 +1142,13 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 				data: { id: comment.taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${comment.taskId}`, data, found?.socket, false);
+			broadcastToRoom(
+				orgId,
+				`task:${comment.taskId}`,
+				data,
+				found?.socket,
+				false,
+			);
 			broadcastPublic(orgId, { ...data });
 
 			const members = await getOrganizationMembers(orgId);
@@ -931,12 +1158,15 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 					(client) =>
 						client.wsClientId !== wsClientId &&
 						client.orgId !== orgId &&
-						!(client.channel === `task:${comment.taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						!(
+							client.channel === `task:${comment.taskId}` ||
+							client.channel === "tasks"
+						) &&
+						broadcastIndividual(client.socket, data, orgId),
 				);
 			});
 		},
-		{ description: "Broadcasting comment update to clients" }
+		{ description: "Broadcasting comment update to clients" },
 	);
 
 	return c.json({ success: true, data: { id: comment.taskId } });
@@ -946,7 +1176,11 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, task_id: taskId, comment_id: commentId } = c.req.query();
+	const {
+		org_id: orgId,
+		task_id: taskId,
+		comment_id: commentId,
+	} = c.req.query();
 	const session = c.get("session");
 
 	if (!orgId || !taskId || !commentId) {
@@ -961,20 +1195,31 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 	}
 
 	const isAuthorized = await traceAsync(
-		"task.comment.history.auth",
-		() => hasOrgPermission(session?.userId ?? "", orgId, "members"),
-		{ description: "Checking org membership for comment history" }
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "members"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
 	);
-
 	if (!isAuthorized) {
-		await recordWideError({
-			name: "task.comment.history.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User does not have permission to view task comment history",
-			contextData: { orgId, userId: session?.userId },
-		});
-		return c.json({ success: false, error: "You don't have permission to view comment history." }, 401);
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to view comment history.",
+			},
+			401,
+		);
 	}
 
 	const history = await traceAsync(
@@ -983,7 +1228,13 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 			db
 				.select()
 				.from(schema.taskCommentHistory)
-				.where((t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId), eq(t.commentId, commentId)))
+				.where((t) =>
+					and(
+						eq(t.organizationId, orgId),
+						eq(t.taskId, taskId),
+						eq(t.commentId, commentId),
+					),
+				)
 				.orderBy((t) => [desc(t.editedAt)]),
 		{
 			description: "Fetching comment history",
@@ -992,7 +1243,7 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 				description: "Task comment history fetched successfully",
 				data: { historyCount: result.length },
 			}),
-		}
+		},
 	);
 
 	return c.json({ success: true, data: history });
@@ -1000,6 +1251,7 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 
 // Get merged task activity timeline
 apiRouteAdminProjectTask.get("/timeline", async (c) => {
+	const traceAsync = createTraceAsync();
 	const recordWideEvent = c.get("recordWideEvent");
 	await recordWideEvent({
 		name: "task.timeline.fetch",
@@ -1031,16 +1283,37 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 				error: "MISSING_PARAMETERS",
 				message: `The following parameters are required: ${missingParams.join(", ")}`,
 			},
-			400
+			400,
 		);
 	}
 
 	const session = c.get("session");
 
-	const isAuthorized = await hasOrgPermission(session?.userId || "", org_id || "", "members");
+	const isAuthorized = await traceAsync(
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", org_id || "", "members"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { org_id, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
+	);
 
 	if (!isAuthorized) {
-		const timeline = await getMergedTaskActivity(org_id || "", task_id || "", true);
+		const timeline = await getMergedTaskActivity(
+			org_id || "",
+			task_id || "",
+			true,
+		);
 		await recordWideEvent({
 			name: "task.timeline.fetch",
 			description: "Task timeline fetched (unauthorized – public mode)",
@@ -1054,7 +1327,11 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 		return c.json({ success: true, data: timeline });
 	}
 
-	const timeline = await getMergedTaskActivity(org_id || "", task_id || "", false);
+	const timeline = await getMergedTaskActivity(
+		org_id || "",
+		task_id || "",
+		false,
+	);
 
 	await recordWideEvent({
 		name: "task.timeline.fetch",
@@ -1097,18 +1374,22 @@ apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
 				error: "MISSING_PARAMETERS",
 				message: `The following parameters are required: ${missingParams.join(", ")}`,
 			},
-			400
+			400,
 		);
 	}
 
-	const timeline = await traceAsync("task.timeline.activity", () => getTaskTimeline(orgId || "", taskId || ""), {
-		description: "Fetching task timeline activity",
-		data: { orgId, taskId },
-		onSuccess: (result) => ({
-			description: "Task timeline activity fetched successfully",
-			data: { resultCount: result.length },
-		}),
-	});
+	const timeline = await traceAsync(
+		"task.timeline.activity",
+		() => getTaskTimeline(orgId || "", taskId || ""),
+		{
+			description: "Fetching task timeline activity",
+			data: { orgId, taskId },
+			onSuccess: (result) => ({
+				description: "Task timeline activity fetched successfully",
+				data: { resultCount: result.length },
+			}),
+		},
+	);
 
 	return c.json({
 		success: true,
@@ -1140,8 +1421,23 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 
 		const isPublic = await traceAsync(
 			"hasOrgPermission",
-			async () => !session || !(await hasOrgPermission(session?.userId, orgId, "members")),
-			{ description: "Checking org membership" }
+			async () =>
+				!session ||
+				!(await hasOrgPermission(session?.userId, orgId, "members")),
+			{
+				description: "Checking org membership",
+				data: {},
+				onSuccess: (result) => {
+					return result
+						? {
+								description: "Permission granted",
+								data: { orgId, userId: session?.userId },
+							}
+						: {
+								description: "public",
+							};
+				},
+			},
 		);
 
 		const page = Math.max(Number(q.page) || 1, 1);
@@ -1151,16 +1447,19 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 		const base = and(
 			eq(schema.taskComment.organizationId, orgId),
 			eq(schema.taskComment.taskId, taskId),
-			isPublic ? eq(schema.taskComment.visibility, "public") : undefined
+			isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
 		);
 
 		const totalItems = await traceAsync(
 			"task.comments.count",
 			async () => {
-				const [result] = await db.select({ count: sql<number>`count(*)` }).from(schema.taskComment).where(base);
+				const [result] = await db
+					.select({ count: sql<number>`count(*)` })
+					.from(schema.taskComment)
+					.where(base);
 				return Number(result?.count ?? 0);
 			},
-			{ description: "Counting total comments" }
+			{ description: "Counting total comments" },
 		);
 
 		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
@@ -1198,7 +1497,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 						userId: session?.userId ?? "anonymous",
 					},
 				}),
-			}
+			},
 		);
 
 		return c.json({
@@ -1254,7 +1553,7 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 					FROM task_comment
 					WHERE organization_id = ${orgId}
 					  AND task_id = ${taskId};
-				`
+				`,
 			);
 			const total = Number(result[0]?.count ?? 0);
 			return {
@@ -1269,7 +1568,7 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 				description: "Task comments count fetched successfully",
 				data: result,
 			}),
-		}
+		},
 	);
 
 	return c.json({

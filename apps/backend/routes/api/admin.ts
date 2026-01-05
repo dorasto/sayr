@@ -11,30 +11,26 @@ export const apiRouteAdmin = new Hono<AppEnv>();
 // Get all tasks assigned to the logged-in user
 apiRouteAdmin.get("/tasks/mine", async (c) => {
 	const traceAsync = createTraceAsync();
-	const recordWideError = c.get("recordWideError");
 	const recordWideEvent = c.get("recordWideEvent");
 
 	const session = c.get("session");
 
 	if (!session?.userId) {
-		await recordWideError({
-			name: "tasks.mine.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User not authenticated",
-			contextData: {},
-		});
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 
-	const tasks = await traceAsync("tasks.mine.fetch", () => getTasksByUserId(session.userId), {
-		description: "Fetching user's assigned tasks",
-		data: { userId: session.userId },
-		onSuccess: (result) => ({
-			description: "Tasks fetched successfully",
-			data: { taskCount: result.length },
-		}),
-	});
+	const tasks = await traceAsync(
+		"tasks.mine.fetch",
+		() => getTasksByUserId(session.userId),
+		{
+			description: "Fetching user's assigned tasks",
+			data: { userId: session.userId },
+			onSuccess: (result) => ({
+				description: "Tasks fetched successfully",
+				data: { taskCount: result.length },
+			}),
+		},
+	);
 
 	await recordWideEvent({
 		name: "tasks.mine.success",
@@ -56,17 +52,14 @@ apiRouteAdmin.post("/invite", async (c) => {
 	const session = c.get("session");
 
 	if (!session?.userId) {
-		await recordWideError({
-			name: "invite.response.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User not authenticated",
-			contextData: {},
-		});
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 
-	const { invite, type }: { invite: schema.inviteType; type: "accept" | "deny" } = await c.req.json();
+	const {
+		invite,
+		type,
+	}: { invite: schema.inviteType; type: "accept" | "deny" } =
+		await c.req.json();
 
 	if (!invite || !type) {
 		await recordWideError({
@@ -96,11 +89,16 @@ apiRouteAdmin.post("/invite", async (c) => {
 		() =>
 			db
 				.delete(schema.invite)
-				.where(and(eq(schema.invite.id, invite.id), eq(schema.invite.organizationId, invite.organizationId))),
+				.where(
+					and(
+						eq(schema.invite.id, invite.id),
+						eq(schema.invite.organizationId, invite.organizationId),
+					),
+				),
 		{
 			description: "Deleting invite record",
 			data: { inviteId: invite.id, organizationId: invite.organizationId },
-		}
+		},
 	);
 
 	if (type === "accept") {
@@ -122,7 +120,7 @@ apiRouteAdmin.post("/invite", async (c) => {
 					description: "Membership created successfully",
 					data: { organizationId: invite.organizationId },
 				}),
-			}
+			},
 		);
 
 		await recordWideEvent({

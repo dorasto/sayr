@@ -7,8 +7,7 @@ import { apiPublicRoute } from "./public";
 import { openAPIRouteHandler } from "hono-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
 import { safeGetSession } from "@/getSession";
-import { checkMembershipRole } from "@/util";
-import { db, schema } from "@repo/database";
+import { db, hasOrgPermission, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { createTraceAsync } from "@/tracing/wideEvent";
 
@@ -36,7 +35,7 @@ apiRoute.get(
 				},
 			],
 		};
-	})
+	}),
 );
 apiRoute.route("/public", apiPublicRoute);
 apiRoute.get(
@@ -55,7 +54,7 @@ apiRoute.get(
 				},
 			],
 		},
-	})
+	}),
 );
 apiRoute.use("*", async (c, next) => {
 	const method = c.req.method;
@@ -67,23 +66,27 @@ apiRoute.use("*", async (c, next) => {
 	// otherwise continue with session logic
 	// const session = await safeGetSession(c.req.raw.headers);
 	const traceAsync = createTraceAsync();
-	const session = await traceAsync("session", () => safeGetSession(c.req.raw.headers), {
-		description: "Fetching user session",
-		data: {},
-		onSuccess: (result) =>
-			result
-				? {
-						description: "Session verified and attached",
-						data: {
-							user_id: result.user.id,
-							user_name: result.user.name,
-							user_role: result.user.role,
+	const session = await traceAsync(
+		"session",
+		() => safeGetSession(c.req.raw.headers),
+		{
+			description: "Fetching user session",
+			data: {},
+			onSuccess: (result) =>
+				result
+					? {
+							description: "Session verified and attached",
+							data: {
+								user_id: result.user.id,
+								user_name: result.user.name,
+								user_role: result.user.role,
+							},
+						}
+					: {
+							description: "No active session found",
 						},
-					}
-				: {
-						description: "No active session found",
-					},
-	});
+		},
+	);
 	if (!session) {
 		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
 		return next();
@@ -93,6 +96,7 @@ apiRoute.use("*", async (c, next) => {
 	return next();
 });
 apiRoute.get("/github/org-check", async (c) => {
+	const traceAsync = createTraceAsync();
 	const installationId = Number(c.req.query("installation_id"));
 	const stateRaw = c.req.query("state") || "{}";
 	const orgId = stateRaw.split("org_")[1];
@@ -100,8 +104,34 @@ apiRoute.get("/github/org-check", async (c) => {
 		return c.text("❌ Missing installation_id or orgId", 400);
 	}
 	const session = c.get("session");
-	const isAuthorized = await checkMembershipRole(session?.userId, orgId);
-	if (!isAuthorized) return c.text("❌ Unauthorized", 403);
+	const isAuthorized = await traceAsync(
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		},
+	);
+
+	if (!isAuthorized) {
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to do that",
+			},
+			401,
+		);
+	}
 	// Helper: retry wrapper
 	async function retryFindInstallation(maxRetries = 5, delayMs = 500) {
 		for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -132,7 +162,10 @@ apiRoute.get("/github/org-check", async (c) => {
 		})
 		.where(eq(schema.githubInstallation.installationId, installationId));
 	const root = process.env.VITE_URL_ROOT || "http://localhost:3000/";
-	const redirectUrl = new URL(`/admin/settings/org/${orgId}/connections/github`, root).toString();
+	const redirectUrl = new URL(
+		`/admin/settings/org/${orgId}/connections/github`,
+		root,
+	).toString();
 
 	return c.redirect(redirectUrl, 302);
 });

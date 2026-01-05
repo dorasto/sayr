@@ -12,19 +12,11 @@ apiRouteConsole.post("/set-role", async (c) => {
 	const recordWideEvent = c.get("recordWideEvent");
 
 	const session = c.get("session");
+	const user = c.get("user");
 
 	if (!session?.userId) {
-		await recordWideError({
-			name: "console.set_role.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User not authenticated",
-			contextData: {},
-		});
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
-
-	const user = c.get("user");
 
 	if (user?.role !== "admin") {
 		await recordWideError({
@@ -37,7 +29,8 @@ apiRouteConsole.post("/set-role", async (c) => {
 		return c.json({ success: false, error: "FORBIDDEN" }, 403);
 	}
 
-	const { userId, role }: { userId: string; role: "admin" | "user" } = await c.req.json();
+	const { userId, role }: { userId: string; role: "admin" | "user" } =
+		await c.req.json();
 
 	if (!userId || !role) {
 		await recordWideError({
@@ -64,7 +57,7 @@ apiRouteConsole.post("/set-role", async (c) => {
 				description: "User role updated successfully",
 				data: { userId, newRole: role },
 			}),
-		}
+		},
 	);
 
 	await recordWideEvent({
