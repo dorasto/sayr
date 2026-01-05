@@ -25,6 +25,11 @@ import { IconCheck, IconLock, IconX } from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
+import {
+  ReactionDisplay,
+  type Reaction,
+  type ReactionEmoji,
+} from "./reactions";
 import type { TimelineItemWrapperProps } from "./types";
 
 export function TimelineItemWrapper({
@@ -44,7 +49,14 @@ export function TimelineItemWrapper({
   canSave,
   first,
   hideContent,
-}: TimelineItemWrapperProps) {
+  reactions,
+  onReactionToggle,
+  onReactionAdd,
+}: TimelineItemWrapperProps & {
+  reactions?: Reaction[];
+  onReactionToggle?: (emoji: ReactionEmoji) => void;
+  onReactionAdd?: (emoji: ReactionEmoji) => void;
+}) {
   const isCreated = item.eventType === "created";
   return (
     <TimelineItem
@@ -92,7 +104,7 @@ export function TimelineItemWrapper({
       {item.content && !hideContent ? (
         <TimelineContent
           className={cn(
-            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden px-4 py-3",
+            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden px-4 py-3 group/timeline-item",
             item.visibility === "internal" && "border-primary/30 bg-primary/5",
             first && "border-0 bg-transparent p-0",
           )}
@@ -140,7 +152,8 @@ export function TimelineItemWrapper({
                   </Badge>
                 )}
                 {actionButtons && (
-                  <div className="flex items-center gap-2 ml-auto">
+                  <div className="flex items-center gap-2 ml-auto opacity-0 group-hover/timeline-item:opacity-100 has-data-[state=open]:opacity-100 transition-all">
+                    {/*has-[[data-state=open]]:opacity-100*/}
                     {actionButtons}
                   </div>
                 )}
@@ -185,6 +198,15 @@ export function TimelineItemWrapper({
                 users={availableUsers}
                 categories={categories}
                 tasks={tasks}
+              />
+            )}
+            {/* Reactions display */}
+            {reactions && onReactionToggle && onReactionAdd && (
+              <ReactionDisplay
+                reactions={reactions}
+                onToggle={onReactionToggle}
+                onAddReaction={onReactionAdd}
+                className=""
               />
             )}
           </div>

@@ -1,3 +1,4 @@
+import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -45,6 +46,7 @@ import { UpdateTaskCommentAction } from "@/lib/fetches/task";
 import { extractTextContent, useToastAction } from "@/lib/util";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
+import { ReactionPicker, useReactions } from "./reactions";
 import type { TimelineItemProps } from "./types";
 
 // --------------------
@@ -244,6 +246,7 @@ export function TimelineComment({
 	tasks,
 }: TimelineItemProps) {
 	const queryClient = useQueryClient();
+	const { data: session } = authClient.useSession();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
 
@@ -252,6 +255,13 @@ export function TimelineComment({
 		item.content as NodeJSON | undefined,
 	);
 	const [historyOpen, setHistoryOpen] = useState(false);
+
+	// Reactions - mock local state for UI testing
+	// Cast session.user to schema.userType for the mock (in real impl, this comes from backend)
+	const { reactions, toggleReaction, existingEmojis } = useReactions(
+		item.id,
+		session?.user as schema.userType | undefined,
+	);
 
 	const showHistory =
 		item.createdAt && item.updatedAt && item.createdAt !== item.updatedAt;
@@ -338,13 +348,22 @@ export function TimelineComment({
 				onCancel={handleCancel}
 				isSaving={isFetching}
 				canSave={canSave}
+				reactions={reactions}
+				onReactionToggle={toggleReaction}
+				onReactionAdd={toggleReaction}
 				actionButtons={
 					!isEditing ? (
-						<CommentActionsMenu
-							showHistory={!!showHistory}
-							onEdit={() => setIsEditing(true)}
-							onViewHistory={() => setHistoryOpen(true)}
-						/>
+						<>
+							<ReactionPicker
+								onSelect={toggleReaction}
+								existingReactions={existingEmojis}
+							/>
+							<CommentActionsMenu
+								showHistory={!!showHistory}
+								onEdit={() => setIsEditing(true)}
+								onViewHistory={() => setHistoryOpen(true)}
+							/>
+						</>
 					) : undefined
 				}
 			/>
