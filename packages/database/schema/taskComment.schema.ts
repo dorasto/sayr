@@ -5,7 +5,7 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
-import type { NodeJSON } from ".";
+import { taskCommentReaction, type NodeJSON } from ".";
 export const taskCommentVisibilityEnum = v.pgEnum("task_comment_visibility", ["public", "internal"]);
 
 export const taskComment = table(
@@ -36,7 +36,7 @@ export const taskComment = table(
 
 export type taskCommentType = typeof taskComment.$inferSelect;
 
-export const taskCommentRelations = relations(taskComment, ({ one }) => ({
+export const taskCommentRelations = relations(taskComment, ({ one, many }) => ({
 	task: one(task, {
 		fields: [taskComment.taskId],
 		references: [task.id],
@@ -49,4 +49,5 @@ export const taskCommentRelations = relations(taskComment, ({ one }) => ({
 		fields: [taskComment.createdBy],
 		references: [user.id],
 	}),
+	reactions: many(taskCommentReaction), // 👈 all reactions for this comment
 }));

@@ -27,7 +27,6 @@ import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
 import {
   ReactionDisplay,
-  type Reaction,
   type ReactionEmoji,
 } from "./reactions";
 import type { TimelineItemWrapperProps } from "./types";
@@ -49,15 +48,10 @@ export function TimelineItemWrapper({
   canSave,
   first,
   hideContent,
-  reactions,
   onReactionToggle,
-  onReactionAdd,
 }: TimelineItemWrapperProps & {
-  reactions?: Reaction[];
   onReactionToggle?: (emoji: ReactionEmoji) => void;
-  onReactionAdd?: (emoji: ReactionEmoji) => void;
 }) {
-  const isCreated = item.eventType === "created";
   return (
     <TimelineItem
       key={item.id}
@@ -201,12 +195,11 @@ export function TimelineItemWrapper({
               />
             )}
             {/* Reactions display */}
-            {reactions && onReactionToggle && onReactionAdd && (
+            {item.reactions?.reactions && (
               <ReactionDisplay
-                reactions={reactions}
-                onToggle={onReactionToggle}
-                onAddReaction={onReactionAdd}
-                className=""
+                reactions={item.reactions?.reactions}
+                toggleReaction={(emoji) => onReactionToggle ? onReactionToggle(emoji) : ""}
+                users={availableUsers}
               />
             )}
           </div>

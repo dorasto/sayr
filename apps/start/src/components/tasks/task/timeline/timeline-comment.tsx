@@ -1,4 +1,3 @@
-import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -10,17 +9,9 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/components/dialog";
-import {
-	Tile,
-	TileDescription,
-	TileHeader,
-	TileIcon,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -36,17 +27,16 @@ import {
 	IconHistory,
 	IconMessageDots,
 	IconPencil,
-	IconProgress,
 } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { useEffect, useState } from "react";
 import { processUploadsAndDeletions } from "@/components/prosekit/upload";
-import { UpdateTaskCommentAction } from "@/lib/fetches/task";
+import { CreateTaskReactionAction, UpdateTaskCommentAction } from "@/lib/fetches/task";
 import { extractTextContent, useToastAction } from "@/lib/util";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
-import { ReactionPicker, useReactions } from "./reactions";
+import { ReactionPicker } from "./reactions";
 import type { TimelineItemProps } from "./types";
 
 // --------------------
@@ -246,7 +236,6 @@ export function TimelineComment({
 	tasks,
 }: TimelineItemProps) {
 	const queryClient = useQueryClient();
-	const { data: session } = authClient.useSession();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
 
@@ -255,13 +244,6 @@ export function TimelineComment({
 		item.content as NodeJSON | undefined,
 	);
 	const [historyOpen, setHistoryOpen] = useState(false);
-
-	// Reactions - mock local state for UI testing
-	// Cast session.user to schema.userType for the mock (in real impl, this comes from backend)
-	const { reactions, toggleReaction, existingEmojis } = useReactions(
-		item.id,
-		session?.user as schema.userType | undefined,
-	);
 
 	const showHistory =
 		item.createdAt && item.updatedAt && item.createdAt !== item.updatedAt;
@@ -332,6 +314,13 @@ export function TimelineComment({
 		setEditedContent(item.content as NodeJSON | undefined);
 		setIsEditing(false);
 	}
+	// biome-ignore lint/suspicious/noExplicitAny: <any>
+	async function handleToggleReaction(commentId: string, emoji: any) {
+		await CreateTaskReactionAction(item.organizationId, item.taskId, commentId, emoji, wsClientId);
+		queryClient.invalidateQueries({
+			queryKey: ["timeline", "comments", item.taskId, item.organizationId],
+		});
+	}
 
 	return (
 		<>
@@ -348,15 +337,13 @@ export function TimelineComment({
 				onCancel={handleCancel}
 				isSaving={isFetching}
 				canSave={canSave}
-				reactions={reactions}
-				onReactionToggle={toggleReaction}
-				onReactionAdd={toggleReaction}
+				onReactionToggle={(e) => handleToggleReaction(item.id, e)}
 				actionButtons={
 					!isEditing ? (
 						<>
 							<ReactionPicker
-								onSelect={toggleReaction}
-								existingReactions={existingEmojis}
+								onSelect={(e) => handleToggleReaction(item.id, e)}
+								existingReactions={[]}
 							/>
 							<CommentActionsMenu
 								showHistory={!!showHistory}

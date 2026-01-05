@@ -14,14 +14,8 @@ let lastMessageTimestamp: number = Date.now();
 const useWebSocket = () => {
 	// const log = useLogger();
 	const [ws, setWs] = useState<WebSocket | null>(null);
-	const { setValue: setWSStatus } = useStateManagement<string>(
-		"ws-status",
-		"Disconnected",
-	);
-	const { setValue: setWSClientId } = useStateManagement<string>(
-		"ws-clientId",
-		"",
-	);
+	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
+	const { setValue: setWSClientId } = useStateManagement<string>("ws-clientId", "");
 	const disconnectTimeRef = useRef<number | null>(null);
 	const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 	useEffect(() => {
@@ -51,14 +45,9 @@ const useWebSocket = () => {
 										});
 										// ✅ After reconnect — broadcast if stable for 2 sec
 										if (disconnectTimeRef.current !== null) {
-											if (reconnectTimerRef.current)
-												clearTimeout(reconnectTimerRef.current);
+											if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
 											reconnectTimerRef.current = setTimeout(() => {
-												sendWindowMessage(
-													window,
-													{ type: "WS_RECONNECTED" },
-													"*",
-												);
+												sendWindowMessage(window, { type: "WS_RECONNECTED" }, "*");
 												disconnectTimeRef.current = null;
 											}, 2000);
 										}
@@ -93,8 +82,7 @@ const useWebSocket = () => {
 										headlessToast.info({
 											id: "org-member-removed",
 											title: "Removed from organization",
-											description:
-												"You have been removed from the organization. Redirecting...",
+											description: "You have been removed from the organization. Redirecting...",
 										});
 										setTimeout(() => {
 											window.location.href = "/admin";
@@ -112,7 +100,7 @@ const useWebSocket = () => {
 							});
 						}
 					},
-					{ signal: abortController.signal },
+					{ signal: abortController.signal }
 				);
 				webSocket.onclose = (event) => {
 					webSocket = null;
@@ -170,9 +158,7 @@ const useWebSocket = () => {
 			if (webSocket && webSocket.readyState === WebSocket.OPEN) {
 				const timeSinceLastMessage = Date.now() - lastMessageTimestamp;
 				if (timeSinceLastMessage > 45000) {
-					console.warn(
-						`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`,
-					);
+					console.warn(`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`);
 					// log.warn("WebSocket watchdog timeout", { timeSinceLastMessage });
 					webSocket.close(4000, "Watchdog timeout");
 				}

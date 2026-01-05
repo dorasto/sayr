@@ -3,8 +3,10 @@ import {
 	addLabelToTask,
 	addLogEventTask,
 	createComment,
+	createOrToggleCommentReaction,
 	createTask,
 	db,
+	getCommentReactionsWithUsers,
 	getMergedTaskActivity,
 	getOrganizationMembers,
 	getTaskById,
@@ -819,7 +821,6 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 // Create a comment on a task
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
-	const recordWideError = c.get("recordWideError");
 
 	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility } = await c.req.json();
 	const session = c.get("session");
@@ -1008,6 +1009,96 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	);
 
 	return c.json({ success: true, data: { id: comment.taskId } });
+});
+
+apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
+	const traceAsync = createTraceAsync();
+
+	const { orgId, taskId, wsClientId, comment_id: commentId, emoji } = await c.req.json();
+
+	const session = c.get("session");
+
+	// 1️⃣ Permission check
+	const isAuthorized = await traceAsync(
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "members"),
+		{
+			description: "Checking permissions for reaction",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to react to comments",
+						};
+			},
+		}
+	);
+
+	if (!isAuthorized) {
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to react to comments.",
+			},
+			401
+		);
+	}
+
+	// 2️⃣ Insert or toggle reaction
+	await traceAsync(
+		"task.comment.reaction.add",
+		() => createOrToggleCommentReaction(orgId, taskId, commentId, emoji, session?.userId || ""),
+		{
+			description: "Adding or removing comment reaction",
+			data: { orgId, commentId, emoji, userId: session?.userId },
+			onSuccess: (result) => ({
+				description: result.added ? "Reaction added successfully" : "Reaction removed successfully",
+				data: result,
+			}),
+		}
+	);
+	// 3️⃣ Pull updated reactions with user IDs
+	const reactions = await traceAsync(
+		"task.comment.reaction.fetchCounts",
+		() => getCommentReactionsWithUsers(orgId, taskId, commentId),
+		{
+			description: "Fetching updated reactions for comment",
+		}
+	);
+	// 3️⃣ Broadcast to relevant clients
+	await traceAsync(
+		"task.comment.reaction.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				data: { commentId },
+			};
+			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			broadcastPublic(orgId, { ...data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						client.wsClientId !== wsClientId &&
+						client.orgId !== orgId &&
+						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
+						broadcastIndividual(client.socket, data, orgId)
+				);
+			});
+		},
+		{ description: "Broadcasting comment reaction update" }
+	);
+	return c.json({
+		success: true,
+		data: { commentId, reactions },
+	});
 });
 
 apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
@@ -1235,14 +1326,15 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 
 		const session = c.get("session");
 
+		// 🧩 Permission check
 		const isPublic = await traceAsync(
 			"hasOrgPermission",
 			async () => !session || !(await hasOrgPermission(session?.userId, orgId, "members")),
 			{
-				description: "Checking org membership",
+				description: "Checking org membership for comment timeline",
 				data: {},
-				onSuccess: (result) => {
-					return result
+				onSuccess: (result) =>
+					result
 						? {
 								description: "Public organization (no member access required)",
 								data: { orgId },
@@ -1250,8 +1342,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 						: {
 								description: "Permission granted",
 								data: { orgId, userId: session?.userId },
-							};
-				},
+							},
 			}
 		);
 
@@ -1265,6 +1356,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 			isPublic ? eq(schema.taskComment.visibility, "public") : undefined
 		);
 
+		// 🧮 Count total
 		const totalItems = await traceAsync(
 			"task.comments.count",
 			async () => {
@@ -1276,7 +1368,8 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 
 		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
 
-		const data = await traceAsync(
+		// 🧱 Fetch comments + createdBy + reactions (raw users/emojis)
+		const comments = await traceAsync(
 			"task.comments.fetch",
 			async () => {
 				const rows = await db.query.taskComment.findMany({
@@ -1288,20 +1381,46 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 						createdBy: {
 							columns: { name: true, image: true },
 						},
+						reactions: {
+							columns: { emoji: true, userId: true },
+						},
 					},
 				});
 
-				return rows.map((item) => ({
-					...item,
-					eventType: "comment" as const,
-					actor: item.createdBy,
-				}));
+				// 🔄 Aggregate reactions
+				const mapped = rows.map((comment) => {
+					const grouped: Record<string, { count: number; users: string[] }> = {};
+
+					for (const reaction of comment.reactions ?? []) {
+						if (!grouped[reaction.emoji]) {
+							grouped[reaction.emoji] = { count: 0, users: [] };
+						}
+
+						grouped[reaction.emoji].count++;
+						grouped[reaction.emoji].users.push(reaction.userId);
+					}
+
+					const total = Object.values(grouped).reduce((sum, r) => sum + r.count, 0);
+
+					return {
+						...comment,
+						reactions: {
+							commentId: comment.id,
+							total,
+							reactions: grouped,
+						},
+						eventType: "comment" as const,
+						actor: comment.createdBy,
+					};
+				});
+
+				return mapped;
 			},
 			{
-				description: "Fetching task comments",
+				description: "Fetching task comments with reactions",
 				data: { orgId, taskId, page, limit, isPublic },
 				onSuccess: (result) => ({
-					description: "Task comments fetched successfully",
+					description: "Task comments with reactions fetched",
 					data: {
 						resultCount: result.length,
 						totalItems,
@@ -1314,7 +1433,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 
 		return c.json({
 			success: true,
-			data,
+			data: comments,
 			pagination: {
 				page,
 				limit,

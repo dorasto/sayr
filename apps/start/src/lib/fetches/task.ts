@@ -369,3 +369,107 @@ export async function UpdateTaskCommentAction(
 	});
 	return res.json();
 }
+
+/**
+ * Calls the `/admin/organization/task/create-reaction` API to add or toggle a reaction.
+ *
+ * Adds (or removes) a reaction emoji on a comment tied to a specific task.
+ * Automatically toggles the reaction if the same emoji already exists for the user.
+ *
+ * @param organizationId - The organization ID.
+ * @param taskId - The task ID.
+ * @param commentId - The comment ID to react to.
+ * @param emoji - The reaction emoji (e.g. 👍, ❤️, 🚀).
+ * @param wsClientId - The WebSocket client ID of the sender.
+ *
+ * @returns A promise resolving to:
+ *  - `success` — Whether the request succeeded.
+ *  - `data`:
+ *      - `commentId` — The comment ID.
+ *      - `emoji` — The emoji used.
+ *      - `added` — Whether the reaction was added (`true`) or removed (`false`).
+ *      - `reactions` — An object describing current reaction counts and users.
+ *  - `error` — Optional error message.
+ *
+ * @example
+ * ```ts
+ * const res = await CreateTaskReactionAction(
+ *   "org_001",
+ *   "task_777",
+ *   "comment_ABC",
+ *   "❤️",
+ *   "ws_client_42"
+ * );
+ * if (res.data.added) console.log("Reaction added!");
+ * else console.log("Reaction removed!");
+ * ```
+ */
+export async function CreateTaskReactionAction(
+	organizationId: string,
+	taskId: string,
+	commentId: string,
+	emoji: "👍" | "👎" | "😄" | "🎉" | "😕" | "❤️" | "🚀" | "👀",
+	wsClientId: string
+): Promise<{
+	success: boolean;
+	data: {
+		commentId: string;
+		emoji: string;
+		added: boolean;
+		reactions?: {
+			commentId: string;
+			total: number;
+			reactions: Record<
+				string,
+				{
+					count: number;
+					users: string[];
+				}
+			>;
+		};
+	};
+	error?: string;
+}> {
+	const payload = {
+		orgId: organizationId,
+		taskId: taskId,
+		comment_id: commentId,
+		emoji,
+		wsClientId,
+	};
+
+	const res = await fetch(`${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/create-reaction`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify(payload),
+	});
+
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(`Failed to create reaction: ${text}`);
+	}
+
+	const data = await res.json();
+
+	return data as {
+		success: boolean;
+		data: {
+			commentId: string;
+			emoji: string;
+			added: boolean;
+			reactions?: {
+				commentId: string;
+				total: number;
+				reactions: Record<
+					string,
+					{
+						count: number;
+						users: string[];
+					}
+				>;
+			};
+		};
+		error?: string;
+	};
+}

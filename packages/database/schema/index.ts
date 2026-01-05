@@ -21,6 +21,7 @@ export * from "./taskAssignee.schema";
 export * from "./taskComment.schema";
 export * from "./taskTimeline.schema";
 export * from "./taskCommentHistory.schema";
+export * from "./taskCommentReaction.schema";
 export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
@@ -55,6 +56,17 @@ export type taskTimelineWithActor = taskTimelineType & {
 	visibility: "public" | "internal";
 	actor?: { id: string; name: string; image: string | null };
 	updatedAt?: Date | null;
+	reactions?: {
+		commentId: string;
+		total: number;
+		reactions: Record<
+			string,
+			{
+				count: number;
+				users: string[];
+			}
+		>;
+	};
 };
 
 /* -------------------------------------------------------------------------- */

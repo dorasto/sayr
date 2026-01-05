@@ -467,3 +467,103 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 		assignees: task.assignees.map((assignment) => assignment.user),
 	})) as schema.TaskWithLabels[];
 }
+
+export async function createOrToggleCommentReaction(
+	orgId: string,
+	taskId: string,
+	commentId: string,
+	emoji: string,
+	userId: string
+) {
+	if (!orgId || !taskId || !commentId || !userId) {
+		throw new Error(`Missing params: orgId=${orgId}, taskId=${taskId}, commentId=${commentId}, userId=${userId}`);
+	}
+	// Check if the reaction already exists
+	const existing = await db
+		.select()
+		.from(schema.taskCommentReaction)
+		.where(
+			and(
+				eq(schema.taskCommentReaction.organizationId, orgId),
+				eq(schema.taskCommentReaction.taskId, taskId),
+				eq(schema.taskCommentReaction.commentId, commentId),
+				eq(schema.taskCommentReaction.userId, userId),
+				eq(schema.taskCommentReaction.emoji, emoji)
+			)
+		);
+
+	if (existing.length) {
+		// Remove reaction if already exists (toggle off)
+		await db
+			.delete(schema.taskCommentReaction)
+			.where(
+				and(
+					eq(schema.taskCommentReaction.organizationId, orgId),
+					eq(schema.taskCommentReaction.taskId, taskId),
+					eq(schema.taskCommentReaction.commentId, commentId),
+					eq(schema.taskCommentReaction.userId, userId),
+					eq(schema.taskCommentReaction.emoji, emoji)
+				)
+			);
+
+		return { added: false };
+	}
+
+	// Otherwise, insert new reaction
+	await db
+		.insert(schema.taskCommentReaction)
+		.values({
+			commentId,
+			userId,
+			emoji,
+			createdAt: new Date(),
+			taskId,
+			organizationId: orgId,
+		})
+		.returning({ id: schema.taskCommentReaction.id });
+
+	return { added: true };
+}
+
+/**
+ * Get all reactions for a comment including
+ * which users reacted with which emoji.
+ */
+export async function getCommentReactionsWithUsers(organizationId: string, taskId: string, commentId: string) {
+	// Fetch raw rows: one row per (emoji, user)
+	const rows = await db
+		.select({
+			emoji: schema.taskCommentReaction.emoji,
+			userId: schema.taskCommentReaction.userId,
+		})
+		.from(schema.taskCommentReaction)
+		.where(
+			and(
+				eq(schema.taskCommentReaction.organizationId, organizationId),
+				eq(schema.taskCommentReaction.taskId, taskId),
+				eq(schema.taskCommentReaction.commentId, commentId)
+			)
+		);
+
+	// Transform into { emoji: { count, users: [] } }
+	const summary: Record<string, { count: number; users: string[] }> = {};
+
+	for (const row of rows) {
+		if (!summary[row.emoji]) {
+			summary[row.emoji] = { count: 0, users: [] };
+		}
+		const reactionData = summary[row.emoji];
+		if (reactionData) {
+			reactionData.count += 1;
+			reactionData.users.push(row.userId);
+		}
+	}
+
+	const total = rows.length;
+
+	return {
+		commentId,
+		total,
+		reactions: summary,
+	};
+}
