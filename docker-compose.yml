@@ -135,10 +135,10 @@ services:
       - app_network
 
   nginx:
-    build:
-      context: .
-      dockerfile: ./Dockerfile.nginx
     container_name: sayr-nginx
+    image: ghcr.io/dorasto/sayr-nginx:latest
+    restart: always
+    pull_policy: always
     ports:
       - "3000:80"
     depends_on:
