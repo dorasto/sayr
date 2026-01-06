@@ -133,14 +133,14 @@ export default function CreateIssueTemplate({
       name !== template?.name ||
       titlePrefix !== (template?.titlePrefix || "") ||
       JSON.stringify(description) !==
-        JSON.stringify(template?.description || undefined) ||
+      JSON.stringify(template?.description || undefined) ||
       status !== (template?.status || undefined) ||
       priority !== (template?.priority || undefined) ||
       categoryId !== (template?.categoryId || "") ||
       JSON.stringify(labelIds.sort()) !==
-        JSON.stringify((template?.labels?.map((l) => l.id) || []).sort()) ||
+      JSON.stringify((template?.labels?.map((l) => l.id) || []).sort()) ||
       JSON.stringify(assigneeIds.sort()) !==
-        JSON.stringify((template?.assignees?.map((a) => a.id) || []).sort())
+      JSON.stringify((template?.assignees?.map((a) => a.id) || []).sort())
     );
   }, [
     name,
@@ -226,11 +226,11 @@ export default function CreateIssueTemplate({
       async () => {
         const updatedDescription = description
           ? await processUploads(
-              description,
-              "public",
-              orgId,
-              "create-issue-template",
-            )
+            description,
+            "public",
+            orgId,
+            "create-issue-template",
+          )
           : undefined;
 
         return createIssueTemplateAction(
@@ -282,11 +282,11 @@ export default function CreateIssueTemplate({
       async () => {
         const updatedDescription = description
           ? await processUploads(
-              description,
-              "public",
-              orgId,
-              "edit-issue-template",
-            )
+            description,
+            "public",
+            orgId,
+            "edit-issue-template",
+          )
           : undefined;
 
         return editIssueTemplateAction(

@@ -7,7 +7,7 @@ import { category } from "./category.schema";
 import { label } from "./label.schema";
 import { organization } from "./organization.schema";
 
-export const issueTemplate = table("issue_template", {
+export const issueTemplate = table("task_template", {
 	id: v
 		.text("id")
 		.primaryKey()
@@ -30,7 +30,7 @@ export const issueTemplate = table("issue_template", {
 
 export type issueTemplateType = typeof issueTemplate.$inferSelect;
 
-export const issueTemplateLabel = table("issue_template_label", {
+export const issueTemplateLabel = table("task_template_label", {
 	id: v
 		.text("id")
 		.primaryKey()
@@ -49,7 +49,7 @@ export const issueTemplateLabel = table("issue_template_label", {
 
 export type issueTemplateLabelType = typeof issueTemplateLabel.$inferSelect;
 
-export const issueTemplateAssignee = table("issue_template_assignee", {
+export const issueTemplateAssignee = table("task_template_assignee", {
 	id: v
 		.text("id")
 		.primaryKey()
@@ -68,7 +68,7 @@ export const issueTemplateAssignee = table("issue_template_assignee", {
 
 export type issueTemplateAssigneeType = typeof issueTemplateAssignee.$inferSelect;
 
-export const issueTemplateRelations = relations(issueTemplate, ({ one, many }) => ({
+export const taskTemplateRelations = relations(issueTemplate, ({ one, many }) => ({
 	organization: one(organization, {
 		fields: [issueTemplate.organizationId],
 		references: [organization.id],
@@ -81,7 +81,7 @@ export const issueTemplateRelations = relations(issueTemplate, ({ one, many }) =
 	assignees: many(issueTemplateAssignee),
 }));
 
-export const issueTemplateLabelRelations = relations(issueTemplateLabel, ({ one }) => ({
+export const taskTemplateLabelRelations = relations(issueTemplateLabel, ({ one }) => ({
 	template: one(issueTemplate, {
 		fields: [issueTemplateLabel.templateId],
 		references: [issueTemplate.id],
@@ -92,7 +92,7 @@ export const issueTemplateLabelRelations = relations(issueTemplateLabel, ({ one 
 	}),
 }));
 
-export const issueTemplateAssigneeRelations = relations(issueTemplateAssignee, ({ one }) => ({
+export const taskTemplateAssigneeRelations = relations(issueTemplateAssignee, ({ one }) => ({
 	template: one(issueTemplate, {
 		fields: [issueTemplateAssignee.templateId],
 		references: [issueTemplate.id],

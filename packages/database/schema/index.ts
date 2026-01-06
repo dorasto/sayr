@@ -6,7 +6,7 @@ import type { organizationType } from "./organization.schema";
 import type { taskType } from "./task.schema";
 import type { taskCommentType } from "./taskComment.schema";
 import type { taskTimelineType } from "./taskTimeline.schema";
-import type { issueTemplateType } from "./issueTemplate.schema";
+import type { issueTemplateType } from "./taskTemplate.schema";
 import type { labelType as LabelTypeImport } from "./label.schema";
 
 export * from "./category.schema";
@@ -24,7 +24,7 @@ export * from "./taskComment.schema";
 export * from "./taskTimeline.schema";
 export * from "./taskCommentHistory.schema";
 export * from "./taskCommentReaction.schema";
-export * from "./issueTemplate.schema";
+export * from "./taskTemplate.schema";
 export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>

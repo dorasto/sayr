@@ -95,6 +95,9 @@ export default function CreateIssueDialog({
   const [description, setDescription] = useState<undefined | NodeJSON>(
     undefined,
   );
+  const [templateData, setTemplateData] = useState<undefined | NodeJSON>(
+    undefined,
+  );
   const [status, setStatus] = useState<string | undefined | null>("backlog");
   const [priority, setPriority] = useState<string | undefined | null>("none");
   const [category, setCategory] = useState<string>("");
@@ -126,6 +129,7 @@ export default function CreateIssueDialog({
       // Reset to defaults if no template selected
       setTitle("");
       setDescription(undefined);
+      setTemplateData(undefined)
       setStatus("backlog");
       setPriority("none");
       setCategory("");
@@ -142,6 +146,7 @@ export default function CreateIssueDialog({
       // Apply description template
       if (template.description) {
         setDescription(template.description as NodeJSON);
+        setTemplateData(template.description as NodeJSON)
       }
       // Apply status
       if (template.status) {
@@ -351,8 +356,8 @@ export default function CreateIssueDialog({
                       {selectedTemplateId === "__none__"
                         ? "No template"
                         : issueTemplates.find(
-                            (t) => t.id === selectedTemplateId,
-                          )?.name || "Choose a template..."}
+                          (t) => t.id === selectedTemplateId,
+                        )?.name || "Choose a template..."}
                     </ComboBoxValue>
                   </ComboBoxTrigger>
                   <ComboBoxContent>
@@ -405,6 +410,7 @@ export default function CreateIssueDialog({
                   users={availableUsers}
                   categories={categories}
                   tasks={tasks}
+                  defaultContent={templateData}
                 />
               </div>
               <div className="flex items-center flex-wrap gap-1 w-full">
