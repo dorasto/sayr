@@ -772,19 +772,14 @@ apiPublicRoute.get(
 
 						return {
 							...comment,
+							// contentHtml: comment.content && prosekitJSONToHTML(comment.content),
+							// contentMarkdown: comment.content && prosekitJSONToMarkdown(comment.content),
 							reactions: {
 								total,
 								reactions: grouped,
 							},
-							eventType: "comment" as const,
-							actor: comment.createdBy,
 						};
 					});
-					// return rows.map((comment) => ({
-					// 	...comment,
-					// 	// contentHtml: comment.content && prosekitJSONToHTML(comment.content),
-					// 	// contentMarkdown: comment.content && prosekitJSONToMarkdown(comment.content),
-					// }));
 					return mapped;
 				},
 				{
