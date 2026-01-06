@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { SettingsProviderOrganization } from "@/contexts/ContextOrgSettings";
-import { db, getLabels, getOrganization, getTasksByOrganizationId, schema } from "@repo/database";
+import { db, getIssueTemplates, getLabels, getOrganization, getTasksByOrganizationId, schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 
@@ -25,7 +25,8 @@ export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 			const categories = await db.query.category.findMany({
 				where: (category) => eq(category.organizationId, organization.id),
 			});
-			return { organization, labels, views, categories, tasks };
+			const issueTemplates = await getIssueTemplates(organization.id);
+			return { organization, labels, views, categories, tasks, issueTemplates };
 		} catch (error) {
 			console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/admin/settings/org/$orgId")({
 });
 
 function RouteComponent() {
-	const { organization, labels, views, categories, tasks } = Route.useLoaderData();
+	const { organization, labels, views, categories, tasks, issueTemplates } = Route.useLoaderData();
 	return (
 		<SettingsProviderOrganization
 			organization={organization}
@@ -60,6 +61,7 @@ function RouteComponent() {
 			views={views}
 			categories={categories}
 			tasks={tasks}
+			issueTemplates={issueTemplates}
 		>
 			<Outlet />
 		</SettingsProviderOrganization>

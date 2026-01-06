@@ -14,6 +14,8 @@ interface ContextType {
 	setCategories: (newValue: ContextType["categories"]) => void;
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: ContextType["tasks"]) => void;
+	issueTemplates: schema.issueTemplateWithRelations[];
+	setIssueTemplates: (newValue: ContextType["issueTemplates"]) => void;
 	isProjectPanelOpen: boolean;
 	setProjectPanelOpen: (newValue: boolean) => void;
 }
@@ -27,6 +29,7 @@ export function SettingsProviderOrganization({
 	views,
 	categories,
 	tasks,
+	issueTemplates,
 }: {
 	children: ReactNode;
 	organization: ContextType["organization"];
@@ -34,6 +37,7 @@ export function SettingsProviderOrganization({
 	views: ContextType["views"];
 	categories: ContextType["categories"];
 	tasks: ContextType["tasks"];
+	issueTemplates: ContextType["issueTemplates"];
 }) {
 	const { value: NewOrganization, setValue: setOrganization } = useStateManagement(
 		"organization",
@@ -44,6 +48,11 @@ export function SettingsProviderOrganization({
 	const { value: NewViews, setValue: setViews } = useStateManagement("views", views, 30000);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories, 30000);
 	const { value: NewTasks, setValue: setTasks } = useStateManagement("tasks", tasks, 30000);
+	const { value: NewIssueTemplates, setValue: setIssueTemplates } = useStateManagement(
+		"issueTemplates",
+		issueTemplates,
+		30000
+	);
 	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement(
 		"isProjectPanelOpen",
 		true,
@@ -55,6 +64,7 @@ export function SettingsProviderOrganization({
 	useEffect(() => setViews(views), [views, setViews]);
 	useEffect(() => setCategories(categories), [categories, setCategories]);
 	useEffect(() => setTasks(tasks), [tasks, setTasks]);
+	useEffect(() => setIssueTemplates(issueTemplates), [issueTemplates, setIssueTemplates]);
 	return (
 		<RootContext.Provider
 			value={{
@@ -68,6 +78,8 @@ export function SettingsProviderOrganization({
 				setCategories,
 				tasks: NewTasks,
 				setTasks,
+				issueTemplates: NewIssueTemplates,
+				setIssueTemplates,
 				isProjectPanelOpen,
 				setProjectPanelOpen,
 			}}

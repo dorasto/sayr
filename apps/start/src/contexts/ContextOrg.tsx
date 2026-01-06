@@ -12,6 +12,8 @@ interface ContextType {
   setViews: (newValue: ContextType["views"]) => void;
   categories: schema.categoryType[];
   setCategories: (newValue: ContextType["categories"]) => void;
+  issueTemplates: schema.issueTemplateWithRelations[];
+  setIssueTemplates: (newValue: ContextType["issueTemplates"]) => void;
   isProjectPanelOpen: boolean;
   setProjectPanelOpen: (newValue: boolean) => void;
   isMobile: boolean;
@@ -26,12 +28,14 @@ export function RootProviderOrganization({
   labels,
   views,
   categories,
+  issueTemplates,
 }: {
   children: ReactNode;
   organization: ContextType["organization"];
   labels: ContextType["labels"];
   views: ContextType["views"];
   categories: ContextType["categories"];
+  issueTemplates: ContextType["issueTemplates"];
 }) {
   const isMobile = useIsMobile();
   const { value: NewOrganization, setValue: setOrganization } =
@@ -51,6 +55,8 @@ export function RootProviderOrganization({
     categories,
     30000,
   );
+  const { value: NewIssueTemplates, setValue: setIssueTemplates } =
+    useStateManagement("issueTemplates", issueTemplates, 30000);
   const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } =
     useStateManagement("isProjectPanelOpen", isMobile ? false : true, 30000);
   // Sync props → state
@@ -61,6 +67,10 @@ export function RootProviderOrganization({
   useEffect(() => setLabels(labels), [labels, setLabels]);
   useEffect(() => setViews(views), [views, setViews]);
   useEffect(() => setCategories(categories), [categories, setCategories]);
+  useEffect(
+    () => setIssueTemplates(issueTemplates),
+    [issueTemplates, setIssueTemplates],
+  );
   return (
     <RootContext.Provider
       value={{
@@ -72,6 +82,8 @@ export function RootProviderOrganization({
         setViews,
         categories: NewCategories,
         setCategories,
+        issueTemplates: NewIssueTemplates,
+        setIssueTemplates,
         isProjectPanelOpen,
         setProjectPanelOpen,
       }}

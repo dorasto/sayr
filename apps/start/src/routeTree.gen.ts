@@ -35,6 +35,7 @@ import { Route as AdminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/ad
 import { Route as AdminSettingsOrgOrgIdIndexRouteImport } from './routes/admin/settings/org/$orgId/index'
 import { Route as AdminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/index'
 import { Route as AdminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/admin/settings/org/$orgId/views/index'
+import { Route as AdminSettingsOrgOrgIdTemplatesIndexRouteImport } from './routes/admin/settings/org/$orgId/templates/index'
 import { Route as AdminSettingsOrgOrgIdTeamsIndexRouteImport } from './routes/admin/settings/org/$orgId/teams/index'
 import { Route as AdminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/admin/settings/org/$orgId/members/index'
 import { Route as AdminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/admin/settings/org/$orgId/labels/index'
@@ -183,6 +184,12 @@ const AdminSettingsOrgOrgIdViewsIndexRoute =
     path: '/views/',
     getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
   } as any)
+const AdminSettingsOrgOrgIdTemplatesIndexRoute =
+  AdminSettingsOrgOrgIdTemplatesIndexRouteImport.update({
+    id: '/templates/',
+    path: '/templates/',
+    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+  } as any)
 const AdminSettingsOrgOrgIdTeamsIndexRoute =
   AdminSettingsOrgOrgIdTeamsIndexRouteImport.update({
     id: '/teams/',
@@ -270,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings/org/$orgId/labels': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
   '/admin/settings/org/$orgId/members': typeof AdminSettingsOrgOrgIdMembersIndexRoute
   '/admin/settings/org/$orgId/teams': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
+  '/admin/settings/org/$orgId/templates': typeof AdminSettingsOrgOrgIdTemplatesIndexRoute
   '/admin/settings/org/$orgId/views': typeof AdminSettingsOrgOrgIdViewsIndexRoute
   '/admin/settings/org/$orgId/connections/$connectionId': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
   '/admin/settings/org/$orgId/teams/$teamId': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
@@ -299,6 +307,7 @@ export interface FileRoutesByTo {
   '/admin/settings/org/$orgId/labels': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
   '/admin/settings/org/$orgId/members': typeof AdminSettingsOrgOrgIdMembersIndexRoute
   '/admin/settings/org/$orgId/teams': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
+  '/admin/settings/org/$orgId/templates': typeof AdminSettingsOrgOrgIdTemplatesIndexRoute
   '/admin/settings/org/$orgId/views': typeof AdminSettingsOrgOrgIdViewsIndexRoute
   '/admin/settings/org/$orgId/connections/$connectionId': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
   '/admin/settings/org/$orgId/teams/$teamId': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
@@ -337,6 +346,7 @@ export interface FileRoutesById {
   '/admin/settings/org/$orgId/labels/': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
   '/admin/settings/org/$orgId/members/': typeof AdminSettingsOrgOrgIdMembersIndexRoute
   '/admin/settings/org/$orgId/teams/': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
+  '/admin/settings/org/$orgId/templates/': typeof AdminSettingsOrgOrgIdTemplatesIndexRoute
   '/admin/settings/org/$orgId/views/': typeof AdminSettingsOrgOrgIdViewsIndexRoute
   '/admin/settings/org/$orgId/connections/$connectionId/': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
   '/admin/settings/org/$orgId/teams/$teamId/': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
@@ -376,6 +386,7 @@ export interface FileRouteTypes {
     | '/admin/settings/org/$orgId/labels'
     | '/admin/settings/org/$orgId/members'
     | '/admin/settings/org/$orgId/teams'
+    | '/admin/settings/org/$orgId/templates'
     | '/admin/settings/org/$orgId/views'
     | '/admin/settings/org/$orgId/connections/$connectionId'
     | '/admin/settings/org/$orgId/teams/$teamId'
@@ -405,6 +416,7 @@ export interface FileRouteTypes {
     | '/admin/settings/org/$orgId/labels'
     | '/admin/settings/org/$orgId/members'
     | '/admin/settings/org/$orgId/teams'
+    | '/admin/settings/org/$orgId/templates'
     | '/admin/settings/org/$orgId/views'
     | '/admin/settings/org/$orgId/connections/$connectionId'
     | '/admin/settings/org/$orgId/teams/$teamId'
@@ -442,6 +454,7 @@ export interface FileRouteTypes {
     | '/admin/settings/org/$orgId/labels/'
     | '/admin/settings/org/$orgId/members/'
     | '/admin/settings/org/$orgId/teams/'
+    | '/admin/settings/org/$orgId/templates/'
     | '/admin/settings/org/$orgId/views/'
     | '/admin/settings/org/$orgId/connections/$connectionId/'
     | '/admin/settings/org/$orgId/teams/$teamId/'
@@ -643,6 +656,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsOrgOrgIdViewsIndexRouteImport
       parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
     }
+    '/admin/settings/org/$orgId/templates/': {
+      id: '/admin/settings/org/$orgId/templates/'
+      path: '/templates'
+      fullPath: '/admin/settings/org/$orgId/templates'
+      preLoaderRoute: typeof AdminSettingsOrgOrgIdTemplatesIndexRouteImport
+      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+    }
     '/admin/settings/org/$orgId/teams/': {
       id: '/admin/settings/org/$orgId/teams/'
       path: '/teams'
@@ -785,6 +805,7 @@ interface AdminSettingsOrgOrgIdRouteRouteChildren {
   AdminSettingsOrgOrgIdLabelsIndexRoute: typeof AdminSettingsOrgOrgIdLabelsIndexRoute
   AdminSettingsOrgOrgIdMembersIndexRoute: typeof AdminSettingsOrgOrgIdMembersIndexRoute
   AdminSettingsOrgOrgIdTeamsIndexRoute: typeof AdminSettingsOrgOrgIdTeamsIndexRoute
+  AdminSettingsOrgOrgIdTemplatesIndexRoute: typeof AdminSettingsOrgOrgIdTemplatesIndexRoute
   AdminSettingsOrgOrgIdViewsIndexRoute: typeof AdminSettingsOrgOrgIdViewsIndexRoute
   AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute: typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
   AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute: typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
@@ -804,6 +825,8 @@ const AdminSettingsOrgOrgIdRouteRouteChildren: AdminSettingsOrgOrgIdRouteRouteCh
     AdminSettingsOrgOrgIdMembersIndexRoute:
       AdminSettingsOrgOrgIdMembersIndexRoute,
     AdminSettingsOrgOrgIdTeamsIndexRoute: AdminSettingsOrgOrgIdTeamsIndexRoute,
+    AdminSettingsOrgOrgIdTemplatesIndexRoute:
+      AdminSettingsOrgOrgIdTemplatesIndexRoute,
     AdminSettingsOrgOrgIdViewsIndexRoute: AdminSettingsOrgOrgIdViewsIndexRoute,
     AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute:
       AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute,

@@ -29,9 +29,21 @@ import {
   IconPlus,
   IconProgress,
   IconSlash,
+  IconTemplate,
   IconUserPlus,
   IconUsers,
 } from "@tabler/icons-react";
+import {
+  ComboBox,
+  ComboBoxContent,
+  ComboBoxEmpty,
+  ComboBoxGroup,
+  ComboBoxItem,
+  ComboBoxList,
+  ComboBoxSearch,
+  ComboBoxTrigger,
+  ComboBoxValue,
+} from "@repo/ui/components/tomui/combo-box-unified";
 import type { NodeJSON } from "prosekit/core";
 import { useMemo, useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -45,13 +57,15 @@ import { priorityConfig, statusConfig } from "../../shared/config";
 import GlobalTaskLabels from "../../shared/label";
 import GlobalTaskPriority from "../../shared/priority";
 import GlobalTaskStatus from "../../shared/status";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
+import { Label } from "@repo/ui/components/label";
 interface Props {
   organization: schema.OrganizationWithMembers;
   tasks: schema.TaskWithLabels[];
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   _labels: schema.labelType[];
+  issueTemplates?: schema.issueTemplateWithRelations[];
   // open?: boolean;
   // setOpen?: (open: boolean) => void;
 }
@@ -61,6 +75,7 @@ export default function CreateIssueDialog({
   tasks,
   setTasks,
   _labels,
+  issueTemplates = [],
   // open,
   // setOpen = () => {
   // 	false;
@@ -74,8 +89,13 @@ export default function CreateIssueDialog({
     1,
   );
   const [open, setOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] =
+    useState<string>("__none__");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState<undefined | NodeJSON>(
+    undefined,
+  );
+  const [templateData, setTemplateData] = useState<undefined | NodeJSON>(
     undefined,
   );
   const [status, setStatus] = useState<string | undefined | null>("backlog");
@@ -102,6 +122,54 @@ export default function CreateIssueDialog({
   );
   const resolvedStatus = (status ?? "backlog") || "backlog";
   const resolvedPriority = (priority ?? "none") || "none";
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (templateId === "__none__") {
+      // Reset to defaults if no template selected
+      setTitle("");
+      setDescription(undefined);
+      setTemplateData(undefined)
+      setStatus("backlog");
+      setPriority("none");
+      setCategory("");
+      setLabels([]);
+      setAssignees([]);
+      return;
+    }
+    const template = issueTemplates.find((t) => t.id === templateId);
+    if (template) {
+      // Apply title prefix
+      if (template.titlePrefix) {
+        setTitle(template.titlePrefix);
+      }
+      // Apply description template
+      if (template.description) {
+        setDescription(template.description as NodeJSON);
+        setTemplateData(template.description as NodeJSON)
+      }
+      // Apply status
+      if (template.status) {
+        setStatus(template.status);
+      }
+      // Apply priority
+      if (template.priority) {
+        setPriority(template.priority);
+      }
+      // Apply category
+      if (template.categoryId) {
+        setCategory(template.categoryId);
+      }
+      // Apply labels
+      if (template.labels && template.labels.length > 0) {
+        setLabels(template.labels.map((l) => l.id));
+      }
+      // Apply assignees
+      if (template.assignees && template.assignees.length > 0) {
+        setAssignees(template.assignees.map((a) => a.id));
+      }
+    }
+  };
 
   const draftTask = useMemo<schema.TaskWithLabels>(
     () => ({
@@ -181,6 +249,7 @@ export default function CreateIssueDialog({
     );
     if (data?.success && data.data) {
       setOpen(false);
+      setSelectedTemplateId("__none__");
       setTitle("");
       setDescription(undefined);
       setStatus("backlog");
@@ -218,9 +287,9 @@ export default function CreateIssueDialog({
       </Button>
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
         <AdaptiveDialogContent className="z-50">
-          <AdaptiveDialogHeader className="!pb-0">
+          <AdaptiveDialogHeader className="border-b">
             <AdaptiveDialogTitle asChild>
-              <Popover>
+              {/*<Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"accent"}
@@ -273,12 +342,59 @@ export default function CreateIssueDialog({
                     </div>
                   </Button>
                 </PopoverContent>
-              </Popover>
+              </Popover>*/}
+              {issueTemplates.length > 0 && (
+                <ComboBox
+                  value={selectedTemplateId}
+                  onValueChange={(val) =>
+                    handleTemplateSelect(val || "__none__")
+                  }
+                >
+                  <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 mb-0 flex items-center gap-2">
+                    <IconTemplate className="h-4 w-4 text-muted-foreground" />
+                    <ComboBoxValue placeholder="Choose a template...">
+                      {selectedTemplateId === "__none__"
+                        ? "No template"
+                        : issueTemplates.find(
+                          (t) => t.id === selectedTemplateId,
+                        )?.name || "Choose a template..."}
+                    </ComboBoxValue>
+                  </ComboBoxTrigger>
+                  <ComboBoxContent>
+                    <ComboBoxSearch placeholder="Search templates..." />
+                    <ComboBoxList>
+                      <ComboBoxEmpty>
+                        <Label>
+                          No templates found. Create a new template{" "}
+                          <Link
+                            to="/admin/settings/org/$orgId/templates"
+                            params={{ orgId: organization.id }}
+                            className="text-primary"
+                          >
+                            here
+                          </Link>
+                        </Label>
+                      </ComboBoxEmpty>
+                      <ComboBoxGroup>
+                        <ComboBoxItem value="__none__">
+                          No template
+                        </ComboBoxItem>
+                        {issueTemplates.map((template) => (
+                          <ComboBoxItem key={template.id} value={template.id}>
+                            {template.name}
+                          </ComboBoxItem>
+                        ))}
+                      </ComboBoxGroup>
+                    </ComboBoxList>
+                  </ComboBoxContent>
+                </ComboBox>
+              )}
             </AdaptiveDialogTitle>
             <AdaptiveDialogDescription className="sr-only">
               Create a new task
             </AdaptiveDialogDescription>
           </AdaptiveDialogHeader>
+
           <div className="flex flex-col gap-3 w-full p-3">
             <div className="flex flex-col gap-1 w-full">
               <Input
@@ -294,6 +410,7 @@ export default function CreateIssueDialog({
                   users={availableUsers}
                   categories={categories}
                   tasks={tasks}
+                  defaultContent={templateData}
                 />
               </div>
               <div className="flex items-center flex-wrap gap-1 w-full">

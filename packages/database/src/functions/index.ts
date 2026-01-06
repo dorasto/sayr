@@ -4,6 +4,7 @@ import { auth, db, type schema } from "..";
 export * from "./label";
 export * from "./organization";
 export * from "./task";
+export * from "./issueTemplate";
 
 /**
  * Fetches a single user by its unique id.

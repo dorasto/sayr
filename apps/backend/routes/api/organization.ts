@@ -3,6 +3,7 @@ import {
 	bootstrapOrganizationAdminTeam,
 	db,
 	defaultTeamPermissions,
+	getIssueTemplates,
 	getLabels,
 	getOrganizationMembers,
 	hasOrgPermission,
@@ -993,6 +994,371 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	return c.json({
 		success: true,
 		data: categories,
+	});
+});
+
+// Issue Template management
+// Create issue template
+apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	const {
+		org_id: orgId,
+		wsClientId,
+		name,
+		titlePrefix,
+		description,
+		status,
+		priority,
+		categoryId,
+		labelIds,
+		assigneeIds,
+	} = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		}
+	);
+
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	const templateId = randomUUID();
+
+	const created = await traceAsync(
+		"issueTemplate.create.insert",
+		async () => {
+			const [template] = await db
+				.insert(schema.issueTemplate)
+				.values({
+					id: templateId,
+					organizationId: orgId,
+					name,
+					titlePrefix: titlePrefix || null,
+					description: description || null,
+					status: status || null,
+					priority: priority || null,
+					categoryId: categoryId || null,
+				})
+				.returning();
+			return template;
+		},
+		{ description: "Creating issue template", data: { orgId, name } }
+	);
+
+	if (!created) {
+		await recordWideError({
+			name: "issueTemplate.create.insert_failed",
+			error: new Error("Failed to create issue template"),
+			code: "ISSUE_TEMPLATE_CREATION_FAILED",
+			message: "Failed to create issue template",
+			contextData: { orgId, name },
+		});
+		return c.json({ success: false, error: "Failed to create issue template." }, 500);
+	}
+
+	// Insert label associations
+	if (labelIds && Array.isArray(labelIds) && labelIds.length > 0) {
+		await traceAsync(
+			"issueTemplate.create.insert_labels",
+			async () => {
+				await db.insert(schema.issueTemplateLabel).values(
+					labelIds.map((labelId: string) => ({
+						templateId,
+						labelId,
+					}))
+				);
+			},
+			{ description: "Creating issue template label associations", data: { templateId, labelIds } }
+		);
+	}
+
+	// Insert assignee associations
+	if (assigneeIds && Array.isArray(assigneeIds) && assigneeIds.length > 0) {
+		await traceAsync(
+			"issueTemplate.create.insert_assignees",
+			async () => {
+				await db.insert(schema.issueTemplateAssignee).values(
+					assigneeIds.map((userId: string) => ({
+						templateId,
+						userId,
+					}))
+				);
+			},
+			{ description: "Creating issue template assignee associations", data: { templateId, assigneeIds } }
+		);
+	}
+
+	const templates = await traceAsync("issueTemplate.create.fetch_all", () => getIssueTemplates(orgId), {
+		description: "Fetching all issue templates",
+		data: { orgId },
+	});
+
+	await traceAsync(
+		"issueTemplate.create.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				data: templates,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
+		},
+		{ description: "Broadcasting issue template update" }
+	);
+
+	return c.json({
+		success: true,
+		data: templates,
+	});
+});
+
+// Edit issue template
+apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	const {
+		org_id: orgId,
+		wsClientId,
+		id,
+		name,
+		titlePrefix,
+		description,
+		status,
+		priority,
+		categoryId,
+		labelIds,
+		assigneeIds,
+	} = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		}
+	);
+
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	const edited = await traceAsync(
+		"issueTemplate.edit.update",
+		async () => {
+			const [template] = await db
+				.update(schema.issueTemplate)
+				.set({
+					name,
+					titlePrefix: titlePrefix || null,
+					description: description || null,
+					status: status || null,
+					priority: priority || null,
+					categoryId: categoryId || null,
+					updatedAt: new Date(),
+				})
+				.where(and(eq(schema.issueTemplate.id, id), eq(schema.issueTemplate.organizationId, orgId)))
+				.returning();
+			return template;
+		},
+		{
+			description: "Updating issue template",
+			data: { orgId, templateId: id, name },
+		}
+	);
+
+	if (!edited) {
+		await recordWideError({
+			name: "issueTemplate.edit.update_failed",
+			error: new Error("Failed to edit issue template"),
+			code: "ISSUE_TEMPLATE_EDIT_FAILED",
+			message: "Failed to edit issue template",
+			contextData: { orgId, templateId: id },
+		});
+		return c.json({ success: false, error: "Failed to edit issue template." }, 500);
+	}
+
+	// Update label associations - delete existing and insert new
+	await traceAsync(
+		"issueTemplate.edit.update_labels",
+		async () => {
+			await db.delete(schema.issueTemplateLabel).where(eq(schema.issueTemplateLabel.templateId, id));
+			if (labelIds && Array.isArray(labelIds) && labelIds.length > 0) {
+				await db.insert(schema.issueTemplateLabel).values(
+					labelIds.map((labelId: string) => ({
+						templateId: id,
+						labelId,
+					}))
+				);
+			}
+		},
+		{ description: "Updating issue template label associations", data: { templateId: id, labelIds } }
+	);
+
+	// Update assignee associations - delete existing and insert new
+	await traceAsync(
+		"issueTemplate.edit.update_assignees",
+		async () => {
+			await db.delete(schema.issueTemplateAssignee).where(eq(schema.issueTemplateAssignee.templateId, id));
+			if (assigneeIds && Array.isArray(assigneeIds) && assigneeIds.length > 0) {
+				await db.insert(schema.issueTemplateAssignee).values(
+					assigneeIds.map((userId: string) => ({
+						templateId: id,
+						userId,
+					}))
+				);
+			}
+		},
+		{ description: "Updating issue template assignee associations", data: { templateId: id, assigneeIds } }
+	);
+
+	const templates = await traceAsync("issueTemplate.edit.fetch_all", () => getIssueTemplates(orgId), {
+		description: "Fetching all issue templates",
+		data: { orgId },
+	});
+
+	await traceAsync(
+		"issueTemplate.edit.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				data: templates,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
+		},
+		{ description: "Broadcasting issue template update" }
+	);
+
+	return c.json({
+		success: true,
+		data: templates,
+	});
+});
+
+// Delete issue template
+apiRouteAdminOrganization.delete("/delete-issue-template", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	const { org_id: orgId, wsClientId, id } = await c.req.json();
+
+	const isAuthorized = await traceAsync(
+		"hasOrgPermission",
+		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
+		{
+			description: "Checking permissions",
+			data: {},
+			onSuccess: (result) => {
+				return result
+					? {
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
+					: {
+							description: "User does not have permission to do that",
+						};
+			},
+		}
+	);
+
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	const removed = await traceAsync(
+		"issueTemplate.delete.remove",
+		async () => {
+			const [template] = await db
+				.delete(schema.issueTemplate)
+				.where(and(eq(schema.issueTemplate.id, id), eq(schema.issueTemplate.organizationId, orgId)))
+				.returning();
+			return template;
+		},
+		{ description: "Deleting issue template", data: { orgId, templateId: id } }
+	);
+
+	if (!removed) {
+		await recordWideError({
+			name: "issueTemplate.delete.remove_failed",
+			error: new Error("Failed to remove issue template"),
+			code: "ISSUE_TEMPLATE_DELETION_FAILED",
+			message: "Failed to remove issue template",
+			contextData: { orgId, templateId: id },
+		});
+		return c.json({ success: false, error: "Failed to remove issue template." }, 500);
+	}
+
+	const templates = await traceAsync("issueTemplate.delete.fetch_all", () => getIssueTemplates(orgId), {
+		description: "Fetching all issue templates",
+		data: { orgId },
+	});
+
+	await traceAsync(
+		"issueTemplate.delete.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				data: templates,
+			};
+
+			broadcast(orgId, "admin", data, found?.socket);
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				broadcastByUserId(member.userId, wsClientId, orgId, data);
+			});
+		},
+		{ description: "Broadcasting issue template update" }
+	);
+
+	return c.json({
+		success: true,
+		data: templates,
 	});
 });
 

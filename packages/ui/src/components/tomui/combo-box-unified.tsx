@@ -274,7 +274,9 @@ interface ComboBoxEmptyProps {
 }
 
 function ComboBoxEmpty({ children, className }: ComboBoxEmptyProps) {
-  return <CommandEmpty className={cn(className)}>{children}</CommandEmpty>;
+  return (
+    <CommandEmpty className={cn("p-3", className)}>{children}</CommandEmpty>
+  );
 }
 
 // Group component
