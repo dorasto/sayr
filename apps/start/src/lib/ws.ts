@@ -246,6 +246,10 @@ export type WSMessage =
 			data: schema.savedViewType[];
 	  })
 	| (BaseMessage & {
+			type: "UPDATE_ISSUE_TEMPLATES";
+			data: schema.issueTemplateWithRelations[];
+	  })
+	| (BaseMessage & {
 			type: "CREATE_TASK";
 			data: schema.TaskWithLabels;
 	  })

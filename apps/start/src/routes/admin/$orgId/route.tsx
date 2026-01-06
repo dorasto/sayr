@@ -72,10 +72,16 @@ export const Route = createFileRoute("/admin/$orgId")({
  * Layout that wraps nested admin pages
  */
 function OrgLayout() {
-	const { organization, labels, views, categories } = Route.useLoaderData();
+	const { organization, labels, views, categories, issueTemplates } = Route.useLoaderData();
 
 	return (
-		<RootProviderOrganization organization={organization} labels={labels} views={views} categories={categories}>
+		<RootProviderOrganization
+			organization={organization}
+			labels={labels}
+			views={views}
+			categories={categories}
+			issueTemplates={issueTemplates}
+		>
 			<Outlet />
 		</RootProviderOrganization>
 	);

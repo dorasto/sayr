@@ -125,7 +125,7 @@ export function SimpleBarChart({
           <XAxis dataKey={dataKey} type="number" hide />
           <ChartTooltip
             cursor={false}
-            content={<ChartTooltipContent indicator="line" />}
+            content={<ChartTooltipContent nameKey={nameKey} />}
           />
           <Bar
             dataKey={dataKey}

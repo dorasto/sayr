@@ -902,3 +902,168 @@ export async function removeOrganizationMemberFromTeamAction(
   });
   return result;
 }
+
+/**
+ * Creates an issue template in an organization.
+ *
+ * @param organizationId - The ID of the organization the templates belong to.
+ * @param data - The template properties.
+ * @param wsClientId - The WebSocket client ID (for broadcasting updates).
+ */
+export async function createIssueTemplateAction(
+  organizationId: string,
+  data: {
+    name: string;
+    titlePrefix?: string;
+    description?: schema.NodeJSON;
+    status?: string;
+    priority?: string;
+    categoryId?: string;
+    labelIds?: string[];
+    assigneeIds?: string[];
+  },
+  wsClientId: string,
+): Promise<{
+  success: boolean;
+  data: schema.issueTemplateWithRelations[];
+  error?: string;
+}> {
+  const payload = {
+    org_id: organizationId,
+    name: data.name,
+    titlePrefix: data.titlePrefix,
+    description: data.description,
+    status: data.status,
+    priority: data.priority,
+    categoryId: data.categoryId,
+    labelIds: data.labelIds,
+    assigneeIds: data.assigneeIds,
+    wsClientId,
+  };
+
+  const result = await fetch(
+    `${API_URL}/admin/organization/create-issue-template`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    },
+  ).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to create issue template");
+    }
+    return json;
+  });
+
+  return result;
+}
+
+/**
+ * Updates an existing issue template in an organization.
+ *
+ * @param organizationId - The ID of the organization the templates belong to.
+ * @param data - The template properties to update.
+ * @param wsClientId - The WebSocket client ID (for broadcasting updates).
+ */
+export async function editIssueTemplateAction(
+  organizationId: string,
+  data: {
+    id: string;
+    name: string;
+    titlePrefix?: string;
+    description?: schema.NodeJSON;
+    status?: string;
+    priority?: string;
+    categoryId?: string;
+    labelIds?: string[];
+    assigneeIds?: string[];
+  },
+  wsClientId: string,
+): Promise<{
+  success: boolean;
+  data: schema.issueTemplateWithRelations[];
+  error?: string;
+}> {
+  const payload = {
+    org_id: organizationId,
+    id: data.id,
+    name: data.name,
+    titlePrefix: data.titlePrefix,
+    description: data.description,
+    status: data.status,
+    priority: data.priority,
+    categoryId: data.categoryId,
+    labelIds: data.labelIds,
+    assigneeIds: data.assigneeIds,
+    wsClientId,
+  };
+
+  const result = await fetch(
+    `${API_URL}/admin/organization/edit-issue-template`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    },
+  ).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to edit issue template");
+    }
+    return json;
+  });
+
+  return result;
+}
+
+/**
+ * Deletes an issue template from an organization.
+ *
+ * @param organizationId - The ID of the organization the templates belong to.
+ * @param data - The template properties for deletion (id).
+ * @param wsClientId - The WebSocket client ID (for pushing changes).
+ */
+export async function deleteIssueTemplateAction(
+  organizationId: string,
+  data: {
+    id: string;
+  },
+  wsClientId: string,
+): Promise<{
+  success: boolean;
+  data: schema.issueTemplateWithRelations[];
+  error?: string;
+}> {
+  const payload = {
+    org_id: organizationId,
+    id: data.id,
+    wsClientId,
+  };
+
+  const result = await fetch(
+    `${API_URL}/admin/organization/delete-issue-template`,
+    {
+      method: "DELETE",
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    },
+  ).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json?.error || "Failed to delete issue template");
+    }
+    return json;
+  });
+
+  return result;
+}

@@ -99,6 +99,14 @@ export const orgSettingsNavigation = [
     matchType: "exact" as const,
   },
   {
+    title: "Templates",
+    slug: "templates",
+    icon: Icon.IconTemplate,
+    activeIcon: Icon.IconTemplate,
+    activeClass: "",
+    matchType: "exact" as const,
+  },
+  {
     title: "Views",
     slug: "views",
     icon: Icon.IconStack2,

@@ -1,4 +1,4 @@
-import { db, getLabels, getOrganization, schema } from "@repo/database";
+import { db, getIssueTemplates, getLabels, getOrganization, schema } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
@@ -23,7 +23,8 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			const categories = await db.query.category.findMany({
 				where: (category) => eq(category.organizationId, organization.id),
 			});
-			return { organization, labels, views, categories };
+			const issueTemplates = await getIssueTemplates(organization.id);
+			return { organization, labels, views, categories, issueTemplates };
 		} catch (error) {
 			console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it

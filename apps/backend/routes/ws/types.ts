@@ -32,6 +32,7 @@ export type WSBaseMessage = {
 		| "DISCONNECTED"
 		| "UPDATE_VIEWS"
 		| "UPDATE_CATEGORIES"
+		| "UPDATE_ISSUE_TEMPLATES"
 		| "MEMBER_ACTIONS";
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	data?: any;
