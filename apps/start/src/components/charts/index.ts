@@ -10,6 +10,7 @@ export { TaskPriorityChart, type TaskPriorityChartProps, ALL_PRIORITIES } from "
 export { TaskPriorityBar, type TaskPriorityBarProps } from "./task-priority-bar";
 export { TaskAssigneeChart, type TaskAssigneeChartProps } from "./task-assignee-chart";
 export { TaskCategoryChart, type TaskCategoryChartProps } from "./task-category-chart";
+export { TaskCategoryBar, type TaskCategoryBarProps } from "./task-category-bar";
 export {
    TaskCompletionChart,
    type TaskCompletionChartProps,

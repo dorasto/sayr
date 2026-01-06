@@ -20,15 +20,13 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   TaskStatusChart,
   TaskPriorityBar,
   TaskAssigneeChart,
-  TaskCategoryChart,
-  TaskCompletionChart,
+  TaskCategoryBar,
   TaskTimelineChart,
-  ALL_STATUSES,
 } from "@/components/charts";
 import { useLayoutData } from "@/components/generic/Context";
 import { SubWrapper } from "@/components/generic/wrapper";
@@ -54,6 +52,16 @@ export default function OrganizationHomePage() {
     setCategories,
     categories,
   } = useLayoutOrganization();
+
+  // Filter to only show open tasks (not done or canceled)
+  const openTasks = useMemo(
+    () =>
+      tasks.filter(
+        (task) => task.status !== "done" && task.status !== "canceled",
+      ),
+    [tasks],
+  );
+
   useWebSocketSubscription({
     ws,
     orgId: organization.id,
@@ -100,8 +108,8 @@ export default function OrganizationHomePage() {
           <AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
         </Avatar>
       }
-      style="compact"
-      className="max-w-4xl"
+      // style="compact"
+      // className="max-w-4xl"
     >
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         <Link
@@ -195,8 +203,7 @@ export default function OrganizationHomePage() {
           </TileHeader>
           <div className="h-full w-full">
             <TaskStatusChart
-              tasks={tasks}
-              statuses={ALL_STATUSES}
+              tasks={openTasks}
               className="mx-auto"
               totalLabel="Open tasks"
             />
@@ -208,7 +215,7 @@ export default function OrganizationHomePage() {
             <TileDescription>Current priority distribution</TileDescription>
           </TileHeader>
           <div className="h-full w-full">
-            <TaskPriorityBar tasks={tasks} />
+            <TaskPriorityBar tasks={openTasks} />
           </div>
         </Tile>
         <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
@@ -217,12 +224,7 @@ export default function OrganizationHomePage() {
             <TileDescription>Open tasks by category</TileDescription>
           </TileHeader>
           <div className="h-full w-full">
-            <TaskCategoryChart
-              tasks={tasks}
-              categories={categories}
-              className="mx-auto"
-              totalLabel="Total"
-            />
+            <TaskCategoryBar tasks={openTasks} categories={categories} />
           </div>
         </Tile>
         <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
@@ -231,7 +233,7 @@ export default function OrganizationHomePage() {
             <TileDescription>Tasks assigned to each member</TileDescription>
           </TileHeader>
           <div className="h-full w-full">
-            <TaskAssigneeChart tasks={tasks} maxItems={6} />
+            <TaskAssigneeChart tasks={openTasks} maxItems={6} />
           </div>
         </Tile>
       </div>
