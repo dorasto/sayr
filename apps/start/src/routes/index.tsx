@@ -1,8 +1,9 @@
+import { Button } from "@repo/ui/components/button";
 import { createFileRoute } from "@tanstack/react-router";
-import { HeroSectionWithBeamsAndGrid } from "@/components/home";
+import LoginDialog from "@/components/auth/login";
 
 export const Route = createFileRoute("/")({ component: App });
 
 function App() {
-	return <HeroSectionWithBeamsAndGrid />;
+	return <LoginDialog trigger={<Button size={"lg"}>Get started</Button>} />
 }
