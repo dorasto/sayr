@@ -1,12 +1,25 @@
-import { db, getLabels, getOrganizationPublic, getTaskByShortId, schema } from "@repo/database";
+import {
+	db,
+	getLabels,
+	getOrganizationPublic,
+	getTaskByShortId,
+	schema,
+} from "@repo/database";
 import { and, eq, sql } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import z from "zod";
 import type { AppEnv } from "@/index";
-import { describeOkNotFound, describePaginatedRoute } from "../../openapi/helpers";
-import { errorResponse, paginatedSuccessResponse, successResponse } from "../../responses";
+import {
+	describeOkNotFound,
+	describePaginatedRoute,
+} from "../../openapi/helpers";
+import {
+	errorResponse,
+	paginatedSuccessResponse,
+	successResponse,
+} from "../../responses";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 // import { prosekitJSONToHTML } from "@/prosekit/html";
 // import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
@@ -24,7 +37,7 @@ apiPublicRoute.use(
 		allowMethods: ["GET"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		credentials: false,
-	})
+	}),
 );
 apiPublicRoute.use("*", async (c, next) => {
 	c.header("X-API-Version", "1.0.0");
@@ -36,8 +49,14 @@ apiPublicRoute.use("*", async (c, next) => {
 const OrganizationSchema = createSelectSchema(schema.organization)
 	.omit({ privateId: true })
 	.extend({
-		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+		createdAt: z.preprocess(
+			(v) => (v instanceof Date ? v.toISOString() : v),
+			z.string(),
+		),
+		updatedAt: z.preprocess(
+			(v) => (v instanceof Date ? v.toISOString() : v),
+			z.string(),
+		),
 	});
 apiPublicRoute.get(
 	"/organization/:org_slug",
@@ -59,17 +78,21 @@ apiPublicRoute.get(
 		const recordWideError = c.get("recordWideError");
 		const orgSlug = c.req.param("org_slug");
 
-		const organization = await traceAsync("organization.public.fetch", () => getOrganizationPublic(orgSlug), {
-			description: "Fetching public organization by slug",
-			data: { orgSlug },
-			onSuccess: (result) =>
-				result
-					? {
-							description: "Public organization data fetched",
-							data: { id: result.id, slug: result.slug },
-						}
-					: { description: "No organization found" },
-		});
+		const organization = await traceAsync(
+			"organization.public.fetch",
+			() => getOrganizationPublic(orgSlug),
+			{
+				description: "Fetching public organization by slug",
+				data: { orgSlug },
+				onSuccess: (result) =>
+					result
+						? {
+								description: "Public organization data fetched",
+								data: { id: result.id, slug: result.slug },
+							}
+						: { description: "No organization found" },
+			},
+		);
 
 		if (!organization) {
 			await recordWideError({
@@ -85,12 +108,15 @@ apiPublicRoute.get(
 		// biome-ignore lint/correctness/noUnusedVariables: <needed>
 		const { privateId, ...publicOrg } = organization;
 		return c.json(successResponse(publicOrg));
-	}
+	},
 );
 
 //@ts-expect-error
 const LabelSchema = createSelectSchema(schema.label).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	createdAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/labels",
@@ -112,10 +138,14 @@ apiPublicRoute.get(
 		const recordWideError = c.get("recordWideError");
 		const orgSlug = c.req.param("org_slug");
 
-		const organization = await traceAsync("organization.labels.org_lookup", () => getOrganizationPublic(orgSlug), {
-			description: "Finding organization by slug",
-			data: { orgSlug },
-		});
+		const organization = await traceAsync(
+			"organization.labels.org_lookup",
+			() => getOrganizationPublic(orgSlug),
+			{
+				description: "Finding organization by slug",
+				data: { orgSlug },
+			},
+		);
 
 		if (!organization) {
 			await recordWideError({
@@ -128,22 +158,29 @@ apiPublicRoute.get(
 			return c.json(errorResponse("No organization found"), 404);
 		}
 
-		const labels = await traceAsync("organization.labels.fetch", () => getLabels(organization.id), {
-			description: "Fetching organization labels",
-			data: { orgId: organization.id, slug: organization.slug },
-			onSuccess: (result) => ({
-				description: "Organization labels fetched",
-				data: { count: result.length },
-			}),
-		});
+		const labels = await traceAsync(
+			"organization.labels.fetch",
+			() => getLabels(organization.id),
+			{
+				description: "Fetching organization labels",
+				data: { orgId: organization.id, slug: organization.slug },
+				onSuccess: (result) => ({
+					description: "Organization labels fetched",
+					data: { count: result.length },
+				}),
+			},
+		);
 
 		return c.json(successResponse(labels));
-	}
+	},
 );
 
 //@ts-expect-error
 const CategorySchema = createSelectSchema(schema.category).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	createdAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/categories",
@@ -166,7 +203,8 @@ apiPublicRoute.get(
 					enum: ["asc", "desc"],
 					default: "desc",
 				},
-				description: "Sort order for categories. Use 'asc' for oldest first, 'desc' for newest first (default).",
+				description:
+					"Sort order for categories. Use 'asc' for oldest first, 'desc' for newest first (default).",
 			},
 		],
 		tags: ["Organization"],
@@ -180,7 +218,7 @@ apiPublicRoute.get(
 		const organization = await traceAsync(
 			"organization.categories.org_lookup",
 			() => getOrganizationPublic(orgSlug),
-			{ description: "Finding organization by slug", data: { orgSlug } }
+			{ description: "Finding organization by slug", data: { orgSlug } },
 		);
 
 		if (!organization) {
@@ -198,7 +236,8 @@ apiPublicRoute.get(
 			"organization.categories.fetch",
 			() =>
 				db.query.category.findMany({
-					orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
+					orderBy: (tC, { asc, desc }) =>
+						order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt),
 					where: (category) => eq(category.organizationId, organization.id),
 				}),
 			{
@@ -208,17 +247,23 @@ apiPublicRoute.get(
 					description: "Organization categories fetched",
 					data: { count: result.length },
 				}),
-			}
+			},
 		);
 
 		return c.json(successResponse(categories));
-	}
+	},
 );
 
 //@ts-expect-error
 const TaskSchema = createSelectSchema(schema.task).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	createdAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
+	updatedAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
 	descriptionHtml: z.string(),
 	descriptionMarkdown: z.string(),
 });
@@ -243,7 +288,8 @@ apiPublicRoute.get(
 					enum: ["asc", "desc"],
 					default: "desc",
 				},
-				description: "Sort order for tasks. Use 'asc' for oldest first, 'desc' for newest first (default).",
+				description:
+					"Sort order for tasks. Use 'asc' for oldest first, 'desc' for newest first (default).",
 			},
 		],
 		maxLimit: API_LIMITS.tasks,
@@ -262,10 +308,14 @@ apiPublicRoute.get(
 			const limit = Math.min(requestedLimit || 5, API_LIMITS.tasks);
 			const offset = (page - 1) * limit;
 
-			const organization = await traceAsync("organization.tasks.org_lookup", () => getOrganizationPublic(orgSlug), {
-				description: "Finding organization by slug",
-				data: { orgSlug },
-			});
+			const organization = await traceAsync(
+				"organization.tasks.org_lookup",
+				() => getOrganizationPublic(orgSlug),
+				{
+					description: "Finding organization by slug",
+					data: { orgSlug },
+				},
+			);
 
 			if (!organization) {
 				await recordWideError({
@@ -289,9 +339,9 @@ apiPublicRoute.get(
 				return c.json(
 					errorResponse(
 						"Invalid limit",
-						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.tasks}`
+						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.tasks}`,
 					),
-					400
+					400,
 				);
 			}
 
@@ -304,7 +354,10 @@ apiPublicRoute.get(
 						.where(eq(schema.task.organizationId, organization.id));
 					return Number(result?.count ?? 0);
 				},
-				{ description: "Counting total tasks", data: { orgId: organization.id } }
+				{
+					description: "Counting total tasks",
+					data: { orgId: organization.id },
+				},
 			);
 
 			const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
@@ -317,14 +370,21 @@ apiPublicRoute.get(
 					message: `Requested page ${page} exceeds total ${totalPages}`,
 					contextData: { orgSlug, page, totalPages, totalItems },
 				});
-				return c.json(errorResponse(`Page ${page} not found`, `Valid pages range from 1 to ${totalPages}`), 400);
+				return c.json(
+					errorResponse(
+						`Page ${page} not found`,
+						`Valid pages range from 1 to ${totalPages}`,
+					),
+					400,
+				);
 			}
 
 			const tasks = await traceAsync(
 				"organization.tasks.fetch",
 				async () => {
 					const rows = await db.query.task.findMany({
-						orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
+						orderBy: (tC, { asc, desc }) =>
+							order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt),
 						where: (t) => eq(t.organizationId, organization.id),
 						limit,
 						offset,
@@ -347,7 +407,7 @@ apiPublicRoute.get(
 						description: "Organization tasks fetched",
 						data: { taskCount: result.length, totalItems, totalPages },
 					}),
-				}
+				},
 			);
 
 			return c.json(
@@ -357,7 +417,7 @@ apiPublicRoute.get(
 					totalPages,
 					totalItems,
 					hasMore: page < totalPages,
-				})
+				}),
 			);
 		} catch (err) {
 			await recordWideError({
@@ -368,7 +428,7 @@ apiPublicRoute.get(
 			});
 			return c.json(errorResponse("Database error", "Unexpected error"), 500);
 		}
-	}
+	},
 );
 
 apiPublicRoute.get(
@@ -408,13 +468,20 @@ apiPublicRoute.get(
 				message: "task_short_id must be a number",
 				contextData: { orgSlug, taskShortIdRaw },
 			});
-			return c.json(errorResponse("Invalid task_short_id", "Must be a number"), 400);
+			return c.json(
+				errorResponse("Invalid task_short_id", "Must be a number"),
+				400,
+			);
 		}
 
-		const organization = await traceAsync("task.byshortid.org_lookup", () => getOrganizationPublic(orgSlug), {
-			description: "Finding organization by slug",
-			data: { orgSlug },
-		});
+		const organization = await traceAsync(
+			"task.byshortid.org_lookup",
+			() => getOrganizationPublic(orgSlug),
+			{
+				description: "Finding organization by slug",
+				data: { orgSlug },
+			},
+		);
 
 		if (!organization) {
 			await recordWideError({
@@ -427,17 +494,21 @@ apiPublicRoute.get(
 			return c.json(errorResponse("No organization found"), 404);
 		}
 
-		const task = await traceAsync("task.byshortid.fetch", () => getTaskByShortId(organization.id, taskShortId), {
-			description: "Fetching task by short ID",
-			data: { orgId: organization.id, taskShortId },
-			onSuccess: (result) =>
-				result
-					? {
-							description: "Task fetched successfully",
-							data: { taskId: result.id, shortId: result.shortId },
-						}
-					: { description: "Task not found" },
-		});
+		const task = await traceAsync(
+			"task.byshortid.fetch",
+			() => getTaskByShortId(organization.id, taskShortId),
+			{
+				description: "Fetching task by short ID",
+				data: { orgId: organization.id, taskShortId },
+				onSuccess: (result) =>
+					result
+						? {
+								description: "Task fetched successfully",
+								data: { taskId: result.id, shortId: result.shortId },
+							}
+						: { description: "Task not found" },
+			},
+		);
 
 		if (!task) {
 			await recordWideError({
@@ -455,15 +526,21 @@ apiPublicRoute.get(
 				...task,
 				// descriptionHtml: task.description && prosekitJSONToHTML(task.description),
 				// descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
-			})
+			}),
 		);
-	}
+	},
 );
 
 //@ts-expect-error
 const CommentSchema = createSelectSchema(schema.taskComment).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+	createdAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
+	updatedAt: z.preprocess(
+		(v) => (v instanceof Date ? v.toISOString() : v),
+		z.string(),
+	),
 	createdBy: z
 		.object({
 			name: z.string().nullable(),
@@ -473,6 +550,18 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 		.optional(),
 	descriptionHtml: z.string(),
 	descriptionMarkdown: z.string(),
+	reactions: z
+		.object({
+			total: z.number(),
+			reactions: z.record(
+				z.string(),
+				z.object({
+					count: z.number(),
+					users: z.array(z.string()),
+				}),
+			),
+		})
+		.optional(),
 });
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks/:task_short_id/comments",
@@ -501,7 +590,8 @@ apiPublicRoute.get(
 					enum: ["asc", "desc"],
 					default: "desc",
 				},
-				description: "Sort order for comments. Use 'asc' for oldest first, 'desc' for newest first (default).",
+				description:
+					"Sort order for comments. Use 'asc' for oldest first, 'desc' for newest first (default).",
 			},
 		],
 		maxLimit: API_LIMITS.comments,
@@ -530,13 +620,20 @@ apiPublicRoute.get(
 					message: "task_short_id must be a number",
 					contextData: { orgSlug, taskShortIdRaw },
 				});
-				return c.json(errorResponse("Invalid task_short_id", "Must be a number"), 400);
+				return c.json(
+					errorResponse("Invalid task_short_id", "Must be a number"),
+					400,
+				);
 			}
 
-			const org = await traceAsync("task.comments.org_lookup", () => getOrganizationPublic(orgSlug), {
-				description: "Finding organization by slug",
-				data: { orgSlug },
-			});
+			const org = await traceAsync(
+				"task.comments.org_lookup",
+				() => getOrganizationPublic(orgSlug),
+				{
+					description: "Finding organization by slug",
+					data: { orgSlug },
+				},
+			);
 
 			if (!org) {
 				await recordWideError({
@@ -549,10 +646,14 @@ apiPublicRoute.get(
 				return c.json(errorResponse("Organization not found"), 404);
 			}
 
-			const task = await traceAsync("task.comments.task_lookup", () => getTaskByShortId(org.id, taskShortId), {
-				description: "Finding task by short ID",
-				data: { orgId: org.id, taskShortId },
-			});
+			const task = await traceAsync(
+				"task.comments.task_lookup",
+				() => getTaskByShortId(org.id, taskShortId),
+				{
+					description: "Finding task by short ID",
+					data: { orgId: org.id, taskShortId },
+				},
+			);
 
 			if (!task) {
 				await recordWideError({
@@ -571,14 +672,19 @@ apiPublicRoute.get(
 					error: new Error("Limit overflow"),
 					code: "LIMIT_OVERFLOW",
 					message: `Requested limit ${requestedLimit} exceeds max ${API_LIMITS.comments}`,
-					contextData: { orgSlug, taskShortId, requestedLimit, maxLimit: API_LIMITS.comments },
+					contextData: {
+						orgSlug,
+						taskShortId,
+						requestedLimit,
+						maxLimit: API_LIMITS.comments,
+					},
 				});
 				return c.json(
 					errorResponse(
 						"Invalid limit",
-						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.comments}`
+						`Query parameter \`limit\` must be an integer between 1 and ${API_LIMITS.comments}`,
 					),
-					400
+					400,
 				);
 			}
 
@@ -592,12 +698,15 @@ apiPublicRoute.get(
 							and(
 								eq(schema.taskComment.taskId, task.id),
 								eq(schema.taskComment.organizationId, org.id),
-								eq(schema.taskComment.visibility, "public")
-							)
+								eq(schema.taskComment.visibility, "public"),
+							),
 						);
 					return Number(result?.count ?? 0);
 				},
-				{ description: "Counting public comments", data: { orgId: org.id, taskId: task.id } }
+				{
+					description: "Counting public comments",
+					data: { orgId: org.id, taskId: task.id },
+				},
 			);
 
 			const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
@@ -610,7 +719,13 @@ apiPublicRoute.get(
 					message: `Requested page ${page} exceeds total ${totalPages}`,
 					contextData: { orgSlug, taskShortId, page, totalPages, totalItems },
 				});
-				return c.json(errorResponse(`Page ${page} not found`, `Valid pages range from 1 to ${totalPages}`), 400);
+				return c.json(
+					errorResponse(
+						`Page ${page} not found`,
+						`Valid pages range from 1 to ${totalPages}`,
+					),
+					400,
+				);
 			}
 
 			const comments = await traceAsync(
@@ -621,21 +736,56 @@ apiPublicRoute.get(
 							and(
 								eq(tC.taskId, task.id),
 								eq(tC.organizationId, org.id),
-								eq(schema.taskComment.visibility, "public")
+								eq(schema.taskComment.visibility, "public"),
 							),
-						orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
+						orderBy: (tC, { asc, desc }) =>
+							order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt),
 						limit,
 						offset,
 						with: {
 							createdBy: { columns: { name: true, image: true } },
+							reactions: {
+								columns: { emoji: true, userId: true },
+							},
 						},
 					});
+					const mapped = rows.map((comment) => {
+						const grouped: Record<string, { count: number; users: string[] }> =
+							{};
 
-					return rows.map((comment) => ({
-						...comment,
-						// contentHtml: comment.content && prosekitJSONToHTML(comment.content),
-						// contentMarkdown: comment.content && prosekitJSONToMarkdown(comment.content),
-					}));
+						for (const reaction of comment.reactions ?? []) {
+							if (!grouped[reaction.emoji]) {
+								grouped[reaction.emoji] = { count: 0, users: [] };
+							}
+
+							const reactionGroup = grouped[reaction.emoji];
+							if (reactionGroup) {
+								reactionGroup.count++;
+								reactionGroup.users.push(reaction.userId);
+							}
+						}
+
+						const total = Object.values(grouped).reduce(
+							(sum, r) => sum + r.count,
+							0,
+						);
+
+						return {
+							...comment,
+							reactions: {
+								total,
+								reactions: grouped,
+							},
+							eventType: "comment" as const,
+							actor: comment.createdBy,
+						};
+					});
+					// return rows.map((comment) => ({
+					// 	...comment,
+					// 	// contentHtml: comment.content && prosekitJSONToHTML(comment.content),
+					// 	// contentMarkdown: comment.content && prosekitJSONToMarkdown(comment.content),
+					// }));
+					return mapped;
 				},
 				{
 					description: "Fetching paginated comments",
@@ -644,7 +794,7 @@ apiPublicRoute.get(
 						description: "Task comments fetched",
 						data: { commentCount: result.length, totalItems, totalPages },
 					}),
-				}
+				},
 			);
 
 			return c.json(
@@ -654,7 +804,7 @@ apiPublicRoute.get(
 					totalPages,
 					totalItems,
 					hasMore: page < totalPages,
-				})
+				}),
 			);
 		} catch (err) {
 			await recordWideError({
@@ -665,5 +815,5 @@ apiPublicRoute.get(
 			});
 			return c.json(errorResponse("Database error", "Unexpected error"), 500);
 		}
-	}
+	},
 );

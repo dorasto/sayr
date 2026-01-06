@@ -57,7 +57,6 @@ export type taskTimelineWithActor = taskTimelineType & {
 	actor?: { id: string; name: string; image: string | null };
 	updatedAt?: Date | null;
 	reactions?: {
-		commentId: string;
 		total: number;
 		reactions: Record<
 			string,
