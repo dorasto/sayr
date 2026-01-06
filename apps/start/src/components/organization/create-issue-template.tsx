@@ -17,8 +17,6 @@ import {
   IconDeviceFloppy,
   IconLabel,
   IconPlus,
-  IconSettings,
-  IconStack2,
   IconTemplate,
   IconTrash,
   IconUserPlus,
@@ -55,8 +53,10 @@ import {
   TileIcon,
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
-import { formatDateCompact, formatDateTime } from "@repo/util";
-import { Separator } from "@repo/ui/components/separator";
+import { formatDateCompact } from "@repo/util";
+import Editor from "@/components/prosekit/editor";
+import processUploads from "@/components/prosekit/upload";
+import type { NodeJSON } from "prosekit/core";
 
 interface Props {
   orgId: string;
@@ -64,7 +64,7 @@ interface Props {
   template?: schema.issueTemplateWithRelations;
   availableLabels: schema.labelType[];
   availableCategories: schema.categoryType[];
-  availableUsers: { id: string; name: string; image: string | null }[];
+  availableUsers: schema.userType[];
   mode?: "create" | "edit";
   settingsUI?: boolean;
 }
@@ -82,6 +82,9 @@ export default function CreateIssueTemplate({
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const [name, setName] = useState(template?.name || "");
   const [titlePrefix, setTitlePrefix] = useState(template?.titlePrefix || "");
+  const [description, setDescription] = useState<NodeJSON | undefined>(
+    template?.description ? (template.description as NodeJSON) : undefined,
+  );
   const [status, setStatus] = useState<string | undefined>(
     template?.status || undefined,
   );
@@ -99,13 +102,23 @@ export default function CreateIssueTemplate({
   );
   const { runWithToast, isFetching } = useToastAction();
   const isEditMode = mode === "edit" && template;
+  const [resetKey, setResetKey] = useState(0);
 
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  const initialContent = useMemo(() => {
+    return template?.description
+      ? (template.description as NodeJSON)
+      : undefined;
+  }, [template?.id]);
 
   useEffect(() => {
     if (isEditMode) {
       setName(template?.name || "");
       setTitlePrefix(template?.titlePrefix || "");
+      setDescription(
+        template?.description ? (template.description as NodeJSON) : undefined,
+      );
       setStatus(template?.status || undefined);
       setPriority(template?.priority || undefined);
       setCategoryId(template?.categoryId || "");
@@ -119,6 +132,8 @@ export default function CreateIssueTemplate({
     return (
       name !== template?.name ||
       titlePrefix !== (template?.titlePrefix || "") ||
+      JSON.stringify(description) !==
+        JSON.stringify(template?.description || undefined) ||
       status !== (template?.status || undefined) ||
       priority !== (template?.priority || undefined) ||
       categoryId !== (template?.categoryId || "") ||
@@ -130,6 +145,7 @@ export default function CreateIssueTemplate({
   }, [
     name,
     titlePrefix,
+    description,
     status,
     priority,
     categoryId,
@@ -207,12 +223,22 @@ export default function CreateIssueTemplate({
           description: "An error occurred while creating the template.",
         },
       },
-      () =>
-        createIssueTemplateAction(
+      async () => {
+        const updatedDescription = description
+          ? await processUploads(
+              description,
+              "public",
+              orgId,
+              "create-issue-template",
+            )
+          : undefined;
+
+        return createIssueTemplateAction(
           orgId,
           {
             name,
             titlePrefix: titlePrefix || undefined,
+            description: updatedDescription,
             status: status || undefined,
             priority: priority || undefined,
             categoryId: categoryId || undefined,
@@ -220,17 +246,20 @@ export default function CreateIssueTemplate({
             assigneeIds,
           },
           wsClientId,
-        ),
+        );
+      },
     );
     if (data?.success && data.data) {
       setIssueTemplates(data.data);
       setName("");
       setTitlePrefix("");
+      setDescription(undefined);
       setStatus(undefined);
       setPriority(undefined);
       setCategoryId("");
       setLabelIds([]);
       setAssigneeIds([]);
+      setResetKey((prev) => prev + 1);
     }
   };
 
@@ -250,13 +279,23 @@ export default function CreateIssueTemplate({
           description: "An error occurred while updating the template.",
         },
       },
-      () =>
-        editIssueTemplateAction(
+      async () => {
+        const updatedDescription = description
+          ? await processUploads(
+              description,
+              "public",
+              orgId,
+              "edit-issue-template",
+            )
+          : undefined;
+
+        return editIssueTemplateAction(
           orgId,
           {
             id: template.id,
             name,
             titlePrefix: titlePrefix || undefined,
+            description: updatedDescription,
             status: status || undefined,
             priority: priority || undefined,
             categoryId: categoryId || undefined,
@@ -264,7 +303,8 @@ export default function CreateIssueTemplate({
             assigneeIds,
           },
           wsClientId,
-        ),
+        );
+      },
     );
     if (data?.success && data.data) {
       setIssueTemplates(data.data);
@@ -379,6 +419,17 @@ export default function CreateIssueTemplate({
             value={titlePrefix}
             onChange={(e) => setTitlePrefix(e.target.value)}
             className="bg-accent border-transparent md:w-1/3"
+          />
+        </div>
+
+        <div className="w-full max-h-64 overflow-scroll border p-3 rounded-lg bg-accent">
+          <Editor
+            key={template?.id || `new-${resetKey}`}
+            onChange={setDescription}
+            defaultContent={initialContent}
+            users={availableUsers}
+            categories={availableCategories}
+            tasks={[]}
           />
         </div>
 
