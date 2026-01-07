@@ -1,0 +1,90 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+
+    client_max_body_size 10M;
+
+    # ===============================
+    # DOMAIN LOGIC (TEMPLATED)
+    # ===============================
+
+    map $host $is_root_domain {
+        ${VITE_ROOT_DOMAIN}      1;
+        www.${VITE_ROOT_DOMAIN}  1;
+        default                 0;
+    }
+
+    map $host $is_admin_subdomain {
+        admin.${VITE_ROOT_DOMAIN} 1;
+        default                   0;
+    }
+
+    map $host $tenant {
+        ~^(?<t>[^.]+)\.${VITE_ROOT_DOMAIN}$ $t;
+        default "";
+    }
+
+    map "$is_root_domain|$is_admin_subdomain|$tenant" $proxy_prefix {
+        "1|0|"        "";
+        "0|1|"        "/admin";
+        ~^0\|0\|(.+)$ "/$tenant";
+        default       "";
+    }
+
+    map "$is_root_domain$request_uri" $admin_redirect {
+        default "";
+        ~^1/admin(?<rest>/.*)?$ http://admin.${VITE_ROOT_DOMAIN}$rest;
+    }
+
+    upstream marketing {
+        server marketing:8080;
+    }
+
+    upstream admin_app {
+        server start:8080;
+    }
+
+    upstream backend_app {
+        server backend:5468;
+    }
+
+    server {
+        listen 80;
+        server_name _;
+
+        if ($admin_redirect != "") {
+            return 302 $admin_redirect;
+        }
+
+        location /api/ {
+            proxy_pass http://backend_app;
+        }
+
+        location /ws {
+            proxy_pass http://backend_app;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        location / {
+            if ($is_root_domain) {
+                proxy_pass http://marketing;
+                break;
+            }
+
+            proxy_pass http://admin_app$proxy_prefix$request_uri;
+        }
+    }
+}

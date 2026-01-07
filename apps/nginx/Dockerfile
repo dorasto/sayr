@@ -1,13 +1,13 @@
 FROM nginx:latest
 
-# Remove the default Nginx configuration file
+# Remove default config
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy custom Nginx configuration file
-COPY apps/nginx/nginx.conf /etc/nginx/nginx.conf
+# Copy nginx template (NOT final config)
+COPY apps/nginx/nginx.conf.template /etc/nginx/nginx.conf.template
 
-# Expose the port Nginx is configured to listen on
+# Expose port
 EXPOSE 80
 
-# Command to run Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Render template with env + start nginx
+CMD sh -c "envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
