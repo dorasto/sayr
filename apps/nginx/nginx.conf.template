@@ -19,18 +19,12 @@ http {
 
     client_max_body_size 10M;
 
-    # ===============================
-    # UPSTREAMS
-    # ===============================
-    upstream web_app {
-        server start:8080;
-        keepalive 16;
-    }
-
-    upstream backend_app {
-        server backend:5468;
-        keepalive 16;
-    }
+    # DNS resolver for dynamic service discovery
+    # 127.0.0.11 is Docker's embedded DNS server
+    # valid=10s means re-resolve every 10 seconds
+    # ipv6=off avoids IPv6 issues in some environments
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver_timeout 5s;
 
     # ===============================
     # ROOT DOMAIN → Marketing/Backend
@@ -52,7 +46,8 @@ http {
 
         # API routes → backend
         location /api/ {
-            proxy_pass http://backend_app;
+            set $backend_upstream backend:5468;
+            proxy_pass http://$backend_upstream;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -62,7 +57,8 @@ http {
 
         # Everything else → marketing (backend for now, replace with marketing app later)
         location / {
-            proxy_pass http://backend_app;
+            set $backend_upstream backend:5468;
+            proxy_pass http://$backend_upstream;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -80,7 +76,8 @@ http {
 
         # Auth API → start app (handles Better Auth)
         location /api/auth/ {
-            proxy_pass http://web_app;
+            set $start_upstream start:8080;
+            proxy_pass http://$start_upstream;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -89,7 +86,8 @@ http {
         }
 
         location /api/image-preview {
-            proxy_pass http://web_app;
+            set $start_upstream start:8080;
+            proxy_pass http://$start_upstream;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -99,7 +97,8 @@ http {
 
         # Other API routes → backend
         location /api/ {
-            proxy_pass http://backend_app;
+            set $backend_upstream backend:5468;
+            proxy_pass http://$backend_upstream;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -109,7 +108,8 @@ http {
 
         # WebSocket
         location /ws {
-            proxy_pass http://backend_app;
+            set $backend_upstream backend:5468;
+            proxy_pass http://$backend_upstream;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
@@ -124,7 +124,8 @@ http {
 
         # Everything else → start app
         location / {
-            proxy_pass http://web_app;
+            set $start_upstream start:8080;
+            proxy_pass http://$start_upstream;
             proxy_set_header Host $host;
             proxy_set_header Connection "";
             proxy_http_version 1.1;
