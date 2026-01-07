@@ -48,14 +48,17 @@ http {
     # ===============================
     upstream marketing {
         server backend:5468;
+        keepalive 16;
     }
 
     upstream admin_app {
         server start:8080;
+        keepalive 16;
     }
 
     upstream backend_app {
         server backend:5468;
+        keepalive 16;
     }
 
     # ===============================
