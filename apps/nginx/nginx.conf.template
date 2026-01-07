@@ -19,10 +19,18 @@ http {
 
     client_max_body_size 10M;
 
-    # DNS resolver for Railway private networking
-    # Uses Railway's internal DNS for service discovery
-    resolver 127.0.0.11 valid=10s ipv6=off;
-    resolver_timeout 5s;
+    # ===============================
+    # UPSTREAMS
+    # ===============================
+    upstream web_app {
+        server start.railway.internal:8080;
+        keepalive 16;
+    }
+
+    upstream backend_app {
+        server backend.railway.internal:5468;
+        keepalive 16;
+    }
 
     # ===============================
     # ROOT DOMAIN → Marketing/Backend
@@ -44,8 +52,7 @@ http {
 
         # API routes → backend
         location /api/ {
-            set $backend_upstream backend.railway.internal:5468;
-            proxy_pass http://$backend_upstream;
+            proxy_pass http://backend_app;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -55,8 +62,7 @@ http {
 
         # Everything else → marketing (backend for now, replace with marketing app later)
         location / {
-            set $backend_upstream backend.railway.internal:5468;
-            proxy_pass http://$backend_upstream;
+            proxy_pass http://backend_app;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -74,8 +80,7 @@ http {
 
         # Auth API → start app (handles Better Auth)
         location /api/auth/ {
-            set $start_upstream start.railway.internal:8080;
-            proxy_pass http://$start_upstream;
+            proxy_pass http://web_app;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -84,8 +89,7 @@ http {
         }
 
         location /api/image-preview {
-            set $start_upstream start.railway.internal:8080;
-            proxy_pass http://$start_upstream;
+            proxy_pass http://web_app;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -95,8 +99,7 @@ http {
 
         # Other API routes → backend
         location /api/ {
-            set $backend_upstream backend.railway.internal:5468;
-            proxy_pass http://$backend_upstream;
+            proxy_pass http://backend_app;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -106,8 +109,7 @@ http {
 
         # WebSocket
         location /ws {
-            set $backend_upstream backend.railway.internal:5468;
-            proxy_pass http://$backend_upstream;
+            proxy_pass http://backend_app;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
@@ -122,8 +124,7 @@ http {
 
         # Everything else → start app
         location / {
-            set $start_upstream start.railway.internal:8080;
-            proxy_pass http://$start_upstream;
+            proxy_pass http://web_app;
             proxy_set_header Host $host;
             proxy_set_header Connection "";
             proxy_http_version 1.1;
