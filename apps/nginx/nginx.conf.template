@@ -48,7 +48,7 @@ http {
     }
 
     upstream marketing {
-        server marketing:8080;
+        server backend:5468;
     }
 
     upstream admin_app {
