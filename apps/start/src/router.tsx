@@ -19,18 +19,30 @@ export const getRouter = () => {
 		// during hydration and same-route navigations
 		defaultPreloadStaleTime: 1000 * 30,
 		rewrite: {
+			// INPUT: URL → Internal Route
+			// Transforms the browser URL to match internal route structure
 			input: ({ url }) => {
 				const hostname = url.hostname;
+				// These routes exist outside /admin and should not be prefixed
 				if (url.pathname.startsWith("/invite")) {
 					return url;
 				}
 				if (url.pathname.startsWith("/api")) {
 					return url;
 				}
-				// 1. Admin Subdomain
-				if (hostname.startsWith("admin.")) {
+				if (url.pathname.startsWith("/login")) {
+					return url;
+				}
+				// 1. Admin Subdomain - prepend /admin to paths
+				// admin.sayr.io/ → /admin/
+				// admin.sayr.io/orgid/tasks → /admin/orgid/tasks
+				// Also works with admin.localhost:3000 for local dev
+				// Plain localhost:3000 also treated as admin for convenience
+				const isAdminSubdomain = hostname.startsWith("admin.");
+				const isPlainLocalhost = hostname === "localhost" || hostname.startsWith("localhost:");
+				if (isAdminSubdomain || isPlainLocalhost) {
 					if (!url.pathname.startsWith("/admin")) {
-						url.pathname = `/`;
+						url.pathname = `/admin${url.pathname}`;
 						return url;
 					}
 				}
@@ -79,6 +91,43 @@ export const getRouter = () => {
 						url.pathname = `/${url.pathname === "/" ? "" : url.pathname}`;
 						return url;
 					}
+				}
+
+				return undefined;
+			},
+			// OUTPUT: Internal Route → URL
+			// Transforms generated links to match the clean URL structure
+			output: ({ url }) => {
+				const hostname = url.hostname;
+				const isAdminSubdomain = hostname.startsWith("admin.");
+				const isPlainLocalhost = hostname === "localhost" || hostname.startsWith("localhost:");
+
+				// On admin subdomain or localhost, strip /admin from URLs
+				if (isAdminSubdomain || isPlainLocalhost) {
+					if (url.pathname.startsWith("/admin")) {
+						url.pathname = url.pathname.replace(/^\/admin/, "") || "/";
+						return url;
+					}
+				}
+
+				// On org subdomains, strip /orgs/$orgSlug from URLs
+				const parts = hostname.split(".");
+				const isLocalhost = parts[parts.length - 1] === "localhost";
+				let subdomain = "";
+
+				if (isLocalhost) {
+					if (parts.length > 1 && parts[0] !== "www" && parts[0] !== "admin") {
+						subdomain = parts[0] || "";
+					}
+				} else {
+					if (parts.length > 2 && parts[0] !== "www" && parts[0] !== "admin") {
+						subdomain = parts[0] || "";
+					}
+				}
+
+				if (subdomain && url.pathname.startsWith(`/orgs/${subdomain}`)) {
+					url.pathname = url.pathname.replace(`/orgs/${subdomain}`, "") || "/";
+					return url;
 				}
 
 				return undefined;

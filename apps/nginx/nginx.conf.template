@@ -45,6 +45,11 @@ http {
             return 302 http://admin.${VITE_ROOT_DOMAIN}$request_uri;
         }
 
+        # Redirect /login to admin subdomain
+        location /login {
+            return 302 http://admin.${VITE_ROOT_DOMAIN}/login;
+        }
+
         # API routes → backend
         location /api/ {
             proxy_pass http://backend_app;

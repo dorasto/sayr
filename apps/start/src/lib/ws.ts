@@ -85,7 +85,7 @@ const useWebSocket = () => {
 											description: "You have been removed from the organization. Redirecting...",
 										});
 										setTimeout(() => {
-											window.location.href = "/admin";
+											window.location.href = "/";
 										});
 									}
 									return;
