@@ -5,7 +5,8 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 # Copy nginx template (NOT final config)
 COPY apps/nginx/nginx.conf.template /etc/nginx/nginx.conf.template
-
+ARG VITE_ROOT_DOMAIN="example.com"
+ENV VITE_ROOT_DOMAIN=$VITE_ROOT_DOMAIN
 # Expose port
 EXPOSE 80
 
