@@ -20,26 +20,26 @@ http {
     # ===============================
 
     map $host $is_root_domain {
+        default 0;
         ${VITE_ROOT_DOMAIN}      1;
         www.${VITE_ROOT_DOMAIN}  1;
-        default                 0;
     }
 
     map $host $is_admin_subdomain {
+        default 0;
         admin.${VITE_ROOT_DOMAIN} 1;
-        default                   0;
     }
 
     map $host $tenant {
-        ~^(?<t>[^.]+)\.${VITE_ROOT_DOMAIN}$ $t;
         default "";
+        ~^([^.]+)\.${VITE_ROOT_DOMAIN}$ $1;
     }
 
     map "$is_root_domain|$is_admin_subdomain|$tenant" $proxy_prefix {
+        default       "";
         "1|0|"        "";
         "0|1|"        "/admin";
         ~^0\|0\|(.+)$ "/$tenant";
-        default       "";
     }
 
     map "$is_root_domain$request_uri" $admin_redirect {
@@ -47,8 +47,11 @@ http {
         ~^1/admin(?<rest>/.*)?$ http://admin.${VITE_ROOT_DOMAIN}$rest;
     }
 
+    # ===============================
+    # UPSTREAMS
+    # ===============================
     upstream marketing {
-        server backend:5468;
+        server marketing:8080;
     }
 
     upstream admin_app {
@@ -59,6 +62,9 @@ http {
         server backend:5468;
     }
 
+    # ===============================
+    # SERVER
+    # ===============================
     server {
         listen 80;
         server_name _;
