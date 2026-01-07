@@ -11,4 +11,14 @@ ENV VITE_ROOT_DOMAIN=$VITE_ROOT_DOMAIN
 EXPOSE 80
 
 # Render template with env + start nginx
-CMD sh -c ": \"\${VITE_ROOT_DOMAIN:?VITE_ROOT_DOMAIN is required}\" &&  envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+# CMD sh -c ": \"\${VITE_ROOT_DOMAIN:?VITE_ROOT_DOMAIN is required}\" &&  envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+CMD sh -c " \
+  echo '=== ENV ==='; \
+  env | sort; \
+  echo '=== RENDERED nginx.conf ==='; \
+  envsubst < /etc/nginx/nginx.conf.template | tee /etc/nginx/nginx.conf; \
+  echo '=== NGINX TEST ==='; \
+  nginx -t; \
+  echo '=== STARTING NGINX ==='; \
+  nginx -g 'daemon off;' \
+"
