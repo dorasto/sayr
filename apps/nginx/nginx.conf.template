@@ -13,45 +13,16 @@ http {
     tcp_nodelay on;
     keepalive_timeout 65;
 
-    # Timeouts - helps diagnose connection issues faster
-    proxy_connect_timeout 10s;
+    proxy_connect_timeout 60s;
     proxy_send_timeout 60s;
     proxy_read_timeout 60s;
 
     client_max_body_size 10M;
 
     # ===============================
-    # DOMAIN LOGIC (TEMPLATED)
-    # ===============================
-
-    # Root domain (example.com, www.example.com)
-    map $host $is_root_domain {
-        default 0;
-        ${VITE_ROOT_DOMAIN}      1;
-        www.${VITE_ROOT_DOMAIN}  1;
-    }
-
-    # Admin subdomain
-    map $host $is_admin_subdomain {
-        default 0;
-        admin.${VITE_ROOT_DOMAIN} 1;
-    }
-
-    # Redirect /admin on root → admin subdomain
-    map "$is_root_domain$request_uri" $admin_redirect {
-        default "";
-        ~^1/admin(?<rest>/.*)?$ http://admin.${VITE_ROOT_DOMAIN}$rest;
-    }
-
-    # ===============================
     # UPSTREAMS
     # ===============================
-    upstream marketing {
-        server backend:5468;
-        keepalive 16;
-    }
-
-    upstream admin_app {
+    upstream web_app {
         server start:8080;
         keepalive 16;
     }
@@ -62,106 +33,93 @@ http {
     }
 
     # ===============================
-    # SERVER
+    # ROOT DOMAIN → Marketing/Backend
+    # (sayr.io, www.sayr.io)
     # ===============================
     server {
         listen 80;
-        server_name _;
+        server_name ${VITE_ROOT_DOMAIN} www.${VITE_ROOT_DOMAIN};
 
-        # --------------------------------
-        # Redirect /admin on root domain
-        # --------------------------------
-        if ($admin_redirect != "") {
-            return 302 $admin_redirect;
+        # Redirect /admin to admin subdomain
+        location /admin {
+            return 302 http://admin.${VITE_ROOT_DOMAIN}$request_uri;
         }
 
-        # --------------------------------
-        # ADMIN-SPECIFIC API ROUTES
-        # (must come BEFORE /api/)
-        # --------------------------------
-        location ^~ /api/auth/ {
-            proxy_pass http://admin_app;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_buffering off;
-        }
-
-        location = /api/image-preview {
-            proxy_pass http://admin_app;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_buffering off;
-        }
-
-        # --------------------------------
-        # API → backend (everything else)
-        # --------------------------------
-        location = /api {
-            proxy_pass http://backend_app;
-        }
-
+        # API routes → backend
         location /api/ {
             proxy_pass http://backend_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_buffering off;
         }
 
-        # --------------------------------
+        # Everything else → marketing (backend for now, replace with marketing app later)
+        location / {
+            proxy_pass http://backend_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+
+    # ===============================
+    # ALL SUBDOMAINS → Start App
+    # (admin.sayr.io, *.sayr.io)
+    # ===============================
+    server {
+        listen 80;
+        server_name *.${VITE_ROOT_DOMAIN};
+
+        # Auth API → start app (handles Better Auth)
+        location /api/auth/ {
+            proxy_pass http://web_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_buffering off;
+        }
+
+        location /api/image-preview {
+            proxy_pass http://web_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_buffering off;
+        }
+
+        # Other API routes → backend
+        location /api/ {
+            proxy_pass http://backend_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_buffering off;
+        }
+
         # WebSocket
-        # --------------------------------
         location /ws {
             proxy_pass http://backend_app;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
-        }
-
-        # --------------------------------
-        # Static assets (BLOCK on root domain)
-        # --------------------------------
-        location ^~ /assets/ {
-            if ($is_root_domain) {
-                return 404;
-            }
-            proxy_pass http://admin_app;
             proxy_set_header Host $host;
-            proxy_http_version 1.1;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_read_timeout 86400s;
+            proxy_send_timeout 86400s;
+            proxy_buffering off;
         }
 
-        location ^~ /_vite/ {
-            if ($is_root_domain) {
-                return 404;
-            }
-            proxy_pass http://admin_app;
-            proxy_set_header Host $host;
-            proxy_http_version 1.1;
-        }
-
-        location ^~ /_build/ {
-            if ($is_root_domain) {
-                return 404;
-            }
-            proxy_pass http://admin_app;
-            proxy_set_header Host $host;
-            proxy_http_version 1.1;
-        }
-
-        # --------------------------------
-        # Main routing
-        # --------------------------------
+        # Everything else → start app
         location / {
-            # Root domain → marketing
-            if ($is_root_domain) {
-                proxy_pass http://marketing;
-                break;
-            }
-
-            # Admin + tenant subdomains → admin SPA
-            proxy_pass http://admin_app;
-
-            # Required proxy settings (missing these causes hanging)
+            proxy_pass http://web_app;
             proxy_set_header Host $host;
             proxy_set_header Connection "";
             proxy_http_version 1.1;
