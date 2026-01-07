@@ -10,4 +10,4 @@ COPY apps/nginx/nginx.conf.template /etc/nginx/nginx.conf.template
 EXPOSE 80
 
 # Render template with env + start nginx
-CMD sh -c "envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+CMD sh -c ": \"\${VITE_ROOT_DOMAIN:?VITE_ROOT_DOMAIN is required}\" &&  envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
