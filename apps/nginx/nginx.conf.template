@@ -52,7 +52,7 @@ http {
     }
 
     upstream admin_app {
-        server start:8080;
+        server start:3000;
         keepalive 16;
     }
 
