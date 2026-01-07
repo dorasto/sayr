@@ -20,6 +20,7 @@ import Toolbar from "./ui/toolbar";
 import UserMenu from "./ui/user-menu";
 import CategoryMenu from "./ui/category-menu";
 import TaskMenu from "./ui/task-menu";
+import SlashMenuTemplate from "./ui/slash-menu-template";
 
 export interface EditorProps {
 	readonly?: boolean;
@@ -32,6 +33,7 @@ export interface EditorProps {
 	categories?: schema.categoryType[];
 	tasks?: schema.TaskWithLabels[];
 	submit?: () => void;
+	hasTemplate?: boolean
 }
 
 export default function Editor({
@@ -44,6 +46,7 @@ export default function Editor({
 	categories = [],
 	tasks = [],
 	submit,
+	hasTemplate = false
 }: EditorProps) {
 	const editor = useMemo(() => {
 		const extension = defineExtension({ readonly, placeholder });
@@ -188,7 +191,9 @@ export default function Editor({
 				{!readonly && (
 					<>
 						<InlineMenu />
-						<SlashMenu />
+						{!hasTemplate ? (
+							<SlashMenu />
+						) : (<SlashMenuTemplate />)}
 						<UserMenu users={users || []} />
 						<CategoryMenu categories={categories || []} />
 						<TaskMenu tasks={tasks || []} />
@@ -203,7 +208,9 @@ export default function Editor({
 				/>
 				{!readonly && (
 					<>
-						<BlockHandle />
+						{!hasTemplate && (
+							<BlockHandle />
+						)}
 						<TableHandle />
 						<DropIndicator />
 					</>
