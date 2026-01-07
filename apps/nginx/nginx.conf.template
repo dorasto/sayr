@@ -19,29 +19,20 @@ http {
     # DOMAIN LOGIC (TEMPLATED)
     # ===============================
 
+    # Root domain (example.com, www.example.com)
     map $host $is_root_domain {
         default 0;
         ${VITE_ROOT_DOMAIN}      1;
         www.${VITE_ROOT_DOMAIN}  1;
     }
 
+    # Admin subdomain
     map $host $is_admin_subdomain {
         default 0;
         admin.${VITE_ROOT_DOMAIN} 1;
     }
 
-    map $host $tenant {
-        default "";
-        ~^([^.]+)\.${VITE_ROOT_DOMAIN}$ $1;
-    }
-
-    map "$is_root_domain|$is_admin_subdomain|$tenant" $proxy_prefix {
-        default       "";
-        "1|0|"        "";
-        "0|1|"        "/admin";
-        ~^0\|0\|(.+)$ "/$tenant";
-    }
-
+    # Redirect /admin on root → admin subdomain
     map "$is_root_domain$request_uri" $admin_redirect {
         default "";
         ~^1/admin(?<rest>/.*)?$ http://admin.${VITE_ROOT_DOMAIN}$rest;
@@ -51,7 +42,7 @@ http {
     # UPSTREAMS
     # ===============================
     upstream marketing {
-        server backend:5468;
+        server marketing:8080;
     }
 
     upstream admin_app {
@@ -69,14 +60,25 @@ http {
         listen 80;
         server_name _;
 
+        # Redirect /admin on root domain
         if ($admin_redirect != "") {
             return 302 $admin_redirect;
+        }
+
+        # ---------------------------
+        # API
+        # ---------------------------
+        location = /api {
+            proxy_pass http://backend_app;
         }
 
         location /api/ {
             proxy_pass http://backend_app;
         }
 
+        # ---------------------------
+        # WebSocket
+        # ---------------------------
         location /ws {
             proxy_pass http://backend_app;
             proxy_http_version 1.1;
@@ -84,13 +86,33 @@ http {
             proxy_set_header Connection "upgrade";
         }
 
+        # ---------------------------
+        # Static assets (never rewrite)
+        # ---------------------------
+        location ^~ /assets/ {
+            proxy_pass http://admin_app;
+        }
+
+        location ^~ /_vite/ {
+            proxy_pass http://admin_app;
+        }
+
+        location ^~ /_build/ {
+            proxy_pass http://admin_app;
+        }
+
+        # ---------------------------
+        # Main routing
+        # ---------------------------
         location / {
+            # Root domain → marketing
             if ($is_root_domain) {
                 proxy_pass http://marketing;
                 break;
             }
 
-            proxy_pass http://admin_app$proxy_prefix$request_uri;
+            # Admin + tenant subdomains → admin app
+            proxy_pass http://admin_app;
         }
     }
 }
