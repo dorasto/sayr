@@ -9,11 +9,11 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 		const { account, orgId } = data;
 		try {
 			if (!orgId) {
-				throw redirect({ to: "/admin" });
+				throw redirect({ to: "/" });
 			}
 			const organization = await getOrganization(orgId, account.id);
 			if (!organization) {
-				throw redirect({ to: "/admin" });
+				throw redirect({ to: "/" });
 			}
 			const labels = await getLabels(organization.id);
 			const views = await db
@@ -31,6 +31,6 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;
 			}
-			throw redirect({ to: "/admin" });
+			throw redirect({ to: "/" });
 		}
 	});

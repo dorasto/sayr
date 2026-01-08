@@ -198,7 +198,7 @@ export function UnifiedTaskItem({
       className={cn(
         "block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded",
       )}
-      to="/admin/$orgId/tasks/$taskShortId"
+      to="/$orgId/tasks/$taskShortId"
       params={{ orgId: task.organizationId, taskShortId: taskId }}
       preload={false}
       onClick={(e) => {
@@ -300,7 +300,7 @@ export function UnifiedTaskItem({
             </p>
             {personal && task.organization && (
               <a
-                href={`/admin/${task.organization.id}/tasks`}
+                href={`/${task.organization.id}/tasks`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <Badge
@@ -451,7 +451,7 @@ export function UnifiedTaskItem({
   const renderKanbanContent = () => (
     <Link
       className="flex flex-col gap-2 h-full w-full text-left"
-      to="/admin/$orgId/tasks/$taskShortId"
+      to="/$orgId/tasks/$taskShortId"
       params={{ orgId: task.organizationId, taskShortId: taskId }}
       preload={false}
       onClick={(e) => {
@@ -612,7 +612,7 @@ export function UnifiedTaskItem({
         <IconAppWindow className="size-4" />
         Open
       </ContextMenuItem>
-      <Link to={`/admin`}>
+      <Link to={`/`}>
         <ContextMenuItem className="gap-3 w-full">
           <IconLink className="size-4" />
           Full page

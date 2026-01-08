@@ -5,9 +5,9 @@ import CreateIssueDialog from "@/components/tasks/task/creator";
 export default function TasksPageActions() {
 	// Use route matches to get data instead of context
 	// This avoids the context provider requirement at the AdminNavigation level
-	const orgMatch = useMatch({ from: "/admin/$orgId", shouldThrow: false });
+	const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
 	const tasksMatch = useMatch({
-		from: "/admin/$orgId/tasks",
+		from: "/(admin)/$orgId/tasks",
 		shouldThrow: false,
 	});
 
@@ -24,7 +24,7 @@ export default function TasksPageActions() {
 		<CreateIssueDialog
 			organization={organization}
 			tasks={tasks}
-			setTasks={() => {}} // Tasks will be updated via websocket/revalidation
+			setTasks={() => { }} // Tasks will be updated via websocket/revalidation
 			_labels={labels}
 			issueTemplates={issueTemplates ?? []}
 		/>

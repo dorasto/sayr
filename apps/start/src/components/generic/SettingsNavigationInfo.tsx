@@ -36,7 +36,7 @@ export default function SettingsNavigationInfo() {
 
   // Check if we're on an org settings page
   const orgSettingsMatch = useMatch({
-    from: "/admin/settings/org/$orgId",
+    from: "/(admin)/settings/org/$orgId",
     shouldThrow: false,
   });
 
@@ -44,14 +44,14 @@ export default function SettingsNavigationInfo() {
   const orgId = orgSettingsMatch?.params?.orgId;
 
   // Determine current page for account-level settings
-  const isAccountSettings = pathname === "/admin/settings";
-  const isConnectionsSettings = pathname === "/admin/settings/connections";
+  const isAccountSettings = pathname === "/settings";
+  const isConnectionsSettings = pathname === "/settings/connections";
 
   // For org settings, determine the current sub-page
   const getCurrentOrgSubPage = () => {
     if (!orgId) return null;
 
-    const baseUrl = `/admin/settings/org/${orgId}`;
+    const baseUrl = `/settings/org/${orgId}`;
 
     for (const item of orgSettingsNavigation) {
       const url = item.slug ? `${baseUrl}/${item.slug}` : baseUrl;
@@ -76,7 +76,7 @@ export default function SettingsNavigationInfo() {
 
   // If we're on org settings
   if (organization && orgId) {
-    const baseUrl = `/admin/settings/org/${orgId}`;
+    const baseUrl = `/settings/org/${orgId}`;
 
     return (
       <div className="flex items-center gap-2 text-sm">
@@ -84,7 +84,7 @@ export default function SettingsNavigationInfo() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/admin/settings" className="">
+                <Link to="/settings" className="">
                   <Button
                     variant={"primary"}
                     className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
@@ -137,7 +137,7 @@ export default function SettingsNavigationInfo() {
                         )}
                       >
                         <Link
-                          to="/admin/settings/org/$orgId"
+                          to="/settings/org/$orgId"
                           params={{ orgId: org.id }}
                           className="flex items-center gap-2"
                         >
@@ -224,7 +224,7 @@ export default function SettingsNavigationInfo() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/admin/settings" className="">
+              <Link to="/settings" className="">
                 <Button
                   variant={"primary"}
                   className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"

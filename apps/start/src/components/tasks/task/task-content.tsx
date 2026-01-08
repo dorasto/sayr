@@ -77,8 +77,8 @@ interface TaskContentSideContentProps {
   availableUsers?: schema.userType[];
   wsClientId: string;
   runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-    ? T
-    : never;
+  ? T
+  : never;
   categories: schema.categoryType[];
   panelControls?: {
     isPanelOpen: boolean;
@@ -214,9 +214,9 @@ export function TaskContentSideContent({
               const updatedTasks = tasks.map((t) =>
                 t.id === task.id
                   ? {
-                      ...task,
-                      priority: value as schema.TaskWithLabels["priority"],
-                    }
+                    ...task,
+                    priority: value as schema.TaskWithLabels["priority"],
+                  }
                   : t,
               );
               setTasks(updatedTasks);
@@ -339,11 +339,11 @@ export function TaskContentSideContent({
               const updatedTasks = tasks.map((t) =>
                 t.id === task.id
                   ? {
-                      ...task,
-                      labels: labels.filter((label) =>
-                        values.includes(label.id),
-                      ),
-                    }
+                    ...task,
+                    labels: labels.filter((label) =>
+                      values.includes(label.id),
+                    ),
+                  }
                   : t,
               );
               setTasks(updatedTasks);
@@ -440,7 +440,7 @@ export function TaskContentMain({
         style="compact"
         className="max-w-6xl gap-3"
         title={task.title || "No title"}
-        // description={`#${task.shortId}`}
+      // description={`#${task.shortId}`}
       >
         {/*<JsonViewer
           data={task}
@@ -537,8 +537,8 @@ export function TaskContent({
               showTooltip={false}
             />
             <Link
-              to={`/admin/$orgId/tasks/$taskId`}
-              params={{ orgId: organization.id, taskId: task.id }}
+              to={`/$orgId/tasks/$taskShortId`}
+              params={{ orgId: organization.id, taskShortId: task.id }}
               className=""
             >
               <Button size="icon" className="size-5" variant="ghost">

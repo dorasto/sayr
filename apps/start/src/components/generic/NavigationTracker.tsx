@@ -10,7 +10,7 @@ export function NavigationTracker() {
 
 	useEffect(() => {
 		// If we are NOT in settings, update the last dashboard route
-		if (!pathname.startsWith("/admin/settings")) {
+		if (!pathname.startsWith("/settings")) {
 			navigationActions.setLastDashboardRoute(pathname);
 		}
 	}, [pathname]);

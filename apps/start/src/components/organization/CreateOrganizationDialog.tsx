@@ -96,7 +96,7 @@ export default function CreateOrganizationDialog({
 			onSuccess?.(data.data);
 			// Navigate to the new organization
 			router.navigate({
-				to: "/admin/$orgId",
+				to: "/$orgId",
 				params: { orgId: data.data.id },
 			});
 			// Invalidate to refresh organizations list

@@ -48,7 +48,7 @@ export function useCommandRegistry() {
 							id: "go-dashboard",
 							label: "Dashboard",
 							icon: <IconArrowUpRight size={16} className="opacity-60" aria-hidden="true" />,
-							action: () => navigate({ to: "/admin" }),
+							action: () => navigate({ to: "/" }),
 						},
 						// {
 						// 	id: "go-apps",
@@ -71,13 +71,13 @@ export function useCommandRegistry() {
 							id: "account-general",
 							label: "General settings",
 							icon: <IconSettings size={16} className="opacity-60" aria-hidden="true" />,
-							action: () => navigate({ to: "/admin/settings" }),
+							action: () => navigate({ to: "/settings" }),
 						},
 						{
 							id: "account-connections",
 							label: "Connections",
 							icon: <IconPlug size={16} className="opacity-60" aria-hidden="true" />,
-							action: () => navigate({ to: "/admin/settings/connections" }),
+							action: () => navigate({ to: "/settings/connections" }),
 						},
 						// {
 						// 	id: "settings-theme",

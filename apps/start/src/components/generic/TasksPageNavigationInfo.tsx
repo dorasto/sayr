@@ -45,7 +45,7 @@ import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 export default function TasksPageNavigationInfo() {
   // Use route match to get organization data instead of context
   // This avoids the context provider requirement at the AdminNavigation level
-  const match = useMatch({ from: "/admin/$orgId", shouldThrow: false });
+  const match = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
   const organization = match?.loaderData?.organization;
 
   // Get categories and views from state management
@@ -185,7 +185,7 @@ export default function TasksPageNavigationInfo() {
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link
-                to="/admin/$orgId/tasks"
+                to="/$orgId/tasks"
                 params={{ orgId: organization.id }}
                 className=""
               >

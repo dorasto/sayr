@@ -6,7 +6,7 @@ export const heading = [
     items: [
       {
         title: "Dashboard",
-        url: "/admin",
+        url: "/",
         icon: Icon.IconHome,
         activeIcon: Icon.IconHomeFilled,
       },
@@ -20,7 +20,7 @@ export const navigation = [
     items: [
       {
         title: "My Tasks",
-        url: "/admin/mine",
+        url: "/mine",
         icon: Icon.IconChecklist,
         activeIcon: Icon.IconChecklist,
       },
@@ -33,7 +33,7 @@ export const settingsNavigation = [
   {
     title: "Account",
     slug: "",
-    url: "/admin/settings",
+    url: "/settings",
     icon: Icon.IconUser,
     activeIcon: Icon.IconUser,
     matchType: "exact" as const,
@@ -41,7 +41,7 @@ export const settingsNavigation = [
   {
     title: "Connections",
     slug: "connections",
-    url: "/admin/settings/connections",
+    url: "/settings/connections",
     icon: Icon.IconHttpConnect,
     activeIcon: Icon.IconHttpConnect,
     matchType: "exact" as const,

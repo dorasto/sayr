@@ -143,8 +143,8 @@ export default function SettingsOrganizationPageTeamSettings({
   const hasChanges = isNew
     ? name.length > 0
     : name !== team?.name ||
-      description !== (team?.description || "") ||
-      JSON.stringify(permissions) !== JSON.stringify(team?.permissions);
+    description !== (team?.description || "") ||
+    JSON.stringify(permissions) !== JSON.stringify(team?.permissions);
 
   // Reset form when team changes
   useEffect(() => {
@@ -180,7 +180,7 @@ export default function SettingsOrganizationPageTeamSettings({
 
       if (result?.success) {
         navigate({
-          to: "/admin/settings/org/$orgId/teams/$teamId",
+          to: "/settings/org/$orgId/teams/$teamId",
           params: { orgId: organization.id, teamId: name },
         });
       }
@@ -209,7 +209,7 @@ export default function SettingsOrganizationPageTeamSettings({
       if (result?.success) {
         if (name !== team.name) {
           navigate({
-            to: "/admin/settings/org/$orgId/teams/$teamId",
+            to: "/settings/org/$orgId/teams/$teamId",
             params: { orgId: organization.id, teamId: name },
           });
         } else {
@@ -240,7 +240,7 @@ export default function SettingsOrganizationPageTeamSettings({
 
     if (result?.success) {
       navigate({
-        to: "/admin/settings/org/$orgId/teams",
+        to: "/settings/org/$orgId/teams",
         params: { orgId: organization.id },
       });
     }

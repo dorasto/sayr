@@ -37,8 +37,8 @@ import {
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
-import { Route as OrgRoute } from "@/routes/admin/$orgId";
-import { Route as OrgIndexRoute } from "@/routes/admin/$orgId/index";
+import { Route as OrgRoute } from "@/routes/(admin)/$orgId";
+import { Route as OrgIndexRoute } from "@/routes/(admin)/$orgId/index";
 export default function OrganizationHomePage() {
   const { permissions } = OrgRoute.useRouteContext(); // 👈 from TanStack router context
   const { tasks } = OrgIndexRoute.useLoaderData();
@@ -108,12 +108,12 @@ export default function OrganizationHomePage() {
           <AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
         </Avatar>
       }
-      // style="compact"
-      // className="max-w-4xl"
+    // style="compact"
+    // className="max-w-4xl"
     >
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         <Link
-          to={`/admin/$orgId/tasks`}
+          to={`/$orgId/tasks`}
           params={{ orgId: organization.id }}
           className="col-span-full w-full"
         >
@@ -129,7 +129,7 @@ export default function OrganizationHomePage() {
         </Link>
 
         <Link
-          to={`/admin/settings/org/$orgId/categories`}
+          to={`/settings/org/$orgId/categories`}
           params={{ orgId: organization.id }}
           className="md:col-span-6 col-span-full md:row-span-2"
         >
@@ -143,7 +143,7 @@ export default function OrganizationHomePage() {
           </Tile>
         </Link>
         <Link
-          to={`/admin/settings/org/$orgId/labels`}
+          to={`/settings/org/$orgId/labels`}
           params={{ orgId: organization.id }}
           className="md:col-span-3 col-span-full"
         >
@@ -157,7 +157,7 @@ export default function OrganizationHomePage() {
           </Tile>
         </Link>
         <Link
-          to={`/admin/settings/org/$orgId/members`}
+          to={`/settings/org/$orgId/members`}
           params={{ orgId: organization.id }}
           className="md:col-span-3 col-span-full"
         >
@@ -171,7 +171,7 @@ export default function OrganizationHomePage() {
           </Tile>
         </Link>
         <Link
-          to={`/admin/settings/org/$orgId/connections`}
+          to={`/settings/org/$orgId/connections`}
           params={{ orgId: organization.id }}
           className="md:col-span-6 col-span-full"
         >

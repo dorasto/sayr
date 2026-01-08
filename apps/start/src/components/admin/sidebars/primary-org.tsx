@@ -66,12 +66,12 @@ export default function OrgSection({
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
   const pathname =
     rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
-  const isActive = pathname.includes(`/admin/${organization.id}`);
+  const isActive = pathname.includes(`/${organization.id}`);
   const [collapsibleOpen, setCollapsibleOpen] = useState(
-    pathname.includes(`/admin/${organization.id}`),
+    pathname.includes(`/${organization.id}`),
   );
   const [dropdownSettingsOpen, setDropdownSettingsOpen] = useState(
-    pathname.includes(`/admin/settings/org/${organization.id}`),
+    pathname.includes(`/settings/org/${organization.id}`),
   );
   const closeMobileSidebarOnClick = () => {
     if (isMobile) {
@@ -92,11 +92,11 @@ export default function OrgSection({
       >
         <SidebarMenuItem
           // key={item.title}
-          isActive={pathname === `/admin/${organization.id}`}
+          isActive={pathname === `/${organization.id}`}
           className="min-h-auto group/coltrig"
         >
           <Link
-            to={`/admin/$orgId`}
+            to={`/$orgId`}
             params={{ orgId: organization.id }}
             className="w-full cursor-pointer"
             onClick={() => {
@@ -136,7 +136,7 @@ export default function OrgSection({
                   </div>
                 </CollapsibleTrigger>
               }
-              // tooltip={item.title}
+            // tooltip={item.title}
             >
               {organization.name}
             </SidebarMenuButton>
@@ -161,10 +161,10 @@ export default function OrgSection({
           <CollapsibleContent className="flex flex-col gap-0.5 ml-2 pl-2 border-l">
             <SidebarMenuItem
               className="cursor-pointer min-h-auto"
-              isActive={pathname.includes(`/admin/${organization.id}/tasks`)}
+              isActive={pathname.includes(`/${organization.id}/tasks`)}
             >
               <Link
-                to={`/admin/$orgId/tasks`}
+                to={`/$orgId/tasks`}
                 params={{ orgId: organization.id }}
                 className="w-full cursor-pointer"
               >
@@ -181,11 +181,11 @@ export default function OrgSection({
             <SidebarMenuItem
               className="cursor-pointer min-h-auto"
               isActive={pathname.includes(
-                `/admin/settings/org/${organization.id}`,
+                `/settings/org/${organization.id}`,
               )}
             >
               <Link
-                to={`/admin/settings/org/$orgId`}
+                to={`/settings/org/$orgId`}
                 params={{ orgId: organization.id }}
                 className="w-full cursor-pointer"
               >
@@ -269,7 +269,7 @@ export default function OrgSection({
         <DropdownMenuGroup className="p-1">
           <DropdownMenuItem asChild>
             <Link
-              to={`/admin/$orgId/tasks`}
+              to={`/$orgId/tasks`}
               params={{ orgId: organization.id }}
               className="flex items-center gap-2"
             >
@@ -286,7 +286,7 @@ export default function OrgSection({
             <div className="flex items-center">
               <DropdownMenuItem asChild className="flex-1">
                 <Link
-                  to={`/admin/settings/org/$orgId`}
+                  to={`/settings/org/$orgId`}
                   params={{ orgId: organization.id }}
                   className="flex items-center gap-2"
                 >
@@ -316,7 +316,7 @@ export default function OrgSection({
             </div>
             <CollapsibleContent className="max-h-56 overflow-auto">
               {orgSubItems.map((item) => {
-                const url = `/admin/settings/org/${organization.id}/${item.slug}`;
+                const url = `/settings/org/${organization.id}/${item.slug}`;
                 const isActive =
                   item.matchType === "includes"
                     ? pathname.includes(url)

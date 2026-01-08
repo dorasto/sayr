@@ -30,7 +30,7 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 		<Tooltip>
 			<TooltipTrigger asChild>
 				<Link
-					to="/admin/$orgId/tasks/$taskShortId"
+					to="/$orgId/tasks/$taskShortId"
 					params={{ orgId: task.organizationId, taskShortId: shortId }}
 					disabled={hide}
 				>
@@ -91,7 +91,7 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 
 			{/* Tooltip for detail preview */}
 			<TooltipContent side="top" align="center" className="max-w-xs p-0 flex flex-col gap-1 text-sm" hidden={hide}>
-				<Link to="/admin/$orgId/tasks/$taskShortId" params={{ orgId: task.organizationId, taskShortId: shortId }}>
+				<Link to="/$orgId/tasks/$taskShortId" params={{ orgId: task.organizationId, taskShortId: shortId }}>
 					<div className="flex items-center gap-1 p-1">
 						<Label variant={"subheading"} className="p-1 truncate">
 							{task.title} asdf asodifj asoidf jasoidj foasidjf oasidjf oasidjf oasidj foij

@@ -18,12 +18,12 @@ import { Link, useMatch } from "@tanstack/react-router";
 
 export default function TaskNavigationInfo() {
   // Get organization from parent route (same pattern as TasksPageNavigationInfo)
-  const orgMatch = useMatch({ from: "/admin/$orgId", shouldThrow: false });
+  const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
   const organization = orgMatch?.loaderData?.organization;
 
   // Get task from the task detail route
   const taskMatch = useMatch({
-    from: "/admin/$orgId/tasks/$taskShortId",
+    from: "/(admin)/$orgId/tasks/$taskShortId",
     shouldThrow: false,
   });
   const task = taskMatch?.loaderData?.task;
@@ -37,7 +37,7 @@ export default function TaskNavigationInfo() {
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link
-                to="/admin/$orgId/tasks"
+                to="/$orgId/tasks"
                 params={{ orgId: organization.id }}
                 className=""
               >

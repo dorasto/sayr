@@ -100,10 +100,10 @@ export function SettingsSidebar() {
               <SidebarMenu className="gap-0.5 pb-3 last:pb-0" key={org.id}>
                 <SidebarMenuItem
                   className="min-h-auto"
-                  isActive={pathname === `/admin/settings/org/${org.id}`}
+                  isActive={pathname === `/settings/org/${org.id}`}
                 >
                   <Link
-                    to={`/admin/settings/org/$orgId`}
+                    to={`/settings/org/$orgId`}
                     params={{ orgId: org.id }}
                     className="w-full"
                   >
@@ -136,7 +136,7 @@ export function SettingsSidebar() {
                   </SidebarMenuSub>
                 </SidebarMenuItem>
                 {orgSubItems.map((item) => {
-                  const url = `/admin/settings/org/${org.id}/${item.slug}`;
+                  const url = `/settings/org/${org.id}/${item.slug}`;
                   const isActive =
                     item.matchType === "includes"
                       ? pathname.includes(url)
