@@ -1,9 +1,9 @@
 {
-	"id": "/admin",
-	"name": "Sayr.io",
+	"id": "/",
+	"name": "Sayr.io admin",
 	"short_name": "Sayr.io",
-	"scope": "/admin",
-	"start_url": "/admin",
+	"scope": "/",
+	"start_url": "/",
 	"icons": [
 		{
 			"src": "favicon.ico",
