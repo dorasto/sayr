@@ -1,11 +1,14 @@
 ---
+import Features from "@/components/landing/features.tsx";
+import Hero from "@/components/landing/hero.tsx";
 import { ModeToggle } from "@/components/ModeToggle";
 import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout>
     <div>
-        <section class="hero">
+        <Hero />
+        <!-- <section class="hero">
             <h1>Transparent Project Management</h1>
             <p class="hero-subtitle">
                 Bridge internal workflows with public collaboration. Control
@@ -17,8 +20,8 @@ import Layout from "../layouts/Layout.astro";
                 >
                 <a href="/docs" class="btn btn-primary btn-lg">Read the Docs</a>
             </div>
-        </section>
-
+        </section> -->
+        <Features />
         <section class="features">
             <div class="feature">
                 <div class="feature-icon">🔐</div>

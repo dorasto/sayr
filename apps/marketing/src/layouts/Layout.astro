@@ -1,15 +1,16 @@
 ---
 interface Props {
-    title?: string;
-    description?: string;
+	title?: string;
+	description?: string;
 }
 
 const {
-    title = "Sayr - Transparent Project Management",
-    description = "Transparent, collaborative project management that bridges internal workflows with public collaboration.",
+	title = "Sayr - Transparent Project Management",
+	description = "Transparent, collaborative project management that bridges internal workflows with public collaboration.",
 } = Astro.props;
-import { Navbar } from "@/components/layout/navigationbar";
+
 import { Footer } from "@/components/layout/footer";
+import { Navbar } from "@/components/layout/navigationbar";
 import "../styles/global.css";
 ---
 
@@ -49,13 +50,11 @@ import "../styles/global.css";
         <meta name="description" content={description} />
         <title>{title}</title>
     </head>
-    <body>
-        <main class="w-full max-w-6xl mx-auto flex flex-col gap-3">
+    <body class="space-y-9">
+        <main class="w-full max-w-6xl mx-auto flex flex-col gap-9">
             <Navbar client:load />
-            <div class="w-full max-w-prose mx-auto">
-                <slot />
-            </div>
-            <Footer client:load />
+            <slot />
         </main>
+        <Footer client:load />
     </body>
 </html>

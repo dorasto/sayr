@@ -1,11 +1,11 @@
-import { useState } from "react";
 import {
   IconChevronDown as ChevronDown,
+  IconChevronRight as ChevronRight,
   IconMenu2 as Menu,
   IconX as X,
-  IconChevronRight as ChevronRight,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 
 const products = [
   { title: "Analytics", desc: "Monitor key metrics", href: "#" },
@@ -35,7 +35,7 @@ export function Navbar() {
   const [megaOpen, setMegaOpen] = useState(false);
 
   return (
-    <header className="bg-sidebar w-full rounded-lg rounded-t-none p-3 sticky top-0">
+    <header className="bg-background/50 backdrop-blur w-full rounded-lg border border-t-0 rounded-t-none p-3 sticky top-0">
       <div className="mx-auto">
         <div className="flex items-center justify-between gap-4">
           <div className="flex w-full items-center justify-between gap-3 md:w-auto">
@@ -130,22 +130,21 @@ export function Navbar() {
               Pricing
             </motion.a>
             <motion.a
-              href="#"
+              href="/docs"
               className="hover:bg-muted rounded-md px-3 py-2 text-sm"
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
             >
-              Company
+              Documentation
             </motion.a>
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
-            {/* Contact sales: rose theme */}
             <motion.button
               {...tapProps}
-              className="hidden rounded-full bg-black px-8 py-2 text-sm font-bold text-white shadow-[0px_-2px_0px_0px_rgba(255,255,255,0.4)_inset] md:block dark:bg-white dark:text-black"
+              className="hidden rounded-full bg-primary px-8 py-2 text-sm font-bold text-primary-foreground md:block"
             >
-              Contact sales
+              Get started
             </motion.button>
           </div>
         </div>
