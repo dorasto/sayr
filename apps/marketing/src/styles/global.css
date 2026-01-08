@@ -1,0 +1,4 @@
+@import "tailwindcss";
+@import "@repo/ui/globals.css";
+@source "../**/*.{ts,tsx,astro}";
+@source '../node_modules/@repo/ui';
