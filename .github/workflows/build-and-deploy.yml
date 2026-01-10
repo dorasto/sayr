@@ -165,4 +165,4 @@ jobs:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - name: Redeploy ${{ matrix.app }}
-        run: railway redeploy --service ${{ matrix.app }}
+        run: railway redeploy -y --service ${{ matrix.app }}
