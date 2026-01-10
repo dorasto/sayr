@@ -1,29 +1,35 @@
-/* Custom Starlight styles for Sayr docs */
+@layer base, starlight, theme, components, utilities;
 
+@import "@astrojs/starlight-tailwind";
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Dark mode colors. */
 :root {
-	--sl-color-accent-low: #1e3a5f;
-	--sl-color-accent: #3b82f6;
-	--sl-color-accent-high: #93c5fd;
-	--sl-color-white: #ffffff;
-	--sl-color-gray-1: #f8fafc;
-	--sl-color-gray-2: #e2e8f0;
-	--sl-color-gray-3: #cbd5e1;
-	--sl-color-gray-4: #94a3b8;
-	--sl-color-gray-5: #64748b;
-	--sl-color-gray-6: #475569;
-	--sl-color-black: #0f172a;
+    --sl-color-accent-low: oklch(0.4 0.1647 70.0804);
+    --sl-color-accent: oklch(0.7686 0.1647 70.0804);
+    --sl-color-accent-high: oklch(0.85 0.1647 70.0804);
+    --sl-color-white: oklch(0.9219 0 0);
+    --sl-color-gray-1: oklch(0.9219 0 0);
+    --sl-color-gray-2: oklch(0.85 0 0);
+    --sl-color-gray-3: oklch(0.7155 0 0);
+    --sl-color-gray-4: oklch(0.5 0 0);
+    --sl-color-gray-5: oklch(0.3715 0 0);
+    --sl-color-gray-6: oklch(0.2686 0 0);
+    --sl-color-black: oklch(0.2046 0 0);
 }
-
-:root[data-theme="dark"] {
-	--sl-color-accent-low: #1e3a5f;
-	--sl-color-accent: #3b82f6;
-	--sl-color-accent-high: #93c5fd;
-	--sl-color-white: #0f172a;
-	--sl-color-gray-1: #1e293b;
-	--sl-color-gray-2: #334155;
-	--sl-color-gray-3: #475569;
-	--sl-color-gray-4: #64748b;
-	--sl-color-gray-5: #94a3b8;
-	--sl-color-gray-6: #cbd5e1;
-	--sl-color-black: #f8fafc;
+/* Light mode colors. */
+:root[data-theme="light"] {
+    --sl-color-accent-low: oklch(0.9 0.1647 70.0804);
+    --sl-color-accent: oklch(0.7686 0.1647 70.0804);
+    --sl-color-accent-high: oklch(0.4 0.1647 70.0804);
+    --sl-color-white: oklch(0.2686 0 0);
+    --sl-color-gray-1: oklch(0.2686 0 0);
+    --sl-color-gray-2: oklch(0.4461 0.0263 256.8018);
+    --sl-color-gray-3: oklch(0.551 0.0234 264.3637);
+    --sl-color-gray-4: oklch(0.7 0 0);
+    --sl-color-gray-5: oklch(0.9276 0.0058 264.5313);
+    --sl-color-gray-6: oklch(0.9846 0.0017 247.8389);
+    --sl-color-gray-7: oklch(0.99 0 0);
+    --sl-color-black: oklch(1 0 0);
 }

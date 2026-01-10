@@ -3,13 +3,11 @@ title: Quick Start
 description: Get up and running with Sayr in minutes
 ---
 
-# Quick Start
-
 This guide will help you get started with Sayr in just a few minutes.
 
 ## 1. Create an Account
 
-Sign up at [app.sayr.io](https://app.sayr.io) using your GitHub account.
+Sign up at [admin.sayr.io](https://admin.sayr.io) using your GitHub account.
 
 ## 2. Create an Organization
 

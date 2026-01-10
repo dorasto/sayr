@@ -1,30 +1,22 @@
 ---
 title: Sayr Documentation
 description: Documentation for Sayr.io - Transparent, collaborative project management
-template: splash
 hero:
-  tagline: Transparent, collaborative project management that bridges internal workflows with public collaboration.
+  tagline: Sayr.io is a transparent, collaborative project management platform that bridges internal workflows with public collaboration through granular visibility controls.
   actions:
     - text: Get Started
-      link: /docs/introduction
+      link: /docs/quick-start
       icon: right-arrow
     - text: View on GitHub
-      link: https://github.com/sayr-io/sayr
+      link: https://github.com/dorasto/sayr
       icon: external
       variant: minimal
 ---
 
-## Quick Links
+## Key Features
 
-### Getting Started
-
-- [Introduction](/docs/introduction) - Learn what Sayr is and how it can help your team
-- [Quick Start](/docs/quick-start) - Get up and running in minutes
-
-### Guides
-
-- [Visibility Controls](/docs/guides/visibility) - Learn about public vs private content
-
-### API Reference
-
-- [API Overview](/docs/api/overview) - Explore the Sayr API
+- **Granular Visibility Controls**: Every task, comment, and timeline entry can be set to public or private
+- **Real-time Collaboration**: WebSocket-powered live updates
+- **GitHub Integration**: Sync issues and pull requests with your Sayr tasks
+- **Rich Text Editing**: Full-featured block editor for task descriptions
+- **Organization-based**: Multi-tenant architecture with subdomain routing

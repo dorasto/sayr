@@ -3,7 +3,7 @@
 import node from "@astrojs/node";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
-
+import { ion } from "starlight-ion-theme";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import starlightOpenAPI, { openAPISidebarGroups } from "starlight-openapi";
@@ -18,7 +18,7 @@ export default defineConfig({
 
   integrations: [
     starlight({
-      title: "Sayr Docs",
+      title: "Sayr",
       logo: { src: "./src/assets/logo.svg" },
 
       description:
@@ -34,7 +34,7 @@ export default defineConfig({
         {
           label: "Getting Started",
           items: [
-            { label: "Introduction", slug: "docs/introduction" },
+            { label: "Introduction", slug: "docs" },
             { label: "Quick Start", slug: "docs/quick-start" },
           ],
         },
@@ -44,10 +44,16 @@ export default defineConfig({
             { label: "Visibility Controls", slug: "docs/guides/visibility" },
           ],
         },
-
         ...openAPISidebarGroups,
+        {
+          label: "Self hosting",
+          items: [{ label: "Overview", slug: "docs/self-hosting/overview" }],
+        },
       ],
+      customCss: ["./src/styles/custom.css"],
+      components: {},
       plugins: [
+        ion(),
         starlightOpenAPI([
           {
             base: "docs/api",
@@ -56,7 +62,6 @@ export default defineConfig({
               label: "API Reference",
               collapsed: false,
               operations: {
-                badges: true,
                 labels: "summary",
               },
             },
