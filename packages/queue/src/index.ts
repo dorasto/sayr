@@ -4,7 +4,8 @@ import Redis from "ioredis";
 import type { DeafultJob } from "./groups/default";
 // Import all group job type unions
 import type { GithubJob } from "./groups/github";
-
+const APP_ENV = process.env.VITE_APP_ENV;
+const env = APP_ENV === "production" || APP_ENV === "development" ? APP_ENV : "development";
 // -----------------------
 // 🔹 Group <-> Job mapping
 // -----------------------
@@ -20,7 +21,7 @@ export type AnyJob = JobGroups[keyof JobGroups];
 // -----------------------
 // ⚙️ Queue setup
 // -----------------------
-const MODE = process.env.QUEUE_MODE ?? "file";
+const MODE = env === "production" ? "redis" : "file";
 const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
 const BASE_KEY = "sayr_jobs";
 
