@@ -137,5 +137,5 @@ http:
     marketing:
       loadBalancer:
         servers:
-          - url: "http://marketing:80"
+          - url: "http://marketing:4321"
         passHostHeader: true

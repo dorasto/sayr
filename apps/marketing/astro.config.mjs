@@ -1,5 +1,6 @@
 // @ts-check
 
+import node from "@astrojs/node";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 
@@ -9,6 +10,10 @@ import { defineConfig } from "astro/config";
 // https://astro.build/config
 export default defineConfig({
   site: "https://sayr.io",
+  output: "server",
+  adapter: node({
+    mode: "standalone",
+  }),
 
   integrations: [
     starlight({

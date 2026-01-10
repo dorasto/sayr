@@ -29,21 +29,24 @@ COPY --from=builder /app/out/full/ .
 
 RUN pnpm install
 
-# Build the application (static output to dist/)
+# Build the application
 RUN cd apps/marketing && pnpm run build
 
-# Use nginx to serve static files
-FROM nginx:alpine AS runner
+FROM base AS runner
+WORKDIR /app
 
-# Remove default nginx config
-RUN rm /etc/nginx/conf.d/default.conf
+# Don't run production as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 astro
+USER astro
 
-# Copy custom nginx config for static files
-COPY apps/marketing/nginx.conf /etc/nginx/conf.d/default.conf
+ENV HOST=0.0.0.0
+ENV PORT=4321
+ENV NODE_ENV=production
 
-# Copy built static files from installer stage
-COPY --from=installer /app/apps/marketing/dist /usr/share/nginx/html
+# Copy built output from installer stage
+COPY --from=installer --chown=astro:nodejs /app/apps/marketing/dist ./dist
 
-EXPOSE 80
+EXPOSE 4321
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "./dist/server/entry.mjs"]
