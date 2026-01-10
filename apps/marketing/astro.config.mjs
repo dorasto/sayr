@@ -50,7 +50,7 @@ export default defineConfig({
       plugins: [
         starlightOpenAPI([
           {
-            base: "api",
+            base: "docs/api",
             schema: "https://sayr.io/api/public/openapi.json",
             sidebar: {
               label: "API Reference",

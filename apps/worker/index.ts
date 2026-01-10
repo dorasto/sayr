@@ -2,6 +2,8 @@ import { dequeue, type JobGroups } from "@repo/queue";
 import { handleSayrKeywordParse } from "./github";
 import { withTraceContext } from "@repo/opentelemetry/trace";
 import { initTracing } from "@repo/opentelemetry";
+const APP_ENV = process.env.VITE_APP_ENV;
+const env = APP_ENV === "production" || APP_ENV === "development" ? APP_ENV : "development";
 
 async function processGithubJob(job: JobGroups["github"]) {
 	switch (job.type) {
@@ -39,7 +41,7 @@ async function handleJob<G extends keyof JobGroups>(
 }
 
 async function workerLoop<G extends keyof JobGroups>(group: G) {
-	const MODE = process.env.QUEUE_MODE ?? "file";
+	const MODE = env === "production" ? "redis" : "file";
 	console.log(`⚙️  Worker for "${group}" started (${MODE} mode)`);
 
 	if (MODE === "redis") {

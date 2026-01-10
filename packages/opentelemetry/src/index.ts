@@ -1,26 +1,35 @@
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { trace } from "@opentelemetry/api";
-
+import { PrettyConsoleSpanExporter } from "./console";
 let globalTracer: ReturnType<typeof trace.getTracer> | undefined;
 
 export async function initTracing(_serviceName: string) {
-	const IS_CLOUD = process.env.IS_CLOUD === "true";
-	const env = process.env.NODE_ENV || "development";
+	const SAYR_CLOUD = process.env.SAYR_CLOUD === "true";
+	const appEnv = process.env.VITE_APP_ENV;
+	const env = appEnv === "production" || appEnv === "development" ? appEnv : "development";
 	const isProd = env === "production";
 	const serviceName = `${_serviceName}${isProd ? "" : "-dev"}`;
 
-	if (!IS_CLOUD) {
-		console.log(
-			`☁️  Cloud tracing disabled (IS_CLOUD = ${process.env.IS_CLOUD})`,
-		);
+	// ✅ LOCAL / NON-CLOUD: log spans to console
+	if (!SAYR_CLOUD) {
+
+		const sdk = new NodeSDK({
+			traceExporter: new PrettyConsoleSpanExporter(),
+			serviceName,
+		});
+
+		await sdk.start();
+
 		globalTracer = trace.getTracer(serviceName);
+		console.log("OpenTelemetry in console mode");
 		return;
 	}
 
+	// ✅ CLOUD MODE (Axiom)
 	if (!process.env.AXIOM_OTEL_DOMAIN || !process.env.AXIOM_OTEL_TOKEN) {
 		console.warn(
-			"⚠️ OpenTelemetry not configured — missing AXIOM_OTEL_DOMAIN or AXIOM_OTEL_TOKEN.",
+			"OpenTelemetry not configured — missing AXIOM_OTEL_DOMAIN or AXIOM_OTEL_TOKEN.",
 		);
 		return;
 	}
@@ -33,7 +42,6 @@ export async function initTracing(_serviceName: string) {
 				"X-Axiom-Dataset": process.env.AXIOM_OTEL_DATASET || "",
 			},
 		}),
-		// Name appears in Axiom/Grafana/Jaeger as the OTel Service
 		serviceName,
 	});
 
@@ -52,7 +60,7 @@ export async function initTracing(_serviceName: string) {
 	process.on("SIGINT", shutdown);
 
 	globalTracer = trace.getTracer(serviceName);
-	console.log(`✅ OpenTelemetry SDK started (${serviceName})`);
+	console.log(`OpenTelemetry SDK started (${serviceName})`);
 }
 
 export function getTracer() {

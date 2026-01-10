@@ -6,6 +6,8 @@ export function rootSpanMiddleware() {
 		const tracer = getTracer();
 		const span = tracer.startSpan(`${c.req.method} ${c.req.path}`);
 		const spanCtx = trace.setSpan(context.active(), span);
+		const traceId = span.spanContext().traceId;
+		c.header("x-trace-id", traceId);
 		const ip = getClientIP(c.req.raw);
 		const userAgent = c.req.header("user-agent") ?? "unknown";
 		span.setAttributes({

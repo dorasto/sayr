@@ -21,7 +21,7 @@ function RouteComponent() {
 		queryKey: ["organization", orgId, "connections", "github"],
 		queryFn: async () => {
 			const res = await fetch(
-				`${import.meta.env.MODE === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : ""}/admin/organization/${orgId}/connections/github`,
+				`${import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api"}/admin/organization/${orgId}/connections/github`,
 				{ credentials: "include" }
 			)
 			if (!res.ok) throw new Error("Failed to fetch");

@@ -1,6 +1,7 @@
 import { db } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
+const API_URL = process.env.VITE_APP_ENV === "development" ? process.env.VITE_EXTERNAL_API_URL : "http://backend:5468/api";
 
 export interface KeywordContext {
 	taskKey: number;
@@ -38,7 +39,7 @@ export async function handleCloseKeyword(ctx: KeywordContext) {
 			}
 
 			const res = await fetch(
-				`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/update`,
+				`${API_URL}/admin/organization/task/update`,
 				{
 					method: "PATCH",
 					headers: {
@@ -114,7 +115,7 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			}
 
 			const res = await fetch(
-				`${process.env.NEXT_PUBLIC_EXTERNAL_API_URL}/admin/organization/task/github-link`,
+				`${API_URL}/admin/organization/task/github-link`,
 				{
 					method: "POST",
 					headers: {

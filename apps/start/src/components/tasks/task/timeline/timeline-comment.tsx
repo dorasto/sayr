@@ -77,7 +77,7 @@ function CommentHistoryDialog({
       setError(null);
 
       try {
-        const url = `${import.meta.env.MODE === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : ""}/admin/organization/task/get-comment-history?org_id=${orgId}&task_id=${taskId}&comment_id=${commentId}`;
+        const url = `${import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api"}/admin/organization/task/get-comment-history?org_id=${orgId}&task_id=${taskId}&comment_id=${commentId}`;
         const res = await fetch(url, { credentials: "include" });
         if (!res.ok) throw new Error("Failed to fetch comment history");
         const data = await res.json();

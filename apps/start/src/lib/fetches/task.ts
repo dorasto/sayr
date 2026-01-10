@@ -1,7 +1,7 @@
 import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
-const API_URL = import.meta.env.MODE === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
 
 /**
  * Calls the `/admin/task/create` API to create a new task
