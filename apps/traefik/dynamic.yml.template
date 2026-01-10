@@ -1,0 +1,141 @@
+# Traefik Dynamic Configuration
+# Environment variables are substituted at container startup
+
+http:
+  # ===============================
+  # ROUTERS
+  # ===============================
+  routers:
+    # ===============================
+    # ROOT DOMAIN ROUTES (sayr.io, www.sayr.io)
+    # ===============================
+
+    # Redirect /admin to admin subdomain
+    root-admin-redirect:
+      rule: "Host(`${VITE_ROOT_DOMAIN}`) && PathPrefix(`/admin`)"
+      middlewares:
+        - admin-redirect
+      service: backend
+      priority: 100
+
+    root-admin-redirect-www:
+      rule: "Host(`www.${VITE_ROOT_DOMAIN}`) && PathPrefix(`/admin`)"
+      middlewares:
+        - admin-redirect
+      service: backend
+      priority: 100
+
+    # Redirect /login to admin subdomain
+    root-login-redirect:
+      rule: "Host(`${VITE_ROOT_DOMAIN}`) && Path(`/login`)"
+      middlewares:
+        - login-redirect
+      service: backend
+      priority: 100
+
+    root-login-redirect-www:
+      rule: "Host(`www.${VITE_ROOT_DOMAIN}`) && Path(`/login`)"
+      middlewares:
+        - login-redirect
+      service: backend
+      priority: 100
+
+    # API routes -> backend
+    root-api:
+      rule: "Host(`${VITE_ROOT_DOMAIN}`) && PathPrefix(`/api`)"
+      service: backend
+      priority: 50
+
+    root-api-www:
+      rule: "Host(`www.${VITE_ROOT_DOMAIN}`) && PathPrefix(`/api`)"
+      service: backend
+      priority: 50
+
+    # Everything else -> marketing site
+    root-default:
+      rule: "Host(`${VITE_ROOT_DOMAIN}`)"
+      service: marketing
+      priority: 1
+
+    root-default-www:
+      rule: "Host(`www.${VITE_ROOT_DOMAIN}`)"
+      service: marketing
+      priority: 1
+
+    # ===============================
+    # SUBDOMAIN ROUTES (*.sayr.io)
+    # ===============================
+
+    # Auth API -> start app (handles Better Auth)
+    sub-auth-api:
+      rule: "HostRegexp(`^.+\\.${VITE_ROOT_DOMAIN}$`) && PathPrefix(`/api/auth`)"
+      service: start
+      priority: 200
+
+    # Image preview -> start app
+    sub-image-preview:
+      rule: "HostRegexp(`^.+\\.${VITE_ROOT_DOMAIN}$`) && PathPrefix(`/api/image-preview`)"
+      service: start
+      priority: 200
+
+    # Other API routes -> backend
+    sub-api:
+      rule: "HostRegexp(`^.+\\.${VITE_ROOT_DOMAIN}$`) && PathPrefix(`/api`)"
+      service: backend
+      priority: 100
+
+    # WebSocket -> backend
+    sub-ws:
+      rule: "HostRegexp(`^.+\\.${VITE_ROOT_DOMAIN}$`) && PathPrefix(`/ws`)"
+      service: backend
+      priority: 100
+
+    # Everything else -> start app
+    sub-default:
+      rule: "HostRegexp(`^.+\\.${VITE_ROOT_DOMAIN}$`)"
+      service: start
+      priority: 10
+
+  # ===============================
+  # MIDDLEWARES
+  # ===============================
+  middlewares:
+    admin-redirect:
+      redirectRegex:
+        regex: "^https?://[^/]+(/admin.*)"
+        replacement: "http://admin.${VITE_ROOT_DOMAIN}${1}"
+        permanent: false
+
+    login-redirect:
+      redirectRegex:
+        regex: ".*"
+        replacement: "http://admin.${VITE_ROOT_DOMAIN}/login"
+        permanent: false
+
+    # Headers for proxied requests
+    proxy-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "http"
+
+  # ===============================
+  # SERVICES
+  # ===============================
+  services:
+    start:
+      loadBalancer:
+        servers:
+          - url: "http://start:8080"
+        passHostHeader: true
+
+    backend:
+      loadBalancer:
+        servers:
+          - url: "http://backend:5468"
+        passHostHeader: true
+
+    marketing:
+      loadBalancer:
+        servers:
+          - url: "http://marketing:80"
+        passHostHeader: true

@@ -10,14 +10,14 @@ env:
 jobs:
   build-image:
     name: Build and Push
-    runs-on: ${{ matrix.platform == 'linux/arm64' && 'blacksmith-8vcpu-ubuntu-2404-arm' || 'blacksmith-8vcpu-ubuntu-2404' }}
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'blacksmith-4vcpu-ubuntu-2404-arm' || 'blacksmith-4vcpu-ubuntu-2404' }}
     permissions:
       contents: read
       packages: write
     strategy:
       fail-fast: false
       matrix:
-        app: [start, backend, worker, nginx]
+        app: [start, backend, worker, nginx, traefik, marketing]
         platform:
           - linux/amd64
           - linux/arm64
@@ -40,6 +40,12 @@ jobs:
           elif [[ "${{ matrix.app }}" == "nginx" ]]; then
             echo "dockerfile=./apps/nginx/Dockerfile" >> $GITHUB_OUTPUT
             echo "image_suffix=-nginx" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
+            echo "dockerfile=./apps/traefik/Dockerfile" >> $GITHUB_OUTPUT
+            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "marketing" ]]; then
+            echo "dockerfile=./apps/marketing/Dockerfile" >> $GITHUB_OUTPUT
+            echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up Docker Builder
@@ -88,14 +94,14 @@ jobs:
 
   merge-manifest:
     needs: [build-image]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
       packages: write
     strategy:
       fail-fast: false
       matrix:
-        app: [start, backend, worker, nginx]
+        app: [start, backend, worker, nginx, traefik, marketing]
     steps:
       - name: Determine Docker Config
         id: config
@@ -108,6 +114,10 @@ jobs:
             echo "image_suffix=-worker" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "nginx" ]]; then
             echo "image_suffix=-nginx" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
+            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "marketing" ]]; then
+            echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
           fi
 
       - name: Download digests

@@ -81,6 +81,14 @@ services:
     networks:
       - app_network
 
+  marketing:
+    container_name: sayr-marketing
+    image: ghcr.io/dorasto/sayr-marketing:latest
+    restart: always
+    pull_policy: always
+    networks:
+      - app_network
+
   github-worker:
     container_name: sayr-worker-github
     image: ghcr.io/dorasto/sayr-worker:latest
@@ -140,6 +148,22 @@ services:
     depends_on:
       - start
       - backend
+    networks:
+      - app_network
+
+  traefik:
+    container_name: sayr-traefik
+    image: ghcr.io/dorasto/sayr-traefik:latest
+    restart: always
+    pull_policy: always
+    ports:
+      - "3001:80"
+    environment:
+      - VITE_ROOT_DOMAIN=${VITE_ROOT_DOMAIN}
+    depends_on:
+      - start
+      - backend
+      - marketing
     networks:
       - app_network
 
