@@ -38,15 +38,20 @@ WORKDIR /app
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 astro
-USER astro
 
 ENV HOST=0.0.0.0
 ENV PORT=4321
 ENV NODE_ENV=production
 
-# Copy built output and node_modules from installer stage
-COPY --from=installer --chown=astro:nodejs /app/apps/marketing/dist ./dist
+# Copy the entire workspace structure to preserve pnpm symlinks
 COPY --from=installer --chown=astro:nodejs /app/node_modules ./node_modules
+COPY --from=installer --chown=astro:nodejs /app/apps/marketing/node_modules ./apps/marketing/node_modules
+COPY --from=installer --chown=astro:nodejs /app/apps/marketing/dist ./apps/marketing/dist
+COPY --from=installer --chown=astro:nodejs /app/apps/marketing/package.json ./apps/marketing/package.json
+
+USER astro
+
+WORKDIR /app/apps/marketing
 
 EXPOSE 4321
 
