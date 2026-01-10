@@ -34,6 +34,7 @@
 		"motion": "^12.23.12",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
+		"starlight-openapi": "^0.21.1",
 		"tailwind-merge": "^3.4.0",
 		"tailwindcss": "^4.1.18"
 	},

@@ -6,6 +6,7 @@ import starlight from "@astrojs/starlight";
 
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
+import starlightOpenAPI, { openAPISidebarGroups } from "starlight-openapi";
 
 // https://astro.build/config
 export default defineConfig({
@@ -19,6 +20,7 @@ export default defineConfig({
     starlight({
       title: "Sayr Docs",
       logo: { src: "./src/assets/logo.svg" },
+
       description:
         "Documentation for Sayr.io - Transparent, collaborative project management",
       social: [
@@ -42,12 +44,25 @@ export default defineConfig({
             { label: "Visibility Controls", slug: "docs/guides/visibility" },
           ],
         },
-        {
-          label: "API Reference",
-          items: [{ label: "Overview", slug: "docs/api/overview" }],
-        },
+
+        ...openAPISidebarGroups,
       ],
-      // customCss: ["./src/styles/custom.css"],
+      plugins: [
+        starlightOpenAPI([
+          {
+            base: "api",
+            schema: "https://sayr.io/api/public/openapi.json",
+            sidebar: {
+              label: "API Reference",
+              collapsed: false,
+              operations: {
+                badges: true,
+                labels: "summary",
+              },
+            },
+          },
+        ]),
+      ],
     }),
     react(),
   ],

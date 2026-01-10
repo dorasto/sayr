@@ -1,6 +1,9 @@
-name: Manual Build
+name: Build and Deploy
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
@@ -109,7 +112,6 @@ jobs:
             echo "image_suffix=-backend" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
             echo "image_suffix=-worker" >> $GITHUB_OUTPUT
-
           elif [[ "${{ matrix.app }}" == "traefik" ]]; then
             echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "marketing" ]]; then
@@ -150,11 +152,17 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:latest
-  # deployment:
-  #   needs: [merge-manifest]
-  #   runs-on: blacksmith-2vcpu-ubuntu-2404
-  #   steps:
-  #     - name: Deploy to Coolify
-  #       id: deployment
-  #       run: |
-  #         curl --request GET '${{secrets.SAYR_DEPLOY}}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_ROOT_API_KEY }}'
+
+  deploy:
+    needs: [merge-manifest]
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [start, backend, worker, traefik, marketing]
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Redeploy ${{ matrix.app }}
+        run: railway redeploy --service ${{ matrix.app }}
