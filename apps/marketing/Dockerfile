@@ -40,7 +40,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 astro
 
 ENV HOST=0.0.0.0
-ENV PORT=4321
+ENV PORT=8080
 ENV NODE_ENV=production
 
 # Copy the entire workspace structure to preserve pnpm symlinks
@@ -53,6 +53,6 @@ USER astro
 
 WORKDIR /app/apps/marketing
 
-EXPOSE 4321
+EXPOSE 8080
 
 CMD ["node", "./dist/server/entry.mjs"]
