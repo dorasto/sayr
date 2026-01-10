@@ -44,8 +44,9 @@ ENV HOST=0.0.0.0
 ENV PORT=4321
 ENV NODE_ENV=production
 
-# Copy built output from installer stage
+# Copy built output and node_modules from installer stage
 COPY --from=installer --chown=astro:nodejs /app/apps/marketing/dist ./dist
+COPY --from=installer --chown=astro:nodejs /app/node_modules ./node_modules
 
 EXPOSE 4321
 
