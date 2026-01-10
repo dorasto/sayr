@@ -18,6 +18,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Sayr Docs",
+      logo: { src: "./src/assets/logo.svg" },
       description:
         "Documentation for Sayr.io - Transparent, collaborative project management",
       social: [
@@ -31,17 +32,19 @@ export default defineConfig({
         {
           label: "Getting Started",
           items: [
-            { label: "Introduction", slug: "introduction" },
-            { label: "Quick Start", slug: "quick-start" },
+            { label: "Introduction", slug: "docs/introduction" },
+            { label: "Quick Start", slug: "docs/quick-start" },
           ],
         },
         {
           label: "Guides",
-          items: [{ label: "Visibility Controls", slug: "guides/visibility" }],
+          items: [
+            { label: "Visibility Controls", slug: "docs/guides/visibility" },
+          ],
         },
         {
           label: "API Reference",
-          items: [{ label: "Overview", slug: "api/overview" }],
+          items: [{ label: "Overview", slug: "docs/api/overview" }],
         },
       ],
       // customCss: ["./src/styles/custom.css"],
