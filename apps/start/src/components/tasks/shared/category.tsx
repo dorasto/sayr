@@ -185,7 +185,7 @@ export default function GlobalTaskCategory({
                 <div className="flex flex-col gap-1">
                   <Label>No categories found</Label>
                   <Link
-                    to="/admin/settings/org/$orgId/categories"
+                    to="/settings/org/$orgId/categories"
                     params={{ orgId: task.organizationId }}
                   >
                     <Button variant="primary" size={"sm"} className="">

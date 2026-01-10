@@ -52,7 +52,7 @@ export default function SettingsOrganizationViewsPage() {
 			{views.map((view) => (
 				<Link
 					key={view.id}
-					to="/admin/settings/org/$orgId/views/$viewId"
+					to="/settings/org/$orgId/views/$viewId"
 					params={{ orgId: organization.id, viewId: view.id }}
 				>
 					<Tile className="bg-card hover:bg-accent md:w-full transition-colors cursor-pointer">

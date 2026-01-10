@@ -68,7 +68,7 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 								onClick={async () => {
 									await authClient.oauth2.link({
 										providerId: "doras",
-										callbackURL: "/admin/settings/connections",
+										callbackURL: "/settings/connections",
 									});
 								}}
 							>
@@ -125,7 +125,7 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 								onClick={async () => {
 									await authClient.linkSocial({
 										provider: "github",
-										callbackURL: "/admin/settings/connections",
+										callbackURL: "/settings/connections",
 									});
 								}}
 							>

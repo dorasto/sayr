@@ -6,6 +6,7 @@ import { user } from "./auth";
 import { category } from "./category.schema";
 import { label } from "./label.schema";
 import { organization } from "./organization.schema";
+import { NodeJSON } from ".";
 
 export const issueTemplate = table("task_template", {
 	id: v
@@ -20,7 +21,7 @@ export const issueTemplate = table("task_template", {
 		.references(() => organization.id, { onDelete: "cascade" }),
 	name: v.varchar("name", { length: 100 }).notNull(),
 	titlePrefix: v.varchar("title_prefix", { length: 50 }),
-	description: v.jsonb("description"),
+	description: v.jsonb("description").$type<NodeJSON>(),
 	status: v.text("status"),
 	priority: v.text("priority"),
 	categoryId: v.text("category_id").references(() => category.id, { onDelete: "set null" }),

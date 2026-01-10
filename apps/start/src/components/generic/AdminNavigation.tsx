@@ -34,15 +34,15 @@ export default function AdminNavigation() {
 
   // Use useMatch to determine which route we're on
   const tasksMatch = useMatch({
-    from: "/admin/$orgId/tasks",
+    from: "/(admin)/$orgId/tasks",
     shouldThrow: false,
   });
   const taskDetailMatch = useMatch({
-    from: "/admin/$orgId/tasks/$taskShortId",
+    from: "/(admin)/$orgId/tasks/$taskShortId",
     shouldThrow: false,
   });
   const settingsMatch = useMatch({
-    from: "/admin/settings",
+    from: "/(admin)/settings",
     shouldThrow: false,
   });
 

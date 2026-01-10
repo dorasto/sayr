@@ -38,7 +38,7 @@ const useWebSocketPublic = ({
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(`${import.meta.env.VITE_WS_URL}?orgId=${organization.id}` || "/ws");
+				webSocket = new WebSocket(import.meta.env.MODE === "development" ? `${import.meta.env.VITE_WS_URL}?orgId=${organization.id}` || "/ws" : `/ws?orgId=${organization.id}`);
 				webSocket.onopen = () => {
 					setWs(webSocket);
 				};

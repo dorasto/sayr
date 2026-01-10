@@ -1,24 +1,27 @@
-import { genericOAuthClient, inferAdditionalFields } from "better-auth/client/plugins";
+import {
+  genericOAuthClient,
+  inferAdditionalFields,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react"; // make sure to import from better-auth/react
 import type { auth } from "./index";
 export const authClient = createAuthClient({
-	plugins: [inferAdditionalFields<typeof auth>(), genericOAuthClient()],
+  plugins: [inferAdditionalFields<typeof auth>(), genericOAuthClient()],
 });
 
 export const signInDoras = async () => {
-	const found = await authClient.getSession();
-	if (found.data) {
-		window.location.href = "/admin";
-		return;
-	}
-	await authClient.signIn.oauth2({ providerId: "doras", callbackURL: "/admin" });
+  const found = await authClient.getSession();
+  if (found.data) {
+    window.location.href = "/";
+    return;
+  }
+  await authClient.signIn.oauth2({ providerId: "doras", callbackURL: "/" });
 };
 
 export const singInGithub = async () => {
-	const found = await authClient.getSession();
-	if (found.data) {
-		window.location.href = "/admin";
-		return;
-	}
-	await authClient.signIn.social({ provider: "github", callbackURL: "/admin" });
+  const found = await authClient.getSession();
+  if (found.data) {
+    window.location.href = "/";
+    return;
+  }
+  await authClient.signIn.social({ provider: "github", callbackURL: "/" });
 };

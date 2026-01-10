@@ -194,7 +194,7 @@ export default function ProjectSide() {
 				</TileHeader>
 				<TileAction>
 					<Link
-						to={`/admin/settings/org/$orgId`}
+						to={`/settings/org/$orgId`}
 						params={{ orgId: organization.id }}
 						className="h-full w-full aspect-square flex items-center justify-center"
 					>
@@ -359,7 +359,7 @@ export default function ProjectSide() {
 						</TabsTrigger>
 					</TabsList>
 
-					</div>
+				</div>
 				<TabsContent value="views" className="mt-0">
 					<div className="flex flex-col gap-0.5">
 						{views.map((view) => {
@@ -397,7 +397,7 @@ export default function ProjectSide() {
 													className={cn(
 														"size-5! [&_svg]:size-4! border-0 ",
 														!isActive &&
-															"text-muted-foreground [&_svg]:grayscale! bg-transparent!",
+														"text-muted-foreground [&_svg]:grayscale! bg-transparent!",
 													)}
 												/>
 												{/* <IconStack2 /> */}

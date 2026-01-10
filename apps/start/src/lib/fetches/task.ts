@@ -1,7 +1,7 @@
 import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
-const API_URL = import.meta.env.VITE_EXTERNAL_API_URL;
+const API_URL = import.meta.env.MODE === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "";
 
 /**
  * Calls the `/admin/task/create` API to create a new task
@@ -354,7 +354,7 @@ export async function UpdateTaskCommentAction(
 	visibility: "internal" | "public",
 	wsClientId: string
 ) {
-	const res = await fetch(`${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/edit-comment`, {
+	const res = await fetch(`${API_URL}/admin/organization/task/edit-comment`, {
 		method: "PUT",
 		headers: { "Content-Type": "application/json" },
 		credentials: "include",
@@ -438,7 +438,7 @@ export async function CreateTaskReactionAction(
 		wsClientId,
 	};
 
-	const res = await fetch(`${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/create-reaction`, {
+	const res = await fetch(`${API_URL}/admin/organization/task/create-reaction`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		credentials: "include",

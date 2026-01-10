@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-label="Sayr logo">
+    <path
+        d="M9 5.5 L11.5 11 L9.8 12.6 L13.8 18 L16.8 12.8 C17.4 11.9 18.4 10.6 18.9 9.9 L15.6 8.2"
+        stroke="black"
+        stroke-width="2.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    />
+    <style>
+        path { stroke: #000; }
+        @media (prefers-color-scheme: dark) {
+            path { stroke: #FFF; }
+        }
+    </style>
+</svg>

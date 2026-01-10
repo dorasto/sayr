@@ -64,7 +64,7 @@ export default function UserDropdown() {
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<Link to={"/admin/settings"} className="w-full">
+							<Link to={"/settings"} className="w-full">
 								<DropdownMenuItem>
 									<IconUserCog />
 									Account settings

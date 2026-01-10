@@ -1,0 +1,91 @@
+---
+import Features from "@/components/landing/features.tsx";
+import Hero from "@/components/landing/hero.tsx";
+import { ModeToggle } from "@/components/ModeToggle";
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout>
+    <div>
+        <Hero />
+        <!-- <section class="hero">
+            <h1>Transparent Project Management</h1>
+            <p class="hero-subtitle">
+                Bridge internal workflows with public collaboration. Control
+                visibility at every level.
+            </p>
+            <div class="hero-actions">
+                <a href="https://app.sayr.io" class="text-primary"
+                    >Start for Free</a
+                >
+                <a href="/docs" class="btn btn-primary btn-lg">Read the Docs</a>
+            </div>
+        </section> -->
+        <Features />
+        <section class="features">
+            <div class="feature">
+                <div class="feature-icon">🔐</div>
+                <h3>Granular Privacy</h3>
+                <p>
+                    Every task, comment, and update can be public or private.
+                    You decide what the world sees.
+                </p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <h3>Real-time Updates</h3>
+                <p>
+                    WebSocket-powered live collaboration. See changes instantly
+                    across your team.
+                </p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔗</div>
+                <h3>GitHub Sync</h3>
+                <p>
+                    Connect your repositories. Sync issues and pull requests
+                    with your Sayr tasks.
+                </p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📝</div>
+                <h3>Rich Editing</h3>
+                <p>
+                    Full-featured block editor for task descriptions. Format
+                    content your way.
+                </p>
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Ready to make your project management transparent?</h2>
+            <p>Join teams who share their progress with the world.</p>
+            <a href="https://app.sayr.io" class="btn btn-primary btn-lg"
+                >Get Started</a
+            >
+        </section>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <span class="logo">Sayr</span>
+                <p>Transparent project management for modern teams.</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <a href="/docs">Documentation</a>
+                    <a href="/docs/api/overview">API</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <a href="https://github.com/sayr-io/sayr">GitHub</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; {new Date().getFullYear()} Sayr. All rights reserved.</p>
+        </div>
+    </footer>
+</Layout>

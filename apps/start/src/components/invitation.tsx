@@ -25,7 +25,7 @@ export function InvitationActions({ invite, organizationName }: InvitationAction
 			if (result.success) {
 				if (type === "accept") {
 					// Redirect to the organization after accepting
-					window.location.href = `/admin/${invite.organizationId}`;
+					window.location.href = `/${invite.organizationId}`;
 				} else {
 					// Redirect home after declining
 					window.location.href = `/`;

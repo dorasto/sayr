@@ -55,7 +55,7 @@ export default function GlobalTimeline({
 	>({
 		key: ["timeline", "activity", task.id, task.organizationId],
 		fetch: {
-			url: `${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/timeline/activity?org_id=${task.organizationId}&task_id=${task.id}`,
+			url: `${import.meta.env.MODE === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : ""}/admin/organization/task/timeline/activity?org_id=${task.organizationId}&task_id=${task.id}`,
 			custom: async (url) => {
 				const res = await fetch(url, { credentials: "include" });
 				if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
@@ -82,9 +82,8 @@ export default function GlobalTimeline({
 	>({
 		key: ["timeline", "comments", task.id, task.organizationId],
 		fetch: {
-			url: `${import.meta.env.VITE_EXTERNAL_API_URL}/admin/organization/task/timeline/comments?org_id=${
-				task.organizationId
-			}&task_id=${task.id}&limit=${commentLimit / 2}`,
+			url: `${import.meta.env.MODE === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : ""}/admin/organization/task/timeline/comments?org_id=${task.organizationId
+				}&task_id=${task.id}&limit=${commentLimit / 2}`,
 			custom: async (url, pageParam) => {
 				// pageParam manages current outer pages
 				const { fromStart = 1, fromEnd } = pageParam ?? {};

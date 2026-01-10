@@ -71,7 +71,7 @@ export default function SettingsOrganizationPageTeams({ teams }: { teams: schema
 	return (
 		<div className="bg-card rounded-lg flex flex-col">
 			{/* Create New Team Tile */}
-			<Link to="/admin/settings/org/$orgId/teams/new" params={{ orgId: organization.id }}>
+			<Link to="/settings/org/$orgId/teams/new" params={{ orgId: organization.id }}>
 				<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
 					<TileHeader className="md:w-full">
 						<TileIcon className="bg-transparent">
@@ -94,7 +94,7 @@ export default function SettingsOrganizationPageTeams({ teams }: { teams: schema
 				<DropdownMenu key={team.id}>
 					<div className="flex items-center w-full">
 						<Link
-							to="/admin/settings/org/$orgId/teams/$teamId"
+							to="/settings/org/$orgId/teams/$teamId"
 							params={{ orgId: organization.id, teamId: team.name }}
 							className="flex-1"
 						>
@@ -134,7 +134,7 @@ export default function SettingsOrganizationPageTeams({ teams }: { teams: schema
 						<DropdownMenuSeparator />
 						<DropdownMenuItem asChild>
 							<Link
-								to="/admin/settings/org/$orgId/teams/$teamId"
+								to="/settings/org/$orgId/teams/$teamId"
 								params={{ orgId: organization.id, teamId: team.name }}
 							>
 								<IconSettings /> Manage team
@@ -142,7 +142,7 @@ export default function SettingsOrganizationPageTeams({ teams }: { teams: schema
 						</DropdownMenuItem>
 						<DropdownMenuItem asChild>
 							<Link
-								to="/admin/settings/org/$orgId/teams/$teamId"
+								to="/settings/org/$orgId/teams/$teamId"
 								params={{ orgId: organization.id, teamId: team.name }}
 								search={{ tab: "members" }}
 							>

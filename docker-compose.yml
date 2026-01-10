@@ -54,9 +54,6 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
       - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
-      - NEXT_PUBLIC_URL_ROOT=${NEXT_PUBLIC_URL_ROOT}
-      - NEXT_PUBLIC_API_SERVER=${NEXT_PUBLIC_API_SERVER}
-      - NEXT_PUBLIC_PROJECT_NAME=${NEXT_PUBLIC_PROJECT_NAME}
       - STORAGE_URL=${STORAGE_URL}
       - STORAGE_BUCKET=${STORAGE_BUCKET}
       - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
@@ -84,6 +81,14 @@ services:
     networks:
       - app_network
 
+  marketing:
+    container_name: sayr-marketing
+    image: ghcr.io/dorasto/sayr-marketing:latest
+    restart: always
+    pull_policy: always
+    networks:
+      - app_network
+
   github-worker:
     container_name: sayr-worker-github
     image: ghcr.io/dorasto/sayr-worker:latest
@@ -94,9 +99,6 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
       - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
-      - NEXT_PUBLIC_URL_ROOT=${NEXT_PUBLIC_URL_ROOT}
-      - NEXT_PUBLIC_API_SERVER=${NEXT_PUBLIC_API_SERVER}
-      - NEXT_PUBLIC_PROJECT_NAME=${NEXT_PUBLIC_PROJECT_NAME}
       - STORAGE_URL=${STORAGE_URL}
       - STORAGE_BUCKET=${STORAGE_BUCKET}
       - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
@@ -134,16 +136,19 @@ services:
     networks:
       - app_network
 
-  nginx:
-    container_name: sayr-nginx
-    image: ghcr.io/dorasto/sayr-nginx:latest
+  traefik:
+    container_name: sayr-traefik
+    image: ghcr.io/dorasto/sayr-traefik:latest
     restart: always
     pull_policy: always
     ports:
-      - "3000:80"
+      - "3001:80"
+    environment:
+      - VITE_ROOT_DOMAIN=${VITE_ROOT_DOMAIN}
     depends_on:
       - start
       - backend
+      - marketing
     networks:
       - app_network
 

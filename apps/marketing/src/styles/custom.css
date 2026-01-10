@@ -1,0 +1,29 @@
+/* Custom Starlight styles for Sayr docs */
+
+:root {
+	--sl-color-accent-low: #1e3a5f;
+	--sl-color-accent: #3b82f6;
+	--sl-color-accent-high: #93c5fd;
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #f8fafc;
+	--sl-color-gray-2: #e2e8f0;
+	--sl-color-gray-3: #cbd5e1;
+	--sl-color-gray-4: #94a3b8;
+	--sl-color-gray-5: #64748b;
+	--sl-color-gray-6: #475569;
+	--sl-color-black: #0f172a;
+}
+
+:root[data-theme="dark"] {
+	--sl-color-accent-low: #1e3a5f;
+	--sl-color-accent: #3b82f6;
+	--sl-color-accent-high: #93c5fd;
+	--sl-color-white: #0f172a;
+	--sl-color-gray-1: #1e293b;
+	--sl-color-gray-2: #334155;
+	--sl-color-gray-3: #475569;
+	--sl-color-gray-4: #64748b;
+	--sl-color-gray-5: #94a3b8;
+	--sl-color-gray-6: #cbd5e1;
+	--sl-color-black: #f8fafc;
+}

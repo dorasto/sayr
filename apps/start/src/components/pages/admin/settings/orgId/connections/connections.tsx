@@ -24,7 +24,7 @@ export default function SettingsOrganizationConnectionsPage() {
 		<div className="bg-card rounded-lg flex flex-col">
 			{connections.map((connection) => (
 				<Link
-					to={`/admin/settings/org/$orgId/connections/$connectionId`}
+					to={`/settings/org/$orgId/connections/$connectionId`}
 					params={{ orgId: organization.id, connectionId: connection.id }}
 					key={connection.id}
 				>

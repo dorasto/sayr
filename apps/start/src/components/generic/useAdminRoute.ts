@@ -4,24 +4,28 @@ export function useAdminRoute() {
 	const location = useLocation();
 	const pathname = location.pathname;
 
-	const isMinePage = /^\/admin\/mine$/.test(pathname); // /admin/mine
+	const isMinePage = /^\/mine$/.test(pathname); // /mine
 
-	// /admin/console or anything nested like /admin/console/users
-	const isStaffPage = /^\/admin\/console(?:$|\/)/.test(pathname);
+	// /console or anything nested like /console/users
+	const isStaffPage = /^\/console(?:$|\/)/.test(pathname);
 
-	// /admin/settings or nested routes
-	const isSettingsPage = /^\/admin\/settings(?:$|\/)/.test(pathname);
+	// /settings or nested routes
+	const isSettingsPage = /^\/settings(?:$|\/)/.test(pathname);
 
-	// /admin/:orgId, but exclude known static routes
-	const isOrgPage = /^\/admin\/[^/]+$/.test(pathname) && !/^\/admin\/(?:mine|console|settings)$/.test(pathname);
+	// /:orgId, but exclude known static routes
+	const isOrgPage =
+		/^\/[^/]+$/.test(pathname) &&
+		!/^\/(?:mine|console|settings)$/.test(pathname);
 
-	// /admin/:orgId/tasks
+	// /:orgId/tasks
 	const isTasksPage =
-		/^\/admin\/[^/]+\/tasks$/.test(pathname) && !/^\/admin\/(?:console|mine|settings)\b/.test(pathname);
+		/^\/[^/]+\/tasks$/.test(pathname) &&
+		!/^\/(?:console|mine|settings)\b/.test(pathname);
 
-	// /admin/:orgId/tasks/:taskId
+	// /:orgId/tasks/:taskId
 	const isTaskPage =
-		/^\/admin\/[^/]+\/tasks\/[^/]+$/.test(pathname) && !/^\/admin\/(?:console|mine|settings)\b/.test(pathname);
+		/^\/[^/]+\/tasks\/[^/]+$/.test(pathname) &&
+		!/^\/(?:console|mine|settings)\b/.test(pathname);
 
 	return {
 		isMinePage,

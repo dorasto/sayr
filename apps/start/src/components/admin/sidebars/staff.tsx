@@ -26,12 +26,12 @@ import UserDropdown from "./user-dropdown";
 const settingsNavigation = [
 	{
 		title: "Console",
-		url: "/admin/console",
+		url: "/console",
 		icon: IconUsers,
 	},
 	{
 		title: "Connections",
-		url: "/admin/console/connections",
+		url: "/console/connections",
 		icon: IconPlug,
 	},
 ];
@@ -49,7 +49,7 @@ export function StaffSidebar() {
 			<SidebarHeader className="pb-0">
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<Link className="w-full" to={"/admin"}>
+						<Link className="w-full" to={"/"}>
 							<SidebarMenuButton
 								tooltip="Back to Dashboard"
 								icon={<IconArrowLeft size={16} />}

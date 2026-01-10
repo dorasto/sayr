@@ -10,55 +10,48 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
-import { Route as AdminRouteRouteImport } from './routes/admin/route'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as adminIndexRouteImport } from './routes/(admin)/index'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
-import { Route as AdminSettingsRouteRouteImport } from './routes/admin/settings/route'
-import { Route as AdminMineRouteRouteImport } from './routes/admin/mine/route'
-import { Route as AdminOrgIdRouteRouteImport } from './routes/admin/$orgId/route'
+import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
+import { Route as adminMineRouteRouteImport } from './routes/(admin)/mine/route'
+import { Route as adminOrgIdRouteRouteImport } from './routes/(admin)/$orgId/route'
 import { Route as OrgsOrgSlugIndexRouteImport } from './routes/orgs/$orgSlug/index'
 import { Route as InviteOrgIdIndexRouteImport } from './routes/invite/$orgId/index'
-import { Route as AdminSettingsIndexRouteImport } from './routes/admin/settings/index'
-import { Route as AdminMineIndexRouteImport } from './routes/admin/mine/index'
-import { Route as AdminConsoleIndexRouteImport } from './routes/admin/console/index'
-import { Route as AdminOrgIdIndexRouteImport } from './routes/admin/$orgId/index'
+import { Route as adminSettingsIndexRouteImport } from './routes/(admin)/settings/index'
+import { Route as adminMineIndexRouteImport } from './routes/(admin)/mine/index'
+import { Route as adminConsoleIndexRouteImport } from './routes/(admin)/console/index'
+import { Route as adminOrgIdIndexRouteImport } from './routes/(admin)/$orgId/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AdminSettingsConnectionsRouteRouteImport } from './routes/admin/settings/connections/route'
-import { Route as AdminOrgIdTasksRouteRouteImport } from './routes/admin/$orgId/tasks/route'
-import { Route as AdminSettingsConnectionsIndexRouteImport } from './routes/admin/settings/connections/index'
-import { Route as AdminConsoleConnectionsIndexRouteImport } from './routes/admin/console/connections/index'
-import { Route as AdminOrgIdTasksIndexRouteImport } from './routes/admin/$orgId/tasks/index'
-import { Route as AdminSettingsOrgOrgIdRouteRouteImport } from './routes/admin/settings/org/$orgId/route'
-import { Route as AdminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/route'
-import { Route as AdminSettingsOrgOrgIdIndexRouteImport } from './routes/admin/settings/org/$orgId/index'
-import { Route as AdminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/admin/$orgId/tasks/$taskShortId/index'
-import { Route as AdminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/admin/settings/org/$orgId/views/index'
-import { Route as AdminSettingsOrgOrgIdTemplatesIndexRouteImport } from './routes/admin/settings/org/$orgId/templates/index'
-import { Route as AdminSettingsOrgOrgIdTeamsIndexRouteImport } from './routes/admin/settings/org/$orgId/teams/index'
-import { Route as AdminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/admin/settings/org/$orgId/members/index'
-import { Route as AdminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/admin/settings/org/$orgId/labels/index'
-import { Route as AdminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/admin/settings/org/$orgId/connections/index'
-import { Route as AdminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/admin/settings/org/$orgId/categories/index'
-import { Route as AdminSettingsOrgOrgIdTeamsNewRouteImport } from './routes/admin/settings/org/$orgId/teams/new'
-import { Route as AdminSettingsOrgOrgIdViewsViewIdIndexRouteImport } from './routes/admin/settings/org/$orgId/views/$viewId/index'
-import { Route as AdminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/admin/settings/org/$orgId/teams/$teamId/index'
-import { Route as AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport } from './routes/admin/settings/org/$orgId/connections/$connectionId/index'
+import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
+import { Route as adminOrgIdTasksRouteRouteImport } from './routes/(admin)/$orgId/tasks/route'
+import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(admin)/settings/connections/index'
+import { Route as adminConsoleConnectionsIndexRouteImport } from './routes/(admin)/console/connections/index'
+import { Route as adminOrgIdTasksIndexRouteImport } from './routes/(admin)/$orgId/tasks/index'
+import { Route as adminSettingsOrgOrgIdRouteRouteImport } from './routes/(admin)/settings/org/$orgId/route'
+import { Route as adminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/route'
+import { Route as adminSettingsOrgOrgIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/index'
+import { Route as adminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/index'
+import { Route as adminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/index'
+import { Route as adminSettingsOrgOrgIdTemplatesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/templates/index'
+import { Route as adminSettingsOrgOrgIdTeamsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/index'
+import { Route as adminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/(admin)/settings/org/$orgId/members/index'
+import { Route as adminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/labels/index'
+import { Route as adminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/index'
+import { Route as adminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/categories/index'
+import { Route as adminSettingsOrgOrgIdTeamsNewRouteImport } from './routes/(admin)/settings/org/$orgId/teams/new'
+import { Route as adminSettingsOrgOrgIdViewsViewIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/$viewId/index'
+import { Route as adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/$teamId/index'
+import { Route as adminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/$connectionId/index'
 
 const ProsekitTestRoute = ProsekitTestRouteImport.update({
   id: '/prosekit-test',
   path: '/prosekit-test',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRouteRoute = AdminRouteRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const adminRouteRoute = adminRouteRouteImport.update({
+  id: '/(admin)',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginIndexRoute = LoginIndexRouteImport.update({
@@ -66,30 +59,30 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
   path: '/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
+const adminIndexRoute = adminIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRouteRoute,
+  getParentRoute: () => adminRouteRoute,
 } as any)
 const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
   id: '/api/image-preview',
   path: '/api/image-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminSettingsRouteRoute = AdminSettingsRouteRouteImport.update({
+const adminSettingsRouteRoute = adminSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => AdminRouteRoute,
+  getParentRoute: () => adminRouteRoute,
 } as any)
-const AdminMineRouteRoute = AdminMineRouteRouteImport.update({
+const adminMineRouteRoute = adminMineRouteRouteImport.update({
   id: '/mine',
   path: '/mine',
-  getParentRoute: () => AdminRouteRoute,
+  getParentRoute: () => adminRouteRoute,
 } as any)
-const AdminOrgIdRouteRoute = AdminOrgIdRouteRouteImport.update({
+const adminOrgIdRouteRoute = adminOrgIdRouteRouteImport.update({
   id: '/$orgId',
   path: '/$orgId',
-  getParentRoute: () => AdminRouteRoute,
+  getParentRoute: () => adminRouteRoute,
 } as any)
 const OrgsOrgSlugIndexRoute = OrgsOrgSlugIndexRouteImport.update({
   id: '/orgs/$orgSlug/',
@@ -101,369 +94,360 @@ const InviteOrgIdIndexRoute = InviteOrgIdIndexRouteImport.update({
   path: '/invite/$orgId/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminSettingsIndexRoute = AdminSettingsIndexRouteImport.update({
+const adminSettingsIndexRoute = adminSettingsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminSettingsRouteRoute,
+  getParentRoute: () => adminSettingsRouteRoute,
 } as any)
-const AdminMineIndexRoute = AdminMineIndexRouteImport.update({
+const adminMineIndexRoute = adminMineIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminMineRouteRoute,
+  getParentRoute: () => adminMineRouteRoute,
 } as any)
-const AdminConsoleIndexRoute = AdminConsoleIndexRouteImport.update({
+const adminConsoleIndexRoute = adminConsoleIndexRouteImport.update({
   id: '/console/',
   path: '/console/',
-  getParentRoute: () => AdminRouteRoute,
+  getParentRoute: () => adminRouteRoute,
 } as any)
-const AdminOrgIdIndexRoute = AdminOrgIdIndexRouteImport.update({
+const adminOrgIdIndexRoute = adminOrgIdIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminOrgIdRouteRoute,
+  getParentRoute: () => adminOrgIdRouteRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminSettingsConnectionsRouteRoute =
-  AdminSettingsConnectionsRouteRouteImport.update({
+const adminSettingsConnectionsRouteRoute =
+  adminSettingsConnectionsRouteRouteImport.update({
     id: '/connections',
     path: '/connections',
-    getParentRoute: () => AdminSettingsRouteRoute,
+    getParentRoute: () => adminSettingsRouteRoute,
   } as any)
-const AdminOrgIdTasksRouteRoute = AdminOrgIdTasksRouteRouteImport.update({
+const adminOrgIdTasksRouteRoute = adminOrgIdTasksRouteRouteImport.update({
   id: '/tasks',
   path: '/tasks',
-  getParentRoute: () => AdminOrgIdRouteRoute,
+  getParentRoute: () => adminOrgIdRouteRoute,
 } as any)
-const AdminSettingsConnectionsIndexRoute =
-  AdminSettingsConnectionsIndexRouteImport.update({
+const adminSettingsConnectionsIndexRoute =
+  adminSettingsConnectionsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AdminSettingsConnectionsRouteRoute,
+    getParentRoute: () => adminSettingsConnectionsRouteRoute,
   } as any)
-const AdminConsoleConnectionsIndexRoute =
-  AdminConsoleConnectionsIndexRouteImport.update({
+const adminConsoleConnectionsIndexRoute =
+  adminConsoleConnectionsIndexRouteImport.update({
     id: '/console/connections/',
     path: '/console/connections/',
-    getParentRoute: () => AdminRouteRoute,
+    getParentRoute: () => adminRouteRoute,
   } as any)
-const AdminOrgIdTasksIndexRoute = AdminOrgIdTasksIndexRouteImport.update({
+const adminOrgIdTasksIndexRoute = adminOrgIdTasksIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminOrgIdTasksRouteRoute,
+  getParentRoute: () => adminOrgIdTasksRouteRoute,
 } as any)
-const AdminSettingsOrgOrgIdRouteRoute =
-  AdminSettingsOrgOrgIdRouteRouteImport.update({
+const adminSettingsOrgOrgIdRouteRoute =
+  adminSettingsOrgOrgIdRouteRouteImport.update({
     id: '/org/$orgId',
     path: '/org/$orgId',
-    getParentRoute: () => AdminSettingsRouteRoute,
+    getParentRoute: () => adminSettingsRouteRoute,
   } as any)
-const AdminOrgIdTasksTaskShortIdRouteRoute =
-  AdminOrgIdTasksTaskShortIdRouteRouteImport.update({
+const adminOrgIdTasksTaskShortIdRouteRoute =
+  adminOrgIdTasksTaskShortIdRouteRouteImport.update({
     id: '/$taskShortId',
     path: '/$taskShortId',
-    getParentRoute: () => AdminOrgIdTasksRouteRoute,
+    getParentRoute: () => adminOrgIdTasksRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdIndexRoute =
-  AdminSettingsOrgOrgIdIndexRouteImport.update({
+const adminSettingsOrgOrgIdIndexRoute =
+  adminSettingsOrgOrgIdIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminOrgIdTasksTaskShortIdIndexRoute =
-  AdminOrgIdTasksTaskShortIdIndexRouteImport.update({
+const adminOrgIdTasksTaskShortIdIndexRoute =
+  adminOrgIdTasksTaskShortIdIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AdminOrgIdTasksTaskShortIdRouteRoute,
+    getParentRoute: () => adminOrgIdTasksTaskShortIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdViewsIndexRoute =
-  AdminSettingsOrgOrgIdViewsIndexRouteImport.update({
+const adminSettingsOrgOrgIdViewsIndexRoute =
+  adminSettingsOrgOrgIdViewsIndexRouteImport.update({
     id: '/views/',
     path: '/views/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdTemplatesIndexRoute =
-  AdminSettingsOrgOrgIdTemplatesIndexRouteImport.update({
+const adminSettingsOrgOrgIdTemplatesIndexRoute =
+  adminSettingsOrgOrgIdTemplatesIndexRouteImport.update({
     id: '/templates/',
     path: '/templates/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdTeamsIndexRoute =
-  AdminSettingsOrgOrgIdTeamsIndexRouteImport.update({
+const adminSettingsOrgOrgIdTeamsIndexRoute =
+  adminSettingsOrgOrgIdTeamsIndexRouteImport.update({
     id: '/teams/',
     path: '/teams/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdMembersIndexRoute =
-  AdminSettingsOrgOrgIdMembersIndexRouteImport.update({
+const adminSettingsOrgOrgIdMembersIndexRoute =
+  adminSettingsOrgOrgIdMembersIndexRouteImport.update({
     id: '/members/',
     path: '/members/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdLabelsIndexRoute =
-  AdminSettingsOrgOrgIdLabelsIndexRouteImport.update({
+const adminSettingsOrgOrgIdLabelsIndexRoute =
+  adminSettingsOrgOrgIdLabelsIndexRouteImport.update({
     id: '/labels/',
     path: '/labels/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdConnectionsIndexRoute =
-  AdminSettingsOrgOrgIdConnectionsIndexRouteImport.update({
+const adminSettingsOrgOrgIdConnectionsIndexRoute =
+  adminSettingsOrgOrgIdConnectionsIndexRouteImport.update({
     id: '/connections/',
     path: '/connections/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdCategoriesIndexRoute =
-  AdminSettingsOrgOrgIdCategoriesIndexRouteImport.update({
+const adminSettingsOrgOrgIdCategoriesIndexRoute =
+  adminSettingsOrgOrgIdCategoriesIndexRouteImport.update({
     id: '/categories/',
     path: '/categories/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdTeamsNewRoute =
-  AdminSettingsOrgOrgIdTeamsNewRouteImport.update({
+const adminSettingsOrgOrgIdTeamsNewRoute =
+  adminSettingsOrgOrgIdTeamsNewRouteImport.update({
     id: '/teams/new',
     path: '/teams/new',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdViewsViewIdIndexRoute =
-  AdminSettingsOrgOrgIdViewsViewIdIndexRouteImport.update({
+const adminSettingsOrgOrgIdViewsViewIdIndexRoute =
+  adminSettingsOrgOrgIdViewsViewIdIndexRouteImport.update({
     id: '/views/$viewId/',
     path: '/views/$viewId/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute =
-  AdminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport.update({
+const adminSettingsOrgOrgIdTeamsTeamIdIndexRoute =
+  adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport.update({
     id: '/teams/$teamId/',
     path: '/teams/$teamId/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute =
-  AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport.update({
+const adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute =
+  adminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport.update({
     id: '/connections/$connectionId/',
     path: '/connections/$connectionId/',
-    getParentRoute: () => AdminSettingsOrgOrgIdRouteRoute,
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/admin': typeof AdminRouteRouteWithChildren
   '/prosekit-test': typeof ProsekitTestRoute
-  '/admin/$orgId': typeof AdminOrgIdRouteRouteWithChildren
-  '/admin/mine': typeof AdminMineRouteRouteWithChildren
-  '/admin/settings': typeof AdminSettingsRouteRouteWithChildren
+  '/$orgId': typeof adminOrgIdRouteRouteWithChildren
+  '/mine': typeof adminMineRouteRouteWithChildren
+  '/settings': typeof adminSettingsRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
-  '/admin/': typeof AdminIndexRoute
+  '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
-  '/admin/$orgId/tasks': typeof AdminOrgIdTasksRouteRouteWithChildren
-  '/admin/settings/connections': typeof AdminSettingsConnectionsRouteRouteWithChildren
+  '/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
+  '/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgId/': typeof AdminOrgIdIndexRoute
-  '/admin/console': typeof AdminConsoleIndexRoute
-  '/admin/mine/': typeof AdminMineIndexRoute
-  '/admin/settings/': typeof AdminSettingsIndexRoute
+  '/$orgId/': typeof adminOrgIdIndexRoute
+  '/console': typeof adminConsoleIndexRoute
+  '/mine/': typeof adminMineIndexRoute
+  '/settings/': typeof adminSettingsIndexRoute
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug': typeof OrgsOrgSlugIndexRoute
-  '/admin/$orgId/tasks/$taskShortId': typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren
-  '/admin/settings/org/$orgId': typeof AdminSettingsOrgOrgIdRouteRouteWithChildren
-  '/admin/$orgId/tasks/': typeof AdminOrgIdTasksIndexRoute
-  '/admin/console/connections': typeof AdminConsoleConnectionsIndexRoute
-  '/admin/settings/connections/': typeof AdminSettingsConnectionsIndexRoute
-  '/admin/$orgId/tasks/$taskShortId/': typeof AdminOrgIdTasksTaskShortIdIndexRoute
-  '/admin/settings/org/$orgId/': typeof AdminSettingsOrgOrgIdIndexRoute
-  '/admin/settings/org/$orgId/teams/new': typeof AdminSettingsOrgOrgIdTeamsNewRoute
-  '/admin/settings/org/$orgId/categories': typeof AdminSettingsOrgOrgIdCategoriesIndexRoute
-  '/admin/settings/org/$orgId/connections': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
-  '/admin/settings/org/$orgId/labels': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
-  '/admin/settings/org/$orgId/members': typeof AdminSettingsOrgOrgIdMembersIndexRoute
-  '/admin/settings/org/$orgId/teams': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
-  '/admin/settings/org/$orgId/templates': typeof AdminSettingsOrgOrgIdTemplatesIndexRoute
-  '/admin/settings/org/$orgId/views': typeof AdminSettingsOrgOrgIdViewsIndexRoute
-  '/admin/settings/org/$orgId/connections/$connectionId': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
-  '/admin/settings/org/$orgId/teams/$teamId': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  '/admin/settings/org/$orgId/views/$viewId': typeof AdminSettingsOrgOrgIdViewsViewIdIndexRoute
+  '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
+  '/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
+  '/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
+  '/console/connections': typeof adminConsoleConnectionsIndexRoute
+  '/settings/connections/': typeof adminSettingsConnectionsIndexRoute
+  '/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
+  '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
+  '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
+  '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
+  '/settings/org/$orgId/labels': typeof adminSettingsOrgOrgIdLabelsIndexRoute
+  '/settings/org/$orgId/members': typeof adminSettingsOrgOrgIdMembersIndexRoute
+  '/settings/org/$orgId/teams': typeof adminSettingsOrgOrgIdTeamsIndexRoute
+  '/settings/org/$orgId/templates': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
+  '/settings/org/$orgId/views': typeof adminSettingsOrgOrgIdViewsIndexRoute
+  '/settings/org/$orgId/connections/$connectionId': typeof adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  '/settings/org/$orgId/teams/$teamId': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
+  '/settings/org/$orgId/views/$viewId': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
-  '/admin': typeof AdminIndexRoute
+  '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgId': typeof AdminOrgIdIndexRoute
-  '/admin/console': typeof AdminConsoleIndexRoute
-  '/admin/mine': typeof AdminMineIndexRoute
-  '/admin/settings': typeof AdminSettingsIndexRoute
+  '/$orgId': typeof adminOrgIdIndexRoute
+  '/console': typeof adminConsoleIndexRoute
+  '/mine': typeof adminMineIndexRoute
+  '/settings': typeof adminSettingsIndexRoute
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug': typeof OrgsOrgSlugIndexRoute
-  '/admin/$orgId/tasks': typeof AdminOrgIdTasksIndexRoute
-  '/admin/console/connections': typeof AdminConsoleConnectionsIndexRoute
-  '/admin/settings/connections': typeof AdminSettingsConnectionsIndexRoute
-  '/admin/$orgId/tasks/$taskShortId': typeof AdminOrgIdTasksTaskShortIdIndexRoute
-  '/admin/settings/org/$orgId': typeof AdminSettingsOrgOrgIdIndexRoute
-  '/admin/settings/org/$orgId/teams/new': typeof AdminSettingsOrgOrgIdTeamsNewRoute
-  '/admin/settings/org/$orgId/categories': typeof AdminSettingsOrgOrgIdCategoriesIndexRoute
-  '/admin/settings/org/$orgId/connections': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
-  '/admin/settings/org/$orgId/labels': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
-  '/admin/settings/org/$orgId/members': typeof AdminSettingsOrgOrgIdMembersIndexRoute
-  '/admin/settings/org/$orgId/teams': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
-  '/admin/settings/org/$orgId/templates': typeof AdminSettingsOrgOrgIdTemplatesIndexRoute
-  '/admin/settings/org/$orgId/views': typeof AdminSettingsOrgOrgIdViewsIndexRoute
-  '/admin/settings/org/$orgId/connections/$connectionId': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
-  '/admin/settings/org/$orgId/teams/$teamId': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  '/admin/settings/org/$orgId/views/$viewId': typeof AdminSettingsOrgOrgIdViewsViewIdIndexRoute
+  '/$orgId/tasks': typeof adminOrgIdTasksIndexRoute
+  '/console/connections': typeof adminConsoleConnectionsIndexRoute
+  '/settings/connections': typeof adminSettingsConnectionsIndexRoute
+  '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdIndexRoute
+  '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
+  '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
+  '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
+  '/settings/org/$orgId/labels': typeof adminSettingsOrgOrgIdLabelsIndexRoute
+  '/settings/org/$orgId/members': typeof adminSettingsOrgOrgIdMembersIndexRoute
+  '/settings/org/$orgId/teams': typeof adminSettingsOrgOrgIdTeamsIndexRoute
+  '/settings/org/$orgId/templates': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
+  '/settings/org/$orgId/views': typeof adminSettingsOrgOrgIdViewsIndexRoute
+  '/settings/org/$orgId/connections/$connectionId': typeof adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  '/settings/org/$orgId/teams/$teamId': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
+  '/settings/org/$orgId/views/$viewId': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/admin': typeof AdminRouteRouteWithChildren
+  '/(admin)': typeof adminRouteRouteWithChildren
   '/prosekit-test': typeof ProsekitTestRoute
-  '/admin/$orgId': typeof AdminOrgIdRouteRouteWithChildren
-  '/admin/mine': typeof AdminMineRouteRouteWithChildren
-  '/admin/settings': typeof AdminSettingsRouteRouteWithChildren
+  '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
+  '/(admin)/mine': typeof adminMineRouteRouteWithChildren
+  '/(admin)/settings': typeof adminSettingsRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
-  '/admin/': typeof AdminIndexRoute
+  '/(admin)/': typeof adminIndexRoute
   '/login/': typeof LoginIndexRoute
-  '/admin/$orgId/tasks': typeof AdminOrgIdTasksRouteRouteWithChildren
-  '/admin/settings/connections': typeof AdminSettingsConnectionsRouteRouteWithChildren
+  '/(admin)/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
+  '/(admin)/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/admin/$orgId/': typeof AdminOrgIdIndexRoute
-  '/admin/console/': typeof AdminConsoleIndexRoute
-  '/admin/mine/': typeof AdminMineIndexRoute
-  '/admin/settings/': typeof AdminSettingsIndexRoute
+  '/(admin)/$orgId/': typeof adminOrgIdIndexRoute
+  '/(admin)/console/': typeof adminConsoleIndexRoute
+  '/(admin)/mine/': typeof adminMineIndexRoute
+  '/(admin)/settings/': typeof adminSettingsIndexRoute
   '/invite/$orgId/': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
-  '/admin/$orgId/tasks/$taskShortId': typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren
-  '/admin/settings/org/$orgId': typeof AdminSettingsOrgOrgIdRouteRouteWithChildren
-  '/admin/$orgId/tasks/': typeof AdminOrgIdTasksIndexRoute
-  '/admin/console/connections/': typeof AdminConsoleConnectionsIndexRoute
-  '/admin/settings/connections/': typeof AdminSettingsConnectionsIndexRoute
-  '/admin/$orgId/tasks/$taskShortId/': typeof AdminOrgIdTasksTaskShortIdIndexRoute
-  '/admin/settings/org/$orgId/': typeof AdminSettingsOrgOrgIdIndexRoute
-  '/admin/settings/org/$orgId/teams/new': typeof AdminSettingsOrgOrgIdTeamsNewRoute
-  '/admin/settings/org/$orgId/categories/': typeof AdminSettingsOrgOrgIdCategoriesIndexRoute
-  '/admin/settings/org/$orgId/connections/': typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
-  '/admin/settings/org/$orgId/labels/': typeof AdminSettingsOrgOrgIdLabelsIndexRoute
-  '/admin/settings/org/$orgId/members/': typeof AdminSettingsOrgOrgIdMembersIndexRoute
-  '/admin/settings/org/$orgId/teams/': typeof AdminSettingsOrgOrgIdTeamsIndexRoute
-  '/admin/settings/org/$orgId/templates/': typeof AdminSettingsOrgOrgIdTemplatesIndexRoute
-  '/admin/settings/org/$orgId/views/': typeof AdminSettingsOrgOrgIdViewsIndexRoute
-  '/admin/settings/org/$orgId/connections/$connectionId/': typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
-  '/admin/settings/org/$orgId/teams/$teamId/': typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  '/admin/settings/org/$orgId/views/$viewId/': typeof AdminSettingsOrgOrgIdViewsViewIdIndexRoute
+  '/(admin)/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
+  '/(admin)/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
+  '/(admin)/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
+  '/(admin)/console/connections/': typeof adminConsoleConnectionsIndexRoute
+  '/(admin)/settings/connections/': typeof adminSettingsConnectionsIndexRoute
+  '/(admin)/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
+  '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
+  '/(admin)/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/(admin)/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
+  '/(admin)/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
+  '/(admin)/settings/org/$orgId/labels/': typeof adminSettingsOrgOrgIdLabelsIndexRoute
+  '/(admin)/settings/org/$orgId/members/': typeof adminSettingsOrgOrgIdMembersIndexRoute
+  '/(admin)/settings/org/$orgId/teams/': typeof adminSettingsOrgOrgIdTeamsIndexRoute
+  '/(admin)/settings/org/$orgId/templates/': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
+  '/(admin)/settings/org/$orgId/views/': typeof adminSettingsOrgOrgIdViewsIndexRoute
+  '/(admin)/settings/org/$orgId/connections/$connectionId/': typeof adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  '/(admin)/settings/org/$orgId/teams/$teamId/': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
+  '/(admin)/settings/org/$orgId/views/$viewId/': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/admin'
     | '/prosekit-test'
-    | '/admin/$orgId'
-    | '/admin/mine'
-    | '/admin/settings'
+    | '/$orgId'
+    | '/mine'
+    | '/settings'
     | '/api/image-preview'
-    | '/admin/'
+    | '/'
     | '/login'
-    | '/admin/$orgId/tasks'
-    | '/admin/settings/connections'
+    | '/$orgId/tasks'
+    | '/settings/connections'
     | '/api/auth/$'
-    | '/admin/$orgId/'
-    | '/admin/console'
-    | '/admin/mine/'
-    | '/admin/settings/'
+    | '/$orgId/'
+    | '/console'
+    | '/mine/'
+    | '/settings/'
     | '/invite/$orgId'
     | '/orgs/$orgSlug'
-    | '/admin/$orgId/tasks/$taskShortId'
-    | '/admin/settings/org/$orgId'
-    | '/admin/$orgId/tasks/'
-    | '/admin/console/connections'
-    | '/admin/settings/connections/'
-    | '/admin/$orgId/tasks/$taskShortId/'
-    | '/admin/settings/org/$orgId/'
-    | '/admin/settings/org/$orgId/teams/new'
-    | '/admin/settings/org/$orgId/categories'
-    | '/admin/settings/org/$orgId/connections'
-    | '/admin/settings/org/$orgId/labels'
-    | '/admin/settings/org/$orgId/members'
-    | '/admin/settings/org/$orgId/teams'
-    | '/admin/settings/org/$orgId/templates'
-    | '/admin/settings/org/$orgId/views'
-    | '/admin/settings/org/$orgId/connections/$connectionId'
-    | '/admin/settings/org/$orgId/teams/$teamId'
-    | '/admin/settings/org/$orgId/views/$viewId'
+    | '/$orgId/tasks/$taskShortId'
+    | '/settings/org/$orgId'
+    | '/$orgId/tasks/'
+    | '/console/connections'
+    | '/settings/connections/'
+    | '/$orgId/tasks/$taskShortId/'
+    | '/settings/org/$orgId/'
+    | '/settings/org/$orgId/teams/new'
+    | '/settings/org/$orgId/categories'
+    | '/settings/org/$orgId/connections'
+    | '/settings/org/$orgId/labels'
+    | '/settings/org/$orgId/members'
+    | '/settings/org/$orgId/teams'
+    | '/settings/org/$orgId/templates'
+    | '/settings/org/$orgId/views'
+    | '/settings/org/$orgId/connections/$connectionId'
+    | '/settings/org/$orgId/teams/$teamId'
+    | '/settings/org/$orgId/views/$viewId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/prosekit-test'
     | '/api/image-preview'
-    | '/admin'
+    | '/'
     | '/login'
     | '/api/auth/$'
-    | '/admin/$orgId'
-    | '/admin/console'
-    | '/admin/mine'
-    | '/admin/settings'
+    | '/$orgId'
+    | '/console'
+    | '/mine'
+    | '/settings'
     | '/invite/$orgId'
     | '/orgs/$orgSlug'
-    | '/admin/$orgId/tasks'
-    | '/admin/console/connections'
-    | '/admin/settings/connections'
-    | '/admin/$orgId/tasks/$taskShortId'
-    | '/admin/settings/org/$orgId'
-    | '/admin/settings/org/$orgId/teams/new'
-    | '/admin/settings/org/$orgId/categories'
-    | '/admin/settings/org/$orgId/connections'
-    | '/admin/settings/org/$orgId/labels'
-    | '/admin/settings/org/$orgId/members'
-    | '/admin/settings/org/$orgId/teams'
-    | '/admin/settings/org/$orgId/templates'
-    | '/admin/settings/org/$orgId/views'
-    | '/admin/settings/org/$orgId/connections/$connectionId'
-    | '/admin/settings/org/$orgId/teams/$teamId'
-    | '/admin/settings/org/$orgId/views/$viewId'
+    | '/$orgId/tasks'
+    | '/console/connections'
+    | '/settings/connections'
+    | '/$orgId/tasks/$taskShortId'
+    | '/settings/org/$orgId'
+    | '/settings/org/$orgId/teams/new'
+    | '/settings/org/$orgId/categories'
+    | '/settings/org/$orgId/connections'
+    | '/settings/org/$orgId/labels'
+    | '/settings/org/$orgId/members'
+    | '/settings/org/$orgId/teams'
+    | '/settings/org/$orgId/templates'
+    | '/settings/org/$orgId/views'
+    | '/settings/org/$orgId/connections/$connectionId'
+    | '/settings/org/$orgId/teams/$teamId'
+    | '/settings/org/$orgId/views/$viewId'
   id:
     | '__root__'
-    | '/'
-    | '/admin'
+    | '/(admin)'
     | '/prosekit-test'
-    | '/admin/$orgId'
-    | '/admin/mine'
-    | '/admin/settings'
+    | '/(admin)/$orgId'
+    | '/(admin)/mine'
+    | '/(admin)/settings'
     | '/api/image-preview'
-    | '/admin/'
+    | '/(admin)/'
     | '/login/'
-    | '/admin/$orgId/tasks'
-    | '/admin/settings/connections'
+    | '/(admin)/$orgId/tasks'
+    | '/(admin)/settings/connections'
     | '/api/auth/$'
-    | '/admin/$orgId/'
-    | '/admin/console/'
-    | '/admin/mine/'
-    | '/admin/settings/'
+    | '/(admin)/$orgId/'
+    | '/(admin)/console/'
+    | '/(admin)/mine/'
+    | '/(admin)/settings/'
     | '/invite/$orgId/'
     | '/orgs/$orgSlug/'
-    | '/admin/$orgId/tasks/$taskShortId'
-    | '/admin/settings/org/$orgId'
-    | '/admin/$orgId/tasks/'
-    | '/admin/console/connections/'
-    | '/admin/settings/connections/'
-    | '/admin/$orgId/tasks/$taskShortId/'
-    | '/admin/settings/org/$orgId/'
-    | '/admin/settings/org/$orgId/teams/new'
-    | '/admin/settings/org/$orgId/categories/'
-    | '/admin/settings/org/$orgId/connections/'
-    | '/admin/settings/org/$orgId/labels/'
-    | '/admin/settings/org/$orgId/members/'
-    | '/admin/settings/org/$orgId/teams/'
-    | '/admin/settings/org/$orgId/templates/'
-    | '/admin/settings/org/$orgId/views/'
-    | '/admin/settings/org/$orgId/connections/$connectionId/'
-    | '/admin/settings/org/$orgId/teams/$teamId/'
-    | '/admin/settings/org/$orgId/views/$viewId/'
+    | '/(admin)/$orgId/tasks/$taskShortId'
+    | '/(admin)/settings/org/$orgId'
+    | '/(admin)/$orgId/tasks/'
+    | '/(admin)/console/connections/'
+    | '/(admin)/settings/connections/'
+    | '/(admin)/$orgId/tasks/$taskShortId/'
+    | '/(admin)/settings/org/$orgId/'
+    | '/(admin)/settings/org/$orgId/teams/new'
+    | '/(admin)/settings/org/$orgId/categories/'
+    | '/(admin)/settings/org/$orgId/connections/'
+    | '/(admin)/settings/org/$orgId/labels/'
+    | '/(admin)/settings/org/$orgId/members/'
+    | '/(admin)/settings/org/$orgId/teams/'
+    | '/(admin)/settings/org/$orgId/templates/'
+    | '/(admin)/settings/org/$orgId/views/'
+    | '/(admin)/settings/org/$orgId/connections/$connectionId/'
+    | '/(admin)/settings/org/$orgId/teams/$teamId/'
+    | '/(admin)/settings/org/$orgId/views/$viewId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  adminRouteRoute: typeof adminRouteRouteWithChildren
   ProsekitTestRoute: typeof ProsekitTestRoute
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
   LoginIndexRoute: typeof LoginIndexRoute
@@ -481,18 +465,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProsekitTestRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/(admin)': {
+      id: '/(admin)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof adminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login/': {
@@ -502,12 +479,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
+    '/(admin)/': {
+      id: '/(admin)/'
       path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
+      fullPath: '/'
+      preLoaderRoute: typeof adminIndexRouteImport
+      parentRoute: typeof adminRouteRoute
     }
     '/api/image-preview': {
       id: '/api/image-preview'
@@ -516,26 +493,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImagePreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/settings': {
-      id: '/admin/settings'
+    '/(admin)/settings': {
+      id: '/(admin)/settings'
       path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteRouteImport
-      parentRoute: typeof AdminRouteRoute
+      fullPath: '/settings'
+      preLoaderRoute: typeof adminSettingsRouteRouteImport
+      parentRoute: typeof adminRouteRoute
     }
-    '/admin/mine': {
-      id: '/admin/mine'
+    '/(admin)/mine': {
+      id: '/(admin)/mine'
       path: '/mine'
-      fullPath: '/admin/mine'
-      preLoaderRoute: typeof AdminMineRouteRouteImport
-      parentRoute: typeof AdminRouteRoute
+      fullPath: '/mine'
+      preLoaderRoute: typeof adminMineRouteRouteImport
+      parentRoute: typeof adminRouteRoute
     }
-    '/admin/$orgId': {
-      id: '/admin/$orgId'
+    '/(admin)/$orgId': {
+      id: '/(admin)/$orgId'
       path: '/$orgId'
-      fullPath: '/admin/$orgId'
-      preLoaderRoute: typeof AdminOrgIdRouteRouteImport
-      parentRoute: typeof AdminRouteRoute
+      fullPath: '/$orgId'
+      preLoaderRoute: typeof adminOrgIdRouteRouteImport
+      parentRoute: typeof adminRouteRoute
     }
     '/orgs/$orgSlug/': {
       id: '/orgs/$orgSlug/'
@@ -551,33 +528,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteOrgIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/settings/': {
-      id: '/admin/settings/'
+    '/(admin)/settings/': {
+      id: '/(admin)/settings/'
       path: '/'
-      fullPath: '/admin/settings/'
-      preLoaderRoute: typeof AdminSettingsIndexRouteImport
-      parentRoute: typeof AdminSettingsRouteRoute
+      fullPath: '/settings/'
+      preLoaderRoute: typeof adminSettingsIndexRouteImport
+      parentRoute: typeof adminSettingsRouteRoute
     }
-    '/admin/mine/': {
-      id: '/admin/mine/'
+    '/(admin)/mine/': {
+      id: '/(admin)/mine/'
       path: '/'
-      fullPath: '/admin/mine/'
-      preLoaderRoute: typeof AdminMineIndexRouteImport
-      parentRoute: typeof AdminMineRouteRoute
+      fullPath: '/mine/'
+      preLoaderRoute: typeof adminMineIndexRouteImport
+      parentRoute: typeof adminMineRouteRoute
     }
-    '/admin/console/': {
-      id: '/admin/console/'
+    '/(admin)/console/': {
+      id: '/(admin)/console/'
       path: '/console'
-      fullPath: '/admin/console'
-      preLoaderRoute: typeof AdminConsoleIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
+      fullPath: '/console'
+      preLoaderRoute: typeof adminConsoleIndexRouteImport
+      parentRoute: typeof adminRouteRoute
     }
-    '/admin/$orgId/': {
-      id: '/admin/$orgId/'
+    '/(admin)/$orgId/': {
+      id: '/(admin)/$orgId/'
       path: '/'
-      fullPath: '/admin/$orgId/'
-      preLoaderRoute: typeof AdminOrgIdIndexRouteImport
-      parentRoute: typeof AdminOrgIdRouteRoute
+      fullPath: '/$orgId/'
+      preLoaderRoute: typeof adminOrgIdIndexRouteImport
+      parentRoute: typeof adminOrgIdRouteRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -586,302 +563,301 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/settings/connections': {
-      id: '/admin/settings/connections'
+    '/(admin)/settings/connections': {
+      id: '/(admin)/settings/connections'
       path: '/connections'
-      fullPath: '/admin/settings/connections'
-      preLoaderRoute: typeof AdminSettingsConnectionsRouteRouteImport
-      parentRoute: typeof AdminSettingsRouteRoute
+      fullPath: '/settings/connections'
+      preLoaderRoute: typeof adminSettingsConnectionsRouteRouteImport
+      parentRoute: typeof adminSettingsRouteRoute
     }
-    '/admin/$orgId/tasks': {
-      id: '/admin/$orgId/tasks'
+    '/(admin)/$orgId/tasks': {
+      id: '/(admin)/$orgId/tasks'
       path: '/tasks'
-      fullPath: '/admin/$orgId/tasks'
-      preLoaderRoute: typeof AdminOrgIdTasksRouteRouteImport
-      parentRoute: typeof AdminOrgIdRouteRoute
+      fullPath: '/$orgId/tasks'
+      preLoaderRoute: typeof adminOrgIdTasksRouteRouteImport
+      parentRoute: typeof adminOrgIdRouteRoute
     }
-    '/admin/settings/connections/': {
-      id: '/admin/settings/connections/'
+    '/(admin)/settings/connections/': {
+      id: '/(admin)/settings/connections/'
       path: '/'
-      fullPath: '/admin/settings/connections/'
-      preLoaderRoute: typeof AdminSettingsConnectionsIndexRouteImport
-      parentRoute: typeof AdminSettingsConnectionsRouteRoute
+      fullPath: '/settings/connections/'
+      preLoaderRoute: typeof adminSettingsConnectionsIndexRouteImport
+      parentRoute: typeof adminSettingsConnectionsRouteRoute
     }
-    '/admin/console/connections/': {
-      id: '/admin/console/connections/'
+    '/(admin)/console/connections/': {
+      id: '/(admin)/console/connections/'
       path: '/console/connections'
-      fullPath: '/admin/console/connections'
-      preLoaderRoute: typeof AdminConsoleConnectionsIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
+      fullPath: '/console/connections'
+      preLoaderRoute: typeof adminConsoleConnectionsIndexRouteImport
+      parentRoute: typeof adminRouteRoute
     }
-    '/admin/$orgId/tasks/': {
-      id: '/admin/$orgId/tasks/'
+    '/(admin)/$orgId/tasks/': {
+      id: '/(admin)/$orgId/tasks/'
       path: '/'
-      fullPath: '/admin/$orgId/tasks/'
-      preLoaderRoute: typeof AdminOrgIdTasksIndexRouteImport
-      parentRoute: typeof AdminOrgIdTasksRouteRoute
+      fullPath: '/$orgId/tasks/'
+      preLoaderRoute: typeof adminOrgIdTasksIndexRouteImport
+      parentRoute: typeof adminOrgIdTasksRouteRoute
     }
-    '/admin/settings/org/$orgId': {
-      id: '/admin/settings/org/$orgId'
+    '/(admin)/settings/org/$orgId': {
+      id: '/(admin)/settings/org/$orgId'
       path: '/org/$orgId'
-      fullPath: '/admin/settings/org/$orgId'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdRouteRouteImport
-      parentRoute: typeof AdminSettingsRouteRoute
+      fullPath: '/settings/org/$orgId'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdRouteRouteImport
+      parentRoute: typeof adminSettingsRouteRoute
     }
-    '/admin/$orgId/tasks/$taskShortId': {
-      id: '/admin/$orgId/tasks/$taskShortId'
+    '/(admin)/$orgId/tasks/$taskShortId': {
+      id: '/(admin)/$orgId/tasks/$taskShortId'
       path: '/$taskShortId'
-      fullPath: '/admin/$orgId/tasks/$taskShortId'
-      preLoaderRoute: typeof AdminOrgIdTasksTaskShortIdRouteRouteImport
-      parentRoute: typeof AdminOrgIdTasksRouteRoute
+      fullPath: '/$orgId/tasks/$taskShortId'
+      preLoaderRoute: typeof adminOrgIdTasksTaskShortIdRouteRouteImport
+      parentRoute: typeof adminOrgIdTasksRouteRoute
     }
-    '/admin/settings/org/$orgId/': {
-      id: '/admin/settings/org/$orgId/'
+    '/(admin)/settings/org/$orgId/': {
+      id: '/(admin)/settings/org/$orgId/'
       path: '/'
-      fullPath: '/admin/settings/org/$orgId/'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/$orgId/tasks/$taskShortId/': {
-      id: '/admin/$orgId/tasks/$taskShortId/'
+    '/(admin)/$orgId/tasks/$taskShortId/': {
+      id: '/(admin)/$orgId/tasks/$taskShortId/'
       path: '/'
-      fullPath: '/admin/$orgId/tasks/$taskShortId/'
-      preLoaderRoute: typeof AdminOrgIdTasksTaskShortIdIndexRouteImport
-      parentRoute: typeof AdminOrgIdTasksTaskShortIdRouteRoute
+      fullPath: '/$orgId/tasks/$taskShortId/'
+      preLoaderRoute: typeof adminOrgIdTasksTaskShortIdIndexRouteImport
+      parentRoute: typeof adminOrgIdTasksTaskShortIdRouteRoute
     }
-    '/admin/settings/org/$orgId/views/': {
-      id: '/admin/settings/org/$orgId/views/'
+    '/(admin)/settings/org/$orgId/views/': {
+      id: '/(admin)/settings/org/$orgId/views/'
       path: '/views'
-      fullPath: '/admin/settings/org/$orgId/views'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdViewsIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/views'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdViewsIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/templates/': {
-      id: '/admin/settings/org/$orgId/templates/'
+    '/(admin)/settings/org/$orgId/templates/': {
+      id: '/(admin)/settings/org/$orgId/templates/'
       path: '/templates'
-      fullPath: '/admin/settings/org/$orgId/templates'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdTemplatesIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/templates'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdTemplatesIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/teams/': {
-      id: '/admin/settings/org/$orgId/teams/'
+    '/(admin)/settings/org/$orgId/teams/': {
+      id: '/(admin)/settings/org/$orgId/teams/'
       path: '/teams'
-      fullPath: '/admin/settings/org/$orgId/teams'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdTeamsIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/teams'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/members/': {
-      id: '/admin/settings/org/$orgId/members/'
+    '/(admin)/settings/org/$orgId/members/': {
+      id: '/(admin)/settings/org/$orgId/members/'
       path: '/members'
-      fullPath: '/admin/settings/org/$orgId/members'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdMembersIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/members'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdMembersIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/labels/': {
-      id: '/admin/settings/org/$orgId/labels/'
+    '/(admin)/settings/org/$orgId/labels/': {
+      id: '/(admin)/settings/org/$orgId/labels/'
       path: '/labels'
-      fullPath: '/admin/settings/org/$orgId/labels'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdLabelsIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/labels'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdLabelsIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/connections/': {
-      id: '/admin/settings/org/$orgId/connections/'
+    '/(admin)/settings/org/$orgId/connections/': {
+      id: '/(admin)/settings/org/$orgId/connections/'
       path: '/connections'
-      fullPath: '/admin/settings/org/$orgId/connections'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdConnectionsIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/connections'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/categories/': {
-      id: '/admin/settings/org/$orgId/categories/'
+    '/(admin)/settings/org/$orgId/categories/': {
+      id: '/(admin)/settings/org/$orgId/categories/'
       path: '/categories'
-      fullPath: '/admin/settings/org/$orgId/categories'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdCategoriesIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/categories'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/teams/new': {
-      id: '/admin/settings/org/$orgId/teams/new'
+    '/(admin)/settings/org/$orgId/teams/new': {
+      id: '/(admin)/settings/org/$orgId/teams/new'
       path: '/teams/new'
-      fullPath: '/admin/settings/org/$orgId/teams/new'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdTeamsNewRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/teams/new'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsNewRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/views/$viewId/': {
-      id: '/admin/settings/org/$orgId/views/$viewId/'
+    '/(admin)/settings/org/$orgId/views/$viewId/': {
+      id: '/(admin)/settings/org/$orgId/views/$viewId/'
       path: '/views/$viewId'
-      fullPath: '/admin/settings/org/$orgId/views/$viewId'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdViewsViewIdIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/views/$viewId'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdViewsViewIdIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/teams/$teamId/': {
-      id: '/admin/settings/org/$orgId/teams/$teamId/'
+    '/(admin)/settings/org/$orgId/teams/$teamId/': {
+      id: '/(admin)/settings/org/$orgId/teams/$teamId/'
       path: '/teams/$teamId'
-      fullPath: '/admin/settings/org/$orgId/teams/$teamId'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/teams/$teamId'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/admin/settings/org/$orgId/connections/$connectionId/': {
-      id: '/admin/settings/org/$orgId/connections/$connectionId/'
+    '/(admin)/settings/org/$orgId/connections/$connectionId/': {
+      id: '/(admin)/settings/org/$orgId/connections/$connectionId/'
       path: '/connections/$connectionId'
-      fullPath: '/admin/settings/org/$orgId/connections/$connectionId'
-      preLoaderRoute: typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport
-      parentRoute: typeof AdminSettingsOrgOrgIdRouteRoute
+      fullPath: '/settings/org/$orgId/connections/$connectionId'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
   }
 }
 
-interface AdminOrgIdTasksTaskShortIdRouteRouteChildren {
-  AdminOrgIdTasksTaskShortIdIndexRoute: typeof AdminOrgIdTasksTaskShortIdIndexRoute
+interface adminOrgIdTasksTaskShortIdRouteRouteChildren {
+  adminOrgIdTasksTaskShortIdIndexRoute: typeof adminOrgIdTasksTaskShortIdIndexRoute
 }
 
-const AdminOrgIdTasksTaskShortIdRouteRouteChildren: AdminOrgIdTasksTaskShortIdRouteRouteChildren =
+const adminOrgIdTasksTaskShortIdRouteRouteChildren: adminOrgIdTasksTaskShortIdRouteRouteChildren =
   {
-    AdminOrgIdTasksTaskShortIdIndexRoute: AdminOrgIdTasksTaskShortIdIndexRoute,
+    adminOrgIdTasksTaskShortIdIndexRoute: adminOrgIdTasksTaskShortIdIndexRoute,
   }
 
-const AdminOrgIdTasksTaskShortIdRouteRouteWithChildren =
-  AdminOrgIdTasksTaskShortIdRouteRoute._addFileChildren(
-    AdminOrgIdTasksTaskShortIdRouteRouteChildren,
+const adminOrgIdTasksTaskShortIdRouteRouteWithChildren =
+  adminOrgIdTasksTaskShortIdRouteRoute._addFileChildren(
+    adminOrgIdTasksTaskShortIdRouteRouteChildren,
   )
 
-interface AdminOrgIdTasksRouteRouteChildren {
-  AdminOrgIdTasksTaskShortIdRouteRoute: typeof AdminOrgIdTasksTaskShortIdRouteRouteWithChildren
-  AdminOrgIdTasksIndexRoute: typeof AdminOrgIdTasksIndexRoute
+interface adminOrgIdTasksRouteRouteChildren {
+  adminOrgIdTasksTaskShortIdRouteRoute: typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
+  adminOrgIdTasksIndexRoute: typeof adminOrgIdTasksIndexRoute
 }
 
-const AdminOrgIdTasksRouteRouteChildren: AdminOrgIdTasksRouteRouteChildren = {
-  AdminOrgIdTasksTaskShortIdRouteRoute:
-    AdminOrgIdTasksTaskShortIdRouteRouteWithChildren,
-  AdminOrgIdTasksIndexRoute: AdminOrgIdTasksIndexRoute,
+const adminOrgIdTasksRouteRouteChildren: adminOrgIdTasksRouteRouteChildren = {
+  adminOrgIdTasksTaskShortIdRouteRoute:
+    adminOrgIdTasksTaskShortIdRouteRouteWithChildren,
+  adminOrgIdTasksIndexRoute: adminOrgIdTasksIndexRoute,
 }
 
-const AdminOrgIdTasksRouteRouteWithChildren =
-  AdminOrgIdTasksRouteRoute._addFileChildren(AdminOrgIdTasksRouteRouteChildren)
+const adminOrgIdTasksRouteRouteWithChildren =
+  adminOrgIdTasksRouteRoute._addFileChildren(adminOrgIdTasksRouteRouteChildren)
 
-interface AdminOrgIdRouteRouteChildren {
-  AdminOrgIdTasksRouteRoute: typeof AdminOrgIdTasksRouteRouteWithChildren
-  AdminOrgIdIndexRoute: typeof AdminOrgIdIndexRoute
+interface adminOrgIdRouteRouteChildren {
+  adminOrgIdTasksRouteRoute: typeof adminOrgIdTasksRouteRouteWithChildren
+  adminOrgIdIndexRoute: typeof adminOrgIdIndexRoute
 }
 
-const AdminOrgIdRouteRouteChildren: AdminOrgIdRouteRouteChildren = {
-  AdminOrgIdTasksRouteRoute: AdminOrgIdTasksRouteRouteWithChildren,
-  AdminOrgIdIndexRoute: AdminOrgIdIndexRoute,
+const adminOrgIdRouteRouteChildren: adminOrgIdRouteRouteChildren = {
+  adminOrgIdTasksRouteRoute: adminOrgIdTasksRouteRouteWithChildren,
+  adminOrgIdIndexRoute: adminOrgIdIndexRoute,
 }
 
-const AdminOrgIdRouteRouteWithChildren = AdminOrgIdRouteRoute._addFileChildren(
-  AdminOrgIdRouteRouteChildren,
+const adminOrgIdRouteRouteWithChildren = adminOrgIdRouteRoute._addFileChildren(
+  adminOrgIdRouteRouteChildren,
 )
 
-interface AdminMineRouteRouteChildren {
-  AdminMineIndexRoute: typeof AdminMineIndexRoute
+interface adminMineRouteRouteChildren {
+  adminMineIndexRoute: typeof adminMineIndexRoute
 }
 
-const AdminMineRouteRouteChildren: AdminMineRouteRouteChildren = {
-  AdminMineIndexRoute: AdminMineIndexRoute,
+const adminMineRouteRouteChildren: adminMineRouteRouteChildren = {
+  adminMineIndexRoute: adminMineIndexRoute,
 }
 
-const AdminMineRouteRouteWithChildren = AdminMineRouteRoute._addFileChildren(
-  AdminMineRouteRouteChildren,
+const adminMineRouteRouteWithChildren = adminMineRouteRoute._addFileChildren(
+  adminMineRouteRouteChildren,
 )
 
-interface AdminSettingsConnectionsRouteRouteChildren {
-  AdminSettingsConnectionsIndexRoute: typeof AdminSettingsConnectionsIndexRoute
+interface adminSettingsConnectionsRouteRouteChildren {
+  adminSettingsConnectionsIndexRoute: typeof adminSettingsConnectionsIndexRoute
 }
 
-const AdminSettingsConnectionsRouteRouteChildren: AdminSettingsConnectionsRouteRouteChildren =
+const adminSettingsConnectionsRouteRouteChildren: adminSettingsConnectionsRouteRouteChildren =
   {
-    AdminSettingsConnectionsIndexRoute: AdminSettingsConnectionsIndexRoute,
+    adminSettingsConnectionsIndexRoute: adminSettingsConnectionsIndexRoute,
   }
 
-const AdminSettingsConnectionsRouteRouteWithChildren =
-  AdminSettingsConnectionsRouteRoute._addFileChildren(
-    AdminSettingsConnectionsRouteRouteChildren,
+const adminSettingsConnectionsRouteRouteWithChildren =
+  adminSettingsConnectionsRouteRoute._addFileChildren(
+    adminSettingsConnectionsRouteRouteChildren,
   )
 
-interface AdminSettingsOrgOrgIdRouteRouteChildren {
-  AdminSettingsOrgOrgIdIndexRoute: typeof AdminSettingsOrgOrgIdIndexRoute
-  AdminSettingsOrgOrgIdTeamsNewRoute: typeof AdminSettingsOrgOrgIdTeamsNewRoute
-  AdminSettingsOrgOrgIdCategoriesIndexRoute: typeof AdminSettingsOrgOrgIdCategoriesIndexRoute
-  AdminSettingsOrgOrgIdConnectionsIndexRoute: typeof AdminSettingsOrgOrgIdConnectionsIndexRoute
-  AdminSettingsOrgOrgIdLabelsIndexRoute: typeof AdminSettingsOrgOrgIdLabelsIndexRoute
-  AdminSettingsOrgOrgIdMembersIndexRoute: typeof AdminSettingsOrgOrgIdMembersIndexRoute
-  AdminSettingsOrgOrgIdTeamsIndexRoute: typeof AdminSettingsOrgOrgIdTeamsIndexRoute
-  AdminSettingsOrgOrgIdTemplatesIndexRoute: typeof AdminSettingsOrgOrgIdTemplatesIndexRoute
-  AdminSettingsOrgOrgIdViewsIndexRoute: typeof AdminSettingsOrgOrgIdViewsIndexRoute
-  AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute: typeof AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
-  AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute: typeof AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  AdminSettingsOrgOrgIdViewsViewIdIndexRoute: typeof AdminSettingsOrgOrgIdViewsViewIdIndexRoute
+interface adminSettingsOrgOrgIdRouteRouteChildren {
+  adminSettingsOrgOrgIdIndexRoute: typeof adminSettingsOrgOrgIdIndexRoute
+  adminSettingsOrgOrgIdTeamsNewRoute: typeof adminSettingsOrgOrgIdTeamsNewRoute
+  adminSettingsOrgOrgIdCategoriesIndexRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRoute
+  adminSettingsOrgOrgIdConnectionsIndexRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRoute
+  adminSettingsOrgOrgIdLabelsIndexRoute: typeof adminSettingsOrgOrgIdLabelsIndexRoute
+  adminSettingsOrgOrgIdMembersIndexRoute: typeof adminSettingsOrgOrgIdMembersIndexRoute
+  adminSettingsOrgOrgIdTeamsIndexRoute: typeof adminSettingsOrgOrgIdTeamsIndexRoute
+  adminSettingsOrgOrgIdTemplatesIndexRoute: typeof adminSettingsOrgOrgIdTemplatesIndexRoute
+  adminSettingsOrgOrgIdViewsIndexRoute: typeof adminSettingsOrgOrgIdViewsIndexRoute
+  adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute: typeof adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  adminSettingsOrgOrgIdTeamsTeamIdIndexRoute: typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
+  adminSettingsOrgOrgIdViewsViewIdIndexRoute: typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 
-const AdminSettingsOrgOrgIdRouteRouteChildren: AdminSettingsOrgOrgIdRouteRouteChildren =
+const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteChildren =
   {
-    AdminSettingsOrgOrgIdIndexRoute: AdminSettingsOrgOrgIdIndexRoute,
-    AdminSettingsOrgOrgIdTeamsNewRoute: AdminSettingsOrgOrgIdTeamsNewRoute,
-    AdminSettingsOrgOrgIdCategoriesIndexRoute:
-      AdminSettingsOrgOrgIdCategoriesIndexRoute,
-    AdminSettingsOrgOrgIdConnectionsIndexRoute:
-      AdminSettingsOrgOrgIdConnectionsIndexRoute,
-    AdminSettingsOrgOrgIdLabelsIndexRoute:
-      AdminSettingsOrgOrgIdLabelsIndexRoute,
-    AdminSettingsOrgOrgIdMembersIndexRoute:
-      AdminSettingsOrgOrgIdMembersIndexRoute,
-    AdminSettingsOrgOrgIdTeamsIndexRoute: AdminSettingsOrgOrgIdTeamsIndexRoute,
-    AdminSettingsOrgOrgIdTemplatesIndexRoute:
-      AdminSettingsOrgOrgIdTemplatesIndexRoute,
-    AdminSettingsOrgOrgIdViewsIndexRoute: AdminSettingsOrgOrgIdViewsIndexRoute,
-    AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute:
-      AdminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute,
-    AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute:
-      AdminSettingsOrgOrgIdTeamsTeamIdIndexRoute,
-    AdminSettingsOrgOrgIdViewsViewIdIndexRoute:
-      AdminSettingsOrgOrgIdViewsViewIdIndexRoute,
+    adminSettingsOrgOrgIdIndexRoute: adminSettingsOrgOrgIdIndexRoute,
+    adminSettingsOrgOrgIdTeamsNewRoute: adminSettingsOrgOrgIdTeamsNewRoute,
+    adminSettingsOrgOrgIdCategoriesIndexRoute:
+      adminSettingsOrgOrgIdCategoriesIndexRoute,
+    adminSettingsOrgOrgIdConnectionsIndexRoute:
+      adminSettingsOrgOrgIdConnectionsIndexRoute,
+    adminSettingsOrgOrgIdLabelsIndexRoute:
+      adminSettingsOrgOrgIdLabelsIndexRoute,
+    adminSettingsOrgOrgIdMembersIndexRoute:
+      adminSettingsOrgOrgIdMembersIndexRoute,
+    adminSettingsOrgOrgIdTeamsIndexRoute: adminSettingsOrgOrgIdTeamsIndexRoute,
+    adminSettingsOrgOrgIdTemplatesIndexRoute:
+      adminSettingsOrgOrgIdTemplatesIndexRoute,
+    adminSettingsOrgOrgIdViewsIndexRoute: adminSettingsOrgOrgIdViewsIndexRoute,
+    adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute:
+      adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute,
+    adminSettingsOrgOrgIdTeamsTeamIdIndexRoute:
+      adminSettingsOrgOrgIdTeamsTeamIdIndexRoute,
+    adminSettingsOrgOrgIdViewsViewIdIndexRoute:
+      adminSettingsOrgOrgIdViewsViewIdIndexRoute,
   }
 
-const AdminSettingsOrgOrgIdRouteRouteWithChildren =
-  AdminSettingsOrgOrgIdRouteRoute._addFileChildren(
-    AdminSettingsOrgOrgIdRouteRouteChildren,
+const adminSettingsOrgOrgIdRouteRouteWithChildren =
+  adminSettingsOrgOrgIdRouteRoute._addFileChildren(
+    adminSettingsOrgOrgIdRouteRouteChildren,
   )
 
-interface AdminSettingsRouteRouteChildren {
-  AdminSettingsConnectionsRouteRoute: typeof AdminSettingsConnectionsRouteRouteWithChildren
-  AdminSettingsIndexRoute: typeof AdminSettingsIndexRoute
-  AdminSettingsOrgOrgIdRouteRoute: typeof AdminSettingsOrgOrgIdRouteRouteWithChildren
+interface adminSettingsRouteRouteChildren {
+  adminSettingsConnectionsRouteRoute: typeof adminSettingsConnectionsRouteRouteWithChildren
+  adminSettingsIndexRoute: typeof adminSettingsIndexRoute
+  adminSettingsOrgOrgIdRouteRoute: typeof adminSettingsOrgOrgIdRouteRouteWithChildren
 }
 
-const AdminSettingsRouteRouteChildren: AdminSettingsRouteRouteChildren = {
-  AdminSettingsConnectionsRouteRoute:
-    AdminSettingsConnectionsRouteRouteWithChildren,
-  AdminSettingsIndexRoute: AdminSettingsIndexRoute,
-  AdminSettingsOrgOrgIdRouteRoute: AdminSettingsOrgOrgIdRouteRouteWithChildren,
+const adminSettingsRouteRouteChildren: adminSettingsRouteRouteChildren = {
+  adminSettingsConnectionsRouteRoute:
+    adminSettingsConnectionsRouteRouteWithChildren,
+  adminSettingsIndexRoute: adminSettingsIndexRoute,
+  adminSettingsOrgOrgIdRouteRoute: adminSettingsOrgOrgIdRouteRouteWithChildren,
 }
 
-const AdminSettingsRouteRouteWithChildren =
-  AdminSettingsRouteRoute._addFileChildren(AdminSettingsRouteRouteChildren)
+const adminSettingsRouteRouteWithChildren =
+  adminSettingsRouteRoute._addFileChildren(adminSettingsRouteRouteChildren)
 
-interface AdminRouteRouteChildren {
-  AdminOrgIdRouteRoute: typeof AdminOrgIdRouteRouteWithChildren
-  AdminMineRouteRoute: typeof AdminMineRouteRouteWithChildren
-  AdminSettingsRouteRoute: typeof AdminSettingsRouteRouteWithChildren
-  AdminIndexRoute: typeof AdminIndexRoute
-  AdminConsoleIndexRoute: typeof AdminConsoleIndexRoute
-  AdminConsoleConnectionsIndexRoute: typeof AdminConsoleConnectionsIndexRoute
+interface adminRouteRouteChildren {
+  adminOrgIdRouteRoute: typeof adminOrgIdRouteRouteWithChildren
+  adminMineRouteRoute: typeof adminMineRouteRouteWithChildren
+  adminSettingsRouteRoute: typeof adminSettingsRouteRouteWithChildren
+  adminIndexRoute: typeof adminIndexRoute
+  adminConsoleIndexRoute: typeof adminConsoleIndexRoute
+  adminConsoleConnectionsIndexRoute: typeof adminConsoleConnectionsIndexRoute
 }
 
-const AdminRouteRouteChildren: AdminRouteRouteChildren = {
-  AdminOrgIdRouteRoute: AdminOrgIdRouteRouteWithChildren,
-  AdminMineRouteRoute: AdminMineRouteRouteWithChildren,
-  AdminSettingsRouteRoute: AdminSettingsRouteRouteWithChildren,
-  AdminIndexRoute: AdminIndexRoute,
-  AdminConsoleIndexRoute: AdminConsoleIndexRoute,
-  AdminConsoleConnectionsIndexRoute: AdminConsoleConnectionsIndexRoute,
+const adminRouteRouteChildren: adminRouteRouteChildren = {
+  adminOrgIdRouteRoute: adminOrgIdRouteRouteWithChildren,
+  adminMineRouteRoute: adminMineRouteRouteWithChildren,
+  adminSettingsRouteRoute: adminSettingsRouteRouteWithChildren,
+  adminIndexRoute: adminIndexRoute,
+  adminConsoleIndexRoute: adminConsoleIndexRoute,
+  adminConsoleConnectionsIndexRoute: adminConsoleConnectionsIndexRoute,
 }
 
-const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
-  AdminRouteRouteChildren,
+const adminRouteRouteWithChildren = adminRouteRoute._addFileChildren(
+  adminRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AdminRouteRoute: AdminRouteRouteWithChildren,
+  adminRouteRoute: adminRouteRouteWithChildren,
   ProsekitTestRoute: ProsekitTestRoute,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
   LoginIndexRoute: LoginIndexRoute,

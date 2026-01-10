@@ -1,0 +1,20 @@
+# Traefik Static Configuration
+# This file configures the core Traefik behavior
+
+api:
+  dashboard: false
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: false
+
+log:
+  level: INFO
+
+accessLog: {}

@@ -187,7 +187,7 @@ export default function SettingsOrganizationViewDetailPage({
 			);
 			if (result.success) {
 				headlessToast.success({ title: "View deleted successfully" });
-				window.location.href = `/admin/settings/org/${organization.id}/views`;
+				window.location.href = `/settings/org/${organization.id}/views`;
 			} else {
 				headlessToast.error({ title: result.error || "Failed to delete view" });
 			}
@@ -410,7 +410,7 @@ export default function SettingsOrganizationViewDetailPage({
 					<Button
 						onClick={handleSave}
 						variant={"primary"}
-						// disabled={name === view.name && filterParams === view.filterParams}
+					// disabled={name === view.name && filterParams === view.filterParams}
 					>
 						<IconDeviceFloppy className="" />
 						Save Changes

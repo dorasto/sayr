@@ -180,7 +180,7 @@ export function PrimarySidebar() {
           </SidebarMenuItem>
           {account.role === "admin" && (
             <SidebarMenuItem className="min-h-auto">
-              <Link to={"/admin/console"} className="w-full">
+              <Link to={"/console"} className="w-full">
                 <SidebarMenuButton
                   size="small"
                   icon={<IconShield />}
@@ -192,7 +192,7 @@ export function PrimarySidebar() {
             </SidebarMenuItem>
           )}
           <SidebarMenuItem className="min-h-auto">
-            <Link to={"/admin/settings"} className="w-full">
+            <Link to={"/settings"} className="w-full">
               <SidebarMenuButton
                 size="small"
                 icon={<IconSettings />}

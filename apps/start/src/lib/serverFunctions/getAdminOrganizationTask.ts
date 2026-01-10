@@ -9,12 +9,12 @@ export const getAdminOrganizationTask = createServerFn({ method: "GET" })
 		try {
 			if (!orgId) {
 				console.log("🚀 ~ orgId:", orgId);
-				throw redirect({ to: "/admin" });
+				throw redirect({ to: "/" });
 			}
 			const organization = await getOrganization(orgId, account.id);
 			if (!organization) {
 				console.log("🚀 ~ organization:", organization);
-				throw redirect({ to: "/admin" });
+				throw redirect({ to: "/" });
 			}
 			const task = await getTaskByShortId(organization.id, taskShortId);
 			if (!task) {
@@ -29,6 +29,6 @@ export const getAdminOrganizationTask = createServerFn({ method: "GET" })
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;
 			}
-			throw redirect({ to: "/admin" });
+			throw redirect({ to: "/" });
 		}
 	});

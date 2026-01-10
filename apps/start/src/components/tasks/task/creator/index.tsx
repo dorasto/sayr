@@ -259,7 +259,7 @@ export default function CreateIssueDialog({
       setAssignees([]);
       setTasks([...tasks, data.data]);
       navigate({
-        to: "/admin/$orgId/tasks/$taskShortId",
+        to: "/$orgId/tasks/$taskShortId",
         params: {
           orgId: organization.id,
           taskShortId: data.data.shortId?.toString() || "0",
@@ -367,7 +367,7 @@ export default function CreateIssueDialog({
                         <Label>
                           No templates found. Create a new template{" "}
                           <Link
-                            to="/admin/settings/org/$orgId/templates"
+                            to="/settings/org/$orgId/templates"
                             params={{ orgId: organization.id }}
                             className="text-primary"
                           >
