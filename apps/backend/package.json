@@ -24,7 +24,7 @@
 		"@scalar/hono-api-reference": "^0.9.25",
 		"cron": "^4.3.4",
 		"drizzle-zod": "^0.8.3",
-		"hono": "^4.8.4",
+		"hono": "^4.10.3",
 		"hono-openapi": "^1.1.1",
 		"jsdom": "^27.2.0",
 		"mime-types": "^3.0.2",
