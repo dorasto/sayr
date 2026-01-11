@@ -266,7 +266,7 @@ export function TaskContentSideContent({
           categories={categories}
         />
       </div>
-      <div className="p-1 flex flex-col gap-2 max-w-full">
+      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
         <Tile
           className="md:w-full items-start p-0 flex-col gap-1"
           variant={"transparent"}
@@ -294,7 +294,7 @@ export function TaskContentSideContent({
           </TileAction>
         </Tile>
       </div>
-      <div className="p-1 flex flex-col gap-2 max-w-full">
+      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
         <Tile
           className="md:w-full items-start p-0 flex-col gap-1"
           variant={"transparent"}
@@ -354,41 +354,32 @@ export function TaskContentSideContent({
         </Tile>
       </div>
       <Separator />
-      {task.githubIssue?.issueUrl && (
-        <Tile className="md:w-full py-0" variant={"transparent"}>
-          <TileHeader>
-            <TileTitle asChild>
-              <Label variant={"description"} className="text-xs">
-                Linked
-              </Label>
-            </TileTitle>
-          </TileHeader>
-          <TileAction>
-            <Link to={task.githubIssue?.issueUrl} target="_blank">
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "flex items-center justify-center gap-1 ps-0 text-xs border rounded-lg border-transparent truncate group/link cursor-pointer w-fit relative bg-transparent p-1 h-auto",
-                )}
-              >
-                {/*{GitHubIssueOrg}/{GitHubIssueRepo}/
+      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
+        {task.githubIssue?.issueUrl && (
+          <Link to={task.githubIssue?.issueUrl} target="_blank">
+            <Badge
+              variant="secondary"
+              className={cn(
+                "flex items-center justify-center gap-1 ps-0 text-xs border rounded-lg border-transparent truncate group/link cursor-pointer w-fit relative bg-transparent p-1 h-auto",
+              )}
+            >
+              {/*{GitHubIssueOrg}/{GitHubIssueRepo}/
                 {task.githubIssue?.issueNumber}*/}
-                <InlineLabel
-                  text={`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}
-                  icon={<IconBrandGithub className="size-3" />}
-                  className="cursor-pointer"
-                  textNode={
-                    <div className="flex items-center gap-2">
-                      <span className="truncate">{`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}</span>
-                      <IconExternalLink className="size-3 opacity-0 group-hover/link:opacity-100 transition-all" />
-                    </div>
-                  }
-                />
-              </Badge>
-            </Link>
-          </TileAction>
-        </Tile>
-      )}
+              <InlineLabel
+                text={`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}
+                icon={<IconBrandGithub className="size-3" />}
+                className="cursor-pointer"
+                textNode={
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">{`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}</span>
+                    <IconExternalLink className="size-3 opacity-0 group-hover/link:opacity-100 transition-all" />
+                  </div>
+                }
+              />
+            </Badge>
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
