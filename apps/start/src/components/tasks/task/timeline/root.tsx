@@ -26,7 +26,6 @@ import {
 import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
-console.log("🚀 ~ baseApiUrl:", baseApiUrl)
 export default function GlobalTimeline({
 	task,
 	labels,
