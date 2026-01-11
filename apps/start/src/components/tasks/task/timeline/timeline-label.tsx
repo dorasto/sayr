@@ -1,6 +1,5 @@
-import { IconTagMinus, IconTagPlus } from "@tabler/icons-react";
+import { IconTag, IconTagMinus, IconTagPlus } from "@tabler/icons-react";
 import { InlineLabel } from "../../shared/inlinelabel";
-import { RenderLabel } from "../../shared/label";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 
@@ -31,7 +30,10 @@ export function TimelineLabelAdded({ item, labels = [], showSeparator = true }: 
 				image={item.actor?.image || ""}
 			/>{" "}
 			added{" "}
-			<RenderLabel label={label} className="inline-flex bg-transparent!" />
+			<InlineLabel
+				text={label.name}
+				icon={<IconTag size={12} style={{ color: label.color || undefined }} />}
+			/>
 		</TimelineItemWrapper>
 	);
 }
@@ -62,8 +64,11 @@ export function TimelineLabelRemoved({ item, labels = [], showSeparator = true }
 				text={item.actor?.name || "Unknown"}
 				image={item.actor?.image || ""}
 			/>{" "}
-			removed label{" "}
-			<RenderLabel label={label} className="inline-flex bg-transparent!" />
+			removed{" "}
+			<InlineLabel
+				text={label.name}
+				icon={<IconTag size={12} style={{ color: label.color || undefined }} />}
+			/>
 		</TimelineItemWrapper>
 	);
 }
