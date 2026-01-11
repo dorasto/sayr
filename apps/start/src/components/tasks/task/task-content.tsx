@@ -34,6 +34,7 @@ import {
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
   IconLink,
+  IconPlus,
   IconX,
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -77,8 +78,8 @@ interface TaskContentSideContentProps {
   availableUsers?: schema.userType[];
   wsClientId: string;
   runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-  ? T
-  : never;
+    ? T
+    : never;
   categories: schema.categoryType[];
   panelControls?: {
     isPanelOpen: boolean;
@@ -170,247 +171,215 @@ export function TaskContentSideContent({
           )}
         </div>
       </div>
-      {/* <GlobalTaskCreatedAt task={task} />
-					<Separator /> */}
 
-      <Tile className="md:w-full py-0" variant={"transparent"}>
-        <TileHeader>
-          <TileTitle asChild>
-            <Label variant={"description"} className="text-xs">
-              Status
-            </Label>
-          </TileTitle>
-        </TileHeader>
-        <TileAction>
-          <GlobalTaskStatus
-            task={task}
-            editable={true}
-            useInternalLogic={true}
-            tasks={tasks}
-            setTasks={setTasks}
-            setSelectedTask={setSelectedTask}
-            showLabel={false}
-            showChevron={false}
-            className="bg-transparent p-1 h-auto"
-          />
-        </TileAction>
-      </Tile>
-      <Tile className="md:w-full py-0" variant={"transparent"}>
-        <TileHeader>
-          <TileTitle asChild>
-            <Label variant={"description"} className="text-xs">
-              Priority
-            </Label>
-          </TileTitle>
-        </TileHeader>
-        <TileAction>
-          <GlobalTaskPriority
-            className="bg-transparent p-1 h-auto"
-            showLabel={false}
-            task={task}
-            editable={true}
-            showChevron={false}
-            onPriorityChange={async (value) => {
-              const updatedTasks = tasks.map((t) =>
-                t.id === task.id
-                  ? {
+      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
+        <GlobalTaskStatus
+          task={task}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
+          showLabel={false}
+          showChevron={false}
+          className="bg-transparent p-1 h-auto w-fit"
+        />
+        <GlobalTaskPriority
+          className="bg-transparent p-1 h-auto w-fit"
+          showLabel={false}
+          task={task}
+          editable={true}
+          showChevron={false}
+          onPriorityChange={async (value) => {
+            const updatedTasks = tasks.map((t) =>
+              t.id === task.id
+                ? {
                     ...task,
                     priority: value as schema.TaskWithLabels["priority"],
                   }
-                  : t,
-              );
-              setTasks(updatedTasks);
-              if (task) {
-                setSelectedTask({
-                  ...task,
-                  priority: value as schema.TaskWithLabels["priority"],
-                });
-              }
-              const data = await runWithToast(
-                "update-task-priority",
-                {
-                  loading: {
-                    title: "Updating task...",
-                    description:
-                      "Updating your task... changes are already visible.",
-                  },
-                  success: {
-                    title: "Task saved",
-                    description: "Your changes have been saved successfully.",
-                  },
-                  error: {
-                    title: "Save failed",
-                    description:
-                      "Your changes are showing, but we couldn't save them to the server. Please try again.",
-                  },
+                : t,
+            );
+            setTasks(updatedTasks);
+            if (task) {
+              setSelectedTask({
+                ...task,
+                priority: value as schema.TaskWithLabels["priority"],
+              });
+            }
+            const data = await runWithToast(
+              "update-task-priority",
+              {
+                loading: {
+                  title: "Updating task...",
+                  description:
+                    "Updating your task... changes are already visible.",
                 },
-                () =>
-                  updateTaskAction(
-                    task.organizationId,
-                    task.id,
-                    {
-                      priority: value,
-                    },
-                    wsClientId,
-                  ),
+                success: {
+                  title: "Task saved",
+                  description: "Your changes have been saved successfully.",
+                },
+                error: {
+                  title: "Save failed",
+                  description:
+                    "Your changes are showing, but we couldn't save them to the server. Please try again.",
+                },
+              },
+              () =>
+                updateTaskAction(
+                  task.organizationId,
+                  task.id,
+                  {
+                    priority: value,
+                  },
+                  wsClientId,
+                ),
+            );
+            if (data?.success && data.data) {
+              const finalTasks = tasks.map((t) =>
+                t.id === task.id && data.data ? data.data : t,
               );
-              if (data?.success && data.data) {
-                const finalTasks = tasks.map((t) =>
-                  t.id === task.id && data.data ? data.data : t,
+              setTasks(finalTasks);
+              if (task && task.id === data.data.id) {
+                setSelectedTask(data.data);
+                sendWindowMessage(
+                  window,
+                  {
+                    type: "timeline-update",
+                    payload: data.data.id,
+                  },
+                  "*",
                 );
-                setTasks(finalTasks);
-                if (task && task.id === data.data.id) {
-                  setSelectedTask(data.data);
-                  sendWindowMessage(
-                    window,
-                    {
-                      type: "timeline-update",
-                      payload: data.data.id,
-                    },
-                    "*",
-                  );
-                }
               }
-            }}
-          />
-        </TileAction>
-      </Tile>
-      <Tile className="md:w-full items-start py-0" variant={"transparent"}>
-        <TileHeader>
-          <TileTitle asChild>
-            <Label variant={"description"} className="text-xs">
-              Assignee
-            </Label>
-          </TileTitle>
-        </TileHeader>
-        <TileAction>
-          <GlobalTaskAssignees
-            className="bg-transparent p-1 h-auto"
-            task={task}
-            showChevron={false}
-            editable={true}
-            availableUsers={availableUsers}
-            useInternalLogic={true}
-            tasks={tasks}
-            setTasks={setTasks}
-            setSelectedTask={setSelectedTask}
-            showLabel={false}
-          />
-        </TileAction>
-      </Tile>
-      <Tile className="md:w-full py-0" variant={"transparent"}>
-        <TileHeader>
-          <TileTitle asChild>
-            <Label variant={"description"} className="text-xs">
-              Category
-            </Label>
-          </TileTitle>
-        </TileHeader>
-        <TileAction className="">
-          <GlobalTaskCategory
-            className="bg-transparent p-1 h-auto"
-            showLabel={false}
-            task={task}
-            showChevron={false}
-            editable={true}
-            useInternalLogic={true}
-            tasks={tasks}
-            setTasks={setTasks}
-            setSelectedTask={setSelectedTask}
-            categories={categories}
-          />
-        </TileAction>
-      </Tile>
-      <Tile className="md:w-full items-start py-0" variant={"transparent"}>
-        <TileHeader>
-          <TileTitle asChild>
-            <Label variant={"description"} className="text-xs">
-              Labels
-            </Label>
-          </TileTitle>
-        </TileHeader>
-        <TileAction>
-          <GlobalTaskLabels
-            showLabel={false}
-            task={task}
-            editable={true}
-            availableLabels={labels}
-            onLabelsChange={async (values) => {
-              const updatedTasks = tasks.map((t) =>
-                t.id === task.id
-                  ? {
-                    ...task,
-                    labels: labels.filter((label) =>
-                      values.includes(label.id),
-                    ),
-                  }
-                  : t,
-              );
-              setTasks(updatedTasks);
-              if (task) {
-                setSelectedTask({
-                  ...task,
-                  labels: labels.filter((label) => values.includes(label.id)),
-                });
-              }
-              const data = await debouncedUpdateLabels(values, wsClientId);
-              if (data?.success && data.data && !data.skipped) {
-                const finalTasks = tasks.map((t) =>
-                  t.id === task.id && data.data ? data.data : t,
-                );
-                setTasks(finalTasks);
-                if (task && task.id === data.data.id) {
-                  setSelectedTask(data.data);
-                  sendWindowMessage(
-                    window,
-                    {
-                      type: "timeline-update",
-                      payload: data.data.id,
-                    },
-                    "*",
-                  );
-                }
-              }
-            }}
-          />
-        </TileAction>
-      </Tile>
-      <Separator />
-      {task.githubIssue?.issueUrl && (
-        <Tile className="md:w-full py-0" variant={"transparent"}>
+            }
+          }}
+        />
+        <GlobalTaskCategory
+          className="bg-transparent p-1 h-auto w-fit"
+          showLabel={false}
+          task={task}
+          showChevron={false}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
+          categories={categories}
+        />
+      </div>
+      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
+        <Tile
+          className="md:w-full items-start p-0 flex-col gap-1"
+          variant={"transparent"}
+        >
           <TileHeader>
             <TileTitle asChild>
               <Label variant={"description"} className="text-xs">
-                Linked
+                Assigned to
               </Label>
             </TileTitle>
           </TileHeader>
           <TileAction>
-            <Link to={task.githubIssue?.issueUrl} target="_blank">
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "flex items-center justify-center gap-1 ps-0 text-xs border rounded-lg border-transparent truncate group/link cursor-pointer w-fit relative bg-transparent p-1 h-auto",
-                )}
-              >
-                {/*{GitHubIssueOrg}/{GitHubIssueRepo}/
-                {task.githubIssue?.issueNumber}*/}
-                <InlineLabel
-                  text={`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}
-                  icon={<IconBrandGithub className="size-3" />}
-                  className="cursor-pointer"
-                  textNode={
-                    <div className="flex items-center gap-2">
-                      <span className="truncate">{`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}</span>
-                      <IconExternalLink className="size-3 opacity-0 group-hover/link:opacity-100 transition-all" />
-                    </div>
-                  }
-                />
-              </Badge>
-            </Link>
+            <GlobalTaskAssignees
+              className="bg-transparent p-1 h-auto"
+              task={task}
+              showChevron={false}
+              editable={true}
+              availableUsers={availableUsers}
+              useInternalLogic={true}
+              tasks={tasks}
+              setTasks={setTasks}
+              setSelectedTask={setSelectedTask}
+              showLabel={false}
+            />
           </TileAction>
         </Tile>
-      )}
+      </div>
+      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
+        <Tile
+          className="md:w-full items-start p-0 flex-col gap-1"
+          variant={"transparent"}
+        >
+          <TileHeader>
+            <TileTitle asChild>
+              <Label variant={"description"} className="text-xs">
+                Labels
+              </Label>
+            </TileTitle>
+          </TileHeader>
+          <TileAction>
+            <GlobalTaskLabels
+              showLabel={false}
+              task={task}
+              editable={true}
+              availableLabels={labels}
+              onLabelsChange={async (values) => {
+                const updatedTasks = tasks.map((t) =>
+                  t.id === task.id
+                    ? {
+                        ...task,
+                        labels: labels.filter((label) =>
+                          values.includes(label.id),
+                        ),
+                      }
+                    : t,
+                );
+                setTasks(updatedTasks);
+                if (task) {
+                  setSelectedTask({
+                    ...task,
+                    labels: labels.filter((label) => values.includes(label.id)),
+                  });
+                }
+                const data = await debouncedUpdateLabels(values, wsClientId);
+                if (data?.success && data.data && !data.skipped) {
+                  const finalTasks = tasks.map((t) =>
+                    t.id === task.id && data.data ? data.data : t,
+                  );
+                  setTasks(finalTasks);
+                  if (task && task.id === data.data.id) {
+                    setSelectedTask(data.data);
+                    sendWindowMessage(
+                      window,
+                      {
+                        type: "timeline-update",
+                        payload: data.data.id,
+                      },
+                      "*",
+                    );
+                  }
+                }
+              }}
+            />
+          </TileAction>
+        </Tile>
+      </div>
+      <Separator />
+      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
+        {task.githubIssue?.issueUrl && (
+          <Link to={task.githubIssue?.issueUrl} target="_blank">
+            <Badge
+              variant="secondary"
+              className={cn(
+                "flex items-center justify-center gap-1 ps-0 text-xs border rounded-lg border-transparent truncate group/link cursor-pointer w-fit relative bg-transparent p-1 h-auto",
+              )}
+            >
+              {/*{GitHubIssueOrg}/{GitHubIssueRepo}/
+                {task.githubIssue?.issueNumber}*/}
+              <InlineLabel
+                text={`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}
+                icon={<IconBrandGithub className="size-3" />}
+                className="cursor-pointer"
+                textNode={
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">{`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}</span>
+                    <IconExternalLink className="size-3 opacity-0 group-hover/link:opacity-100 transition-all" />
+                  </div>
+                }
+              />
+            </Badge>
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
@@ -440,7 +409,7 @@ export function TaskContentMain({
         style="compact"
         className="max-w-6xl gap-3"
         title={task.title || "No title"}
-      // description={`#${task.shortId}`}
+        // description={`#${task.shortId}`}
       >
         {/*<JsonViewer
           data={task}

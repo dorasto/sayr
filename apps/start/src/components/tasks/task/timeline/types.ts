@@ -9,6 +9,14 @@ export type ConsolidatedTimelineItem = {
   eventTypes: string[];
 };
 
+/**
+ * Timeline item variants:
+ * - "activity": Shows timeline indicator (icon) and separator line - for status changes, assignments, etc.
+ * - "comment": Shows content card without timeline indicator - for comments that flow inline
+ * - "description": Clean rendering without chrome - for task description at top
+ */
+export type TimelineItemVariant = "activity" | "comment" | "description";
+
 export interface TimelineItemWrapperProps {
   item: schema.taskTimelineWithActor;
   icon: React.ComponentType<{ size?: number }>;
@@ -25,8 +33,17 @@ export interface TimelineItemWrapperProps {
   onCancel?: () => void;
   isSaving?: boolean;
   canSave?: boolean;
-  first?: boolean;
-  hideContent?: boolean;
+  /**
+   * Controls the visual style of the timeline item
+   * @default "activity"
+   */
+  variant?: TimelineItemVariant;
+  /**
+   * Whether to show the separator line below this item.
+   * Should be false if the next item is not an activity.
+   * @default true
+   */
+  showSeparator?: boolean;
 }
 
 export interface GlobalTimelineProps {
@@ -49,4 +66,5 @@ export interface ConsolidatedTimelineItemProps {
   consolidatedItem: ConsolidatedTimelineItem;
   labels: schema.labelType[];
   availableUsers: schema.userType[];
+  showSeparator?: boolean;
 }

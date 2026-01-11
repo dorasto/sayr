@@ -26,7 +26,7 @@ import type { NodeJSON } from "prosekit/core";
 import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { ReactionDisplay, type ReactionEmoji } from "./reactions";
-import type { TimelineItemWrapperProps } from "./types";
+import type { TimelineItemWrapperProps, TimelineItemVariant } from "./types";
 import { Separator } from "@repo/ui/components/separator";
 
 export function TimelineItemWrapper({
@@ -44,82 +44,99 @@ export function TimelineItemWrapper({
   onCancel,
   isSaving,
   canSave,
-  first,
-  hideContent,
+  variant = "activity",
+  showSeparator = true,
   onReactionToggle,
 }: TimelineItemWrapperProps & {
   onReactionToggle?: (emoji: ReactionEmoji) => void;
 }) {
+  const isDescription = variant === "description";
+  const isComment = variant === "comment";
+  const isActivity = variant === "activity";
+  const showIndicator = isActivity;
+  // Activities show header only (no content card), comments/description show content card
+  const showContent = (isComment || isDescription) && item.content;
   return (
     <TimelineItem
       key={item.id}
       step={2}
       className={cn(
-        "group-data-[orientation=vertical]/timeline:ms-10 group-data-[orientation=vertical]/timeline:not-last:pb-4",
-        first && "ms-0!",
+        "group-data-[orientation=vertical]/timeline:not-last:pb-4 ",
+        showIndicator && "group-data-[orientation=vertical]/timeline:ms-10",
+        isDescription && "ms-0!",
+        isComment && "ms-0!",
       )}
     >
-      {!first && (
+      {/* Activity items show the timeline header with indicator */}
+      {showIndicator && (
         <TimelineHeader>
-          <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
+          {showSeparator && (
+            <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-4 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
+          )}
           <TimelineTitle className="mt-0.5">
             <Label
               variant={"description"}
               className="text-foreground items-center flex flex-wrap gap-2"
             >
-              <span>{children}</span>
-              {(!item.content || hideContent) && (
-                <Tooltip delayDuration={500}>
-                  <TooltipTrigger asChild>
-                    <Label variant={"description"} className="text-foreground">
-                      {" "}
-                      {formatDateTimeFromNow(item.createdAt as Date)}
-                    </Label>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    {formatDateTime(item.createdAt as Date)}
-                  </TooltipContent>
-                </Tooltip>
-              )}
+              <span>{children}</span>·{/*{!item.content && (*/}
+              <Tooltip delayDuration={500}>
+                <TooltipTrigger asChild>
+                  <Label
+                    variant={"description"}
+                    className="text-muted-foreground"
+                  >
+                    {" "}
+                    {formatDateTimeFromNow(item.createdAt as Date)}
+                  </Label>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {formatDateTime(item.createdAt as Date)}
+                </TooltipContent>
+              </Tooltip>
+              {/*)}*/}
             </Label>
           </TimelineTitle>
 
-          <TimelineIndicator className="bg-primary/10 group-data-completed/timeline-item:bg-primary group-data-completed/timeline-item:text-primary-foreground flex size-6 items-center justify-center border-none group-data-[orientation=vertical]/timeline:-left-7">
-            <Avatar className={cn("h-6 w-6 rounded-full", color)}>
+          <TimelineIndicator className="bg-primary/10 group-data-completed/timeline-item:bg-primary group-data-completed/timeline-item:text-primary-foreground flex size-6 items-center justify-center border-none group-data-[orientation=vertical]/timeline:-left-4">
+            <Avatar className={cn("h-6! w-6! rounded-full", color)}>
               <AvatarFallback className="rounded-full bg-transparent">
-                <Icon size={16} />
+                <Icon size={12} />
               </AvatarFallback>
             </Avatar>
           </TimelineIndicator>
         </TimelineHeader>
       )}
-      {item.content && !hideContent ? (
+      {/* Comments and description show the content card (activities never do) */}
+      {showContent ? (
         <TimelineContent
           className={cn(
-            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden px-4 py-3 group/timeline-item",
+            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden p-3 group/timeline-item",
             item.visibility === "internal" && "border-primary/30 bg-primary/5",
-            first && "border-0 bg-transparent p-0",
+            isDescription && "border-0 bg-transparent p-0",
           )}
         >
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
-              {!first && (
+              {!isDescription && (
                 <InlineLabel
-                  className="ps-6"
-                  avatarClassName="size-4!"
+                  // className="ps-6"
+                  // avatarClassName="size-4!"
                   text={item.actor?.name || "Unknown"}
                   image={item.actor?.image || ""}
                   textNode={
                     <div className="flex items-center gap-3">
                       <Label
-                        className="text-base text-foreground"
+                        className="text-xs text-foreground"
                         variant={"description"}
                       >
                         {item.actor?.name || "Unknown"}
                       </Label>
                       <Tooltip delayDuration={500}>
                         <TooltipTrigger asChild>
-                          <Label variant={"description"}>
+                          <Label
+                            variant={"description"}
+                            className="text-muted-foreground"
+                          >
                             {" "}
                             {formatDateTimeFromNow(item.createdAt as Date)}
                           </Label>

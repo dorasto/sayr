@@ -6,11 +6,13 @@ import type { TimelineItemProps } from "./types";
 export function TimelineAssigneeAdded({
 	item,
 	availableUsers = [],
-}: TimelineItemProps) {
+	showSeparator = true,
+}: TimelineItemProps & { showSeparator?: boolean }) {
 	const user = availableUsers.find((user) => user.id === item.toValue);
 	const selfAssign = item.actor?.id === user?.id;
 	return selfAssign ? (
 		<TimelineItemWrapper
+			showSeparator={showSeparator}
 			item={item}
 			icon={IconUserPlus}
 			color="bg-accent text-primary-foreground"
@@ -23,6 +25,7 @@ export function TimelineAssigneeAdded({
 		</TimelineItemWrapper>
 	) : (
 		<TimelineItemWrapper
+			showSeparator={showSeparator}
 			item={item}
 			icon={IconUserPlus}
 			color="bg-accent text-primary-foreground"
@@ -36,13 +39,16 @@ export function TimelineAssigneeAdded({
 		</TimelineItemWrapper>
 	);
 }
+
 export function TimelineAssigneeRemoved({
 	item,
 	availableUsers = [],
-}: TimelineItemProps) {
+	showSeparator = true,
+}: TimelineItemProps & { showSeparator?: boolean }) {
 	const user = availableUsers.find((user) => user.id === item.toValue);
 	return (
 		<TimelineItemWrapper
+			showSeparator={showSeparator}
 			item={item}
 			icon={IconUserMinus}
 			color="bg-accent text-primary-foreground"

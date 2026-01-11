@@ -42,9 +42,6 @@ import { TimelineItemWrapper } from "./base";
 import { ReactionPicker, type ReactionEmoji } from "./reactions";
 import type { TimelineItemProps } from "./types";
 
-// --------------------
-// CommentHistoryDialog
-// --------------------
 function CommentHistoryDialog({
   orgId,
   taskId,
@@ -82,10 +79,9 @@ function CommentHistoryDialog({
         if (!res.ok) throw new Error("Failed to fetch comment history");
         const data = await res.json();
         setHistory(data.success && Array.isArray(data.data) ? data.data : []);
-        // biome-ignore lint/suspicious/noExplicitAny: <error>
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
-        setError(err.message || "An error occurred while fetching history.");
+        setError((err as Error).message || "An error occurred while fetching history.");
       } finally {
         setLoading(false);
       }
@@ -107,7 +103,6 @@ function CommentHistoryDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto p-3">
           {loading && (
             <p className="text-sm text-muted-foreground animate-pulse">
@@ -171,6 +166,7 @@ function CommentHistoryDialog({
                       }}
                       icon={IconMessageDots}
                       color="bg-accent text-primary-foreground"
+                      variant="comment"
                       availableUsers={availableUsers || []}
                       categories={categories || []}
                       tasks={tasks || []}
@@ -185,9 +181,6 @@ function CommentHistoryDialog({
   );
 }
 
-// --------------------
-// CommentActionsMenu
-// --------------------
 function CommentActionsMenu({
   showHistory,
   onEdit,
@@ -229,15 +222,13 @@ function CommentActionsMenu({
   );
 }
 
-// --------------------
-// TimelineComment
-// --------------------
 export function TimelineComment({
   item,
   availableUsers,
   categories,
   tasks,
-}: TimelineItemProps) {
+  showSeparator = true,
+}: TimelineItemProps & { showSeparator?: boolean }) {
   const queryClient = useQueryClient();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
@@ -322,7 +313,6 @@ export function TimelineComment({
     null,
   );
 
-  // Type for the infinite query data structure
   type CommentsPageData = {
     data: schema.taskTimelineWithActor[];
     pagination?: {
@@ -345,11 +335,9 @@ export function TimelineComment({
       ];
       const userId = account.id;
 
-      // Snapshot the previous data for rollback
       const previousData =
         queryClient.getQueryData<InfiniteData<CommentsPageData>>(queryKey);
 
-      // Optimistically update the cache
       queryClient.setQueryData<InfiniteData<CommentsPageData>>(
         queryKey,
         (old) => {
@@ -371,20 +359,17 @@ export function TimelineComment({
 
                 let updatedEmojiData: { count: number; users: string[] };
                 if (hasReacted) {
-                  // Remove reaction
                   updatedEmojiData = {
                     count: Math.max(0, emojiData.count - 1),
                     users: emojiData.users.filter((id) => id !== userId),
                   };
                 } else {
-                  // Add reaction
                   updatedEmojiData = {
                     count: emojiData.count + 1,
                     users: [...emojiData.users, userId],
                   };
                 }
 
-                // Build new reactions object, removing emoji if count is 0
                 const newReactions = { ...currentReactions };
                 if (updatedEmojiData.count === 0) {
                   delete newReactions[emoji];
@@ -410,7 +395,6 @@ export function TimelineComment({
         },
       );
 
-      // Fire the API call in the background
       try {
         await CreateTaskReactionAction(
           item.organizationId,
@@ -419,11 +403,7 @@ export function TimelineComment({
           emoji,
           wsClientId,
         );
-        // Optionally invalidate to sync with server (for other clients' reactions)
-        // Uncomment if you want to ensure full sync after each reaction:
-        // queryClient.invalidateQueries({ queryKey });
       } catch {
-        // Rollback on error
         queryClient.setQueryData(queryKey, previousData);
         headlessToast.error({
           title: "Reaction failed",
@@ -438,12 +418,14 @@ export function TimelineComment({
   return (
     <>
       <TimelineItemWrapper
+        showSeparator={showSeparator}
         item={item}
         availableUsers={availableUsers || []}
         categories={categories || []}
         tasks={tasks || []}
         icon={IconMessageDots}
         color="bg-accent text-primary-foreground"
+        variant="comment"
         isEditing={isEditing}
         onContentChange={setEditedContent}
         onSave={handleSave}
@@ -459,8 +441,8 @@ export function TimelineComment({
                 existingReactions={
                   account?.id
                     ? (Object.entries(item.reactions?.reactions ?? {})
-                      .filter(([, data]) => data.users.includes(account.id))
-                      .map(([emoji]) => emoji) as ReactionEmoji[])
+                        .filter(([, data]) => data.users.includes(account.id))
+                        .map(([emoji]) => emoji) as ReactionEmoji[])
                     : []
                 }
               />

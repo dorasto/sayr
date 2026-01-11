@@ -39,40 +39,8 @@ export default function OrganizationTaskIdPage() {
 
   return (
     <div className="relative flex flex-col h-full max-h-full">
-      {/* <div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
-				<Link to=".." search={(prev) => prev} className="">
-					<Button
-						variant={"ghost"}
-						className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg"
-						size={"sm"}
-					>
-						<IconArrowLeft className="size-3!" />
-						<span className="">Back</span>
-					</Button>
-				</Link>
-				<div></div>
-				<div className="flex items-center gap-2 ml-auto">
-					<Button
-						variant="primary"
-						className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
-						onClick={() => {
-							if (isPanelOpen) {
-								ref.current?.collapse();
-							} else {
-								ref.current?.expand();
-							}
-						}}
-					>
-						{isPanelOpen ? (
-							<IconLayoutSidebarRightFilled />
-						) : (
-							<IconLayoutSidebarRight />
-						)}
-					</Button>
-				</div>
-			</div> */}
       <ResizablePanelGroup direction="horizontal" className="">
-        <ResizablePanel defaultSize={useMobile ? 100 : 80} minSize={70}>
+        <ResizablePanel defaultSize={useMobile ? 100 : 80} minSize={50}>
           <div
             className={cn(
               "flex-1 overflow-y-auto h-full flex flex-col relative",
@@ -105,7 +73,7 @@ export default function OrganizationTaskIdPage() {
         )}
         <ResizablePanel
           defaultSize={20}
-          minSize={20}
+          minSize={10}
           maxSize={100}
           collapsible
           collapsedSize={0}

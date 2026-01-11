@@ -245,8 +245,18 @@ export default function GlobalTimeline({
 	const halfway = Math.floor(consolidatedItems.length / 2);
 	const topItems = consolidatedItems.slice(0, halfway);
 	const bottomItems = consolidatedItems.slice(halfway);
+	// Helper to check if an item is an activity (not a comment)
 	// biome-ignore lint/suspicious/noExplicitAny: <dont care>
-	const renderItem = (item: any) => {
+	const isActivityItem = (item: any) => {
+		if ("items" in item) return true; // Consolidated items are activities
+		return item.eventType !== "comment";
+	};
+
+	// biome-ignore lint/suspicious/noExplicitAny: <dont care>
+	const renderItem = (item: any, index: number, array: any[]) => {
+		const nextItem = array[index + 1];
+		const showSeparator = nextItem ? isActivityItem(nextItem) : false;
+
 		if ("items" in item) {
 			return (
 				<ConsolidatedTimelineItem
@@ -254,6 +264,7 @@ export default function GlobalTimeline({
 					consolidatedItem={item}
 					labels={labels}
 					availableUsers={availableUsers}
+					showSeparator={showSeparator}
 				/>
 			);
 		}
@@ -270,6 +281,7 @@ export default function GlobalTimeline({
 				availableUsers={availableUsers}
 				categories={categories}
 				tasks={tasks}
+				showSeparator={showSeparator}
 			/>
 		);
 	};
