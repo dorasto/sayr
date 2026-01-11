@@ -44,7 +44,7 @@ const fullPermissions: TeamPermissions = {
  */
 export async function isPlatformAdmin(userId: string): Promise<boolean> {
 	const [u] = await db.select({ role: user.role }).from(user).where(eq(user.id, userId));
-	return u?.role === "admin";
+	return u?.role === "admin" || u?.role === "system";
 }
 
 /**

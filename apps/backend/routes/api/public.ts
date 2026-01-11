@@ -61,7 +61,7 @@ const OrganizationSchema = createSelectSchema(schema.organization)
 apiPublicRoute.get(
 	"/organization/:org_slug",
 	describeOkNotFound({
-		description: "Fetch public organization data by slug",
+		description: "Retrieve public information for an organization identified by its slug.",
 		dataSchema: OrganizationSchema,
 		parameters: [
 			{
@@ -87,9 +87,9 @@ apiPublicRoute.get(
 				onSuccess: (result) =>
 					result
 						? {
-								description: "Public organization data fetched",
-								data: { id: result.id, slug: result.slug },
-							}
+							description: "Public organization data fetched",
+							data: { id: result.id, slug: result.slug },
+						}
 						: { description: "No organization found" },
 			},
 		);
@@ -121,7 +121,7 @@ const LabelSchema = createSelectSchema(schema.label).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/labels",
 	describeOkNotFound({
-		description: "Fetch public organization labels",
+		description: "Retrieve all public labels associated with an organization.",
 		dataSchema: z.array(LabelSchema),
 		parameters: [
 			{
@@ -185,7 +185,7 @@ const CategorySchema = createSelectSchema(schema.category).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/categories",
 	describeOkNotFound({
-		description: "Fetch public organization categories",
+		description: "Retrieve all public categories associated with an organization.",
 		dataSchema: z.array(CategorySchema),
 		parameters: [
 			{
@@ -204,7 +204,7 @@ apiPublicRoute.get(
 					default: "desc",
 				},
 				description:
-					"Sort order for categories. Use 'asc' for oldest first, 'desc' for newest first (default).",
+					"Specifies the sort order by creation date. Use asc for ascending or desc for descending.",
 			},
 		],
 		tags: ["Organization"],
@@ -270,7 +270,7 @@ const TaskSchema = createSelectSchema(schema.task).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks",
 	describePaginatedRoute({
-		description: "List organization tasks (paginated)",
+		description: "Retrieve a paginated list of public tasks for an organization.",
 		dataSchema: TaskSchema,
 		parameters: [
 			{
@@ -289,7 +289,7 @@ apiPublicRoute.get(
 					default: "desc",
 				},
 				description:
-					"Sort order for tasks. Use 'asc' for oldest first, 'desc' for newest first (default).",
+					"Specifies the sort order by creation date. Use asc for ascending or desc for descending.",
 			},
 		],
 		maxLimit: API_LIMITS.tasks,
@@ -434,7 +434,7 @@ apiPublicRoute.get(
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks/:task_short_id",
 	describeOkNotFound({
-		description: "Fetch public task data",
+		description: "Retrieve a public task by its short identifier.",
 		dataSchema: TaskSchema,
 		parameters: [
 			{
@@ -503,9 +503,9 @@ apiPublicRoute.get(
 				onSuccess: (result) =>
 					result
 						? {
-								description: "Task fetched successfully",
-								data: { taskId: result.id, shortId: result.shortId },
-							}
+							description: "Task fetched successfully",
+							data: { taskId: result.id, shortId: result.shortId },
+						}
 						: { description: "Task not found" },
 			},
 		);
@@ -566,7 +566,7 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks/:task_short_id/comments",
 	describePaginatedRoute({
-		description: "List comments for a public task (paginated)",
+		description: "Retrieve a paginated list of public comments for a task.",
 		dataSchema: CommentSchema,
 		parameters: [
 			{
@@ -591,7 +591,7 @@ apiPublicRoute.get(
 					default: "desc",
 				},
 				description:
-					"Sort order for comments. Use 'asc' for oldest first, 'desc' for newest first (default).",
+					"Specifies the sort order by creation date. Use asc for ascending or desc for descending.",
 			},
 		],
 		maxLimit: API_LIMITS.comments,
