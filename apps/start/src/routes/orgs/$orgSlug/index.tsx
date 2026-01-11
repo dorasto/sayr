@@ -1,22 +1,23 @@
 import { Button } from "@repo/ui/components/button";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { getOrganizationPublic } from "@repo/database";
+import { db, getOrganizationPublic, getTasksByOrganizationIdPublic } from "@repo/database";
 import PublicOrgHomePage from "@/components/public";
 import PublicNavigation from "@/components/public/navigation";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
 
-const fetchPublicOrganization = createServerFn({ method: "GET" })
+const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
 		const organization = await getOrganizationPublic(data.slug);
+		const tasks = await getTasksByOrganizationIdPublic(organization?.id || "")
 
-		return { organization };
+		return { organization, tasks };
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug/")({
 	loader: async ({ params }) => {
-		return await fetchPublicOrganization({
+		return await fetchPublicOrganizationAndTasks({
 			data: {
 				slug: params.orgSlug,
 			},
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/")({
 });
 
 function OrgDashboard() {
-	const { organization } = Route.useLoaderData();
+	const { organization, tasks } = Route.useLoaderData();
 	if (!organization) {
 		return (
 			<>
@@ -55,7 +56,7 @@ function OrgDashboard() {
 		);
 	}
 	return (
-		<PublicOrganizationProvider organization={organization}>
+		<PublicOrganizationProvider organization={organization} tasks={tasks}>
 			<div className="flex h-dvh flex-col overflow-hidden max-w-7xl mx-auto">
 				<PublicNavigation />
 				<div className="min-h-0 flex-1 overflow-y-auto p-3">

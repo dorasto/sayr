@@ -64,6 +64,45 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
 	})) as schema.TaskWithLabels[];
 }
 
+export async function getTasksByOrganizationIdPublic(orgId: string): Promise<schema.TaskWithLabels[]> {
+	const tasks = await db.query.task.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.visible, "public")),
+		with: {
+			labels: {
+				with: {
+					label: true, // 👈 eager load the real label object
+				},
+			},
+			createdBy: {
+				columns: {
+					id: true,
+					name: true,
+					image: true,
+				},
+			},
+			assignees: {
+				with: {
+					user: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+			githubIssue: {},
+		},
+	});
+
+	// 🧹 map join rows into clean labels array
+	return tasks.map((task) => ({
+		...task,
+		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
+	})) as schema.TaskWithLabels[];
+}
+
 /**
  * Fetches a task by its short numeric identifier within a given project and organization.
  *
