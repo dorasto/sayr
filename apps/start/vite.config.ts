@@ -6,12 +6,10 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 
+console.log("🚀 ~ process.env.APP_ENV:", process.env.APP_ENV)
 const config = defineConfig({
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
-      process.env.APP_ENV ?? "development",
-    ),
-    "VITE_APP_ENV": JSON.stringify(
       process.env.APP_ENV ?? "development",
     ),
   },
