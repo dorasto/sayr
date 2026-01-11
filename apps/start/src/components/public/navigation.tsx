@@ -21,12 +21,12 @@ export default function PublicNavigation() {
 
   const { organization } = usePublicOrganizationLayout();
   return (
-    <header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center rounded-b-xl">
+    <header className="bg-sidebar h-(--header-height) z-50 flex w-full items-center rounded-b-xl">
       <div className="flex w-full justify-between items-center gap-2 p-3">
         <div className="flex-1 items-center gap-1 font-bold">
           <Button
             variant={"primary"}
-            className="justify-start px-2 rounded-xl h-8 p-1 px-2 bg-transparent hover:bg-accent border-0"
+            className="justify-start rounded-xl h-8 p-1 px-2 bg-transparent hover:bg-accent border-0"
           >
             <Avatar className="h-6 w-6 rounded-md">
               <AvatarImage

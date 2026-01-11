@@ -82,9 +82,13 @@ function OrgDashboard() {
       categories={categories}
     >
       <div className="flex h-dvh flex-col overflow-hidden relative">
-        <PublicNavigation />
         <div className="min-h-0 flex-1 overflow-y-auto relative">
-          <SubWrapper className="max-w-6xl mx-auto relative" blur={false}>
+          <SubWrapper
+            className="max-w-6xl mx-auto relative"
+            blur={false}
+            top={false}
+          >
+            <PublicNavigation />
             <PublicOrgHomePage />
           </SubWrapper>
         </div>

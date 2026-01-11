@@ -100,15 +100,21 @@ export default function PublicTaskSide() {
 
   return (
     <div
-      className="flex flex-col gap-3 w-full bg-card rounded-xl sticky top-3 self-start"
+      className="flex flex-col gap-3 w-full sticky top-3 self-start"
       ref={stickyRef}
     >
-      <div className="flex flex-col gap-1">
-        {stuck && (
-          <div>
-            <Tile
-              className={cn("bg-card md:w-full cursor-pointer select-none")}
-            >
+      <Button variant={"primary"} className="justify-start w-fit">
+        Sign in
+      </Button>
+      <div className="flex flex-col gap-1 bg-card rounded-xl">
+        <div
+          className={cn(
+            "grid transition-all duration-300 ease-out",
+            stuck ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          )}
+        >
+          <div className="overflow-hidden min-h-0">
+            <Tile className="bg-card md:w-full cursor-pointer select-none">
               <TileHeader className="w-full">
                 <div className="flex flex-row gap-3 w-full">
                   <TileTitle className="flex items-center gap-2 w-full">
@@ -129,7 +135,8 @@ export default function PublicTaskSide() {
               </TileHeader>
             </Tile>
           </div>
-        )}
+        </div>
+
         <div className="flex flex-col gap-1 p-3">
           <Tile
             className={cn(
