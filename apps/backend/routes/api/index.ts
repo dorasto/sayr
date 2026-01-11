@@ -63,8 +63,6 @@ apiRoute.use("*", async (c, next) => {
 	if (!exists) {
 		return next();
 	}
-	// otherwise continue with session logic
-	// const session = await safeGetSession(c.req.raw.headers);
 	const traceAsync = createTraceAsync();
 	const session = await traceAsync("session", () => safeGetSession(c.req.raw.headers), {
 		description: "Fetching user session",
@@ -72,7 +70,7 @@ apiRoute.use("*", async (c, next) => {
 		onSuccess: (result) =>
 			result
 				? {
-					outcome: "Session verified and attached",
+					outcome: result.user.role === "system" ? "Session verified and attached for system user" : "Session verified and attached",
 					data: {
 						user_id: result.user.id,
 						user_name: result.user.name,

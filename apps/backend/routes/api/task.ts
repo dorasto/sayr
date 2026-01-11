@@ -59,12 +59,12 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		},
 	);
@@ -243,7 +243,8 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		...updates
 	} = await c.req.json();
 	const session = c.get("session");
-	const isSystemAccount = session?.userId === process.env.SYSTEM_ACCOUNT_ID;
+	const user = c.get("user");
+	const isSystemAccount = user?.role === "system";
 
 	const isAuthorized = await traceAsync(
 		"hasOrgPermission",
@@ -254,17 +255,17 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId, system: isSystemAccount },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "Permission granted System",
+					};
 			},
 		},
 	);
 
-	if (!isAuthorized && !isSystemAccount) {
+	if (!isAuthorized) {
 		return c.json(
 			{ success: false, error: "You don't have permission to update tasks." },
 			401,
@@ -360,7 +361,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			if (
 				updates.description &&
 				JSON.stringify(updates.description) !==
-					JSON.stringify(existingTask.description)
+				JSON.stringify(existingTask.description)
 			) {
 				await addLogEventTask(
 					taskId,
@@ -436,7 +437,8 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 	} = await c.req.json();
 
 	const session = c.get("session");
-	const isSystemAccount = session?.userId === process.env.SYSTEM_ACCOUNT_ID;
+	const user = c.get("user");
+	const isSystemAccount = user?.role === "system";
 
 	if (!isSystemAccount) {
 		await recordWideError({
@@ -598,12 +600,12 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		},
 	);
@@ -776,12 +778,12 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		},
 	);
@@ -975,12 +977,12 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		},
 	);
@@ -1063,12 +1065,12 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		},
 	);
@@ -1195,12 +1197,12 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to react to comments",
-						};
+						description: "User does not have permission to react to comments",
+					};
 			},
 		},
 	);
@@ -1303,12 +1305,12 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		},
 	);
@@ -1398,12 +1400,12 @@ apiRouteAdminProjectTask.get("/timeline", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { org_id, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { org_id, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		},
 	);
@@ -1531,13 +1533,13 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 				onSuccess: (result) =>
 					result
 						? {
-								description: "Public organization (no member access required)",
-								data: { orgId },
-							}
+							description: "Public organization (no member access required)",
+							data: { orgId },
+						}
 						: {
-								description: "Permission granted",
-								data: { orgId, userId: session?.userId },
-							},
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						},
 			},
 		);
 
