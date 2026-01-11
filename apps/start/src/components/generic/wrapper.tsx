@@ -52,6 +52,7 @@ interface SubProps {
   icon?: React.ReactNode;
   backButton?: string;
   backButtonText?: string;
+  blur?: boolean;
 }
 export function SubWrapper({
   children,
@@ -64,10 +65,18 @@ export function SubWrapper({
   icon,
   backButton,
   backButtonText = "Back",
+  blur = true,
 }: SubProps) {
   return (
     <div className={cn("relative", rootClassName)}>
-      <div className="sticky top-0 z-50 w-full md:h-7 backdrop-blur bg-linear-to-b from-background from-5% via-background/30 via-30% to-background/0 flex items-center px-3 pt-3">
+      <div
+        className={cn(
+          "",
+          blur
+            ? "sticky top-0 z-50 w-full md:h-7 backdrop-blur bg-linear-to-b from-background from-5% via-background/30 via-30% to-background/0 flex items-center px-3 pt-3"
+            : "",
+        )}
+      >
         {backButton ? (
           <Link to={backButton} className="">
             <Button
