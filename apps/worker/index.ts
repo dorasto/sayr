@@ -2,7 +2,7 @@ import { dequeue, type JobGroups } from "@repo/queue";
 import { handleSayrKeywordParse } from "./github";
 import { withTraceContext } from "@repo/opentelemetry/trace";
 import { initTracing } from "@repo/opentelemetry";
-const APP_ENV = process.env.VITE_APP_ENV;
+const APP_ENV = process.env.APP_ENV;
 const env = APP_ENV === "production" || APP_ENV === "development" ? APP_ENV : "development";
 
 async function processGithubJob(job: JobGroups["github"]) {

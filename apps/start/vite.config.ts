@@ -7,6 +7,11 @@ import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 
 const config = defineConfig({
+  define: {
+    "import.meta.env.VITE_APP_ENV": JSON.stringify(
+      process.env.APP_ENV ?? "development12",
+    ),
+  },
   plugins: [
     devtools(),
     nitro({

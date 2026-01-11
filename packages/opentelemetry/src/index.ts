@@ -6,7 +6,7 @@ let globalTracer: ReturnType<typeof trace.getTracer> | undefined;
 
 export async function initTracing(_serviceName: string) {
 	const SAYR_CLOUD = process.env.SAYR_CLOUD === "true";
-	const appEnv = process.env.VITE_APP_ENV;
+	const appEnv = process.env.APP_ENV;
 	const env = appEnv === "production" || appEnv === "development" ? appEnv : "development";
 	const isProd = env === "production";
 	const serviceName = `${_serviceName}${isProd ? "" : "-dev"}`;

@@ -40,7 +40,7 @@ services:
       - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
       - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
       - SAYR_CLOUD=${SAYR_CLOUD}
-      - VITE_APP_ENV=${VITE_APP_ENV}
+      - APP_ENV=${APP_ENV}
     networks:
       - app_network
 
@@ -76,7 +76,7 @@ services:
       - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
       - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
       - SAYR_CLOUD=${SAYR_CLOUD}
-      - VITE_APP_ENV=${VITE_APP_ENV}
+      - APP_ENV=${APP_ENV}
     networks:
       - app_network
 
@@ -121,7 +121,7 @@ services:
       - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
       - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
       - SAYR_CLOUD=${SAYR_CLOUD}
-      - VITE_APP_ENV=${VITE_APP_ENV}
+      - APP_ENV=${APP_ENV}
     networks:
       - app_network
 

@@ -4,7 +4,7 @@ import Redis from "ioredis";
 import type { DeafultJob } from "./groups/default";
 // Import all group job type unions
 import type { GithubJob } from "./groups/github";
-const APP_ENV = process.env.VITE_APP_ENV;
+const APP_ENV = process.env.APP_ENV;
 const env = APP_ENV === "production" || APP_ENV === "development" ? APP_ENV : "development";
 // -----------------------
 // 🔹 Group <-> Job mapping

@@ -62,7 +62,7 @@ ENV AXIOM_OTEL_TOKEN=""
 ENV AXIOM_OTEL_DOMAIN=""
 ENV AXIOM_OTEL_DATASET=""
 ENV SAYR_CLOUD=""
-ENV VITE_APP_ENV="production"
+ENV APP_ENV="production"
 
 # Expose the port the app runs on
 EXPOSE 5468
