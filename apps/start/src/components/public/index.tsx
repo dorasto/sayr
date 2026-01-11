@@ -44,7 +44,7 @@ export default function PublicOrgHomePage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 sticky top-0">
+        <div className="md:col-span-1 ">
           <PublicTaskSide />
         </div>
         <div className="md:col-span-3">

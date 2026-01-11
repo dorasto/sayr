@@ -14,79 +14,83 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * if the element is at the top of its container (stuck position).
  */
 export function useSticky() {
-	const [stuck, setStuck] = useState(false);
-	const cleanupRef = useRef<(() => void) | null>(null);
+  const [stuck, setStuck] = useState(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-	const stickyRef = useCallback((node: HTMLElement | null) => {
-		// Clean up previous listener if exists
-		if (cleanupRef.current) {
-			cleanupRef.current();
-			cleanupRef.current = null;
-		}
+  const stickyRef = useCallback((node: HTMLElement | null) => {
+    // Clean up previous listener if exists
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
 
-		if (!node) {
-			return;
-		}
+    if (!node) {
+      return;
+    }
 
-		// Find the nearest scroll container
-		const findScrollParent = (el: HTMLElement): HTMLElement | null => {
-			let parent = el.parentElement;
-			while (parent) {
-				const { overflow, overflowY } = window.getComputedStyle(parent);
-				if (
-					overflow === "auto" ||
-					overflow === "scroll" ||
-					overflowY === "auto" ||
-					overflowY === "scroll"
-				) {
-					return parent;
-				}
-				parent = parent.parentElement;
-			}
-			return null;
-		};
+    // Find the nearest scroll container
+    const findScrollParent = (el: HTMLElement): HTMLElement | null => {
+      let parent = el.parentElement;
+      while (parent) {
+        const { overflow, overflowY } = window.getComputedStyle(parent);
+        if (
+          overflow === "auto" ||
+          overflow === "scroll" ||
+          overflowY === "auto" ||
+          overflowY === "scroll"
+        ) {
+          return parent;
+        }
+        parent = parent.parentElement;
+      }
+      return null;
+    };
 
-		// Use requestAnimationFrame to ensure DOM is ready
-		requestAnimationFrame(() => {
-			const scrollContainer = findScrollParent(node);
-			if (!scrollContainer) {
-				return;
-			}
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      const scrollContainer = findScrollParent(node);
+      if (!scrollContainer) {
+        return;
+      }
 
-			const checkSticky = () => {
-				const rect = node.getBoundingClientRect();
-				const containerRect = scrollContainer.getBoundingClientRect();
+      const checkSticky = () => {
+        const rect = node.getBoundingClientRect();
+        const containerRect = scrollContainer.getBoundingClientRect();
 
-				// Element is stuck when it's at the top of the scroll container
-				// Use a small threshold (+1) to account for sub-pixel rounding
-				const isStuck = rect.top <= containerRect.top + 1;
+        // Get the computed 'top' value of the sticky element
+        const computedStyle = window.getComputedStyle(node);
+        const stickyTop = parseFloat(computedStyle.top) || 0;
 
-				setStuck(isStuck);
-			};
+        // Element is stuck when it's at its sticky position (container top + sticky top offset)
+        // Use a small threshold (+1) to account for sub-pixel rounding
+        const isStuck = rect.top <= containerRect.top + stickyTop + 1;
 
-			// Attach scroll listener with passive flag for better performance
-			scrollContainer.addEventListener("scroll", checkSticky, {
-				passive: true,
-			});
+        setStuck(isStuck);
+      };
 
-			// Run initial check
-			checkSticky();
+      // Attach scroll listener with passive flag for better performance
+      scrollContainer.addEventListener("scroll", checkSticky, {
+        passive: true,
+      });
 
-			// Store cleanup function
-			cleanupRef.current = () => {
-				scrollContainer.removeEventListener("scroll", checkSticky);
-			};
-		});
-	}, []);
+      // Run initial check
+      checkSticky();
 
-	// Cleanup on unmount
-	useEffect(() => {
-		return () => {
-			if (cleanupRef.current) {
-				cleanupRef.current();
-			}
-		};
-	}, []);
+      // Store cleanup function
+      cleanupRef.current = () => {
+        scrollContainer.removeEventListener("scroll", checkSticky);
+      };
+    });
+  }, []);
 
-	return { stuck, stickyRef };
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    };
+  }, []);
+
+  return { stuck, stickyRef };
 }
