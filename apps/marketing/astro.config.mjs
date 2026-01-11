@@ -47,7 +47,7 @@ export default defineConfig({
         ...openAPISidebarGroups,
         {
           label: "Self hosting",
-          items: [{ label: "Overview", slug: "docs/self-hosting/overview" }],
+          items: [{ label: "Overview", slug: "docs/self-hosting/railway" }],
         },
       ],
       customCss: ["./src/styles/custom.css"],
