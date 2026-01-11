@@ -1,5 +1,5 @@
 import { auth } from "@repo/auth/index";
-import { auth as authSchema, db } from "@repo/database";
+import { auth as authSchema, db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { getCookieValue } from "./util";
 
@@ -40,11 +40,17 @@ function getSessionToken(headers: Headers): string {
 	}
 }
 // 🧠 Simple in-memory cache for system account existence
-const systemAccountCache = {
+const systemAccountCache: {
+	exists: boolean,
+	checkedAt: number,
+	ttl: number,
+	user: schema.userType | undefined
+} = {
 	exists: false,
 	checkedAt: 0,
 	ttl: 48 * 60 * 60 * 1000, // 48 hours
-};
+	user: undefined
+}
 
 export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60 * 1000): Promise<SessionValue | null> {
 	const key = getSessionToken(headers);
@@ -64,33 +70,29 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 		sayrInternalHeader === process.env.INTERNAL_SECRET &&
 		fromService === "sayr-worker";
 	if (isInternal) {
-		const systemId = process.env.SYSTEM_ACCOUNT_ID;
-		if (!systemId) return null;
-
 		// ⚙️ Use cache if valid
-		if (systemAccountCache.exists && now - systemAccountCache.checkedAt < systemAccountCache.ttl) {
+		if (systemAccountCache.exists && now - systemAccountCache.checkedAt < systemAccountCache.ttl && systemAccountCache.user) {
 			console.log("✅ System account confirmed (from cache)");
 			return {
 				// biome-ignore lint/suspicious/noExplicitAny: <needed>
-				session: { userId: systemId } as any,
+				session: { userId: systemAccountCache.user.id } as any,
 				// biome-ignore lint/suspicious/noExplicitAny: <needed>
-				user: { id: systemId } as any,
+				user: systemAccountCache.user as any,
 			};
 		}
 
 		try {
 			// 🚀 Minimal existence check
-			const result = await db
-				.select({ id: authSchema.user.id })
+			const [systemAccount] = await db
+				.select()
 				.from(authSchema.user)
-				.where(eq(authSchema.user.id, systemId))
+				.where(eq(authSchema.user.role, "system"))
 				.limit(1);
-
-			const exists = result.length > 0;
+			const exists = systemAccount !== undefined;
 			systemAccountCache.exists = exists;
 			systemAccountCache.checkedAt = now;
-
 			if (exists) {
+				systemAccountCache.user = systemAccount
 				console.log("✅ System account confirmed (cached 48h)");
 			} else {
 				console.warn("⚠️ System account missing (cached 48h anyway)");
@@ -104,9 +106,9 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 		// ✅ Always provide a valid system session for internal callers
 		return {
 			// biome-ignore lint/suspicious/noExplicitAny: <needed>
-			session: { userId: systemId } as any,
+			session: { userId: systemAccountCache?.user?.id } as any,
 			// biome-ignore lint/suspicious/noExplicitAny: <needed>
-			user: { id: systemId } as any,
+			user: systemAccountCache.user as any,
 		};
 	}
 
