@@ -1,7 +1,6 @@
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
-import { IconArrowRight } from "@tabler/icons-react";
-import { RenderCategory } from "../../shared/category";
+import { IconArrowRight, IconCategory } from "@tabler/icons-react";
+import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
@@ -41,39 +40,49 @@ export function TimelineCategoryChange({
         {fromCategory ? (
           <>
             from{" "}
-            <RenderCategory
-              category={fromCategory}
-              className="inline-flex bg-transparent"
+            <InlineLabel
+              text={fromCategory.name}
+              icon={
+                <RenderIcon
+                  iconName={fromCategory.icon || "IconCategory"}
+                  size={12}
+                  color={fromCategory.color || undefined}
+                  raw
+                />
+              }
             />{" "}
           </>
         ) : fromId ? (
           <>
             from{" "}
-            <Badge
-              variant="secondary"
-              className="inline-flex items-center gap-1 justify-center h-5 border border-border"
-            >
-              Unknown ({fromId})
-            </Badge>{" "}
+            <InlineLabel
+              text={`Unknown (${fromId})`}
+              icon={<IconCategory size={12} />}
+            />{" "}
           </>
         ) : null}
         {toCategory ? (
           <>
             to{" "}
-            <RenderCategory
-              category={toCategory}
-              className="inline-flex bg-transparent"
+            <InlineLabel
+              text={toCategory.name}
+              icon={
+                <RenderIcon
+                  iconName={toCategory.icon || "IconCategory"}
+                  size={12}
+                  color={toCategory.color || undefined}
+                  raw
+                />
+              }
             />
           </>
         ) : toId ? (
           <>
             to{" "}
-            <Badge
-              variant="secondary"
-              className="inline-flex items-center gap-1 justify-center h-5 border border-border"
-            >
-              Unknown ({toId})
-            </Badge>
+            <InlineLabel
+              text={`Unknown (${toId})`}
+              icon={<IconCategory size={12} />}
+            />
           </>
         ) : null}
       </>

@@ -171,6 +171,7 @@ function CommentHistoryDialog({
                       }}
                       icon={IconMessageDots}
                       color="bg-accent text-primary-foreground"
+                      variant="comment"
                       availableUsers={availableUsers || []}
                       categories={categories || []}
                       tasks={tasks || []}
@@ -444,6 +445,7 @@ export function TimelineComment({
         tasks={tasks || []}
         icon={IconMessageDots}
         color="bg-accent text-primary-foreground"
+        variant="comment"
         isEditing={isEditing}
         onContentChange={setEditedContent}
         onSave={handleSave}
@@ -459,8 +461,8 @@ export function TimelineComment({
                 existingReactions={
                   account?.id
                     ? (Object.entries(item.reactions?.reactions ?? {})
-                      .filter(([, data]) => data.users.includes(account.id))
-                      .map(([emoji]) => emoji) as ReactionEmoji[])
+                        .filter(([, data]) => data.users.includes(account.id))
+                        .map(([emoji]) => emoji) as ReactionEmoji[])
                     : []
                 }
               />

@@ -3,6 +3,8 @@ import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 import { AvatarImage } from "@repo/ui/components/avatar";
 import { InlineLabel } from "../../shared/inlinelabel";
+import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 
 export function TimelineCreated({ item, availableUsers }: TimelineItemProps) {
   return (
@@ -12,10 +14,13 @@ export function TimelineCreated({ item, availableUsers }: TimelineItemProps) {
         item={item}
         icon={IconPlus}
         color="bg-accent text-primary-foreground"
-        first={true}
+        variant="description"
       />
+      <div className="flex flex-col gap-3 pb-4">
+        <Separator />
+        <Label variant={"heading"}>Activity</Label>
+      </div>
       <TimelineItemWrapper
-        hideContent={true}
         availableUsers={availableUsers || []}
         item={item}
         icon={IconPlus}
