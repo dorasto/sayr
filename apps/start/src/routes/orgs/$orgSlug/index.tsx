@@ -27,7 +27,13 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
       }),
     ]);
 
-    const tasks = allTasks.filter((t) => t.visible === "public");
+    // Filter to public tasks and only include public comments
+    const tasks = allTasks
+      .filter((t) => t.visible === "public")
+      .map((t) => ({
+        ...t,
+        comments: t.comments?.filter((c) => c.visibility === "public"),
+      }));
 
     return { organization, tasks, labels, categories };
   });
