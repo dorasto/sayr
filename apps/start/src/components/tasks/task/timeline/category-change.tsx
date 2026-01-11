@@ -8,7 +8,8 @@ import type { TimelineItemProps } from "./types";
 export function TimelineCategoryChange({
   item,
   categories = [],
-}: TimelineItemProps & { categories: schema.categoryType[] }) {
+  showSeparator = true,
+}: TimelineItemProps & { categories: schema.categoryType[]; showSeparator?: boolean }) {
   const renderCategoryChange = () => {
     if (!item.fromValue && !item.toValue) {
       return (
@@ -22,12 +23,9 @@ export function TimelineCategoryChange({
       );
     }
 
-    // Remove quotes if stored as stringified JSON
     const fromId = (item.fromValue as string)?.replaceAll('"', "") || null;
     const toId = (item.toValue as string)?.replaceAll('"', "") || null;
-
     const fromCategory = categories.find((c) => c.id === fromId);
-
     const toCategory = categories.find((c) => c.id === toId);
 
     return (
@@ -91,6 +89,7 @@ export function TimelineCategoryChange({
 
   return (
     <TimelineItemWrapper
+      showSeparator={showSeparator}
       item={item}
       icon={IconArrowRight}
       color="bg-accent text-primary-foreground"

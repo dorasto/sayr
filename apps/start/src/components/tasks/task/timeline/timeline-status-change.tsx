@@ -6,7 +6,7 @@ import { InlineLabel } from "../../shared/inlinelabel";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 
-export function TimelineStatusChange({ item }: TimelineItemProps) {
+export function TimelineStatusChange({ item, showSeparator = true }: TimelineItemProps & { showSeparator?: boolean }) {
   const renderStatusChange = () => {
     if (!item.fromValue || !item.toValue) {
       return "changed the status";
@@ -28,14 +28,6 @@ export function TimelineStatusChange({ item }: TimelineItemProps) {
           image={item.actor?.image || ""}
         />{" "}
         changed the status from{" "}
-        {/*<Badge
-					variant={"outline"}
-					className="inline-flex items-center gap-1 justify-start"
-				>
-					{fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
-					<span>{fromConfig?.label || from.replaceAll('"', "")}</span>
-				</Badge>{" "}
-				*/}
         <InlineLabel
           text={fromConfig?.label || to.replaceAll('"', "")}
           icon={fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
@@ -51,6 +43,7 @@ export function TimelineStatusChange({ item }: TimelineItemProps) {
 
   return (
     <TimelineItemWrapper
+      showSeparator={showSeparator}
       item={item}
       icon={IconArrowRight}
       color="bg-accent text-primary-foreground"

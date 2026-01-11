@@ -11,7 +11,8 @@ export function ConsolidatedTimelineLabels({
 	consolidatedItem,
 	labels,
 	availableUsers,
-}: Pick<ConsolidatedTimelineItemProps, "consolidatedItem" | "labels" | "availableUsers">) {
+	showSeparator = true,
+}: Pick<ConsolidatedTimelineItemProps, "consolidatedItem" | "labels" | "availableUsers" | "showSeparator">) {
 	const addedLabels = consolidatedItem.items
 		.filter((item) => item.eventType === "label_added")
 		.map((item) => item.toValue as string)
@@ -69,6 +70,7 @@ export function ConsolidatedTimelineLabels({
 			availableUsers={availableUsers}
 			icon={IconTag}
 			color="bg-accent text-primary-foreground"
+			showSeparator={showSeparator}
 		>
 			{renderContent()}
 		</TimelineItemWrapper>
@@ -78,7 +80,8 @@ export function ConsolidatedTimelineLabels({
 export function ConsolidatedTimelineAssignees({
 	consolidatedItem,
 	availableUsers,
-}: Pick<ConsolidatedTimelineItemProps, "consolidatedItem" | "availableUsers">) {
+	showSeparator = true,
+}: Pick<ConsolidatedTimelineItemProps, "consolidatedItem" | "availableUsers" | "showSeparator">) {
 	const addedAssignees = consolidatedItem.items
 		.filter((item) => item.eventType === "assignee_added")
 		.map((item) => availableUsers.find((user) => user.id === item.toValue))
@@ -136,13 +139,14 @@ export function ConsolidatedTimelineAssignees({
 			item={mockItem}
 			icon={icon}
 			color="bg-accent text-primary-foreground"
+			showSeparator={showSeparator}
 		>
 			{renderContent()}
 		</TimelineItemWrapper>
 	);
 }
 
-export function ConsolidatedTimelineItem({ consolidatedItem, labels, availableUsers }: ConsolidatedTimelineItemProps) {
+export function ConsolidatedTimelineItem({ consolidatedItem, labels, availableUsers, showSeparator = true }: ConsolidatedTimelineItemProps) {
 	const hasLabelEvents = consolidatedItem.eventTypes.some(
 		(type) => type === "label_added" || type === "label_removed"
 	);
@@ -161,16 +165,17 @@ export function ConsolidatedTimelineItem({ consolidatedItem, labels, availableUs
 					availableUsers={availableUsers}
 					consolidatedItem={consolidatedItem}
 					labels={labels}
+					showSeparator={showSeparator}
 				/>
 			)}
 
 			{/* 👤 Assignees */}
 			{hasAssigneeEvents && (
-				<ConsolidatedTimelineAssignees consolidatedItem={consolidatedItem} availableUsers={availableUsers} />
+				<ConsolidatedTimelineAssignees consolidatedItem={consolidatedItem} availableUsers={availableUsers} showSeparator={showSeparator} />
 			)}
 
 			{/* 🧩 Fallback */}
-			{hasOtherEvents && <TimelineUpdated item={firstItem} />}
+			{hasOtherEvents && <TimelineUpdated item={firstItem} showSeparator={showSeparator} />}
 		</>
 	);
 }

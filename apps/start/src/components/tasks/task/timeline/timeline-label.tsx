@@ -4,12 +4,13 @@ import { RenderLabel } from "../../shared/label";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 
-export function TimelineLabelAdded({ item, labels = [] }: TimelineItemProps) {
+export function TimelineLabelAdded({ item, labels = [], showSeparator = true }: TimelineItemProps & { showSeparator?: boolean }) {
 	const value = item.toValue as string;
 	const label = labels.find((label) => label.id === value?.replaceAll('"', ""));
 	if (!label) {
 		return (
 			<TimelineItemWrapper
+				showSeparator={showSeparator}
 				item={item}
 				icon={IconTagPlus}
 				color="bg-accent text-muted-foreground"
@@ -20,6 +21,7 @@ export function TimelineLabelAdded({ item, labels = [] }: TimelineItemProps) {
 	}
 	return (
 		<TimelineItemWrapper
+			showSeparator={showSeparator}
 			item={item}
 			icon={IconTagPlus}
 			color="bg-accent text-primary-foreground"
@@ -33,12 +35,14 @@ export function TimelineLabelAdded({ item, labels = [] }: TimelineItemProps) {
 		</TimelineItemWrapper>
 	);
 }
-export function TimelineLabelRemoved({ item, labels = [] }: TimelineItemProps) {
+
+export function TimelineLabelRemoved({ item, labels = [], showSeparator = true }: TimelineItemProps & { showSeparator?: boolean }) {
 	const value = item.toValue as string;
 	const label = labels.find((label) => label.id === value?.replaceAll('"', ""));
 	if (!label) {
 		return (
 			<TimelineItemWrapper
+				showSeparator={showSeparator}
 				item={item}
 				icon={IconTagMinus}
 				color="bg-accent text-muted-foreground"
@@ -49,6 +53,7 @@ export function TimelineLabelRemoved({ item, labels = [] }: TimelineItemProps) {
 	}
 	return (
 		<TimelineItemWrapper
+			showSeparator={showSeparator}
 			item={item}
 			icon={IconTagMinus}
 			color="bg-accent text-primary-foreground"

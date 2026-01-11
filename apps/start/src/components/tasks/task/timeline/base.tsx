@@ -45,6 +45,7 @@ export function TimelineItemWrapper({
   isSaving,
   canSave,
   variant = "activity",
+  showSeparator = true,
   onReactionToggle,
 }: TimelineItemWrapperProps & {
   onReactionToggle?: (emoji: ReactionEmoji) => void;
@@ -69,7 +70,9 @@ export function TimelineItemWrapper({
       {/* Activity items show the timeline header with indicator */}
       {showIndicator && (
         <TimelineHeader>
-          <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-4 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
+          {showSeparator && (
+            <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-4 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
+          )}
           <TimelineTitle className="mt-0.5">
             <Label
               variant={"description"}

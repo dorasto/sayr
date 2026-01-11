@@ -5,7 +5,7 @@ import { InlineLabel } from "../../shared/inlinelabel";
 import { AvatarWithName, TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 
-export function TimelinePriorityChange({ item }: TimelineItemProps) {
+export function TimelinePriorityChange({ item, showSeparator = true }: TimelineItemProps & { showSeparator?: boolean }) {
   // Parse the 'to' value to get the priority config for the icon
   const to = (item.toValue as string)?.replaceAll('"', "");
   const toConfig = priorityConfig[to as keyof typeof priorityConfig];
@@ -55,6 +55,7 @@ export function TimelinePriorityChange({ item }: TimelineItemProps) {
 
   return (
     <TimelineItemWrapper
+      showSeparator={showSeparator}
       item={item}
       icon={PriorityIcon}
       color="bg-accent text-primary-foreground"

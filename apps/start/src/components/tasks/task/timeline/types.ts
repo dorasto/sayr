@@ -38,6 +38,12 @@ export interface TimelineItemWrapperProps {
    * @default "activity"
    */
   variant?: TimelineItemVariant;
+  /**
+   * Whether to show the separator line below this item.
+   * Should be false if the next item is not an activity.
+   * @default true
+   */
+  showSeparator?: boolean;
 }
 
 export interface GlobalTimelineProps {
@@ -60,4 +66,5 @@ export interface ConsolidatedTimelineItemProps {
   consolidatedItem: ConsolidatedTimelineItem;
   labels: schema.labelType[];
   availableUsers: schema.userType[];
+  showSeparator?: boolean;
 }
