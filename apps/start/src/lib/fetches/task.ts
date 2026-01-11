@@ -1,6 +1,7 @@
 import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
+console.log("🚀 ~ import.meta.env:", import.meta.env)
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
 
 /**

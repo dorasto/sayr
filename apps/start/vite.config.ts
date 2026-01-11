@@ -11,6 +11,9 @@ const config = defineConfig({
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
       process.env.APP_ENV ?? "development",
     ),
+    "VITE_APP_ENV": JSON.stringify(
+      process.env.APP_ENV ?? "development",
+    ),
   },
   plugins: [
     devtools(),
