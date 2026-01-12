@@ -1,5 +1,6 @@
 import { db, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
+import { createHash } from "node:crypto";
 export async function getOrganization(
 	orgId: string,
 	userId: string,
@@ -66,4 +67,16 @@ export function getCookieValue(headers: Headers, name: string): string | null {
 	const cookieHeader = headers.get("cookie") ?? "";
 	const match = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
 	return match ? (match[1] ?? null) : null;
+}
+
+export function getAnonHash(
+	ip: string,
+	userAgent: string,
+	cookieId?: string
+) {
+	return createHash("sha256")
+		.update(
+			`${ip}|${userAgent}|${cookieId ?? ""}|${process.env.VOTE_SALT}`
+		)
+		.digest("hex");
 }

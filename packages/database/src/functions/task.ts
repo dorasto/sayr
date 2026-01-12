@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, or } from "drizzle-orm";
 import { taskCommentHistory, type NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
@@ -594,4 +594,59 @@ export async function getCommentReactionsWithUsers(
     total,
     reactions: summary,
   };
+}
+
+export async function createOrToggleTaskVote({
+  orgId,
+  taskId,
+  userId,
+  anonHash,
+}: {
+  orgId: string;
+  taskId: string;
+  userId: string | null;
+  anonHash: string | null;
+}) {
+  return db.transaction(async (tx) => {
+    const existing = await tx.query.taskVote.findFirst({
+      where: and(
+        eq(schema.taskVote.taskId, taskId),
+        or(
+          userId ? eq(schema.taskVote.userId, userId) : undefined,
+          eq(schema.taskVote.anonHash, anonHash || "")
+        ),
+      ),
+    });
+
+    if (existing) {
+      // REMOVE vote
+      await tx.delete(schema.taskVote).where(eq(schema.taskVote.id, existing.id));
+
+      await tx
+        .update(schema.task)
+        .set({
+          voteCount: sql`${schema.task.voteCount} - 1`,
+        })
+        .where(eq(schema.task.id, taskId));
+
+      return { added: false };
+    }
+
+    // ADD vote
+    await tx.insert(schema.taskVote).values({
+      taskId,
+      organizationId: orgId,
+      userId,
+      anonHash,
+    });
+
+    await tx
+      .update(schema.task)
+      .set({
+        voteCount: sql`${schema.task.voteCount} + 1`,
+      })
+      .where(eq(schema.task.id, taskId));
+
+    return { added: true };
+  });
 }

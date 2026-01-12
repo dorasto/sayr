@@ -258,6 +258,13 @@ export type WSMessage =
 		data: schema.TaskWithLabels;
 	})
 	| (BaseMessage & {
+		type: "UPDATE_TASK_VOTE";
+		data: {
+			id: schema.TaskWithLabels["id"];
+			voteCount: schema.TaskWithLabels["voteCount"];
+		}
+	})
+	| (BaseMessage & {
 		type: "UPDATE_TASK_COMMENTS";
 		data: {
 			id: string;

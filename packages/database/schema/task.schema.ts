@@ -36,6 +36,7 @@ export const task = table(
 		priority: priorityEnum("none").notNull(),
 		createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),
 		category: v.text("category").references(() => category.id, { onDelete: "set null" }),
+		voteCount: v.integer("vote_count").notNull().default(0),
 	},
 	(t) => [
 		v.index("idx_task_org_status_priority").on(t.organizationId, t.status, t.priority),

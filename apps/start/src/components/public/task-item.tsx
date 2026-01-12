@@ -220,7 +220,7 @@ export function PublicTaskItem({ task, categories = [] }: PublicTaskItemProps) {
             className="size-12 flex flex-col gap-0 aspect-square"
           >
             <IconChevronUp />
-            1.2k
+            {task.voteCount}
           </Button>
         </TileAction>
       </div>

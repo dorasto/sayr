@@ -32,6 +32,20 @@ export function PublicTaskView() {
         setLabels(msg.data);
       }
     },
+    UPDATE_TASK_VOTE: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        const { id, voteCount } = msg.data;
+        const updatedTasks = tasks.map((task) =>
+          task.id === id
+            ? {
+              ...task,
+              voteCount,
+            }
+            : task
+        );
+        setTasks(updatedTasks);
+      }
+    },
     // UPDATE_VIEWS: (msg) => {
     //   if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
     //     setViews(msg.data);

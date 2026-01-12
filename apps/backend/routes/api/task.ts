@@ -4,6 +4,7 @@ import {
 	addLogEventTask,
 	createComment,
 	createOrToggleCommentReaction,
+	createOrToggleTaskVote,
 	createTask,
 	db,
 	getMergedTaskActivity,
@@ -29,6 +30,8 @@ import {
 	findClientsByUserId,
 } from "../ws";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { getAnonHash } from "@/util";
+import { getClientIP } from "@/tracing/rootSpanMiddleware";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
@@ -1711,5 +1714,86 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 	return c.json({
 		success: true,
 		pagination: { totalItems, totalPages, limit: perPage },
+	});
+});
+
+apiRouteAdminProjectTask.post("/create-vote", async (c) => {
+	const traceAsync = createTraceAsync();
+
+	const { orgId, taskId, wsClientId } = await c.req.json();
+	const session = c.get("session");
+
+	// 2️⃣ Anonymous fingerprint (NO IP STORED)
+	const ip = getClientIP(c.req.raw);
+	const userAgent = c.req.header("user-agent") ?? "unknown";
+	const anonHash = getAnonHash(ip, userAgent);
+	const userId = session?.userId ?? null;
+	// 3️⃣ Insert or toggle vote
+	const result = await traceAsync(
+		"task.vote.toggle",
+		() =>
+			createOrToggleTaskVote({
+				orgId,
+				taskId,
+				userId,
+				anonHash,
+			}),
+		{
+			description: "Adding or removing task vote",
+			data: { orgId, taskId, userId: session?.userId },
+			onSuccess: (result) => ({
+				description: result.added
+					? "Vote added successfully"
+					: "Vote removed successfully",
+				data: result,
+			}),
+		},
+	);
+	const updatedTask = await traceAsync(
+		"task.vote.fetch",
+		() =>
+			db.query.task.findFirst({
+				columns: { id: true, voteCount: true },
+				where: eq(schema.task.id, taskId),
+			}),
+		{ description: "Fetching updated task vote count" },
+	);
+	// 4️⃣ Broadcast to relevant clients
+	await traceAsync(
+		"task.vote.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_TASK_VOTE" as WSBaseMessage["type"],
+				data: {
+					id: taskId,
+					voteCount: updatedTask?.voteCount ?? 0,
+				},
+			};
+
+			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			broadcastPublic(orgId, { ...data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						client.wsClientId !== wsClientId &&
+						client.orgId !== orgId &&
+						!(
+							client.channel === `task:${taskId}` ||
+							client.channel === "tasks"
+						) &&
+						broadcastIndividual(client.socket, data, orgId),
+				);
+			});
+		},
+		{ description: "Broadcasting task vote update" },
+	);
+
+	return c.json({
+		success: true,
+		data: { taskId, voted: result.added, voteCount: updatedTask?.voteCount ?? 0 },
 	});
 });
