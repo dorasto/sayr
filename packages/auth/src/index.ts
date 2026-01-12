@@ -5,6 +5,11 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, genericOAuth } from "better-auth/plugins";
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
 const isProd = process.env.APP_ENV === "production";
+// Auth callback URL for OAuth providers (must be consistent subdomain)
+const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_URL_ROOT;
+// Cookie domains need at least 2 parts (e.g., ".app.localhost" works, ".localhost" doesn't)
+// For local dev with subdomains, use "app.localhost" pattern or sslip.io/nip.io
+const isBarelocalhost = rootUrl === "localhost";
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -18,8 +23,10 @@ export const auth = betterAuth({
 		`http://*.${rootUrl}`,
 	],
 	advanced: {
+		// Enable cross-subdomain cookies for production and dev domains that support it
+		// Disabled for bare "localhost" since browsers reject .localhost as cookie domain
 		crossSubDomainCookies: {
-			enabled: isProd,
+			enabled: !isBarelocalhost,
 			domain: `.${rootUrl}`,
 		},
 	},
@@ -38,7 +45,7 @@ export const auth = betterAuth({
 		github: {
 			clientId: process.env.GITHUB_CLIENT_ID as string,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-			redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/callback/github`,
+			redirectURI: `${authCallbackUrl}/api/auth/callback/github`,
 			mapProfileToUser: async (profile) => {
 				return {
 					id: String(profile.id),
@@ -76,7 +83,7 @@ export const auth = betterAuth({
 					authorizationUrlParams: {
 						redirect_to: "/",
 					},
-					redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/oauth2/callback/doras`,
+					redirectURI: `${authCallbackUrl}/api/auth/oauth2/callback/doras`,
 					getUserInfo: async (tokens) => {
 						if (tokens.accessToken) {
 							const data = await DorasUser(tokens.accessToken);

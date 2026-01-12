@@ -33,10 +33,13 @@ export const getRouter = () => {
 				}
 
 				// Admin host → admin is root
+				// Handles: admin.sayr.io, admin.app.localhost, localhost, admin.127.0.0.1.sslip.io
 				if (
 					hostname.startsWith("admin.") ||
 					hostname === "localhost" ||
-					hostname.startsWith("localhost:")
+					hostname.startsWith("localhost:") ||
+					hostname === "app.localhost" ||
+					hostname.startsWith("app.localhost:")
 				) {
 					return;
 				}
