@@ -12,21 +12,15 @@ export function PublicTaskView() {
   const { tasks, categories, ws, setTasks, organization, setLabels, setCategories } = usePublicOrganizationLayout();
   const { value: votes } = useStateManagementFetch<
     {
-      success: boolean
-      tasks: Array<{
-        taskId: string
-        voteCount: number
-        count: number
-      }>
-    },
+      taskId: string
+      voteCount: number
+      count: number
+    }[],
     Partial<{
-      success: boolean
-      tasks: Array<{
-        taskId: string
-        voteCount: number
-        count: number
-      }>
-    }>
+      taskId: string
+      voteCount: number
+      count: number
+    }[]>
   >({
     key: ["votes", organization.id],
     fetch: {
@@ -35,7 +29,7 @@ export function PublicTaskView() {
         const res = await fetch(url, { credentials: "include" });
         if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
         const data = await res.json();
-        return data.data;
+        return data.data.tasks;
       },
     },
     staleTime: 1000,
@@ -113,7 +107,7 @@ export function PublicTaskView() {
   return (
     <div className="flex flex-col gap-2">
       {filteredTasks.map((task) => {
-        const voted = !!votes.data?.tasks.find(
+        const voted = !!votes.data?.find(
           (e) => e.taskId === task.id
         );
         return (
