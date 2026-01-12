@@ -12,8 +12,8 @@ const useWebSocketPublic = ({
 	organization,
 	setOrganization,
 }: {
-	organization: schema.organizationType;
-	setOrganization: (newValue: schema.organizationType) => void;
+	organization: schema.OrganizationWithMembers;
+	setOrganization: (newValue: schema.OrganizationWithMembers) => void;
 }) => {
 	const [ws, setWs] = useState<WebSocket | null>(null);
 	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
