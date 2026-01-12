@@ -6,6 +6,7 @@ import { admin, genericOAuth } from "better-auth/plugins";
 const rootUrl = process.env.VITE_URL_ROOT;
 const root = rootUrl ? new URL(rootUrl) : null;
 const rootHost = root?.hostname;
+const isProd = process.env.APP_ENV === "true";
 const trustedOrigins = rootHost
 	? [
 		// ✅ root domain
@@ -24,7 +25,7 @@ export const auth = betterAuth({
 	trustedOrigins,
 	advanced: {
 		crossSubDomainCookies: {
-			enabled: true,
+			enabled: isProd,
 			domain: `.${rootHost}`,
 		},
 	},
