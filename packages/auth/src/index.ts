@@ -3,13 +3,31 @@ import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, genericOAuth } from "better-auth/plugins";
+const rootUrl = process.env.VITE_URL_ROOT;
+const root = rootUrl ? new URL(rootUrl) : null;
+const rootHost = root?.hostname;
+const trustedOrigins = rootHost
+	? [
+		// ✅ root domain
+		`${root.protocol}//${rootHost}`,
+		rootHost,
+
+		// ✅ wildcard subdomains
+		`*.${rootHost}`,
+	]
+	: [];
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema.auth,
 	}),
-	baseURL: process.env.VITE_URL_ROOT,
-	trustedOrigins: ["http://localhost:3000", process.env.VITE_URL_ROOT || ""],
+	trustedOrigins,
+	advanced: {
+		crossSubDomainCookies: {
+			enabled: false,
+			domain: `.${rootHost}`,
+		},
+	},
 	user: {
 		additionalFields: {
 			role: {
@@ -54,14 +72,14 @@ export const auth = betterAuth({
 					providerId: "doras",
 					clientId: process.env.DORAS_CLIENT_ID as string,
 					clientSecret: process.env.DORAS_CLIENT_SECRET as string,
-					authorizationUrl: "https://doras.to/oauth2/authorize",
+					authorizationUrl: "http://localhost:3001/oauth2/authorize",
 					tokenUrl: "https://doras.to/oauth2/token",
 					userInfoUrl: "https://doras.to/api/v1/account/me",
 					scopes: ["identity,brands"],
 					responseType: "code",
 					authentication: "post",
 					authorizationUrlParams: {
-						redirect_to: `${process.env.VITE_URL_ROOT}/admin` as string,
+						redirect_to: "/",
 					},
 					redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/oauth2/callback/doras`,
 					getUserInfo: async (tokens) => {

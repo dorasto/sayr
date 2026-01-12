@@ -14,6 +14,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@repo/ui/components/input-group";
+import LoginDialog from "../auth/login";
 
 export default function PublicNavigation() {
   const { data: session } = authClient.useSession();
@@ -57,13 +58,15 @@ export default function PublicNavigation() {
         {session ? (
           session.user.name
         ) : (
-          <Button
-            variant={"ghost"}
-            className="flex items-center px-2 rounded-xl h-8 p-1 px-2 bg-transparent hover:bg-accent border-0 text-muted-foreground"
-          >
-            <IconUser className="h-6 w-6" />
-            Log in
-          </Button>
+          // <Button
+          //   variant={"ghost"}
+          //   className="flex items-center px-2 rounded-xl h-8 p-1 px-2 bg-transparent hover:bg-accent border-0 text-muted-foreground"
+          //   onClick={}
+          // >
+          //   <IconUser className="h-6 w-6" />
+          //   Log in
+          // </Button>
+          <LoginDialog trigger={<Button size={"lg"}>Log in</Button>} />
         )}
       </div>
     </header>

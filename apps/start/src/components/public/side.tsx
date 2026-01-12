@@ -32,6 +32,7 @@ import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
+import LoginDialog from "../auth/login";
 
 export default function PublicTaskSide() {
   const { organization, tasks, categories } = usePublicOrganizationLayout();
@@ -103,9 +104,7 @@ export default function PublicTaskSide() {
       className="flex flex-col gap-3 w-full sticky top-3 self-start"
       ref={stickyRef}
     >
-      <Button variant={"primary"} className="justify-start w-fit">
-        Sign in
-      </Button>
+      <LoginDialog trigger={<Button size={"lg"}>Sign in</Button>} />
       <div className="flex flex-col gap-1 bg-card rounded-xl">
         <div
           className={cn(

@@ -14,7 +14,7 @@ export const signInDoras = async () => {
     window.location.href = "/";
     return;
   }
-  await authClient.signIn.oauth2({ providerId: "doras", callbackURL: "/" });
+  await authClient.signIn.oauth2({ providerId: "doras" });
 };
 
 export const singInGithub = async () => {
@@ -23,5 +23,5 @@ export const singInGithub = async () => {
     window.location.href = "/";
     return;
   }
-  await authClient.signIn.social({ provider: "github", callbackURL: "/" });
+  await authClient.signIn.social({ provider: "github" });
 };
