@@ -16,7 +16,7 @@ import {
 	schema,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -1795,5 +1795,59 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 	return c.json({
 		success: true,
 		data: { taskId, voted: result.added, voteCount: updatedTask?.voteCount ?? 0 },
+	});
+});
+
+apiRouteAdminProjectTask.get("/voted", async (c) => {
+	const traceAsync = createTraceAsync();
+
+	const orgId = c.req.query("orgId");
+	const session = c.get("session");
+
+	if (!orgId) {
+		return c.json(
+			{ success: false, error: "Missing orgId" },
+			400,
+		);
+	}
+
+	// Identity (same as voting)
+	const ip = getClientIP(c.req.raw);
+	const userAgent = c.req.header("user-agent") ?? "unknown";
+	const anonHash = getAnonHash(ip, userAgent);
+	const userId = session?.userId ?? null;
+
+	const votedTasks = await traceAsync(
+		"task.vote.list.compact",
+		() =>
+			db
+				.select({
+					taskId: schema.task.id,
+					voteCount: schema.task.voteCount,
+					count: sql<number>`1`,
+				})
+				.from(schema.taskVote)
+				.innerJoin(
+					schema.task,
+					eq(schema.task.id, schema.taskVote.taskId),
+				)
+				.where(
+					and(
+						eq(schema.taskVote.organizationId, orgId),
+						or(
+							userId ? eq(schema.taskVote.userId, userId) : undefined,
+							eq(schema.taskVote.anonHash, anonHash),
+						),
+					),
+				)
+				.orderBy(desc(schema.task.voteCount)),
+		{ description: "Fetching voted tasks (compact)" },
+	);
+
+	return c.json({
+		success: true,
+		data: {
+			tasks: votedTasks,
+		},
 	});
 });

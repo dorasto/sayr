@@ -53,9 +53,10 @@ import {
 interface PublicTaskItemProps {
   task: schema.TaskWithLabels;
   categories?: schema.categoryType[];
+  voted?: boolean;
 }
 
-export function PublicTaskItem({ task, categories = [] }: PublicTaskItemProps) {
+export function PublicTaskItem({ task, categories = [], voted }: PublicTaskItemProps) {
   const status = statusConfig[task.status as keyof typeof statusConfig];
   const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
   const preventClickRef = useRef(false);
@@ -217,7 +218,10 @@ export function PublicTaskItem({ task, categories = [] }: PublicTaskItemProps) {
         <TileAction className="justify-center">
           <Button
             variant="primary"
-            className="size-12 flex flex-col gap-0 aspect-square"
+            className={cn(
+              "size-12 flex flex-col gap-0 aspect-square",
+              voted && "bg-primary text-primary-foreground"
+            )}
           >
             <IconChevronUp />
             {task.voteCount}

@@ -35,12 +35,25 @@ const app = new Hono<AppEnv>();
 app.use(
 	"*",
 	cors({
-		origin: [process.env.VITE_URL_ROOT as string],
-		allowMethods: ["POST", "GET", "PATCH", "PUT", "DELETE"],
+		origin: (origin) => {
+			// Allow non-browser requests
+			if (!origin) return origin;
+			// Allow all localhost (any port, any subdomain)
+			if (origin.includes("localhost")) {
+				return origin;
+			}
+			// Allow prod frontend
+			if (origin === process.env.VITE_URL_ROOT) {
+				return origin;
+			}
+			return null;
+		},
+		allowMethods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+		allowHeaders: ["Content-Type", "Authorization"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
-		maxAge: 600,
 		credentials: true,
-	})
+		maxAge: 600,
+	}),
 );
 
 // -----------------------------------------------------------------------------

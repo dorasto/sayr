@@ -5,9 +5,43 @@ import { useEffect, useMemo } from "react";
 import { PublicTaskItem } from "./task-item";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { WSMessage } from "@/lib/ws";
+import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
+const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
 
 export function PublicTaskView() {
   const { tasks, categories, ws, setTasks, organization, setLabels, setCategories } = usePublicOrganizationLayout();
+  const { value: votes } = useStateManagementFetch<
+    {
+      success: boolean
+      tasks: Array<{
+        taskId: string
+        voteCount: number
+        count: number
+      }>
+    },
+    Partial<{
+      success: boolean
+      tasks: Array<{
+        taskId: string
+        voteCount: number
+        count: number
+      }>
+    }>
+  >({
+    key: ["votes", organization.id],
+    fetch: {
+      url: `${baseApiUrl}/admin/organization/task/voted?orgId=${organization.id}`,
+      custom: async (url) => {
+        const res = await fetch(url, { credentials: "include" });
+        if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
+        const data = await res.json();
+        return data.data;
+      },
+    },
+    staleTime: 1000,
+    gcTime: 2000 * 60,
+    refetchOnWindowFocus: false,
+  });
   const { filters } = useTaskViewManager();
 
   const filteredTasks = useMemo(() => {
@@ -44,6 +78,7 @@ export function PublicTaskView() {
             : task
         );
         setTasks(updatedTasks);
+        votes.refetch();
       }
     },
     // UPDATE_VIEWS: (msg) => {
@@ -77,9 +112,19 @@ export function PublicTaskView() {
   }, [ws, handleMessage]);
   return (
     <div className="flex flex-col gap-2">
-      {filteredTasks.map((task) => (
-        <PublicTaskItem key={task.id} task={task} categories={categories} />
-      ))}
+      {filteredTasks.map((task) => {
+        const voted = !!votes.data?.tasks.find(
+          (e) => e.taskId === task.id
+        );
+        return (
+          <PublicTaskItem
+            key={task.id}
+            task={task}
+            categories={categories}
+            voted={voted}
+          />
+        );
+      })}
     </div>
   );
 }
