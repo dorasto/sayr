@@ -103,7 +103,6 @@ export const auth = betterAuth({
 		}),
 	],
 });
-console.log("🚀 ~ auth:", auth.options)
 
 async function DorasUser(accessToken: string) {
 	try {
