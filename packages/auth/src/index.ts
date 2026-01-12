@@ -4,29 +4,21 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, genericOAuth } from "better-auth/plugins";
 const rootUrl = process.env.VITE_URL_ROOT;
-const root = rootUrl ? new URL(rootUrl) : null;
-const rootHost = root?.hostname;
 const isProd = process.env.APP_ENV === "true";
-const trustedOrigins = rootHost
-	? [
-		// ✅ root domain
-		`${root.protocol}//${rootHost}`,
-		rootHost,
-
-		// ✅ wildcard subdomains
-		`*.${rootHost}`,
-	]
-	: [];
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema.auth,
 	}),
-	trustedOrigins,
+	trustedOrigins: [
+		rootUrl || "",
+		// ✅ wildcard subdomains
+		`*.${rootUrl}`,
+	],
 	advanced: {
 		crossSubDomainCookies: {
 			enabled: isProd,
-			domain: `.${rootHost}`,
+			domain: `.${rootUrl}`,
 		},
 	},
 	user: {
@@ -109,6 +101,7 @@ export const auth = betterAuth({
 		}),
 	],
 });
+console.log("🚀 ~ auth:", auth.options)
 
 async function DorasUser(accessToken: string) {
 	try {
