@@ -72,7 +72,7 @@ export const auth = betterAuth({
 					providerId: "doras",
 					clientId: process.env.DORAS_CLIENT_ID as string,
 					clientSecret: process.env.DORAS_CLIENT_SECRET as string,
-					authorizationUrl: "http://localhost:3001/oauth2/authorize",
+					authorizationUrl: "https://doras.to/oauth2/authorize",
 					tokenUrl: "https://doras.to/oauth2/token",
 					userInfoUrl: "https://doras.to/api/v1/account/me",
 					scopes: ["identity,brands"],
