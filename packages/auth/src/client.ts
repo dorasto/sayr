@@ -16,7 +16,9 @@ export const signInDoras = async () => {
   }
 
   await authClient.signIn.oauth2({
-    providerId: "doras"
+    providerId: "doras",
+    //@ts-expect-error not typed not sure why
+    redirectURL: `${window.location.origin}`,
   });
 };
 
@@ -27,6 +29,8 @@ export const singInGithub = async () => {
     return;
   }
   await authClient.signIn.social({
-    provider: "github"
+    provider: "github",
+    //@ts-expect-error not typed not sure why
+    redirectURL: `${window.location.origin}`,
   });
 };

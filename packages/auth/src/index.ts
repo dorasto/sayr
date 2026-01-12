@@ -11,9 +11,11 @@ export const auth = betterAuth({
 		schema: schema.auth,
 	}),
 	trustedOrigins: [
+		`http://${rootUrl}`,
 		`https://${rootUrl}`,
 		// ✅ wildcard subdomains
 		`https://*.${rootUrl}`,
+		`http://*.${rootUrl}`,
 	],
 	advanced: {
 		crossSubDomainCookies: {
