@@ -23,7 +23,7 @@ const useWebSocket = () => {
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_WS_URL || "/ws" : "/ws");
+				webSocket = new WebSocket(import.meta.env.VITE_APP_ENV === "development" ? `ws://${window.location.hostname}:5468/ws` || "/ws" : "/ws");
 				webSocket.onopen = () => {
 					console.info("WebSocket connection established");
 					lastMessageTimestamp = Date.now();
