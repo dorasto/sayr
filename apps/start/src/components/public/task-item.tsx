@@ -140,12 +140,12 @@ export function PublicTaskItem({
             <InlineLabel
               text={taskCommentsCountString}
               icon={<IconMessage className="size-3" />}
-              className="bg-accent rounded-lg ps-5 pe-1"
+              className="rounded-lg ps-5 pe-1"
             />
             <InlineLabel
               text={status?.label || task.status}
               icon={status?.icon(cn(status?.className, "size-3"))}
-              className={cn("bg-accent rounded-lg ps-5 pe-1")}
+              className={cn("rounded-lg ps-5 pe-1")}
               style={{
                 background: `hsla(${extractHslValues(status.hsla)}, 0.1)`,
               }}
@@ -155,7 +155,7 @@ export function PublicTaskItem({
               return category ? (
                 <InlineLabel
                   text={category.name}
-                  className={cn("bg-accent rounded-lg ps-5 pe-1")}
+                  className={cn("rounded-lg ps-5 pe-1")}
                   style={{
                     background: category.color
                       ? `hsla(${extractHslValues(category.color)}, 0.1)`
@@ -176,7 +176,7 @@ export function PublicTaskItem({
               <>
                 <InlineLabel
                   text={task.labels[0]?.name || ""}
-                  className={cn("bg-accent rounded-lg ps-5 pe-1")}
+                  className={cn("rounded-lg ps-5 pe-1")}
                   icon={
                     <IconCircleFilled
                       className={cn("size-3")}

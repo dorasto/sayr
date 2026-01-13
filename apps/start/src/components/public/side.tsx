@@ -151,7 +151,7 @@ export default function PublicTaskSide() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 p-3">
+        <div className="flex flex-col gap-1 p-1">
           <Tile
             className={cn(
               "bg-card md:w-full cursor-pointer select-none",
