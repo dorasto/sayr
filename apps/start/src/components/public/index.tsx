@@ -10,10 +10,8 @@ export default function PublicOrgHomePage() {
   const { value } = useStateManagementInfiniteFetch<
     {
       data: schema.TaskWithLabels[];
-      meta: {
-        page: number;
-        hasMore: boolean;
-      };
+      page: number;
+      hasMore: boolean;
     }
   >({
     key: ["org-tasks", organization.id],
@@ -33,8 +31,8 @@ export default function PublicOrgHomePage() {
       },
 
       getNextPageParam: (lastPage) =>
-        lastPage.meta.hasMore
-          ? lastPage.meta.page + 1
+        lastPage.hasMore
+          ? lastPage.page + 1
           : undefined,
     },
     staleTime: 1000 * 30,
