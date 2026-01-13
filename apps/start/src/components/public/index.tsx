@@ -5,7 +5,7 @@ import { PublicTaskView } from "./task-view";
 export default function PublicOrgHomePage() {
   const { organization } = usePublicOrganizationLayout();
   return (
-    <div className="flex flex-col gap-6 relative">
+    <div className="flex flex-col gap-3 relative">
       <div className="relative rounded-2xl overflow-hidden bg-card border">
         <div className="aspect-21/9 w-full bg-muted/30">
           {organization.bannerImg && (

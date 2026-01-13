@@ -32,6 +32,16 @@ import {
   TileHeader,
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@repo/ui/components/input-group";
+import { SearchIcon } from "lucide-react";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
+import { IconFilter2 } from "@tabler/icons-react";
+import { useSticky } from "@/hooks/use-sticky";
+import { cn } from "@/lib/utils";
 const baseApiUrl =
   import.meta.env.VITE_APP_ENV === "development"
     ? import.meta.env.VITE_EXTERNAL_API_URL
@@ -50,6 +60,8 @@ export function PublicTaskView() {
     setCategories,
   } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
+  const { stuck, stickyRef } = useSticky();
+
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { value: votes } = useStateManagementFetch<
     {
@@ -110,7 +122,7 @@ export function PublicTaskView() {
         const now = Date.now();
         const aHours = (now - aDate) / (1000 * 60 * 60);
         const bHours = (now - bDate) / (1000 * 60 * 60);
-        
+
         const aActivity = (a.voteCount || 0) + (a.comments?.length || 0);
         const bActivity = (b.voteCount || 0) + (b.comments?.length || 0);
 
@@ -185,9 +197,12 @@ export function PublicTaskView() {
 
   const getSortLabel = (sort: SortOption) => {
     switch (sort) {
-      case "mostPopular": return "Most popular";
-      case "newest": return "Newest";
-      case "trending": return "Trending";
+      case "mostPopular":
+        return "Most popular";
+      case "newest":
+        return "Newest";
+      case "trending":
+        return "Trending";
     }
   };
 
@@ -256,51 +271,72 @@ export function PublicTaskView() {
       ws.removeEventListener("message", handleMessage);
     };
   }, [ws, handleMessage]);
+  const isMobile = useIsMobile();
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="bg-card p-3 rounded-lg">
-        <Tile className="gap-3 p-0" variant={"transparent"}>
-          <TileHeader>
-            <TileTitle>Sort by</TileTitle>
-          </TileHeader>
-          <TileAction>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="primary" size={"sm"}>
-                  {getSortLabel(sortBy)}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                  <DropdownMenuRadioItem value="mostPopular">
-                    Most popular
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="newest">
-                    Newest
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="trending">
-                    Trending
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TileAction>
-        </Tile>
+      <div
+        className="sticky top-0 z-50 pt-3 bg-background/95 backdrop-blur -mx-3 px-3"
+        ref={stickyRef}
+      >
+        <div
+          className={cn(
+            "bg-card p-3 rounded-lg flex w-full items-center shadow-xl",
+            stuck && "rounded-b-none border-b",
+          )}
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="primary" size={"sm"}>
+                <IconFilter2 />
+                {!isMobile && (
+                  <span className="truncate">{getSortLabel(sortBy)}</span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup
+                value={sortBy}
+                onValueChange={(v) => setSortBy(v as SortOption)}
+              >
+                <DropdownMenuRadioItem value="mostPopular">
+                  Most popular
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="newest">
+                  Newest
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="trending">
+                  Trending
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <InputGroup className="bg-accent rounded-lg border-transparent focus-within:bg-secondary transition-all focus-within:text-foreground placeholder:text-muted-foreground hover:bg-secondary max-w-48 h-9 ml-auto">
+            <InputGroupInput placeholder="Search..." />
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+          </InputGroup>
+        </div>
       </div>
-      {filteredTasks.map((task) => {
-        const voted = !!votes.data?.find((e) => e.taskId === task.id);
-        return (
-          <PublicTaskItem
-            key={task.id}
-            task={task}
-            categories={categories}
-            voted={voted}
-            onVote={() => handleVote(task.id)}
-          />
-        );
-      })}
+
+      <div className="flex flex-col gap-2">
+        {filteredTasks.map((task) => {
+          const voted = !!votes.data?.find((e) => e.taskId === task.id);
+          return (
+            <PublicTaskItem
+              key={task.id}
+              task={task}
+              categories={categories}
+              voted={voted}
+              onVote={() => handleVote(task.id)}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

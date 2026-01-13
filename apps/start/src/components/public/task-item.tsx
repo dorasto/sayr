@@ -18,6 +18,7 @@ import {
   IconCalendar,
   IconChevronUp,
   IconCircleFilled,
+  IconHash,
   IconMessage,
   IconMeterCube,
   IconUserOff,
@@ -116,15 +117,12 @@ export function PublicTaskItem({
   const taskCommentsCountString = task.comments?.length.toString() || "0";
 
   return (
-    <Tile className="md:w-full flex-col gap-3 items-start p-6">
+    <Tile className="md:w-full flex-col gap-3 items-start p-6 bg-accent hover:bg-secondary">
       <div className="flex items-center justify-between w-full gap-9">
         <TileHeader className="w-full">
           <TileTitle asChild>
             <Label variant={"heading"} className="text-lg font-bold">
               {task.title}
-              <span className="text-xs text-muted-foreground">
-                #{task.shortId}
-              </span>
             </Label>
           </TileTitle>
           {descriptionPreview && (
@@ -138,6 +136,7 @@ export function PublicTaskItem({
               icon={<IconCalendar className="size-3" />}
               className=" ps-5 pe-1"
             />
+
             <InlineLabel
               text={taskCommentsCountString}
               icon={<IconMessage className="size-3" />}
@@ -225,6 +224,11 @@ export function PublicTaskItem({
                 )}
               </>
             )}
+            <InlineLabel
+              text={task.shortId?.toString() || ""}
+              icon={<IconHash className="size-3" />}
+              className=" ps-5 pe-1"
+            />
           </div>
         </TileHeader>
         <TileAction className="justify-center">
@@ -237,7 +241,7 @@ export function PublicTaskItem({
               onVote?.();
             }}
             className={cn(
-              "size-12 flex flex-col gap-0 aspect-square font-bold",
+              "size-12 flex flex-col gap-0 aspect-square border-border font-bold bg-transparent hover:bg-primary/10 hover:border-primary",
               voted && "border-primary bg-primary/10",
             )}
           >
@@ -247,153 +251,5 @@ export function PublicTaskItem({
         </TileAction>
       </div>
     </Tile>
-    // <div
-    //   className={cn(
-    //     "block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded",
-    //   )}
-    //   onClick={handleClick}
-    // >
-    //   <div
-    //     className={cn(
-    //       "px-2 group/list-block h-11 max-h-11 relative flex gap-3 bg-transparent hover:bg-accent py-3 text-sm transition-colors flex-row items-center rounded",
-    //     )}
-    //   >
-    //     <div className="flex gap-2 w-full truncate">
-    //       <div className="flex flex-grow items-center gap-1 truncate">
-    //         <div className="flex items-center gap-1">
-    //           <div
-    //             className="h-4 flex items-center gap-1.5 rounded text-xs p-0.5"
-    //             title={priority?.label}
-    //           >
-    //             {priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)}
-    //           </div>
-
-    //           <div className="shrink-0 min-w-9 w-9 max-w-9">
-    //             <div className="flex items-center space-x-2">
-    //               <span className="text-xs font-medium text-muted-foreground truncate">
-    //                 #{task.shortId}
-    //               </span>
-    //             </div>
-    //           </div>
-    //         </div>
-
-    //         <div
-    //             className="size-4 grid place-items-center shrink-0"
-    //             title={status?.label}
-    //         >
-    //             {status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)}
-    //         </div>
-
-    //         <p className="truncate cursor-pointer text-base text-foreground w-fit">
-    //           {task.title}{" "}
-    //         </p>
-    //       </div>
-    //     </div>
-    //     <div className="flex shrink-0 items-center gap-2">
-    //       <div className="relative flex flex-wrap grow shrink-0 items-center gap-2 whitespace-nowrap">
-    //         {task.category &&
-    //           (() => {
-    //             const category = categories.find((c) => c.id === task.category);
-    //             return category ? (
-    //               <button
-    //                 type="button"
-    //                 onClick={(e) => {
-    //                   e.preventDefault();
-    //                   e.stopPropagation();
-    //                   handleCategoryClick(category.id);
-    //                 }}
-    //                 data-no-propagate
-    //                 className="cursor-pointer"
-    //               >
-    //                 <RenderCategory category={category} />
-    //               </button>
-    //             ) : null;
-    //           })()}
-    //         {task.labels && task.labels.length > 0 && (
-    //           <div className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto">
-    //             {task.labels.slice(0, 3).map((label) => (
-    //               <RenderLabel
-    //                 label={label}
-    //                 key={label.id + nanoid(5)}
-    //                 data-no-propagate
-    //               />
-    //             ))}
-    //             {task.labels.length > 3 && (
-    //               <Badge
-    //                 variant="secondary"
-    //                 className="flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label w-fit relative shrink-0"
-    //               >
-    //                 <div className="flex -space-x-1.5">
-    //                   {task.labels.slice(3).map((label) => (
-    //                     <IconCircleFilled
-    //                       key={label.id + nanoid(5)}
-    //                       className="h-3 w-3"
-    //                       style={{
-    //                         color: label.color || "var(--foreground)",
-    //                       }}
-    //                     />
-    //                   ))}
-    //                 </div>
-    //                 +{task.labels.length - 3} more
-    //               </Badge>
-    //             )}
-    //           </div>
-    //         )}
-    //         <div
-    //             className="flex items-center"
-    //         >
-    //             {task.assignees && task.assignees.length > 0 ? (
-    //                 task.assignees.length === 1 ? (
-    //                   <Avatar className={cn("rounded-full h-5 w-5")}>
-    //                     <AvatarImage
-    //                       src={task.assignees[0]?.image || "/avatar.jpg"}
-    //                       alt={task.assignees[0]?.name}
-    //                     />
-    //                     <AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-    //                       {task.assignees[0]?.name.slice(0, 2)}
-    //                     </AvatarFallback>
-    //                   </Avatar>
-    //                 ) : (
-    //                   <div className="flex -space-x-2">
-    //                     {task.assignees.slice(0, 3).map((assignee, index) => (
-    //                       <Avatar
-    //                         key={assignee.id + nanoid(5)}
-    //                         className={cn(
-    //                           "rounded-full h-5 w-5",
-    //                           index > 0 && "relative",
-    //                         )}
-    //                         style={{ zIndex: task.assignees.length - index }}
-    //                       >
-    //                         <AvatarImage
-    //                           src={assignee?.image || "/avatar.jpg"}
-    //                           alt={assignee?.name}
-    //                         />
-    //                         <AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-    //                           {assignee?.name.slice(0, 2)}
-    //                         </AvatarFallback>
-    //                       </Avatar>
-    //                     ))}
-    //                     {task.assignees.length > 3 && (
-    //                       <div className="flex items-center justify-center rounded-full h-5 w-5 bg-muted border-2 border-background text-xs font-medium text-muted-foreground relative">
-    //                         +{task.assignees.length - 3}
-    //                       </div>
-    //                     )}
-    //                   </div>
-    //                 )
-    //             ) : (
-    //               <div
-    //                 className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5"
-    //               >
-    //                 <IconUserOff className="h-3 w-3 shrink-0" />
-    //               </div>
-    //             )}
-    //         </div>
-    //         <span className="text-xs text-muted-foreground truncate">
-    //           {formatDateCompact(task.createdAt as Date)}
-    //         </span>
-    //       </div>
-    //     </div>
-    //   </div>
-    // </div>
   );
 }

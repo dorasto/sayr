@@ -36,6 +36,8 @@ import LoginDialog from "../auth/login";
 import { authClient } from "@repo/auth/client";
 import { InlineLabel } from "../tasks/shared/inlinelabel";
 import { Skeleton } from "@repo/ui/components/skeleton";
+import { Separator } from "@repo/ui/components/separator";
+import TasqIcon from "@repo/ui/components/brand-icon";
 
 export default function PublicTaskSide() {
   const { organization, tasks, categories } = usePublicOrganizationLayout();
@@ -104,29 +106,20 @@ export default function PublicTaskSide() {
   const { data: session, isPending } = authClient.useSession();
   return (
     <div
-      className="flex flex-col gap-3 w-full sticky top-3 self-start"
+      className="flex flex-col gap-3 w-full sticky top-0 pt-3 self-start"
       ref={stickyRef}
     >
-      {isPending ? (
-        <Skeleton className="h-10 w-full rounded-lg" />
-      ) : session ? (
-        <Button variant={"primary"} className="justify-start">
-          <InlineLabel
-            text={session.user.name || "Unknown"}
-            image={session.user.image || ""}
-            avatarClassName="size-6"
-            className="ps-9 text-sm font-bold w-full"
-          />
-        </Button>
-      ) : (
-        <LoginDialog
-          trigger={
-            <Button variant={"primary"} className="justify-start w-fit">
-              Sign in
-            </Button>
-          }
-        />
-      )}
+      {isPending
+        ? null
+        : !session && (
+            <LoginDialog
+              trigger={
+                <Button variant={"primary"} className="justify-start w-fit">
+                  Sign in
+                </Button>
+              }
+            />
+          )}
       <div className="flex flex-col gap-1 bg-card rounded-xl">
         <div
           className={cn(
@@ -241,12 +234,55 @@ export default function PublicTaskSide() {
               </Tile>
             );
           })}
-          <Label
-            variant={"subheading"}
-            className="pt-9 text-muted-foreground text-xs"
-          >
-            Powered by Sayr.io
-          </Label>
+          <Separator />
+          {isPending ? (
+            <Skeleton className="h-10 w-24 rounded-lg" />
+          ) : (
+            session && (
+              <Tile className="bg-card md:w-full cursor-pointer select-none hover:bg-accent">
+                <TileHeader className="w-full">
+                  <div className="flex flex-row gap-3 w-full">
+                    <TileTitle className="flex items-center gap-2 w-full">
+                      <TileIcon className="size-6! bg-transparent">
+                        <Avatar className="size-4! rounded-md">
+                          <AvatarImage
+                            src={session.user.image || ""}
+                            alt={session.user.name || ""}
+                          />
+                          <AvatarFallback className="rounded-md uppercase text-xs">
+                            <IconUser className="size-6! transition-all" />
+                          </AvatarFallback>
+                        </Avatar>
+                      </TileIcon>
+                      <span className="line-clamp-1">{session.user.name}</span>
+                    </TileTitle>
+                  </div>
+                </TileHeader>
+              </Tile>
+              // <Button variant={"primary"} className="justify-start">
+              //   <InlineLabel
+              //     text={session.user.name || "Unknown"}
+              //     image={session.user.image || ""}
+              //     avatarClassName="size-6"
+              //     className="ps-9 text-sm font-bold w-full"
+              //   />
+              // </Button>
+            )
+          )}
+          <Tile className="bg-card md:w-full cursor-pointer select-none hover:bg-accent">
+            <TileHeader className="w-full">
+              <div className="flex flex-row gap-3 w-full">
+                <TileTitle className="flex items-center gap-2 w-full">
+                  <TileIcon className="size-6! bg-transparent">
+                    <TasqIcon className="size-4! transition-all" />
+                  </TileIcon>
+                  <span className="line-clamp-1 text-xs">
+                    Powered by Sayr.io
+                  </span>
+                </TileTitle>
+              </div>
+            </TileHeader>
+          </Tile>
         </div>
       </div>
     </div>
