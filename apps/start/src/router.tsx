@@ -27,6 +27,7 @@ export const getRouter = () => {
 				if (
 					url.pathname.startsWith("/api") ||
 					url.pathname.startsWith("/login") ||
+					url.pathname.startsWith("/manifest.webmanifest") ||
 					url.pathname.startsWith("/invite")
 				) {
 					return;

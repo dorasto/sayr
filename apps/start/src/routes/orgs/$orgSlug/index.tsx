@@ -10,7 +10,7 @@ import {
 import PublicOrgHomePage from "@/components/public";
 import PublicNavigation from "@/components/public/navigation";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
-import { SubWrapper, Wrapper } from "@/components/generic/wrapper";
+import { SubWrapper } from "@/components/generic/wrapper";
 
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
   .inputValidator((data: { slug: string }) => data)

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
+import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
@@ -49,6 +50,11 @@ import { Route as adminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport }
 const ProsekitTestRoute = ProsekitTestRouteImport.update({
   id: '/prosekit-test',
   path: '/prosekit-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
+  id: '/manifest.webmanifest',
+  path: '/manifest.webmanifest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminRouteRoute = adminRouteRouteImport.update({
@@ -245,6 +251,7 @@ const adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/$orgId': typeof adminOrgIdRouteRouteWithChildren
   '/mine': typeof adminMineRouteRouteWithChildren
@@ -282,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/settings/org/$orgId/views/$viewId': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/login/auth-check': typeof LoginAuthCheckRouteRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
@@ -314,6 +322,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(admin)': typeof adminRouteRouteWithChildren
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
   '/(admin)/mine': typeof adminMineRouteRouteWithChildren
@@ -353,6 +362,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/$orgId'
     | '/mine'
@@ -390,6 +400,7 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/views/$viewId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/login/auth-check'
     | '/api/image-preview'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/(admin)'
+    | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/(admin)/$orgId'
     | '/(admin)/mine'
@@ -460,6 +472,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   adminRouteRoute: typeof adminRouteRouteWithChildren
+  ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ProsekitTestRoute: typeof ProsekitTestRoute
   LoginAuthCheckRouteRoute: typeof LoginAuthCheckRouteRoute
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
@@ -476,6 +489,13 @@ declare module '@tanstack/react-router' {
       path: '/prosekit-test'
       fullPath: '/prosekit-test'
       preLoaderRoute: typeof ProsekitTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifest.webmanifest': {
+      id: '/manifest.webmanifest'
+      path: '/manifest.webmanifest'
+      fullPath: '/manifest.webmanifest'
+      preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)': {
@@ -878,6 +898,7 @@ const adminRouteRouteWithChildren = adminRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   adminRouteRoute: adminRouteRouteWithChildren,
+  ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ProsekitTestRoute: ProsekitTestRoute,
   LoginAuthCheckRouteRoute: LoginAuthCheckRouteRoute,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
