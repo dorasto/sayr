@@ -14,6 +14,7 @@ import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
+import { Route as LoginAuthCheckRouteRouteImport } from './routes/login/auth-check/route'
 import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
 import { Route as adminMineRouteRouteImport } from './routes/(admin)/mine/route'
 import { Route as adminOrgIdRouteRouteImport } from './routes/(admin)/$orgId/route'
@@ -67,6 +68,11 @@ const adminIndexRoute = adminIndexRouteImport.update({
 const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
   id: '/api/image-preview',
   path: '/api/image-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginAuthCheckRouteRoute = LoginAuthCheckRouteRouteImport.update({
+  id: '/login/auth-check',
+  path: '/login/auth-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminSettingsRouteRoute = adminSettingsRouteRouteImport.update({
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/$orgId': typeof adminOrgIdRouteRouteWithChildren
   '/mine': typeof adminMineRouteRouteWithChildren
   '/settings': typeof adminSettingsRouteRouteWithChildren
+  '/login/auth-check': typeof LoginAuthCheckRouteRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/prosekit-test': typeof ProsekitTestRoute
+  '/login/auth-check': typeof LoginAuthCheckRouteRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
@@ -310,6 +318,7 @@ export interface FileRoutesById {
   '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
   '/(admin)/mine': typeof adminMineRouteRouteWithChildren
   '/(admin)/settings': typeof adminSettingsRouteRouteWithChildren
+  '/login/auth-check': typeof LoginAuthCheckRouteRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/(admin)/': typeof adminIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/$orgId'
     | '/mine'
     | '/settings'
+    | '/login/auth-check'
     | '/api/image-preview'
     | '/'
     | '/login'
@@ -381,6 +391,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/prosekit-test'
+    | '/login/auth-check'
     | '/api/image-preview'
     | '/'
     | '/login'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/(admin)/$orgId'
     | '/(admin)/mine'
     | '/(admin)/settings'
+    | '/login/auth-check'
     | '/api/image-preview'
     | '/(admin)/'
     | '/login/'
@@ -449,6 +461,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   adminRouteRoute: typeof adminRouteRouteWithChildren
   ProsekitTestRoute: typeof ProsekitTestRoute
+  LoginAuthCheckRouteRoute: typeof LoginAuthCheckRouteRoute
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
   LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -491,6 +504,13 @@ declare module '@tanstack/react-router' {
       path: '/api/image-preview'
       fullPath: '/api/image-preview'
       preLoaderRoute: typeof ApiImagePreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/auth-check': {
+      id: '/login/auth-check'
+      path: '/login/auth-check'
+      fullPath: '/login/auth-check'
+      preLoaderRoute: typeof LoginAuthCheckRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)/settings': {
@@ -859,6 +879,7 @@ const adminRouteRouteWithChildren = adminRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   adminRouteRoute: adminRouteRouteWithChildren,
   ProsekitTestRoute: ProsekitTestRoute,
+  LoginAuthCheckRouteRoute: LoginAuthCheckRouteRoute,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
   LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

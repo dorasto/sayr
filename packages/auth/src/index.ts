@@ -17,10 +17,12 @@ export const auth = betterAuth({
 	}),
 	trustedOrigins: [
 		`http://${rootUrl}`,
+		`http://${rootUrl}:3000`,
 		`https://${rootUrl}`,
 		// ✅ wildcard subdomains
 		`https://*.${rootUrl}`,
 		`http://*.${rootUrl}`,
+		`http://*.${rootUrl}:3000`,
 	],
 	advanced: {
 		// Enable cross-subdomain cookies for production and dev domains that support it
