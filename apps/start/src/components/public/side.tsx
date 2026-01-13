@@ -33,6 +33,9 @@ import RenderIcon from "@/components/generic/RenderIcon";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import LoginDialog from "../auth/login";
+import { authClient } from "@repo/auth/client";
+import { InlineLabel } from "../tasks/shared/inlinelabel";
+import { Skeleton } from "@repo/ui/components/skeleton";
 
 export default function PublicTaskSide() {
   const { organization, tasks, categories } = usePublicOrganizationLayout();
@@ -98,13 +101,32 @@ export default function PublicTaskSide() {
 
   // Check if no filters are active (showing all open tasks)
   const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
-
+  const { data: session, isPending } = authClient.useSession();
   return (
     <div
       className="flex flex-col gap-3 w-full sticky top-3 self-start"
       ref={stickyRef}
     >
-      <LoginDialog trigger={<Button size={"lg"}>Sign in</Button>} />
+      {isPending ? (
+        <Skeleton className="h-10 w-full rounded-lg" />
+      ) : session ? (
+        <Button variant={"primary"} className="justify-start">
+          <InlineLabel
+            text={session.user.name || "Unknown"}
+            image={session.user.image || ""}
+            avatarClassName="size-6"
+            className="ps-9 text-sm font-bold w-full"
+          />
+        </Button>
+      ) : (
+        <LoginDialog
+          trigger={
+            <Button variant={"primary"} className="justify-start w-fit">
+              Sign in
+            </Button>
+          }
+        />
+      )}
       <div className="flex flex-col gap-1 bg-card rounded-xl">
         <div
           className={cn(

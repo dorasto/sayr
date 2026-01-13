@@ -57,7 +57,7 @@ export function InlineLabel({
           {icon && icon}
         </div>
       )}
-      <span>{textNode ?? text}</span>
+      <span className="truncate">{textNode ?? text}</span>
     </Label>
   );
 }
