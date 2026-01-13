@@ -10,8 +10,10 @@ export default function PublicOrgHomePage() {
   const { value } = useStateManagementInfiniteFetch<
     {
       data: schema.TaskWithLabels[];
-      page: number;
-      hasMore: boolean;
+      pagination: {
+        page: number;
+        hasMore: boolean;
+      };
     }
   >({
     key: ["org-tasks", organization.id],
@@ -20,7 +22,7 @@ export default function PublicOrgHomePage() {
 
       custom: async (url, page) => {
         const pageParam = page ?? 1;
-        const fullUrl = `${url}&page=${pageParam}`;
+        const fullUrl = `${url}&page=${pageParam}&sortBy=mostPopular`;
         const res = await fetch(fullUrl);
 
         if (!res.ok) {
@@ -31,8 +33,8 @@ export default function PublicOrgHomePage() {
       },
 
       getNextPageParam: (lastPage) =>
-        lastPage.hasMore
-          ? lastPage.page + 1
+        lastPage.pagination.hasMore
+          ? lastPage.pagination.page + 1
           : undefined,
     },
     staleTime: 1000 * 30,
