@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
-import { useTaskViewManager } from "@/hooks/useTaskViewManager";
+import { useTaskViewManager, type FilterState } from "@/hooks/useTaskViewManager";
 import { applyFilters } from "@/components/tasks/filter/filter-config";
 import { useEffect, useMemo } from "react";
 import { PublicTaskItem } from "./task-item";
@@ -42,6 +42,7 @@ import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { IconFilter2 } from "@tabler/icons-react";
 import { useSticky } from "@/hooks/use-sticky";
 import { cn } from "@/lib/utils";
+import { generateSlug } from "@repo/util";
 const baseApiUrl =
   import.meta.env.VITE_APP_ENV === "development"
     ? import.meta.env.VITE_EXTERNAL_API_URL
@@ -91,14 +92,40 @@ export function PublicTaskView() {
     gcTime: 2000 * 60,
     refetchOnWindowFocus: false,
   });
-  const { filters } = useTaskViewManager();
+  const { filters, categorySlug } = useTaskViewManager();
   const [sortBy, setSortBy] = useState<SortOption>("mostPopular");
 
+  const effectiveFilters = useMemo(() => {
+    if (categorySlug && categories) {
+      const category = categories.find((c) => generateSlug(c.name) === categorySlug);
+      if (category) {
+        return {
+          groups: [
+            {
+              id: `category-${category.id}`,
+              operator: "AND",
+              conditions: [
+                {
+                  id: `cat-${category.id}`,
+                  field: "category",
+                  operator: "any",
+                  value: category.id,
+                },
+              ],
+            },
+          ],
+          operator: "AND",
+        } as FilterState;
+      }
+    }
+    return filters;
+  }, [filters, categorySlug, categories]);
+
   const filteredTasks = useMemo(() => {
-    let result = applyFilters(tasks, filters);
+    let result = applyFilters(tasks, effectiveFilters);
 
     // Default filter: hide "done" and "canceled" if no status filter is active
-    const hasStatusFilter = filters.groups.some((g) =>
+    const hasStatusFilter = effectiveFilters.groups.some((g) =>
       g.conditions.some((c) => c.field === "status"),
     );
 
@@ -139,7 +166,7 @@ export function PublicTaskView() {
       }
       return bDate - aDate;
     });
-  }, [tasks, filters, sortBy]);
+  }, [tasks, effectiveFilters, sortBy]);
 
   const handleVote = async (taskId: string) => {
     const votesKey = ["votes", organization.id];

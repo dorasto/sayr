@@ -52,6 +52,7 @@ export function useTasksSearchParams() {
 	// Get individual params
 	const filters = useMemo(() => searchParams.get("filters") ?? "", [searchParams]);
 	const view = useMemo(() => searchParams.get("view") ?? null, [searchParams]);
+	const category = useMemo(() => searchParams.get("category") ?? null, [searchParams]);
 	const task = useMemo(() => {
 		const taskParam = searchParams.get("task");
 		return taskParam ? Number.parseInt(taskParam, 10) : 0;
@@ -93,6 +94,13 @@ export function useTasksSearchParams() {
 		[updateUrl],
 	);
 
+	const setCategory = useCallback(
+		(value: string | null) => {
+			updateUrl({ category: value });
+		},
+		[updateUrl],
+	);
+
 	const setTask = useCallback(
 		(value: number | null) => {
 			updateUrl({ task: value ? String(value) : null });
@@ -102,7 +110,12 @@ export function useTasksSearchParams() {
 
 	// Batch setter for multiple params at once
 	const setSearchParams = useCallback(
-		(params: { filters?: string | null; view?: string | null; task?: number | null }) => {
+		(params: {
+			filters?: string | null;
+			view?: string | null;
+			task?: number | null;
+			category?: string | null;
+		}) => {
 			const updates: Record<string, string | null> = {};
 
 			if (params.filters !== undefined) {
@@ -110,6 +123,9 @@ export function useTasksSearchParams() {
 			}
 			if (params.view !== undefined) {
 				updates.view = params.view;
+			}
+			if (params.category !== undefined) {
+				updates.category = params.category;
 			}
 			if (params.task !== undefined) {
 				updates.task = params.task ? String(params.task) : null;
@@ -122,7 +138,7 @@ export function useTasksSearchParams() {
 
 	// Clear all task search params
 	const clearSearchParams = useCallback(() => {
-		updateUrl({ filters: null, view: null, task: null });
+		updateUrl({ filters: null, view: null, task: null, category: null });
 	}, [updateUrl]);
 
 	return {
@@ -130,11 +146,13 @@ export function useTasksSearchParams() {
 		filters,
 		view,
 		task,
+		category,
 
 		// Individual setters
 		setFilters,
 		setView,
 		setTask,
+		setCategory,
 
 		// Batch setter
 		setSearchParams,
@@ -172,4 +190,14 @@ export function useFiltersParam() {
 	const { filters, setFilters } = useTasksSearchParams();
 
 	return [filters, setFilters] as const;
+}
+
+/**
+ * Hook specifically for the category query param.
+ * Provides a simpler API similar to nuqs useQueryState.
+ */
+export function useCategoryParam() {
+	const { category, setCategory } = useTasksSearchParams();
+
+	return [category, setCategory] as const;
 }

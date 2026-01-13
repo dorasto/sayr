@@ -106,7 +106,7 @@ function mapViewConfigToState(
  * - Provides both granular setters and batch operations
  */
 export function useTaskViewManager() {
-	const { view: viewSlug, setSearchParams } = useTasksSearchParams();
+	const { view: viewSlug, category: categorySlug, setSearchParams } = useTasksSearchParams();
 
 	// Track click handling to prevent useEffect from duplicating updates
 	const isHandlingAction = useRef(false);
@@ -115,7 +115,7 @@ export function useTaskViewManager() {
 	const lastUpdateTime = useRef(0);
 	const pendingUpdate = useRef<{
 		state: TaskViewCombinedState;
-		urlParams: { view?: string | null; filters?: string | null };
+		urlParams: { view?: string | null; filters?: string | null; category?: string | null };
 	} | null>(null);
 	const throttleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const THROTTLE_MS = 100; // Minimum time between updates
@@ -144,7 +144,7 @@ export function useTaskViewManager() {
 	 */
 	const executeUpdate = useCallback((
 		newState: TaskViewCombinedState,
-		urlParams: { view?: string | null; filters?: string | null }
+		urlParams: { view?: string | null; filters?: string | null; category?: string | null }
 	) => {
 		isHandlingAction.current = true;
 		lastUpdateTime.current = Date.now();
@@ -165,7 +165,7 @@ export function useTaskViewManager() {
 	 */
 	const updateStateAndUrl = useCallback((
 		newState: TaskViewCombinedState,
-		urlParams: { view?: string | null; filters?: string | null }
+		urlParams: { view?: string | null; filters?: string | null; category?: string | null }
 	) => {
 		// CRITICAL: Skip if nothing actually changes - this prevents re-render cascades
 		const currentUrlView = viewSlug;
@@ -173,7 +173,7 @@ export function useTaskViewManager() {
 		const stateUnchanged = areStatesEqual(state, newState);
 		const urlUnchanged = currentUrlView === newUrlView;
 
-		if (stateUnchanged && urlUnchanged) {
+		if (stateUnchanged && urlUnchanged && categorySlug === (urlParams.category ?? null)) {
 			// Nothing to do - early return prevents unnecessary updates
 			return;
 		}
@@ -207,7 +207,7 @@ export function useTaskViewManager() {
 				}
 			}, timeToWait);
 		}
-	}, [executeUpdate, state, viewSlug]);
+	}, [executeUpdate, state, viewSlug, categorySlug]);
 
 	/**
 	 * Switch to a saved view - updates everything atomically
@@ -227,7 +227,7 @@ export function useTaskViewManager() {
 
 		updateStateAndUrl(
 			{ filters: viewFilters, viewConfig: viewConfigFromView },
-			{ view: targetViewSlug, filters: null }
+			{ view: targetViewSlug, filters: null, category: null }
 		);
 	}, [updateStateAndUrl, viewSlug]);
 
@@ -242,6 +242,7 @@ export function useTaskViewManager() {
 			{
 				view: null,
 				filters: filtersToApply.groups.length > 0 ? serializeFilters(filtersToApply) : null,
+				category: null,
 			}
 		);
 	}, [updateStateAndUrl]);
@@ -255,6 +256,23 @@ export function useTaskViewManager() {
 			{
 				view: null,
 				filters: newFilters.groups.length > 0 ? serializeFilters(newFilters) : null,
+				category: null,
+			}
+		);
+	}, [updateStateAndUrl]);
+
+	/**
+	 * Apply a category filter using its slug
+	 */
+	const setCategoryFilter = useCallback((slug: string) => {
+		// When setting a category slug, we clear complex filters and the view
+		// The actual filter application happens in the UI where they have the category ID
+		updateStateAndUrl(
+			{ filters: DEFAULT_FILTER_STATE, viewConfig: DEFAULT_TASK_VIEW_STATE },
+			{
+				view: null,
+				filters: null,
+				category: slug,
 			}
 		);
 	}, [updateStateAndUrl]);
@@ -275,6 +293,7 @@ export function useTaskViewManager() {
 		if (!viewSlug) {
 			setSearchParams({
 				filters: newFilters.groups.length > 0 ? serializeFilters(newFilters) : null,
+				category: null, // Clear category slug when manual filters are applied
 			});
 		}
 
@@ -368,6 +387,7 @@ export function useTaskViewManager() {
 		filters,
 		viewConfig,
 		viewSlug,
+		categorySlug,
 
 		// Convenience accessors
 		grouping,
@@ -379,6 +399,7 @@ export function useTaskViewManager() {
 		selectView,
 		clearView,
 		applyFilter,
+		setCategoryFilter,
 
 		// Filter operations
 		setFilters,

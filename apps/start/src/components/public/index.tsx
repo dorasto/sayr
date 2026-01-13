@@ -1,16 +1,49 @@
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import PublicTaskSide from "./side";
 import { PublicTaskView } from "./task-view";
-import { useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
+import { useStateManagementFetch, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { schema } from "@repo/database";
 import { useTaskViewManager } from "@/hooks/useTaskViewManager";
 import { getCategoryIdsFromFilters } from "../tasks/filter/serialization";
+import { IconLoader2 } from "@tabler/icons-react";
+import { authClient } from "@repo/auth/client";
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
 
 export default function PublicOrgHomePage() {
   const { organization } = usePublicOrganizationLayout();
   const { filters } = useTaskViewManager();
-  useStateManagementInfiniteFetch<
+  const { isPending: sessionPending } = authClient.useSession();
+
+  const { value: { isLoading: votesLoading } } = useStateManagementFetch<
+    {
+      taskId: string;
+      voteCount: number;
+      count: number;
+    }[],
+    Partial<
+      {
+        taskId: string;
+        voteCount: number;
+        count: number;
+      }[]
+    >
+  >({
+    key: ["votes", organization.id],
+    fetch: {
+      url: `${baseApiUrl}/admin/organization/task/voted?orgId=${organization.id}`,
+      custom: async (url) => {
+        const res = await fetch(url, { credentials: "include" });
+        if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
+        const data = await res.json();
+        return data.data.tasks;
+      },
+    },
+    staleTime: 1000,
+    gcTime: 2000 * 60,
+    refetchOnWindowFocus: false,
+  });
+
+  const { value: { isLoading: tasksLoading } } = useStateManagementInfiniteFetch<
     {
       data: schema.TaskWithLabels[];
       pagination: {
@@ -50,6 +83,9 @@ export default function PublicOrgHomePage() {
     },
     staleTime: 1000 * 30,
   });
+
+  const pageLoading = tasksLoading || sessionPending || votesLoading;
+
   return (
     <div className="flex flex-col gap-3 relative">
       <div className="relative rounded-2xl overflow-hidden bg-card border">
@@ -90,12 +126,20 @@ export default function PublicOrgHomePage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 ">
-          <PublicTaskSide />
-        </div>
-        <div className="md:col-span-3">
-          <PublicTaskView />
-        </div>
+        {pageLoading ? (
+          <div className="col-span-full flex h-48 w-full items-center justify-center">
+            <IconLoader2 className="animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            <div className="md:col-span-1 ">
+              <PublicTaskSide />
+            </div>
+            <div className="md:col-span-3">
+              <PublicTaskView />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

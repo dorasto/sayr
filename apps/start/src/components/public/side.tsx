@@ -18,7 +18,7 @@ import {
   TabsTrigger,
 } from "@repo/ui/components/tabs";
 import { cn } from "@repo/ui/lib/utils";
-import { extractHslValues } from "@repo/util";
+import { extractHslValues, generateSlug } from "@repo/util";
 import { IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
 
 import {
@@ -49,16 +49,18 @@ export default function PublicTaskSide() {
   const {
     filters,
     viewSlug: selectedViewSlug,
+    categorySlug,
     clearView,
     applyFilter,
+    setCategoryFilter,
   } = useTaskViewManager();
   useEffect(() => {
     setTimeout(() => {
       queryClient.invalidateQueries({
         queryKey: ["org-tasks", organization.id],
       });
-    }, 500)
-  }, [serializeFilters(filters)]);
+    }, 500);
+  }, [serializeFilters(filters), categorySlug]);
   // Prebuilt priority views
   const priorityViews: Array<{ key: PriorityKey; label: string }> = [
     { key: "urgent", label: "Urgent" },
@@ -110,7 +112,8 @@ export default function PublicTaskSide() {
     (task) => task.status !== "done" && task.status !== "canceled",
   ).length;
   // Check if no filters are active (showing all open tasks)
-  const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
+  const isAllTasksActive =
+    filters.groups.length === 0 && !selectedViewSlug && !categorySlug;
   const { data: session, isPending } = authClient.useSession();
   return (
     <div
@@ -120,19 +123,19 @@ export default function PublicTaskSide() {
       {isPending
         ? null
         : !session && (
-          <LoginDialog
-            trigger={
-              <Button variant={"primary"} className="justify-start w-fit">
-                Sign in
-              </Button>
-            }
-          />
-        )}
-      <div className="flex flex-col gap-1 bg-card rounded-xl">
+            <LoginDialog
+              trigger={
+                <Button variant={"primary"} className="justify-start w-fit">
+                  Sign in
+                </Button>
+              }
+            />
+          )}
+      <div className="flex flex-col gap-0 bg-card rounded-xl">
         <div
           className={cn(
             "grid transition-all duration-300 ease-out",
-            stuck ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            stuck ? "grid-rows-[1fr]" : "grid-rows-[0fr] invisible",
           )}
         >
           <div className="overflow-hidden min-h-0">
@@ -190,7 +193,9 @@ export default function PublicTaskSide() {
 
           {categories.map((category) => {
             const categoryFilter = createCategoryFilter(category.id);
+            const slug = generateSlug(category.name);
             const isActive =
+              (slug && categorySlug === slug) ||
               serializeFilters(filters) === serializeFilters(categoryFilter);
             const categoryTaskCount = tasks.filter(
               (task) => task.category === category.id,
@@ -207,7 +212,11 @@ export default function PublicTaskSide() {
                   if (isActive) {
                     clearView();
                   } else {
-                    applyFilter(categoryFilter);
+                    if (slug) {
+                      setCategoryFilter(slug);
+                    } else {
+                      applyFilter(categoryFilter);
+                    }
                   }
                 }}
               >
