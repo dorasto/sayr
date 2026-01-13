@@ -487,7 +487,7 @@ export default function SettingsOrganizationPage() {
         </TileHeader>
         <TileAction className="w-full">
           <button
-            className="relative w-full aspect-21/9 rounded-lg overflow-hidden border border-border bg-accent group cursor-pointer"
+            className="relative w-full aspect-32/9 rounded-lg overflow-hidden border border-border bg-accent group cursor-pointer"
             onClick={openBannerFileDialog}
             type="button"
             tabIndex={0}
@@ -551,7 +551,7 @@ export default function SettingsOrganizationPage() {
       {bannerCropSrc && (
         <ImageCrop
           src={bannerCropSrc}
-          aspectRatio={21 / 9}
+          aspectRatio={32 / 9}
           isOpen={bannerCropModalOpen}
           onOpenChange={(open) => {
             setBannerCropModalOpen(open);

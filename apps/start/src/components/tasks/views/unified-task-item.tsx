@@ -28,6 +28,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
 import {
   IconAppWindow,
+  IconChevronUp,
   IconCircleFilled,
   IconLink,
   IconUserOff,
@@ -36,7 +37,10 @@ import { Link } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
 import { useRef, useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { useTaskViewManager, type FilterState } from "@/hooks/useTaskViewManager";
+import {
+  useTaskViewManager,
+  type FilterState,
+} from "@/hooks/useTaskViewManager";
 import GlobalTaskAssignees from "../shared/assignee";
 import { priorityConfig, statusConfig } from "../shared/config";
 import { InlineLabel } from "../shared/inlinelabel";
@@ -222,7 +226,7 @@ export function UnifiedTaskItem({
       >
         {/* Left section with checkbox, task ID, and title */}
         <div className="flex gap-2 w-full truncate">
-          <div className="flex flex-grow items-center gap-1 truncate">
+          <div className="flex grow items-center gap-1 truncate">
             <div className="flex items-center gap-1">
               {/* Checkbox */}
               <div className="shrink-0 grid place-items-center">
@@ -320,6 +324,12 @@ export function UnifiedTaskItem({
         {/* Right section with metadata and actions */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="relative flex flex-wrap grow shrink-0 items-center gap-2 whitespace-nowrap">
+            <div className="flex items-center text-muted-foreground">
+              <IconChevronUp className="h-3 w-3 shrink-0" />
+              <span className="text-xs truncate">
+                {task.voteCount.toString()}
+              </span>
+            </div>
             {/* Category */}
             {task.category &&
               (() => {

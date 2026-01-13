@@ -14288,7 +14288,7 @@ snapshots:
 
   bun-types@1.2.23(@types/react@19.2.7):
     dependencies:
-      '@types/node': 24.0.14
+      '@types/node': 22.19.1
       '@types/react': 19.2.7
 
   cac@6.7.14: {}
