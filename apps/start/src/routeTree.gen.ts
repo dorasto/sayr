@@ -14,8 +14,8 @@ import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
+import { Route as LoginAuthCheckRouteImport } from './routes/login/auth-check'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
-import { Route as LoginAuthCheckRouteRouteImport } from './routes/login/auth-check/route'
 import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
 import { Route as adminMineRouteRouteImport } from './routes/(admin)/mine/route'
 import { Route as adminOrgIdRouteRouteImport } from './routes/(admin)/$orgId/route'
@@ -71,14 +71,14 @@ const adminIndexRoute = adminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => adminRouteRoute,
 } as any)
+const LoginAuthCheckRoute = LoginAuthCheckRouteImport.update({
+  id: '/login/auth-check',
+  path: '/login/auth-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
   id: '/api/image-preview',
   path: '/api/image-preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginAuthCheckRouteRoute = LoginAuthCheckRouteRouteImport.update({
-  id: '/login/auth-check',
-  path: '/login/auth-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminSettingsRouteRoute = adminSettingsRouteRouteImport.update({
@@ -256,8 +256,8 @@ export interface FileRoutesByFullPath {
   '/$orgId': typeof adminOrgIdRouteRouteWithChildren
   '/mine': typeof adminMineRouteRouteWithChildren
   '/settings': typeof adminSettingsRouteRouteWithChildren
-  '/login/auth-check': typeof LoginAuthCheckRouteRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
@@ -291,8 +291,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
-  '/login/auth-check': typeof LoginAuthCheckRouteRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -327,8 +327,8 @@ export interface FileRoutesById {
   '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
   '/(admin)/mine': typeof adminMineRouteRouteWithChildren
   '/(admin)/settings': typeof adminSettingsRouteRouteWithChildren
-  '/login/auth-check': typeof LoginAuthCheckRouteRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/login/auth-check': typeof LoginAuthCheckRoute
   '/(admin)/': typeof adminIndexRoute
   '/login/': typeof LoginIndexRoute
   '/(admin)/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
@@ -367,8 +367,8 @@ export interface FileRouteTypes {
     | '/$orgId'
     | '/mine'
     | '/settings'
-    | '/login/auth-check'
     | '/api/image-preview'
+    | '/login/auth-check'
     | '/'
     | '/login'
     | '/$orgId/tasks'
@@ -402,8 +402,8 @@ export interface FileRouteTypes {
   to:
     | '/manifest.webmanifest'
     | '/prosekit-test'
-    | '/login/auth-check'
     | '/api/image-preview'
+    | '/login/auth-check'
     | '/'
     | '/login'
     | '/api/auth/$'
@@ -437,8 +437,8 @@ export interface FileRouteTypes {
     | '/(admin)/$orgId'
     | '/(admin)/mine'
     | '/(admin)/settings'
-    | '/login/auth-check'
     | '/api/image-preview'
+    | '/login/auth-check'
     | '/(admin)/'
     | '/login/'
     | '/(admin)/$orgId/tasks'
@@ -474,8 +474,8 @@ export interface RootRouteChildren {
   adminRouteRoute: typeof adminRouteRouteWithChildren
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ProsekitTestRoute: typeof ProsekitTestRoute
-  LoginAuthCheckRouteRoute: typeof LoginAuthCheckRouteRoute
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
+  LoginAuthCheckRoute: typeof LoginAuthCheckRoute
   LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   InviteOrgIdIndexRoute: typeof InviteOrgIdIndexRoute
@@ -519,18 +519,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminIndexRouteImport
       parentRoute: typeof adminRouteRoute
     }
+    '/login/auth-check': {
+      id: '/login/auth-check'
+      path: '/login/auth-check'
+      fullPath: '/login/auth-check'
+      preLoaderRoute: typeof LoginAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/image-preview': {
       id: '/api/image-preview'
       path: '/api/image-preview'
       fullPath: '/api/image-preview'
       preLoaderRoute: typeof ApiImagePreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login/auth-check': {
-      id: '/login/auth-check'
-      path: '/login/auth-check'
-      fullPath: '/login/auth-check'
-      preLoaderRoute: typeof LoginAuthCheckRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)/settings': {
@@ -900,8 +900,8 @@ const rootRouteChildren: RootRouteChildren = {
   adminRouteRoute: adminRouteRouteWithChildren,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ProsekitTestRoute: ProsekitTestRoute,
-  LoginAuthCheckRouteRoute: LoginAuthCheckRouteRoute,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
+  LoginAuthCheckRoute: LoginAuthCheckRoute,
   LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   InviteOrgIdIndexRoute: InviteOrgIdIndexRoute,
