@@ -38,8 +38,11 @@ import { InlineLabel } from "../tasks/shared/inlinelabel";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Separator } from "@repo/ui/components/separator";
 import TasqIcon from "@repo/ui/components/brand-icon";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 export default function PublicTaskSide() {
+  const queryClient = useQueryClient();
   const { organization, tasks, categories } = usePublicOrganizationLayout();
   const { stuck, stickyRef } = useSticky();
 
@@ -49,7 +52,13 @@ export default function PublicTaskSide() {
     clearView,
     applyFilter,
   } = useTaskViewManager();
-
+  useEffect(() => {
+    setTimeout(() => {
+      queryClient.invalidateQueries({
+        queryKey: ["org-tasks", organization.id],
+      });
+    }, 500)
+  }, [serializeFilters(filters)]);
   // Prebuilt priority views
   const priorityViews: Array<{ key: PriorityKey; label: string }> = [
     { key: "urgent", label: "Urgent" },
@@ -100,7 +109,6 @@ export default function PublicTaskSide() {
   const opentaskCount = tasks.filter(
     (task) => task.status !== "done" && task.status !== "canceled",
   ).length;
-
   // Check if no filters are active (showing all open tasks)
   const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
   const { data: session, isPending } = authClient.useSession();
@@ -112,14 +120,14 @@ export default function PublicTaskSide() {
       {isPending
         ? null
         : !session && (
-            <LoginDialog
-              trigger={
-                <Button variant={"primary"} className="justify-start w-fit">
-                  Sign in
-                </Button>
-              }
-            />
-          )}
+          <LoginDialog
+            trigger={
+              <Button variant={"primary"} className="justify-start w-fit">
+                Sign in
+              </Button>
+            }
+          />
+        )}
       <div className="flex flex-col gap-1 bg-card rounded-xl">
         <div
           className={cn(

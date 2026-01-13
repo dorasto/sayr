@@ -3,11 +3,14 @@ import PublicTaskSide from "./side";
 import { PublicTaskView } from "./task-view";
 import { useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { schema } from "@repo/database";
+import { useTaskViewManager } from "@/hooks/useTaskViewManager";
+import { getCategoryIdsFromFilters } from "../tasks/filter/serialization";
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
 
 export default function PublicOrgHomePage() {
   const { organization } = usePublicOrganizationLayout();
-  const { value } = useStateManagementInfiniteFetch<
+  const { filters } = useTaskViewManager();
+  useStateManagementInfiniteFetch<
     {
       data: schema.TaskWithLabels[];
       pagination: {
@@ -22,11 +25,19 @@ export default function PublicOrgHomePage() {
 
       custom: async (url, page) => {
         const pageParam = page ?? 1;
-        const fullUrl = `${url}&page=${pageParam}&sortBy=mostPopular`;
-        const res = await fetch(fullUrl);
 
+        const categoryIds = getCategoryIdsFromFilters(filters);
+        const categoryParam =
+          categoryIds.length > 0
+            ? categoryIds.map((id) => `category_id=${encodeURIComponent(id)}`).join("&")
+            : "";
+
+        const fullUrl = `${url}&page=${pageParam}&sortBy=mostPopular${categoryParam ? `&${categoryParam}` : ""
+          }`;
+
+        const res = await fetch(fullUrl);
         if (!res.ok) {
-          throw new Error(`Failed to fetch tasks`);
+          throw new Error("Failed to fetch tasks");
         }
 
         return res.json();

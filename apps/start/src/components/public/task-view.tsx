@@ -230,9 +230,9 @@ export function PublicTaskView() {
         const updatedTasks = tasks.map((task) =>
           task.id === id
             ? {
-                ...task,
-                voteCount,
-              }
+              ...task,
+              voteCount,
+            }
             : task,
         );
         setTasks(updatedTasks);

@@ -65,3 +65,15 @@ export const deserializeFilters = (value: string): FilterState | null => {
 		return null;
 	}
 };
+
+export const getCategoryIdsFromFilters = (
+	filters: FilterState | null,
+): string[] => {
+	if (!filters) return [];
+
+	return filters.groups
+		.flatMap((group) => group.conditions)
+		.filter((condition) => condition.field === "category")
+		.map((condition) => String(condition.value))
+		.filter(Boolean);
+};

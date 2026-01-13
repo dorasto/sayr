@@ -1853,15 +1853,24 @@ apiRouteAdminProjectTask.get("/voted", async (c) => {
 	});
 });
 
-export function baseTaskWhere(orgId: string) {
-	return and(
+function baseTaskWhere(
+	orgId: string,
+	categoryId?: string,
+) {
+	const conditions = [
 		eq(schema.task.organizationId, orgId),
 		or(
 			eq(schema.task.status, "todo"),
 			eq(schema.task.status, "in-progress"),
 			eq(schema.task.status, "backlog"),
 		),
-	);
+	];
+
+	if (categoryId) {
+		conditions.push(eq(schema.task.category, categoryId));
+	}
+
+	return and(...conditions);
 }
 apiRouteAdminProjectTask.get("/tasks", async (c) => {
 	const traceAsync = createTraceAsync();
@@ -1875,6 +1884,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 				query.sortBy === "mostPopular"
 				? query.sortBy
 				: "mostPopular";
+		const category_id = query.category_id;
 		const orgId = query.org_id;
 		const page = Math.max(Number(query.page) || 1, 1);
 		const requestedLimit = Number(query.limit);
@@ -1923,7 +1933,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 				const [result] = await db
 					.select({ count: sql<number>`count(*)` })
 					.from(schema.task)
-					.where(baseTaskWhere(orgId));
+					.where(baseTaskWhere(orgId, category_id));
 
 				return Number(result?.count ?? 0);
 			},
@@ -1932,18 +1942,13 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 				data: { orgId },
 			},
 		);
-
 		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
-
-		const fetchLimit = sortBy === "trending" ? limit * 5 : limit;
-		const fetchOffset = sortBy === "trending" ? 0 : offset;
-
 		const isTrending = sortBy === "trending";
 		const rows = await traceAsync(
 			"organization.tasks.fetch",
 			async () =>
 				db.query.task.findMany({
-					where: baseTaskWhere(orgId),
+					where: baseTaskWhere(orgId, category_id),
 
 					// ✅ DB handles ordering when possible
 					orderBy: isTrending
