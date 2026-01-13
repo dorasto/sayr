@@ -1,9 +1,44 @@
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import PublicTaskSide from "./side";
 import { PublicTaskView } from "./task-view";
+import { useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
+import { schema } from "@repo/database";
+const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
 
 export default function PublicOrgHomePage() {
   const { organization } = usePublicOrganizationLayout();
+  const { value } = useStateManagementInfiniteFetch<
+    {
+      data: schema.TaskWithLabels[];
+      meta: {
+        page: number;
+        hasMore: boolean;
+      };
+    }
+  >({
+    key: ["org-tasks", organization.id],
+    fetch: {
+      url: `${baseApiUrl}/admin/organization/task/tasks?org_id=${organization.id}`,
+
+      custom: async (url, page) => {
+        const pageParam = page ?? 1;
+        const fullUrl = `${url}&page=${pageParam}`;
+        const res = await fetch(fullUrl);
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch tasks`);
+        }
+
+        return res.json();
+      },
+
+      getNextPageParam: (lastPage) =>
+        lastPage.meta.hasMore
+          ? lastPage.meta.page + 1
+          : undefined,
+    },
+    staleTime: 1000 * 30,
+  });
   return (
     <div className="flex flex-col gap-3 relative">
       <div className="relative rounded-2xl overflow-hidden bg-card border">

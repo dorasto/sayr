@@ -32,6 +32,7 @@ import {
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { getAnonHash } from "@/util";
 import { getClientIP } from "@/tracing/rootSpanMiddleware";
+import { errorResponse, paginatedSuccessResponse } from "../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
@@ -1850,4 +1851,212 @@ apiRouteAdminProjectTask.get("/voted", async (c) => {
 			tasks: votedTasks,
 		},
 	});
+});
+
+export function baseTaskWhere(orgId: string) {
+	return and(
+		eq(schema.task.organizationId, orgId),
+		or(
+			eq(schema.task.status, "todo"),
+			eq(schema.task.status, "in-progress"),
+			eq(schema.task.status, "backlog"),
+		),
+	);
+}
+apiRouteAdminProjectTask.get("/tasks", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	try {
+		const query = c.req.query();
+		const sortBy =
+			query.sortBy === "newest" ||
+				query.sortBy === "trending" ||
+				query.sortBy === "mostPopular"
+				? query.sortBy
+				: "mostPopular";
+		const orgId = query.org_id;
+		const page = Math.max(Number(query.page) || 1, 1);
+		const requestedLimit = Number(query.limit);
+		const limit = Math.min(requestedLimit || 15, 30);
+		const offset = (page - 1) * limit;
+		if (!orgId) {
+			await recordWideError({
+				name: "organization.tasks.missing_org_id",
+				error: new Error("Missing organization id"),
+				code: "BAD_REQUEST",
+				message: "Organization id is required",
+				contextData: {
+					orgId,
+				},
+			});
+
+			return c.json(
+				errorResponse(
+					"Missing organization id",
+					"Route parameter `org_id` is required",
+				),
+				400,
+			);
+		}
+		if (requestedLimit > 20) {
+			await recordWideError({
+				name: "organization.tasks.limit_overflow",
+				error: new Error("Limit overflow"),
+				code: "LIMIT_OVERFLOW",
+				message: `Requested limit ${requestedLimit} exceeds max ${20}`,
+				contextData: { orgId, requestedLimit },
+			});
+
+			return c.json(
+				errorResponse(
+					"Invalid limit",
+					`Query parameter \`limit\` must be between 1 and ${20}`,
+				),
+				400,
+			);
+		}
+
+		const totalItems = await traceAsync(
+			"organization.tasks.count",
+			async () => {
+				const [result] = await db
+					.select({ count: sql<number>`count(*)` })
+					.from(schema.task)
+					.where(baseTaskWhere(orgId));
+
+				return Number(result?.count ?? 0);
+			},
+			{
+				description: "Counting tasks for organization",
+				data: { orgId },
+			},
+		);
+
+		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
+
+		const fetchLimit = sortBy === "trending" ? limit * 5 : limit;
+		const fetchOffset = sortBy === "trending" ? 0 : offset;
+
+		const isTrending = sortBy === "trending";
+		const rows = await traceAsync(
+			"organization.tasks.fetch",
+			async () =>
+				db.query.task.findMany({
+					where: baseTaskWhere(orgId),
+
+					// ✅ DB handles ordering when possible
+					orderBy: isTrending
+						? undefined
+						: (t, { desc }) => {
+							if (sortBy === "newest") {
+								return [desc(t.createdAt)];
+							}
+
+							// mostPopular
+							return [desc(t.voteCount), desc(t.createdAt)];
+						},
+
+					limit: isTrending ? limit * 5 : limit,
+					offset: isTrending ? 0 : offset,
+
+					with: {
+						labels: { with: { label: true } },
+						createdBy: {
+							columns: { id: true, name: true, image: true },
+						},
+						assignees: {
+							with: {
+								user: {
+									columns: { id: true, name: true, image: true },
+								},
+							},
+						},
+						comments: {
+							columns: { id: true, visibility: true },
+						},
+						githubIssue: true,
+					},
+				}),
+			{
+				description: "Fetching tasks with relations",
+				data: {
+					orgId,
+					sortBy,
+					limit,
+					offset,
+				},
+			},
+		);
+
+		const tasks = await traceAsync(
+			"organization.tasks.sort",
+			async () => {
+				let normalized = rows.map((task) => ({
+					...task,
+					labels: task.labels.map((l) => l.label),
+					assignees: task.assignees.map((a) => a.user),
+					comments: task.comments?.filter(
+						(c) => c.visibility === "public",
+					),
+				})) as schema.TaskWithLabels[];
+
+				if (!isTrending) {
+					return normalized;
+				}
+
+				// ✅ Trending sort (app-layer only)
+				const now = Date.now();
+
+				normalized = normalized.sort((a, b) => {
+					const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+					const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+					const aHours = Math.max((now - aDate) / 36e5, 0);
+					const bHours = Math.max((now - bDate) / 36e5, 0);
+
+					const aActivity =
+						(a.voteCount ?? 0) + (a.comments?.length ?? 0);
+					const bActivity =
+						(b.voteCount ?? 0) + (b.comments?.length ?? 0);
+
+					const aScore = aActivity / Math.pow(aHours + 2, 1.5);
+					const bScore = bActivity / Math.pow(bHours + 2, 1.5);
+
+					if (bScore !== aScore) {
+						return bScore - aScore;
+					}
+
+					return bDate - aDate;
+				});
+
+				// ✅ paginate AFTER trending sort
+				return normalized.slice(offset, offset + limit);
+			},
+			{
+				description: "Sorting tasks",
+				data: { sortBy, page, limit },
+			},
+		);
+
+		return c.json(
+			paginatedSuccessResponse(tasks, {
+				limit,
+				page,
+				totalPages,
+				totalItems,
+				hasMore: page < totalPages,
+			}),
+			200,
+		);
+	} catch (err) {
+		await recordWideError({
+			name: "organization.tasks.error",
+			error: err,
+			message: "Failed to fetch organization tasks",
+			contextData: { path: c.req.path, query: c.req.query() },
+		});
+
+		return c.json(errorResponse("Database error", "Unexpected error"), 500);
+	}
 });
