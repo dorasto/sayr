@@ -59,12 +59,9 @@ export const getRouter = () => {
 					return;
 				}
 
-				if (!url.pathname.startsWith("/orgs")) {
-					const path = url.pathname === "/" ? "" : url.pathname;
-					url.pathname = `/orgs/${subdomain}${path}`;
-					return url;
-				}
-				return;
+				const path = url.pathname === "/" ? "" : url.pathname;
+				url.pathname = `/orgs/${subdomain}${path}`;
+				return url;
 			},
 		},
 	});
