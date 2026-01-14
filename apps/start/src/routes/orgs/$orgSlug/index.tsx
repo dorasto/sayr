@@ -4,11 +4,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   db,
   getOrganizationPublic,
-  getTasksByOrganizationId,
   getLabels,
 } from "@repo/database";
 import PublicOrgHomePage from "@/components/public";
-import PublicNavigation from "@/components/public/navigation";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
 import { SubWrapper } from "@/components/generic/wrapper";
 
@@ -17,25 +15,14 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const organization = await getOrganizationPublic(data.slug);
     if (!organization)
-      return { organization: null, tasks: [], labels: [], categories: [] };
-
-    const [allTasks, labels, categories] = await Promise.all([
-      getTasksByOrganizationId(organization.id),
+      return { organization: null, labels: [], categories: [] };
+    const [labels, categories] = await Promise.all([
       getLabels(organization.id),
       db.query.category.findMany({
         where: (c, { eq }) => eq(c.organizationId, organization.id),
       }),
     ]);
-
-    // Filter to public tasks and only include public comments
-    const tasks = allTasks
-      .filter((t) => t.visible === "public")
-      .map((t) => ({
-        ...t,
-        comments: t.comments?.filter((c) => c.visibility === "public"),
-      }));
-
-    return { organization, tasks, labels, categories };
+    return { organization, labels, categories };
   });
 
 export const Route = createFileRoute("/orgs/$orgSlug/")({
@@ -50,7 +37,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/")({
 });
 
 function OrgDashboard() {
-  const { organization, tasks, labels, categories } = Route.useLoaderData();
+  const { organization, labels, categories } = Route.useLoaderData();
   if (!organization) {
     return (
       <>
@@ -83,7 +70,6 @@ function OrgDashboard() {
   return (
     <PublicOrganizationProvider
       organization={organization}
-      tasks={tasks}
       labels={labels}
       categories={categories}
     >

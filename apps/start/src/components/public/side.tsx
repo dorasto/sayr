@@ -11,15 +11,9 @@ import {
   TileIcon,
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@repo/ui/components/tabs";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues, generateSlug } from "@repo/util";
-import { IconStack2, IconUser, IconUsers } from "@tabler/icons-react";
+import { IconStack2, IconUser } from "@tabler/icons-react";
 
 import {
   useTaskViewManager,
@@ -27,14 +21,12 @@ import {
 } from "@/hooks/useTaskViewManager";
 import { useSticky } from "@/hooks/use-sticky";
 import { serializeFilters } from "@/components/tasks/filter";
-import { type PriorityKey, priorityConfig } from "@/components/tasks/shared";
+import { type PriorityKey } from "@/components/tasks/shared";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { Button } from "@repo/ui/components/button";
-import { Label } from "@repo/ui/components/label";
 import LoginDialog from "../auth/login";
 import { authClient } from "@repo/auth/client";
-import { InlineLabel } from "../tasks/shared/inlinelabel";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Separator } from "@repo/ui/components/separator";
 import TasqIcon from "@repo/ui/components/brand-icon";
@@ -54,13 +46,6 @@ export default function PublicTaskSide() {
     applyFilter,
     setCategoryFilter,
   } = useTaskViewManager();
-  useEffect(() => {
-    setTimeout(() => {
-      queryClient.invalidateQueries({
-        queryKey: ["org-tasks", organization.id],
-      });
-    }, 500);
-  }, [serializeFilters(filters), categorySlug]);
   // Prebuilt priority views
   const priorityViews: Array<{ key: PriorityKey; label: string }> = [
     { key: "urgent", label: "Urgent" },
@@ -123,14 +108,14 @@ export default function PublicTaskSide() {
       {isPending
         ? null
         : !session && (
-            <LoginDialog
-              trigger={
-                <Button variant={"primary"} className="justify-start w-fit">
-                  Sign in
-                </Button>
-              }
-            />
-          )}
+          <LoginDialog
+            trigger={
+              <Button variant={"primary"} className="justify-start w-fit">
+                Sign in
+              </Button>
+            }
+          />
+        )}
       <div className="flex flex-col gap-0 bg-card rounded-xl">
         <div
           className={cn(
@@ -168,7 +153,14 @@ export default function PublicTaskSide() {
               "bg-card md:w-full cursor-pointer select-none",
               isAllTasksActive ? "bg-accent" : "bg-card hover:bg-accent",
             )}
-            onClick={() => clearView()}
+            onClick={() => {
+              clearView(),
+                setTimeout(() => {
+                  queryClient.invalidateQueries({
+                    queryKey: ["org-tasks", organization.id],
+                  });
+                }, 100);
+            }}
           >
             <TileHeader className="w-full">
               <div className="flex flex-row gap-3 w-full">
@@ -211,10 +203,25 @@ export default function PublicTaskSide() {
                 onClick={() => {
                   if (isActive) {
                     clearView();
+                    setTimeout(() => {
+                      queryClient.invalidateQueries({
+                        queryKey: ["org-tasks", organization.id],
+                      });
+                    }, 100);
                   } else {
                     if (slug) {
                       setCategoryFilter(slug);
+                      setTimeout(() => {
+                        queryClient.invalidateQueries({
+                          queryKey: ["org-tasks", organization.id],
+                        });
+                      }, 100);
                     } else {
+                      setTimeout(() => {
+                        queryClient.invalidateQueries({
+                          queryKey: ["org-tasks", organization.id],
+                        });
+                      }, 100);
                       applyFilter(categoryFilter);
                     }
                   }

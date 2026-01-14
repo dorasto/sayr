@@ -62,6 +62,38 @@ export function useStateManagement<T>(
 		setValue,
 	};
 }
+export function useStateManagementKey<T>(
+	key: string[],
+	defaultValue: null | T,
+	gcTime?: number | undefined
+): UseStateManagementResult<T> {
+	const queryClient = useQueryClient();
+	const queryKey = key;
+
+	const { data: value = defaultValue as any } = useQuery<T>({
+		queryKey: queryKey,
+		queryFn: () => {
+			const storedValue = queryClient.getQueryData<T>(queryKey);
+			return storedValue ?? (defaultValue as any);
+		},
+		staleTime: Infinity,
+		gcTime: gcTime || Infinity,
+	});
+
+	const { mutate: setValue } = useMutation<void, Error, T>({
+		mutationFn: async (newValue: T) => {
+			queryClient.setQueryData<T>(queryKey, newValue);
+		},
+		onError: (error) => {
+			console.error("Failed to set state:", error);
+		},
+	});
+
+	return {
+		value,
+		setValue,
+	};
+}
 export interface UseStateManagementFetchType<TypeFetch, TypeMutate> {
 	key: string[];
 	fetch: {

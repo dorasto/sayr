@@ -6,22 +6,28 @@ import {
   useStateManagementInfiniteFetch,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { schema } from "@repo/database";
-import { useTaskViewManager } from "@/hooks/useTaskViewManager";
-import { getCategoryIdsFromFilters } from "../tasks/filter/serialization";
 import { IconLoader2 } from "@tabler/icons-react";
 import { authClient } from "@repo/auth/client";
+import { useEffect, useRef, useState } from "react";
+import { generateSlug } from "@repo/util";
+import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { WSMessage } from "@/lib/ws";
+import { useQueryClient } from "@tanstack/react-query";
 const baseApiUrl =
   import.meta.env.VITE_APP_ENV === "development"
     ? import.meta.env.VITE_EXTERNAL_API_URL
     : "/api";
-
+export type SortOption = "mostPopular" | "newest" | "trending";
 export default function PublicOrgHomePage() {
-  const { organization } = usePublicOrganizationLayout();
-  const { filters } = useTaskViewManager();
+  const queryClient = useQueryClient();
+
+  const lastTaskIdsRef = useRef<string>("");
+  const { ws, organization, setTasks, categories, setLabels, setCategories, tasks } = usePublicOrganizationLayout();
   const { isPending: sessionPending } = authClient.useSession();
+  const [sortBy, setSortBy] = useState<SortOption>("mostPopular");
 
   const {
-    value: { isLoading: votesLoading },
+    value: { isLoading: votesLoading, refetch: refetchVotes },
   } = useStateManagementFetch<
     {
       taskId: string;
@@ -50,9 +56,8 @@ export default function PublicOrgHomePage() {
     gcTime: 2000 * 60,
     refetchOnWindowFocus: false,
   });
-
   const {
-    value: { isLoading: tasksLoading },
+    value: { isLoading: tasksLoading, data: tasksData },
   } = useStateManagementInfiniteFetch<{
     data: schema.TaskWithLabels[];
     pagination: {
@@ -66,18 +71,17 @@ export default function PublicOrgHomePage() {
 
       custom: async (url, page) => {
         const pageParam = page ?? 1;
-
-        const categoryIds = getCategoryIdsFromFilters(filters);
-        const categoryParam =
-          categoryIds.length > 0
-            ? categoryIds
-                .map((id) => `category_id=${encodeURIComponent(id)}`)
-                .join("&")
-            : "";
-
-        const fullUrl = `${url}&page=${pageParam}&sortBy=mostPopular${
-          categoryParam ? `&${categoryParam}` : ""
-        }`;
+        const queryString = window.location.search; // Returns:'?q=123'
+        const params = new URLSearchParams(queryString);
+        const category = categories.find(
+          (c) => generateSlug(c.name) === params.get("category"),
+        );
+        const categoryId = category?.id;
+        const categoryParam = categoryId
+          ? `category_id=${encodeURIComponent(categoryId)}`
+          : "";
+        const fullUrl = `${url}&page=${pageParam}&sortBy=${sortBy}${categoryParam ? `&${categoryParam}` : ""
+          }`;
 
         const res = await fetch(fullUrl);
         if (!res.ok) {
@@ -92,7 +96,78 @@ export default function PublicOrgHomePage() {
     },
     staleTime: 1000 * 30,
   });
+  useEffect(() => {
+    if (!tasksData) {
+      if (lastTaskIdsRef.current !== "empty") {
+        lastTaskIdsRef.current = "empty";
+        setTasks([]);
+      }
+      return;
+    }
 
+    const nextTasks = tasksData.flatMap((page) => page.data);
+    const nextIds = nextTasks.map((t) => t.id).join(",");
+
+    if (nextIds !== lastTaskIdsRef.current) {
+      lastTaskIdsRef.current = nextIds;
+      setTasks(nextTasks);
+    }
+  }, [tasksData, setTasks]);
+  const handlers: WSMessageHandler<WSMessage> = {
+    CREATE_TASK: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        queryClient.invalidateQueries({
+          queryKey: ["org-tasks", organization.id],
+        });
+      }
+    },
+    UPDATE_LABELS: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        setLabels(msg.data);
+      }
+    },
+    UPDATE_TASK_VOTE: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        const { id, voteCount } = msg.data;
+        const updatedTasks = tasks.map((task) =>
+          task.id === id
+            ? {
+              ...task,
+              voteCount,
+            }
+            : task,
+        );
+        setTasks(updatedTasks);
+        refetchVotes();
+      }
+    },
+    UPDATE_CATEGORIES: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        setCategories(msg.data);
+      }
+    },
+    UPDATE_TASK: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        const updatedTask = msg.data;
+        const updatedTasks = tasks.map((task) =>
+          task.id === updatedTask.id ? updatedTask : task,
+        );
+        setTasks(updatedTasks);
+      }
+    },
+  };
+  const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+    onUnhandled: (msg) =>
+      console.warn("⚠️ [UNHANDLED MESSAGE PublicOrgHomePage]", { msg }),
+  });
+  useEffect(() => {
+    if (!ws) return;
+    ws.addEventListener("message", handleMessage);
+    // Cleanup on unmount or dependency change
+    return () => {
+      ws.removeEventListener("message", handleMessage);
+    };
+  }, [ws, handleMessage]);
   const pageLoading = tasksLoading || sessionPending || votesLoading;
 
   return (
@@ -146,7 +221,7 @@ export default function PublicOrgHomePage() {
               <PublicTaskSide />
             </div>
             <div className="md:col-span-3">
-              <PublicTaskView />
+              <PublicTaskView sortBy={sortBy} setSortBy={setSortBy} />
             </div>
           </>
         )}

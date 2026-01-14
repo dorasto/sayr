@@ -20,24 +20,20 @@ const RootContext = createContext<ContextType | undefined>(undefined);
 export function PublicOrganizationProvider({
 	children,
 	organization,
-	tasks,
 	labels,
 	categories,
 }: {
 	children: ReactNode;
 	organization: ContextType["organization"];
-	tasks: ContextType["tasks"];
 	labels: ContextType["labels"];
 	categories: ContextType["categories"];
 }) {
 	const { value: NewOrganization, setValue: setOrganization } = useStateManagement("organization", organization);
-	const { value: NewTasks, setValue: setTasks } = useStateManagement("tasks", tasks);
+	const { value: NewTasks, setValue: setTasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", []);
 	const { value: NewLabels, setValue: setLabels } = useStateManagement("labels", labels);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories);
-
 	const ws = useWebSocketPublic({ organization, setOrganization });
 
-	useEffect(() => setTasks(tasks), [tasks, setTasks]);
 	useEffect(() => setLabels(labels), [labels, setLabels]);
 	useEffect(() => setCategories(categories), [categories, setCategories]);
 
