@@ -129,11 +129,6 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:latest
-  # deployment:
-  #   needs: [merge-manifest]
-  #   runs-on: blacksmith-2vcpu-ubuntu-2404
-  #   steps:
-  #     - name: Deploy to Coolify
   #       id: deployment
   #       run: |
   #         curl --request GET '${{secrets.SAYR_DEPLOY}}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_ROOT_API_KEY }}'
