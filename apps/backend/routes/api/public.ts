@@ -21,8 +21,8 @@ import {
 	successResponse,
 } from "../../responses";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-// import { prosekitJSONToHTML } from "@/prosekit/html";
-// import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
+import { prosekitJSONToHTML } from "@/prosekit/html";
+import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 
 const API_LIMITS = {
 	comments: 30,
@@ -524,8 +524,8 @@ apiPublicRoute.get(
 		return c.json(
 			successResponse({
 				...task,
-				// descriptionHtml: task.description && prosekitJSONToHTML(task.description),
-				// descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
+				descriptionHtml: task.description && prosekitJSONToHTML(task.description),
+				descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
 			}),
 		);
 	},
@@ -548,8 +548,8 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 		})
 		.nullable()
 		.optional(),
-	descriptionHtml: z.string(),
-	descriptionMarkdown: z.string(),
+	contentHtml: z.string(),
+	contentMarkdown: z.string(),
 	reactions: z
 		.object({
 			total: z.number(),
@@ -772,8 +772,8 @@ apiPublicRoute.get(
 
 						return {
 							...comment,
-							// contentHtml: comment.content && prosekitJSONToHTML(comment.content),
-							// contentMarkdown: comment.content && prosekitJSONToMarkdown(comment.content),
+							contentHtml: comment.content && prosekitJSONToHTML(comment.content),
+							contentMarkdown: comment.content && prosekitJSONToMarkdown(comment.content),
 							reactions: {
 								total,
 								reactions: grouped,
