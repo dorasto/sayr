@@ -396,8 +396,8 @@ apiPublicRoute.get(
 
 					return rows.map((t) => ({
 						...t,
-						// descriptionHtml: t.description && prosekitJSONToHTML(t.description),
-						// descriptionMarkdown: t.description && prosekitJSONToMarkdown(t.description),
+						descriptionHtml: t.description && prosekitJSONToHTML(t.description),
+						descriptionMarkdown: t.description && prosekitJSONToMarkdown(t.description),
 					}));
 				},
 				{
