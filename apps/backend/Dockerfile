@@ -34,6 +34,8 @@ FROM oven/bun:1 AS runner
 WORKDIR /app
 
 COPY --from=installer /app/apps/backend/dist ./dist
+COPY --from=installer /app/node_modules ./node_modules
+COPY --from=installer /app/apps/backend/package.json ./package.json
 
 # Environment Variables
 ENV DATABASE_URL=""
