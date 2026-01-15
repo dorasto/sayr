@@ -5,7 +5,7 @@
 	"scripts": {
 		"dev": "bun --watch run index.ts",
 		"internal:dev": "op run --env-file .env -- bun run dev",
-		"build": "bun build index.ts --target=bun --outdir ./dist",
+		"build": "bun build index.ts --target=bun --outdir ./dist --external jsdom,canvas",
 		"start": "bun ./dist/index.js",
 		"internal:start": "op run --env-file .env -- bun run start",
 		"lint": "biome check .",
