@@ -13,10 +13,7 @@ import { generateSlug } from "@repo/util";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { WSMessage } from "@/lib/ws";
 import { useQueryClient } from "@tanstack/react-query";
-const baseApiUrl =
-  import.meta.env.VITE_APP_ENV === "development"
-    ? import.meta.env.VITE_EXTERNAL_API_URL
-    : "/api";
+const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
 export type SortOption = "mostPopular" | "newest" | "trending";
 export default function PublicOrgHomePage() {
   const queryClient = useQueryClient();
