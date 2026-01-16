@@ -1,5 +1,3 @@
-// @ts-check
-
 import node from "@astrojs/node";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
@@ -43,6 +41,10 @@ export default defineConfig({
           items: [
             { label: "Visibility Controls", slug: "docs/guides/visibility" },
           ],
+        },
+        {
+          label: "API",
+          autogenerate: { directory: "docs/api" },
         },
         ...openAPISidebarGroups,
         {

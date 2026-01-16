@@ -6,15 +6,18 @@ import { ApiErrorResponse, ApiPaginatedResponse, ApiSuccessResponse } from "../r
  * Generates a describeRoute config for common success + error responses.
  */
 export const describeOkNotFound = <T extends z.ZodTypeAny>(opts: {
-	description: string;
+	summary: string;
+	description?: string;
 	dataSchema: T;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	parameters?: any[];
-	tags?: string[] | undefined;
+	tags?: string[];
 }) =>
 	describeRoute({
+		summary: opts.summary,
 		description: opts.description,
 		parameters: opts.parameters,
+		tags: opts.tags,
 		responses: {
 			200: {
 				description: "Success",
@@ -27,17 +30,19 @@ export const describeOkNotFound = <T extends z.ZodTypeAny>(opts: {
 			404: {
 				description: "Not found",
 				content: {
-					"application/json": { schema: resolver(ApiErrorResponse) },
+					"application/json": {
+						schema: resolver(ApiErrorResponse),
+					},
 				},
 			},
 		},
-		tags: opts.tags,
 	});
 
 /**
  * Generates an OpenAPI route config for paginated endpoints
  */
 export const describePaginatedRoute = <T extends z.ZodTypeAny>(opts: {
+	summary: string;
 	description: string;
 	dataSchema: T;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
@@ -47,7 +52,9 @@ export const describePaginatedRoute = <T extends z.ZodTypeAny>(opts: {
 	tags?: string[] | undefined;
 }) =>
 	describeRoute({
+		summary: opts.summary,
 		description: opts.description,
+		tags: opts.tags,
 		parameters: [
 			...(opts.parameters || []),
 			{
@@ -91,5 +98,4 @@ export const describePaginatedRoute = <T extends z.ZodTypeAny>(opts: {
 				},
 			},
 		},
-		tags: opts.tags,
 	});

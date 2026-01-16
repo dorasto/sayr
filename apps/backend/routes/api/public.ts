@@ -57,10 +57,12 @@ const OrganizationSchema = createSelectSchema(schema.organization)
 			(v) => (v instanceof Date ? v.toISOString() : v),
 			z.string(),
 		),
+		wsUrl: z.string(),
 	});
 apiPublicRoute.get(
 	"/organization/:org_slug",
 	describeOkNotFound({
+		summary: "Get organization",
 		description: "Retrieve public information for an organization identified by its slug.",
 		dataSchema: OrganizationSchema,
 		parameters: [
@@ -107,7 +109,12 @@ apiPublicRoute.get(
 
 		// biome-ignore lint/correctness/noUnusedVariables: <needed>
 		const { privateId, ...publicOrg } = organization;
-		return c.json(successResponse(publicOrg));
+		return c.json(
+			successResponse({
+				...publicOrg,
+				wsUrl: `wss://${publicOrg.slug}.sayr.io/ws?orgId=${publicOrg.id}&ref=publicApi`,
+			})
+		);
 	},
 );
 
@@ -121,6 +128,7 @@ const LabelSchema = createSelectSchema(schema.label).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/labels",
 	describeOkNotFound({
+		summary: "List organization labels",
 		description: "Retrieve all public labels associated with an organization.",
 		dataSchema: z.array(LabelSchema),
 		parameters: [
@@ -185,6 +193,7 @@ const CategorySchema = createSelectSchema(schema.category).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/categories",
 	describeOkNotFound({
+		summary: "List organization categories",
 		description: "Retrieve all public categories associated with an organization.",
 		dataSchema: z.array(CategorySchema),
 		parameters: [
@@ -270,6 +279,7 @@ const TaskSchema = createSelectSchema(schema.task).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks",
 	describePaginatedRoute({
+		summary: "List organization tasks",
 		description: "Retrieve a paginated list of public tasks for an organization.",
 		dataSchema: TaskSchema,
 		parameters: [
@@ -434,6 +444,7 @@ apiPublicRoute.get(
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks/:task_short_id",
 	describeOkNotFound({
+		summary: "Get task",
 		description: "Retrieve a public task by its short identifier.",
 		dataSchema: TaskSchema,
 		parameters: [
@@ -566,6 +577,7 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks/:task_short_id/comments",
 	describePaginatedRoute({
+		summary: "List task comments",
 		description: "Retrieve a paginated list of public comments for a task.",
 		dataSchema: CommentSchema,
 		parameters: [
