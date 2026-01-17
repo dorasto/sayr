@@ -201,3 +201,4 @@ pnpm dlx shadcn@latest add <component-name>
 4. **Code reading**: Use Read tool, not cat/head/tail
 5. **Edits**: Use Edit tool, not sed/awk
 6. **Avoid**: Creating unnecessary files, especially .md files unless requested
+7. **ONLY** do type checks like pnpm tsc etc when requested, don't do it on your own accord.
