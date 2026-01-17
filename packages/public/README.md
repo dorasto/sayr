@@ -194,28 +194,78 @@ import type { Organization, Task } from "@sayrio/public";
 
 ---
 
-## Notes
+## Basic HTML Example
 
-- All data is **public**
-- No authentication required
-- WebSocket connections are **not guaranteed** to be permanent
-- Always handle reconnects (handled automatically)
+This example shows how to use `@sayrio/public` in a **plain HTML file** with no
+build tools.
+
+> **Important:**  
+> This SDK is published as an **ES module**, so you must use
+> `type="module"` and `import`.  
+> It does **not** create a global `Sayr` variable.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sayr Public SDK – HTML Example</title>
+    <style>
+      body {
+        background: #0b0b0b;
+        color: #e5e7eb;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        padding: 24px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Sayr Public SDK</h1>
+    <pre id="out">Loading…</pre>
+
+    <script type="module">
+      import Sayr from "https://esm.sh/@sayrio/public";
+
+      const out = document.getElementById("out");
+
+      function log(label, value) {
+        out.textContent +=
+          label + ": " + JSON.stringify(value, null, 2) + "\n\n";
+      }
+
+      const slug = "org";
+
+      // Fetch public organization
+      const org = await Sayr.org.get(slug);
+      log("Organization", org);
+
+      // Connect to public WebSocket
+      Sayr.ws(org.wsUrl, {
+        [Sayr.wsTypes.UPDATE_ORG]: (data) => {
+          log("Org updated", data);
+        },
+
+        [Sayr.wsTypes.UPDATE_TASK]: (task) => {
+          log("Task updated", task);
+        },
+
+        [Sayr.wsTypes.ERROR]: (err) => {
+          log("WebSocket error", err);
+        }
+      });
+    </script>
+  </body>
+</html>
+```
 
 ---
 
-## License
+## Notes on Browser Usage
 
-MIT © Sayr.io
-
----
-
-If you want next, I can:
-- Add **example apps** (React / Astro)
-- Add **UMD browser build**
-- Add **API reference site**
-- Add **CI publish workflow**
-
-This README now matches your **actual published package name** ✅
-
+- This package **does not expose a global `Sayr`**
+- Always use `type="module"` and `import`
+- For legacy `<script>` usage, a UMD build is not currently provided
+- `esm.sh` is recommended for CDN usage
 
 ---
