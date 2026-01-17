@@ -66,3 +66,105 @@
     margin-left: 0 !important;
     max-width: none !important;
 }
+
+/* ==========================================
+   Expressive Code (Code Block) Customization
+   ========================================== */
+
+/* Main code block container with EC CSS variable overrides */
+.expressive-code {
+    margin: 1.5rem 0;
+    /* Expressive Code CSS variable overrides */
+    --ec-codeBg: var(--sl-color-gray-6);
+    --ec-brdCol: var(--sl-color-gray-5);
+    --ec-frm-edTabBg: var(--sl-color-gray-5);
+    --ec-frm-edActTabBg: var(--sl-color-gray-6);
+    --ec-frm-edTabBarBg: var(--sl-color-gray-5);
+    --ec-frm-edTabBarBrdBtmCol: var(--sl-color-gray-4);
+    --ec-frm-termBg: var(--sl-color-gray-6);
+    --ec-frm-termTitlebarBg: var(--sl-color-gray-5);
+    --ec-frm-termTitlebarBrdBtmCol: var(--sl-color-gray-4);
+}
+
+/* The outer frame */
+.expressive-code .frame {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: none;
+}
+
+/* Code block styling */
+.expressive-code pre {
+    margin: 0;
+}
+
+/* Code text styling */
+.expressive-code code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: inherit;
+    background: transparent !important;
+}
+
+/* Title/filename bar at top of code blocks */
+.expressive-code .header {
+    background: var(--sl-color-gray-5);
+    border-bottom: 1px solid var(--sl-color-gray-4);
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-2);
+}
+
+/* Remove header when there's no title */
+.expressive-code:not([data-title]) .header {
+    display: none;
+}
+
+/* Line numbers (if enabled) */
+.expressive-code .line-numbers {
+    color: var(--sl-color-gray-3);
+    padding-right: 1rem;
+    user-select: none;
+}
+
+/* Highlighted lines */
+.expressive-code .highlight {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid var(--sl-color-accent);
+    margin-left: -1.25rem;
+    padding-left: calc(1.25rem - 3px);
+    margin-right: -1.25rem;
+    padding-right: 1.25rem;
+}
+
+/* Diff markers (+ and -) */
+.expressive-code .diff.add {
+    background: rgba(46, 160, 67, 0.15);
+    border-left: 3px solid #2ea043;
+}
+
+.expressive-code .diff.del {
+    background: rgba(248, 81, 73, 0.15);
+    border-left: 3px solid #f85149;
+}
+
+/* Copy button */
+.expressive-code .copy {
+    background: var(--sl-color-gray-5);
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.expressive-code:hover .copy {
+    opacity: 1;
+}
+
+/* Inline code (not in blocks) */
+:not(pre) > code {
+    background: var(--sl-color-gray-5);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}

@@ -19,6 +19,30 @@ export default defineConfig({
       title: "Sayr",
       logo: { src: "./src/assets/logo.svg" },
       lastUpdated: true,
+      expressiveCode: {
+        // Themes: https://expressive-code.com/guides/themes/
+        themes: ["github-dark"],
+        // Remove the window frame around code blocks
+        styleOverrides: {
+          // Frame styles
+          frames: {
+            frameBoxShadowCssValue: "none",
+          },
+          // Border radius
+          borderRadius: "0.5rem",
+          // Code block padding
+          codePaddingBlock: "1rem",
+          codePaddingInline: "1.25rem",
+          // Font settings
+          codeFontFamily:
+            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+          codeFontSize: "0.875rem",
+          codeLineHeight: "1.6",
+          // Border
+          borderColor: "var(--sl-color-gray-5)",
+          borderWidth: "1px",
+        },
+      },
       editLink: {
         baseUrl: "https://github.com/dorasto/sayr/edit/main/apps/marketing/",
       },
