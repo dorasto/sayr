@@ -81,12 +81,17 @@ export default defineConfig({
           label: "Self hosting",
           autogenerate: { directory: "/docs/self-hosting" },
         },
+        {
+          label: "Contributing",
+          autogenerate: { directory: "/docs/contributing" },
+        },
       ],
       customCss: ["./src/styles/custom.css"],
       components: {
         PageTitle: "./src/components/overrides/PageTitle.astro",
         LastUpdated: "./src/components/overrides/LastUpdated.astro",
         TableOfContents: "./src/components/overrides/TableOfContents.astro",
+        MarkdownContent: "./src/components/overrides/MarkdownContent.astro",
       },
       plugins: [
         starlightPageActions({
