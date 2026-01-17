@@ -1,0 +1,283 @@
+---
+title: Local Development
+description: Get started contributing to Sayr by setting up your local development environment
+sidebar:
+  order: 1
+---
+
+This guide walks you through setting up your local development environment to contribute to the Sayr codebase.
+
+## Prerequisites
+
+Before you begin, ensure you have the following tools installed:
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Node.js** | 22+ (LTS recommended) | Runtime for frontend and tooling |
+| **Bun** | 1.0+ | Runtime for backend and worker services |
+| **pnpm** | 10.6+ | Package manager |
+| **PostgreSQL** | 15+ | Primary database |
+| **Docker** | Latest (optional) | Containerized development |
+
+### Installing Prerequisites
+
+```bash
+# Install pnpm globally
+npm install -g pnpm
+
+# Install Bun (required for backend/worker)
+curl -fsSL https://bun.sh/install | bash
+
+# Verify installations
+node --version   # Should be 22+
+pnpm --version   # Should be 10.6+
+bun --version    # Should be 1.0+
+```
+
+:::caution[Bun Installation]
+Bun must be installed as a system-level binary, not as an npm package. Never add `bun` to `package.json` as it shadows the system runtime and causes issues.
+:::
+
+## Project Structure
+
+Sayr is a Turborepo monorepo with the following structure:
+
+```
+sayr/
+├── apps/
+│   ├── backend/        # Hono API server (Bun, port 5468)
+│   ├── start/          # TanStack Start frontend (port 3000)
+│   ├── marketing/      # Astro docs/marketing site (port 3002)
+│   └── worker/         # GitHub webhook processor (Bun)
+├── packages/
+│   ├── auth/           # Better Auth configuration
+│   ├── database/       # Drizzle ORM schemas and CRUD
+│   ├── storage/        # MinIO S3-compatible client
+│   ├── ui/             # Shadcn/ui component library
+│   ├── util/           # Shared utilities
+│   ├── queue/          # Job queue abstraction
+│   └── opentelemetry/  # Tracing utilities
+└── ...
+```
+
+## Initial Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/dorasto/sayr.git
+cd sayr
+```
+
+### 2. Install Dependencies
+
+We recommend using pnpm for all package management tasks:
+
+```bash
+pnpm install
+```
+
+### 3. Configure Environment Variables
+
+Copy the environment template to each app that requires it:
+
+```bash
+cp .env.example apps/backend/.env
+cp .env.example apps/start/.env
+cp .env.example apps/worker/.env
+```
+
+Edit each `.env` file with your local configuration. Key variables include:
+
+**Database:**
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/sayr
+```
+
+**Storage (MinIO/S3):**
+```env
+STORAGE_URL=http://localhost:9000
+STORAGE_BUCKET=sayr
+STORAGE_ACCESS_KEY=minioadmin
+STORAGE_SECRET_KEY=minioadmin
+FILE_SALT=your-random-salt
+FILE_CDN=http://localhost:9000/sayr
+```
+
+**Frontend:**
+```env
+VITE_URL_ROOT=http://admin.app.localhost:3000
+VITE_PROJECT_NAME=Sayr
+VITE_ROOT_DOMAIN=app.localhost
+```
+
+:::note
+For local development, you may not need all environment variables. Start with database configuration and add others as needed for the features you're working on.
+:::
+
+### 4. Set Up the Database
+
+Ensure PostgreSQL is running, then push the schema:
+
+```bash
+pnpm -F @repo/database db:push
+```
+
+To explore your database with a visual interface:
+
+```bash
+pnpm -F @repo/database db:studio
+```
+
+### 5. Start Development
+
+Start all apps simultaneously:
+
+```bash
+pnpm dev
+```
+
+Or start specific apps:
+
+```bash
+# Backend API only
+pnpm -F backend dev
+
+# Frontend only
+pnpm -F start dev
+
+# Marketing/docs site only
+pnpm -F marketing dev
+```
+
+## Local Domains
+
+Sayr uses subdomain-based routing in development. The primary reason behind this is due to constraints with how cookies are handled in development environments. By using subdomains, we can ensure that cookies are scoped to the correct domain, allowing for seamless authentication and session management.
+
+| URL | Purpose |
+|-----|---------|
+| `http://admin.app.localhost:3000` | Admin dashboard |
+| `http://{org-slug}.app.localhost:3000` | Organization workspace |
+| `http://localhost:5468` | Backend API |
+| `http://localhost:3002` | Marketing site and documentation (what you're looking at right now) |
+
+:::tip
+Replace `{org-slug}` with your organization's slug. Each organization in Sayr has its own subdomain.
+:::
+
+:::note
+If/when deploying this project yourself, the marketing app is not included as it isn't included. This is primarily used for the cloud version of Sayr.io & documentation hosting.
+:::
+
+## Development Commands
+
+### Common Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start all apps in development mode |
+| `pnpm build` | Build all apps for production |
+| `pnpm lint` | Run Biome linting |
+| `pnpm lint:fix` | Fix linting issues automatically |
+| `pnpm check-types` | Run TypeScript type checking |
+
+### Database Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm -F @repo/database db:push` | Apply schema changes |
+| `pnpm -F @repo/database db:studio` | Open Drizzle Studio |
+
+### Testing
+
+| Command | Description |
+|---------|-------------|
+| `pnpm -F start test` | Run all tests |
+| `pnpm -F start test -- --testNamePattern="pattern"` | Run tests matching pattern |
+| `pnpm -F start test -- path/to/file.test.ts` | Run specific test file |
+
+## Code Style
+
+Sayr uses [Biome](https://biomejs.dev/) for linting and formatting. Always run linting before committing:
+
+```bash
+pnpm lint        # Check for issues
+pnpm lint:fix    # Auto-fix issues
+```
+
+For detailed coding conventions including import organization, naming conventions, error handling patterns, and component structure, see the [Code Style Guide](/docs/contributing/guidelines/code-style).
+
+## Adding UI Components
+
+Sayr uses Shadcn/ui for the component library. To add a new component:
+
+```bash
+pnpm dlx shadcn@latest add <component-name>
+```
+
+## Troubleshooting
+
+### Port Already in Use
+
+If a port is already in use, you can find and kill the process:
+
+```bash
+# Find process using port 3000
+lsof -i :3000
+
+# Kill the process
+kill -9 <PID>
+```
+
+### Database Connection Issues
+
+Ensure PostgreSQL is running and the `DATABASE_URL` in your `.env` file is correct:
+
+```bash
+# Check PostgreSQL status
+pg_isready -h localhost -p 5432
+```
+
+### Bun Not Found
+
+If you get "bun: command not found" errors, ensure Bun is installed system-wide and in your PATH:
+
+```bash
+# Check Bun installation
+which bun
+bun --version
+
+# If not found, reinstall
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc  # or ~/.zshrc
+```
+
+### Type Errors After Schema Changes
+
+After modifying database schemas, regenerate types:
+
+```bash
+pnpm -F @repo/database db:push
+```
+
+## Next Steps
+
+Once your environment is set up, explore these guides to learn more:
+
+- [Architecture Overview](/docs/contributing/architecture) — Understand how Sayr's systems connect
+- [Code Style Guide](/docs/contributing/guidelines/code-style) — Coding conventions and best practices
+- [Database Guide](/docs/contributing/database) — Working with Drizzle ORM schemas and queries
+- [Testing Guide](/docs/contributing/guidelines/testing) — Writing and running tests with Vitest
+- [Adding Features](/docs/contributing/adding-features) — End-to-end guide for implementing new features
+- [Pull Request Guidelines](/docs/contributing/guidelines/pull-requests) — PR conventions and review process
+- [Writing Documentation](/docs/contributing/documentation) — Contributing to these docs (no local setup needed!)
+
+### Ready to Contribute?
+
+1. Pick an issue from the [GitHub Issues](https://github.com/dorasto/sayr/issues)
+2. Create a feature branch from `main`
+3. Make your changes following our [code style guidelines](/docs/contributing/guidelines/code-style)
+4. Run `pnpm lint` and `pnpm check-types` before committing
+5. Submit a pull request following our [PR guidelines](/docs/contributing/guidelines/pull-requests)
+
+Thank you for contributing to Sayr!

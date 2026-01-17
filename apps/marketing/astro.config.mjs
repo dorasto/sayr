@@ -3,6 +3,7 @@ import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import { ion } from "starlight-ion-theme";
 import starlightPageActions from "starlight-page-actions";
+import starlightSidebarTopics from "starlight-sidebar-topics";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
@@ -55,31 +56,10 @@ export default defineConfig({
           label: "GitHub",
           href: "https://github.com/dorasto/sayr",
         },
-      ],
-      sidebar: [
         {
-          label: "Getting Started",
-          items: [
-            { label: "Introduction", slug: "docs" },
-            { label: "Quick Start", slug: "docs/quick-start" },
-          ],
-        },
-
-        {
-          label: "Guides",
-          autogenerate: { directory: "/docs/guides" },
-        },
-        {
-          label: "API",
-          items: [
-            { label: "Overview", slug: "docs/api/overview" },
-            { label: "WebSocket", slug: "docs/api/ws" },
-            { label: "API Reference", slug: "docs/api/reference" },
-          ],
-        },
-        {
-          label: "Self hosting",
-          autogenerate: { directory: "/docs/self-hosting" },
+          icon: "right-arrow",
+          label: "Login",
+          href: "https://admin.sayr.io/login",
         },
       ],
       customCss: ["./src/styles/custom.css"],
@@ -87,8 +67,102 @@ export default defineConfig({
         PageTitle: "./src/components/overrides/PageTitle.astro",
         LastUpdated: "./src/components/overrides/LastUpdated.astro",
         TableOfContents: "./src/components/overrides/TableOfContents.astro",
+        MarkdownContent: "./src/components/overrides/MarkdownContent.astro",
       },
       plugins: [
+        starlightSidebarTopics([
+          {
+            label: "Documentation",
+            link: "/docs/",
+            icon: "open-book",
+            id: "docs",
+            items: [
+              {
+                label: "Getting Started",
+                items: [
+                  { label: "Introduction", slug: "docs" },
+                  { label: "Quick Start", slug: "docs/quick-start" },
+                ],
+              },
+              {
+                label: "Guides",
+                autogenerate: { directory: "/docs/guides" },
+              },
+              {
+                label: "Self Hosting",
+                autogenerate: { directory: "/docs/self-hosting" },
+              },
+              {
+                label: "Contributing",
+                items: [
+                  {
+                    label: "Local Development",
+                    slug: "docs/contributing/local-development",
+                  },
+                  {
+                    label: "Architecture",
+                    slug: "docs/contributing/architecture",
+                  },
+                  {
+                    label: "Guidelines",
+                    autogenerate: {
+                      directory: "/docs/contributing/Guidelines",
+                    },
+                  },
+                  {
+                    label: "Deep Dives",
+                    items: [
+                      { label: "Database", slug: "docs/contributing/database" },
+                      {
+                        label: "Adding Features",
+                        slug: "docs/contributing/adding-features",
+                      },
+                      {
+                        label: "Writing Docs",
+                        slug: "docs/contributing/documentation",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            label: "API",
+            link: "/docs/api/overview/",
+            icon: "puzzle",
+            id: "api",
+            items: [
+              {
+                label: "Getting Started",
+                items: [{ label: "Overview", slug: "docs/api/overview" }],
+              },
+              {
+                label: "REST API",
+                items: [{ label: "API Reference", slug: "docs/api/reference" }],
+              },
+              {
+                label: "WebSocket",
+                items: [{ label: "WebSocket Events", slug: "docs/api/ws" }],
+              },
+            ],
+          },
+          {
+            label: "Knowledge Base",
+            link: "/docs/knowledge-base/",
+            icon: "information",
+            id: "kb",
+            items: [
+              {
+                label: "Help",
+                items: [
+                  { label: "Overview", slug: "docs/knowledge-base" },
+                  { label: "FAQ", slug: "docs/knowledge-base/faq" },
+                ],
+              },
+            ],
+          },
+        ]),
         starlightPageActions({
           baseUrl: "https://sayr.io",
           actions: {

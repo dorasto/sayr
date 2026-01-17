@@ -1,0 +1,208 @@
+---
+/**
+ * Custom MarkdownContent component that wraps markdown tables
+ * in a styled Frame component similar to ParameterTable.astro
+ */
+import "@astrojs/starlight/style/markdown.css";
+---
+
+<div class="sl-markdown-content styled-tables">
+    <slot />
+</div>
+
+<style is:global>
+    /* Frame wrapper for tables */
+    .styled-tables table {
+        width: 100%;
+        caption-side: bottom;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* Outer frame styling - matches Frame component */
+    .styled-tables .table-wrapper {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        border-radius: 1rem;
+        background-color: color-mix(
+            in oklch,
+            var(--sl-color-gray-5) 72%,
+            transparent
+        );
+        padding: 0.25rem;
+        margin: 1.5rem 0;
+        width: 100%;
+    }
+
+    /* Table header styling */
+    .styled-tables thead {
+        border-bottom: none;
+        width: 100%;
+    }
+
+    .styled-tables thead tr {
+        border: none;
+        background: transparent;
+        width: 100%;
+    }
+
+    .styled-tables thead tr:hover {
+        background: transparent;
+    }
+
+    .styled-tables th {
+        height: 2.25rem;
+        white-space: nowrap;
+        padding: 0 0.625rem;
+        text-align: left;
+        vertical-align: middle;
+        font-weight: 500;
+        color: var(--sl-color-gray-2);
+        line-height: 1;
+        background: transparent;
+        border: none;
+    }
+
+    /* Table body styling - matches FramePanel */
+    .styled-tables tbody {
+        position: relative;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        width: 100%;
+    }
+
+    .styled-tables tbody::before {
+        content: "";
+        pointer-events: none;
+        position: absolute;
+        inset: 1px;
+        border-radius: calc(0.75rem - 1px);
+        box-shadow: 0 1px var(--sl-color-black, rgba(0, 0, 0, 0.06));
+    }
+
+    :root[data-theme="dark"] .styled-tables tbody::before {
+        box-shadow: 0 -1px rgba(255, 255, 255, 0.08);
+    }
+
+    .styled-tables tbody tr {
+        border: none;
+    }
+
+    .styled-tables tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .styled-tables tbody tr:hover td {
+        background: transparent;
+    }
+
+    /* Table cell styling */
+    .styled-tables td {
+        white-space: nowrap;
+        padding: 0.625rem;
+        vertical-align: middle;
+        line-height: 1;
+        background-color: var(--sl-color-gray-5);
+        background-clip: padding-box;
+        border-bottom: 1px solid var(--sl-color-gray-4);
+        border-left: none;
+        border-right: none;
+    }
+
+    /* Last column expands to fill remaining width */
+    .styled-tables th:last-child,
+    .styled-tables td:last-child {
+        width: 100%;
+        white-space: normal;
+    }
+
+    /* First column left border */
+    .styled-tables td:first-child {
+        border-left: 1px solid var(--sl-color-gray-4);
+    }
+
+    /* Last column right border */
+    .styled-tables td:last-child {
+        border-right: 1px solid var(--sl-color-gray-4);
+    }
+
+    /* First row top border and rounded corners */
+    .styled-tables tbody tr:first-child td {
+        border-top: 1px solid var(--sl-color-gray-4);
+    }
+
+    .styled-tables tbody tr:first-child td:first-child {
+        border-top-left-radius: 0.75rem;
+    }
+
+    .styled-tables tbody tr:first-child td:last-child {
+        border-top-right-radius: 0.75rem;
+    }
+
+    /* Last row rounded corners */
+    .styled-tables tbody tr:last-child td {
+        border-bottom: 1px solid var(--sl-color-gray-4);
+    }
+
+    .styled-tables tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 0.75rem;
+    }
+
+    .styled-tables tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 0.75rem;
+    }
+
+    /* Code inside table cells */
+    .styled-tables td code {
+        font-size: 0.8125rem;
+        padding: 0.125rem 0.375rem;
+        background: var(--accent);
+        border-radius: 0.25rem;
+    }
+
+    /* Table responsive wrapper */
+    .styled-tables .table-container {
+        position: relative;
+        width: 100%;
+        overflow-x: auto;
+    }
+</style>
+
+<script>
+    // Wrap tables in a styled container on page load
+    function wrapTables() {
+        const container = document.querySelector(".styled-tables");
+        if (!container) return;
+
+        const tables = container.querySelectorAll("table:not(.wrapped)");
+
+        tables.forEach((table) => {
+            // Skip if already wrapped
+            if (table.closest(".table-wrapper")) return;
+
+            // Mark as wrapped
+            table.classList.add("wrapped");
+
+            // Create wrapper elements
+            const wrapper = document.createElement("div");
+            wrapper.className = "table-wrapper";
+
+            const tableContainer = document.createElement("div");
+            tableContainer.className = "table-container";
+
+            // Wrap the table
+            table.parentNode?.insertBefore(wrapper, table);
+            tableContainer.appendChild(table);
+            wrapper.appendChild(tableContainer);
+        });
+    }
+
+    // Run on initial load
+    wrapTables();
+
+    // Run on view transitions
+    document.addEventListener("astro:page-load", wrapTables);
+</script>
