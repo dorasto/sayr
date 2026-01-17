@@ -45,6 +45,12 @@ type Handlers = Partial<
 >;
 
 export function ws(url: string, handlers: Handlers = {}) {
+    if (!url) {
+        throw new Error(
+            "[Sayr.ws] WebSocket URL is required. " +
+            "Did you forget to pass org.wsUrl?"
+        );
+    }
     let socket: WebSocket;
     let retry = 0;
     let closed = false;
