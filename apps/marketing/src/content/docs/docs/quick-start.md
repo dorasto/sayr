@@ -1,6 +1,8 @@
 ---
 title: Quick Start
 description: Get up and running with Sayr in minutes
+sidebar:
+   order: 2
 ---
 
 This guide will help you get started with Sayr in just a few minutes.

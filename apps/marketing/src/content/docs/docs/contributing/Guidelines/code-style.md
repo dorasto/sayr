@@ -1,8 +1,7 @@
 ---
 title: Code Style Guide
 description: Coding conventions and best practices for contributing to Sayr
-sidebar:
-   order: 3
+
 ---
 
 This guide covers the coding standards and conventions used throughout the Sayr codebase. Following these guidelines ensures consistency and makes code reviews smoother.

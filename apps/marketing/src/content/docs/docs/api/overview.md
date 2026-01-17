@@ -1,6 +1,8 @@
 ---
 title: API Overview
 description: Introduction to the Sayr API
+sidebar:
+   order: 1
 ---
 
 # API Overview

@@ -1,16 +1,19 @@
 ---
 title: Sayr Documentation
 description: Documentation for Sayr.io - Transparent, collaborative project management
+sidebar:
+   label: Introduction
+   order: 1
 hero:
-  tagline: Sayr.io is a transparent, collaborative project management platform that bridges internal workflows with public collaboration through granular visibility controls.
-  actions:
-    - text: Get Started
-      link: /docs/quick-start
-      icon: right-arrow
-    - text: View on GitHub
-      link: https://github.com/dorasto/sayr
-      icon: external
-      variant: minimal
+   tagline: Sayr.io is a transparent, collaborative project management platform that bridges internal workflows with public collaboration through granular visibility controls.
+   actions:
+      - text: Get Started
+        link: /docs/quick-start
+        icon: right-arrow
+      - text: View on GitHub
+        link: https://github.com/dorasto/sayr
+        icon: external
+        variant: minimal
 ---
 
 ## Key Features

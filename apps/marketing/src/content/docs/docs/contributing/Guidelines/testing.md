@@ -1,8 +1,7 @@
 ---
 title: Testing Guide
 description: Writing and running tests in the Sayr codebase
-sidebar:
-   order: 6
+
 ---
 
 Sayr uses [Vitest](https://vitest.dev/) for testing. This guide covers how to write and run tests effectively.

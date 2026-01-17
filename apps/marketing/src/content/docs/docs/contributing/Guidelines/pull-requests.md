@@ -1,8 +1,7 @@
 ---
 title: Pull Request Guidelines
 description: How to submit high-quality pull requests to Sayr
-sidebar:
-   order: 7
+
 ---
 
 This guide covers how to create and submit pull requests that are easy to review and likely to be merged.

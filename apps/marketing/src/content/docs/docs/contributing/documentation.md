@@ -1,7 +1,8 @@
 ---
 title: Writing Documentation
 description: How to contribute to Sayr's documentation
-
+sidebar:
+   order: 6
 ---
 
 Contributing to Sayr's documentation is one of the easiest ways to help the project. You can edit docs directly on GitHub without cloning the repository or setting up a local environment.
