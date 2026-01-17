@@ -153,16 +153,16 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:latest
 
-  deploy:
-    needs: [merge-manifest]
-    runs-on: ubuntu-latest
-    container: ghcr.io/railwayapp/cli:latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app: [start, backend, worker, traefik, marketing]
-    env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    steps:
-      - name: Redeploy ${{ matrix.app }}
-        run: railway redeploy -y --service ${{ matrix.app }}
+  # deploy:
+  #   needs: [merge-manifest]
+  #   runs-on: ubuntu-latest
+  #   container: ghcr.io/railwayapp/cli:latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       app: [start, backend, worker, traefik, marketing]
+  #   env:
+  #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  #   steps:
+  #     - name: Redeploy ${{ matrix.app }}
+  #       run: railway redeploy -y --service ${{ matrix.app }}
