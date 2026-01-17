@@ -2,13 +2,61 @@ name: Manual Build
 
 on:
   workflow_dispatch:
+    inputs:
+      start:
+        description: "Build Start"
+        type: boolean
+        default: true
+      backend:
+        description: "Build Backend"
+        type: boolean
+        default: true
+      worker:
+        description: "Build Worker"
+        type: boolean
+        default: true
+      traefik:
+        description: "Build Traefik"
+        type: boolean
+        default: true
+      marketing:
+        description: "Build Marketing"
+        type: boolean
+        default: true
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  define-matrix:
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    outputs:
+      apps: ${{ steps.set-matrix.outputs.apps }}
+    steps:
+      - id: set-matrix
+        run: |
+          apps="[]"
+          if [[ "${{ inputs.start }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["start"]')
+          fi
+          if [[ "${{ inputs.backend }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["backend"]')
+          fi
+          if [[ "${{ inputs.worker }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["worker"]')
+          fi
+          if [[ "${{ inputs.traefik }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["traefik"]')
+          fi
+          if [[ "${{ inputs.marketing }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["marketing"]')
+          fi
+          echo "apps=$(echo $apps | jq -c .)" >> $GITHUB_OUTPUT
+
   build-image:
+    needs: define-matrix
+    if: needs.define-matrix.outputs.apps != '[]'
     name: Build and Push
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'blacksmith-4vcpu-ubuntu-2404-arm' || 'blacksmith-4vcpu-ubuntu-2404' }}
     permissions:
@@ -17,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [start, backend, worker, traefik, marketing]
+        app: ${{ fromJson(needs.define-matrix.outputs.apps) }}
         platform:
           - linux/amd64
           - linux/arm64
@@ -90,7 +138,8 @@ jobs:
           retention-days: 1
 
   merge-manifest:
-    needs: [build-image]
+    needs: [define-matrix, build-image]
+    if: needs.define-matrix.outputs.apps != '[]'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -98,7 +147,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [start, backend, worker, traefik, marketing]
+        app: ${{ fromJson(needs.define-matrix.outputs.apps) }}
     steps:
       - name: Determine Docker Config
         id: config
@@ -150,11 +199,3 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:latest
-  # deployment:
-  #   needs: [merge-manifest]
-  #   runs-on: blacksmith-2vcpu-ubuntu-2404
-  #   steps:
-  #     - name: Deploy to Coolify
-  #       id: deployment
-  #       run: |
-  #         curl --request GET '${{secrets.SAYR_DEPLOY}}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_ROOT_API_KEY }}'
