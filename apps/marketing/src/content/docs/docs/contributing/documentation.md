@@ -244,27 +244,47 @@ Only use MDX when you need React components. Plain Markdown (`.md`) is simpler a
 
 ## Configuration
 
-The sidebar and site settings are in `apps/marketing/astro.config.mjs`:
+The sidebar uses [`starlight-sidebar-topics`](https://github.com/HiDeoo/starlight-sidebar-topics) to create separate navigation topics. Configuration is in `apps/marketing/astro.config.mjs`:
 
 ```javascript
-sidebar: [
+starlightSidebarTopics([
    {
-      label: "Getting Started",
+      label: "Documentation",
+      link: "/docs/",
+      icon: "open-book",
+      id: "docs",
       items: [
-         { label: "Introduction", slug: "docs" },
-         { label: "Quick Start", slug: "docs/quick-start" },
+         {
+            label: "Getting Started",
+            items: [
+               { label: "Introduction", slug: "docs" },
+               { label: "Quick Start", slug: "docs/quick-start" },
+            ],
+         },
+         {
+            label: "Guides",
+            autogenerate: { directory: "/docs/guides" },
+         },
+         // ...
       ],
    },
    {
-      label: "Guides",
-      autogenerate: { directory: "/docs/guides" },
+      label: "Contributing",
+      link: "/docs/contributing/local-development/",
+      icon: "github",
+      id: "contributing",
+      items: [
+         // Contributing navigation items...
+      ],
    },
-   // ...
-],
+]),
 ```
 
-- **Manual items**: Explicitly listed pages
+### Configuration Options
+
+- **Manual items**: Explicitly listed pages with `{ label, slug }`
 - **Autogenerate**: Automatically includes all pages in a directory
+- **Topics**: Separate top-level navigation tabs (Documentation, Contributing)
 
 ## Local Preview
 
