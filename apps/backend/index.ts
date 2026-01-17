@@ -70,8 +70,8 @@ app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://fi
 // Routes
 // -----------------------------------------------------------------------------
 app.get("/", serveStatic({ path: "./public/index.html" }));
-app.get("/ws", serveStatic({ path: "./public/ws.html" }));
-app.get("/file", serveStatic({ path: "./public/file-test.html" }));
+app.get("/render/ws", serveStatic({ path: "./public/ws.html" }));
+app.get("/render/file", serveStatic({ path: "./public/file-test.html" }));
 app.get("/api/health", (c) => c.text("OK"));
 app.use("*", rootSpanMiddleware());
 app.use("*", wideEventMiddleware());
