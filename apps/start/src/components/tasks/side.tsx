@@ -53,6 +53,7 @@ import { useLayoutData } from "../generic/Context";
 import RenderIcon from "../generic/RenderIcon";
 import { serializeFilters } from "./filter";
 import { type PriorityKey, priorityConfig } from "./shared";
+import SettingsOrganizationViewDetailPage from "../pages/admin/settings/orgId/view-detail";
 
 export default function ProjectSide() {
   console.log("[RENDER] ProjectSide");
@@ -504,7 +505,7 @@ export default function ProjectSide() {
             <div className="flex items-center justify-between mb-0">
               <SheetTitle asChild>
                 <Label variant={"heading"} className="mb-0">
-                  Edit {editingView?.name}
+                  {editingView?.name}
                 </Label>
               </SheetTitle>
               <SheetClose asChild>
@@ -518,12 +519,12 @@ export default function ProjectSide() {
             </SheetDescription>
           </SheetHeader>
           <div className="p-3">
-            {/* {editingView && (
-							<SettingsOrganizationViewDetailPage
-								viewId={editingView.id}
-								initialView={editingView}
-							/>
-						)} */}
+            {editingView && (
+              <SettingsOrganizationViewDetailPage
+                viewId={editingView.id}
+                initialView={editingView}
+              />
+            )}
           </div>
         </SheetContent>
       </Sheet>
