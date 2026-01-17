@@ -69,6 +69,7 @@ app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://fi
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
+app.route("/ws", wsRoute)
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.get("/render/ws", serveStatic({ path: "./public/ws.html" }));
 app.get("/render/file", serveStatic({ path: "./public/file-test.html" }));
