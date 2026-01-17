@@ -81,6 +81,7 @@ interface TaskContentSideContentProps {
     ? T
     : never;
   categories: schema.categoryType[];
+  organization: schema.OrganizationWithMembers;
   panelControls?: {
     isPanelOpen: boolean;
     onToggle: () => void;
@@ -97,6 +98,7 @@ export function TaskContentSideContent({
   wsClientId,
   runWithToast,
   categories,
+  organization,
   panelControls,
 }: TaskContentSideContentProps) {
   const debouncedUpdateLabels = useDebounceAsync(
@@ -137,7 +139,7 @@ export function TaskContentSideContent({
       <div className="border-b">
         <div className="flex items-center gap-2 px-2 pt-2 pb-3 w-full justify-end">
           <SimpleClipboard
-            textToCopy={`https://${task.organization?.slug}.sayr.io/${task.shortId}`}
+            textToCopy={`https://${organization?.slug}.sayr.io/${task.shortId}`}
             variant={"primary"}
             className="h-6 p-1 w-fit bg-transparent"
             copyIcon={<IconLink />}
@@ -525,6 +527,7 @@ export function TaskContent({
             wsClientId={wsClientId}
             runWithToast={runWithToast}
             categories={categories}
+            organization={organization}
           />
         </div>
       </div>

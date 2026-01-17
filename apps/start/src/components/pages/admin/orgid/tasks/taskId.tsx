@@ -83,27 +83,30 @@ export default function OrganizationTaskIdPage() {
           className=""
         >
           <div className="flex-1 overflow-y-auto h-full flex flex-col relative">
-            <TaskContentSideContent
-              task={task}
-              labels={labels}
-              tasks={tasks}
-              setTasks={setTasks}
-              setSelectedTask={(t) => t && setTask(t)}
-              availableUsers={availableUsers}
-              wsClientId={wsClientId}
-              runWithToast={runWithToast}
-              categories={categories}
-              panelControls={{
-                isPanelOpen,
-                onToggle: () => {
-                  if (isPanelOpen) {
-                    ref.current?.collapse();
-                  } else {
-                    ref.current?.expand();
-                  }
-                },
-              }}
-            />
+            {organization && (
+              <TaskContentSideContent
+                task={task}
+                labels={labels}
+                tasks={tasks}
+                setTasks={setTasks}
+                setSelectedTask={(t) => t && setTask(t)}
+                availableUsers={availableUsers}
+                wsClientId={wsClientId}
+                runWithToast={runWithToast}
+                categories={categories}
+                organization={organization}
+                panelControls={{
+                  isPanelOpen,
+                  onToggle: () => {
+                    if (isPanelOpen) {
+                      ref.current?.collapse();
+                    } else {
+                      ref.current?.expand();
+                    }
+                  },
+                }}
+              />
+            )}
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
