@@ -1,6 +1,8 @@
 ---
 title: Frequently Asked Questions
 description: Answers to common questions about Sayr
+sidebar:
+   order: 2
 ---
 
 ## General

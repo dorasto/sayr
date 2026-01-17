@@ -13,39 +13,41 @@ real‑time updates via WebSockets.
 
 ---
 
-## Install
+## Installation
+
+Install the public Sayr SDK using your preferred package manager:
 
 ```bash
 npm install @sayrio/public
 ```
-
 or
-
 ```bash
 pnpm add @sayrio/public
 ```
 
----
-
 ## Usage
 
-### Basic (REST)
+### Basic Usage (REST)
+
+Fetch public organization data using the REST API:
 
 ```ts
 import Sayr from "@sayrio/public";
 
-const org = await Sayr.org.get("test");
+const org = await Sayr.org.get("acme");
 
 console.log(org.name);
 ```
 
 ---
 
-### Tasks
+### Listing Tasks
+
+Retrieve tasks for an organization with pagination and ordering support:
 
 ```ts
 const { data: tasks, pagination } =
-  await Sayr.org.tasks("test", {
+  await Sayr.org.tasks("acme", {
     order: "desc",
     limit: 10
   });
@@ -57,21 +59,25 @@ console.log(tasks);
 
 ### Task Comments
 
+Fetch comments for a specific task:
+
 ```ts
 const { data: comments } =
-  await Sayr.org.comments("test", 12);
+  await Sayr.org.comments("acme", 12);
 
 console.log(comments);
 ```
 
 ---
 
-## WebSocket (Real‑Time Updates)
+### Real-Time Updates (WebSocket)
+
+Subscribe to public real-time events using WebSockets:
 
 ```ts
 Sayr.ws(org.wsUrl, {
   [Sayr.wsTypes.UPDATE_ORG]: (data) => {
-    console.log("Org updated", data);
+    console.log("Organization updated", data);
   },
 
   [Sayr.wsTypes.UPDATE_TASK]: (task) => {
@@ -80,45 +86,51 @@ Sayr.ws(org.wsUrl, {
 });
 ```
 
-### Features
-- Automatic reconnect
-- Heartbeat (PING / PONG)
-- Typed event names
-- Public‑safe payloads
+### WebSocket Features
+- Automatic reconnection
+- Heartbeat support (PING / PONG)
+- Typed event constants
+- Public-safe payloads only
 
 ---
 
 ## React Hooks
 
-React hooks are available via a sub‑path export:
+React hooks are available via a dedicated sub-path export:
 
 ```ts
-import { useOrg, useTasks } from "@sayrio/public/react";
+import { useOrg, useTasks, useComments } from "@sayrio/public/react";
 ```
 
 ---
 
 ### `useOrg`
 
+Fetch and subscribe to an organization:
+
 ```tsx
-const { data: org, loading } = useOrg("test");
+const { data: org, loading } = useOrg("acme");
 ```
 
 ---
 
 ### `useTasks`
 
+Fetch and subscribe to tasks for an organization:
+
 ```tsx
-const { tasks } = useTasks("test", org?.wsUrl);
+const { tasks } = useTasks("acme", org?.wsUrl);
 ```
 
 ---
 
 ### `useComments`
 
+Fetch and subscribe to comments for a task:
+
 ```tsx
 const { comments } = useComments(
-  "test",
+  "acme",
   task.shortId,
   org?.wsUrl
 );
@@ -130,13 +142,13 @@ Hooks automatically refresh when relevant WebSocket events occur.
 
 ## Browser Usage (No Bundler)
 
-You can use the SDK directly in the browser via ESM:
+The SDK can be used directly in the browser via ESM:
 
 ```html
 <script type="module">
   import Sayr from "https://esm.sh/@sayrio/public";
 
-  const org = await Sayr.org.get("test");
+  const org = await Sayr.org.get("acme");
   console.log(org);
 </script>
 ```
@@ -147,27 +159,28 @@ You can use the SDK directly in the browser via ESM:
 
 ### `Sayr.org`
 
-| Method | Description |
-|------|-------------|
-| `get(slug)` | Get public organization |
-| `labels(slug)` | List labels |
-| `categories(slug, order?)` | List categories |
-| `tasks(slug, opts?)` | List tasks (paginated) |
-| `task(slug, shortId)` | Get single task |
-| `comments(slug, shortId, opts?)` | List comments |
+| Method                           | Description                 |
+| -------------------------------- | --------------------------- |
+| `get(slug)`                      | Fetch a public organization |
+| `labels(slug)`                   | List organization labels    |
+| `categories(slug, order?)`       | List categories             |
+| `tasks(slug, opts?)`             | List tasks (paginated)      |
+| `task(slug, shortId)`            | Fetch a single task         |
+| `comments(slug, shortId, opts?)` | List task comments          |
+
 
 ---
 
 ### `Sayr.ws(url, handlers)`
 
-Create a WebSocket connection for public events.
+Create a WebSocket connection for public events:
 
 ```ts
 const conn = Sayr.ws(wsUrl, {
   UPDATE_TASK: () => {}
 });
 
-// later
+// Close the connection when no longer needed
 conn.close();
 ```
 
@@ -186,7 +199,7 @@ Sayr.wsTypes.ERROR
 
 ## TypeScript
 
-This package ships with full TypeScript definitions.
+This package ships with full TypeScript definitions:
 
 ```ts
 import type { Organization, Task } from "@sayrio/public";

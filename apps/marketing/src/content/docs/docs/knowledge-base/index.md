@@ -1,6 +1,9 @@
 ---
 title: Knowledge Base
 description: Find answers to common questions and troubleshooting guides for Sayr
+sidebar:
+   label: Overview
+   order: 1
 ---
 
 Welcome to the Sayr Knowledge Base. Here you'll find answers to frequently asked questions, troubleshooting guides, and helpful tips for getting the most out of Sayr.
