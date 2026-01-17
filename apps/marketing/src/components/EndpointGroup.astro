@@ -1,0 +1,21 @@
+---
+import type { ParsedEndpoint } from "../lib/openapi";
+import EndpointCard from "./EndpointCard.astro";
+
+interface Props {
+	endpoints: ParsedEndpoint[];
+	baseUrl?: string;
+}
+
+const { endpoints, baseUrl = "https://sayr.io/api" } = Astro.props;
+---
+
+<div class="endpoint-group">
+	{endpoints.map((endpoint) => <EndpointCard endpoint={endpoint} baseUrl={baseUrl} />)}
+</div>
+
+<style>
+	.endpoint-group {
+		margin-bottom: 2rem;
+	}
+</style>

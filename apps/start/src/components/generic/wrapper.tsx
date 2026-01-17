@@ -52,6 +52,8 @@ interface SubProps {
   icon?: React.ReactNode;
   backButton?: string;
   backButtonText?: string;
+  blur?: boolean;
+  top?: boolean;
 }
 export function SubWrapper({
   children,
@@ -64,32 +66,43 @@ export function SubWrapper({
   icon,
   backButton,
   backButtonText = "Back",
+  blur = true,
+  top = true,
 }: SubProps) {
   return (
     <div className={cn("relative", rootClassName)}>
-      <div className="sticky top-0 z-50 w-full md:h-7 backdrop-blur bg-linear-to-b from-background from-5% via-background/30 via-30% to-background/0 flex items-center px-3 pt-3">
-        {backButton ? (
-          <Link to={backButton} className="">
+      {top && (
+        <div
+          className={cn(
+            "",
+            blur
+              ? "sticky top-0 z-50 w-full md:h-7 backdrop-blur bg-linear-to-b from-background from-5% via-background/30 via-30% to-background/0 flex items-center px-3 pt-3"
+              : "",
+          )}
+        >
+          {backButton ? (
+            <Link to={backButton} className="">
+              <Button
+                variant={"ghost"}
+                className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg"
+                size={"sm"}
+              >
+                <IconArrowLeft className="size-3!" />
+                <span className="">{backButtonText}</span>
+              </Button>
+            </Link>
+          ) : (
             <Button
               variant={"ghost"}
-              className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg"
+              className="w-fit text-xs p-1 h-auto invisible"
               size={"sm"}
             >
               <IconArrowLeft className="size-3!" />
-              <span className="">{backButtonText}</span>
+              <span className="hidden lg:block">Back</span>
             </Button>
-          </Link>
-        ) : (
-          <Button
-            variant={"ghost"}
-            className="w-fit text-xs p-1 h-auto invisible"
-            size={"sm"}
-          >
-            <IconArrowLeft className="size-3!" />
-            <span className="hidden lg:block">Back</span>
-          </Button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
       <div
         className={cn(
           "flex flex-col gap-9 md:p-6 md:pt-0",

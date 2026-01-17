@@ -1,46 +1,74 @@
-"use client";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/avatar";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
-import { Input } from "@repo/ui/components/input";
 import { SearchIcon } from "lucide-react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { authClient } from "@repo/auth/client";
+import { IconUser } from "@tabler/icons-react";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@repo/ui/components/input-group";
+import LoginDialog from "../auth/login";
 
 export default function PublicNavigation() {
-	const { data: session } = authClient.useSession();
-	console.log("🚀 ~ PublicNavigation ~ session:", session);
+  const { data: session } = authClient.useSession();
+  console.log("🚀 ~ PublicNavigation ~ session:", session);
 
-	const { organization } = usePublicOrganizationLayout();
-	return (
-		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center rounded-b-2xl">
-			<div className="flex w-full justify-between items-center gap-2 p-1">
-				<div className="flex-1 items-center gap-1 font-bold">
-					<Button variant={"ghost"} className="justify-start px-2">
-						<Avatar className="h-8 w-8 rounded-md">
-							<AvatarImage src={organization.logo || ""} alt={organization.name} />
-							<AvatarFallback className="rounded-md uppercase text-xs">
-								<TasqIcon className="size-8! transition-all" />
-							</AvatarFallback>
-						</Avatar>
+  const { organization } = usePublicOrganizationLayout();
+  return (
+    <header className="bg-sidebar h-(--header-height) z-50 flex w-full items-center rounded-b-xl">
+      <div className="flex w-full justify-between items-center gap-2 p-3">
+        <div className="flex-1 items-center gap-1 font-bold">
+          <Button
+            variant={"primary"}
+            className="justify-start rounded-xl h-8 p-1 px-2 bg-transparent hover:bg-accent border-0"
+          >
+            <Avatar className="h-6 w-6 rounded-md">
+              <AvatarImage
+                src={organization.logo || ""}
+                alt={organization.name}
+              />
+              <AvatarFallback className="rounded-md uppercase text-xs">
+                <TasqIcon className="size-6! transition-all" />
+              </AvatarFallback>
+            </Avatar>
 
-						<span className="text-inherit font-bold text-lg">{organization.name}</span>
-					</Button>
-				</div>
-				<div className="grow max-sm:hidden">
-					{/* Search form */}
-					<div className="relative mx-auto w-full max-w-xs">
-						<Input id={"search"} className="peer h-8 px-8" placeholder="Search..." type="search" />
-						<div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-2 peer-disabled:opacity-50">
-							<SearchIcon size={16} />
-						</div>
-					</div>
-				</div>
-				<div className="flex flex-1 items-center justify-end gap-2">
-					{session ? session.user.name : <Button>Sign in</Button>}
-				</div>
-			</div>
-		</header>
-	);
+            <span className="text-inherit font-bold text-sm">
+              {organization.name}
+            </span>
+          </Button>
+        </div>
+        <div className="flex flex-1 items-center justify-end gap-2">
+          {/* Search form */}
+          <div className="relative">
+            <InputGroup className="bg-transparent rounded-xl border-transparent focus-within:bg-accent transition-all text-muted-foreground focus-within:text-foreground placeholder:text-muted-foreground hover:bg-accent max-w-48 h-8">
+              <InputGroupInput placeholder="Search..." />
+              <InputGroupAddon>
+                <SearchIcon />
+              </InputGroupAddon>
+            </InputGroup>
+          </div>
+        </div>
+        {session ? (
+          session.user.name
+        ) : (
+          // <Button
+          //   variant={"ghost"}
+          //   className="flex items-center px-2 rounded-xl h-8 p-1 px-2 bg-transparent hover:bg-accent border-0 text-muted-foreground"
+          //   onClick={}
+          // >
+          //   <IconUser className="h-6 w-6" />
+          //   Log in
+          // </Button>
+          <LoginDialog trigger={<Button size={"lg"}>Log in</Button>} />
+        )}
+      </div>
+    </header>
+  );
 }

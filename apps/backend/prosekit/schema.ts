@@ -153,7 +153,30 @@ export const prosekitSchema = new Schema({
 					}),
 				},
 			],
-			toDOM: (node) => ["video", node.attrs],
+			toDOM: (node) => {
+				const {
+					src,
+					width,
+					height,
+					controls,
+					autoplay,
+					loop,
+					muted,
+				} = node.attrs;
+
+				const attrs: Record<string, string | null> = {
+					src,
+					width,
+					height,
+				};
+
+				if (controls) attrs.controls = "";
+				if (autoplay) attrs.autoplay = "";
+				if (loop) attrs.loop = "";
+				if (muted) attrs.muted = "";
+
+				return ["video", attrs];
+			},
 		},
 		gif: {
 			attrs: {
@@ -197,7 +220,8 @@ export const prosekitSchema = new Schema({
 			toDOM: (node) => [
 				"span",
 				{
-					"data-mention": node.attrs.kind,
+					class: `mention`,
+					"data-kind": node.attrs.kind,
 					"data-id": node.attrs.id,
 				},
 				node.attrs.value,

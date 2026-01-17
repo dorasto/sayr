@@ -25,6 +25,7 @@ export * from "./taskTimeline.schema";
 export * from "./taskCommentHistory.schema";
 export * from "./taskCommentReaction.schema";
 export * from "./taskTemplate.schema";
+export * from "./taskVote.schema";
 export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>

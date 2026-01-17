@@ -1,0 +1,28 @@
+---
+title: API Reference
+description: Complete API reference for the Sayr public API
+---
+
+import ApiEndpointGroup from "../../../../components/ApiEndpointGroup.astro";
+import { fetchOpenAPISpec, parseEndpoints, groupEndpointsByTag } from "../../../../lib/openapi";
+
+export const spec = await fetchOpenAPISpec("https://sayr.io/api/public/openapi.json");
+export const endpoints = parseEndpoints(spec);
+export const groupedEndpoints = groupEndpointsByTag(endpoints);
+export const serverUrl = spec.servers?.[0]?.url || "https://sayr.io/api";
+
+<div class="not-content mb-6">
+	<p class="mb-2">
+		<strong class="text-[--sl-color-white]">Version:</strong> {spec.info.version}
+		<span class="ml-4 px-2 py-0.5 bg-[--sl-color-bg] rounded text-xs">OpenAPI {spec.openapi}</span>
+	</p>
+	{spec.info.description && <p class="mb-3 text-[--sl-color-text]">{spec.info.description}</p>}
+	<p class="text-sm text-[--sl-color-gray-2]">
+		<strong class="text-[--sl-color-white]">Base URL:</strong>
+		<code class="ml-2 px-2 py-1 bg-[--sl-color-bg] rounded text-sm">{serverUrl}</code>
+	</p>
+</div>
+
+{Array.from(groupedEndpoints.entries()).map(([tag, tagEndpoints]) => (
+	<ApiEndpointGroup tag={tag} endpoints={tagEndpoints} baseUrl={serverUrl} />
+))}

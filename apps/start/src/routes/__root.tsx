@@ -17,7 +17,7 @@ export const Route = createRootRouteWithContext<{
 	account?: schema.userType;
 	permissions?: NonNullable<(typeof schema.team.$inferSelect)["permissions"]>;
 }>()({
-	head: () => ({
+	head: (ctx) => ({
 		meta: [
 			{
 				charSet: "utf-8",
@@ -35,7 +35,11 @@ export const Route = createRootRouteWithContext<{
 			},
 			{
 				rel: "manifest",
-				href: "/manifest.json",
+				//@ts-expect-error
+				href: ctx.params?.orgSlug
+					//@ts-expect-error
+					? `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
+					: "/manifest.webmanifest",
 			},
 		],
 	}),

@@ -135,36 +135,38 @@ export function SettingsSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuSub>
                 </SidebarMenuItem>
-                {orgSubItems.map((item) => {
-                  const url = `/settings/org/${org.id}/${item.slug}`;
-                  const isActive =
-                    item.matchType === "includes"
-                      ? pathname.includes(url)
-                      : pathname === url;
-                  const Icon = isActive ? item.activeIcon : item.icon;
-                  return (
-                    <SidebarMenuItem
-                      key={item.title}
-                      hideWhenCollapsed
-                      className="min-h-auto"
-                      isActive={isActive}
-                    >
-                      <Link to={url} className="w-full">
-                        <SidebarMenuButton
-                          size="small"
-                          icon={
-                            <Icon
-                              className={cn(isActive && item.activeClass)}
-                            />
-                          }
-                          tooltip={item.title}
-                        >
-                          <span>{item.title}</span>
-                        </SidebarMenuButton>
-                      </Link>
-                    </SidebarMenuItem>
-                  );
-                })}
+                <SidebarGroup className="ml-2 pl-2 border-l">
+                  {orgSubItems.map((item) => {
+                    const url = `/settings/org/${org.id}/${item.slug}`;
+                    const isActive =
+                      item.matchType === "includes"
+                        ? pathname.includes(url)
+                        : pathname === url;
+                    const Icon = isActive ? item.activeIcon : item.icon;
+                    return (
+                      <SidebarMenuItem
+                        key={item.title}
+                        hideWhenCollapsed
+                        className="min-h-auto"
+                        isActive={isActive}
+                      >
+                        <Link to={url} className="w-full">
+                          <SidebarMenuButton
+                            size="small"
+                            icon={
+                              <Icon
+                                className={cn(isActive && item.activeClass)}
+                              />
+                            }
+                            tooltip={item.title}
+                          >
+                            <span>{item.title}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarGroup>
               </SidebarMenu>,
             ])
             .filter(Boolean)}

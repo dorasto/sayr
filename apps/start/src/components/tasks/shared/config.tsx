@@ -26,6 +26,7 @@ export const statusConfig = {
     ),
     className: "text-muted-foreground",
     color: "#6B7280",
+    hsla: "hsla(220, 8.94%, 46.08%, 1)",
     var: "muted-foreground",
   },
   todo: {
@@ -35,6 +36,7 @@ export const statusConfig = {
     ),
     className: "text-foreground",
     color: "#3B82F6",
+    hsla: "hsla(217.22, 91.22%, 59.8%, 1)",
     var: "foreground",
   },
   "in-progress": {
@@ -44,6 +46,7 @@ export const statusConfig = {
     ),
     className: "text-primary fill-primary",
     color: "#F59E0B",
+    hsla: "hsla(37.69, 92.13%, 50.2%, 1)",
     var: "primary",
   },
   done: {
@@ -53,6 +56,7 @@ export const statusConfig = {
     ),
     className: "text-success",
     color: "#10B981",
+    hsla: "hsla(141.43, 99.9%, 59.8%, 1)",
     var: "success",
   },
   canceled: {
@@ -62,6 +66,7 @@ export const statusConfig = {
     ),
     className: "text-desctructive",
     color: "#EF4444",
+    hsla: "hsla(359.43, 99.9%, 59.8%, 1)",
     var: "destructive",
   },
 } as const;

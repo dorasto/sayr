@@ -10,10 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
+import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
+import { Route as LoginAuthCheckRouteImport } from './routes/login/auth-check'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
+import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
 import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
 import { Route as adminMineRouteRouteImport } from './routes/(admin)/mine/route'
 import { Route as adminOrgIdRouteRouteImport } from './routes/(admin)/$orgId/route'
@@ -26,6 +29,7 @@ import { Route as adminOrgIdIndexRouteImport } from './routes/(admin)/$orgId/ind
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
 import { Route as adminOrgIdTasksRouteRouteImport } from './routes/(admin)/$orgId/tasks/route'
+import { Route as OrgsOrgSlugShortIdIndexRouteImport } from './routes/orgs/$orgSlug/$shortId/index'
 import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(admin)/settings/connections/index'
 import { Route as adminConsoleConnectionsIndexRouteImport } from './routes/(admin)/console/connections/index'
 import { Route as adminOrgIdTasksIndexRouteImport } from './routes/(admin)/$orgId/tasks/index'
@@ -50,6 +54,11 @@ const ProsekitTestRoute = ProsekitTestRouteImport.update({
   path: '/prosekit-test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
+  id: '/manifest.webmanifest',
+  path: '/manifest.webmanifest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const adminRouteRoute = adminRouteRouteImport.update({
   id: '/(admin)',
   getParentRoute: () => rootRouteImport,
@@ -64,9 +73,19 @@ const adminIndexRoute = adminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => adminRouteRoute,
 } as any)
+const LoginAuthCheckRoute = LoginAuthCheckRouteImport.update({
+  id: '/login/auth-check',
+  path: '/login/auth-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
   id: '/api/image-preview',
   path: '/api/image-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgsOrgSlugRouteRoute = OrgsOrgSlugRouteRouteImport.update({
+  id: '/orgs/$orgSlug',
+  path: '/orgs/$orgSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminSettingsRouteRoute = adminSettingsRouteRouteImport.update({
@@ -85,9 +104,9 @@ const adminOrgIdRouteRoute = adminOrgIdRouteRouteImport.update({
   getParentRoute: () => adminRouteRoute,
 } as any)
 const OrgsOrgSlugIndexRoute = OrgsOrgSlugIndexRouteImport.update({
-  id: '/orgs/$orgSlug/',
-  path: '/orgs/$orgSlug/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgsOrgSlugRouteRoute,
 } as any)
 const InviteOrgIdIndexRoute = InviteOrgIdIndexRouteImport.update({
   id: '/invite/$orgId/',
@@ -129,6 +148,11 @@ const adminOrgIdTasksRouteRoute = adminOrgIdTasksRouteRouteImport.update({
   id: '/tasks',
   path: '/tasks',
   getParentRoute: () => adminOrgIdRouteRoute,
+} as any)
+const OrgsOrgSlugShortIdIndexRoute = OrgsOrgSlugShortIdIndexRouteImport.update({
+  id: '/$shortId/',
+  path: '/$shortId/',
+  getParentRoute: () => OrgsOrgSlugRouteRoute,
 } as any)
 const adminSettingsConnectionsIndexRoute =
   adminSettingsConnectionsIndexRouteImport.update({
@@ -239,11 +263,14 @@ const adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/$orgId': typeof adminOrgIdRouteRouteWithChildren
   '/mine': typeof adminMineRouteRouteWithChildren
   '/settings': typeof adminSettingsRouteRouteWithChildren
+  '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
@@ -254,12 +281,13 @@ export interface FileRoutesByFullPath {
   '/mine/': typeof adminMineIndexRoute
   '/settings/': typeof adminSettingsIndexRoute
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
-  '/orgs/$orgSlug': typeof OrgsOrgSlugIndexRoute
+  '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
   '/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
   '/console/connections': typeof adminConsoleConnectionsIndexRoute
   '/settings/connections/': typeof adminSettingsConnectionsIndexRoute
+  '/orgs/$orgSlug/$shortId': typeof OrgsOrgSlugShortIdIndexRoute
   '/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
@@ -275,8 +303,10 @@ export interface FileRoutesByFullPath {
   '/settings/org/$orgId/views/$viewId': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -289,6 +319,7 @@ export interface FileRoutesByTo {
   '/$orgId/tasks': typeof adminOrgIdTasksIndexRoute
   '/console/connections': typeof adminConsoleConnectionsIndexRoute
   '/settings/connections': typeof adminSettingsConnectionsIndexRoute
+  '/orgs/$orgSlug/$shortId': typeof OrgsOrgSlugShortIdIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
@@ -306,11 +337,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(admin)': typeof adminRouteRouteWithChildren
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
   '/(admin)/mine': typeof adminMineRouteRouteWithChildren
   '/(admin)/settings': typeof adminSettingsRouteRouteWithChildren
+  '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/login/auth-check': typeof LoginAuthCheckRoute
   '/(admin)/': typeof adminIndexRoute
   '/login/': typeof LoginIndexRoute
   '/(admin)/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
@@ -327,6 +361,7 @@ export interface FileRoutesById {
   '/(admin)/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
   '/(admin)/console/connections/': typeof adminConsoleConnectionsIndexRoute
   '/(admin)/settings/connections/': typeof adminSettingsConnectionsIndexRoute
+  '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
   '/(admin)/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/(admin)/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
@@ -344,11 +379,14 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/$orgId'
     | '/mine'
     | '/settings'
+    | '/orgs/$orgSlug'
     | '/api/image-preview'
+    | '/login/auth-check'
     | '/'
     | '/login'
     | '/$orgId/tasks'
@@ -359,12 +397,13 @@ export interface FileRouteTypes {
     | '/mine/'
     | '/settings/'
     | '/invite/$orgId'
-    | '/orgs/$orgSlug'
+    | '/orgs/$orgSlug/'
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
     | '/$orgId/tasks/'
     | '/console/connections'
     | '/settings/connections/'
+    | '/orgs/$orgSlug/$shortId'
     | '/$orgId/tasks/$taskShortId/'
     | '/settings/org/$orgId/'
     | '/settings/org/$orgId/teams/new'
@@ -380,8 +419,10 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/views/$viewId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/api/image-preview'
+    | '/login/auth-check'
     | '/'
     | '/login'
     | '/api/auth/$'
@@ -394,6 +435,7 @@ export interface FileRouteTypes {
     | '/$orgId/tasks'
     | '/console/connections'
     | '/settings/connections'
+    | '/orgs/$orgSlug/$shortId'
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
     | '/settings/org/$orgId/teams/new'
@@ -410,11 +452,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/(admin)'
+    | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/(admin)/$orgId'
     | '/(admin)/mine'
     | '/(admin)/settings'
+    | '/orgs/$orgSlug'
     | '/api/image-preview'
+    | '/login/auth-check'
     | '/(admin)/'
     | '/login/'
     | '/(admin)/$orgId/tasks'
@@ -431,6 +476,7 @@ export interface FileRouteTypes {
     | '/(admin)/$orgId/tasks/'
     | '/(admin)/console/connections/'
     | '/(admin)/settings/connections/'
+    | '/orgs/$orgSlug/$shortId/'
     | '/(admin)/$orgId/tasks/$taskShortId/'
     | '/(admin)/settings/org/$orgId/'
     | '/(admin)/settings/org/$orgId/teams/new'
@@ -448,12 +494,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   adminRouteRoute: typeof adminRouteRouteWithChildren
+  ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ProsekitTestRoute: typeof ProsekitTestRoute
+  OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
+  LoginAuthCheckRoute: typeof LoginAuthCheckRoute
   LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   InviteOrgIdIndexRoute: typeof InviteOrgIdIndexRoute
-  OrgsOrgSlugIndexRoute: typeof OrgsOrgSlugIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -463,6 +511,13 @@ declare module '@tanstack/react-router' {
       path: '/prosekit-test'
       fullPath: '/prosekit-test'
       preLoaderRoute: typeof ProsekitTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifest.webmanifest': {
+      id: '/manifest.webmanifest'
+      path: '/manifest.webmanifest'
+      fullPath: '/manifest.webmanifest'
+      preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)': {
@@ -486,11 +541,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminIndexRouteImport
       parentRoute: typeof adminRouteRoute
     }
+    '/login/auth-check': {
+      id: '/login/auth-check'
+      path: '/login/auth-check'
+      fullPath: '/login/auth-check'
+      preLoaderRoute: typeof LoginAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/image-preview': {
       id: '/api/image-preview'
       path: '/api/image-preview'
       fullPath: '/api/image-preview'
       preLoaderRoute: typeof ApiImagePreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orgs/$orgSlug': {
+      id: '/orgs/$orgSlug'
+      path: '/orgs/$orgSlug'
+      fullPath: '/orgs/$orgSlug'
+      preLoaderRoute: typeof OrgsOrgSlugRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)/settings': {
@@ -516,10 +585,10 @@ declare module '@tanstack/react-router' {
     }
     '/orgs/$orgSlug/': {
       id: '/orgs/$orgSlug/'
-      path: '/orgs/$orgSlug'
-      fullPath: '/orgs/$orgSlug'
+      path: '/'
+      fullPath: '/orgs/$orgSlug/'
       preLoaderRoute: typeof OrgsOrgSlugIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
     }
     '/invite/$orgId/': {
       id: '/invite/$orgId/'
@@ -576,6 +645,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$orgId/tasks'
       preLoaderRoute: typeof adminOrgIdTasksRouteRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
+    }
+    '/orgs/$orgSlug/$shortId/': {
+      id: '/orgs/$orgSlug/$shortId/'
+      path: '/$shortId'
+      fullPath: '/orgs/$orgSlug/$shortId'
+      preLoaderRoute: typeof OrgsOrgSlugShortIdIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
     }
     '/(admin)/settings/connections/': {
       id: '/(admin)/settings/connections/'
@@ -856,14 +932,29 @@ const adminRouteRouteWithChildren = adminRouteRoute._addFileChildren(
   adminRouteRouteChildren,
 )
 
+interface OrgsOrgSlugRouteRouteChildren {
+  OrgsOrgSlugIndexRoute: typeof OrgsOrgSlugIndexRoute
+  OrgsOrgSlugShortIdIndexRoute: typeof OrgsOrgSlugShortIdIndexRoute
+}
+
+const OrgsOrgSlugRouteRouteChildren: OrgsOrgSlugRouteRouteChildren = {
+  OrgsOrgSlugIndexRoute: OrgsOrgSlugIndexRoute,
+  OrgsOrgSlugShortIdIndexRoute: OrgsOrgSlugShortIdIndexRoute,
+}
+
+const OrgsOrgSlugRouteRouteWithChildren =
+  OrgsOrgSlugRouteRoute._addFileChildren(OrgsOrgSlugRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   adminRouteRoute: adminRouteRouteWithChildren,
+  ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ProsekitTestRoute: ProsekitTestRoute,
+  OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
+  LoginAuthCheckRoute: LoginAuthCheckRoute,
   LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   InviteOrgIdIndexRoute: InviteOrgIdIndexRoute,
-  OrgsOrgSlugIndexRoute: OrgsOrgSlugIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

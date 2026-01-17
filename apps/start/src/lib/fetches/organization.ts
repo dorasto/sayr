@@ -1,6 +1,6 @@
 import type { schema, TeamPermissions } from "@repo/database";
 
-const API_URL = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
 
 export interface CreateOrganizationData {
   name: string;

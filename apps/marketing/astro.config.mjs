@@ -1,12 +1,10 @@
-// @ts-check
-
 import node from "@astrojs/node";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import { ion } from "starlight-ion-theme";
+import starlightPageActions from "starlight-page-actions";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
-import starlightOpenAPI, { openAPISidebarGroups } from "starlight-openapi";
 
 // https://astro.build/config
 export default defineConfig({
@@ -20,7 +18,35 @@ export default defineConfig({
     starlight({
       title: "Sayr",
       logo: { src: "./src/assets/logo.svg" },
-
+      lastUpdated: true,
+      expressiveCode: {
+        // Themes: https://expressive-code.com/guides/themes/
+        themes: ["github-dark"],
+        // Remove the window frame around code blocks
+        styleOverrides: {
+          // Frame styles
+          frames: {
+            frameBoxShadowCssValue: "none",
+          },
+          // Border radius
+          borderRadius: "0.5rem",
+          // Code block padding
+          codePaddingBlock: "1rem",
+          codePaddingInline: "1.25rem",
+          // Font settings
+          codeFontFamily:
+            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+          codeFontSize: "0.875rem",
+          codeLineHeight: "1.6",
+          // Border
+          borderColor: "var(--sl-color-gray-5)",
+          borderWidth: "1px",
+        },
+      },
+      editLink: {
+        baseUrl: "https://github.com/dorasto/sayr/edit/main/apps/marketing/",
+      },
+      routeMiddleware: "./src/routeData/contributors.ts",
       description:
         "Documentation for Sayr.io - Transparent, collaborative project management",
       social: [
@@ -38,35 +64,42 @@ export default defineConfig({
             { label: "Quick Start", slug: "docs/quick-start" },
           ],
         },
+
         {
           label: "Guides",
+          autogenerate: { directory: "/docs/guides" },
+        },
+        {
+          label: "API",
           items: [
-            { label: "Visibility Controls", slug: "docs/guides/visibility" },
+            { label: "Overview", slug: "docs/api/overview" },
+            { label: "WebSocket", slug: "docs/api/ws" },
+            { label: "API Reference", slug: "docs/api/reference" },
           ],
         },
-        ...openAPISidebarGroups,
         {
           label: "Self hosting",
-          items: [{ label: "Overview", slug: "docs/self-hosting/railway" }],
+          autogenerate: { directory: "/docs/self-hosting" },
         },
       ],
       customCss: ["./src/styles/custom.css"],
-      components: {},
+      components: {
+        PageTitle: "./src/components/overrides/PageTitle.astro",
+        LastUpdated: "./src/components/overrides/LastUpdated.astro",
+        TableOfContents: "./src/components/overrides/TableOfContents.astro",
+      },
       plugins: [
-        ion(),
-        starlightOpenAPI([
-          {
-            base: "docs/api",
-            schema: "https://sayr.io/api/public/openapi.json",
-            sidebar: {
-              label: "API Reference",
-              collapsed: false,
-              operations: {
-                labels: "summary",
-              },
-            },
+        starlightPageActions({
+          baseUrl: "https://sayr.io",
+          actions: {
+            chatgpt: true,
+            claude: true,
+            viewMarkdown: true,
+            t3chat: true,
+            copyMarkdown: true,
           },
-        ]),
+        }),
+        // ion(),
       ],
     }),
     react(),

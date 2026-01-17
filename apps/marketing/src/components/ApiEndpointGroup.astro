@@ -1,0 +1,41 @@
+---
+import type { ParsedEndpoint } from "../lib/openapi";
+import EndpointCard from "./EndpointCard.astro";
+import Heading from "./Heading.astro";
+
+interface Props {
+	tag: string;
+	endpoints: ParsedEndpoint[];
+	baseUrl: string;
+}
+
+const { tag, endpoints, baseUrl } = Astro.props;
+
+// Generate slug for heading ID (matches Starlight's slug generation)
+const tagSlug = tag.toLowerCase().replace(/\s+/g, "-");
+
+const getEndpointSlug = (endpoint: ParsedEndpoint) => {
+	const path = endpoint.path
+		.replace(/[{}]/g, "")
+		.replace(/\//g, "-")
+		.replace(/^-/, "");
+	return `${endpoint.method.toLowerCase()}-${path}`.replace(/-+/g, "-");
+};
+---
+
+<section class="mb-12">
+	<Heading level={2} id={tagSlug}>{tag}</Heading>
+
+	{
+		endpoints.map((endpoint) => {
+			const slug = getEndpointSlug(endpoint);
+			const headingText = endpoint.operation.summary || endpoint.path;
+
+			return (
+				<div id={slug} class="scroll-mt-20">
+					<EndpointCard endpoint={endpoint} baseUrl={baseUrl} />
+				</div>
+			);
+		})
+	}
+</section>

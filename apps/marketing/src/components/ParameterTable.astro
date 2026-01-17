@@ -1,0 +1,75 @@
+---
+import type { Parameter } from "../lib/openapi";
+import { formatSchemaType } from "../lib/openapi";
+import { Badge } from "@/components/ui/badge";
+import { Frame } from "@/components/ui/frame";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+
+interface Props {
+    title: string;
+    parameters: Parameter[];
+}
+
+const { title, parameters } = Astro.props;
+---
+
+<div class="">
+    <h4 class="text-sm font-semibold text-foreground mb-2">{title}</h4>
+    <Frame className="w-full">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Required</TableHead>
+                    <TableHead>Description</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {
+                    parameters.map((param) => (
+                        <TableRow>
+                            <TableCell className="font-medium">
+                                <code class="text-[0.8125rem] px-1.5 py-0.5 bg-[--sl-color-bg] rounded">
+                                    {param.name}
+                                </code>
+                            </TableCell>
+                            <TableCell>
+                                <code class="text-[0.8125rem] px-1.5 py-0.5 bg-[--sl-color-bg] rounded text-blue-400">
+                                    {formatSchemaType(param.schema)}
+                                </code>
+                            </TableCell>
+                            <TableCell>
+                                {param.required ? (
+                                    <Badge variant="outline">
+                                        <span
+                                            aria-hidden="true"
+                                            class="size-1.5 rounded-full bg-red-500"
+                                        />
+                                        Yes
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline">
+                                        <span
+                                            aria-hidden="true"
+                                            class="size-1.5 rounded-full bg-muted-foreground/64"
+                                        />
+                                        No
+                                    </Badge>
+                                )}
+                            </TableCell>
+                            <TableCell>{param.description || "-"}</TableCell>
+                        </TableRow>
+                    ))
+                }
+            </TableBody>
+        </Table>
+    </Frame>
+</div>

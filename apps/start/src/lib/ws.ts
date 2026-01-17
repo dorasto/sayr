@@ -23,7 +23,7 @@ const useWebSocket = () => {
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_WS_URL || "/ws" : "/ws");
+				webSocket = new WebSocket(import.meta.env.VITE_APP_ENV === "development" ? `ws://${window.location.hostname}:5468/ws` || "/ws" : "/ws");
 				webSocket.onopen = () => {
 					console.info("WebSocket connection established");
 					lastMessageTimestamp = Date.now();
@@ -256,6 +256,13 @@ export type WSMessage =
 	| (BaseMessage & {
 		type: "UPDATE_TASK";
 		data: schema.TaskWithLabels;
+	})
+	| (BaseMessage & {
+		type: "UPDATE_TASK_VOTE";
+		data: {
+			id: schema.TaskWithLabels["id"];
+			voteCount: schema.TaskWithLabels["voteCount"];
+		}
 	})
 	| (BaseMessage & {
 		type: "UPDATE_TASK_COMMENTS";

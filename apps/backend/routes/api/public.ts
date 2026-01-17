@@ -21,8 +21,8 @@ import {
 	successResponse,
 } from "../../responses";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-// import { prosekitJSONToHTML } from "@/prosekit/html";
-// import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
+import { prosekitJSONToHTML } from "@/prosekit/html";
+import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 
 const API_LIMITS = {
 	comments: 30,
@@ -57,10 +57,12 @@ const OrganizationSchema = createSelectSchema(schema.organization)
 			(v) => (v instanceof Date ? v.toISOString() : v),
 			z.string(),
 		),
+		wsUrl: z.string(),
 	});
 apiPublicRoute.get(
 	"/organization/:org_slug",
 	describeOkNotFound({
+		summary: "Get organization",
 		description: "Retrieve public information for an organization identified by its slug.",
 		dataSchema: OrganizationSchema,
 		parameters: [
@@ -107,7 +109,12 @@ apiPublicRoute.get(
 
 		// biome-ignore lint/correctness/noUnusedVariables: <needed>
 		const { privateId, ...publicOrg } = organization;
-		return c.json(successResponse(publicOrg));
+		return c.json(
+			successResponse({
+				...publicOrg,
+				wsUrl: `wss://${publicOrg.slug}.sayr.io/ws?orgId=${publicOrg.id}&ref=publicApi`,
+			})
+		);
 	},
 );
 
@@ -121,6 +128,7 @@ const LabelSchema = createSelectSchema(schema.label).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/labels",
 	describeOkNotFound({
+		summary: "List organization labels",
 		description: "Retrieve all public labels associated with an organization.",
 		dataSchema: z.array(LabelSchema),
 		parameters: [
@@ -185,6 +193,7 @@ const CategorySchema = createSelectSchema(schema.category).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/categories",
 	describeOkNotFound({
+		summary: "List organization categories",
 		description: "Retrieve all public categories associated with an organization.",
 		dataSchema: z.array(CategorySchema),
 		parameters: [
@@ -270,6 +279,7 @@ const TaskSchema = createSelectSchema(schema.task).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks",
 	describePaginatedRoute({
+		summary: "List organization tasks",
 		description: "Retrieve a paginated list of public tasks for an organization.",
 		dataSchema: TaskSchema,
 		parameters: [
@@ -396,8 +406,8 @@ apiPublicRoute.get(
 
 					return rows.map((t) => ({
 						...t,
-						// descriptionHtml: t.description && prosekitJSONToHTML(t.description),
-						// descriptionMarkdown: t.description && prosekitJSONToMarkdown(t.description),
+						descriptionHtml: t.description && prosekitJSONToHTML(t.description),
+						descriptionMarkdown: t.description && prosekitJSONToMarkdown(t.description),
 					}));
 				},
 				{
@@ -434,6 +444,7 @@ apiPublicRoute.get(
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks/:task_short_id",
 	describeOkNotFound({
+		summary: "Get task",
 		description: "Retrieve a public task by its short identifier.",
 		dataSchema: TaskSchema,
 		parameters: [
@@ -524,8 +535,8 @@ apiPublicRoute.get(
 		return c.json(
 			successResponse({
 				...task,
-				// descriptionHtml: task.description && prosekitJSONToHTML(task.description),
-				// descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
+				descriptionHtml: task.description && prosekitJSONToHTML(task.description),
+				descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
 			}),
 		);
 	},
@@ -548,8 +559,8 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 		})
 		.nullable()
 		.optional(),
-	descriptionHtml: z.string(),
-	descriptionMarkdown: z.string(),
+	contentHtml: z.string(),
+	contentMarkdown: z.string(),
 	reactions: z
 		.object({
 			total: z.number(),
@@ -566,6 +577,7 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 apiPublicRoute.get(
 	"/organization/:org_slug/tasks/:task_short_id/comments",
 	describePaginatedRoute({
+		summary: "List task comments",
 		description: "Retrieve a paginated list of public comments for a task.",
 		dataSchema: CommentSchema,
 		parameters: [
@@ -772,8 +784,8 @@ apiPublicRoute.get(
 
 						return {
 							...comment,
-							// contentHtml: comment.content && prosekitJSONToHTML(comment.content),
-							// contentMarkdown: comment.content && prosekitJSONToMarkdown(comment.content),
+							contentHtml: comment.content && prosekitJSONToHTML(comment.content),
+							contentMarkdown: comment.content && prosekitJSONToMarkdown(comment.content),
 							reactions: {
 								total,
 								reactions: grouped,

@@ -3,13 +3,35 @@ import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, genericOAuth } from "better-auth/plugins";
+const rootUrl = process.env.VITE_ROOT_DOMAIN;
+const isProd = process.env.APP_ENV === "production";
+// Auth callback URL for OAuth providers (must be consistent subdomain)
+const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_URL_ROOT;
+// Cookie domains need at least 2 parts (e.g., ".app.localhost" works, ".localhost" doesn't)
+// For local dev with subdomains, use "app.localhost" pattern or sslip.io/nip.io
+const isBarelocalhost = rootUrl === "localhost";
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema.auth,
 	}),
-	baseURL: process.env.VITE_URL_ROOT,
-	trustedOrigins: ["http://localhost:3000", process.env.VITE_URL_ROOT || ""],
+	trustedOrigins: [
+		`http://${rootUrl}`,
+		`http://${rootUrl}:3000`,
+		`https://${rootUrl}`,
+		// ✅ wildcard subdomains
+		`https://*.${rootUrl}`,
+		`http://*.${rootUrl}`,
+		`http://*.${rootUrl}:3000`,
+	],
+	advanced: {
+		// Enable cross-subdomain cookies for production and dev domains that support it
+		// Disabled for bare "localhost" since browsers reject .localhost as cookie domain
+		crossSubDomainCookies: {
+			enabled: !isBarelocalhost,
+			domain: `.${rootUrl}`,
+		},
+	},
 	user: {
 		additionalFields: {
 			role: {
@@ -25,7 +47,7 @@ export const auth = betterAuth({
 		github: {
 			clientId: process.env.GITHUB_CLIENT_ID as string,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-			redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/callback/github`,
+			redirectURI: `${authCallbackUrl}/api/auth/callback/github`,
 			mapProfileToUser: async (profile) => {
 				return {
 					id: String(profile.id),
@@ -61,9 +83,9 @@ export const auth = betterAuth({
 					responseType: "code",
 					authentication: "post",
 					authorizationUrlParams: {
-						redirect_to: `${process.env.VITE_URL_ROOT}/admin` as string,
+						redirect_to: "/",
 					},
-					redirectURI: `${process.env.VITE_URL_ROOT}/api/auth/oauth2/callback/doras`,
+					redirectURI: `${authCallbackUrl}/api/auth/oauth2/callback/doras`,
 					getUserInfo: async (tokens) => {
 						if (tokens.accessToken) {
 							const data = await DorasUser(tokens.accessToken);

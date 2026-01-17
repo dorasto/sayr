@@ -1,0 +1,192 @@
+---
+/**
+ * Custom TableOfContents component that:
+ * - Uses dynamically generated TOC from OpenAPI spec for API reference page
+ * - Falls back to default Starlight TOC for all other pages
+ */
+import { fetchOpenAPISpec, parseEndpoints, groupEndpointsByTag } from "../../lib/openapi";
+
+interface TocItem {
+	depth: number;
+	slug: string;
+	text: string;
+	children: TocItem[];
+}
+
+const { toc } = Astro.locals.starlightRoute;
+const currentPath = Astro.url.pathname;
+
+// Check if we're on the API reference page
+const isApiReferencePage = currentPath.includes("/docs/api/reference");
+
+let tocItems: TocItem[] = toc?.items ?? [];
+
+if (isApiReferencePage) {
+	try {
+		const spec = await fetchOpenAPISpec("https://sayr.io/api/public/openapi.json");
+		const endpoints = parseEndpoints(spec);
+		const groupedEndpoints = groupEndpointsByTag(endpoints);
+
+		// Build TOC items from OpenAPI spec
+		tocItems = [];
+
+		for (const [tag, tagEndpoints] of groupedEndpoints.entries()) {
+			const tagSlug = tag.toLowerCase().replace(/\s+/g, "-");
+
+			const children: TocItem[] = tagEndpoints.map((endpoint) => {
+				const path = endpoint.path.replace(/[{}]/g, "").replace(/\//g, "-").replace(/^-/, "");
+				const slug = `${endpoint.method.toLowerCase()}-${path}`.replace(/-+/g, "-");
+				return {
+					depth: 3,
+					slug,
+					text: `${endpoint.method} ${endpoint.path}`,
+					children: [],
+				};
+			});
+
+			tocItems.push({
+				depth: 2,
+				slug: tagSlug,
+				text: tag,
+				children,
+			});
+		}
+	} catch (error) {
+		console.error("Failed to generate API TOC:", error);
+		// Fall back to default TOC items
+	}
+}
+
+const minHeadingLevel = toc?.minHeadingLevel ?? 2;
+const maxHeadingLevel = toc?.maxHeadingLevel ?? 3;
+---
+
+{
+	tocItems.length > 0 && (
+		<starlight-toc data-min-h={minHeadingLevel} data-max-h={maxHeadingLevel}>
+			<nav aria-labelledby="starlight__on-this-page">
+				<h2 id="starlight__on-this-page">{Astro.locals.t("tableOfContents.onThisPage")}</h2>
+				<ul class="toc-list">
+					{tocItems.map((heading) => (
+						<li>
+							<a href={`#${heading.slug}`}>
+								<span>{heading.text}</span>
+							</a>
+							{heading.children.length > 0 && (
+								<ul class="toc-list nested">
+									{heading.children.map((child) => (
+										<li>
+											<a href={`#${child.slug}`}>
+												<span>{child.text}</span>
+											</a>
+										</li>
+									))}
+								</ul>
+							)}
+						</li>
+					))}
+				</ul>
+			</nav>
+		</starlight-toc>
+	)
+}
+
+<script>
+	class StarlightTOC extends HTMLElement {
+		private _current = this.querySelector('a[aria-current="true"]');
+		private minH = parseInt(this.dataset.minH!, 10);
+		private maxH = parseInt(this.dataset.maxH!, 10);
+
+		constructor() {
+			super();
+			const links = [...this.querySelectorAll("a")];
+			this.#makeLinksClickable(links);
+			this.#setUpObserver(links);
+		}
+
+		#setUpObserver(links: HTMLAnchorElement[]) {
+			const setCurrent: IntersectionObserverCallback = (entries) => {
+				for (const { isIntersecting, target } of entries) {
+					if (!isIntersecting) continue;
+					const headingSlug = (target as HTMLElement).id;
+					const link = links.find((link) => link.getAttribute("href") === `#${headingSlug}`);
+					if (link) {
+						this._current?.removeAttribute("aria-current");
+						link.setAttribute("aria-current", "true");
+						this._current = link;
+						break;
+					}
+				}
+			};
+
+			const toObserve = document.querySelectorAll(`main h2, main h3`);
+			let observer: IntersectionObserver | undefined;
+			const observe = () => {
+				observer?.disconnect();
+				observer = new IntersectionObserver(setCurrent, { rootMargin: this.#getRootMargin() });
+				toObserve.forEach((h) => observer!.observe(h));
+			};
+			observe();
+
+			const mediaQueryList = window.matchMedia("(min-width: 50rem)");
+			mediaQueryList.addEventListener("change", observe);
+		}
+
+		#makeLinksClickable(links: HTMLAnchorElement[]) {
+			links.forEach((link) => {
+				link.addEventListener("click", (e) => {
+					e.preventDefault();
+					const href = link.getAttribute("href");
+					if (href) {
+						const target = document.querySelector(href);
+						if (target) {
+							target.scrollIntoView({ behavior: "smooth" });
+							history.pushState(null, "", href);
+						}
+					}
+				});
+			});
+		}
+
+		#getRootMargin(): `${number}px 0% ${number}px` {
+			const mobileTocHeight = this.querySelector("summary")?.getBoundingClientRect().height;
+			const top = mobileTocHeight ? `${mobileTocHeight * -1 - 10}px` : "-10px";
+			const bottom = `${document.documentElement.clientHeight * -1 + 92}px`;
+			return `${top} 0% ${bottom}`;
+		}
+	}
+	customElements.define("starlight-toc", StarlightTOC);
+</script>
+
+<style>
+	@layer starlight.core {
+		.toc-list {
+			padding: 0;
+			list-style: none;
+		}
+		.toc-list.nested {
+			padding-inline-start: 1rem;
+		}
+		.toc-list a {
+			--pad-inline: 0.5rem;
+			display: block;
+			border-radius: 0.25rem;
+			padding-block: 0.25rem;
+			padding-inline: var(--pad-inline);
+			line-height: 1.25;
+			color: var(--sl-color-gray-2);
+			text-decoration: none;
+			font-size: var(--sl-text-sm);
+		}
+		.toc-list a:hover {
+			color: var(--sl-color-white);
+		}
+		.toc-list a[aria-current="true"] {
+			color: var(--sl-color-text-accent);
+		}
+		.toc-list .nested a {
+			font-size: var(--sl-text-xs);
+			padding-block: 0.15rem;
+		}
+	}
+</style>

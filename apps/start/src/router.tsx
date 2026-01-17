@@ -27,16 +27,20 @@ export const getRouter = () => {
 				if (
 					url.pathname.startsWith("/api") ||
 					url.pathname.startsWith("/login") ||
+					url.pathname.startsWith("/manifest.webmanifest") ||
 					url.pathname.startsWith("/invite")
 				) {
 					return;
 				}
 
 				// Admin host → admin is root
+				// Handles: admin.sayr.io, admin.app.localhost, localhost, admin.127.0.0.1.sslip.io
 				if (
 					hostname.startsWith("admin.") ||
 					hostname === "localhost" ||
-					hostname.startsWith("localhost:")
+					hostname.startsWith("localhost:") ||
+					hostname === "app.localhost" ||
+					hostname.startsWith("app.localhost:")
 				) {
 					return;
 				}
@@ -55,12 +59,9 @@ export const getRouter = () => {
 					return;
 				}
 
-				if (!url.pathname.startsWith("/orgs")) {
-					const path = url.pathname === "/" ? "" : url.pathname;
-					url.pathname = `/orgs/${subdomain}${path}`;
-					return url;
-				}
-				return;
+				const path = url.pathname === "/" ? "" : url.pathname;
+				url.pathname = `/orgs/${subdomain}${path}`;
+				return url;
 			},
 		},
 	});

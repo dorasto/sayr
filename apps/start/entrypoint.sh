@@ -18,9 +18,7 @@ replace_env() {
 # List of variables to replace
 replace_env "VITE_URL_ROOT" "___VITE_URL_ROOT___"
 replace_env "VITE_PROJECT_NAME" "___VITE_PROJECT_NAME___"
-replace_env "VITE_WS_URL" "___VITE_WS_URL___"
 replace_env "VITE_ROOT_DOMAIN" "___VITE_ROOT_DOMAIN___"
-replace_env "VITE_EXTERNAL_API_URL" "___VITE_EXTERNAL_API_URL___"
 replace_env "VITE_GITHUB_APP_NAME" "___VITE_GITHUB_APP_NAME___"
 replace_env "VITE_SAYR_FRONTEND_AXIOM_DATASET" "___VITE_SAYR_FRONTEND_AXIOM_DATASET___"
 replace_env "VITE_SAYR_FRONTEND_AXIOM_TOKEN" "___VITE_SAYR_FRONTEND_AXIOM_TOKEN___"

@@ -12,8 +12,8 @@ const useWebSocketPublic = ({
 	organization,
 	setOrganization,
 }: {
-	organization: schema.organizationType;
-	setOrganization: (newValue: schema.organizationType) => void;
+	organization: schema.OrganizationWithMembers;
+	setOrganization: (newValue: schema.OrganizationWithMembers) => void;
 }) => {
 	const [ws, setWs] = useState<WebSocket | null>(null);
 	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
@@ -38,7 +38,7 @@ const useWebSocketPublic = ({
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(import.meta.env.VITE_APP_ENV === "development" ? `${import.meta.env.VITE_WS_URL}?orgId=${organization.id}` || "/ws" : `/ws?orgId=${organization.id}`);
+				webSocket = new WebSocket(import.meta.env.VITE_APP_ENV === "development" ? `ws://${window.location.hostname}:5468/ws?orgId=${organization.id}` || "/ws" : `/ws?orgId=${organization.id}`);
 				webSocket.onopen = () => {
 					setWs(webSocket);
 				};

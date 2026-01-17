@@ -18,6 +18,16 @@ const config = defineConfig({
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],
       },
+      routeRules: {
+        "/api/auth/**": {}, // local auth
+        "/api/image-preview/**": {},
+        // ✅ proxy ONLY backend-api
+        "/backend-api/**": {
+          proxy: {
+            to: "http://localhost:5468/api/**",
+          },
+        },
+      },
     }),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({

@@ -2,28 +2,28 @@
  * Extracts the private ID (orgKey) if present in a Sayr file URL.
  */
 export function extractPrivateIdFromUrl(url?: string): {
-	hasPrivateId: boolean;
-	privateId: string | null;
+  hasPrivateId: boolean;
+  privateId: string | null;
 } {
-	if (!url) return { hasPrivateId: false, privateId: null };
+  if (!url) return { hasPrivateId: false, privateId: null };
 
-	try {
-		const parsed = new URL(url);
-		const parts = parsed.pathname.split("/").filter(Boolean);
-		const filesIndex = parts.indexOf("files");
-		if (filesIndex === -1) return { hasPrivateId: false, privateId: null };
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const filesIndex = parts.indexOf("files");
+    if (filesIndex === -1) return { hasPrivateId: false, privateId: null };
 
-		const afterFiles = parts.slice(filesIndex + 1);
+    const afterFiles = parts.slice(filesIndex + 1);
 
-		if (afterFiles.length > 1) {
-			const privateId = afterFiles[0];
-			if (privateId) return { hasPrivateId: true, privateId };
-		}
+    if (afterFiles.length > 1) {
+      const privateId = afterFiles[0];
+      if (privateId) return { hasPrivateId: true, privateId };
+    }
 
-		return { hasPrivateId: false, privateId: null };
-	} catch {
-		return { hasPrivateId: false, privateId: null };
-	}
+    return { hasPrivateId: false, privateId: null };
+  } catch {
+    return { hasPrivateId: false, privateId: null };
+  }
 }
 
 /**
@@ -42,7 +42,7 @@ export function extractPrivateIdFromUrl(url?: string): {
  * ```
  */
 export function getFileNameFromUrl(url: string): string {
-	return url.split("/").pop() || "";
+  return url.split("/").pop() || "";
 }
 
 /**
@@ -64,16 +64,23 @@ export function getFileNameFromUrl(url: string): string {
  * // "https://files.domain.com/organization/123/logo.png"
  * ```
  */
-export function ensureCdnUrl(pathOrUrl: string, cdnBase = process.env.FILE_CDN || ""): string {
-	if (!pathOrUrl) return "";
+export function ensureCdnUrl(
+  pathOrUrl: string,
+  cdnBase = process.env.FILE_CDN || "",
+): string {
+  if (!pathOrUrl) return "";
 
-	// If already starts with CDN base or http(s) absolute URL → return as-is
-	if (pathOrUrl.startsWith(cdnBase) || pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
-		return pathOrUrl;
-	}
+  // If already starts with CDN base or http(s) absolute URL → return as-is
+  if (
+    pathOrUrl.startsWith(cdnBase) ||
+    pathOrUrl.startsWith("http://") ||
+    pathOrUrl.startsWith("https://")
+  ) {
+    return pathOrUrl;
+  }
 
-	// Otherwise prepend CDN base
-	return `${cdnBase.replace(/\/+$/, "")}/${pathOrUrl.replace(/^\/+/, "")}`;
+  // Otherwise prepend CDN base
+  return `${cdnBase.replace(/\/+$/, "")}/${pathOrUrl.replace(/^\/+/, "")}`;
 }
 
 /**
@@ -92,21 +99,21 @@ export function ensureCdnUrl(pathOrUrl: string, cdnBase = process.env.FILE_CDN |
  * ```
  */
 export function extractHslValues(hslaColor: string): string {
-	if (!hslaColor) {
-		return "";
-	}
+  if (!hslaColor) {
+    return "";
+  }
 
-	// Match hsla(h, s%, l%, a) or hsl(h, s%, l%)
-	const match = hslaColor.match(/hsla?\(([^)]+)\)/);
-	if (!match || !match[1]) {
-		return hslaColor;
-	}
+  // Match hsla(h, s%, l%, a) or hsl(h, s%, l%)
+  const match = hslaColor.match(/hsla?\(([^)]+)\)/);
+  if (!match || !match[1]) {
+    return hslaColor;
+  }
 
-	// Extract all values and remove the alpha if present
-	const values = match[1].split(",").map((v) => v.trim());
+  // Extract all values and remove the alpha if present
+  const values = match[1].split(",").map((v) => v.trim());
 
-	// Return only the first 3 values (h, s, l) without alpha
-	return values.slice(0, 3).join(", ");
+  // Return only the first 3 values (h, s, l) without alpha
+  return values.slice(0, 3).join(", ");
 }
 
 /**
@@ -126,12 +133,12 @@ export function extractHslValues(hslaColor: string): string {
  * ```
  */
 export function getHslaWithOpacity(hslaColor: string, opacity: number): string {
-	if (!hslaColor || !hslaColor.startsWith("hsla(")) {
-		return hslaColor;
-	}
+  if (!hslaColor || !hslaColor.startsWith("hsla(")) {
+    return hslaColor;
+  }
 
-	// Replace the alpha value with the new opacity
-	return hslaColor.replace(/,\s*[\d.]+\)$/, `, ${opacity})`);
+  // Replace the alpha value with the new opacity
+  return hslaColor.replace(/,\s*[\d.]+\)$/, `, ${opacity})`);
 }
 
 /**
@@ -148,61 +155,68 @@ export function getHslaWithOpacity(hslaColor: string, opacity: number): string {
  * ```
  */
 export function formatDate(date: Date | string, locale = "en-US"): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return d.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 export function formatDateTime(date: Date | string, locale = "en-US"): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return d.toLocaleString(locale, {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-		hour: "numeric",
-		minute: "numeric",
-	});
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleString(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+  });
 }
-export function formatDateTimeFromNow(date: Date | string, locale = "en-US"): string {
-	// Convert input to Date object if it's a string, otherwise use as-is
-	const d = typeof date === "string" ? new Date(date) : date;
+export function formatDateTimeFromNow(
+  date: Date | string,
+  locale = "en-US",
+): string {
+  // Convert input to Date object if it's a string, otherwise use as-is
+  const d = typeof date === "string" ? new Date(date) : date;
 
-	// Get current timestamp for comparison
-	const now = new Date();
+  // Get current timestamp for comparison
+  const now = new Date();
 
-	// Calculate time difference in milliseconds between now and the input date
-	const diffInMs = now.getTime() - d.getTime();
+  // Calculate time difference in milliseconds between now and the input date
+  const diffInMs = now.getTime() - d.getTime();
 
-	// Convert milliseconds to minutes by dividing by (1000ms * 60s) and rounding down
-	const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  // Convert milliseconds to minutes by dividing by (1000ms * 60s) and rounding down
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
 
-	// Convert milliseconds to hours by dividing by (1000ms * 60s * 60m) and rounding down
-	const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  // Convert milliseconds to hours by dividing by (1000ms * 60s * 60m) and rounding down
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
 
-	// Convert milliseconds to days by dividing by (1000ms * 60s * 60m * 24h) and rounding down
-	const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  // Convert milliseconds to days by dividing by (1000ms * 60s * 60m * 24h) and rounding down
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-	// Handle very recent times (less than 5 minutes ago)
-	if (diffInMinutes < 5) {
-		return "just now";
-	}
-	// Handle recent times (5-59 minutes ago) with proper pluralization
-	else if (diffInMinutes < 60) {
-		// Use ternary operator to add 's' for plural, nothing for singular
-		return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
-	}
-	// Handle times within the last 24 hours (1-23 hours ago) with proper pluralization
-	else if (diffInHours < 24) {
-		// Use ternary operator to add 's' for plural, nothing for singular
-		return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
-	}
-	// Handle times within the last week (1-6 days ago) with proper pluralization
-	else if (diffInDays < 7) {
-		// Use ternary operator to add 's' for plural, nothing for singular
-		return `${diffInDays} day${diffInDays === 1 ? "" : "s"} ago`;
-	}
-	// For times older than 1 week, fall back to compact date formatting
-	else {
-		return formatDateCompact(d, locale);
-	}
+  // Handle very recent times (less than 5 minutes ago)
+  if (diffInMinutes < 5) {
+    return "just now";
+  }
+  // Handle recent times (5-59 minutes ago) with proper pluralization
+  else if (diffInMinutes < 60) {
+    // Use ternary operator to add 's' for plural, nothing for singular
+    return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
+  }
+  // Handle times within the last 24 hours (1-23 hours ago) with proper pluralization
+  else if (diffInHours < 24) {
+    // Use ternary operator to add 's' for plural, nothing for singular
+    return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
+  }
+  // Handle times within the last week (1-6 days ago) with proper pluralization
+  else if (diffInDays < 7) {
+    // Use ternary operator to add 's' for plural, nothing for singular
+    return `${diffInDays} day${diffInDays === 1 ? "" : "s"} ago`;
+  }
+  // For times older than 1 week, fall back to compact date formatting
+  else {
+    return formatDateCompact(d, locale);
+  }
 }
 
 /**
@@ -232,11 +246,11 @@ export function formatDateTimeFromNow(date: Date | string, locale = "en-US"): st
  * ```
  */
 export function generateSlug(name: string): string {
-	return name
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9]+/g, "-") // replace all non-alphanumeric with "-"
-		.replace(/^-+|-+$/g, ""); // remove leading/trailing "-"
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-") // replace all non-alphanumeric with "-"
+    .replace(/^-+|-+$/g, ""); // remove leading/trailing "-"
 }
 
 /**
@@ -254,18 +268,21 @@ export function generateSlug(name: string): string {
  * const oldDate = formatDateCompact("2023-09-18T17:00:00Z"); // "Sep 18 2023"
  * ```
  */
-export function formatDateCompact(date: Date | string, locale = "en-US"): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	const currentYear = new Date().getFullYear();
-	const dateYear = d.getFullYear();
+export function formatDateCompact(
+  date: Date | string,
+  locale = "en-US",
+): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const currentYear = new Date().getFullYear();
+  const dateYear = d.getFullYear();
 
-	if (dateYear === currentYear) {
-		// Current year: "Sep 20"
-		return `${d.toLocaleDateString(locale, { month: "short", day: "numeric" })}`;
-	} else {
-		// Other years: "Sep 20 2025"
-		return `${d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}`;
-	}
+  if (dateYear === currentYear) {
+    // Current year: "Sep 20"
+    return `${d.toLocaleDateString(locale, { month: "short", day: "numeric" })}`;
+  } else {
+    // Other years: "Sep 20 2025"
+    return `${d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}`;
+  }
 }
 
 /**
@@ -283,20 +300,81 @@ export function formatDateCompact(date: Date | string, locale = "en-US"): string
  * // { channel: "admin" }
  */
 export function parseChannel(channel: string): Record<string, string> {
-	const trimmed = channel.trim();
-	if (!trimmed) return {};
+  const trimmed = channel.trim();
+  if (!trimmed) return {};
 
-	// Handle simple channel with no ":" or ";"
-	if (!trimmed.includes(":") && !trimmed.includes(";")) {
-		return { channel: trimmed };
-	}
+  // Handle simple channel with no ":" or ";"
+  if (!trimmed.includes(":") && !trimmed.includes(";")) {
+    return { channel: trimmed };
+  }
 
-	// Parse "key:value;key:value" format
-	return trimmed.split(";").reduce<Record<string, string>>((acc, part) => {
-		const [key, value] = part.split(":");
-		if (key && value) {
-			acc[key.trim()] = value.trim();
-		}
-		return acc;
-	}, {});
+  // Parse "key:value;key:value" format
+  return trimmed.split(";").reduce<Record<string, string>>((acc, part) => {
+    const [key, value] = part.split(":");
+    if (key && value) {
+      acc[key.trim()] = value.trim();
+    }
+    return acc;
+  }, {});
+}
+
+/**
+ * Extracts plain text from a BlockNote document structure.
+ * Recursively traverses the content and concatenates all text nodes,
+ * skipping non-text blocks like images and code blocks.
+ *
+ * @param description - A BlockNote document object (typically from task.description)
+ * @returns Plain text string with all text content joined by spaces
+ *
+ * @example
+ * ```ts
+ * const doc = {
+ *   type: "doc",
+ *   content: [
+ *     { type: "paragraph", content: [{ type: "text", text: "Hello" }] },
+ *     { type: "paragraph", content: [{ type: "text", text: "World" }] }
+ *   ]
+ * };
+ * const text = extractBlockNoteText(doc);
+ * // "Hello World"
+ * ```
+ */
+export function extractTaskText(description: unknown): string {
+  if (!description || typeof description !== "object") return "";
+
+  const doc = description as {
+    type?: string;
+    content?: unknown[];
+    text?: string;
+  };
+  if (doc.type !== "doc" || !Array.isArray(doc.content)) return "";
+
+  const extractFromNode = (node: unknown): string => {
+    if (!node || typeof node !== "object") return "";
+
+    const n = node as { type?: string; text?: string; content?: unknown[] };
+
+    // Direct text node
+    if (n.type === "text" && typeof n.text === "string") {
+      return n.text;
+    }
+
+    // Skip non-text block types (images, code blocks, etc.)
+    if (n.type === "image" || n.type === "codeBlock") {
+      return "";
+    }
+
+    // Recursively extract from content array
+    if (Array.isArray(n.content)) {
+      return n.content.map(extractFromNode).join("");
+    }
+
+    return "";
+  };
+
+  const texts = doc.content
+    .map(extractFromNode)
+    .filter((t) => t.trim().length > 0);
+
+  return texts.join(" ");
 }

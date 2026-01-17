@@ -1,90 +1,203 @@
-# AGENTS.md - Project Management Tool
+# AGENTS.md - Sayr Project Management Platform
 
 ## Overview
-This is a Turborepo monorepo for a project management application with a Next.js frontend, Hono backend, and shared packages for auth, database, storage, UI, and utilities. Uses pnpm for package management, Biome for linting/formatting, and TypeScript throughout.
+Turborepo monorepo for Sayr.io, a collaborative project management platform. Uses pnpm for package management, Biome for linting/formatting, TypeScript throughout, and Bun runtime for backend services.
 
 ## Commands
-- Build: `turbo build`
-- Lint: `biome check .`
-- Format: `biome format --write .`
-- Check types: `turbo check-types`
-- Run tests: Not configured; use Jest/Vitest if added (e.g., `pnpm test` for single test with `--testPathPattern=`)
 
-## Apps
+### Development
+```bash
+pnpm dev                          # Start all apps (backend :5468, start :3000, marketing :3002)
+pnpm dev:op                       # Start with 1Password secret injection
+pnpm -F backend dev               # Backend only
+pnpm -F start dev                 # Frontend (TanStack Start) only
+pnpm -F marketing dev             # Marketing site only
+pnpm -F worker dev                # GitHub webhook processor only
+```
 
-### Backend (apps/backend)
-- **Runtime**: Bun for development, Hono framework for API routes.
-- **Architecture**: REST API with WebSocket support, CORS configured for frontend origins, request ID middleware, auth integration via @repo/auth.
-- **Key Features**: Organization and role-based access control functions (getOrganization, checkMembershipRole), error handling with logging, static file serving.
-- **Dependencies**: @repo/auth, @repo/database, @repo/storage, @repo/util, Drizzle ORM, Hono.
+### Build & Quality
+```bash
+pnpm build                        # Build all apps
+pnpm lint                         # Run Biome linting
+pnpm lint:fix                     # Fix lint issues
+pnpm format-write                 # Format with Biome (or: biome format --write .)
+pnpm check-types                  # TypeScript type checking (turbo check-types)
+```
 
-### Web (apps/web)
-- **Framework**: Next.js 15 with Turbopack, React 19, Tailwind CSS.
-- **Architecture**: App Router, RSC/TSX, Shadcn/ui components, TanStack Query for data fetching, theme provider for dark mode.
-- **Key Features**: Image optimization with remote patterns from CDN, transpile workspace packages, metadata and viewport configuration.
-- **Dependencies**: @repo/auth, @repo/database, @repo/ui, @repo/util, Next.js, React, TanStack tools.
+### Database (packages/database)
+```bash
+pnpm -F @repo/database db:push    # Apply schema to PostgreSQL
+pnpm -F @repo/database db:studio  # Open Drizzle Studio
+```
 
-## Packages
+### Testing
+```bash
+pnpm -F start test                # Run all tests (vitest)
+pnpm -F start test -- --testNamePattern="pattern"   # Run tests matching pattern
+pnpm -F start test -- path/to/file.test.ts          # Run specific test file
+```
 
-### Auth (@repo/auth)
-- **Library**: Better Auth with Drizzle adapter for PostgreSQL.
-- **Features**: OAuth integration (Doras provider), admin plugin, user roles, session management.
-- **Exports**: Auth client and configuration.
+## Architecture
 
-### Database (@repo/database)
-- **ORM**: Drizzle with PostgreSQL.
-- **Schema**: Tables for auth (users, sessions), organizations, projects, tasks, labels, members, comments, timeline.
-- **Types**: Inferred TypeScript types for all entities, extended types like OrganizationWithMembers, TaskWithLabels.
-- **Functions**: CRUD operations for labels, organizations, projects, tasks.
+```
+apps/
+  backend/     # Hono API server on Bun (REST + WebSocket, port 5468)
+  start/       # TanStack Start frontend with React 19 (port 3000)
+  marketing/   # Astro marketing site with Starlight docs (port 3002)
+  worker/      # GitHub webhook queue processor (Bun)
 
-### Storage (@repo/storage)
-- **Service**: MinIO client for object storage (Hetzner).
-- **Features**: Upload with obfuscated filenames (SHA-256 hash), list objects with metadata, remove single/multiple objects, enriched metadata with user info.
-- **Security**: Salted hashes for unpredictable filenames, metadata for original names.
+packages/
+  auth/        # Better Auth config (GitHub + Doras OAuth)
+  database/    # Drizzle ORM schemas and CRUD functions (PostgreSQL)
+  storage/     # MinIO S3-compatible client with obfuscated filenames
+  ui/          # Shadcn/ui component library
+  util/        # Shared utilities (date formatting, slugs, CDN URLs)
+  queue/       # Job queue abstraction (Redis or file-based)
+  opentelemetry/ # Tracing and observability utilities
+```
 
-### UI (@repo/ui)
-- **Library**: Shadcn/ui components with Tailwind CSS, Lucide icons.
-- **Architecture**: React components for forms, dialogs, tables, etc., custom components for tasks (columns, filters, pagination).
-- **Features**: Responsive design, headless toast, image crop, custom sidebars, hooks for state management and file uploads.
-- **Aliases**: @repo/ui for components, utils, hooks.
+## Code Style (Biome)
 
-### Util (@repo/util)
-- **Utilities**: Helper functions for file names, CDN URLs, color opacity, date formatting (relative and compact), slug generation, channel parsing.
-- **Purpose**: Shared logic for frontend/backend, e.g., formatDateTimeFromNow for "X minutes ago".
+### Formatting
+- **Indentation**: Tabs, width 3
+- **Line width**: 120 characters
+- **Line endings**: CRLF
+- **Quotes**: Double quotes
+- **Semicolons**: Always required
+- **Trailing commas**: ES5 style
+- **Arrow parentheses**: Always required
 
-### TypeScript Config (@repo/typescript-config)
-- **Base Config**: Strict TypeScript settings, shared across packages.
+### Import Patterns
+```typescript
+// 1. Workspace packages - use @repo/* alias
+import { db, schema, createTask } from "@repo/database";
+import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
+import { cn } from "@repo/ui/lib/utils";
+import { ensureCdnUrl } from "@repo/util";
 
-## Code Style Guidelines
-- **Formatting**: Use Biome (tabs, indent width 3, line width 120, CRLF endings).
-- **Imports**: Absolute imports for workspace packages (@repo/*), relative for local files.
-- **Types**: Strict TypeScript; use explicit types, avoid `any` (warned), prefer interfaces for objects.
-- **Naming**: camelCase for variables/functions, PascalCase for components/types/interfaces.
-- **Error Handling**: Use try-catch blocks; in React, implement error boundaries for component errors.
-- **Other**: Double quotes, semicolons always, trailing commas ES5, arrow parentheses always.
+// 2. External packages
+import { Hono } from "hono";
+import { useState, useEffect } from "react";
+import { and, eq } from "drizzle-orm";
 
-## TanStack Query Usage
-- Used for client-side data fetching with QueryClient per request (SSR compatible), devtools enabled.
-- Recommendations: Add versioned query keys for cache invalidation, use optimistic updates for UX, implement error boundaries for failed queries, prefetch data on hover for performance.
+// 3. Local imports - use @/ alias (maps to src/ or app root)
+import type { AppEnv } from "@/index";
+import { SubWrapper } from "@/components/generic/wrapper";
+import { errorResponse } from "../../responses";  // or relative paths
+```
 
-## Project Idea
-- Collaborative project management tool for teams: multi-tenant organizations, projects with assignable tasks (labeled, commented, timeline history), real-time WebSocket updates, file uploads to MinIO, OAuth auth.
-- Goal: Streamline task tracking, team collaboration, and progress visualization.
+### TypeScript
+- **Strict mode**: Enabled with strictNullChecks
+- **Type imports**: Use `import type` for type-only imports
+- **Avoid `any`**: Warned by linter, use explicit types
+- **Drizzle types**: Use `$inferSelect`/`$inferInsert` for schema types
+- **Extended types**: Define in schema index (e.g., `TaskWithLabels`, `OrganizationWithMembers`)
 
-## Database Optimization
-- Add indexes on frequently queried fields (e.g., organizationId, projectId in tasks); use pagination for large lists; consider read replicas for heavy reads.
+### Naming Conventions
+| Type | Convention | Example |
+|------|------------|---------|
+| Variables/functions | camelCase | `orgId`, `getTaskById`, `isAuthorized` |
+| Types/interfaces | PascalCase | `TaskContentProps`, `AppEnv` |
+| Components | PascalCase | `TaskContent`, `SubWrapper` |
+| Route handlers | camelCase with prefix | `apiRouteAdminOrganization` |
+| Error codes | UPPER_SNAKE_CASE | `TASK_CREATION_FAILED` |
+| Database enums | camelCase | `statusEnum`, `visibleEnum` |
 
-## Security
-- Implement rate limiting in Hono, validate all inputs with Zod, use prepared statements to prevent SQL injection, avoid exposing sensitive data in errors.
+### Error Handling
 
-## Performance
-- In Next.js, use ISR for static pages, lazy load components, optimize images with Next.js Image; in queries, select only needed columns.
+**Backend (Hono):**
+```typescript
+try {
+   // operation
+} catch (err) {
+   await recordWideError({
+      name: "task.create.failed",        // dotted notation
+      error: err,
+      code: "TASK_CREATION_FAILED",      // uppercase code
+      message: "Failed to create task",
+      contextData: { orgId, title },     // relevant context
+   });
+   return c.json({ success: false, error: "Failed to create task" }, 500);
+}
+```
 
-## Testing
-- Add Vitest for unit tests, Playwright for E2E; focus on auth flows, task CRUD, and WebSocket events.
+**React:**
+```typescript
+// Context hooks throw descriptive errors
+if (context === undefined) {
+   throw new Error("useLayoutOrganization must be used within RootProviderOrganization");
+}
+```
 
-## Deployment
-- Use Docker for consistency; set up CI/CD with GitHub Actions for build/test/deploy; monitor with Sentry for errors.
+### Component Structure
+```typescript
+interface TaskContentProps {
+   task: schema.TaskWithLabels;
+   open: boolean;
+   onOpenChange: (open: boolean) => void;
+}
 
-## Agent Behavior
-- Always ask before committing; use Task tool for multi-step tasks like refactoring; prefer specific tools (e.g., Grep for patterns, Read for files).
+export function TaskContent({ task, open, onOpenChange }: TaskContentProps) {
+   // hooks first
+   const [state, setState] = useState<string>("");
+   
+   // effects
+   useEffect(() => { ... }, []);
+   
+   // handlers
+   const handleSubmit = async () => { ... };
+   
+   // render
+   return <div>...</div>;
+}
+```
+
+## Key Patterns
+
+### Permission Checking (Backend)
+```typescript
+const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "permission.key");
+if (!isAuthorized) {
+   return c.json({ success: false, error: "Permission denied" }, 401);
+}
+```
+
+### WebSocket Broadcasting
+```typescript
+const data = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
+broadcast(orgId, "tasks", data, excludeSocket);
+broadcastPublic(orgId, { ...data });
+```
+
+### Tracing (OpenTelemetry)
+```typescript
+const traceAsync = createTraceAsync();
+const result = await traceAsync("operation.name", () => performOperation(), {
+   description: "Human readable description",
+   data: { contextData },
+});
+```
+
+## Database Schema
+
+**Core tables**: `user`, `session`, `organization`, `member`, `task`, `taskAssignee`, `taskComment`, `taskTimeline`, `label`, `category`, `githubRepository`, `githubIssue`
+
+**Task statuses**: `backlog`, `todo`, `in-progress`, `done`, `canceled`
+**Priority levels**: `none`, `low`, `medium`, `high`, `urgent`
+**Visibility**: `public`, `private` (per-item granularity)
+
+## Cursor Rules (.cursorrules in apps/start)
+
+Install Shadcn components with:
+```bash
+pnpm dlx shadcn@latest add <component-name>
+```
+
+## Agent Behavior Guidelines
+
+1. **Before commits**: Always ask user for confirmation
+2. **Multi-step tasks**: Use Task tool for complex refactoring
+3. **File search**: Use Grep for patterns, Glob for file names
+4. **Code reading**: Use Read tool, not cat/head/tail
+5. **Edits**: Use Edit tool, not sed/awk
+6. **Avoid**: Creating unnecessary files, especially .md files unless requested

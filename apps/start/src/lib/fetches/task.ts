@@ -1,7 +1,7 @@
 import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
-const API_URL = import.meta.env.VITE_APP_ENV === "development" ? import.meta.env.VITE_EXTERNAL_API_URL : "/api";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
 
 /**
  * Calls the `/admin/task/create` API to create a new task
@@ -469,6 +469,89 @@ export async function CreateTaskReactionAction(
 					}
 				>;
 			};
+		};
+		error?: string;
+	};
+}
+
+/**
+ * Calls the `/admin/organization/task/create-vote` API to add or toggle a vote.
+ *
+ * Adds (or removes) a vote on a task.
+ * Automatically toggles the vote if the user (or anonymous fingerprint)
+ * has already voted on the task.
+ *
+ * @param organizationId - The organization ID.
+ * @param taskId - The task ID to vote on.
+ * @param wsClientId - The WebSocket client ID of the sender.
+ *
+ * @returns A promise resolving to:
+ *  - `success` — Whether the request succeeded.
+ *  - `data`:
+ *      - `taskId` — The task ID.
+ *      - `voted` — Whether the vote was added (`true`) or removed (`false`).
+ *      - `voteCount` — The updated total vote count for the task.
+ *  - `error` — Optional error message.
+ *
+ * @example
+ * ```ts
+ * const res = await CreateTaskVoteAction(
+ *   "org_001",
+ *   "task_777",
+ *   "ws_client_42"
+ * );
+ *
+ * if (res.data.voted) {
+ *   console.log("Vote added");
+ * } else {
+ *   console.log("Vote removed");
+ * }
+ *
+ * console.log("New vote count:", res.data.voteCount);
+ * ```
+ */
+export async function CreateTaskVoteAction(
+	organizationId: string,
+	taskId: string,
+	wsClientId: string
+): Promise<{
+	success: boolean;
+	data: {
+		taskId: string;
+		voted: boolean;
+		voteCount: number;
+	};
+	error?: string;
+}> {
+	const payload = {
+		orgId: organizationId,
+		taskId,
+		wsClientId,
+	};
+
+	const res = await fetch(
+		`${API_URL}/admin/organization/task/create-vote`,
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify(payload),
+		}
+	);
+
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(`Failed to create vote: ${text}`);
+	}
+
+	const data = await res.json();
+
+	return data as {
+		success: boolean;
+		data: {
+			taskId: string;
+			voted: boolean;
+			voteCount: number;
 		};
 		error?: string;
 	};
