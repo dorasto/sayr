@@ -73,7 +73,7 @@ export default defineConfig({
           label: "API",
           items: [
             { label: "Overview", slug: "docs/api/overview" },
-            { label: "WebSocket", slug: "docs/api/ws" },
+            { label: "Public SDK", slug: "docs/api/sdk" },
             { label: "API Reference", slug: "docs/api/reference" },
           ],
         },
