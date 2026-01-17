@@ -1,0 +1,117 @@
+---
+import type { Response, Schema } from "../lib/openapi";
+import { formatSchemaType } from "../lib/openapi";
+import { Badge } from "@/components/ui/badge";
+import { Frame } from "@/components/ui/frame";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+
+interface Props {
+	responses: Record<string, Response>;
+}
+
+const { responses } = Astro.props;
+
+function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+	const code = parseInt(status, 10);
+	if (code >= 200 && code < 300) return "default";
+	if (code >= 400) return "destructive";
+	return "secondary";
+}
+
+function getStatusDotColor(status: string): string {
+	const code = parseInt(status, 10);
+	if (code >= 200 && code < 300) return "bg-green-500";
+	if (code >= 300 && code < 400) return "bg-blue-500";
+	if (code >= 400 && code < 500) return "bg-orange-500";
+	if (code >= 500) return "bg-red-500";
+	return "bg-muted-foreground/64";
+}
+
+function flattenSchema(schema: Schema | undefined, prefix = ""): Array<{ path: string; type: string; required: boolean; description?: string }> {
+	if (!schema) return [];
+	
+	const results: Array<{ path: string; type: string; required: boolean; description?: string }> = [];
+	
+	if (schema.type === "object" && schema.properties) {
+		const requiredFields = schema.required || [];
+		for (const [key, value] of Object.entries(schema.properties)) {
+			const path = prefix ? `${prefix}.${key}` : key;
+			const isRequired = requiredFields.includes(key);
+			
+			if (value.type === "object" && value.properties) {
+				results.push({ path, type: "object", required: isRequired, description: value.description });
+				results.push(...flattenSchema(value, path));
+			} else if (value.type === "array" && value.items) {
+				results.push({ path, type: formatSchemaType(value), required: isRequired, description: value.description });
+				if (value.items.type === "object" && value.items.properties) {
+					results.push(...flattenSchema(value.items, `${path}[]`));
+				}
+			} else {
+				results.push({ path, type: formatSchemaType(value), required: isRequired, description: value.description });
+			}
+		}
+	}
+	
+	return results;
+}
+---
+
+<div class="mt-6">
+	<h4 class="text-sm font-semibold text-foreground mb-2">Responses</h4>
+	<div class="flex flex-col gap-4">
+		{Object.entries(responses).map(([status, response]) => {
+			const schema = response.content?.["application/json"]?.schema;
+			const fields = flattenSchema(schema);
+			const dotColor = getStatusDotColor(status);
+			
+			return (
+				<Frame className="w-full">
+					<div class="flex items-center gap-3 px-4 py-3 border-b border-border">
+						<Badge variant="outline">
+							<span aria-hidden="true" class={`size-1.5 rounded-full ${dotColor}`} />
+							{status}
+						</Badge>
+						<span class="text-sm text-muted-foreground">{response.description}</span>
+					</div>
+					
+					{fields.length > 0 && (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Field</TableHead>
+									<TableHead>Type</TableHead>
+									<TableHead>Description</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{fields.map((field) => (
+									<TableRow>
+										<TableCell className="font-medium">
+											<code class={`text-[0.8125rem] px-1.5 py-0.5 bg-[--sl-color-bg] rounded ${field.path.includes(".") || field.path.includes("[") ? "text-muted-foreground" : ""}`}>
+												{field.path}
+											</code>
+											{field.required && <span class="text-red-400 ml-1">*</span>}
+										</TableCell>
+										<TableCell>
+											<code class="text-[0.8125rem] px-1.5 py-0.5 bg-[--sl-color-bg] rounded text-blue-400">
+												{field.type}
+											</code>
+										</TableCell>
+										<TableCell>{field.description || "-"}</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					)}
+				</Frame>
+			);
+		})}
+	</div>
+</div>

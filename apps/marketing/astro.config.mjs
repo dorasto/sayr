@@ -2,9 +2,9 @@ import node from "@astrojs/node";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import { ion } from "starlight-ion-theme";
+import starlightPageActions from "starlight-page-actions";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
-import starlightOpenAPI, { openAPISidebarGroups } from "starlight-openapi";
 
 // https://astro.build/config
 export default defineConfig({
@@ -18,7 +18,11 @@ export default defineConfig({
     starlight({
       title: "Sayr",
       logo: { src: "./src/assets/logo.svg" },
-
+      lastUpdated: true,
+      editLink: {
+        baseUrl: "https://github.com/dorasto/sayr/edit/main/apps/marketing/",
+      },
+      routeMiddleware: "./src/routeData/contributors.ts",
       description:
         "Documentation for Sayr.io - Transparent, collaborative project management",
       social: [
@@ -36,39 +40,42 @@ export default defineConfig({
             { label: "Quick Start", slug: "docs/quick-start" },
           ],
         },
+
         {
           label: "Guides",
-          items: [
-            { label: "Visibility Controls", slug: "docs/guides/visibility" },
-          ],
+          autogenerate: { directory: "/docs/guides" },
         },
         {
           label: "API",
-          autogenerate: { directory: "docs/api" },
+          items: [
+            { label: "Overview", slug: "docs/api/overview" },
+            { label: "WebSocket", slug: "docs/api/ws" },
+            { label: "API Reference", slug: "docs/api/reference" },
+          ],
         },
-        ...openAPISidebarGroups,
         {
           label: "Self hosting",
-          items: [{ label: "Overview", slug: "docs/self-hosting/railway" }],
+          autogenerate: { directory: "/docs/self-hosting" },
         },
       ],
       customCss: ["./src/styles/custom.css"],
-      components: {},
+      components: {
+        PageTitle: "./src/components/overrides/PageTitle.astro",
+        LastUpdated: "./src/components/overrides/LastUpdated.astro",
+        TableOfContents: "./src/components/overrides/TableOfContents.astro",
+      },
       plugins: [
-        ion(),
-        starlightOpenAPI([
-          {
-            base: "docs/api",
-            schema: "https://sayr.io/api/public/openapi.json",
-            sidebar: {
-              label: "API Reference",
-              collapsed: false,
-              operations: {
-                labels: "summary",
-              },
-            },
+        starlightPageActions({
+          baseUrl: "https://sayr.io",
+          actions: {
+            chatgpt: true,
+            claude: true,
+            viewMarkdown: true,
+            t3chat: true,
+            copyMarkdown: true,
           },
-        ]),
+        }),
+        // ion(),
       ],
     }),
     react(),

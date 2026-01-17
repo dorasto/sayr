@@ -1,0 +1,169 @@
+---
+import type { ParsedEndpoint } from "../lib/openapi";
+import ParameterTable from "./ParameterTable.astro";
+import ResponseSection from "./ResponseSection.astro";
+import { RequestTester } from "./RequestTester";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+interface Props {
+    endpoint: ParsedEndpoint;
+    baseUrl?: string;
+}
+
+const { endpoint, baseUrl = "https://sayr.io/api" } = Astro.props;
+const { path, method, operation, pathParameters } = endpoint;
+
+const allParameters = [...pathParameters, ...(operation.parameters || [])];
+const pathParams = allParameters.filter((p) => p.in === "path");
+const queryParams = allParameters.filter((p) => p.in === "query");
+const headerParams = allParameters.filter((p) => p.in === "header");
+
+const methodConfig: Record<
+    string,
+    { bg: string; text: string; dotColor: string }
+> = {
+    GET: {
+        bg: "bg-green-800",
+        text: "text-green-200",
+        dotColor: "bg-green-200",
+    },
+    POST: {
+        bg: "bg-blue-800",
+        text: "text-blue-200",
+        dotColor: "bg-blue-200",
+    },
+    PUT: {
+        bg: "bg-orange-800",
+        text: "text-orange-200",
+        dotColor: "bg-orange-200",
+    },
+    PATCH: {
+        bg: "bg-yellow-800",
+        text: "text-yellow-200",
+        dotColor: "bg-yellow-200",
+    },
+    DELETE: {
+        bg: "bg-red-800",
+        text: "text-red-200",
+        dotColor: "bg-red-200",
+    },
+};
+
+const config = methodConfig[method] || {
+    bg: "bg-gray-500/10",
+    text: "text-gray-400",
+    dotColor: "bg-gray-500",
+};
+
+// Prepare parameters for the RequestTester
+const testerParams = allParameters.map((p) => ({
+    name: p.name,
+    in: p.in,
+    description: p.description,
+    required: p.required,
+    schema: p.schema
+        ? {
+              type: p.schema.type,
+              default: p.schema.default,
+              enum: p.schema.enum,
+          }
+        : undefined,
+}));
+---
+
+<div class="not-content mb-12 pb-12 border-b border-border last:border-b-0">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left Column: Documentation -->
+        <div class="space-y-6">
+            <!-- Title and Description -->
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <Badge
+                        variant="outline"
+                        className={cn(
+                            "font-mono font-bold flex items-center border-0",
+                            config.bg,
+                            config.text,
+                        )}
+                    >
+                        <span
+                            aria-hidden="true"
+                            class={cn("size-1.5 rounded-full", config.dotColor)}
+                        ></span>
+                        {method}
+                    </Badge><code
+                        class="text-sm text-muted-foreground truncate flex-1"
+                    >
+                        {path}
+                    </code>
+                    {
+                        operation.summary && (
+                            <h4 class="text-lg font-semibold text-foreground">
+                                {operation.summary}
+                            </h4>
+                        )
+                    }
+                </div>
+                {
+                    operation.description && (
+                        <p class="text-sm text-muted-foreground">
+                            {operation.description}
+                        </p>
+                    )
+                }
+            </div>
+
+            <!-- Parameters Section -->
+            {
+                allParameters.length > 0 && (
+                    <div class="space-y-4">
+                        <h4 class="text-base font-semibold text-foreground">
+                            Parameters
+                        </h4>
+
+                        {pathParams.length > 0 && (
+                            <ParameterTable
+                                title="Path Parameters"
+                                parameters={pathParams}
+                            />
+                        )}
+
+                        {queryParams.length > 0 && (
+                            <ParameterTable
+                                title="Query Parameters"
+                                parameters={queryParams}
+                            />
+                        )}
+
+                        {headerParams.length > 0 && (
+                            <ParameterTable
+                                title="Header Parameters"
+                                parameters={headerParams}
+                            />
+                        )}
+                    </div>
+                )
+            }
+
+            <!-- Responses Section -->
+            {
+                operation.responses &&
+                    Object.keys(operation.responses).length > 0 && (
+                        <ResponseSection responses={operation.responses} />
+                    )
+            }
+        </div>
+
+        <!-- Right Column: Interactive Tester (Sticky) -->
+        <div class="lg:sticky lg:top-20 lg:self-start">
+            <RequestTester
+                client:load
+                method={method}
+                path={path}
+                baseUrl={baseUrl}
+                parameters={testerParams}
+            />
+        </div>
+    </div>
+</div>

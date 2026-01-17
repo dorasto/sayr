@@ -12,11 +12,29 @@
     --sl-color-white: oklch(0.9219 0 0);
     --sl-color-gray-1: oklch(0.9219 0 0);
     --sl-color-gray-2: oklch(0.85 0 0);
-    --sl-color-gray-3: oklch(0.7155 0 0);
-    --sl-color-gray-4: oklch(0.5 0 0);
-    --sl-color-gray-5: oklch(0.3715 0 0);
-    --sl-color-gray-6: oklch(0.2686 0 0);
-    --sl-color-black: oklch(0.2046 0 0);
+    --sl-color-gray-3: oklch(0.3523 0 0); /* Secondary */
+    --sl-color-gray-4: oklch(0.3092 0 0); /* Accent */
+    --sl-color-gray-5: oklch(0.2686 0 0); /* Card */
+    --sl-color-gray-6: oklch(0.1684 0 0); /* Sidebar */
+    --sl-color-black: oklch(0.2046 0 0); /* Background */
+    /* Custom vars */
+    --background: var(--sl-color-black);
+    --sidebar: var(--sl-color-gray-6);
+    --card: var(--sl-color-gray-5);
+    --accent: var(--sl-color-gray-4);
+    --secondary: var(--sl-color-gray-3);
+    --foreground: var(--sl-color-white);
+}
+
+/* Map CSS vars to Tailwind color utilities */
+@theme inline {
+    --color-background: var(--background);
+    --color-card: var(--card);
+    --color-sidebar: var(--sidebar);
+    --color-accent: var(--accent);
+    --color-secondary: var(--secondary);
+    --color-foreground: var(--foreground);
+    --color-border: var(--secondary);
 }
 /* Light mode colors. */
 :root[data-theme="light"] {
@@ -32,4 +50,19 @@
     --sl-color-gray-6: oklch(0.9846 0.0017 247.8389);
     --sl-color-gray-7: oklch(0.99 0 0);
     --sl-color-black: oklch(1 0 0);
+}
+* {
+    @apply border-border;
+}
+.main-pane {
+    width: 100% !important;
+    padding: 0 3rem;
+}
+
+.right-sidebar-container {
+    width: calc(var(--sl-sidebar-width) + 5%);
+}
+.sl-container {
+    margin-left: 0 !important;
+    max-width: none !important;
 }
