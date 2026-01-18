@@ -15,7 +15,7 @@ import { useLayoutData } from "@/components/generic/Context";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { WSMessage } from "@/lib/ws";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { onWindowMessage, sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
 export default function MyTasksPage() {
   const queryClient = useQueryClient();
@@ -144,6 +144,34 @@ export default function MyTasksPage() {
         )
       }
     },
+    UPDATE_TASK_VOTE: async (msg) => {
+      if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId) {
+        const { id, voteCount } = msg.data;
+        const updatedTasks = tasks.map((task) =>
+          task.id === id && task.organizationId === msg.meta?.orgId
+            ? {
+              ...task,
+              voteCount,
+            }
+            : task,
+        );
+        setTasks(updatedTasks);
+        if (selectedTask?.id === id) {
+          setSelectedTask({
+            ...selectedTask,
+            voteCount,
+          });
+        }
+        sendWindowMessage(
+          window,
+          {
+            type: "update-votes",
+            payload: msg.meta?.orgId,
+          },
+          "*"
+        )
+      }
+    }
   };
 
   const handleMessage = useWSMessageHandler<WSMessage>(handlers, {

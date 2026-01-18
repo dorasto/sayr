@@ -128,9 +128,9 @@ export function MyTaskDetail({
                 const updatedTasks = tasks.map((t) =>
                   t.id === task.id
                     ? {
-                        ...task,
-                        priority: value as schema.TaskWithLabels["priority"],
-                      }
+                      ...task,
+                      priority: value as schema.TaskWithLabels["priority"],
+                    }
                     : t,
                 );
                 setTasks(updatedTasks);
@@ -219,11 +219,11 @@ export function MyTaskDetail({
                 const updatedTasks = tasks.map((t) =>
                   t.id === task.id
                     ? {
-                        ...task,
-                        labels: orgLabels.filter((label) =>
-                          values.includes(label.id),
-                        ),
-                      }
+                      ...task,
+                      labels: orgLabels.filter((label) =>
+                        values.includes(label.id),
+                      ),
+                    }
                     : t,
                 );
                 setTasks(updatedTasks);
@@ -253,7 +253,7 @@ export function MyTaskDetail({
                 }
               }}
             />
-            <TaskVoting task={task} editable={true} />
+            <TaskVoting task={task} editable={true} organizationId={task.organizationId} wsClientId={wsClientId} tasks={tasks} setTasks={setTasks} setSelectedTask={setSelectedTask} />
             {task.organization && (
               <Link to={fullUrl} className="inline-block">
                 <Button
