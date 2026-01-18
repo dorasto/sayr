@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useLayoutData } from "@/components/generic/Context";
+import MyTasksPage from "@/components/pages/admin/mine";
 
 export const Route = createFileRoute("/(admin)/mine/")({
 	component: RouteComponent,
 });
 
 function RouteComponent() {
-	const { account } = useLayoutData();
-	return <div>/admin/mine/</div>;
+	return <MyTasksPage />;
 }

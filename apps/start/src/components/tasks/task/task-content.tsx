@@ -588,39 +588,23 @@ export function TaskContentMobileContent({
           tooltipText="Copy task URL"
           tooltipSide="bottom"
         />
-        <Link
-          to={task.githubIssue?.issueUrl}
-          target="_blank"
-          className="shrink-0"
-        >
-          <Button
-            variant="primary"
-            className="h-[26px] p-1 w-fit bg-accent text-xs"
-            tooltipText="View linked GitHub issue"
-            tooltipSide="bottom"
+        {task.githubIssue && (
+          <Link
+            to={task.githubIssue?.issueUrl}
+            target="_blank"
+            className="shrink-0"
           >
-            <IconBrandGithub className="size-4" /> GitHub
-          </Button>
-        </Link>
-        {/* GitHub link - compact icon only */}
-        {/*{task.githubIssue?.issueUrl && (
-        <Link
-          to={task.githubIssue?.issueUrl}
-          target="_blank"
-          className="shrink-0"
-        >
-          <Button
-            variant="primary"
-            className="bg-transparent p-1 h-auto border-transparent"
-            tooltipText="View linked GitHub issue"
-            tooltipSide="bottom"
-          >
-            <IconBrandGithub className="size-4" />
-          </Button>
-        </Link>
-      )}*/}
+            <Button
+              variant="primary"
+              className="h-[26px] p-1 w-fit bg-accent text-xs"
+              tooltipText="View linked GitHub issue"
+              tooltipSide="bottom"
+            >
+              <IconBrandGithub className="size-4" /> GitHub
+            </Button>
+          </Link>
+        )}
       </div>
-      <div className="flex items-center gap-1 shrink-0 overflow-x-auto px-2"></div>
     </div>
   );
 }

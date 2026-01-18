@@ -7,3 +7,4 @@ export * from "./assignee";
 export * from "./label";
 export * from "./category";
 export * from "./created";
+export * from "./voting";
