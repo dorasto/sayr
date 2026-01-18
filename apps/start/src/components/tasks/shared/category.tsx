@@ -18,7 +18,6 @@ import {
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { extractHslValues } from "@repo/util";
 import { IconCategory } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -46,6 +45,8 @@ interface GlobalTaskCategoryProps {
   showLabel?: boolean;
   showChevron?: boolean;
   className?: string;
+  /** Compact mode shows only the icon without text label */
+  compact?: boolean;
 }
 
 export default function GlobalTaskCategory({
@@ -63,6 +64,7 @@ export default function GlobalTaskCategory({
   showLabel = true,
   showChevron = true,
   className,
+  compact = false,
 }: GlobalTaskCategoryProps) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { runWithToast } = useToastAction();
@@ -158,19 +160,24 @@ export default function GlobalTaskCategory({
             <ComboBoxTrigger disabled={!editable} className={className}>
               <ComboBoxValue placeholder="Select category">
                 {currentCategory ? (
-                  <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "flex items-center gap-2",
+                      compact && "max-w-20 text-xs",
+                    )}
+                  >
                     <RenderIcon
                       iconName={currentCategory.icon || "IconCircleFilled"}
                       size={12}
                       color={currentCategory.color || undefined}
                       raw
                     />
-                    <span>{currentCategory.name}</span>
+                    <span className="truncate">{currentCategory.name}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <IconCategory className="h-4 w-4" />
-                    <span>No Category</span>
+                    {!compact && <span className="truncate">No Category</span>}
                   </div>
                 )}
               </ComboBoxValue>

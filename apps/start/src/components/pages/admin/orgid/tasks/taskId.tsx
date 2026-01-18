@@ -43,8 +43,8 @@ export default function OrganizationTaskIdPage() {
   return (
     <div className="relative flex flex-col h-full max-h-full">
       {useMobile ? (
-        <div className="overflow-hidden">
-          <div className="sticky top-0 p-3 bg-sidebar border-b">
+        <div>
+          <div className="sticky top-0 p-1 bg-sidebar border-b z-[99999999999999999]">
             {organization && (
               <TaskContentMobileContent
                 task={task}
@@ -57,22 +57,10 @@ export default function OrganizationTaskIdPage() {
                 runWithToast={runWithToast}
                 categories={categories}
                 organization={organization}
-                panelControls={{
-                  isPanelOpen,
-                  onToggle: () => {
-                    if (isPanelOpen) {
-                      ref.current?.collapse();
-                    } else {
-                      ref.current?.expand();
-                    }
-                  },
-                }}
               />
             )}
           </div>
-          <div className="overflow-y-scroll h-full">
-            <Outlet />
-          </div>
+          <Outlet />
         </div>
       ) : (
         <ResizablePanelGroup direction="horizontal" className="">
@@ -82,30 +70,6 @@ export default function OrganizationTaskIdPage() {
                 "flex-1 overflow-y-auto h-full flex flex-col relative",
               )}
             >
-              {organization && (
-                <TaskContentMobileContent
-                  task={task}
-                  labels={labels}
-                  tasks={tasks}
-                  setTasks={setTasks}
-                  setSelectedTask={(t) => t && setTask(t)}
-                  availableUsers={availableUsers}
-                  wsClientId={wsClientId}
-                  runWithToast={runWithToast}
-                  categories={categories}
-                  organization={organization}
-                  panelControls={{
-                    isPanelOpen,
-                    onToggle: () => {
-                      if (isPanelOpen) {
-                        ref.current?.collapse();
-                      } else {
-                        ref.current?.expand();
-                      }
-                    },
-                  }}
-                />
-              )}
               <Outlet />
             </div>
           </ResizablePanel>
