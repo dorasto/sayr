@@ -386,6 +386,227 @@ export function TaskContentSideContent({
   );
 }
 
+export function TaskContentMobileContent({
+  task,
+  labels,
+  tasks,
+  setTasks,
+  setSelectedTask,
+  availableUsers = [],
+  wsClientId,
+  runWithToast,
+  categories,
+  organization,
+  panelControls,
+}: TaskContentSideContentProps) {
+  const debouncedUpdateLabels = useDebounceAsync(
+    async (values: string[], wsClientId: string) => {
+      const data = await runWithToast(
+        "update-task-labels",
+        {
+          loading: {
+            title: "Updating task...",
+            description: "Updating your task... changes are already visible.",
+          },
+          success: {
+            title: "Task saved",
+            description: "Your changes have been saved successfully.",
+          },
+          error: {
+            title: "Save failed",
+            description:
+              "Your changes are showing, but we couldn't save them to the server. Please try again.",
+          },
+        },
+        () =>
+          updateLabelToTaskAction(
+            task.organizationId,
+            task.id,
+            values,
+            wsClientId,
+          ),
+      );
+      return data;
+    },
+    1500, // debounce delay
+  );
+  const urlParts = task.githubIssue?.issueUrl?.split("/");
+  const [GitHubIssueOrg, GitHubIssueRepo] = [urlParts?.[3], urlParts?.[4]];
+  return (
+    <div className="flex flex-wrap gap-3 w-full">
+      <GlobalTaskStatus
+        task={task}
+        editable={true}
+        useInternalLogic={true}
+        tasks={tasks}
+        setTasks={setTasks}
+        setSelectedTask={setSelectedTask}
+        showLabel={false}
+        showChevron={false}
+        className="bg-transparent p-1 h-auto w-fit"
+      />
+      <GlobalTaskPriority
+        className="bg-transparent p-1 h-auto w-fit"
+        showLabel={false}
+        task={task}
+        editable={true}
+        showChevron={false}
+        onPriorityChange={async (value) => {
+          const updatedTasks = tasks.map((t) =>
+            t.id === task.id
+              ? {
+                  ...task,
+                  priority: value as schema.TaskWithLabels["priority"],
+                }
+              : t,
+          );
+          setTasks(updatedTasks);
+          if (task) {
+            setSelectedTask({
+              ...task,
+              priority: value as schema.TaskWithLabels["priority"],
+            });
+          }
+          const data = await runWithToast(
+            "update-task-priority",
+            {
+              loading: {
+                title: "Updating task...",
+                description:
+                  "Updating your task... changes are already visible.",
+              },
+              success: {
+                title: "Task saved",
+                description: "Your changes have been saved successfully.",
+              },
+              error: {
+                title: "Save failed",
+                description:
+                  "Your changes are showing, but we couldn't save them to the server. Please try again.",
+              },
+            },
+            () =>
+              updateTaskAction(
+                task.organizationId,
+                task.id,
+                {
+                  priority: value,
+                },
+                wsClientId,
+              ),
+          );
+          if (data?.success && data.data) {
+            const finalTasks = tasks.map((t) =>
+              t.id === task.id && data.data ? data.data : t,
+            );
+            setTasks(finalTasks);
+            if (task && task.id === data.data.id) {
+              setSelectedTask(data.data);
+              sendWindowMessage(
+                window,
+                {
+                  type: "timeline-update",
+                  payload: data.data.id,
+                },
+                "*",
+              );
+            }
+          }
+        }}
+      />
+      <GlobalTaskCategory
+        className="bg-transparent p-1 h-auto w-fit"
+        showLabel={false}
+        task={task}
+        showChevron={false}
+        editable={true}
+        useInternalLogic={true}
+        tasks={tasks}
+        setTasks={setTasks}
+        setSelectedTask={setSelectedTask}
+        categories={categories}
+      />
+      <GlobalTaskAssignees
+        className="bg-transparent p-1 h-auto"
+        task={task}
+        showChevron={false}
+        editable={true}
+        availableUsers={availableUsers}
+        useInternalLogic={true}
+        tasks={tasks}
+        setTasks={setTasks}
+        setSelectedTask={setSelectedTask}
+        showLabel={false}
+      />
+      <GlobalTaskLabels
+        showLabel={false}
+        task={task}
+        editable={true}
+        availableLabels={labels}
+        onLabelsChange={async (values) => {
+          const updatedTasks = tasks.map((t) =>
+            t.id === task.id
+              ? {
+                  ...task,
+                  labels: labels.filter((label) => values.includes(label.id)),
+                }
+              : t,
+          );
+          setTasks(updatedTasks);
+          if (task) {
+            setSelectedTask({
+              ...task,
+              labels: labels.filter((label) => values.includes(label.id)),
+            });
+          }
+          const data = await debouncedUpdateLabels(values, wsClientId);
+          if (data?.success && data.data && !data.skipped) {
+            const finalTasks = tasks.map((t) =>
+              t.id === task.id && data.data ? data.data : t,
+            );
+            setTasks(finalTasks);
+            if (task && task.id === data.data.id) {
+              setSelectedTask(data.data);
+              sendWindowMessage(
+                window,
+                {
+                  type: "timeline-update",
+                  payload: data.data.id,
+                },
+                "*",
+              );
+            }
+          }
+        }}
+      />
+      {task.githubIssue?.issueUrl && (
+        <Link to={task.githubIssue?.issueUrl} target="_blank">
+          <Badge
+            variant="secondary"
+            className={cn(
+              "flex items-center justify-center gap-1 ps-0 text-xs border rounded-lg border-transparent truncate group/link cursor-pointer w-fit relative bg-transparent p-1 h-auto",
+            )}
+          >
+            {/*{GitHubIssueOrg}/{GitHubIssueRepo}/
+              {task.githubIssue?.issueNumber}*/}
+            <InlineLabel
+              text={`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}
+              icon={<IconBrandGithub className="size-3" />}
+              className="cursor-pointer"
+              textNode={
+                <div className="flex items-center gap-2">
+                  <span className="truncate">{`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}</span>
+                  <IconExternalLink className="size-3 opacity-0 group-hover/link:opacity-100 transition-all" />
+                </div>
+              }
+            />
+          </Badge>
+        </Link>
+      )}
+    </div>
+  );
+}
+
 interface TaskContentMainProps {
   task: schema.TaskWithLabels;
   tasks: schema.TaskWithLabels[];
