@@ -33,6 +33,7 @@ import {
 import { TaskContent } from "../task/task-content";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
+import { useSticky } from "@/hooks/use-sticky";
 
 interface UnifiedTaskViewProps {
   tasks: schema.TaskWithLabels[];
@@ -257,6 +258,39 @@ export function UnifiedTaskView({
     categories,
   ]);
 
+  // Auto-collapse empty groups in list view
+  useEffect(() => {
+    if (viewMode !== "list") return;
+
+    const emptyGroupIds = new Set<string>();
+
+    for (const group of groupedTasks) {
+      // Check primary groups without sub-groups
+      if (!group.subGroups?.length && group.tasks.length === 0) {
+        emptyGroupIds.add(group.id);
+      }
+      // Check sub-groups
+      if (group.subGroups) {
+        for (const subGroup of group.subGroups) {
+          if (subGroup.tasks.length === 0) {
+            emptyGroupIds.add(subGroup.id);
+          }
+        }
+      }
+    }
+
+    // Only update if there are empty groups to collapse
+    if (emptyGroupIds.size > 0) {
+      setCollapsedSections((prev) => {
+        const newSet = new Set(prev);
+        for (const id of emptyGroupIds) {
+          newSet.add(id);
+        }
+        return newSet;
+      });
+    }
+  }, [groupedTasks, viewMode]);
+
   // Kanban Specific Data Preparation
   const columns = useMemo(
     () => groupedTasks.map((g) => ({ ...g, name: g.label })),
@@ -386,6 +420,7 @@ export function UnifiedTaskView({
 
     console.log(`✅ Task ${itemId} dropped into column ${newColumnId}`);
   };
+  const { stuck, stickyRef } = useSticky();
 
   if (!mounted) {
     return (
@@ -408,97 +443,118 @@ export function UnifiedTaskView({
     <div className="h-full overflow-auto rounded">
       {viewMode === "kanban" ? (
         hasKanbanSubGroups ? (
-          // Render kanban with sub-groups as horizontal rows spanning all columns
-          <div className="flex flex-col h-full px-2">
-            {/* Get all unique sub-groups (they should be the same across all primary groups) */}
-            {groupedTasks[0]?.subGroups?.map((subGroup) => (
-              <div key={subGroup.id} className="flex flex-col gap-3">
-                {/* Sub-group header spanning the entire width */}
-                <div className="flex items-center gap-3 px-3 py-2.5 bg-muted rounded-lg sticky top-0 z-10 backdrop-blur-sm">
-                  <div className="flex items-center gap-2">
-                    {subGroup.icon && (
-                      <span className={cn("text-sm", subGroup.accentClassName)}>
-                        {subGroup.icon}
-                      </span>
-                    )}
-                    <span className="text-sm font-semibold">
-                      {subGroup.label}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="text-xs h-5 px-2">
-                    {subGroup.tasks.length}
-                  </Badge>
-                </div>
-
-                {/* Columns for this sub-group - horizontal scrolling */}
-                <div className="flex gap-4 overflow-x-auto pb-2 px-1">
-                  {groupedTasks.map((primaryGroup) => {
-                    // Find matching sub-group within this primary group
-                    const matchingSubGroup = primaryGroup.subGroups?.find(
-                      (sg) => sg.id === subGroup.id,
-                    );
-                    const taskCount = matchingSubGroup?.count || 0;
-                    const tasks = matchingSubGroup?.tasks || [];
-
-                    return (
-                      <div
-                        key={`${primaryGroup.id}-${subGroup.id}`}
-                        className="flex flex-col min-w-[300px] max-w-[300px] gap-2 shrink-0"
-                      >
-                        {/* Column header */}
-                        <div className="flex items-center justify-between px-3 py-2 bg-accent rounded-lg sticky top-0">
-                          <div className="flex items-center gap-2">
-                            {primaryGroup.icon && (
-                              <span
-                                className={cn(
-                                  "text-xs",
-                                  primaryGroup.accentClassName,
-                                )}
-                              >
-                                {primaryGroup.icon}
-                              </span>
-                            )}
-                            <span className="text-xs font-medium truncate">
-                              {primaryGroup.label}
-                            </span>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] h-4 px-1.5 border-transparent flex-shrink-0"
-                          >
-                            {taskCount}
-                          </Badge>
-                        </div>
-
-                        {/* Tasks in this column */}
-                        <div className="flex flex-col gap-2 px-1 overflow-y-auto min-h-[100px]">
-                          {tasks.length > 0 ? (
-                            tasks.map((task) => (
-                              <UnifiedTaskItem
-                                key={task.id}
-                                viewMode="kanban"
-                                task={task}
-                                columnId={primaryGroup.id}
-                                onTaskClick={handleTaskClick}
-                                tasks={tasks}
-                                setTasks={setTasks}
-                                availableUsers={availableUsers}
-                                onTaskUpdate={handleTaskUpdate}
-                                categories={categories}
-                              />
-                            ))
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-                              No tasks
-                            </div>
+          // Linear-style grid: Column headers at top, sub-groups as horizontal ROWS spanning all columns
+          // Single scroll container for both X and Y
+          <div className="h-full overflow-auto">
+            <div className="inline-block">
+              {/* Column headers row - sticky at top */}
+              <div className="flex sticky top-0 z-30 overflow-hidden">
+                {groupedTasks.map((primaryGroup) => (
+                  <div
+                    key={primaryGroup.id}
+                    className="flex items-center justify-between px-3 py-2 bg-muted w-[300px] shrink-0 gap-2 border-r border-dashed last:border-r-0 p-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      {primaryGroup.icon && (
+                        <span
+                          className={cn(
+                            "text-sm",
+                            primaryGroup.accentClassName,
                           )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        >
+                          {primaryGroup.icon}
+                        </span>
+                      )}
+                      <span className="text-sm font-semibold">
+                        {primaryGroup.label}
+                      </span>
+                    </div>
+                    <Badge variant="outline" className="text-xs h-5 px-2">
+                      {primaryGroup.count}
+                    </Badge>
+                  </div>
+                ))}
               </div>
-            ))}
+
+              {/* Rows - each sub-group is a row spanning all columns */}
+              {groupedTasks[0]?.subGroups?.map((subGroupTemplate) => {
+                const rowTotal = groupedTasks.reduce((sum, col) => {
+                  const sg = col.subGroups?.find(
+                    (s) => s.id === subGroupTemplate.id,
+                  );
+                  return sum + (sg?.tasks.length || 0);
+                }, 0);
+
+                return (
+                  <div key={subGroupTemplate.id} className="">
+                    {/* Row header bar - sticky below column headers (top-[50px] accounts for header height) */}
+                    <div
+                      className={cn(
+                        "flex items-center gap-2 py-2 px-2 bg-accent border-b sticky top-9 z-20 ",
+                      )}
+                    >
+                      <div className="flex items-center gap-2 z-10 sticky left-2">
+                        {subGroupTemplate.icon && (
+                          <span
+                            className={cn(
+                              "text-sm",
+                              subGroupTemplate.accentClassName,
+                            )}
+                          >
+                            {subGroupTemplate.icon}
+                          </span>
+                        )}
+                        <span className="text-sm font-medium whitespace-nowrap">
+                          {subGroupTemplate.label}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs h-5 px-1.5"
+                        >
+                          {rowTotal}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Grid of cells for this row */}
+                    <div className="flex ">
+                      {groupedTasks.map((primaryGroup) => {
+                        const subGroup = primaryGroup.subGroups?.find(
+                          (sg) => sg.id === subGroupTemplate.id,
+                        );
+                        const tasks = subGroup?.tasks || [];
+
+                        return (
+                          <div
+                            key={`${primaryGroup.id}-${subGroupTemplate.id}`}
+                            className="w-[300px] shrink-0 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
+                          >
+                            {tasks.length > 0 ? (
+                              tasks.map((task) => (
+                                <UnifiedTaskItem
+                                  key={task.id}
+                                  viewMode="kanban"
+                                  task={task}
+                                  columnId={primaryGroup.id}
+                                  onTaskClick={handleTaskClick}
+                                  tasks={tasks}
+                                  setTasks={setTasks}
+                                  availableUsers={availableUsers}
+                                  onTaskUpdate={handleTaskUpdate}
+                                  categories={categories}
+                                />
+                              ))
+                            ) : (
+                              <div className="h-8" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           // Original kanban without sub-groups
@@ -579,6 +635,7 @@ export function UnifiedTaskView({
                     group={group}
                     isCollapsed={isCollapsed}
                     onToggleCollapse={() => handleToggleSection(group.id)}
+                    isSticky={true}
                   />
 
                   {!isCollapsed && (
@@ -591,7 +648,7 @@ export function UnifiedTaskView({
                           );
 
                           return (
-                            <div key={subGroup.id} className="pl-4">
+                            <div key={subGroup.id} className="">
                               <TaskGroupSectionHeader
                                 group={subGroup}
                                 isCollapsed={subGroupCollapsed}
@@ -599,6 +656,8 @@ export function UnifiedTaskView({
                                   handleToggleSection(subGroup.id)
                                 }
                                 isSubGroup={true}
+                                className="py-1"
+                                rootClassName="bg-muted/0 hover:bg-muted/20 transition-all"
                               />
                               {!subGroupCollapsed && (
                                 <div className="py-1 flex flex-col gap-1">
