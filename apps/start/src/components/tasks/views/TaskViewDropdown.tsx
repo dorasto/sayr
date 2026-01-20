@@ -3,7 +3,6 @@
 import { Button } from "@repo/ui/components/button";
 import {
 	DropdownMenu,
-	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
@@ -45,20 +44,29 @@ type ViewMode = (typeof VIEW_MODE_OPTIONS)[number]["id"];
 export function TaskViewDropdown() {
 	const {
 		grouping,
-		showEmptyGroups,
+		subGrouping,
 		showCompletedTasks,
 		viewMode,
 		setGrouping,
-		setShowEmptyGroups,
+		setSubGrouping,
 		setShowCompletedTasks,
 		setViewMode,
 	} = useTaskViewManager();
 
 	const activeGrouping = TASK_GROUPINGS[grouping] ?? TASK_GROUPINGS.status;
+	const activeSubGrouping = subGrouping && subGrouping !== "none" 
+		? TASK_GROUPINGS[subGrouping] 
+		: null;
 
 	const activeViewMode: ViewMode = viewMode;
 
 	const groupingOptions = useMemo(() => TASK_GROUPING_OPTIONS, []);
+
+	// Filter out the current grouping from sub-grouping options
+	const subGroupingOptions = useMemo(() => [
+		{ id: "none", label: "None", icon: <IconEyeOff className="h-4 w-4" /> },
+		...TASK_GROUPING_OPTIONS.filter(opt => opt.id !== grouping)
+	], [grouping]);
 
 	return (
 		<Popover>
@@ -135,7 +143,55 @@ export function TaskViewDropdown() {
 											<span
 												className={cn(
 													"text-sm",
-													option.id === grouping &&
+													grouping === option.id &&
+														"font-semibold text-foreground",
+												)}
+											>
+												{option.label}
+											</span>
+										</DropdownMenuRadioItem>
+									))}
+								</DropdownMenuRadioGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					}
+				/>
+				<OptionField
+					title="Sub-grouping"
+					icon={<IconLayoutRows className="h-4 w-4" />}
+					customSide={
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="accent"
+									className={cn("gap-2 border-transparent p-1 h-auto")}
+								>
+									{activeSubGrouping ? activeSubGrouping.icon : <IconEyeOff className="h-4 w-4" />}
+									<span className="text-xs">
+										{activeSubGrouping ? activeSubGrouping.label : "None"}
+									</span>
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent className="w-64" side="bottom" align="end">
+								<DropdownMenuRadioGroup
+									value={subGrouping ?? "none"}
+									onValueChange={(value) =>
+										setSubGrouping(value as TaskGroupingId | "none")
+									}
+								>
+									{subGroupingOptions.map((option) => (
+										<DropdownMenuRadioItem
+											key={option.id}
+											value={option.id}
+											className="pl-8"
+										>
+											<span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
+												{option.icon}
+											</span>
+											<span
+												className={cn(
+													"text-sm",
+													option.id === subGrouping &&
 														"text-foreground font-medium",
 												)}
 											>
@@ -144,15 +200,6 @@ export function TaskViewDropdown() {
 										</DropdownMenuRadioItem>
 									))}
 								</DropdownMenuRadioGroup>
-
-								<DropdownMenuCheckboxItem
-									checked={showEmptyGroups}
-									onCheckedChange={(checked) =>
-										setShowEmptyGroups(Boolean(checked))
-									}
-								>
-									Show empty groups
-								</DropdownMenuCheckboxItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					}
@@ -165,18 +212,6 @@ export function TaskViewDropdown() {
 							checked={showCompletedTasks}
 							onCheckedChange={(checked) =>
 								setShowCompletedTasks(Boolean(checked))
-							}
-						/>
-					}
-				/>
-				<OptionField
-					title="Show empty groups"
-					icon={<IconEyeOff className="h-4 w-4" />}
-					customSide={
-						<Switch
-							checked={showEmptyGroups}
-							onCheckedChange={(checked) =>
-								setShowEmptyGroups(Boolean(checked))
 							}
 						/>
 					}

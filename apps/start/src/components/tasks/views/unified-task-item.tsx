@@ -258,7 +258,7 @@ export function UnifiedTaskItem({
                 customTrigger={
                   <button
                     type="button"
-                    className="h-4 flex items-center gap-1.5 rounded text-xs p-0.5 cursor-pointer"
+                    className="h-4 flex items-center gap-1.5 rounded text-xs p-0.5 cursor-pointer ml-2"
                     data-no-propagate
                   >
                     {priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)}
@@ -476,32 +476,57 @@ export function UnifiedTaskItem({
         }
       }}
     >
-      <div className="flex items-start justify-between gap-2 w-full">
+      <div className="flex items-start gap-2 w-full">
         <Label variant={"description"}>#{task.shortId}</Label>
-        <GlobalTaskPriority
-          task={task}
-          editable={true}
-          onChange={handlePriorityChange}
-          useInternalLogic={true}
-          tasks={tasks}
-          setTasks={setTasks}
-          open={priorityPopoverOpen}
-          setOpen={handlePriorityPopoverChange}
-          customTrigger={
-            <div
-              className={cn(
-                "p-1 rounded bg-transparent cursor-pointer",
-                priority?.className,
-              )}
-              title={priority?.label}
-              data-no-propagate
-            >
-              {priority?.icon("w-3 h-3")}
-            </div>
-          }
-        />
+        <div className="flex items-center ml-auto gap-1">
+          <GlobalTaskStatus
+            task={task}
+            editable={true}
+            onChange={handleStatusChange}
+            useInternalLogic={true}
+            tasks={tasks}
+            setTasks={setTasks}
+            open={statusPopoverOpen}
+            setOpen={handleStatusPopoverChange}
+            data-no-propagate
+            customTrigger={
+              <div
+                className={cn(
+                  "flex items-center gap-1 border-0 px-1.5 py-0.5 rounded-full bg-transparent text-accent-foreground cursor-pointer",
+                  status?.className,
+                )}
+                data-no-propagate
+              >
+                {status?.icon("w-4 h-4")}
+              </div>
+            }
+          />
+
+          <GlobalTaskPriority
+            task={task}
+            editable={true}
+            onChange={handlePriorityChange}
+            useInternalLogic={true}
+            tasks={tasks}
+            setTasks={setTasks}
+            open={priorityPopoverOpen}
+            setOpen={handlePriorityPopoverChange}
+            customTrigger={
+              <div
+                className={cn(
+                  "p-1 rounded bg-transparent cursor-pointer",
+                  priority?.className,
+                )}
+                title={priority?.label}
+                data-no-propagate
+              >
+                {priority?.icon("w-4 h-4")}
+              </div>
+            }
+          />
+        </div>
       </div>
-      <div className="font-medium text-sm line-clamp-2 leading-tight">
+      <div className="font-medium text-xs line-clamp-2 leading-tight">
         {task.title}
       </div>
 
@@ -511,12 +536,12 @@ export function UnifiedTaskItem({
             <RenderLabel
               key={label.id}
               label={label}
-              className="max-w-[150px]"
+              className="max-w-[100px]"
               data-no-propagate
             />
           ))}
           {task.labels.length > 3 && (
-            <Badge variant="secondary" className="text-[10px] h-5 px-1">
+            <Badge variant="secondary" className="text-xs h-5 px-1">
               +{task.labels.length - 3}
             </Badge>
           )}
@@ -543,29 +568,6 @@ export function UnifiedTaskItem({
                 </button>
               ) : null;
             })()}
-          <GlobalTaskStatus
-            task={task}
-            editable={true}
-            onChange={handleStatusChange}
-            useInternalLogic={true}
-            tasks={tasks}
-            setTasks={setTasks}
-            open={statusPopoverOpen}
-            setOpen={handleStatusPopoverChange}
-            data-no-propagate
-            customTrigger={
-              <div
-                className={cn(
-                  "flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border bg-transparent text-accent-foreground cursor-pointer",
-                  status?.className,
-                )}
-                data-no-propagate
-              >
-                {status?.icon("w-3 h-3")}
-                <span className="font-medium">{status?.label}</span>
-              </div>
-            }
-          />
         </div>
         <GlobalTaskAssignees
           task={task}
@@ -768,7 +770,7 @@ export function UnifiedTaskItem({
         id={task.id}
         name={task.title || "Untitled"}
         column={columnId || ""}
-        className="bg-accent p-3 rounded-lg border-transparent shadow-sm hover:bg-secondary transition-colors cursor-pointer flex flex-col gap-2"
+        className="bg-accent p-2 rounded-lg border-transparent shadow-sm hover:bg-secondary transition-colors cursor-pointer flex flex-col gap-2"
       >
         <ContextMenu>
           <ContextMenuTrigger asChild>

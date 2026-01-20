@@ -8,8 +8,8 @@ import { organization } from "./organization.schema";
 type viewConfig = {
 	mode: "list" | "kanban";
 	groupBy: "status" | "priority" | "assignee" | "category";
+	subGroupBy?: "status" | "priority" | "assignee" | "category" | "none";
 	showCompletedTasks: boolean;
-	showEmptyGroups: boolean;
 	color?: string;
 	icon?: string;
 };
@@ -32,7 +32,6 @@ export const savedView = table("saved_view", {
 		mode: "list",
 		groupBy: "status",
 		showCompletedTasks: true,
-		showEmptyGroups: true,
 	}),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),

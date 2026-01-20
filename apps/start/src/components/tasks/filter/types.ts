@@ -18,7 +18,6 @@ export interface TaskGroup {
 export interface TaskGroupingContext {
 	tasks: schema.TaskWithLabels[];
 	availableUsers: schema.userType[];
-	showEmptyGroups: boolean;
 	showCompletedTasks: boolean;
 	categories: schema.categoryType[];
 }
@@ -33,7 +32,7 @@ export interface TaskGroupingDefinition {
 
 export interface TaskViewState {
 	grouping: TaskGroupingId;
-	showEmptyGroups: boolean;
+	subGrouping?: TaskGroupingId | "none";
 	showCompletedTasks: boolean;
 	viewMode: "list" | "kanban";
 }
@@ -42,7 +41,7 @@ export const TASK_VIEW_STATE_KEY = "task-view";
 
 export const DEFAULT_TASK_VIEW_STATE: TaskViewState = {
 	grouping: "status",
-	showEmptyGroups: true,
+	subGrouping: "none",
 	showCompletedTasks: false,
 	viewMode: "list",
 };

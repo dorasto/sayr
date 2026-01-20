@@ -228,7 +228,6 @@ const statusGrouping = createGroupingDefinition("status", {
   icon: statusConfig.todo.icon("h-4 w-4"),
   group: ({
     tasks,
-    showEmptyGroups,
     showCompletedTasks,
   }: TaskGroupingContext) => {
     const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
@@ -255,7 +254,7 @@ const statusGrouping = createGroupingDefinition("status", {
         ) {
           return false;
         }
-        return showEmptyGroups ? true : group.tasks.length > 0;
+        return true; // Always show all groups
       });
   },
 });
@@ -266,7 +265,6 @@ const priorityGrouping = createGroupingDefinition("priority", {
   icon: priorityConfig.medium.icon("h-4 w-4"),
   group: ({
     tasks,
-    showEmptyGroups,
     showCompletedTasks,
   }: TaskGroupingContext) => {
     const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
@@ -284,9 +282,7 @@ const priorityGrouping = createGroupingDefinition("priority", {
       target.tasks.push(task);
     });
 
-    return groups
-      .map((group) => ({ ...group, count: group.tasks.length }))
-      .filter((group) => (showEmptyGroups ? true : group.tasks.length > 0));
+    return groups.map((group) => ({ ...group, count: group.tasks.length }));
   },
 });
 
@@ -297,7 +293,6 @@ const assigneeGrouping = createGroupingDefinition("assignee", {
   group: ({
     tasks,
     availableUsers,
-    showEmptyGroups,
     showCompletedTasks,
   }: TaskGroupingContext) => {
     const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
@@ -314,12 +309,11 @@ const assigneeGrouping = createGroupingDefinition("assignee", {
       return created;
     };
 
-    if (showEmptyGroups) {
-      availableUsers.forEach((user) => {
-        ensureGroupForUser(user);
-      });
-      ensureGroupForUser(undefined);
-    }
+    // Always create groups for all available users
+    availableUsers.forEach((user) => {
+      ensureGroupForUser(user);
+    });
+    ensureGroupForUser(undefined);
 
     filteredTasks.forEach((task) => {
       if (task.assignees && task.assignees.length > 0) {
@@ -346,13 +340,11 @@ const assigneeGrouping = createGroupingDefinition("assignee", {
       count: group.tasks.length,
     }));
 
-    return groups
-      .sort((a, b) => {
-        if (a.key === "unassigned") return 1;
-        if (b.key === "unassigned") return -1;
-        return a.label.localeCompare(b.label);
-      })
-      .filter((group) => (showEmptyGroups ? true : group.tasks.length > 0));
+    return groups.sort((a, b) => {
+      if (a.key === "unassigned") return 1;
+      if (b.key === "unassigned") return -1;
+      return a.label.localeCompare(b.label);
+    });
   },
 });
 const createCategoryGroup = (
@@ -380,7 +372,6 @@ export const categoryGrouping = createGroupingDefinition("category", {
   icon: <IconCategory2 className="h-4 w-4" />,
   group: ({
     tasks,
-    showEmptyGroups,
     showCompletedTasks,
     categories,
   }: TaskGroupingContext) => {
@@ -401,11 +392,9 @@ export const categoryGrouping = createGroupingDefinition("category", {
       return newGroup;
     };
 
-    // Optionally pre-create groups for all categories (for "show empty" mode)
-    if (showEmptyGroups) {
-      categories.forEach((cat) => ensureGroupForCategory(cat));
-      ensureGroupForCategory(null); // Uncategorized
-    }
+    // Always pre-create groups for all categories
+    categories.forEach((cat) => ensureGroupForCategory(cat));
+    ensureGroupForCategory(null); // Uncategorized
 
     // Assign each task to a category-based group
     filteredTasks.forEach((task) => {
@@ -428,13 +417,11 @@ export const categoryGrouping = createGroupingDefinition("category", {
     }));
 
     // Sort alphabetically, with "No category" last
-    return groups
-      .sort((a, b) => {
-        if (a.key === "uncategorized") return 1;
-        if (b.key === "uncategorized") return -1;
-        return a.label.localeCompare(b.label);
-      })
-      .filter((group) => (showEmptyGroups ? true : group.tasks.length > 0));
+    return groups.sort((a, b) => {
+      if (a.key === "uncategorized") return 1;
+      if (b.key === "uncategorized") return -1;
+      return a.label.localeCompare(b.label);
+    });
   },
 });
 function createGroupingDefinition(

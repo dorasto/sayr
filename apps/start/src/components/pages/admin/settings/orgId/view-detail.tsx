@@ -35,6 +35,7 @@ import { cn } from "@repo/ui/lib/utils";
 import {
 	IconCheck,
 	IconDeviceFloppy,
+	IconEyeOff,
 	IconLayoutKanban,
 	IconLayoutRows,
 	IconList,
@@ -110,7 +111,6 @@ export default function SettingsOrganizationViewDetailPage({
 		mode: "list",
 		groupBy: "status",
 		showCompletedTasks: true,
-		showEmptyGroups: true,
 		color: "#ffffff",
 		icon: "IconStack2",
 	};
@@ -380,6 +380,50 @@ export default function SettingsOrganizationViewDetailPage({
 				</Tile>
 				<Tile className="md:w-full" variant={"transparent"}>
 					<TileHeader className="md:w-full">
+						<TileTitle>Sub-group by</TileTitle>
+					</TileHeader>
+					<TileAction>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="outline" className="gap-2">
+									{viewConfig?.subGroupBy ? (
+										<>
+											<IconLayoutRows className="h-4 w-4" />
+											<span>
+												{TASK_GROUPINGS[(viewConfig.subGroupBy as TaskGroupingId)]?.label || "None"}
+											</span>
+										</>
+									) : (
+										<>
+											<IconEyeOff className="h-4 w-4" />
+											<span>None</span>
+										</>
+									)}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuRadioGroup
+									value={viewConfig?.subGroupBy || "none"}
+									onValueChange={(v) =>
+										setViewConfig((prev) => ({
+											...(prev ?? defaultConfig),
+											subGroupBy: v === "none" ? undefined : (v as TaskGroupingId),
+										}))
+									}
+								>
+									<DropdownMenuRadioItem value="none">None</DropdownMenuRadioItem>
+									{TASK_GROUPING_OPTIONS.filter((opt) => opt.id !== viewConfig?.groupBy).map((grouping) => (
+										<DropdownMenuRadioItem key={grouping.id} value={grouping.id}>
+											{grouping.label}
+										</DropdownMenuRadioItem>
+									))}
+								</DropdownMenuRadioGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</TileAction>
+				</Tile>
+				<Tile className="md:w-full" variant={"transparent"}>
+					<TileHeader className="md:w-full">
 						<TileTitle>Show completed tasks</TileTitle>
 					</TileHeader>
 					<TileAction>
@@ -387,19 +431,6 @@ export default function SettingsOrganizationViewDetailPage({
 							checked={viewConfig?.showCompletedTasks}
 							onCheckedChange={(c) =>
 								setViewConfig((prev) => ({ ...(prev ?? defaultConfig), showCompletedTasks: c }))
-							}
-						/>
-					</TileAction>
-				</Tile>
-				<Tile className="md:w-full" variant={"transparent"}>
-					<TileHeader className="md:w-full">
-						<TileTitle>Show empty groups</TileTitle>
-					</TileHeader>
-					<TileAction>
-						<Switch
-							checked={viewConfig?.showEmptyGroups}
-							onCheckedChange={(c) =>
-								setViewConfig((prev) => ({ ...(prev ?? defaultConfig), showEmptyGroups: c }))
 							}
 						/>
 					</TileAction>
