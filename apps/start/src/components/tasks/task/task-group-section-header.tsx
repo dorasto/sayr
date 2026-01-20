@@ -10,22 +10,27 @@ interface TaskGroupSectionHeaderProps {
 	group: TaskGroup;
 	isCollapsed: boolean;
 	onToggleCollapse: () => void;
+	isSubGroup?: boolean;
 }
 
 export function TaskGroupSectionHeader({
 	group,
 	isCollapsed,
 	onToggleCollapse,
+	isSubGroup = false,
 }: TaskGroupSectionHeaderProps) {
 	return (
-		<div className={cn("sticky top-0 z-10 rounded select-none bg-muted")}>
+		<div className={cn(
+			"sticky top-0 z-10 rounded select-none",
+			isSubGroup ? "bg-accent" : "bg-muted"
+		)}>
 			<div className="flex items-center justify-between px-4 py-2 relative">
 				<div className="flex items-center gap-2">
 					<Button
 						variant="ghost"
 						size="sm"
 						onClick={onToggleCollapse}
-						className="h-3 w-3 p-0"
+						className={cn("h-3 w-3 p-0", isSubGroup && "ml-2")}
 					>
 						<IconChevronDown
 							className={cn(
@@ -44,7 +49,9 @@ export function TaskGroupSectionHeader({
 							</span>
 						)}
 						<div className="flex min-w-0 flex-col leading-tight">
-							<p className={cn("text-sm font-medium")}>{group.label}</p>
+							<p className={cn("text-sm font-medium", isSubGroup && "text-xs")}>
+								{group.label}
+							</p>
 							{group.description && (
 								<span className="text-xs text-muted-foreground truncate">
 									{group.description}
@@ -53,7 +60,10 @@ export function TaskGroupSectionHeader({
 						</div>
 						<Badge
 							variant={"outline"}
-							className="rounded pointer-events-none border-transparent text-muted-foreground"
+							className={cn(
+								"rounded pointer-events-none border-transparent text-muted-foreground",
+								isSubGroup && "text-xs"
+							)}
 						>
 							{group.count}
 						</Badge>

@@ -66,8 +66,8 @@ function areFiltersEqual(a: FilterState, b: FilterState): boolean {
 function areViewConfigsEqual(a: TaskViewState, b: TaskViewState): boolean {
 	return (
 		a.grouping === b.grouping &&
+		a.subGrouping === b.subGrouping &&
 		a.viewMode === b.viewMode &&
-		a.showEmptyGroups === b.showEmptyGroups &&
 		a.showCompletedTasks === b.showCompletedTasks
 	);
 }
@@ -87,7 +87,7 @@ function mapViewConfigToState(
 ): TaskViewState {
 	return {
 		grouping: config.groupBy,
-		showEmptyGroups: config.showEmptyGroups,
+		subGrouping: config.subGroupBy ?? "none",
 		showCompletedTasks: config.showCompletedTasks,
 		viewMode: config.mode,
 	};
@@ -135,8 +135,8 @@ export function useTaskViewManager() {
 
 	// Convenience accessors for viewConfig properties
 	const grouping = viewConfig.grouping;
+	const subGrouping = viewConfig.subGrouping ?? "none";
 	const viewMode = viewConfig.viewMode;
-	const showEmptyGroups = viewConfig.showEmptyGroups;
 	const showCompletedTasks = viewConfig.showCompletedTasks;
 
 	/**
@@ -367,13 +367,13 @@ export function useTaskViewManager() {
 		[setViewConfig]
 	);
 
-	const setViewMode = useCallback(
-		(viewMode: "list" | "kanban") => setViewConfig({ viewMode }),
+	const setSubGrouping = useCallback(
+		(subGrouping: TaskGroupingId | "none") => setViewConfig({ subGrouping }),
 		[setViewConfig]
 	);
 
-	const setShowEmptyGroups = useCallback(
-		(showEmptyGroups: boolean) => setViewConfig({ showEmptyGroups }),
+	const setViewMode = useCallback(
+		(viewMode: "list" | "kanban") => setViewConfig({ viewMode }),
 		[setViewConfig]
 	);
 
@@ -391,8 +391,8 @@ export function useTaskViewManager() {
 
 		// Convenience accessors
 		grouping,
+		subGrouping,
 		viewMode,
-		showEmptyGroups,
 		showCompletedTasks,
 
 		// View operations
@@ -412,8 +412,8 @@ export function useTaskViewManager() {
 		// View config operations
 		setViewConfig,
 		setGrouping,
+		setSubGrouping,
 		setViewMode,
-		setShowEmptyGroups,
 		setShowCompletedTasks,
 
 		// For checking if we're in the middle of an action (prevents duplicate updates)

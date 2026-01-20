@@ -127,28 +127,84 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
 	);
 };
 
+export type KanbanSubGroup = {
+	id: string;
+	label: string;
+	icon?: ReactNode;
+	count: number;
+	accentClassName?: string;
+};
+
 export type KanbanCardsProps<T extends KanbanItemProps = KanbanItemProps> = Omit<
 	HTMLAttributes<HTMLDivElement>,
 	"children" | "id"
 > & {
 	children: (item: T) => ReactNode;
 	id: string;
+	subGroups?: KanbanSubGroup[];
+	getItemSubGroup?: (item: T) => string | undefined;
 };
 
 export const KanbanCards = <T extends KanbanItemProps = KanbanItemProps>({
 	children,
 	className,
+	subGroups,
+	getItemSubGroup,
 	...props
 }: KanbanCardsProps<T>) => {
 	const { data } = useContext(KanbanContext) as KanbanContextProps<T>;
 	const filteredData = data.filter((item) => item.column === props.id);
 	const items = filteredData.map((item) => item.id);
 
+	// If we have sub-groups, organize items by sub-group
+	const renderWithSubGroups = () => {
+		if (!subGroups || !getItemSubGroup) {
+			return filteredData.map(children);
+		}
+
+		const result: ReactNode[] = [];
+		
+		for (const subGroup of subGroups) {
+			const subGroupItems = filteredData.filter(
+				(item) => getItemSubGroup(item) === subGroup.id
+			);
+
+			if (subGroupItems.length === 0) continue;
+
+			// Add sub-group header
+			result.push(
+				<div
+					key={`subgroup-${subGroup.id}`}
+					className="sticky top-0 z-10 -mx-2 px-4 py-2 bg-muted/80 backdrop-blur-sm border-y border-border/50 flex items-center justify-between"
+				>
+					<div className="flex items-center gap-2">
+						{subGroup.icon && (
+							<span className={cn("text-xs", subGroup.accentClassName)}>
+								{subGroup.icon}
+							</span>
+						)}
+						<span className="text-xs font-semibold">{subGroup.label}</span>
+					</div>
+					<span className="text-[10px] font-medium text-muted-foreground px-1.5 py-0.5 bg-secondary rounded">
+						{subGroup.count}
+					</span>
+				</div>
+			);
+
+			// Add items for this sub-group
+			subGroupItems.forEach((item) => {
+				result.push(children(item));
+			});
+		}
+
+		return result;
+	};
+
 	return (
 		<ScrollArea className="overflow-hidden">
 			<SortableContext items={items}>
 				<div className={cn("flex flex-grow flex-col gap-2 p-2", className)} {...props}>
-					{filteredData.map(children)}
+					{subGroups ? renderWithSubGroups() : filteredData.map(children)}
 				</div>
 			</SortableContext>
 			<ScrollBar orientation="vertical" />
