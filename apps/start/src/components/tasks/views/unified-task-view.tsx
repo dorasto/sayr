@@ -444,15 +444,15 @@ export function UnifiedTaskView({
       {viewMode === "kanban" ? (
         hasKanbanSubGroups ? (
           // Linear-style grid: Column headers at top, sub-groups as horizontal ROWS spanning all columns
-          // Single scroll container for both X and Y
+          // Columns expand to fill width, but scroll horizontally if they'd be narrower than min-width
           <div className="h-full overflow-auto">
-            <div className="inline-block">
+            <div className="flex flex-col min-w-full w-fit">
               {/* Column headers row - sticky at top */}
               <div className="flex sticky top-0 z-30 overflow-hidden">
                 {groupedTasks.map((primaryGroup) => (
                   <div
                     key={primaryGroup.id}
-                    className="flex items-center justify-between px-3 py-2 bg-muted w-[300px] shrink-0 gap-2 border-r border-dashed last:border-r-0 p-3"
+                    className="flex items-center justify-between px-3 py-2 bg-muted min-w-[280px] flex-1 gap-2 border-r border-dashed last:border-r-0 p-3"
                   >
                     <div className="flex items-center gap-2">
                       {primaryGroup.icon && (
@@ -527,7 +527,7 @@ export function UnifiedTaskView({
                         return (
                           <div
                             key={`${primaryGroup.id}-${subGroupTemplate.id}`}
-                            className="w-[300px] shrink-0 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
+                            className="min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
                           >
                             {tasks.length > 0 ? (
                               tasks.map((task) => (
