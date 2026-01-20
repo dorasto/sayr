@@ -79,7 +79,7 @@ export function PrimarySidebar() {
           </SidebarMenu>
         ))}
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="pt-1">
         {navigation.map((section) => (
           <SidebarGroup key={section.title}>
             {section.title === "Overview" ? null : (

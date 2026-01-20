@@ -121,7 +121,7 @@ export default function OrganizationTasksHomePage() {
                     {project.name}
                 </Label>
             </div> */}
-      <div className="sticky top-0 z-20 bg-background flex items-center gap-2 p-2">
+      <div className="sticky top-0 z-20 bg-background flex items-center flex-wrap gap-1 p-1 md:gap-2 md:p-2">
         <TaskFilterDropdown
           tasks={tasks}
           labels={labels}

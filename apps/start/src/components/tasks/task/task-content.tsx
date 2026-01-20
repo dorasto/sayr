@@ -17,25 +17,16 @@ import {
 import { Label } from "@repo/ui/components/label";
 import { JsonViewer } from "@repo/ui/components/tomui/json-viewer";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
-import {
-  SplitDialog,
-  SplitDialogContent,
-  SplitDialogSide,
-} from "@repo/ui/components/tomui/split-dialog";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
-  IconArrowsDiagonal2,
   IconArrowsDiagonalMinimize2,
   IconBrandGithub,
-  IconCode,
   IconExternalLink,
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
   IconLink,
-  IconPlus,
-  IconX,
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
@@ -139,7 +130,7 @@ export function TaskContentSideContent({
       <div className="border-b">
         <div className="flex items-center gap-2 px-2 pt-2 pb-3 w-full justify-end">
           <SimpleClipboard
-            textToCopy={`https://${organization?.slug}.sayr.io/${task.shortId}`}
+            textToCopy={`https://${organization?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
             variant={"primary"}
             className="h-6 p-1 w-fit bg-transparent"
             copyIcon={<IconLink />}
@@ -386,6 +377,238 @@ export function TaskContentSideContent({
   );
 }
 
+export function TaskContentMobileContent({
+  task,
+  labels,
+  tasks,
+  setTasks,
+  setSelectedTask,
+  availableUsers = [],
+  wsClientId,
+  runWithToast,
+  categories,
+  organization,
+}: Omit<TaskContentSideContentProps, "panelControls">) {
+  const debouncedUpdateLabels = useDebounceAsync(
+    async (values: string[], wsClientId: string) => {
+      const data = await runWithToast(
+        "update-task-labels",
+        {
+          loading: {
+            title: "Updating task...",
+            description: "Updating your task... changes are already visible.",
+          },
+          success: {
+            title: "Task saved",
+            description: "Your changes have been saved successfully.",
+          },
+          error: {
+            title: "Save failed",
+            description:
+              "Your changes are showing, but we couldn't save them to the server. Please try again.",
+          },
+        },
+        () =>
+          updateLabelToTaskAction(
+            task.organizationId,
+            task.id,
+            values,
+            wsClientId,
+          ),
+      );
+      return data;
+    },
+    1500, // debounce delay
+  );
+
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center flex-wrap gap-1 w-full overflow-x-auto py-1">
+        {/* Status - icon only */}
+        <GlobalTaskStatus
+          task={task}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
+          showLabel={false}
+          showChevron={false}
+          compact={true}
+          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
+        />
+        {/* Priority - icon only */}
+        <GlobalTaskPriority
+          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
+          showLabel={false}
+          task={task}
+          editable={true}
+          showChevron={false}
+          compact={true}
+          onPriorityChange={async (value) => {
+            const updatedTasks = tasks.map((t) =>
+              t.id === task.id
+                ? {
+                    ...task,
+                    priority: value as schema.TaskWithLabels["priority"],
+                  }
+                : t,
+            );
+            setTasks(updatedTasks);
+            if (task) {
+              setSelectedTask({
+                ...task,
+                priority: value as schema.TaskWithLabels["priority"],
+              });
+            }
+            const data = await runWithToast(
+              "update-task-priority",
+              {
+                loading: {
+                  title: "Updating task...",
+                  description:
+                    "Updating your task... changes are already visible.",
+                },
+                success: {
+                  title: "Task saved",
+                  description: "Your changes have been saved successfully.",
+                },
+                error: {
+                  title: "Save failed",
+                  description:
+                    "Your changes are showing, but we couldn't save them to the server. Please try again.",
+                },
+              },
+              () =>
+                updateTaskAction(
+                  task.organizationId,
+                  task.id,
+                  {
+                    priority: value,
+                  },
+                  wsClientId,
+                ),
+            );
+            if (data?.success && data.data) {
+              const finalTasks = tasks.map((t) =>
+                t.id === task.id && data.data ? data.data : t,
+              );
+              setTasks(finalTasks);
+              if (task && task.id === data.data.id) {
+                setSelectedTask(data.data);
+                sendWindowMessage(
+                  window,
+                  {
+                    type: "timeline-update",
+                    payload: data.data.id,
+                  },
+                  "*",
+                );
+              }
+            }
+          }}
+        />
+        {/* Category - icon only */}
+        <GlobalTaskCategory
+          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
+          showLabel={false}
+          task={task}
+          showChevron={false}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
+          categories={categories}
+          compact={true}
+        />
+        {/* Assignees - stacked avatars */}
+        <GlobalTaskAssignees
+          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
+          task={task}
+          showChevron={false}
+          editable={true}
+          availableUsers={availableUsers}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
+          showLabel={false}
+          compact={true}
+        />
+        {/* Labels - colored dots with count */}
+        <GlobalTaskLabels
+          showLabel={false}
+          task={task}
+          editable={true}
+          availableLabels={labels}
+          compact={true}
+          onLabelsChange={async (values) => {
+            const updatedTasks = tasks.map((t) =>
+              t.id === task.id
+                ? {
+                    ...task,
+                    labels: labels.filter((label) => values.includes(label.id)),
+                  }
+                : t,
+            );
+            setTasks(updatedTasks);
+            if (task) {
+              setSelectedTask({
+                ...task,
+                labels: labels.filter((label) => values.includes(label.id)),
+              });
+            }
+            const data = await debouncedUpdateLabels(values, wsClientId);
+            if (data?.success && data.data && !data.skipped) {
+              const finalTasks = tasks.map((t) =>
+                t.id === task.id && data.data ? data.data : t,
+              );
+              setTasks(finalTasks);
+              if (task && task.id === data.data.id) {
+                setSelectedTask(data.data);
+                sendWindowMessage(
+                  window,
+                  {
+                    type: "timeline-update",
+                    payload: data.data.id,
+                  },
+                  "*",
+                );
+              }
+            }
+          }}
+        />
+        <Separator orientation="vertical" className="h-[26px]" />
+        <SimpleClipboard
+          textToCopy={`https://${organization?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
+          variant={"primary"}
+          className="h-[26px] p-1 w-fit bg-accent"
+          copyIcon={<IconLink />}
+          tooltipText="Copy task URL"
+          tooltipSide="bottom"
+        />
+        {task.githubIssue && (
+          <Link
+            to={task.githubIssue?.issueUrl}
+            target="_blank"
+            className="shrink-0"
+          >
+            <Button
+              variant="primary"
+              className="h-[26px] p-1 w-fit bg-accent text-xs"
+              tooltipText="View linked GitHub issue"
+              tooltipSide="bottom"
+            >
+              <IconBrandGithub className="size-4" /> GitHub
+            </Button>
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface TaskContentMainProps {
   task: schema.TaskWithLabels;
   tasks: schema.TaskWithLabels[];
@@ -400,7 +623,6 @@ export function TaskContentMain({
   tasks,
   labels,
   availableUsers = [],
-  organization,
   categories,
 }: TaskContentMainProps) {
   const [openData, onOpenDataChange] = useState(false);

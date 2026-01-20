@@ -9,7 +9,10 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { TaskContentSideContent } from "@/components/tasks/task/task-content";
+import {
+  TaskContentMobileContent,
+  TaskContentSideContent,
+} from "@/components/tasks/task/task-content";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
@@ -39,52 +42,11 @@ export default function OrganizationTaskIdPage() {
 
   return (
     <div className="relative flex flex-col h-full max-h-full">
-      <ResizablePanelGroup direction="horizontal" className="">
-        <ResizablePanel defaultSize={useMobile ? 100 : 80} minSize={50}>
-          <div
-            className={cn(
-              "flex-1 overflow-y-auto h-full flex flex-col relative",
-            )}
-          >
-            <Outlet />
-          </div>
-        </ResizablePanel>
-        <ResizableHandle className={cn(!isPanelOpen && "opacity-0")} />
-        {!isPanelOpen && (
-          <Button
-            variant="primary"
-            className={cn(
-              "gap-2 h-6 w-fit bg-accent border-transparent p-1 fixed right-2 top-2 z-50",
-            )}
-            onClick={() => {
-              if (isPanelOpen) {
-                ref.current?.collapse();
-              } else {
-                ref.current?.expand();
-              }
-            }}
-          >
-            {isPanelOpen ? (
-              <IconLayoutSidebarRightFilled />
-            ) : (
-              <IconLayoutSidebarRight />
-            )}
-          </Button>
-        )}
-        <ResizablePanel
-          defaultSize={20}
-          minSize={10}
-          maxSize={100}
-          collapsible
-          collapsedSize={0}
-          ref={ref}
-          onCollapse={() => setIsPanelOpen(false)}
-          onExpand={() => setIsPanelOpen(true)}
-          className=""
-        >
-          <div className="flex-1 overflow-y-auto h-full flex flex-col relative">
+      {useMobile ? (
+        <div>
+          <div className="sticky top-0 p-1 bg-sidebar border-b z-[99999999999999999]">
             {organization && (
-              <TaskContentSideContent
+              <TaskContentMobileContent
                 task={task}
                 labels={labels}
                 tasks={tasks}
@@ -95,21 +57,84 @@ export default function OrganizationTaskIdPage() {
                 runWithToast={runWithToast}
                 categories={categories}
                 organization={organization}
-                panelControls={{
-                  isPanelOpen,
-                  onToggle: () => {
-                    if (isPanelOpen) {
-                      ref.current?.collapse();
-                    } else {
-                      ref.current?.expand();
-                    }
-                  },
-                }}
               />
             )}
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+          <Outlet />
+        </div>
+      ) : (
+        <ResizablePanelGroup direction="horizontal" className="">
+          <ResizablePanel defaultSize={useMobile ? 100 : 80} minSize={50}>
+            <div
+              className={cn(
+                "flex-1 overflow-y-auto h-full flex flex-col relative",
+              )}
+            >
+              <Outlet />
+            </div>
+          </ResizablePanel>
+          <ResizableHandle className={cn(!isPanelOpen && "opacity-0")} />
+          {!isPanelOpen && (
+            <Button
+              variant="primary"
+              className={cn(
+                "gap-2 h-6 w-fit bg-accent border-transparent p-1 fixed right-2 top-2 z-50",
+              )}
+              onClick={() => {
+                if (isPanelOpen) {
+                  ref.current?.collapse();
+                } else {
+                  ref.current?.expand();
+                }
+              }}
+            >
+              {isPanelOpen ? (
+                <IconLayoutSidebarRightFilled />
+              ) : (
+                <IconLayoutSidebarRight />
+              )}
+            </Button>
+          )}
+          <ResizablePanel
+            defaultSize={20}
+            minSize={10}
+            maxSize={100}
+            collapsible
+            collapsedSize={0}
+            ref={ref}
+            onCollapse={() => setIsPanelOpen(false)}
+            onExpand={() => setIsPanelOpen(true)}
+            className=""
+          >
+            <div className="flex-1 overflow-y-auto h-full flex flex-col relative">
+              {organization && (
+                <TaskContentSideContent
+                  task={task}
+                  labels={labels}
+                  tasks={tasks}
+                  setTasks={setTasks}
+                  setSelectedTask={(t) => t && setTask(t)}
+                  availableUsers={availableUsers}
+                  wsClientId={wsClientId}
+                  runWithToast={runWithToast}
+                  categories={categories}
+                  organization={organization}
+                  panelControls={{
+                    isPanelOpen,
+                    onToggle: () => {
+                      if (isPanelOpen) {
+                        ref.current?.collapse();
+                      } else {
+                        ref.current?.expand();
+                      }
+                    },
+                  }}
+                />
+              )}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      )}
     </div>
   );
 }

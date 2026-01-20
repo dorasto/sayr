@@ -60,9 +60,9 @@ function TileHeader({ className, children, asChild = false, ...props }: TileHead
 	const otherChildren = childrenArray.filter((child) => React.isValidElement(child) && child.type !== TileIcon);
 
 	return (
-		<Comp className={cn("flex items-center gap-3", className)} {...props}>
+		<Comp className={cn("flex items-center gap-3 min-w-0", className)} {...props}>
 			{tileIcon && <>{tileIcon}</>}
-			<div className="flex flex-col flex-1">{otherChildren}</div>
+			<div className="flex flex-col flex-1 min-w-0">{otherChildren}</div>
 		</Comp>
 	);
 }

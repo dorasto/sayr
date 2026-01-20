@@ -3,6 +3,7 @@ import { RootProviderMyTasks } from "@/contexts/ContextMine";
 
 import type { schema } from "@repo/database";
 import { db, getLabels, getTasksByUserId } from "@repo/database";
+import { ensureCdnUrl } from "@repo/util";
 import { createServerFn } from "@tanstack/react-start";
 import { inArray } from "drizzle-orm";
 
@@ -11,6 +12,16 @@ export const getMyTasks = createServerFn({ method: "GET" })
 	.handler(async ({ data }) => {
 		try {
 			const tasks = await getTasksByUserId(data.account.id);
+			// Transform organization logos to use CDN URLs
+			const transformedTasks = tasks.map((task) => ({
+				...task,
+				organization: task.organization
+					? {
+							...task.organization,
+							logo: task.organization.logo ? ensureCdnUrl(task.organization.logo) : null,
+						}
+					: undefined,
+			}));
 			const organizationIds = Array.from(new Set(tasks.map((task) => task.organizationId)));
 			const labelsPromises = organizationIds.map((orgId) => getLabels(orgId));
 			const labelsArrays = await Promise.all(labelsPromises);
@@ -21,7 +32,7 @@ export const getMyTasks = createServerFn({ method: "GET" })
 			const categories = await db.query.category.findMany({
 				where: (category) => inArray(category.organizationId, organizationIds),
 			})
-			return { tasks, labels: allLabels, views, categories };
+			return { tasks: transformedTasks, labels: allLabels, views, categories };
 		} catch (error) {
 			// If it's already a redirect, re-throw it
 			if (error && typeof error === "object" && "redirect" in error) {

@@ -9,6 +9,7 @@ import { PrimarySidebar } from "../admin/sidebars/primary";
 import { SettingsSidebar } from "../admin/sidebars/settings";
 import { StaffSidebar } from "../admin/sidebars/staff";
 import { useAdminRoute } from "./useAdminRoute";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 
 interface Props {
   children: React.ReactNode;
@@ -16,9 +17,16 @@ interface Props {
 }
 export function Wrapper({ children, className }: Props) {
   const { isTaskPage, isSettingsPage, isStaffPage } = useAdminRoute();
+  const isMobile = useIsMobile();
+
   return (
     <div className="h-full w-full max-h-[calc(100dvh-var(--header-height))]!">
-      <div className="flex flex-1 h-full w-full transition-all pb-2 pr-2">
+      <div
+        className={cn(
+          "flex flex-1 h-full w-full transition-all pb-2 pr-2",
+          isMobile && "p-0",
+        )}
+      >
         {isSettingsPage ? (
           <SettingsSidebar />
         ) : isStaffPage ? (
@@ -31,6 +39,7 @@ export function Wrapper({ children, className }: Props) {
           className={cn(
             "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout",
             isTaskPage && "pt-0 pr-0",
+            isMobile && "p-0",
             className,
           )}
         >

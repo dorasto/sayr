@@ -50,6 +50,10 @@ interface GlobalTaskAssigneesProps {
   showLabel?: boolean;
   showChevron?: boolean;
   className?: string;
+  /** Compact mode shows stacked avatars without names */
+  compact?: boolean;
+  /** Maximum avatars to show in compact mode before showing +N (default: 3) */
+  maxCompactAvatars?: number;
 }
 
 export default function GlobalTaskAssignees({
@@ -70,6 +74,8 @@ export default function GlobalTaskAssignees({
   showLabel = true,
   showChevron = true,
   className,
+  compact = false,
+  maxCompactAvatars = 3,
 }: GlobalTaskAssigneesProps) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const debouncedUpdate = useDebounceAsync(
@@ -162,86 +168,190 @@ export default function GlobalTaskAssignees({
     }
   };
 
+  // Compact view: stacked avatars
+  const renderCompactAssignees = () => {
+    const assignees = task.assignees || [];
+    if (assignees.length === 0) {
+      return (
+        <div className="flex items-center text-muted-foreground">
+          <IconUserPlus className="h-4 w-4" />
+        </div>
+      );
+    }
+
+    const visibleAssignees = assignees.slice(0, maxCompactAvatars);
+    const remainingCount = assignees.length - maxCompactAvatars;
+
+    return (
+      <div className="flex items-center">
+        <div className="flex -space-x-2">
+          {visibleAssignees.map((assignee) => (
+            <Avatar
+              key={assignee.id}
+              className={cn("h-5 w-5", compact && "h-4 w-4")}
+            >
+              <AvatarImage
+                src={assignee.image || undefined}
+                alt={assignee.name}
+              />
+              <AvatarFallback className="text-[10px]">
+                {assignee.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+          ))}
+        </div>
+        {remainingCount > 0 && (
+          <span className="text-xs text-muted-foreground ml-1">
+            +{remainingCount}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {!customTrigger && showLabel && (
         <Label variant={"subheading"}>Assigned</Label>
       )}
       <div className="flex flex-wrap gap-1">
-        {!customTrigger &&
-          task.assignees.map((assignee) => (
-            <RenderAssignee
-              key={assignee.id}
-              assignee={assignee as schema.userType}
-              onRemove={(assigneeId) => {
-                handleAssigneesChange(
-                  currentAssigneeIds.filter((id) => id !== assigneeId),
-                );
-              }}
-            />
-          ))}
-        <ComboBox
-          values={currentAssigneeIds}
-          onValuesChange={handleAssigneesChange}
-          open={open}
-          onOpenChange={setOpen}
-        >
-          {customTrigger ? (
-            // Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
-            <ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
-          ) : currentAssigneeIds.length === 0 ? (
-            <ComboBoxTrigger disabled={!editable} className={className}>
-              <ComboBoxValue placeholder="Status">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <IconUserPlus className="h-4 w-4" />
-                  <span>Unassigned</span>
-                </div>
-              </ComboBoxValue>
-              {showChevron && <ComboBoxIcon />}
-            </ComboBoxTrigger>
-          ) : (
+        {compact ? (
+          // Compact mode: stacked avatars, clicking opens dropdown
+          <ComboBox
+            values={currentAssigneeIds}
+            onValuesChange={handleAssigneesChange}
+            open={open}
+            onOpenChange={setOpen}
+          >
             <ComboBoxTrigger
               disabled={!editable}
-              className="h-6 w-6 aspect-square p-0 justify-center"
+              className={cn(
+                "h-auto p-1 bg-transparent border-transparent",
+                className,
+              )}
             >
-              <IconPlus size={14} />
+              {renderCompactAssignees()}
             </ComboBoxTrigger>
-          )}
-
-          <ComboBoxContent className="" align={align} side={side}>
-            <ComboBoxSearch placeholder="Assign to..." />
-            <ComboBoxList>
-              <ComboBoxEmpty>No users found.</ComboBoxEmpty>
-              <ComboBoxGroup>
-                {availableUsers.map((user) => (
-                  <ComboBoxItem
-                    key={user.id}
-                    value={user.id}
-                    searchValue={user.name.toLowerCase()}
-                  >
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage
-                        src={user.image || undefined}
-                        alt={user.name}
-                      />
-                      <AvatarFallback className="text-xs">
-                        {user.name
-                          .split(" ")
-                          .map((n: string) => n[0])
-                          .join("")
-                          .toUpperCase()
-                          .slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{user.name}</span>
+            <ComboBoxContent className="" align={align} side={side}>
+              <ComboBoxSearch placeholder="Assign to..." />
+              <ComboBoxList>
+                <ComboBoxEmpty>No users found.</ComboBoxEmpty>
+                <ComboBoxGroup>
+                  {availableUsers.map((user) => (
+                    <ComboBoxItem
+                      key={user.id}
+                      value={user.id}
+                      searchValue={user.name.toLowerCase()}
+                    >
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage
+                          src={user.image || undefined}
+                          alt={user.name}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {user.name
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{user.name}</span>
+                      </div>
+                    </ComboBoxItem>
+                  ))}
+                </ComboBoxGroup>
+              </ComboBoxList>
+            </ComboBoxContent>
+          </ComboBox>
+        ) : (
+          // Full mode: show assignees with names
+          <>
+            {!customTrigger &&
+              task.assignees.map((assignee) => (
+                <RenderAssignee
+                  key={assignee.id}
+                  assignee={assignee as schema.userType}
+                  onRemove={(assigneeId) => {
+                    handleAssigneesChange(
+                      currentAssigneeIds.filter((id) => id !== assigneeId),
+                    );
+                  }}
+                />
+              ))}
+            <ComboBox
+              values={currentAssigneeIds}
+              onValuesChange={handleAssigneesChange}
+              open={open}
+              onOpenChange={setOpen}
+            >
+              {customTrigger ? (
+                // Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
+                <ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
+              ) : currentAssigneeIds.length === 0 ? (
+                <ComboBoxTrigger disabled={!editable} className={className}>
+                  <ComboBoxValue placeholder="Status">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <IconUserPlus className="h-4 w-4" />
+                      <span>Unassigned</span>
                     </div>
-                  </ComboBoxItem>
-                ))}
-              </ComboBoxGroup>
-            </ComboBoxList>
-          </ComboBoxContent>
-        </ComboBox>
+                  </ComboBoxValue>
+                  {showChevron && <ComboBoxIcon />}
+                </ComboBoxTrigger>
+              ) : (
+                <ComboBoxTrigger
+                  disabled={!editable}
+                  className="h-6 w-6 aspect-square p-0 justify-center"
+                >
+                  <IconPlus size={14} />
+                </ComboBoxTrigger>
+              )}
+
+              <ComboBoxContent className="" align={align} side={side}>
+                <ComboBoxSearch placeholder="Assign to..." />
+                <ComboBoxList>
+                  <ComboBoxEmpty>No users found.</ComboBoxEmpty>
+                  <ComboBoxGroup>
+                    {availableUsers.map((user) => (
+                      <ComboBoxItem
+                        key={user.id}
+                        value={user.id}
+                        searchValue={user.name.toLowerCase()}
+                      >
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage
+                            src={user.image || undefined}
+                            alt={user.name}
+                          />
+                          <AvatarFallback className="text-xs">
+                            {user.name
+                              .split(" ")
+                              .map((n: string) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {user.name}
+                          </span>
+                        </div>
+                      </ComboBoxItem>
+                    ))}
+                  </ComboBoxGroup>
+                </ComboBoxList>
+              </ComboBoxContent>
+            </ComboBox>
+          </>
+        )}
       </div>
     </div>
   );
