@@ -476,6 +476,7 @@ export async function getTasksByUserId(
           id: true,
           name: true,
           slug: true,
+          logo: true,
         },
       },
     },

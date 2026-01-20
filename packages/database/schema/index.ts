@@ -43,7 +43,7 @@ export type TaskWithLabels = taskType & {
 	labels: labelType[];
 	assignees: { id: string; name: string; image: string | null }[];
 	createdBy?: { id: string; name: string; image: string | null } | null;
-	organization?: { id: string; name: string; slug: string };
+	organization?: { id: string; name: string; slug: string; logo: string | null };
 	comments?: CommentsWithAuthor;
 	githubIssue?: githubIssueType;
 	description: NodeJSON;

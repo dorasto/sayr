@@ -49,6 +49,7 @@ export default function MyTasksPage() {
             id: org.id,
             name: org.name,
             slug: org.slug,
+            logo: org.logo,
           },
         }),
       };

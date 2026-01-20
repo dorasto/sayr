@@ -1,12 +1,9 @@
-"use client";
-
 import type { schema } from "@repo/database";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@repo/ui/components/avatar";
-import { Badge } from "@repo/ui/components/badge";
 import { Label } from "@repo/ui/components/label";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import {
@@ -21,8 +18,11 @@ import {
   IconCategory2,
   IconSortDescending,
   IconTag,
+  IconUsers,
 } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { FilterMenu } from "@/components/tasks/filter/FilterMenu";
 import { FilterBadges } from "@/components/tasks/filter/FilterBadges";
 import type {
@@ -33,6 +33,7 @@ import type {
 } from "@/components/tasks/filter/types";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { applyFilters } from "@/components/tasks/filter/filter-config";
+import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 
 type SortOption = "newest" | "oldest" | "priority" | "status";
 
@@ -41,7 +42,12 @@ interface MyTasksListProps {
   setTasks: (tasks: schema.TaskWithLabels[]) => void;
   selectedTask: schema.TaskWithLabels | null;
   setSelectedTask: (task: schema.TaskWithLabels | null) => void;
-  organizations: Array<{ id: string; name: string; slug: string }>;
+  organizations: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+  }>;
   labels: schema.labelType[];
   categories: schema.categoryType[];
 }
@@ -88,6 +94,8 @@ export function MyTasksList({
   labels,
   categories,
 }: MyTasksListProps) {
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [mainSearch, setMainSearch] = useState("");
   const [filterConditions, setFilterConditions] = useState<FilterCondition[]>(
@@ -166,6 +174,15 @@ export function MyTasksList({
 
   const filteredAndSortedTasks = useMemo(() => {
     let filtered = [...tasks];
+
+    // Filter out done and cancelled tasks by default (unless explicitly filtered for them)
+    const statusCondition = filterConditions.find((c) => c.field === "status");
+    if (!statusCondition) {
+      // No status filter applied, so exclude done and cancelled
+      filtered = filtered.filter(
+        (t) => t.status !== "done" && t.status !== "canceled",
+      );
+    }
 
     // Apply filter conditions using the filter system
     if (filterConditions.length > 0) {
@@ -431,9 +448,9 @@ export function MyTasksList({
 
       {/* Task List */}
       <ScrollArea className="flex-1">
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-1 p-1">
           {filteredAndSortedTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center text-muted-foreground">
               <p className="text-sm">No tasks found</p>
               {activeFiltersCount > 0 && (
                 <p className="text-xs mt-1">Try adjusting your filters</p>
@@ -445,9 +462,16 @@ export function MyTasksList({
                 key={task.id}
                 task={task}
                 isSelected={selectedTask?.id === task.id}
-                onClick={() =>
-                  setSelectedTask(selectedTask?.id === task.id ? null : task)
-                }
+                onClick={() => {
+                  if (isMobile) {
+                    // Navigate to task detail page on mobile
+                    const fullUrl = `/${task.organizationId}/tasks/${task.shortId}`;
+                    navigate({ to: fullUrl });
+                  } else {
+                    // Toggle selected task on desktop
+                    setSelectedTask(selectedTask?.id === task.id ? null : task);
+                  }
+                }}
               />
             ))
           )}
@@ -466,102 +490,61 @@ interface TaskListItemProps {
 function TaskListItem({ task, isSelected, onClick }: TaskListItemProps) {
   const status = statusConfig[task.status as keyof typeof statusConfig];
   const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
-
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col gap-1.5 p-3 text-left border-b hover:bg-accent/50 transition-colors",
-        isSelected && "bg-accent",
+        "flex flex-col gap-1.5 p-3 text-left hover:bg-accent transition-colors rounded-lg text-muted-foreground",
+        isSelected && "bg-secondary hover:bg-secondary text-foreground",
+        task.priority === "urgent" &&
+          "bg-destructive/10 hover:bg-destructive/20",
+        isSelected &&
+          task.priority === "urgent" &&
+          "bg-destructive/20 hover:bg-destructive/20",
       )}
     >
       {/* Organization badge */}
       {task.organization && (
-        <div className="flex items-center gap-1">
-          <Badge
-            variant="outline"
-            className="text-[10px] px-1.5 py-0 h-4 font-normal"
-          >
-            {task.organization.name}
-          </Badge>
-          <span className="text-[10px] text-muted-foreground">
-            #{task.shortId}
-          </span>
+        <div className="flex items-center flex-1 gap-1">
+          <InlineLabel
+            className="shrink"
+            icon={
+              <Avatar className="h-4 w-4">
+                <AvatarImage
+                  src={task.organization.logo || ""}
+                  alt={task.organization.name}
+                  className=""
+                />
+                <AvatarFallback className="rounded-md uppercase text-xs">
+                  <IconUsers className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+            }
+            text={task.organization.name}
+          />
+
+          <span className="text-xs text-muted-foreground">#{task.shortId}</span>
+          {/* meta */}
+          <div className="flex items-center gap-2 text-xs ml-auto shrink-0">
+            {status && (
+              <div className="flex items-center gap-1">
+                {status.icon(cn(status.className, "size-4"))}
+              </div>
+            )}
+            {priority && task.priority !== "none" && (
+              <div className="flex items-center gap-1">
+                {priority.icon(cn(priority.className, "size-4"))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Title */}
-      <p className="text-sm font-medium line-clamp-2">
+      <p className="text-sm font-medium line-clamp-1 ps-1.5">
         {task.title || "Untitled"}
       </p>
-
-      {/* Meta row */}
-      <div className="flex items-center gap-2 text-xs">
-        {/* Status */}
-        {status && (
-          <div className="flex items-center gap-1">
-            {status.icon(cn(status.className, "size-3"))}
-          </div>
-        )}
-
-        {/* Priority */}
-        {priority && task.priority !== "none" && (
-          <div className="flex items-center gap-1">
-            {priority.icon(cn(priority.className, "size-3"))}
-          </div>
-        )}
-
-        {/* Labels */}
-        {task.labels && task.labels.length > 0 && (
-          <div className="flex items-center gap-0.5">
-            <div className="flex -space-x-1">
-              {task.labels.slice(0, 3).map((label) => (
-                <div
-                  key={label.id}
-                  className="w-2.5 h-2.5 rounded-full border border-background"
-                  style={{ backgroundColor: label.color || "#cccccc" }}
-                />
-              ))}
-            </div>
-            {task.labels.length > 3 && (
-              <span className="text-[10px] text-muted-foreground ml-1">
-                {task.labels.length}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Assignees */}
-        {task.assignees && task.assignees.length > 0 && (
-          <div className="flex -space-x-1">
-            {task.assignees.slice(0, 2).map((assignee) => (
-              <Avatar
-                key={assignee.id}
-                className="h-4 w-4 border border-background"
-              >
-                <AvatarImage src={assignee.image || undefined} />
-                <AvatarFallback className="text-[8px]">
-                  {assignee.name
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-            {task.assignees.length > 2 && (
-              <div className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[8px] border border-background">
-                +{task.assignees.length - 2}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </button>
   );
 }
