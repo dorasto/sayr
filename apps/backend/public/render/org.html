@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sayr.io Organization</title>
+
+    <style>
+        body {
+            background-color: #111;
+            color: #eee;
+            font-family: monospace;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        /* Banner */
+
+        .banner {
+            width: 100%;
+            height: 180px;
+            border-radius: 16px;
+            background: #222;
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
+
+        .org-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            background: #222;
+            object-fit: cover;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 16px;
+            margin-top: 24px;
+        }
+
+        .description {
+            margin-top: 12px;
+            line-height: 1.5;
+            color: #ccc;
+        }
+
+        .meta {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        a {
+            color: #4da3ff;
+            text-decoration: none;
+        }
+
+        /* Members */
+
+        .members {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .member img,
+        .member.more {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid #111;
+        }
+
+        .member img {
+            cursor: pointer;
+        }
+
+        .member.more {
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Tasks */
+
+        .tasks {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .task {
+            background: #181818;
+            border: 1px solid #222;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .task-title {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .task-desc {
+            font-size: 12px;
+            color: #bbb;
+            margin-top: 4px;
+        }
+
+        .task-meta {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #777;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <img id="org-banner" class="banner" />
+
+        <div class="org-header">
+            <img id="org-logo" class="logo" />
+            <h1 id="org-name">Loading...</h1>
+        </div>
+
+        <div id="org-description" class="description"></div>
+        <div id="org-meta" class="meta"></div>
+
+        <h2>Members</h2>
+        <div id="org-members" class="members"></div>
+
+        <h2>Tasks</h2>
+        <div id="org-tasks"></div>
+    </div>
+    <script type="module">
+        import Sayr from "https://esm.sh/@sayrio/public";
+        const parts = window.location.pathname.split('/').filter(Boolean);
+
+        let ORG_SLUG = null;
+        if (parts[1] === 'org') {
+            // /render/org/:orgName
+            ORG_SLUG = parts[2] || null;
+        }
+
+        if (!ORG_SLUG) {
+            document.body.innerHTML = "<h1>Missing ?org=</h1>";
+            throw new Error("Missing org slug");
+        }
+
+        const membersEl = document.getElementById("org-members");
+        const tasksEl = document.getElementById("org-tasks");
+
+        /* ----------------------------
+         * Load organization
+         * ---------------------------- */
+
+        const org = await Sayr.org.get(ORG_SLUG);
+
+        document.title = org.name + " · Sayr.io";
+        document.getElementById("org-name").textContent = org.name;
+        document.getElementById("org-description").textContent =
+            org.description || "";
+
+        const logo = document.getElementById("org-logo");
+        if (org.logo) {
+            logo.src = org.logo;
+        } else {
+            logo.style.display = "none";
+        }
+
+        const banner = document.getElementById("org-banner");
+        if (org.bannerImg) {
+            banner.src = org.bannerImg;
+        } else {
+            banner.style.display = "none";
+        }
+
+        document.getElementById("org-meta").innerHTML = `
+    <div>Slug: ${org.slug}</div>
+    <div>Created: ${new Date(org.createdAt).toLocaleDateString()}</div>
+  `;
+
+        renderMembers(org.members);
+
+        /* ----------------------------
+         * Load tasks
+         * ---------------------------- */
+
+        async function loadTasks() {
+            const { data: tasks } = await Sayr.org.tasks(ORG_SLUG, {
+                order: "asc",
+                limit: 30,
+                page: 1
+            });
+
+            renderTasks(tasks);
+        }
+
+        await loadTasks();
+
+        /* ----------------------------
+         * WebSocket (SDK)
+         * ---------------------------- */
+
+        Sayr.ws(org.wsUrl, {
+            [Sayr.wsTypes.UPDATE_ORG]: (data) => {
+                document.title = data.name + " · Sayr.io";
+                document.getElementById("org-name").textContent = data.name;
+                document.getElementById("org-description").textContent =
+                    data.description || "";
+
+                if (data.logo) logo.src = data.logo;
+                if (data.bannerImg) banner.src = data.bannerImg;
+            },
+
+            [Sayr.wsTypes.CREATE_TASK]: loadTasks,
+            [Sayr.wsTypes.UPDATE_TASK]: loadTasks,
+            [Sayr.wsTypes.UPDATE_TASK_VOTE]: loadTasks
+        });
+
+        /* ----------------------------
+         * Render helpers
+         * ---------------------------- */
+
+        function renderMembers(members = []) {
+            const MAX = 20;
+            const extra = members.length - MAX;
+
+            membersEl.innerHTML = `
+      ${members
+                    .slice(0, MAX)
+                    .map(
+                        (m) =>
+                            `<div class="member" title="${m.user.name}">
+              <img src="${m.user.image || ""}" alt="${m.user.name}" />
+            </div>`
+                    )
+                    .join("")}
+      ${extra > 0
+                    ? `<div class="member more" title="+${extra} more">+${extra}</div>`
+                    : ""
+                }
+    `;
+        }
+
+        function stripHtml(html = "") {
+            const div = document.createElement("div");
+            div.innerHTML = html;
+            return div.textContent || div.innerText || "";
+        }
+
+        function renderTasks(tasks = []) {
+            if (!tasks.length) {
+                tasksEl.innerHTML = "<div class='meta'>No tasks yet</div>";
+                return;
+            }
+
+            tasksEl.className = "tasks";
+
+            tasksEl.innerHTML = tasks
+                .map(
+                    (task) => `
+          <a class="task" href="/render/org/${ORG_SLUG}/${task.shortId}">
+            <div class="task-title">
+              #${task.shortId} · ${task.title}
+            </div>
+
+            ${task.descriptionHtml
+                            ? `<div class="task-desc">${stripHtml(
+                                task.descriptionHtml
+                            )}</div>`
+                            : ""
+                        }
+
+            <div class="task-meta">
+              <span>Status: ${task.status}</span>
+              <span>Priority: ${task.priority}</span>
+              <span>Votes: ${task.voteCount}</span>
+            </div>
+          </a>
+        `
+                )
+                .join("");
+        }
+    </script>
+</body>
+
+</html>

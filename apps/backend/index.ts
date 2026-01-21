@@ -13,6 +13,7 @@ import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
 import { type RecordWideError, type RecordWideEvent, wideEventMiddleware } from "./tracing/wideEvent";
 import { rootSpanMiddleware } from "@/tracing/rootSpanMiddleware";
+import { renderRoute } from "./routes/render";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -71,8 +72,7 @@ app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://fi
 // -----------------------------------------------------------------------------
 app.route("/ws", wsRoute)
 app.get("/", serveStatic({ path: "./public/index.html" }));
-app.get("/render/ws", serveStatic({ path: "./public/ws.html" }));
-app.get("/render/file", serveStatic({ path: "./public/file-test.html" }));
+app.route("/render", renderRoute);
 app.get("/api/health", (c) => c.text("OK"));
 app.use("*", rootSpanMiddleware());
 app.use("*", wideEventMiddleware());
