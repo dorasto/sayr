@@ -8,7 +8,7 @@ import {
     ApiSuccess
 } from "./types";
 
-const API = "https://sayr.io/api/public";
+const API = "https://api.sayr.io";
 
 async function get<T>(url: string): Promise<T> {
     const res = await fetch(url);

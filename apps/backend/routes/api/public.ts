@@ -23,6 +23,8 @@ import {
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { prosekitJSONToHTML } from "@/prosekit/html";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
+import { openAPIRouteHandler } from "hono-openapi";
+import { Scalar } from "@scalar/hono-api-reference";
 
 const API_LIMITS = {
 	comments: 30,
@@ -44,6 +46,44 @@ apiPublicRoute.use("*", async (c, next) => {
 	c.header("X-Service-Name", "Sayr.io Public API");
 	return next();
 });
+apiPublicRoute.get(
+	"/",
+	Scalar(() => {
+		return {
+			defaultHttpClient: { targetKey: "node", clientKey: "fetch" },
+			theme: "deepSpace",
+			hideClientButton: true,
+			showDeveloperTools: "never",
+			pageTitle: "Sayr.io API",
+			sources: [
+				{
+					default: true,
+					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api/public` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/openapi.json`,
+					title: "Public",
+					slug: "public",
+				},
+			],
+		};
+	})
+);
+apiPublicRoute.get(
+	"/openapi.json",
+	openAPIRouteHandler(apiPublicRoute, {
+		documentation: {
+			info: {
+				title: "sayr.io",
+				version: "1.0.0",
+				description: "Sayr.io public API",
+			},
+			servers: [
+				{
+					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api/public` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}`,
+					description: process.env.APP_ENV === "development" ? "Development" : "Production",
+				},
+			],
+		},
+	})
+);
 
 //@ts-expect-error
 const OrganizationSchema = createSelectSchema(schema.organization)
@@ -112,7 +152,7 @@ apiPublicRoute.get(
 		return c.json(
 			successResponse({
 				...publicOrg,
-				wsUrl: `wss://${publicOrg.slug}.sayr.io/ws?orgId=${publicOrg.id}&ref=publicApi`,
+				wsUrl: `${process.env.APP_ENV === "development" ? `ws://api.${process.env.VITE_ROOT_DOMAIN}:5468` : `wss://api.${process.env.VITE_ROOT_DOMAIN}`}/ws?orgId=${publicOrg.id}&ref=publicApi`,
 			})
 		);
 	},

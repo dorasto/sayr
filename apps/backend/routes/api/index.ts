@@ -4,8 +4,6 @@ import { apiRouteAdmin } from "./admin";
 import { apiRouteFile } from "./file";
 import { apiRouteConsole } from "./console";
 import { apiPublicRoute } from "./public";
-import { openAPIRouteHandler } from "hono-openapi";
-import { Scalar } from "@scalar/hono-api-reference";
 import { safeGetSession } from "@/getSession";
 import { db, hasOrgPermission, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
@@ -17,45 +15,7 @@ apiRoute.use("*", async (c, next) => {
 	c.header("X-API-Version", "1.0.0");
 	return next();
 });
-apiRoute.get(
-	"/",
-	Scalar(() => {
-		return {
-			defaultHttpClient: { targetKey: "node", clientKey: "fetch" },
-			theme: "deepSpace",
-			hideClientButton: true,
-			showDeveloperTools: "never",
-			pageTitle: "Sayr.io public API",
-			sources: [
-				{
-					default: true,
-					url: "/api/public/openapi.json",
-					title: "Public",
-					slug: "public",
-				},
-			],
-		};
-	})
-);
 apiRoute.route("/public", apiPublicRoute);
-apiRoute.get(
-	"/public/openapi.json",
-	openAPIRouteHandler(apiRoute, {
-		documentation: {
-			info: {
-				title: "sayr.io",
-				version: "1.0.0",
-				description: "Sayr.io public API",
-			},
-			servers: [
-				{
-					url: "https://sayr.io/api",
-					description: "Production",
-				},
-			],
-		},
-	})
-);
 apiRoute.use("*", async (c, next) => {
 	const method = c.req.method;
 	const path = c.req.path;
