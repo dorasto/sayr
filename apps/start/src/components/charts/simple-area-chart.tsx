@@ -7,12 +7,14 @@ import {
   type ChartConfig,
 } from "@repo/ui/components/chart";
 import { cn } from "@repo/ui/lib/utils";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts";
 
 export interface AreaChartSeries {
   key: string;
   label: string;
   color: string;
+  type?: "area" | "bar" | "line";
+  strokeWidth?: number;
 }
 
 export interface SimpleAreaChartProps {
@@ -88,7 +90,7 @@ export function SimpleAreaChart({
       config={chartConfig}
       className={cn("w-full", sizeConfig.container, className)}
     >
-      <AreaChart
+      <ComposedChart
         accessibilityLayer
         data={data}
         margin={{ left: 0, right: 0, top: 4, bottom: 0 }}
@@ -121,7 +123,18 @@ export function SimpleAreaChart({
             ))}
           </defs>
         )}
-        {series.map((s) => (
+        {/* Render bars first (behind) */}
+        {series.filter((s) => s.type === "bar").map((s) => (
+          <Bar
+            key={s.key}
+            dataKey={s.key}
+            fill={s.color}
+            fillOpacity={0.8}
+            radius={[4, 4, 0, 0]}
+          />
+        ))}
+        {/* Render areas second */}
+        {series.filter((s) => s.type !== "bar" && s.type !== "line").map((s) => (
           <Area
             key={s.key}
             dataKey={s.key}
@@ -133,7 +146,18 @@ export function SimpleAreaChart({
             stackId={stacked ? "stack" : undefined}
           />
         ))}
-      </AreaChart>
+        {/* Render lines on top */}
+        {series.filter((s) => s.type === "line").map((s) => (
+          <Line
+            key={s.key}
+            dataKey={s.key}
+            type="monotone"
+            stroke={s.color}
+            strokeWidth={s.strokeWidth || 3}
+            dot={false}
+          />
+        ))}
+      </ComposedChart>
     </ChartContainer>
   );
 }

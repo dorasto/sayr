@@ -19,7 +19,7 @@ export interface TaskTimelineChartProps {
 const COMPLETED_STATUSES = ["done", "canceled"];
 
 function formatDateKey(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return date.toISOString().split("T")[0] || "";
 }
 
 function formatDateLabel(dateKey: string): string {
@@ -31,7 +31,6 @@ export function TaskTimelineChart({
   tasks,
   days = 14,
   size = "md",
-  showCompleted = true,
   className,
 }: TaskTimelineChartProps) {
   const { chartData, series } = useMemo(() => {
@@ -43,38 +42,57 @@ export function TaskTimelineChart({
     startDate.setDate(startDate.getDate() - days + 1);
     startDate.setHours(0, 0, 0, 0);
 
-    // Initialize data buckets
-    const dateMap = new Map<string, { created: number; completed: number }>();
+    // Initialize data buckets for status counts
+    const dateMap = new Map<
+      string,
+      { backlog: number; todo: number; inProgress: number; done: number; canceled: number }
+    >();
     for (let i = 0; i < days; i++) {
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
-      dateMap.set(formatDateKey(d), { created: 0, completed: 0 });
+      dateMap.set(formatDateKey(d), { backlog: 0, todo: 0, inProgress: 0, done: 0, canceled: 0 });
     }
 
-    // Count tasks by date
-    for (const task of tasks) {
-      // Count created tasks
-      if (task.createdAt) {
-        const createdDate = new Date(task.createdAt);
-        const key = formatDateKey(createdDate);
-        const bucket = dateMap.get(key);
-        if (bucket) {
-          bucket.created++;
-        }
-      }
+    // For each day, count tasks that exist in each status at that point in time
+    const sortedDates = Array.from(dateMap.keys()).sort((a, b) =>
+      a.localeCompare(b),
+    );
 
-      // Count completed tasks (using updatedAt as completion proxy)
-      if (
-        showCompleted &&
-        COMPLETED_STATUSES.includes(task.status) &&
-        task.updatedAt
-      ) {
-        const updatedDate = new Date(task.updatedAt);
-        const key = formatDateKey(updatedDate);
-        const bucket = dateMap.get(key);
-        if (bucket) {
-          bucket.completed++;
+    for (const dateKey of sortedDates) {
+      const currentDate = new Date(dateKey);
+      currentDate.setHours(23, 59, 59, 999);
+      
+      const bucket = dateMap.get(dateKey);
+      if (!bucket) continue;
+
+      // For each task, determine its status on this date
+      for (const task of tasks) {
+        if (!task.createdAt) continue;
+        
+        const createdDate = new Date(task.createdAt);
+        
+        // Skip if task wasn't created yet
+        if (createdDate > currentDate) continue;
+        
+        // Check if task was completed before this date
+        if (task.status && COMPLETED_STATUSES.includes(task.status) && task.updatedAt) {
+          const completedDate = new Date(task.updatedAt);
+          // Skip if already completed before this date
+          if (completedDate <= currentDate) {
+            // Count completed tasks
+            if (task.status === "done") bucket.done++;
+            else if (task.status === "canceled") bucket.canceled++;
+            continue;
+          }
         }
+        
+        // Task exists and is not completed, count by status
+        // Note: We don't have historical status data, so we use current status
+        // This is a limitation but still shows general distribution trends
+        const status = task.status || "backlog";
+        if (status === "backlog") bucket.backlog++;
+        else if (status === "todo") bucket.todo++;
+        else if (status === "in-progress") bucket.inProgress++;
       }
     }
 
@@ -83,31 +101,37 @@ export function TaskTimelineChart({
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, counts]) => ({
         date: formatDateLabel(date),
-        created: counts.created,
-        ...(showCompleted ? { completed: counts.completed } : {}),
+        backlog: counts.backlog,
+        todo: counts.todo,
+        "in-progress": counts.inProgress,
       }));
 
     const seriesConfig: AreaChartSeries[] = [
-      { key: "created", label: "Created", color: "var(--primary)" },
+      {
+        key: "backlog",
+        label: "Backlog",
+        color: "hsl(0, 0%, 45%)", // Gray
+        type: "area",
+      },
+      {
+        key: "todo",
+        label: "To Do",
+        color: "hsl(217, 91%, 60%)", // Blue
+        type: "area",
+      },
+      {
+        key: "in-progress",
+        label: "In Progress",
+        color: "hsl(42, 96%, 50%)", // Yellow/Orange
+        type: "area",
+      },
     ];
 
-    if (showCompleted) {
-      seriesConfig.push({
-        key: "completed",
-        label: "Closed",
-        color: "var(--muted-foreground)",
-      });
-    }
-
     return { chartData: data, series: seriesConfig };
-  }, [tasks, days, showCompleted]);
+  }, [tasks, days]);
 
   // Check if there's any data worth showing
-  const hasData = chartData.some(
-    (d) =>
-      d.created > 0 ||
-      (showCompleted && (d as { completed?: number }).completed),
-  );
+  const hasData = chartData.some((d) => d.backlog > 0 || d.todo > 0 || d["in-progress"] > 0);
 
   if (!hasData) {
     return (
@@ -123,7 +147,7 @@ export function TaskTimelineChart({
       xKey="date"
       series={series}
       size={size}
-      stacked={false}
+      stacked={true}
       gradient={true}
       showGrid={true}
       className={className}

@@ -6,7 +6,6 @@ import {
 } from "@repo/ui/components/avatar";
 import {
   Tile,
-  TileAction,
   TileDescription,
   TileHeader,
   TileIcon,
@@ -27,6 +26,11 @@ import {
   TaskAssigneeChart,
   TaskCategoryBar,
   TaskTimelineChart,
+  TaskCycleTimeChart,
+  TaskThroughputChart,
+  TaskAgeChart,
+  TaskLabelDistributionChart,
+  TaskCreationVsCompletionChart,
 } from "@/components/charts";
 import { useLayoutData } from "@/components/generic/Context";
 import { SubWrapper } from "@/components/generic/wrapper";
@@ -108,8 +112,8 @@ export default function OrganizationHomePage() {
           <AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
         </Avatar>
       }
-    // style="compact"
-    // className="max-w-4xl"
+      // style="compact"
+      // className="max-w-4xl"
     >
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         <Link
@@ -187,16 +191,19 @@ export default function OrganizationHomePage() {
       </div>
       {/* Dashboard Charts Section */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-        <Tile className="md:w-full md:col-span-full flex flex-col items-start gap-0">
+        <Tile className="md:w-full md:col-span-8 flex flex-col items-start gap-0">
           <TileHeader>
-            <TileTitle>Activity Timeline</TileTitle>
-            <TileDescription>Tasks completed over time</TileDescription>
+            <TileTitle>Status Distribution Over Time</TileTitle>
+            <TileDescription>
+              How tasks are distributed across statuses (backlog, todo,
+              in-progress)
+            </TileDescription>
           </TileHeader>
           <div className="h-full w-full">
-            <TaskTimelineChart tasks={tasks} days={14} showCompleted={true} />
+            <TaskTimelineChart tasks={tasks} days={14} />
           </div>
         </Tile>
-        <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
+        {/*<Tile className="md:w-full md:col-span-2 flex flex-col items-start gap-0">
           <TileHeader>
             <TileTitle>Status Distribution</TileTitle>
             <TileDescription>Open tasks by status</TileDescription>
@@ -208,8 +215,8 @@ export default function OrganizationHomePage() {
               totalLabel="Open tasks"
             />
           </div>
-        </Tile>
-        <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
+        </Tile>*/}
+        <Tile className="md:w-full md:col-span-4 flex flex-col items-start gap-0">
           <TileHeader>
             <TileTitle>Priority</TileTitle>
             <TileDescription>Current priority distribution</TileDescription>
@@ -218,7 +225,7 @@ export default function OrganizationHomePage() {
             <TaskPriorityBar tasks={openTasks} />
           </div>
         </Tile>
-        <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
+        <Tile className="md:w-full md:col-span-4 flex flex-col items-start gap-0">
           <TileHeader>
             <TileTitle>Categories</TileTitle>
             <TileDescription>Open tasks by category</TileDescription>
@@ -227,13 +234,62 @@ export default function OrganizationHomePage() {
             <TaskCategoryBar tasks={openTasks} categories={categories} />
           </div>
         </Tile>
-        <Tile className="md:w-full md:col-span-6 flex flex-col items-start gap-0">
+        <Tile className="md:w-full md:col-span-4 flex flex-col items-start gap-0">
           <TileHeader>
             <TileTitle>Assignee Workload</TileTitle>
             <TileDescription>Tasks assigned to each member</TileDescription>
           </TileHeader>
           <div className="h-full w-full">
             <TaskAssigneeChart tasks={openTasks} maxItems={6} />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-4 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Label Distribution</TileTitle>
+            <TileDescription>Open tasks by label</TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskLabelDistributionChart tasks={openTasks} maxItems={6} />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-3 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Throughput</TileTitle>
+            <TileDescription>Tasks completed per week</TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskThroughputChart tasks={tasks} weeks={8} />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-3 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Creation vs Completion</TileTitle>
+            <TileDescription>
+              Tasks created vs completed per week
+            </TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskCreationVsCompletionChart tasks={tasks} weeks={8} />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-3 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Task Age</TileTitle>
+            <TileDescription>
+              How long open tasks have been waiting
+            </TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskAgeChart tasks={openTasks} />
+          </div>
+        </Tile>
+        <Tile className="md:w-full md:col-span-3 flex flex-col items-start gap-0">
+          <TileHeader>
+            <TileTitle>Cycle Time</TileTitle>
+            <TileDescription>Average time to complete tasks</TileDescription>
+          </TileHeader>
+          <div className="h-full w-full">
+            <TaskCycleTimeChart tasks={tasks} weeks={8} />
           </div>
         </Tile>
       </div>

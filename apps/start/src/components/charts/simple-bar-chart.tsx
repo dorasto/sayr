@@ -1,5 +1,3 @@
-"use client";
-
 import {
   ChartContainer,
   ChartTooltip,
@@ -131,7 +129,7 @@ export function SimpleBarChart({
             dataKey={dataKey}
             layout="vertical"
             radius={radius}
-            barSize={28}
+            // barSize={28}
             minPointSize={80}
           >
             <LabelList
