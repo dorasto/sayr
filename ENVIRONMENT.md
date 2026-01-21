@@ -1,157 +1,104 @@
-# 🔐 Environment Setup Guide
+# Environment Setup Guide
 
 This repository supports both **normal** and **internal** environments.
 
-- 🔧 **Normal environment (default):** Uses local config or public `.env` files only. No 1Password required.
-- 🧱 **Internal environment:** Uses secure secrets from 1Password via the CLI (`op`). Generate `.env` files only if you’re working on internal builds.
+- **Normal environment (default):** Uses local `.env` files. No 1Password required.
+- **Internal environment:** Uses secure secrets from 1Password via the CLI (`op`).
 
 ---
 
-## ⚙️ Requirements (for internal env only)
-
-If you’re working in the internal environment, you’ll need:
+## Requirements (for internal env only)
 
 | Tool | Version | Link |
 |---|---:|---|
-| 1Password CLI | v2 or newer | https://developer.1password.com/docs/cli/get-started/ |
+| 1Password CLI | v2.18+ | https://developer.1password.com/docs/cli/get-started/ |
 | Bash (macOS / Linux / WSL) | — | preinstalled on macOS/Linux, use WSL on Windows |
 | PowerShell (Windows) | v5+ or pwsh 7+ | Install via `winget install Microsoft.PowerShell` |
 
-Sign in to your 1Password account once per terminal session:
+---
 
-```bash
-op signin
-```
+## How It Works
+
+The environment system uses two types of `.env` files:
+
+| File | Purpose | Contains |
+|------|---------|----------|
+| `.env` | Template file | `op://` secret references |
+| `.env.local` | Resolved file (gitignored) | Actual secret values |
+
+When you run `pnpm dev:op`, it:
+1. Reads the `.env` template files with `op://` references
+2. Resolves them via 1Password into `.env.local` files
+3. Starts the dev servers (which load `.env.local` automatically)
 
 ---
 
-## 🧩 Generating Internal .env Files
+## Generating .env Template Files
 
-> Skip this entire section if you aren’t using internal secrets.
+If you need to regenerate the `.env` template files (e.g., after secrets change in 1Password):
 
-Each app (worker, backend, start) has its own `.env` file located here:
-
+**Bash (macOS, Linux, WSL)**
+```bash
+pnpm env:all
 ```
-apps/worker/.env
+
+**Windows PowerShell**
+```powershell
+pnpm env:ps:all
+```
+
+This creates/updates:
+```
 apps/backend/.env
 apps/start/.env
-```
-
-These `.env` files contain 1Password references, for example:
-
-```env
-DATABASE_URL="op://Sayr/sayr-internal/DATABASE_URL"
-GITHUB_CLIENT_SECRET="op://Sayr/sayr-internal/GITHUB_CLIENT_SECRET"
-```
-
-They do **not** contain plaintext secrets; values are 1Password references.
-
-Bash (macOS, Linux, or WSL)
-
-```bash
-# Generate all .env files for internal
-bun run env:all
-```
-
-Windows PowerShell
-
-```powershell
-# Generate all .env files for internal
-bun run env:ps:all
+apps/worker/.env
 ```
 
 ---
 
-## 🚀 Running the Apps
+## Running the Apps
 
-### 🧩 Normal mode (no 1Password needed)
+### Normal mode (no 1Password)
 
-If you’re not using internal secrets, just run:
-
-```bash
-bun run dev
-```
-
-This uses your normal `.env` setup — no 1Password calls are made.
-
-### 🔐 Internal mode (uses 1Password)
-
-Once you’ve generated the `.env` files for internal:
+If you already have `.env.local` files with resolved values:
 
 ```bash
-bun run dev
+pnpm dev
 ```
 
-Behind the scenes it runs something like:
+### Internal mode (with 1Password)
+
+This resolves secrets and starts all apps with a single auth prompt:
 
 ```bash
-op run --env-file ./apps/worker/.env \
-  --env-file ./apps/backend/.env \
-  --env-file ./apps/start/.env \
-  -- turbo dev
+pnpm dev:op
 ```
 
-Secrets are pulled live from 1Password with no plaintext access.
-
----
-
-## 💡 Per‑App Internal Commands
-
-Each app can be started independently using its own internal `.env`:
-
-| App | Command |
-|---|---|
-| Worker | `bun run --prefix apps/worker internal:dev` |
-| Backend | `bun run --prefix apps/backend internal:dev` |
-| Start | `bun run --prefix apps/start internal:dev` |
-
-When you use these, 1Password automatically provides environment secrets at runtime.
-
----
-
-## 🧹 Optional: Re‑generate Everything at Once
-
-If you change secret fields in 1Password, regenerate all `.env` files:
-
-Bash
-
+Behind the scenes it runs:
 ```bash
-bun run env:all
-```
-
-PowerShell
-
-```powershell
-bun run env:ps:all
-```
-
-Then restart your dev environment:
-
-```bash
-bun run dev
+op inject -i apps/backend/.env -o apps/backend/.env.local
+op inject -i apps/start/.env -o apps/start/.env.local
+op inject -i apps/worker/.env -o apps/worker/.env.local
+turbo dev
 ```
 
 ---
 
-## 🧠 Quick Reference
+## Quick Reference
 
-| Purpose | Bash / Unix | Windows PowerShell |
-|---|---|---|
-| Generate internal `.env` files | `bun run env:all` | `bun run env:ps:all` |
-| Run internal apps | `bun run dev` | `bun run dev` |
-| Run normal (no 1Password) | `bun run dev` | `bun run dev` |
-| Run a single internal app | `bun run --prefix apps/backend internal:dev` | `bun run --prefix apps/backend internal:dev` |
-
----
-
-## 🧱 Recap
-
-1. Run `op signin` (only if working internal)
-2. Generate `.env` files for internal via the script
-3. `bun run dev` / `bun run build` / `bun run start` as usual
-
-🔒 All secrets stay in 1Password – nothing stored in plain text.
+| Purpose | Command |
+|---------|---------|
+| Generate `.env` templates (Bash) | `pnpm env:all` |
+| Generate `.env` templates (PowerShell) | `pnpm env:ps:all` |
+| Run with 1Password (resolves secrets) | `pnpm dev:op` |
+| Run without 1Password | `pnpm dev` |
 
 ---
 
-**💡 Tip:** If you’re not touching anything internal, you can ignore all 1Password commands completely — they’re only required for internal builds or features.
+## Recap
+
+1. Generate `.env` template files via `pnpm env:all` (or `env:ps:all` on Windows)
+2. Run `pnpm dev:op` to resolve secrets and start dev servers
+3. Subsequent runs can use `pnpm dev` if `.env.local` files are still valid
+
+All secrets stay in 1Password - resolved values in `.env.local` are gitignored.

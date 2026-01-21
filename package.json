@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev",
-    "dev:op": "turbo internal:dev",
+    "dev:op": "op inject -i apps/backend/.env -o apps/backend/.env.local && op inject -i apps/start/.env -o apps/start/.env.local && op inject -i apps/worker/.env -o apps/worker/.env.local && turbo dev",
     "build": "turbo build",
     "start": "turbo start",
     "clean": "turbo run clean && rm -rf node_modules",

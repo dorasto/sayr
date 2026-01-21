@@ -25,11 +25,6 @@
 			"persistent": true,
 			"interactive": true
 		},
-		"internal:dev": {
-			"cache": false,
-			"persistent": true,
-			"interactive": true
-		},
 		"start": {
 			"dependsOn": ["build"],
 			"cache": false,
