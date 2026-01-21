@@ -154,58 +154,145 @@ import { generateSlug, formatDate, ensureCdnUrl } from "@repo/util";
 
 ```
 1. Client makes HTTP request
-   └─► apps/start (TanStack Start)
-
-2. Server function calls backend
    └─► apps/backend (Hono API)
 
-3. Backend validates & processes
-   ├─► Check authentication (session)
-   ├─► Check permissions (hasOrgPermission)
+2. Global middleware
+   ├─► Parse cookies / headers
+   └─► Load & validate session
+       └─► Attach user/session to context
+
+3. Route handler executes
+   ├─► Route-specific authorization check
+   │   └─► hasOrgPermission / ownership / scope
+   ├─► Route-specific input validation
    └─► Execute business logic
 
 4. Database operations
    └─► @repo/database (Drizzle ORM)
        └─► PostgreSQL
 
-5. Response returns through chain
-   └─► Client receives data
+5. Response returns
+   └─► apps/backend → Client
 ```
 
 ### Real-time Updates (WebSocket)
 
 ```
-1. Client connects to WebSocket
-   └─► apps/backend /ws endpoint
+1. Client initiates WebSocket connection
+   └─► apps/backend /ws (upgradeWebSocket)
 
-2. Client subscribes to channels
-   └─► "tasks", "admin", "public"
+2. Server accepts connection
+   ├─► Generate wsClientId (unique per connection)
+   ├─► Create connection metadata entry (wsClients)
+   │     ├─► connectedAt
+   │     ├─► heartbeat state (lastPing / lastPong / latency)
+   │     └─► rate‑limit state (lastMessageAt / offenceCount)
+   └─► Attempt session lookup from request headers
+       ├─► Authenticated → clientId = user.id
+       └─► Unauthenticated → clientId = "ANONYMOUS"
 
-3. When data changes (e.g., task created):
-   ├─► Backend broadcasts to channel
-   │   broadcast(orgId, "tasks", { type: "CREATE_TASK", data })
-   │
-   └─► All subscribed clients receive update
-       └─► Client updates local state
+3. Server sends connection status
+   └─► CONNECTION_STATUS
+       ├─► authenticated: true | false
+       └─► wsClientId
+
+4. Initial server‑side subscription (best‑effort)
+   ├─► If `orgId` query param is present
+   │   └─► Auto‑subscribe to `${orgId}:public`
+   └─► Otherwise
+       └─► Subscribe to default/public or waiting room
+
+   (Note: this does not grant access to private channels)
+
+5. Client explicitly subscribes to channels
+   └─► WS message:
+       {
+         type: "SUBSCRIBE",
+         orgId,
+         channel
+       }
+
+6. Per‑SUBSCRIBE authorization (route‑level)
+   ├─► Rate‑limit check (MIN_MESSAGE_INTERVAL)
+   ├─► Waiting‑room enforcement
+   │   └─► Only SUBSCRIBE / UNSUBSCRIBE / PONG allowed
+   ├─► Channel access rules
+   │   ├─► public
+   │   │   └─► Allowed for anonymous clients
+   │   ├─► private org channels
+   │   │   ├─► Requires valid session
+   │   │   └─► safeGetOrganization(orgId, userId)
+   │   └─► admin channels
+   │       └─► Requires user.role === "admin"
+   └─► On failure
+       ├─► Send ERROR
+       └─► Optionally close socket
+
+7. Subscription state update
+   ├─► Unsubscribe from any previous rooms
+   ├─► Add client to rooms[`${orgId}:${channel}`]
+   ├─► Send SUBSCRIBED (INDIVIDUAL)
+   └─► Broadcast USER_SUBSCRIBED (CHANNEL)
+
+8. Backend data mutation occurs
+   └─► Example: task created / updated
+       └─► broadcast(orgId, "tasks", {
+             type: "CREATE_TASK",
+             data
+           })
+
+9. Broadcast fan‑out
+   ├─► Resolve rooms[`${orgId}:tasks`]
+   ├─► Skip sender if applicable
+   ├─► Attach metadata
+   │   ├─► ts
+   │   ├─► orgId
+   │   └─► channel
+   └─► Send message with scope = "CHANNEL"
+
+10. Client receives broadcast
+    ├─► Validate orgId / channel relevance
+    └─► Update local application state
+
+11. Heartbeat & liveness management (parallel)
+    ├─► Server sends PING every 30 seconds
+    ├─► Client replies with PONG
+    ├─► RTT / latency tracked per connection
+    └─► Server closes sockets with no PONG after 60 seconds
+
+12. Disconnect / unsubscribe lifecycle
+    ├─► Triggered by close, error, rate‑limit, or timeout
+    ├─► Remove client from all rooms
+    ├─► Broadcast USER_UNSUBSCRIBED to affected channels
+    └─► Remove wsClients entry and release resources
 ```
 
 ### Authentication Flow
 
 ```
 1. User clicks "Sign in with GitHub"
+   └─► App sets `login_origin` cookie
    └─► Redirects to GitHub OAuth
 
-2. GitHub redirects back with code
-   └─► apps/backend /api/auth/callback/github
+2. GitHub redirects back with `code`
+   └─► /api/auth/callback/github
 
-3. Backend exchanges code for tokens
-   └─► @repo/auth validates & creates session
+3. Callback exchanges code for tokens
+   └─► @repo/auth validates user
+   └─► Session created
+   └─► Session stored in DB (@repo/database)
+   └─► Session cookie set (HttpOnly)
 
-4. Session stored in database
-   └─► @repo/database (session table)
+4. Callback redirects to auth-check
+   └─► /login/auth-check
 
-5. Client receives session cookie
-   └─► Subsequent requests authenticated
+5. Auth-check validates *presence of session*
+   └─► Reads `login_origin` cookie
+   └─► Clears `login_origin`
+   └─► Redirects user to original app URL
+
+6. Subsequent requests authenticated
+   └─► Session cookie sent automatically
 ```
 
 ## Permission System
