@@ -278,21 +278,22 @@
 
     <script type="module">
         import Sayr from "https://esm.sh/@sayrio/public";
+
         /* ---------------- PARAMS ---------------- */
 
-        const parts = window.location.pathname.split('/').filter(Boolean);
+        const parts = window.location.pathname.split("/").filter(Boolean);
 
         let ORG_SLUG = null;
         let TASK_SHORT_ID = null;
 
-        if (parts[1] === 'org') {
+        if (parts[1] === "org") {
             ORG_SLUG = parts[2] || null;
-            TASK_SHORT_ID = parts[3] || null;
+            TASK_SHORT_ID = parts[3] ? Number(parts[3]) : null;
         }
 
-        if (!ORG_SLUG || !TASK_SHORT_ID) {
-            document.body.innerHTML = "<h1>Missing ?org= or ?task=</h1>";
-            throw new Error("Missing taskid");
+        if (!ORG_SLUG || TASK_SHORT_ID == null) {
+            document.body.innerHTML = "<h1>Missing org or task</h1>";
+            throw new Error("Missing org or task");
         }
 
         /* ---------------- STATE ---------------- */
@@ -311,35 +312,44 @@
 
         /* ---------------- HELPERS ---------------- */
 
-        const humanize = (s) =>
+        const humanize = (s = "") =>
             s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+        /* ---------------- LOAD ORG ---------------- */
+
+        const orgRes = await Sayr.org.get(ORG_SLUG);
+
+        if (!orgRes.success || !orgRes.data) {
+            document.body.innerHTML = `<h1>Organization not found</h1>`;
+            throw new Error(orgRes.error ?? "Org fetch failed");
+        }
+
+        const org = orgRes.data;
 
         /* ---------------- TASK ---------------- */
 
-        const org = await Sayr.org.get(ORG_SLUG);
-
         async function loadTask() {
-            const task = await Sayr.org.tasks.get(ORG_SLUG, TASK_SHORT_ID);
-            renderTask(task);
+            const res = await Sayr.org.tasks.get(ORG_SLUG, TASK_SHORT_ID);
+
+            if (!res.success || !res.data) return;
+            renderTask(res.data);
         }
 
         function renderTask(task) {
-            document.title = task.title + " · Sayr.io";
+            document.title = `${task.title} · Sayr.io`;
             taskTitleEl.textContent = task.title;
 
             taskMetaEl.innerHTML = `
-      <span class="badge status-${task.status}">
-        ${humanize(task.status)}
-      </span>
-      <span class="badge priority-${task.priority}">
-        Priority: ${humanize(task.priority)}
-      </span>
-      <span class="badge votes">Votes: ${task.voteCount}</span>
-    `;
+			<span class="badge status-${task.status}">
+				${humanize(task.status)}
+			</span>
+			<span class="badge priority-${task.priority}">
+				Priority: ${humanize(task.priority)}
+			</span>
+			<span class="badge votes">Votes: ${task.voteCount}</span>
+		`;
 
-            if (task.descriptionHtml) {
-                taskBodyEl.innerHTML = task.descriptionHtml;
-            }
+            taskBodyEl.innerHTML = task.descriptionHtml || "";
 
             renderLabels(task.labels);
             renderAssignees(task.assignees);
@@ -350,8 +360,8 @@
                 .map(
                     (l) =>
                         `<span class="label" style="background:${l.color}" title="${l.name}">
-            ${l.name}
-          </span>`
+						${l.name}
+					</span>`,
                 )
                 .join("");
         }
@@ -361,20 +371,20 @@
             const extra = assignees.length - MAX;
 
             taskAssigneesEl.innerHTML = `
-      ${assignees
+			${assignees
                     .slice(0, MAX)
                     .map(
                         (u) =>
                             `<div class="assignee" title="${u.name}">
-              <img src="${u.image || ""}" alt="${u.name}" />
-            </div>`
+							<img src="${u.image || ""}" alt="${u.name}" />
+						</div>`,
                     )
                     .join("")}
-      ${extra > 0
+			${extra > 0
                     ? `<div class="assignee more" title="+${extra} more">+${extra}</div>`
                     : ""
                 }
-    `;
+		`;
         }
 
         /* ---------------- COMMENTS ---------------- */
@@ -383,14 +393,19 @@
             if (loading || !hasMore) return;
             loading = true;
 
-            const { data, pagination } = await Sayr.org.comments.list(
+            const res = await Sayr.org.comments.list(
                 ORG_SLUG,
                 TASK_SHORT_ID,
-                { order: "asc", limit: 30, page }
+                { order: "asc", limit: 30, page },
             );
 
-            data.forEach(appendComment);
-            hasMore = pagination.hasMore;
+            if (!res.success || !res.data) {
+                loading = false;
+                return;
+            }
+
+            res.data.items.forEach(appendComment);
+            hasMore = res.data.pagination.hasMore;
             page++;
 
             loading = false;
@@ -401,14 +416,14 @@
             el.className = "comment";
 
             el.innerHTML = `
-      <div class="comment-header">
-        <img class="avatar" src="${c.createdBy?.image || ""}" />
-        <span class="author">${c.createdBy?.name || "Unknown"}</span>
-        <span class="date">${new Date(c.createdAt).toLocaleString()}</span>
-      </div>
-      <div class="comment-body">${c.contentHtml}</div>
-      ${renderReactions(c.reactions)}
-    `;
+			<div class="comment-header">
+				<img class="avatar" src="${c.createdBy?.image || ""}" />
+				<span class="author">${c.createdBy?.name || "Unknown"}</span>
+				<span class="date">${new Date(c.createdAt).toLocaleString()}</span>
+			</div>
+			<div class="comment-body">${c.contentHtml}</div>
+			${renderReactions(c.reactions)}
+		`;
 
             commentsEl.appendChild(el);
         }
@@ -417,17 +432,17 @@
             if (!reactions || reactions.total === 0) return "";
 
             return `
-      <div class="reactions">
-        ${Object.entries(reactions.reactions || {})
+			<div class="reactions">
+				${Object.entries(reactions.reactions || {})
                     .map(
                         ([emoji, data]) =>
                             `<span class="reaction" title="${data.count} reaction(s)">
-                ${emoji} ${data.count}
-              </span>`
+								${emoji} ${data.count}
+							</span>`,
                     )
                     .join("")}
-      </div>
-    `;
+			</div>
+		`;
         }
 
         /* ---------------- INFINITE SCROLL ---------------- */
@@ -436,32 +451,34 @@
             if (e[0].isIntersecting) fetchComments();
         }).observe(sentinel);
 
-        /* ---------------- WEBSOCKET (SDK) ---------------- */
+        /* ---------------- WEBSOCKET ---------------- */
 
-        Sayr.ws(org.wsUrl, {
-            [Sayr.WS_EVENTS.UPDATE_TASK]: (t) => {
-                if (t.id === TASK_SHORT_ID) renderTask(t);
-            },
+        if (org.wsUrl) {
+            Sayr.ws(org.wsUrl, {
+                [Sayr.WS_EVENTS.UPDATE_TASK]: (t) => {
+                    if (t.shortId === TASK_SHORT_ID) renderTask(t);
+                },
 
-            [Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS]: (p) => {
-                if (p.id !== TASK_SHORT_ID) return;
-                page = 1;
-                hasMore = true;
-                commentsEl.innerHTML = "";
-                fetchComments();
-            },
+                [Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS]: (p) => {
+                    if (p.shortId !== TASK_SHORT_ID) return;
+                    page = 1;
+                    hasMore = true;
+                    commentsEl.innerHTML = "";
+                    fetchComments();
+                },
 
-            [Sayr.WS_EVENTS.UPDATE_TASK_VOTE]: (p) => {
-                if (p.id !== TASK_SHORT_ID) return;
-                const badge = taskMetaEl.querySelector(".badge.votes");
-                if (badge) badge.textContent = `Votes: ${p.voteCount}`;
-            }
-        });
+                [Sayr.WS_EVENTS.UPDATE_TASK_VOTE]: (p) => {
+                    if (p.shortId !== TASK_SHORT_ID) return;
+                    const badge = taskMetaEl.querySelector(".badge.votes");
+                    if (badge) badge.textContent = `Votes: ${p.voteCount}`;
+                },
+            });
+        }
 
         /* ---------------- INIT ---------------- */
 
-        loadTask();
-        fetchComments();
+        await loadTask();
+        await fetchComments();
     </script>
 </body>
 

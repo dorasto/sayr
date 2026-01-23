@@ -1,12 +1,16 @@
 import {
     Comment,
     Pagination,
-    ApiSuccess
+    ApiSuccess,
 } from "../../../types";
-import { request, type RequestOptions } from "../../../client";
+import {
+    ApiResult,
+    request,
+    type RequestOptions,
+} from "../../../client";
 import {
     type OrderedPaginationParams,
-    buildPaginationParams
+    buildPaginationParams,
 } from "../../../shared";
 
 /**
@@ -22,20 +26,39 @@ export default {
         slug: string,
         shortId: number,
         params?: OrderedPaginationParams,
-        opts?: RequestOptions
-    ): Promise<{ data: Comment[]; pagination: Pagination }> {
-        const q = buildPaginationParams(params);
+        opts?: RequestOptions,
+    ): Promise<
+        ApiResult<{
+            items: Comment[];
+            pagination: Pagination;
+        }>
+    > {
+        try {
+            const q = buildPaginationParams(params);
 
-        const r = await request<
-            ApiSuccess<Comment[]> & { pagination: Pagination }
-        >(
-            `/v1/organization/${slug}/tasks/${shortId}/comments?${q}`,
-            opts
-        );
+            const r = await request<
+                ApiSuccess<Comment[]> & { pagination: Pagination }
+            >(
+                `/v1/organization/${slug}/tasks/${shortId}/comments?${q}`,
+                opts,
+            );
 
-        return {
-            data: r.data,
-            pagination: r.pagination
-        };
-    }
+            return {
+                success: true,
+                data: {
+                    items: r.data,
+                    pagination: r.pagination,
+                },
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error:
+                    err?.message ??
+                    "Failed to fetch task comments",
+            };
+        }
+    },
 };

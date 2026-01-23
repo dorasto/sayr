@@ -1,4 +1,4 @@
-import { request, type RequestOptions } from "../../../client";
+import { ApiResult, request, type RequestOptions } from "../../../client";
 import { ApiSuccess, Organization } from "../../../types";
 
 export interface Me {
@@ -15,31 +15,42 @@ export interface Me {
  * @since v1.0.0
  */
 export default {
-    /**
-     * Fetches the currently authenticated user.
-     *
-     * @since v1.0.0
-     */
-    async get(opts?: RequestOptions): Promise<Me> {
-        const r = await request<ApiSuccess<Me>>(
-            "/me",
-            opts
-        );
-        return r.data;
+    async get(opts?: RequestOptions): Promise<ApiResult<Me>> {
+        try {
+            const r = await request<ApiSuccess<Me>>("/v1/me", opts);
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error: err?.message ?? "Failed to fetch user",
+            };
+        }
     },
 
-    /**
-     * Lists organizations the current user belongs to.
-     *
-     * @since v1.0.0
-     */
     async organizations(
-        opts?: RequestOptions
-    ): Promise<Organization[]> {
-        const r = await request<ApiSuccess<Organization[]>>(
-            "/organizations",
-            opts
-        );
-        return r.data;
-    }
+        opts?: RequestOptions,
+    ): Promise<ApiResult<Organization[]>> {
+        try {
+            const r = await request<ApiSuccess<Organization[]>>(
+                "/v1/me/organizations",
+                opts,
+            );
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error: err?.message ?? "Failed to fetch organizations",
+            };
+        }
+    },
 };
