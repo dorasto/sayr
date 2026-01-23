@@ -28,11 +28,11 @@ import {
 	broadcastToRoom,
 	findClientByWsId,
 	findClientsByUserId,
-} from "../ws";
+} from "../../../ws";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { getAnonHash } from "@/util";
 import { getClientIP } from "@/tracing/rootSpanMiddleware";
-import { errorResponse, paginatedSuccessResponse } from "../../responses";
+import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 

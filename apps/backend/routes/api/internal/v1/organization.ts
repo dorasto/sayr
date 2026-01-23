@@ -16,8 +16,8 @@ import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../ws";
-import type { WSBaseMessage } from "../ws/types";
+import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../../../ws";
+import type { WSBaseMessage } from "../../../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
@@ -173,12 +173,12 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -302,12 +302,12 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -384,12 +384,12 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -467,12 +467,12 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -556,12 +556,12 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -648,12 +648,12 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -734,12 +734,12 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -828,12 +828,12 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -925,12 +925,12 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1026,12 +1026,12 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1165,12 +1165,12 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1295,12 +1295,12 @@ apiRouteAdminOrganization.delete("/delete-issue-template", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1380,12 +1380,12 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1477,12 +1477,12 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1583,12 +1583,12 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1683,12 +1683,12 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1777,12 +1777,12 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1806,8 +1806,8 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 					const existingMember = user
 						? await db.query.member.findFirst({
-								where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
-							})
+							where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
+						})
 						: null;
 
 					if (existingMember) continue;
@@ -1880,12 +1880,12 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -1949,12 +1949,12 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -2045,12 +2045,12 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -2061,14 +2061,14 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-				content: { ...defaultTeamPermissions.content, ...permissions.content },
-				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-				moderation: {
-					...defaultTeamPermissions.moderation,
-					...permissions.moderation,
-				},
-			}
+			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+			content: { ...defaultTeamPermissions.content, ...permissions.content },
+			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+			moderation: {
+				...defaultTeamPermissions.moderation,
+				...permissions.moderation,
+			},
+		}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -2122,12 +2122,12 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -2138,14 +2138,14 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-				content: { ...defaultTeamPermissions.content, ...permissions.content },
-				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-				moderation: {
-					...defaultTeamPermissions.moderation,
-					...permissions.moderation,
-				},
-			}
+			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+			content: { ...defaultTeamPermissions.content, ...permissions.content },
+			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+			moderation: {
+				...defaultTeamPermissions.moderation,
+				...permissions.moderation,
+			},
+		}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -2199,12 +2199,12 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -2258,12 +2258,12 @@ apiRouteAdminOrganization.post("/team-member", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);
@@ -2327,12 +2327,12 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
+						description: "Permission granted",
+						data: { orgId, userId: session?.userId },
+					}
 					: {
-							description: "User does not have permission to do that",
-						};
+						description: "User does not have permission to do that",
+					};
 			},
 		}
 	);

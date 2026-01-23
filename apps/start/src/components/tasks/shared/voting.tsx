@@ -9,7 +9,7 @@ import { useToastAction } from "@/lib/util";
 import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage, sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect } from "react";
-const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
+const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 interface TaskVotingProps {
   task: schema.TaskWithLabels;
   editable?: boolean;
@@ -47,7 +47,7 @@ export function TaskVoting({
   >({
     key: ["votes", organizationId],
     fetch: {
-      url: `${baseApiUrl}/admin/organization/task/voted?orgId=${organizationId}`,
+      url: `${baseApiUrl}/v1/admin/organization/task/voted?orgId=${organizationId}`,
       custom: async (url) => {
         const res = await fetch(url, { credentials: "include" });
         if (!res.ok) throw new Error(`Failed: ${res.statusText}`);

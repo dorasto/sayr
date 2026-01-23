@@ -21,7 +21,7 @@ function RouteComponent() {
 		queryKey: ["organization", orgId, "connections", "github"],
 		queryFn: async () => {
 			const res = await fetch(
-				`${import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api"}/admin/organization/${orgId}/connections/github`,
+				`${import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal"}/v1/admin/organization/${orgId}/connections/github`,
 				{ credentials: "include" }
 			)
 			if (!res.ok) throw new Error("Failed to fetch");

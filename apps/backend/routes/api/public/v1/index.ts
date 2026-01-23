@@ -14,25 +14,24 @@ import type { AppEnv } from "@/index";
 import {
 	describeOkNotFound,
 	describePaginatedRoute,
-} from "../../openapi/helpers";
+} from "../../../../openapi/helpers";
 import {
 	errorResponse,
 	paginatedSuccessResponse,
 	successResponse,
-} from "../../responses";
+} from "../../../../responses";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { prosekitJSONToHTML } from "@/prosekit/html";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 import { openAPIRouteHandler } from "hono-openapi";
-import { Scalar } from "@scalar/hono-api-reference";
 
 const API_LIMITS = {
 	comments: 30,
 	tasks: 50,
 };
 // --- API Setup ---
-export const apiPublicRoute = new Hono<AppEnv>();
-apiPublicRoute.use(
+export const apiPublicRouteV1 = new Hono<AppEnv>();
+apiPublicRouteV1.use(
 	"*",
 	cors({
 		origin: "*",
@@ -41,43 +40,23 @@ apiPublicRoute.use(
 		credentials: false,
 	}),
 );
-apiPublicRoute.use("*", async (c, next) => {
+apiPublicRouteV1.use("*", async (c, next) => {
 	c.header("X-API-Version", "1.0.0");
 	c.header("X-Service-Name", "Sayr.io Public API");
 	return next();
 });
-apiPublicRoute.get(
-	"/",
-	Scalar(() => {
-		return {
-			defaultHttpClient: { targetKey: "node", clientKey: "fetch" },
-			theme: "deepSpace",
-			hideClientButton: true,
-			showDeveloperTools: "never",
-			pageTitle: "Sayr.io API",
-			sources: [
-				{
-					default: true,
-					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api/public` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/openapi.json`,
-					title: "Public",
-					slug: "public",
-				},
-			],
-		};
-	})
-);
-apiPublicRoute.get(
+apiPublicRouteV1.get(
 	"/openapi.json",
-	openAPIRouteHandler(apiPublicRoute, {
+	openAPIRouteHandler(apiPublicRouteV1, {
 		documentation: {
 			info: {
-				title: "sayr.io",
+				title: "sayr.io v1 Public API",
 				version: "1.0.0",
-				description: "Sayr.io public API",
+				description: "Sayr.io public API v1 documentation.",
 			},
 			servers: [
 				{
-					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api/public` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}`,
+					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api/public/v1` : `https://api.${process.env.VITE_ROOT_DOMAIN}/v1`}`,
 					description: process.env.APP_ENV === "development" ? "Development" : "Production",
 				},
 			],
@@ -99,7 +78,7 @@ const OrganizationSchema = createSelectSchema(schema.organization)
 		),
 		wsUrl: z.string(),
 	});
-apiPublicRoute.get(
+apiPublicRouteV1.get(
 	"/organization/:org_slug",
 	describeOkNotFound({
 		summary: "Get organization",
@@ -165,7 +144,7 @@ const LabelSchema = createSelectSchema(schema.label).extend({
 		z.string(),
 	),
 });
-apiPublicRoute.get(
+apiPublicRouteV1.get(
 	"/organization/:org_slug/labels",
 	describeOkNotFound({
 		summary: "List organization labels",
@@ -230,7 +209,7 @@ const CategorySchema = createSelectSchema(schema.category).extend({
 		z.string(),
 	),
 });
-apiPublicRoute.get(
+apiPublicRouteV1.get(
 	"/organization/:org_slug/categories",
 	describeOkNotFound({
 		summary: "List organization categories",
@@ -316,7 +295,7 @@ const TaskSchema = createSelectSchema(schema.task).extend({
 	descriptionHtml: z.string(),
 	descriptionMarkdown: z.string(),
 });
-apiPublicRoute.get(
+apiPublicRouteV1.get(
 	"/organization/:org_slug/tasks",
 	describePaginatedRoute({
 		summary: "List organization tasks",
@@ -481,7 +460,7 @@ apiPublicRoute.get(
 	},
 );
 
-apiPublicRoute.get(
+apiPublicRouteV1.get(
 	"/organization/:org_slug/tasks/:task_short_id",
 	describeOkNotFound({
 		summary: "Get task",
@@ -614,7 +593,7 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 		})
 		.optional(),
 });
-apiPublicRoute.get(
+apiPublicRouteV1.get(
 	"/organization/:org_slug/tasks/:task_short_id/comments",
 	describePaginatedRoute({
 		summary: "List task comments",

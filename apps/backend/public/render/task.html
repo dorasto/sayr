@@ -278,7 +278,6 @@
 
     <script type="module">
         import Sayr from "https://esm.sh/@sayrio/public";
-
         /* ---------------- PARAMS ---------------- */
 
         const parts = window.location.pathname.split('/').filter(Boolean);
@@ -320,7 +319,7 @@
         const org = await Sayr.org.get(ORG_SLUG);
 
         async function loadTask() {
-            const task = await Sayr.org.task(ORG_SLUG, TASK_SHORT_ID);
+            const task = await Sayr.org.tasks.get(ORG_SLUG, TASK_SHORT_ID);
             renderTask(task);
         }
 
@@ -384,7 +383,7 @@
             if (loading || !hasMore) return;
             loading = true;
 
-            const { data, pagination } = await Sayr.org.comments(
+            const { data, pagination } = await Sayr.org.comments.list(
                 ORG_SLUG,
                 TASK_SHORT_ID,
                 { order: "asc", limit: 30, page }
@@ -440,11 +439,11 @@
         /* ---------------- WEBSOCKET (SDK) ---------------- */
 
         Sayr.ws(org.wsUrl, {
-            [Sayr.wsTypes.UPDATE_TASK]: (t) => {
+            [Sayr.WS_EVENTS.UPDATE_TASK]: (t) => {
                 if (t.id === TASK_SHORT_ID) renderTask(t);
             },
 
-            [Sayr.wsTypes.UPDATE_TASK_COMMENTS]: (p) => {
+            [Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS]: (p) => {
                 if (p.id !== TASK_SHORT_ID) return;
                 page = 1;
                 hasMore = true;
@@ -452,7 +451,7 @@
                 fetchComments();
             },
 
-            [Sayr.wsTypes.UPDATE_TASK_VOTE]: (p) => {
+            [Sayr.WS_EVENTS.UPDATE_TASK_VOTE]: (p) => {
                 if (p.id !== TASK_SHORT_ID) return;
                 const badge = taskMetaEl.querySelector(".badge.votes");
                 if (badge) badge.textContent = `Votes: ${p.voteCount}`;

@@ -13,7 +13,7 @@ import { generateSlug } from "@repo/util";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { WSMessage } from "@/lib/ws";
 import { useQueryClient } from "@tanstack/react-query";
-const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
+const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 export type SortOption = "mostPopular" | "newest" | "trending";
 export default function PublicOrgHomePage() {
   const queryClient = useQueryClient();
@@ -41,7 +41,7 @@ export default function PublicOrgHomePage() {
   >({
     key: ["votes", organization.id],
     fetch: {
-      url: `${baseApiUrl}/admin/organization/task/voted?orgId=${organization.id}`,
+      url: `${baseApiUrl}/v1/admin/organization/task/voted?orgId=${organization.id}`,
       custom: async (url) => {
         const res = await fetch(url, { credentials: "include" });
         if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
@@ -64,7 +64,7 @@ export default function PublicOrgHomePage() {
   }>({
     key: ["org-tasks", organization.id],
     fetch: {
-      url: `${baseApiUrl}/admin/organization/task/tasks?org_id=${organization.id}`,
+      url: `${baseApiUrl}/v1/admin/organization/task/tasks?org_id=${organization.id}`,
 
       custom: async (url, page) => {
         const pageParam = page ?? 1;

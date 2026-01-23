@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { ws } from "..";
-import { WSMessageType } from "../ws";
+import { WSMessageType } from "../ws/types";
+import { ws } from "../ws";
 
 type Handlers = Partial<
     Record<WSMessageType, (data: any, msg: any) => void>

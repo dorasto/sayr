@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { org, wsTypes } from "..";
 import type { Comment } from "../types";
 import { useSayrWS } from "./useSayrWS";
+import Sayr from "..";
 
 export function useComments(
     slug?: string,
@@ -15,8 +15,7 @@ export function useComments(
         if (!slug || shortId == null) return;
 
         setLoading(true);
-        org
-            .comments(slug, shortId)
+        Sayr.org.comments.list(slug, shortId)
             .then((r) => setComments(r.data))
             .finally(() => setLoading(false));
     }
@@ -24,7 +23,7 @@ export function useComments(
     useEffect(fetchComments, [slug, shortId]);
 
     useSayrWS(wsUrl, {
-        [wsTypes.UPDATE_TASK_COMMENTS]: fetchComments
+        [Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS]: fetchComments
     });
 
     return { comments, loading, refetch: fetchComments };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { org, Organization } from "../index";
+import Sayr, { Organization } from "../index";
 
 export function useOrg(slug?: string) {
     const [data, setData] = useState<Organization | null>(null);
@@ -10,7 +10,7 @@ export function useOrg(slug?: string) {
         if (!slug) return;
 
         setLoading(true);
-        org
+        Sayr.org
             .get(slug)
             .then(setData)
             .catch(setError)
