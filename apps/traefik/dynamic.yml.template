@@ -63,6 +63,24 @@ http:
       priority: 1
 
     # ===============================
+    # API SUBDOMAIN (api.sayr.io)
+    # ===============================
+
+    # WebSocket — no rewrite
+    api-subdomain-ws:
+      rule: "Host(`api.${VITE_ROOT_DOMAIN}`) && PathPrefix(`/ws`)"
+      service: backend
+      priority: 400
+
+    # All other traffic -> /api/public/*
+    api-subdomain:
+      rule: "Host(`api.${VITE_ROOT_DOMAIN}`)"
+      middlewares:
+        - api-public-rewrite
+      service: backend
+      priority: 300
+
+    # ===============================
     # SUBDOMAIN ROUTES (*.sayr.io)
     # ===============================
 
@@ -111,6 +129,11 @@ http:
         regex: ".*"
         replacement: "http://admin.${VITE_ROOT_DOMAIN}/login"
         permanent: false
+
+    api-public-rewrite:
+      replacePathRegex:
+        regex: "^/(.*)"
+        replacement: "/api/public/$1"
 
     # Headers for proxied requests
     proxy-headers:
