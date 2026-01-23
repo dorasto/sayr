@@ -30,6 +30,7 @@ interface MyTaskDetailProps {
   setSelectedTask: (task: schema.TaskWithLabels | null) => void;
   labels: schema.labelType[];
   categories: schema.categoryType[];
+  releases?: schema.releaseType[];
 }
 
 export function MyTaskDetail({
@@ -39,6 +40,7 @@ export function MyTaskDetail({
   setSelectedTask,
   labels,
   categories,
+  releases = [],
 }: MyTaskDetailProps) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { runWithToast } = useToastAction();
@@ -49,6 +51,9 @@ export function MyTaskDetail({
   );
   const orgCategories = categories.filter(
     (c) => c.organizationId === task.organizationId,
+  );
+  const orgReleases = releases.filter(
+    (r) => r.organizationId === task.organizationId,
   );
 
   // Use existing assignees as available users (since we don't have full org member data)
@@ -302,6 +307,7 @@ export function MyTaskDetail({
           availableUsers={availableUsers}
           categories={orgCategories}
           tasks={tasks}
+          releases={orgReleases}
         />
       </div>
     </div>

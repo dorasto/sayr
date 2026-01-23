@@ -52,6 +52,7 @@ export interface GlobalTimelineProps {
   availableUsers: schema.userType[];
   categories: schema.categoryType[];
   tasks: schema.TaskWithLabels[];
+  releases: schema.releaseType[];
 }
 
 export interface TimelineItemProps {
@@ -60,6 +61,7 @@ export interface TimelineItemProps {
   availableUsers?: schema.userType[];
   categories?: schema.categoryType[];
   tasks?: schema.TaskWithLabels[];
+  releases?: schema.releaseType[];
 }
 
 export interface ConsolidatedTimelineItemProps {

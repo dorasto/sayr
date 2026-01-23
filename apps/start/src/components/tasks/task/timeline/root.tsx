@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { TaskNewCommentContent } from "../comment/new";
 import { TimelineCategoryChange } from "./category-change";
+import { TimelineReleaseChange } from "./release-change";
 import {
 	ConsolidatedTimelineItem,
 	TimelineAssigneeAdded,
@@ -32,6 +33,7 @@ export default function GlobalTimeline({
 	availableUsers,
 	categories,
 	tasks,
+	releases,
 }: GlobalTimelineProps) {
 	const queryClient = useQueryClient();
 	const commentLimit = 20;
@@ -46,6 +48,7 @@ export default function GlobalTimeline({
 		assignee_removed: TimelineAssigneeRemoved,
 		updated: TimelineUpdated,
 		category_change: TimelineCategoryChange,
+		release_change: TimelineReleaseChange,
 	};
 
 	// --- ACTIVITY FETCH ---
@@ -281,6 +284,7 @@ export default function GlobalTimeline({
 				availableUsers={availableUsers}
 				categories={categories}
 				tasks={tasks}
+				releases={releases}
 				showSeparator={showSeparator}
 			/>
 		);

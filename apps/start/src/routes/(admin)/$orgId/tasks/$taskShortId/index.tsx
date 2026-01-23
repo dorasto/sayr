@@ -18,7 +18,7 @@ function RouteComponent() {
 	const { ws } = useLayoutData();
 	const { tasks, setTasks } = useLayoutTasks();
 	const { task, setTask } = useLayoutTask();
-	const { organization, setOrganization, labels, categories, setLabels, setViews, setCategories } =
+	const { organization, setOrganization, labels, categories, releases, setLabels, setViews, setCategories } =
 		useLayoutOrganization();
 
 	const availableUsers = organization?.members.map((member) => member.user) || [];
@@ -98,6 +98,7 @@ function RouteComponent() {
 			availableUsers={availableUsers}
 			organization={organization}
 			categories={categories}
+			releases={releases}
 		/>
 	)
 }

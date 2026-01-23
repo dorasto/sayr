@@ -262,6 +262,19 @@ export function TaskContentSideContent({
           setSelectedTask={setSelectedTask}
           categories={categories}
         />
+
+        <GlobalTaskRelease
+          showLabel={false}
+          className="bg-transparent p-1 h-auto w-fit"
+          showChevron={false}
+          task={task}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
+          releases={releases}
+        />
       </div>
       <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
         <Tile
@@ -350,34 +363,7 @@ export function TaskContentSideContent({
           </TileAction>
         </Tile>
       </div>
-      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
-        <Tile
-          className="md:w-full items-start p-0 flex-col gap-1"
-          variant={"transparent"}
-        >
-          <TileHeader>
-            <TileTitle asChild>
-              <Label variant={"description"} className="text-xs">
-                Release
-              </Label>
-            </TileTitle>
-          </TileHeader>
-          <TileAction>
-            <GlobalTaskRelease
-              showLabel
-              className="bg-transparent p-1 h-auto w-fit"
-              showChevron={false}
-              task={task}
-              editable={true}
-              useInternalLogic={true}
-              tasks={tasks}
-              setTasks={setTasks}
-              setSelectedTask={setSelectedTask}
-              releases={releases}
-            />
-          </TileAction>
-        </Tile>
-      </div>
+
       <Separator />
       <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
         {task.githubIssue?.issueUrl && (
@@ -648,6 +634,7 @@ interface TaskContentMainProps {
   availableUsers?: schema.userType[];
   organization: schema.OrganizationWithMembers;
   categories: schema.categoryType[];
+  releases?: schema.releaseType[];
 }
 
 export function TaskContentMain({
@@ -656,6 +643,7 @@ export function TaskContentMain({
   labels,
   availableUsers = [],
   categories,
+  releases = [],
 }: TaskContentMainProps) {
   const [openData, onOpenDataChange] = useState(false);
 
@@ -679,6 +667,7 @@ export function TaskContentMain({
           availableUsers={availableUsers}
           categories={categories}
           tasks={tasks}
+          releases={releases}
         />
       </SubWrapper>
     </div>
@@ -750,6 +739,7 @@ export function TaskContent({
               availableUsers={availableUsers}
               categories={categories}
               tasks={tasks}
+              releases={releases}
             />
           </SubWrapper>
         </div>

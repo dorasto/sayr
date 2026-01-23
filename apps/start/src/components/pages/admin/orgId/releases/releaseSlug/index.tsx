@@ -6,16 +6,21 @@ import { UnifiedTaskView } from "@/components/tasks/views/unified-task-view";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import { getReleaseWithTasksAction } from "@/lib/fetches/release";
+import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
+import { useToastAction } from "@/lib/util";
 import type { WSMessage } from "@/lib/ws";
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCalendar, IconCheck, IconHash, IconRocket, IconTag } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDate } from "@repo/util";
+import Editor from "@/components/prosekit/editor";
+import processUploads from "@/components/prosekit/upload";
+import type { NodeJSON } from "prosekit/core";
 
 interface ReleaseDetailPageProps {
 	release: schema.releaseType;
@@ -30,8 +35,17 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 	const [release, setRelease] = useState<schema.ReleaseWithTasks | null>(null);
 	const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [description, setDescription] = useState<NodeJSON | undefined>(undefined);
+	const [savedDescription, setSavedDescription] = useState<NodeJSON | undefined>(undefined);
+	const [isSavingDescription, setIsSavingDescription] = useState(false);
+	const { runWithToast } = useToastAction();
+	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
-	const availableUsers = organization?.members.map((member) => member.user) || [];
+	// Memoize to prevent unnecessary re-renders of Editor
+	const availableUsers = useMemo(
+		() => organization?.members.map((member) => member.user) || [],
+		[organization?.members]
+	);
 
 	useWebSocketSubscription({
 		ws,
@@ -50,6 +64,9 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 				if (result.success && result.data) {
 					setRelease(result.data);
 					setTasks(result.data.tasks);
+					const desc = result.data.description as NodeJSON | undefined;
+					setDescription(desc);
+					setSavedDescription(desc);
 				}
 			} catch (error) {
 				console.error("Failed to load release:", error);
@@ -85,7 +102,7 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 				setReleases(releases.filter((r: schema.releaseType) => r.id !== msg.data.releaseId));
 				// If current release was deleted, redirect
 				if (msg.data.releaseId === release?.id) {
-					void router.navigate({ to: `/${organization.id}/settings/org/${organization.id}/releases` });
+					void router.navigate({ to: `/${organization.id}/releases` });
 				}
 			}
 		},
@@ -122,6 +139,49 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 			ws.removeEventListener("message", handleMessage);
 		};
 	}, [ws, handleMessage]);
+
+	const handleDescriptionSave = useCallback(async (content: NodeJSON | undefined) => {
+		if (!release || !content) return;
+
+		try {
+			setIsSavingDescription(true);
+			const processedContent = await processUploads(
+				content,
+				"public",
+				organization.id,
+				"update-release-description",
+			);
+
+			const result = await runWithToast(
+				"update-release-description",
+				{
+					loading: { title: "Saving...", description: "Updating release description." },
+					success: { title: "Saved", description: "Description updated successfully." },
+					error: { title: "Failed", description: "Could not save description." },
+				},
+				() =>
+					updateReleaseAction(
+						organization.id,
+						release.id,
+						{ description: processedContent },
+						wsClientId,
+					),
+			);
+
+			if (result?.success) {
+				setDescription(processedContent);
+				setSavedDescription(processedContent);
+			}
+		} finally {
+			setIsSavingDescription(false);
+		}
+	}, [release, organization.id, wsClientId, runWithToast]);
+
+	// Check if description has unsaved changes
+	const hasUnsavedChanges = useMemo(
+		() => JSON.stringify(description) !== JSON.stringify(savedDescription),
+		[description, savedDescription]
+	);
 
 	if (loading || !release) {
 		return (
@@ -237,12 +297,39 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 							variant="outline"
 							size="sm"
 							onClick={() =>
-								router.navigate({ to: `/${organization.id}/settings/org/${organization.id}/releases` })
+								router.navigate({ to: `/${organization.id}/releases` })
 							}
 						>
 							View All Releases
 						</Button>
 					</div>
+				</div>
+			</div>
+
+			{/* Description Section */}
+			<div className="border-b bg-card">
+				<div className="p-6">
+					<div className="flex items-center justify-between mb-3">
+						<h2 className="text-sm font-semibold">Description</h2>
+						{hasUnsavedChanges && (
+							<Button
+								variant="default"
+								size="sm"
+								onClick={() => handleDescriptionSave(description)}
+								disabled={isSavingDescription}
+							>
+								{isSavingDescription ? "Saving..." : "Save Description"}
+							</Button>
+						)}
+					</div>
+					<Editor
+						defaultContent={description}
+						onChange={setDescription}
+						placeholder="Add a description for this release..."
+						users={availableUsers}
+						categories={categories}
+						tasks={tasks}
+					/>
 				</div>
 			</div>
 

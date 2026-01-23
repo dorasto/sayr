@@ -378,19 +378,19 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					updates.description,
 				);
 			}
-			if (
-				updates.releaseId !== undefined &&
-				updates.releaseId !== existingTask.releaseId
-			) {
-				await addLogEventTask(
-					taskId,
-					orgId,
-					"updated",
-					existingTask.releaseId,
-					updates.releaseId,
-					session?.userId,
-				);
-			}
+		if (
+			updates.releaseId !== undefined &&
+			updates.releaseId !== existingTask.releaseId
+		) {
+			await addLogEventTask(
+				taskId,
+				orgId,
+				"release_change",
+				existingTask.releaseId,
+				updates.releaseId,
+				session?.userId,
+			);
+		}
 		},
 		{
 			description: "Updating task and logging changes",

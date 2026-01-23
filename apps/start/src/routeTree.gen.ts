@@ -34,6 +34,7 @@ import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(adm
 import { Route as adminConsoleConnectionsIndexRouteImport } from './routes/(admin)/console/connections/index'
 import { Route as adminOrgIdViewsIndexRouteImport } from './routes/(admin)/$orgId/views/index'
 import { Route as adminOrgIdTasksIndexRouteImport } from './routes/(admin)/$orgId/tasks/index'
+import { Route as adminOrgIdReleasesIndexRouteImport } from './routes/(admin)/$orgId/releases/index'
 import { Route as adminOrgIdReleasesReleaseSlugRouteImport } from './routes/(admin)/$orgId/releases/$releaseSlug'
 import { Route as adminSettingsOrgOrgIdRouteRouteImport } from './routes/(admin)/settings/org/$orgId/route'
 import { Route as adminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/route'
@@ -179,6 +180,11 @@ const adminOrgIdTasksIndexRoute = adminOrgIdTasksIndexRouteImport.update({
   path: '/',
   getParentRoute: () => adminOrgIdTasksRouteRoute,
 } as any)
+const adminOrgIdReleasesIndexRoute = adminOrgIdReleasesIndexRouteImport.update({
+  id: '/releases/',
+  path: '/releases/',
+  getParentRoute: () => adminOrgIdRouteRoute,
+} as any)
 const adminOrgIdReleasesReleaseSlugRoute =
   adminOrgIdReleasesReleaseSlugRouteImport.update({
     id: '/releases/$releaseSlug',
@@ -305,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
   '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/$orgId/releases': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
   '/$orgId/views': typeof adminOrgIdViewsIndexRoute
   '/console/connections': typeof adminConsoleConnectionsIndexRoute
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug': typeof OrgsOrgSlugIndexRoute
   '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/$orgId/releases': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksIndexRoute
   '/$orgId/views': typeof adminOrgIdViewsIndexRoute
   '/console/connections': typeof adminConsoleConnectionsIndexRoute
@@ -385,6 +393,7 @@ export interface FileRoutesById {
   '/(admin)/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
   '/(admin)/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
   '/(admin)/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/(admin)/$orgId/releases/': typeof adminOrgIdReleasesIndexRoute
   '/(admin)/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
   '/(admin)/$orgId/views/': typeof adminOrgIdViewsIndexRoute
   '/(admin)/console/connections/': typeof adminConsoleConnectionsIndexRoute
@@ -430,6 +439,7 @@ export interface FileRouteTypes {
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
     | '/$orgId/releases/$releaseSlug'
+    | '/$orgId/releases'
     | '/$orgId/tasks/'
     | '/$orgId/views'
     | '/console/connections'
@@ -465,6 +475,7 @@ export interface FileRouteTypes {
     | '/invite/$orgId'
     | '/orgs/$orgSlug'
     | '/$orgId/releases/$releaseSlug'
+    | '/$orgId/releases'
     | '/$orgId/tasks'
     | '/$orgId/views'
     | '/console/connections'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/(admin)/$orgId/tasks/$taskShortId'
     | '/(admin)/settings/org/$orgId'
     | '/(admin)/$orgId/releases/$releaseSlug'
+    | '/(admin)/$orgId/releases/'
     | '/(admin)/$orgId/tasks/'
     | '/(admin)/$orgId/views/'
     | '/(admin)/console/connections/'
@@ -719,6 +731,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdTasksIndexRouteImport
       parentRoute: typeof adminOrgIdTasksRouteRoute
     }
+    '/(admin)/$orgId/releases/': {
+      id: '/(admin)/$orgId/releases/'
+      path: '/releases'
+      fullPath: '/$orgId/releases'
+      preLoaderRoute: typeof adminOrgIdReleasesIndexRouteImport
+      parentRoute: typeof adminOrgIdRouteRoute
+    }
     '/(admin)/$orgId/releases/$releaseSlug': {
       id: '/(admin)/$orgId/releases/$releaseSlug'
       path: '/releases/$releaseSlug'
@@ -873,6 +892,7 @@ interface adminOrgIdRouteRouteChildren {
   adminOrgIdTasksRouteRoute: typeof adminOrgIdTasksRouteRouteWithChildren
   adminOrgIdIndexRoute: typeof adminOrgIdIndexRoute
   adminOrgIdReleasesReleaseSlugRoute: typeof adminOrgIdReleasesReleaseSlugRoute
+  adminOrgIdReleasesIndexRoute: typeof adminOrgIdReleasesIndexRoute
   adminOrgIdViewsIndexRoute: typeof adminOrgIdViewsIndexRoute
 }
 
@@ -880,6 +900,7 @@ const adminOrgIdRouteRouteChildren: adminOrgIdRouteRouteChildren = {
   adminOrgIdTasksRouteRoute: adminOrgIdTasksRouteRouteWithChildren,
   adminOrgIdIndexRoute: adminOrgIdIndexRoute,
   adminOrgIdReleasesReleaseSlugRoute: adminOrgIdReleasesReleaseSlugRoute,
+  adminOrgIdReleasesIndexRoute: adminOrgIdReleasesIndexRoute,
   adminOrgIdViewsIndexRoute: adminOrgIdViewsIndexRoute,
 }
 

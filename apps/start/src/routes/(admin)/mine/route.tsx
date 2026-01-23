@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { RootProviderMyTasks } from "@/contexts/ContextMine";
 
 import type { schema } from "@repo/database";
-import { db, getLabels, getTasksByUserId } from "@repo/database";
+import { db, getLabels, getTasksByUserId, getReleases } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { createServerFn } from "@tanstack/react-start";
 import { inArray } from "drizzle-orm";
@@ -32,7 +32,10 @@ export const getMyTasks = createServerFn({ method: "GET" })
 			const categories = await db.query.category.findMany({
 				where: (category) => inArray(category.organizationId, organizationIds),
 			})
-			return { tasks: transformedTasks, labels: allLabels, views, categories };
+			const releasesPromises = organizationIds.map((orgId) => getReleases(orgId));
+			const releasesArrays = await Promise.all(releasesPromises);
+			const allReleases: schema.releaseType[] = releasesArrays.flat();
+			return { tasks: transformedTasks, labels: allLabels, views, categories, releases: allReleases };
 		} catch (error) {
 			// If it's already a redirect, re-throw it
 			if (error && typeof error === "object" && "redirect" in error) {
@@ -53,9 +56,9 @@ export const Route = createFileRoute("/(admin)/mine")({
 });
 
 function MineLayout() {
-	const { tasks, labels, views, categories } = Route.useLoaderData();
+	const { tasks, labels, views, categories, releases } = Route.useLoaderData();
 	return (
-		<RootProviderMyTasks tasks={tasks} labels={labels} views={views} categories={categories}>
+		<RootProviderMyTasks tasks={tasks} labels={labels} views={views} categories={categories} releases={releases}>
 			<Outlet />
 		</RootProviderMyTasks>
 	)

@@ -22,6 +22,7 @@ export {
 } from "./timeline-assignee";
 export { TimelineUpdated } from "./timeline-updated";
 export { TimelineCategoryChange } from "./category-change";
+export { TimelineReleaseChange } from "./release-change";
 
 // Root component
 export { default as GlobalTimeline } from "./root";

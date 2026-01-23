@@ -20,8 +20,8 @@ import { onWindowMessage, sendWindowMessage } from "@repo/ui/hooks/useWindowMess
 export default function MyTasksPage() {
   const queryClient = useQueryClient();
   queryClient.removeQueries({ queryKey: ["organization"] });
-  const { ws, account } = useLayoutData();
-  const { tasks, setTasks, labels, setLabels, categories, setCategories } = useMyTasks();
+	const { ws, account } = useLayoutData();
+	const { tasks, setTasks, labels, setLabels, categories, setCategories, releases } = useMyTasks();
   const [selectedTask, setSelectedTask] =
     useState<schema.TaskWithLabels | null>(null);
   useWebSocketSubscription({ ws });
@@ -239,6 +239,7 @@ export default function MyTasksPage() {
                   setSelectedTask={setSelectedTask}
                   labels={labels}
                   categories={categories}
+                  releases={releases}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground"></div>
