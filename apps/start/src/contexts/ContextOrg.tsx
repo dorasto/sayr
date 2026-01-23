@@ -14,6 +14,8 @@ interface ContextType {
   setCategories: (newValue: ContextType["categories"]) => void;
   issueTemplates: schema.issueTemplateWithRelations[];
   setIssueTemplates: (newValue: ContextType["issueTemplates"]) => void;
+  releases: schema.releaseType[];
+  setReleases: (newValue: ContextType["releases"]) => void;
   isProjectPanelOpen: boolean;
   setProjectPanelOpen: (newValue: boolean) => void;
   isMobile: boolean;
@@ -29,6 +31,7 @@ export function RootProviderOrganization({
   views,
   categories,
   issueTemplates,
+  releases,
 }: {
   children: ReactNode;
   organization: ContextType["organization"];
@@ -36,6 +39,7 @@ export function RootProviderOrganization({
   views: ContextType["views"];
   categories: ContextType["categories"];
   issueTemplates: ContextType["issueTemplates"];
+  releases: ContextType["releases"];
 }) {
   const isMobile = useIsMobile();
   const { value: NewOrganization, setValue: setOrganization } =
@@ -57,6 +61,11 @@ export function RootProviderOrganization({
   );
   const { value: NewIssueTemplates, setValue: setIssueTemplates } =
     useStateManagement("issueTemplates", issueTemplates, 30000);
+  const { value: NewReleases, setValue: setReleases } = useStateManagement(
+    "releases",
+    releases,
+    30000,
+  );
   const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } =
     useStateManagement("isProjectPanelOpen", isMobile ? false : true, 30000);
   // Sync props → state
@@ -71,6 +80,7 @@ export function RootProviderOrganization({
     () => setIssueTemplates(issueTemplates),
     [issueTemplates, setIssueTemplates],
   );
+  useEffect(() => setReleases(releases), [releases, setReleases]);
   return (
     <RootContext.Provider
       value={{
@@ -84,8 +94,12 @@ export function RootProviderOrganization({
         setCategories,
         issueTemplates: NewIssueTemplates,
         setIssueTemplates,
+        releases: NewReleases,
+        setReleases,
         isProjectPanelOpen,
         setProjectPanelOpen,
+        isMobile,
+        isMobileHydrated: true,
       }}
     >
       {children}

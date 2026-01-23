@@ -25,6 +25,7 @@ interface Props {
   views: schema.savedViewType[];
   setViews: (newValue: Props["views"]) => void;
   categories: schema.categoryType[];
+  releases: schema.releaseType[];
 }
 
 export function TaskFilterDropdown({
@@ -35,6 +36,7 @@ export function TaskFilterDropdown({
   setViews,
   views,
   categories,
+  releases,
 }: Props) {
   console.log("[RENDER] TaskFilterDropdown");
 
@@ -74,7 +76,7 @@ export function TaskFilterDropdown({
   const getAvailableOptions = (field: FilterField) => {
     const config = FILTER_FIELD_CONFIGS.find((c) => c.field === field);
     return typeof config?.getOptions === "function"
-      ? config.getOptions(_tasks, labels, availableUsers, "", categories)
+      ? config.getOptions(_tasks, labels, availableUsers, "", categories, releases)
       : [];
   };
 
@@ -189,6 +191,7 @@ export function TaskFilterDropdown({
         getAvailableOperators={getAvailableOperators}
         renderFilterValue={renderFilterValue}
         categories={categories}
+        releases={releases}
       />
       <FilterMenu
         activeFiltersCount={activeFiltersCount}
@@ -207,6 +210,7 @@ export function TaskFilterDropdown({
         labels={labels}
         availableUsers={availableUsers}
         categories={categories}
+        releases={releases}
         renderFilterValue={renderFilterValue}
       />
       {activeFiltersCount > 0 && (

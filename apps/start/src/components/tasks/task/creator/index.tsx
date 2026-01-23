@@ -28,6 +28,7 @@ import {
   IconLabel,
   IconPlus,
   IconProgress,
+  IconRocket,
   IconSlash,
   IconTemplate,
   IconUserPlus,
@@ -56,6 +57,7 @@ import GlobalTaskCategory from "../../shared/category";
 import { priorityConfig, statusConfig } from "../../shared/config";
 import GlobalTaskLabels from "../../shared/label";
 import GlobalTaskPriority from "../../shared/priority";
+import GlobalTaskRelease from "../../shared/release";
 import GlobalTaskStatus from "../../shared/status";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
@@ -66,6 +68,7 @@ interface Props {
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   _labels: schema.labelType[];
   issueTemplates?: schema.issueTemplateWithRelations[];
+  releases?: schema.releaseType[];
   // open?: boolean;
   // setOpen?: (open: boolean) => void;
 }
@@ -76,6 +79,7 @@ export default function CreateIssueDialog({
   setTasks,
   _labels,
   issueTemplates = [],
+  releases = [],
   // open,
   // setOpen = () => {
   // 	false;
@@ -101,6 +105,7 @@ export default function CreateIssueDialog({
   const [status, setStatus] = useState<string | undefined | null>("backlog");
   const [priority, setPriority] = useState<string | undefined | null>("none");
   const [category, setCategory] = useState<string>("");
+  const [releaseId, setReleaseId] = useState<string>("");
   const [labels, setLabels] = useState<string[]>([]);
   const [assignees, setAssignees] = useState<string[]>([]);
   const { runWithToast, isFetching } = useToastAction();
@@ -111,6 +116,10 @@ export default function CreateIssueDialog({
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === category),
     [categories, category],
+  );
+  const selectedRelease = useMemo(
+    () => releases.find((r) => r.id === releaseId),
+    [releases, releaseId],
   );
   const availableUsers = useMemo(
     () => organization.members.map((m) => m.user),
@@ -133,6 +142,7 @@ export default function CreateIssueDialog({
       setStatus("backlog");
       setPriority("none");
       setCategory("");
+      setReleaseId("");
       setLabels([]);
       setAssignees([]);
       return;
@@ -187,6 +197,8 @@ export default function CreateIssueDialog({
       labels: selectedLabels,
       assignees: selectedAssignees,
       category: category || "",
+      releaseId: releaseId || null,
+      voteCount: 0,
     }),
     [
       description,
@@ -197,6 +209,7 @@ export default function CreateIssueDialog({
       title,
       category,
       selectedAssignees,
+      releaseId,
     ],
   );
   const handleUpdate = async () => {
@@ -243,6 +256,7 @@ export default function CreateIssueDialog({
             labels,
             category,
             assignees,
+            releaseId: releaseId || undefined,
           },
           wsClientId,
         ),
@@ -255,6 +269,7 @@ export default function CreateIssueDialog({
       setStatus("backlog");
       setPriority("none");
       setCategory("");
+      setReleaseId("");
       setLabels([]);
       setAssignees([]);
       setTasks([...tasks, data.data]);
@@ -586,6 +601,35 @@ export default function CreateIssueDialog({
                         <>
                           <IconCategory className="h-3.5 w-3.5 mr-1" />
                           Category
+                        </>
+                      )}
+                    </Button>
+                  }
+                />
+                <GlobalTaskRelease
+                  task={draftTask}
+                  editable
+                  releases={releases}
+                  onChange={(value) => setReleaseId(value)}
+                  customTrigger={
+                    <Button
+                      variant={"primary"}
+                      className="w-fit text-xs h-7"
+                      size={"sm"}
+                    >
+                      {selectedRelease ? (
+                        <>
+                          {selectedRelease.icon ? (
+                            <span className="text-sm mr-1">{selectedRelease.icon}</span>
+                          ) : (
+                            <IconRocket className="h-3.5 w-3.5 mr-1" />
+                          )}
+                          {selectedRelease.name}
+                        </>
+                      ) : (
+                        <>
+                          <IconRocket className="h-3.5 w-3.5 mr-1" />
+                          Release
                         </>
                       )}
                     </Button>

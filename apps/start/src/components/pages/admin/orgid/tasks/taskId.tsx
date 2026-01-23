@@ -26,7 +26,7 @@ import {
 export default function OrganizationTaskIdPage() {
   const useMobile = useIsMobile();
   const { task, setTask } = useLayoutTask();
-  const { organization, labels, categories } = useLayoutOrganization();
+  const { organization, labels, categories, releases } = useLayoutOrganization();
   const { tasks, setTasks } = useLayoutTasks();
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
@@ -56,6 +56,7 @@ export default function OrganizationTaskIdPage() {
                 wsClientId={wsClientId}
                 runWithToast={runWithToast}
                 categories={categories}
+                releases={releases}
                 organization={organization}
               />
             )}
@@ -118,6 +119,7 @@ export default function OrganizationTaskIdPage() {
                   wsClientId={wsClientId}
                   runWithToast={runWithToast}
                   categories={categories}
+                  releases={releases}
                   organization={organization}
                   panelControls={{
                     isPanelOpen,

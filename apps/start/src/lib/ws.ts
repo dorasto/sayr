@@ -250,6 +250,14 @@ export type WSMessage =
 		data: schema.issueTemplateWithRelations[];
 	})
 	| (BaseMessage & {
+		type: "UPDATE_RELEASES";
+		data: schema.releaseType[];
+	})
+	| (BaseMessage & {
+		type: "DELETE_RELEASE";
+		data: { releaseId: string };
+	})
+	| (BaseMessage & {
 		type: "CREATE_TASK";
 		data: schema.TaskWithLabels;
 	})

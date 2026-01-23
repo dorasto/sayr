@@ -46,6 +46,7 @@ export default function OrganizationTasksHomePage() {
     setViews,
     categories,
     setCategories,
+    releases,
     isProjectPanelOpen,
     setProjectPanelOpen,
   } = useLayoutOrganization();
@@ -130,6 +131,7 @@ export default function OrganizationTasksHomePage() {
           views={views}
           setViews={setViews}
           categories={categories}
+          releases={releases}
         />
         <div className="flex items-center gap-2 shrink-0 ml-auto">
           <Separator orientation="vertical" className="h-5" />

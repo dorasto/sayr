@@ -80,6 +80,7 @@ interface FilterMenuProps {
   labels: any[]; // schema.labelType[]
   availableUsers: any[]; // schema.userType[]
   categories: any[]; // schema.categoryType[]
+  releases: any[]; // schema.releaseType[]
   renderFilterValue: (condition: FilterCondition) => React.ReactNode;
 }
 

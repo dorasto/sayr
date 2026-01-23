@@ -13,6 +13,7 @@ export default function TasksPageActions() {
 
 	const organization = orgMatch?.loaderData?.organization;
 	const labels = orgMatch?.loaderData?.labels;
+	const releases = orgMatch?.loaderData?.releases;
 	const tasks = tasksMatch?.loaderData?.tasks;
 	const issueTemplates = orgMatch?.loaderData?.issueTemplates;
 
@@ -27,6 +28,7 @@ export default function TasksPageActions() {
 			setTasks={() => { }} // Tasks will be updated via websocket/revalidation
 			_labels={labels}
 			issueTemplates={issueTemplates ?? []}
+			releases={releases ?? []}
 		/>
 	);
 }

@@ -44,6 +44,7 @@ interface UnifiedTaskViewProps {
   availableUsers: schema.userType[];
   organization: schema.OrganizationWithMembers;
   categories: schema.categoryType[];
+  releases?: schema.releaseType[];
 }
 
 export function UnifiedTaskView({
@@ -54,6 +55,7 @@ export function UnifiedTaskView({
   availableUsers = [],
   organization,
   categories,
+  releases = [],
 }: UnifiedTaskViewProps) {
   console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -252,6 +254,7 @@ export function UnifiedTaskView({
       availableUsers,
       showCompletedTasks,
       categories,
+      releases,
     });
   }, [
     filteredTasks,
@@ -260,6 +263,7 @@ export function UnifiedTaskView({
     grouping,
     subGrouping,
     categories,
+    releases,
   ]);
 
   // Auto-collapse empty groups in list view
@@ -748,6 +752,7 @@ export function UnifiedTaskView({
           organization={organization}
           ws={ws}
           categories={categories}
+          releases={releases}
         />
       )}
     </div>

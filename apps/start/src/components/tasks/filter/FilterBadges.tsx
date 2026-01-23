@@ -26,6 +26,7 @@ interface FilterBadgesProps {
   labels: schema.labelType[];
   availableUsers: schema.userType[];
   categories: schema.categoryType[];
+  releases: schema.releaseType[];
   removeFilter: (id: string) => void;
   updateFilterOperator: (id: string, op: FilterOperator) => void;
   toggleValue: (id: string, value: string) => void;
@@ -46,6 +47,7 @@ export function FilterBadges(props: FilterBadgesProps) {
     labels,
     availableUsers,
     categories,
+    releases,
     removeFilter,
     updateFilterOperator,
     toggleValue,
@@ -96,6 +98,10 @@ export function FilterBadges(props: FilterBadgesProps) {
                 if (condition.field === "category") {
                   const u = categories.find((category) => category.id === v);
                   return u?.name || v;
+                }
+                if (condition.field === "release") {
+                  const r = releases.find((release) => release.id === v);
+                  return r?.name || v;
                 }
                 return v;
               })

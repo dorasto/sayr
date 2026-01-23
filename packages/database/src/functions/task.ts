@@ -209,6 +209,7 @@ export async function createTask(
     status?: schema.taskType["status"];
     priority?: schema.taskType["priority"];
     category?: schema.taskType["category"];
+    releaseId?: string | null;
   },
   createdBy?: string | null,
 ) {
@@ -231,6 +232,7 @@ export async function createTask(
       status: data.status ?? "todo",
       priority: data.priority ?? "none",
       category: data.category || null,
+      releaseId: data.releaseId ?? null,
       createdBy: createdBy, // nullable for ANONYMOUS
       visible: "public",
     })

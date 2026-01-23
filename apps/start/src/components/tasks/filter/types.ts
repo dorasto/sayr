@@ -1,7 +1,7 @@
 import type { schema } from "@repo/database";
 import type { ReactNode } from "react";
 
-export type TaskGroupingId = "status" | "assignee" | "priority" | "category";
+export type TaskGroupingId = "status" | "assignee" | "priority" | "category" | "release";
 
 export interface TaskGroup {
 	id: string;
@@ -20,6 +20,7 @@ export interface TaskGroupingContext {
 	availableUsers: schema.userType[];
 	showCompletedTasks: boolean;
 	categories: schema.categoryType[];
+	releases: schema.releaseType[];
 }
 
 export interface TaskGroupingDefinition {
@@ -68,7 +69,8 @@ export type FilterField =
 	| "created_at"
 	| "updated_at"
 	| "title"
-	| "category";
+	| "category"
+	| "release";
 
 export interface DateRangeValue {
 	start: string;
@@ -119,6 +121,7 @@ export interface FilterFieldConfig {
 		users: schema.userType[],
 		subSearch: string,
 		categories: schema.categoryType[],
+		releases: schema.releaseType[],
 	) => FilterOption[];
 	renderValue?: (condition: FilterCondition) => React.ReactNode;
 }

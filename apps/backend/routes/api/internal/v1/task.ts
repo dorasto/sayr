@@ -51,6 +51,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		labels,
 		assignees,
 		category,
+		releaseId,
 	} = await c.req.json();
 	const session = c.get("session");
 
@@ -85,12 +86,12 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		() =>
 			createTask(
 				orgId,
-				{ title, description, status, priority, category },
+				{ title, description, status, priority, category, releaseId },
 				session?.userId,
 			),
 		{
 			description: "Creating task record",
-			data: { orgId, title, status, priority, category },
+			data: { orgId, title, status, priority, category, releaseId },
 		},
 	);
 
@@ -297,7 +298,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	}
 
 	const allowed: Partial<schema.taskType> = {};
-	["title", "description", "status", "priority", "category"].forEach(
+	["title", "description", "status", "priority", "category", "releaseId"].forEach(
 		(field) => {
 			if (updates[field] !== undefined) {
 				// @ts-expect-error dynamic field
@@ -377,6 +378,19 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					updates.description,
 				);
 			}
+			if (
+				updates.releaseId !== undefined &&
+				updates.releaseId !== existingTask.releaseId
+			) {
+				await addLogEventTask(
+					taskId,
+					orgId,
+					"updated",
+					existingTask.releaseId,
+					updates.releaseId,
+					session?.userId,
+				);
+			}
 		},
 		{
 			description: "Updating task and logging changes",
@@ -407,6 +421,18 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 
 			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
 			broadcastPublic(orgId, { ...data });
+
+			// If releaseId changed, broadcast release update as well
+			if (
+				updates.releaseId !== undefined &&
+				updates.releaseId !== existingTask.releaseId
+			) {
+				const releaseData = {
+					type: "UPDATE_RELEASES" as WSBaseMessage["type"],
+					data: { taskId, releaseId: updates.releaseId },
+				};
+				broadcast(orgId, "releases", releaseData, found?.socket);
+			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {

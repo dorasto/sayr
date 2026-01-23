@@ -51,6 +51,7 @@ export async function createTaskAction(
 		labels: string[];
 		category?: string | null;
 		assignees?: string[];
+		releaseId?: string;
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -67,6 +68,7 @@ export async function createTaskAction(
 			labels: data.labels,
 			category: data.category,
 			assignees: data.assignees,
+			releaseId: data.releaseId,
 		}),
 		headers: {
 			"Content-Type": "application/json",
@@ -127,6 +129,7 @@ export async function updateTaskAction(
 		status?: string | null;
 		priority?: string | null;
 		category?: string | null;
+		releaseId?: string | null;
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -140,6 +143,7 @@ export async function updateTaskAction(
 		...(data.status !== undefined ? { status: data.status } : {}),
 		...(data.category !== undefined ? { category: data.category } : {}),
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
+		...(data.releaseId !== undefined ? { releaseId: data.releaseId } : {}),
 	};
 
 	console.info("Updating task", {

@@ -2,6 +2,7 @@ import type { schema } from "@repo/database";
 import {
 	IconCalendar,
 	IconCategory2,
+	IconRocket,
 	IconTag,
 	IconTextSize,
 	IconUser,
@@ -75,6 +76,25 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 					value: category.id,
 					label: category.name,
 					color: category.color || "#cccccc",
+				}));
+		},
+	},
+	{
+		field: "release",
+		label: "Release",
+		icon: <IconRocket className="w-4 h-4" />,
+		operators: ["any", "none", "empty", "not_empty"],
+		filterDefault: "any",
+		multi: true,
+		empty: "No release",
+		getOptions: (tasks, _labels, _users, subSearch, categories, releases) => {
+			const q = subSearch.toLowerCase();
+			return releases
+				.filter((r) => r.name.toLowerCase().includes(q || ""))
+				.map((release) => ({
+					value: release.id,
+					label: release.name,
+					color: release.color || "#cccccc",
 				}));
 		},
 	},
@@ -308,6 +328,8 @@ function extractFieldValue(
 			return task.priority || null;
 		case "category":
 			return task.category || null;
+		case "release":
+			return task.releaseId || null;
 		case "assignee":
 			return (task.assignees || []).map((a) => a.id);
 		case "label":

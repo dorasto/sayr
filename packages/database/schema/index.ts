@@ -3,6 +3,7 @@ import type { githubIssueType } from "./github_issue.schema";
 import type { labelType } from "./label.schema";
 import type { OrganizationMemberType } from "./member.schema";
 import type { organizationType } from "./organization.schema";
+import type { releaseType } from "./release.schema";
 import type { taskType } from "./task.schema";
 import type { taskCommentType } from "./taskComment.schema";
 import type { taskTimelineType } from "./taskTimeline.schema";
@@ -17,6 +18,7 @@ export * from "./invite.schema";
 export * from "./label.schema";
 export * from "./member.schema";
 export * from "./organization.schema";
+export * from "./release.schema";
 export * from "./saveView.schema";
 export * from "./task.schema";
 export * from "./taskAssignee.schema";
@@ -77,6 +79,11 @@ export type issueTemplateWithRelations = issueTemplateType & {
 	labels: LabelTypeImport[];
 	assignees: { id: string; name: string; image: string | null }[];
 	category?: { id: string; name: string; color: string | null; icon: string | null } | null;
+};
+
+export type ReleaseWithTasks = releaseType & {
+	tasks: TaskWithLabels[];
+	createdBy?: { id: string; name: string; image: string | null } | null;
 };
 
 /* -------------------------------------------------------------------------- */

@@ -39,6 +39,7 @@ import GlobalTaskCategory from "../shared/category";
 import { statusConfig } from "../shared/config";
 import GlobalTaskLabels from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
+import GlobalTaskRelease from "../shared/release";
 import GlobalTaskStatus from "../shared/status";
 import GlobalTimeline from "./timeline/root";
 import { Separator } from "@repo/ui/components/separator";
@@ -58,6 +59,7 @@ interface TaskContentProps {
   ws: WebSocket | null;
   personal?: boolean;
   categories: schema.categoryType[];
+  releases?: schema.releaseType[];
 }
 
 interface TaskContentSideContentProps {
@@ -72,6 +74,7 @@ interface TaskContentSideContentProps {
     ? T
     : never;
   categories: schema.categoryType[];
+  releases?: schema.releaseType[];
   organization: schema.OrganizationWithMembers;
   panelControls?: {
     isPanelOpen: boolean;
@@ -89,6 +92,7 @@ export function TaskContentSideContent({
   wsClientId,
   runWithToast,
   categories,
+  releases = [],
   organization,
   panelControls,
 }: TaskContentSideContentProps) {
@@ -342,6 +346,34 @@ export function TaskContentSideContent({
                   }
                 }
               }}
+            />
+          </TileAction>
+        </Tile>
+      </div>
+      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
+        <Tile
+          className="md:w-full items-start p-0 flex-col gap-1"
+          variant={"transparent"}
+        >
+          <TileHeader>
+            <TileTitle asChild>
+              <Label variant={"description"} className="text-xs">
+                Release
+              </Label>
+            </TileTitle>
+          </TileHeader>
+          <TileAction>
+            <GlobalTaskRelease
+              showLabel
+              className="bg-transparent p-1 h-auto w-fit"
+              showChevron={false}
+              task={task}
+              editable={true}
+              useInternalLogic={true}
+              tasks={tasks}
+              setTasks={setTasks}
+              setSelectedTask={setSelectedTask}
+              releases={releases}
             />
           </TileAction>
         </Tile>
@@ -666,6 +698,7 @@ export function TaskContent({
   organization,
   personal = false,
   categories,
+  releases = [],
 }: TaskContentProps) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const status = statusConfig[task.status as keyof typeof statusConfig];
@@ -749,6 +782,7 @@ export function TaskContent({
             wsClientId={wsClientId}
             runWithToast={runWithToast}
             categories={categories}
+            releases={releases}
             organization={organization}
           />
         </div>
