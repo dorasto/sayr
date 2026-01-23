@@ -64,7 +64,6 @@ export function setBaseUrl(url: string) {
 export function setHooks(h: Hooks) {
     Object.assign(hooks, h);
 }
-
 export function resetClient() {
     config.token = undefined;
     config.headers = undefined;
@@ -78,48 +77,75 @@ export async function request<T>(
     path: string,
     opts: RequestOptions = {}
 ): Promise<T> {
-    const url = path.startsWith("http")
-        ? path
-        : `${config.baseUrl}${path}`;
 
-    hooks.onRequest?.(url, opts);
+    let url: string;
+    try {
+        url = path.startsWith("http")
+            ? path
+            : `${config.baseUrl}${path}`;
+    } catch (err) {
+        throw err;
+    }
+
+    try {
+        hooks.onRequest?.(url, opts);
+    } catch (err) {
+        throw err;
+    }
 
     let res: Response;
 
     try {
-        res = await config.fetch(url, {
-            method: opts.method ?? "GET",
+        const method = opts.method ?? "GET";
+
+
+        // 🔴 Guard: GET must not have body
+        if (method === "GET" && opts.body !== undefined) {
+            throw new Error("GET request cannot have a body");
+        }
+
+        res = await fetch(url, {
+            method,
             headers: {
                 ...(config.token
                     ? { Authorization: `Bearer ${config.token}` }
                     : {}),
-                ...(opts.body
+                ...(opts.body && method !== "GET"
                     ? { "Content-Type": "application/json" }
                     : {}),
                 ...config.headers,
                 ...opts.headers
             },
-            body: opts.body
-                ? JSON.stringify(opts.body)
-                : undefined,
+            body:
+                opts.body && method !== "GET"
+                    ? JSON.stringify(opts.body)
+                    : undefined,
             signal: opts.signal
         });
     } catch (err) {
         const error: ApiError = {
             success: false,
             error: "NETWORK_ERROR",
-            message: "Failed to reach Sayr API"
+            message: "Failed to reach Sayr API",
+            // 👇 keep raw error so we can see it
+            // @ts-ignore
+            raw: err
         };
+
         hooks.onError?.(error);
         throw error;
     }
 
-    hooks.onResponse?.(res);
+    try {
+        hooks.onResponse?.(res);
+    } catch (err) {
+        throw err;
+    }
 
     let json: any;
     try {
         json = await res.json();
-    } catch {
+    } catch (err) {
         const error: ApiError = {
             success: false,
             error: "INVALID_RESPONSE",
@@ -129,7 +155,6 @@ export async function request<T>(
         hooks.onError?.(error);
         throw error;
     }
-
     if (!res.ok || !json.success) {
         const error: ApiError = {
             ...json,
@@ -139,6 +164,5 @@ export async function request<T>(
         hooks.onError?.(error);
         throw error;
     }
-
     return json;
 }
