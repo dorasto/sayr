@@ -1,6 +1,6 @@
 {
   "name": "@sayrio/public",
-  "version": "0.0.9",
+  "version": "1.0.0",
   "description": "Sayr.io public REST + WebSocket SDK",
   "license": "MIT",
   "type": "module",
