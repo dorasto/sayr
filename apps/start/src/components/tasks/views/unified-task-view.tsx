@@ -34,6 +34,7 @@ import { TaskContent } from "../task/task-content";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
 import { useSticky } from "@/hooks/use-sticky";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
 
 interface UnifiedTaskViewProps {
   tasks: schema.TaskWithLabels[];
@@ -61,14 +62,17 @@ export function UnifiedTaskView({
     setMounted(true);
   }, []);
 
+  // Get views from context for auto-loading saved views
+  const { views } = useLayoutOrganization();
+
   // Shared State
   const { value: selectedTask, setValue: setSelectedTask } =
     useStateManagement<schema.TaskWithLabels | null>("task", null, 3000);
   const [taskContentOpen, setTaskContentOpen] = useTaskDetailParam();
 
-  // Consolidated task view state management
+  // Consolidated task view state management - pass views to enable auto-loading
   const { filters, grouping, subGrouping, showCompletedTasks, viewMode } =
-    useTaskViewManager();
+    useTaskViewManager(views);
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
