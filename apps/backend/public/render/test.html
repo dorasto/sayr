@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sayr.io testing grounds</title>
+
+    <style>
+        body {
+            background-color: #0e0e0e;
+            color: #eee;
+            font-family: monospace;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        /* Organization Card */
+
+        .org {
+            margin-top: 24px;
+            padding: 16px;
+            border: 1px solid #222;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #181818, #141414);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Header */
+
+        .org-header {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .logo {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: #222;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        /* Banner */
+
+        .banner {
+            width: 100%;
+            height: 160px;
+            border-radius: 12px;
+            margin-top: 12px;
+            object-fit: cover;
+            background: #111;
+        }
+
+        /* Text */
+
+        h1 {
+            font-size: 22px;
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 14px;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #aaa;
+        }
+
+        .meta {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #888;
+            line-height: 1.4;
+        }
+
+        /* Members */
+
+        .members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .member {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #111;
+            background: #222;
+            box-shadow: 0 0 0 1px #333;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .member img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .member:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 1px #4da3ff;
+        }
+
+        /* Member list text */
+
+        .member-list {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #777;
+            line-height: 1.5;
+        }
+
+        /* Links */
+
+        a {
+            color: #4da3ff;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="container"></div>
+
+    <script type="module">
+        import Sayr from "https://esm.sh/@sayrio/public@1.0.2";
+
+        const STORAGE_KEY = "sayr_api_key_local_test";
+
+        function getToken() {
+            let token = localStorage.getItem(STORAGE_KEY);
+
+            if (!token) {
+                token = prompt("Enter your Sayr API key");
+                if (token) {
+                    localStorage.setItem(STORAGE_KEY, token);
+                }
+            }
+
+            return token;
+        }
+
+        const token = getToken();
+
+        if (!token) {
+            document.body.innerHTML =
+                "<h2 class='meta'>Missing API key</h2>";
+            throw new Error("Missing API key");
+        }
+
+        Sayr.client.setToken(token);
+
+        const app = document.getElementById("app");
+
+        function renderError(message) {
+            app.innerHTML = `
+			<h2>Error</h2>
+			<p class="meta">${message}</p>
+		`;
+        }
+
+        function renderUser(user) {
+            const { id, name, email, image, createdAt } = user;
+
+            app.innerHTML = `
+			<div class="org-header">
+				<img
+					class="logo"
+					src="${image || "https://placehold.co/64x64"}"
+					alt="${name}"
+				/>
+				<div>
+					<h1>${name}</h1>
+					<div class="meta">${email}</div>
+					<div class="meta">User ID: ${id}</div>
+					<div class="meta">
+						Joined ${new Date(createdAt).toLocaleDateString()}
+					</div>
+				</div>
+			</div>
+
+			<h2>Organizations</h2>
+			<div id="orgs"></div>
+		`;
+        }
+
+        function renderOrganizations(orgs) {
+            const container = document.getElementById("orgs");
+
+            if (!orgs.length) {
+                container.innerHTML =
+                    `<p class="meta">No organizations</p>`;
+                return;
+            }
+
+            container.innerHTML = orgs
+                .map(
+                    (org) => `
+					<div class="org">
+						<div class="org-header">
+							<img
+								class="logo"
+								src="${org.logo || "https://placehold.co/64x64"}"
+								alt="${org.name}"
+							/>
+							<div>
+								<strong>${org.name}</strong>
+								<div class="meta">${org.slug}</div>
+							</div>
+						</div>
+
+						${org.bannerImg
+                            ? `<img class="banner" src="${org.bannerImg}" />`
+                            : ""
+                        }
+
+						<div class="meta">${org.description ?? ""}</div>
+
+						<div class="meta">
+							Created ${new Date(org.createdAt).toLocaleDateString()} ·
+							Updated ${new Date(org.updatedAt).toLocaleDateString()}
+						</div>
+
+						<h2>Members (${org.members.length})</h2>
+
+						<div class="members">
+							${org.members
+                            .map(
+                                (m) => `
+										<div class="member" title="${m.user.name}">
+											<img
+												src="${m.user.image || "https://placehold.co/26x26"}"
+												alt="${m.user.name}"
+											/>
+										</div>
+									`,
+                            )
+                            .join("")}
+						</div>
+
+						<div class="meta">
+							${org.members
+                            .map(
+                                (m) =>
+                                    `${m.user.name} (joined ${new Date(
+                                        m.createdAt,
+                                    ).toLocaleDateString()})`,
+                            )
+                            .join(", ")}
+						</div>
+					</div>
+				`,
+                )
+                .join("");
+        }
+
+        try {
+            const meRes = await Sayr.me.get();
+            if (meRes.success) renderUser(meRes.data);
+
+            const orgRes = await Sayr.me.organizations();
+            if (orgRes.success) renderOrganizations(orgRes.data);
+        } catch (err) {
+            console.error(err);
+            renderError(
+                "Failed to load user or organizations. Check API key.",
+            );
+        }
+    </script>
+</body>
+
+</html>

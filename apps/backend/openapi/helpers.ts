@@ -12,12 +12,14 @@ export const describeOkNotFound = <T extends z.ZodTypeAny>(opts: {
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	parameters?: any[];
 	tags?: string[];
+	security?: Record<string, string[]>[];
 }) =>
 	describeRoute({
 		summary: opts.summary,
 		description: opts.description,
 		parameters: opts.parameters,
 		tags: opts.tags,
+		security: opts.security,
 		responses: {
 			200: {
 				description: "Success",
@@ -50,11 +52,13 @@ export const describePaginatedRoute = <T extends z.ZodTypeAny>(opts: {
 	defaultLimit?: number;
 	maxLimit?: number;
 	tags?: string[] | undefined;
+	security?: Record<string, string[]>[];
 }) =>
 	describeRoute({
 		summary: opts.summary,
 		description: opts.description,
 		tags: opts.tags,
+		security: opts.security,
 		parameters: [
 			...(opts.parameters || []),
 			{

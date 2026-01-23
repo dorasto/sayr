@@ -1,12 +1,16 @@
 import {
     Task,
     Pagination,
-    ApiSuccess
+    ApiSuccess,
 } from "../../../types";
-import { request, type RequestOptions } from "../../../client";
+import {
+    ApiResult,
+    request,
+    type RequestOptions,
+} from "../../../client";
 import {
     type OrderedPaginationParams,
-    buildPaginationParams
+    buildPaginationParams,
 } from "../../../shared";
 
 /**
@@ -21,21 +25,40 @@ export default {
     async list(
         slug: string,
         params?: OrderedPaginationParams,
-        opts?: RequestOptions
-    ): Promise<{ data: Task[]; pagination: Pagination }> {
-        const q = buildPaginationParams(params);
+        opts?: RequestOptions,
+    ): Promise<
+        ApiResult<{
+            items: Task[];
+            pagination: Pagination;
+        }>
+    > {
+        try {
+            const q = buildPaginationParams(params);
 
-        const r = await request<
-            ApiSuccess<Task[]> & { pagination: Pagination }
-        >(
-            `/v1/organization/${slug}/tasks?${q}`,
-            opts
-        );
+            const r = await request<
+                ApiSuccess<Task[]> & { pagination: Pagination }
+            >(
+                `/v1/organization/${slug}/tasks?${q}`,
+                opts,
+            );
 
-        return {
-            data: r.data,
-            pagination: r.pagination
-        };
+            return {
+                success: true,
+                data: {
+                    items: r.data,
+                    pagination: r.pagination,
+                },
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error:
+                    err?.message ??
+                    "Failed to fetch tasks",
+            };
+        }
     },
 
     /**
@@ -46,12 +69,27 @@ export default {
     async get(
         slug: string,
         shortId: number,
-        opts?: RequestOptions
-    ): Promise<Task> {
-        const r = await request<ApiSuccess<Task>>(
-            `/v1/organization/${slug}/tasks/${shortId}`,
-            opts
-        );
-        return r.data;
-    }
+        opts?: RequestOptions,
+    ): Promise<ApiResult<Task>> {
+        try {
+            const r = await request<ApiSuccess<Task>>(
+                `/v1/organization/${slug}/tasks/${shortId}`,
+                opts,
+            );
+
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error:
+                    err?.message ??
+                    "Failed to fetch task",
+            };
+        }
+    },
 };

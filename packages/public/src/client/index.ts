@@ -10,6 +10,12 @@ export type RequestOptions = {
     signal?: AbortSignal;
 };
 
+export interface ApiResult<T> {
+    success: boolean;
+    data: T | null;
+    error: string | null;
+}
+
 type Hooks = {
     onRequest?: (url: string, opts: RequestOptions) => void;
     onResponse?: (res: Response) => void;
@@ -19,7 +25,6 @@ type Hooks = {
 type ClientConfig = {
     token?: string;
     headers?: Record<string, string>;
-    fetch: typeof fetch;
     baseUrl: string;
 };
 
@@ -29,7 +34,6 @@ type ClientConfig = {
 const DEFAULT_API = "https://api.sayr.io";
 
 const config: ClientConfig = {
-    fetch: globalThis.fetch,
     baseUrl: DEFAULT_API
 };
 
@@ -51,10 +55,6 @@ export function setHeaders(headers?: Record<string, string>) {
         ...config.headers,
         ...headers
     };
-}
-
-export function setFetch(fn: typeof fetch) {
-    config.fetch = fn;
 }
 
 export function setBaseUrl(url: string) {

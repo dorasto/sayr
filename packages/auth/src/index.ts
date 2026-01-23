@@ -2,7 +2,7 @@ import * as schema from "@repo/database";
 import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, genericOAuth } from "better-auth/plugins";
+import { admin, apiKey, genericOAuth } from "better-auth/plugins";
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
 const isProd = process.env.APP_ENV === "production";
 // Auth callback URL for OAuth providers (must be consistent subdomain)
@@ -13,7 +13,10 @@ const isBarelocalhost = rootUrl === "localhost";
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
-		schema: schema.auth,
+		schema: {
+			...schema.auth,
+			apikey: schema.schema.apikey,
+		},
 	}),
 	trustedOrigins: [
 		`http://${rootUrl}`,
@@ -69,6 +72,7 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [
+		apiKey({ enableMetadata: true, defaultPrefix: "api_", defaultKeyLength: 64 }),
 		admin(),
 		genericOAuth({
 			config: [

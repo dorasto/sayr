@@ -26,6 +26,21 @@ export interface Pagination {
  * Organization
  * ======================= */
 
+export interface OrganizationUser {
+    id: string;
+    name: string;
+    image: string | null;
+    createdAt: string;
+}
+
+export interface OrganizationMember {
+    id: string;
+    userId: string;
+    organizationId: string;
+    createdAt: string;
+    user: OrganizationUser;
+}
+
 export interface Organization {
     id: string;
     name: string;
@@ -35,6 +50,7 @@ export interface Organization {
     description: string;
     createdAt: string;
     updatedAt: string;
+    members: OrganizationMember[];
     wsUrl: string;
 }
 

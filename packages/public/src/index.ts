@@ -18,7 +18,6 @@ import {
    setBaseUrl,
    resetClient,
    setHooks,
-   setFetch
 } from "./client";
 
 /* ────────────────────────────
@@ -52,7 +51,6 @@ export const SayrClient = {
    setBaseUrl,
    resetClient,
    setHooks,
-   setFetch
 };
 
 /* ────────────────────────────

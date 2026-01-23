@@ -160,112 +160,78 @@
     </div>
     <script type="module">
         import Sayr from "https://esm.sh/@sayrio/public";
-        const parts = window.location.pathname.split('/').filter(Boolean);
+
+        const parts = window.location.pathname.split("/").filter(Boolean);
         let ORG_SLUG = null;
-        if (parts[1] === 'org') {
+
+        if (parts[1] === "org") {
             // /render/org/:orgName
             ORG_SLUG = parts[2] || null;
         }
 
         if (!ORG_SLUG) {
-            document.body.innerHTML = "<h1>Missing ?org=</h1>";
+            document.body.innerHTML = "<h1>Missing org slug</h1>";
             throw new Error("Missing org slug");
         }
 
         const membersEl = document.getElementById("org-members");
         const tasksEl = document.getElementById("org-tasks");
 
-        /* ----------------------------
-         * Load organization
-         * ---------------------------- */
-
-        const org = await Sayr.org.get(ORG_SLUG);
-
-        document.title = org.name + " · Sayr.io";
-        document.getElementById("org-name").textContent = org.name;
-        document.getElementById("org-description").textContent =
-            org.description || "";
-
         const logo = document.getElementById("org-logo");
-        if (org.logo) {
-            logo.src = org.logo;
-        } else {
-            logo.style.display = "none";
-        }
-
         const banner = document.getElementById("org-banner");
-        if (org.bannerImg) {
-            banner.src = org.bannerImg;
-        } else {
-            banner.style.display = "none";
+
+        function setMeta(org) {
+            document.getElementById("org-meta").innerHTML = `
+			<div>Slug: ${org.slug}</div>
+			<div>Created: ${new Date(org.createdAt).toLocaleDateString()}</div>
+		`;
         }
 
-        document.getElementById("org-meta").innerHTML = `
-    <div>Slug: ${org.slug}</div>
-    <div>Created: ${new Date(org.createdAt).toLocaleDateString()}</div>
-  `;
+        function setOrgUI(org) {
+            document.title = `${org.name} · Sayr.io`;
+            document.getElementById("org-name").textContent = org.name;
+            document.getElementById("org-description").textContent =
+                org.description || "";
 
-        renderMembers(org.members);
+            if (org.logo) {
+                logo.src = org.logo;
+                logo.style.display = "";
+            } else {
+                logo.style.display = "none";
+            }
 
-        /* ----------------------------
-         * Load tasks
-         * ---------------------------- */
+            if (org.bannerImg) {
+                banner.src = org.bannerImg;
+                banner.style.display = "";
+            } else {
+                banner.style.display = "none";
+            }
 
-        async function loadTasks() {
-            const { data: tasks } = await Sayr.org.tasks.list(ORG_SLUG, {
-                order: "asc",
-                limit: 30,
-                page: 1
-            });
-
-            renderTasks(tasks);
+            setMeta(org);
+            renderMembers(org.members || []);
         }
-
-        await loadTasks();
-
-        /* ----------------------------
-         * WebSocket (SDK)
-         * ---------------------------- */
-
-        Sayr.ws(org.wsUrl, {
-            [Sayr.WS_EVENTS.UPDATE_ORG]: (data) => {
-                document.title = data.name + " · Sayr.io";
-                document.getElementById("org-name").textContent = data.name;
-                document.getElementById("org-description").textContent =
-                    data.description || "";
-
-                if (data.logo) logo.src = data.logo;
-                if (data.bannerImg) banner.src = data.bannerImg;
-            },
-
-            [Sayr.WS_EVENTS.CREATE_TASK]: loadTasks,
-            [Sayr.WS_EVENTS.UPDATE_TASK]: loadTasks,
-            [Sayr.WS_EVENTS.UPDATE_TASK_VOTE]: loadTasks
-        });
-
-        /* ----------------------------
-         * Render helpers
-         * ---------------------------- */
 
         function renderMembers(members = []) {
             const MAX = 20;
             const extra = members.length - MAX;
 
             membersEl.innerHTML = `
-      ${members
+			${members
                     .slice(0, MAX)
-                    .map(
-                        (m) =>
-                            `<div class="member" title="${m.user.name}">
-              <img src="${m.user.image || ""}" alt="${m.user.name}" />
-            </div>`
-                    )
+                    .map((m) => {
+                        const img = m.user.image || "https://placehold.co/26x26";
+                        return `
+						<div class="member" title="${m.user.name}">
+							<img src="${img}" alt="${m.user.name}" />
+						</div>
+					`;
+                    })
                     .join("")}
-      ${extra > 0
+			${extra > 0
                     ? `<div class="member more" title="+${extra} more">+${extra}</div>`
                     : ""
                 }
-    `;
+		`;
         }
 
         function stripHtml(html = "") {
@@ -276,36 +242,96 @@
 
         function renderTasks(tasks = []) {
             if (!tasks.length) {
+                tasksEl.className = "";
                 tasksEl.innerHTML = "<div class='meta'>No tasks yet</div>";
                 return;
             }
 
             tasksEl.className = "tasks";
-
             tasksEl.innerHTML = tasks
                 .map(
                     (task) => `
-          <a class="task" href="/render/org/${ORG_SLUG}/${task.shortId}">
-            <div class="task-title">
-              #${task.shortId} · ${task.title}
-            </div>
+					<a class="task" href="/render/org/${ORG_SLUG}/${task.shortId}">
+						<div class="task-title">
+							#${task.shortId} · ${task.title}
+						</div>
 
-            ${task.descriptionHtml
+						${task.descriptionHtml
                             ? `<div class="task-desc">${stripHtml(
-                                task.descriptionHtml
+                                task.descriptionHtml,
                             )}</div>`
                             : ""
                         }
 
-            <div class="task-meta">
-              <span>Status: ${task.status}</span>
-              <span>Priority: ${task.priority}</span>
-              <span>Votes: ${task.voteCount}</span>
-            </div>
-          </a>
-        `
+						<div class="task-meta">
+							<span>Status: ${task.status}</span>
+							<span>Priority: ${task.priority}</span>
+							<span>Votes: ${task.voteCount}</span>
+						</div>
+					</a>
+				`,
                 )
                 .join("");
+        }
+
+        /* ----------------------------
+         * Load organization
+         * ---------------------------- */
+
+        const orgRes = await Sayr.org.get(ORG_SLUG);
+
+        if (!orgRes.success || !orgRes.data) {
+            document.body.innerHTML = `
+			<div class="container">
+				<h1>Organization not found</h1>
+				<p class="meta">${orgRes.error ?? "Unknown error"}</p>
+			</div>
+		`;
+            throw new Error(orgRes.error ?? "Failed to fetch organization");
+        }
+
+        const org = orgRes.data;
+        setOrgUI(org);
+
+        /* ----------------------------
+         * Load tasks
+         * ---------------------------- */
+
+        async function loadTasks() {
+            const tasksRes = await Sayr.org.tasks.list(ORG_SLUG, {
+                order: "asc",
+                limit: 30,
+                page: 1,
+            });
+
+            if (!tasksRes.success || !tasksRes.data) {
+                renderTasks([]);
+                return;
+            }
+
+            renderTasks(tasksRes.data.items ?? []);
+        }
+
+        await loadTasks();
+
+        /* ----------------------------
+         * WebSocket (SDK)
+         * ---------------------------- */
+
+        if (org.wsUrl) {
+            Sayr.ws(org.wsUrl, {
+                [Sayr.WS_EVENTS.UPDATE_ORG]: (data) => {
+                    // If WS payload is partial, merge safely:
+                    setOrgUI({
+                        ...org,
+                        ...data,
+                    });
+                },
+
+                [Sayr.WS_EVENTS.CREATE_TASK]: loadTasks,
+                [Sayr.WS_EVENTS.UPDATE_TASK]: loadTasks,
+                [Sayr.WS_EVENTS.UPDATE_TASK_VOTE]: loadTasks,
+            });
         }
     </script>
 </body>
