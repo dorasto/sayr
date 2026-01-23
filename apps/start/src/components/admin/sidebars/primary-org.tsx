@@ -32,6 +32,7 @@ import {
   IconDots,
   IconProgress,
   IconSettings,
+  IconStack2,
   IconUsers,
 } from "@tabler/icons-react";
 import { Link, useLocation, useRouterState } from "@tanstack/react-router";
@@ -136,7 +137,7 @@ export default function OrgSection({
                   </div>
                 </CollapsibleTrigger>
               }
-            // tooltip={item.title}
+              // tooltip={item.title}
             >
               {organization.name}
             </SidebarMenuButton>
@@ -180,9 +181,26 @@ export default function OrgSection({
             </SidebarMenuItem>
             <SidebarMenuItem
               className="cursor-pointer min-h-auto"
-              isActive={pathname.includes(
-                `/settings/org/${organization.id}`,
-              )}
+              isActive={pathname.includes(`/${organization.id}/views`)}
+            >
+              <Link
+                to={`/$orgId/views`}
+                params={{ orgId: organization.id }}
+                className="w-full cursor-pointer"
+              >
+                <SidebarMenuButton
+                  size="small"
+                  className="cursor-pointer"
+                  icon={<IconStack2 size={16} />}
+                  tooltip={"Views"}
+                >
+                  <span>Views</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem
+              className="cursor-pointer min-h-auto"
+              isActive={pathname.includes(`/settings/org/${organization.id}`)}
             >
               <Link
                 to={`/settings/org/$orgId`}
