@@ -72,6 +72,14 @@ http:
       service: backend
       priority: 400
 
+    # Root path -> /api/public (NO trailing slash)
+    api-subdomain-root:
+      rule: "Host(`api.${VITE_ROOT_DOMAIN}`) && Path(`/`)"
+      middlewares:
+        - api-public-root
+      service: backend
+      priority: 350
+
     # All other traffic -> /api/public/*
     api-subdomain:
       rule: "Host(`api.${VITE_ROOT_DOMAIN}`)"
@@ -130,10 +138,16 @@ http:
         replacement: "http://admin.${VITE_ROOT_DOMAIN}/login"
         permanent: false
 
+    # Root-only rewrite (no trailing slash)
+    api-public-root:
+      replacePath:
+        path: "/api/public"
+
+    # General rewrite
     api-public-rewrite:
       replacePathRegex:
-        regex: "^/(.*)"
-        replacement: "/api/public/$1"
+        regex: "^(.*)"
+        replacement: "/api/public$1"
 
     # Headers for proxied requests
     proxy-headers:
