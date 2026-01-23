@@ -11,6 +11,7 @@ export interface ApiError {
     success: false;
     error: string;
     message?: string;
+    status?: number;
 }
 
 export interface Pagination {

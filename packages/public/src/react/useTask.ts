@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { org } from "..";
 import type { Task } from "../types";
+import Sayr from "..";
 
 export function useTask(
     slug?: string,
@@ -13,8 +13,7 @@ export function useTask(
         if (!slug || shortId == null) return;
 
         setLoading(true);
-        org
-            .task(slug, shortId)
+        Sayr.org.tasks.get(slug, shortId)
             .then(setTask)
             .finally(() => setLoading(false));
     }, [slug, shortId]);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { org, wsTypes } from "..";
 import type { Task } from "../types";
 import { useSayrWS } from "./useSayrWS";
+import Sayr from "..";
 export function useTasks(
     slug?: string,
     wsUrl?: string
@@ -12,8 +12,7 @@ export function useTasks(
     function fetchTasks() {
         if (!slug) return;
         setLoading(true);
-        org
-            .tasks(slug)
+        Sayr.org.tasks.list(slug)
             .then((r) => setTasks(r.data))
             .finally(() => setLoading(false));
     }
@@ -21,8 +20,8 @@ export function useTasks(
     useEffect(fetchTasks, [slug]);
 
     useSayrWS(wsUrl, {
-        [wsTypes.CREATE_TASK]: fetchTasks,
-        [wsTypes.UPDATE_TASK]: fetchTasks
+        [Sayr.WS_EVENTS.CREATE_TASK]: fetchTasks,
+        [Sayr.WS_EVENTS.UPDATE_TASK]: fetchTasks
     });
 
     return { tasks, loading, refetch: fetchTasks };

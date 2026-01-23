@@ -1,5 +1,5 @@
 import type { UserWithRole } from "better-auth/plugins";
-const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 /**
  * Set the role of a user.
@@ -16,7 +16,7 @@ export async function consoleSetUserRoleAction(
 		userId: userId,
 		role: role,
 	};
-	const result = await fetch(`${API_URL}/console/set-role`, {
+	const result = await fetch(`${API_URL}/v1/console/set-role`, {
 		method: "POST",
 		body: JSON.stringify(payload),
 		headers: {

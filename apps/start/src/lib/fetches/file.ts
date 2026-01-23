@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 /**
  * Uploads a file to the `/file/upload` endpoint.
@@ -48,7 +48,7 @@ export async function uploadFile(
 			timestamp: uploadStart,
 		});
 
-		const res = await fetch(`${API_URL}/file`, {
+		const res = await fetch(`${API_URL}/v1/file`, {
 			method: "PUT",
 			body: formData,
 			credentials: "include",
@@ -134,7 +134,7 @@ export async function deleteFile(fileUrl: string): Promise<{
 			timestamp: deleteStart,
 		});
 
-		const res = await fetch(`${API_URL}/file`, {
+		const res = await fetch(`${API_URL}/v1/file`, {
 			method: "DELETE",
 			headers: {
 				"Content-Type": "application/json",

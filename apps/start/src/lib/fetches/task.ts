@@ -1,7 +1,7 @@
 import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
-const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 /**
  * Calls the `/admin/task/create` API to create a new task
@@ -55,7 +55,7 @@ export async function createTaskAction(
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	console.info("Creating task", { organizationId, title: data.title });
-	const result = await fetch(`${API_URL}/admin/organization/task/create`, {
+	const result = await fetch(`${API_URL}/v1/admin/organization/task/create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
@@ -148,7 +148,7 @@ export async function updateTaskAction(
 		updates: Object.keys(data),
 	});
 
-	const result = await fetch(`${API_URL}/admin/organization/task/update`, {
+	const result = await fetch(`${API_URL}/v1/admin/organization/task/update`, {
 		method: "PATCH",
 		body: JSON.stringify(payload),
 		headers: {
@@ -209,7 +209,7 @@ export async function updateLabelToTaskAction(
 		labels: labels,
 	};
 
-	const result = await fetch(`${API_URL}/admin/organization/task/update-labels`, {
+	const result = await fetch(`${API_URL}/v1/admin/organization/task/update-labels`, {
 		method: "POST",
 		body: JSON.stringify(payload),
 		headers: {
@@ -268,7 +268,7 @@ export async function updateAssigneesToTaskAction(
 		assignees: assignees,
 	};
 
-	const result = await fetch(`${API_URL}/admin/organization/task/update-assignees`, {
+	const result = await fetch(`${API_URL}/v1/admin/organization/task/update-assignees`, {
 		method: "POST",
 		body: JSON.stringify(payload),
 		headers: {
@@ -330,7 +330,7 @@ export async function CreateTaskCommentAction(
 		content: content,
 	};
 
-	const result = await fetch(`${API_URL}/admin/organization/task/create-comment`, {
+	const result = await fetch(`${API_URL}/v1/admin/organization/task/create-comment`, {
 		method: "POST",
 		body: JSON.stringify(payload),
 		headers: {
@@ -354,7 +354,7 @@ export async function UpdateTaskCommentAction(
 	visibility: "internal" | "public",
 	wsClientId: string
 ) {
-	const res = await fetch(`${API_URL}/admin/organization/task/edit-comment`, {
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/edit-comment`, {
 		method: "PUT",
 		headers: { "Content-Type": "application/json" },
 		credentials: "include",
@@ -438,7 +438,7 @@ export async function CreateTaskReactionAction(
 		wsClientId,
 	};
 
-	const res = await fetch(`${API_URL}/admin/organization/task/create-reaction`, {
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/create-reaction`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		credentials: "include",
@@ -530,7 +530,7 @@ export async function CreateTaskVoteAction(
 	};
 
 	const res = await fetch(
-		`${API_URL}/admin/organization/task/create-vote`,
+		`${API_URL}/v1/admin/organization/task/create-vote`,
 		{
 			method: "POST",
 			headers: { "Content-Type": "application/json" },

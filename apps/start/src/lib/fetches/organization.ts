@@ -1,6 +1,6 @@
 import type { schema, TeamPermissions } from "@repo/database";
 
-const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 export interface CreateOrganizationData {
   name: string;
@@ -30,7 +30,7 @@ export async function createOrganizationAction(
   error?: string;
 }> {
   console.info("Creating organization", { data });
-  const result = await fetch(`${API_URL}/admin/organization/create`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/create`, {
     method: "POST",
     body: JSON.stringify(data),
     headers: {
@@ -64,7 +64,7 @@ export async function updateOrganizationAction(
   error?: string;
 }> {
   console.info("Updating organization", { organizationId, data });
-  const result = await fetch(`${API_URL}/admin/organization/update`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/update`, {
     method: "POST",
     body: JSON.stringify({
       org_id: organizationId,
@@ -106,7 +106,7 @@ export async function uploadOrganizationLogo(
   formData.append("file", file);
 
   const res = await fetch(
-    `${API_URL}/admin/organization/${organizationId}/logo`,
+    `${API_URL}/v1/admin/organization/${organizationId}/logo`,
     {
       method: "PUT",
       body: formData,
@@ -145,7 +145,7 @@ export async function uploadOrganizationBanner(
   formData.append("file", file);
 
   const res = await fetch(
-    `${API_URL}/admin/organization/${organizationId}/banner`,
+    `${API_URL}/v1/admin/organization/${organizationId}/banner`,
     {
       method: "PUT",
       body: formData,
@@ -177,7 +177,7 @@ export async function inviteAction(
   error?: string;
 }> {
   console.info("Inviting organization member", { invite, type });
-  const result = await fetch(`${API_URL}/admin/invite`, {
+  const result = await fetch(`${API_URL}/v1/admin/invite`, {
     method: "POST",
     body: JSON.stringify({ invite, type }),
     headers: {
@@ -220,7 +220,7 @@ export async function inviteOrganizationMembersAction(
   console.info("Inviting organization members", { organizationId });
 
   try {
-    const response = await fetch(`${API_URL}/admin/organization/member`, {
+    const response = await fetch(`${API_URL}/v1/admin/organization/member`, {
       method: "POST",
       body: JSON.stringify({
         org_id: organizationId,
@@ -269,7 +269,7 @@ export async function deleteOrganizationMemberAction(
   error?: string;
 }> {
   console.info("Deleting organization member", { organizationId, userId });
-  const result = await fetch(`${API_URL}/admin/organization/member`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/member`, {
     method: "DELETE",
     body: JSON.stringify({
       org_id: organizationId,
@@ -311,7 +311,7 @@ export async function createLabelAction(
     wsClientId,
   };
 
-  const result = await fetch(`${API_URL}/admin/organization/create-label`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/create-label`, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -353,7 +353,7 @@ export async function editLabelAction(
     wsClientId,
   };
 
-  const result = await fetch(`${API_URL}/admin/organization/edit-label`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/edit-label`, {
     method: "PATCH",
     body: JSON.stringify(payload),
     headers: {
@@ -391,7 +391,7 @@ export async function deleteLabelAction(
     wsClientId,
   };
 
-  const result = await fetch(`${API_URL}/admin/organization/delete-label`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/delete-label`, {
     method: "DELETE",
     body: JSON.stringify(payload),
     headers: {
@@ -436,7 +436,7 @@ export async function createSavedViewAction(
     viewConfig: data.viewConfig,
     wsClientId,
   };
-  const result = await fetch(`${API_URL}/admin/organization/create-view`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/create-view`, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -483,7 +483,7 @@ export async function updateSavedViewAction(
     viewConfig: data.viewConfig,
     wsClientId,
   };
-  const result = await fetch(`${API_URL}/admin/organization/update-view`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/update-view`, {
     method: "PATCH",
     body: JSON.stringify(payload),
     headers: {
@@ -521,7 +521,7 @@ export async function deleteSavedViewAction(
     wsClientId,
   };
 
-  const result = await fetch(`${API_URL}/admin/organization/delete-view`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/delete-view`, {
     method: "DELETE",
     body: JSON.stringify(payload),
     headers: {
@@ -563,7 +563,7 @@ export async function createCategoryAction(
     wsClientId,
   };
 
-  const result = await fetch(`${API_URL}/admin/organization/create-category`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/create-category`, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -607,7 +607,7 @@ export async function editCategoryAction(
     wsClientId,
   };
 
-  const result = await fetch(`${API_URL}/admin/organization/edit-category`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/edit-category`, {
     method: "PATCH",
     body: JSON.stringify(payload),
     headers: {
@@ -645,7 +645,7 @@ export async function deleteCategoryAction(
     wsClientId,
   };
 
-  const result = await fetch(`${API_URL}/admin/organization/delete-category`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/delete-category`, {
     method: "DELETE",
     body: JSON.stringify(payload),
     headers: {
@@ -687,7 +687,7 @@ export async function createGithubSyncConnectionAction(
   };
 
   const result = await fetch(
-    `${API_URL}/admin/organization/connections/github/sync-repo`,
+    `${API_URL}/v1/admin/organization/connections/github/sync-repo`,
     {
       method: "POST",
       body: JSON.stringify(payload),
@@ -731,7 +731,7 @@ export async function createOrganizationTeamAction(
     description: data.description,
     permissions: data.permissions,
   };
-  const result = await fetch(`${API_URL}/admin/organization/team`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/team`, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -775,7 +775,7 @@ export async function editOrganizationTeamAction(
     description: data.description,
     permissions: data.permissions,
   };
-  const result = await fetch(`${API_URL}/admin/organization/team`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/team`, {
     method: "PATCH",
     body: JSON.stringify(payload),
     headers: {
@@ -810,7 +810,7 @@ export async function deleteOrganizationTeamAction(
     org_id: organizationId,
     team_id: teamId,
   };
-  const result = await fetch(`${API_URL}/admin/organization/team`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/team`, {
     method: "DELETE",
     body: JSON.stringify(payload),
     headers: {
@@ -848,7 +848,7 @@ export async function addOrganizationMemberToTeamAction(
     team_id: teamId,
     member_id: memberId,
   };
-  const result = await fetch(`${API_URL}/admin/organization/team-member`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/team-member`, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -886,7 +886,7 @@ export async function removeOrganizationMemberFromTeamAction(
     team_id: teamId,
     member_id: memberId,
   };
-  const result = await fetch(`${API_URL}/admin/organization/team-member`, {
+  const result = await fetch(`${API_URL}/v1/admin/organization/team-member`, {
     method: "DELETE",
     body: JSON.stringify(payload),
     headers: {
@@ -942,7 +942,7 @@ export async function createIssueTemplateAction(
   };
 
   const result = await fetch(
-    `${API_URL}/admin/organization/create-issue-template`,
+    `${API_URL}/v1/admin/organization/create-issue-template`,
     {
       method: "POST",
       body: JSON.stringify(payload),
@@ -1003,7 +1003,7 @@ export async function editIssueTemplateAction(
   };
 
   const result = await fetch(
-    `${API_URL}/admin/organization/edit-issue-template`,
+    `${API_URL}/v1/admin/organization/edit-issue-template`,
     {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -1048,7 +1048,7 @@ export async function deleteIssueTemplateAction(
   };
 
   const result = await fetch(
-    `${API_URL}/admin/organization/delete-issue-template`,
+    `${API_URL}/v1/admin/organization/delete-issue-template`,
     {
       method: "DELETE",
       body: JSON.stringify(payload),

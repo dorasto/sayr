@@ -1,13 +1,12 @@
 import { Hono } from "hono";
 import { routeExists, type AppEnv } from "@/index";
-import { apiRouteAdmin } from "./admin";
-import { apiRouteFile } from "./file";
-import { apiRouteConsole } from "./console";
-import { apiPublicRoute } from "./public";
+import { apiPublicRouteV1 } from "./public/v1";
+import { internalApiV1 } from "./internal/v1";
 import { safeGetSession } from "@/getSession";
 import { db, hasOrgPermission, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { Scalar } from "@scalar/hono-api-reference";
 
 // Main API router
 export const apiRoute = new Hono<AppEnv>();
@@ -15,7 +14,27 @@ apiRoute.use("*", async (c, next) => {
 	c.header("X-API-Version", "1.0.0");
 	return next();
 });
-apiRoute.route("/public", apiPublicRoute);
+apiRoute.route("/public/v1", apiPublicRouteV1);
+apiRoute.get(
+	"/public",
+	Scalar(() => {
+		return {
+			defaultHttpClient: { targetKey: "node", clientKey: "fetch" },
+			theme: "deepSpace",
+			hideClientButton: true,
+			showDeveloperTools: "never",
+			pageTitle: "Sayr.io API",
+			sources: [
+				{
+					default: true,
+					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api/public/v1` : `https://api.${process.env.VITE_ROOT_DOMAIN}/v1`}/openapi.json`,
+					title: "Public V1 API",
+					slug: "public-v1",
+				},
+			],
+		};
+	})
+);
 apiRoute.use("*", async (c, next) => {
 	const method = c.req.method;
 	const path = c.req.path;
@@ -121,11 +140,4 @@ apiRoute.get("/github/org-check", async (c) => {
 	return c.redirect(redirectUrl, 302);
 });
 
-// Admin routes
-apiRoute.route("/admin", apiRouteAdmin);
-
-// Admin routes
-apiRoute.route("/console", apiRouteConsole);
-
-// File routes
-apiRoute.route("/file", apiRouteFile);
+apiRoute.route("/internal/v1", internalApiV1);

@@ -1,4 +1,3 @@
-
 # @sayrio/public
 
 Public JavaScript & TypeScript SDK for **Sayr.io**.  
@@ -8,28 +7,34 @@ real‑time updates via WebSockets.
 - ✅ REST + WebSocket
 - ✅ Browser‑safe
 - ✅ TypeScript first
-- ✅ React hooks included (`/react`)
 - ✅ Zero runtime dependencies
+- ✅ Versioned API (`v1`)
+
+> React hooks are available via the **`@sayrio/public/react`** sub‑path export.
 
 ---
 
 ## Installation
 
-Install the public Sayr SDK using your preferred package manager:
-
 ```bash
 npm install @sayrio/public
 ```
+
 or
+
 ```bash
 pnpm add @sayrio/public
 ```
+
+---
 
 ## Usage
 
 ### Basic Usage (REST)
 
-Fetch public organization data using the REST API:
+Fetch public organization data.
+
+`Sayr.org` is an alias for the current API version (`v1`):
 
 ```ts
 import Sayr from "@sayrio/public";
@@ -39,20 +44,35 @@ const org = await Sayr.org.get("acme");
 console.log(org.name);
 ```
 
+You can also use the versioned API explicitly:
+
+```ts
+const org = await Sayr.v1.org.get("acme");
+```
+
 ---
 
 ### Listing Tasks
 
-Retrieve tasks for an organization with pagination and ordering support:
+Retrieve tasks for an organization:
 
 ```ts
-const { data: tasks, pagination } =
-  await Sayr.org.tasks("acme", {
-    order: "desc",
-    limit: 10
-  });
+const { data: tasks } = await Sayr.org.tasks.list("acme", {
+  order: "desc",
+  limit: 10
+});
 
 console.log(tasks);
+```
+
+---
+
+### Fetching a Single Task
+
+```ts
+const task = await Sayr.org.tasks.get("acme", 42);
+
+console.log(task.title);
 ```
 
 ---
@@ -63,86 +83,76 @@ Fetch comments for a specific task:
 
 ```ts
 const { data: comments } =
-  await Sayr.org.comments("acme", 12);
+  await Sayr.org.comments.list("acme", 42);
 
 console.log(comments);
 ```
 
 ---
 
-### Real-Time Updates (WebSocket)
+### Labels & Categories
 
-Subscribe to public real-time events using WebSockets:
+```ts
+const labels = await Sayr.org.labels.list("acme");
+const categories = await Sayr.org.categories.list("acme");
+```
+
+---
+
+## Authenticated User (`/me`)
+
+The `/me` namespace provides **read‑only access** to the currently
+authenticated user.
+
+> Authentication is required.  
+> Set a token using `Sayr.client.setToken(...)`.
+
+---
+
+### Fetch Current User
+
+```ts
+Sayr.client.setToken(token);
+
+const me = await Sayr.me.get();
+
+console.log(me.email);
+```
+
+---
+
+### List Your Organizations
+
+```ts
+const orgs = await Sayr.me.organizations();
+
+console.log(orgs);
+```
+
+---
+
+## Real‑Time Updates (WebSocket)
+
+Subscribe to public real‑time events using WebSockets:
 
 ```ts
 Sayr.ws(org.wsUrl, {
-  [Sayr.wsTypes.UPDATE_ORG]: (data) => {
-    console.log("Organization updated", data);
-  },
-
-  [Sayr.wsTypes.UPDATE_TASK]: (task) => {
+  [Sayr.WS_EVENTS.UPDATE_TASK]: (task) => {
     console.log("Task updated", task);
   }
 });
 ```
 
 ### WebSocket Features
+
 - Automatic reconnection
 - Heartbeat support (PING / PONG)
 - Typed event constants
-- Public-safe payloads only
-
----
-
-## React Hooks
-
-React hooks are available via a dedicated sub-path export:
-
-```ts
-import { useOrg, useTasks, useComments } from "@sayrio/public/react";
-```
-
----
-
-### `useOrg`
-
-Fetch and subscribe to an organization:
-
-```tsx
-const { data: org, loading } = useOrg("acme");
-```
-
----
-
-### `useTasks`
-
-Fetch and subscribe to tasks for an organization:
-
-```tsx
-const { tasks } = useTasks("acme", org?.wsUrl);
-```
-
----
-
-### `useComments`
-
-Fetch and subscribe to comments for a task:
-
-```tsx
-const { comments } = useComments(
-  "acme",
-  task.shortId,
-  org?.wsUrl
-);
-```
-
-Hooks automatically refresh when relevant WebSocket events occur.
+- Public‑safe payloads only
 
 ---
 
 ## Browser Usage (No Bundler)
-
-The SDK can be used directly in the browser via ESM:
 
 ```html
 <script type="module">
@@ -157,17 +167,59 @@ The SDK can be used directly in the browser via ESM:
 
 ## API
 
-### `Sayr.org`
+### `Sayr.org` (latest)
 
-| Method                           | Description                 |
-| -------------------------------- | --------------------------- |
-| `get(slug)`                      | Fetch a public organization |
-| `labels(slug)`                   | List organization labels    |
-| `categories(slug, order?)`       | List categories             |
-| `tasks(slug, opts?)`             | List tasks (paginated)      |
-| `task(slug, shortId)`            | Fetch a single task         |
-| `comments(slug, shortId, opts?)` | List task comments          |
+Alias for `Sayr.v1.org`.
 
+#### Organization
+
+| Method      | Description                 |
+| ----------- | --------------------------- |
+| `get(slug)` | Fetch a public organization |
+
+---
+
+#### Tasks
+
+| Method                      | Description            |
+| --------------------------- | ---------------------- |
+| `tasks.list(slug, opts?)`   | List tasks (paginated) |
+| `tasks.get(slug, shortId)`  | Fetch a single task    |
+
+---
+
+#### Comments
+
+| Method                                | Description        |
+| ------------------------------------- | ------------------ |
+| `comments.list(slug, shortId, opts?)` | List task comments |
+
+---
+
+#### Labels
+
+| Method              | Description              |
+| ------------------- | ------------------------ |
+| `labels.list(slug)` | List organization labels |
+
+---
+
+#### Categories
+
+| Method                         | Description     |
+| ------------------------------ | --------------- |
+| `categories.list(slug, order?)` | List categories |
+
+---
+
+### `Sayr.me`
+
+Authenticated user endpoints.
+
+| Method              | Description                            |
+| ------------------- | -------------------------------------- |
+| `get()`             | Fetch the current authenticated user   |
+| `organizations()`   | List organizations the user belongs to |
 
 ---
 
@@ -180,19 +232,19 @@ const conn = Sayr.ws(wsUrl, {
   UPDATE_TASK: () => {}
 });
 
-// Close the connection when no longer needed
 conn.close();
 ```
 
 ---
 
-### `Sayr.wsTypes`
+### `WS_EVENTS`
+
+Typed WebSocket event constants:
 
 ```ts
-Sayr.wsTypes.UPDATE_TASK
-Sayr.wsTypes.UPDATE_ORG
-Sayr.wsTypes.ERROR
-// ...
+Sayr.WS_EVENTS.UPDATE_TASK;
+Sayr.WS_EVENTS.UPDATE_ORG;
+Sayr.WS_EVENTS.ERROR;
 ```
 
 ---
@@ -202,5 +254,11 @@ Sayr.wsTypes.ERROR
 This package ships with full TypeScript definitions:
 
 ```ts
-import type { Organization, Task } from "@sayrio/public";
+import type {
+  Organization,
+  Task,
+  Comment
+} from "@sayrio/public";
 ```
+
+---
