@@ -7,7 +7,7 @@ import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
-import { useToastAction } from "@/lib/util";
+import { extractTextContent, useToastAction } from "@/lib/util";
 import type { WSMessage } from "@/lib/ws";
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
@@ -35,7 +35,7 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 	const [release, setRelease] = useState<schema.ReleaseWithTasks | null>(null);
 	const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [description, setDescription] = useState<NodeJSON | undefined>(undefined);
+	const [description, setDescription] = useState<NodeJSON | undefined>(release?.description || undefined);
 	const [savedDescription, setSavedDescription] = useState<NodeJSON | undefined>(undefined);
 	const [isSavingDescription, setIsSavingDescription] = useState(false);
 	const { runWithToast } = useToastAction();
@@ -88,11 +88,11 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 				);
 				if (updatedRelease && release) {
 					// Preserve tasks array and createdBy when updating release metadata
-					setRelease({ 
-						...release, 
-						...updatedRelease, 
+					setRelease({
+						...release,
+						...updatedRelease,
 						tasks: release.tasks,
-						createdBy: release.createdBy 
+						createdBy: release.createdBy
 					} as schema.ReleaseWithTasks);
 				}
 			}
@@ -178,11 +178,12 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 	}, [release, organization.id, wsClientId, runWithToast]);
 
 	// Check if description has unsaved changes
-	const hasUnsavedChanges = useMemo(
-		() => JSON.stringify(description) !== JSON.stringify(savedDescription),
-		[description, savedDescription]
-	);
+	const hasUnsavedChanges = useMemo(() => {
+		const currentText = extractTextContent(description);
+		const savedText = extractTextContent(savedDescription);
 
+		return currentText !== savedText;
+	}, [description, savedDescription]);
 	if (loading || !release) {
 		return (
 			<div className="flex items-center justify-center h-full p-8">
@@ -323,7 +324,7 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 						)}
 					</div>
 					<Editor
-						defaultContent={description}
+						defaultContent={release?.description || undefined}
 						onChange={setDescription}
 						placeholder="Add a description for this release..."
 						users={availableUsers}
@@ -344,16 +345,16 @@ export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDe
 						</p>
 					</div>
 				) : (
-				<UnifiedTaskView
-					tasks={tasks}
-					setTasks={setTasks}
-					ws={ws}
-					labels={labels}
-					availableUsers={availableUsers}
-					organization={organization}
-					categories={categories}
-					releases={releases}
-				/>
+					<UnifiedTaskView
+						tasks={tasks}
+						setTasks={setTasks}
+						ws={ws}
+						labels={labels}
+						availableUsers={availableUsers}
+						organization={organization}
+						categories={categories}
+						releases={releases}
+					/>
 				)}
 			</div>
 		</div>
