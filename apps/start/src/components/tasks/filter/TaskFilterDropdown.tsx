@@ -48,7 +48,7 @@ export function TaskFilterDropdown({
     updateFilterOperator: hookUpdateFilterOperator,
     toggleFilterValue,
     clearFilters: hookClearFilters,
-  } = useTaskViewManager();
+  } = useTaskViewManager(views);
 
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
   const pathname =

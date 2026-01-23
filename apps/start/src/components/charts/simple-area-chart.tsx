@@ -105,7 +105,7 @@ export function SimpleAreaChart({
           fontSize={11}
         />
         <YAxis hide />
-        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+		<ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
         {gradient && (
           <defs>
             {series.map((s) => (

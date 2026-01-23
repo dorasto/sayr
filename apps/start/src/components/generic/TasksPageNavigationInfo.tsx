@@ -67,7 +67,7 @@ export default function TasksPageNavigationInfo() {
     selectView,
     clearView,
     applyFilter,
-  } = useTaskViewManager();
+  } = useTaskViewManager(views);
   const { account } = useLayoutData();
 
   // Create "My Assigned" filter state for current user

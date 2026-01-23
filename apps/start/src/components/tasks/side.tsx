@@ -83,7 +83,7 @@ export default function ProjectSide() {
     selectView,
     clearView,
     applyFilter,
-  } = useTaskViewManager();
+  } = useTaskViewManager(views);
 
   const [editingView, setEditingView] = useState<schema.savedViewType | null>(
     null,

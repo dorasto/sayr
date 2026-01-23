@@ -1,7 +1,7 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useTasksSearchParams } from "./useTasksSearchParams";
 import {
@@ -105,11 +105,14 @@ function mapViewConfigToState(
  * - URL state is updated in sync with internal state
  * - Provides both granular setters and batch operations
  */
-export function useTaskViewManager() {
+export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 	const { view: viewSlug, category: categorySlug, setSearchParams } = useTasksSearchParams();
 
 	// Track click handling to prevent useEffect from duplicating updates
 	const isHandlingAction = useRef(false);
+	
+	// Track if we've already initialized from URL to prevent re-initialization
+	const hasInitializedFromUrl = useRef(false);
 
 	// Throttle mechanism to prevent rapid clicks from causing issues
 	const lastUpdateTime = useRef(0);
@@ -381,6 +384,50 @@ export function useTaskViewManager() {
 		(showCompletedTasks: boolean) => setViewConfig({ showCompletedTasks }),
 		[setViewConfig]
 	);
+
+	/**
+	 * Auto-load saved view from URL on mount
+	 * This syncs the view configuration when the page is loaded with ?view=<slug>
+	 */
+	useEffect(() => {
+		// Skip if no view in URL, already handling an action, or already initialized
+		if (!viewSlug || isHandlingAction.current || hasInitializedFromUrl.current || !availableViews) {
+			return;
+		}
+
+		// Find the view by slug or ID
+		const targetView = availableViews.find(v => v.slug === viewSlug || v.id === viewSlug);
+		
+		if (!targetView) {
+			// View slug in URL doesn't match any available view - could be outdated/invalid
+			return;
+		}
+
+		// Check if we need to apply this view's config
+		const viewFilters = deserializeFilters(targetView.filterParams) || DEFAULT_FILTER_STATE;
+		const viewConfigFromView = targetView.viewConfig
+			? mapViewConfigToState(targetView.viewConfig)
+			: DEFAULT_TASK_VIEW_STATE;
+
+		const targetState = { filters: viewFilters, viewConfig: viewConfigFromView };
+
+		// Only apply if the state is actually different from current state
+		if (!areStatesEqual(state, targetState)) {
+			// Mark as handling to prevent loops
+			isHandlingAction.current = true;
+			hasInitializedFromUrl.current = true;
+			
+			setCombinedState(targetState);
+			
+			// Reset flag after applying
+			setTimeout(() => {
+				isHandlingAction.current = false;
+			}, 0);
+		} else {
+			// State already matches - just mark as initialized
+			hasInitializedFromUrl.current = true;
+		}
+	}, [viewSlug, availableViews, state, setCombinedState]);
 
 	return {
 		// Current state

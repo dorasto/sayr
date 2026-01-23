@@ -77,20 +77,20 @@ export function SimpleBarChart({
     );
   }
 
-  // Build chart config from data
-  const chartConfig: ChartConfig = {
-    [dataKey]: { label: "Total" },
-    label: { color: "var(--foreground)" },
-    ...Object.fromEntries(
-      data.map((item) => [
-        item.name,
-        {
-          label: item.label || item.name,
-          color: item.color,
-        },
-      ]),
-    ),
-  };
+	// Build chart config from data
+	const chartConfig: ChartConfig = {
+		[dataKey]: { label: "" },
+		label: { color: "var(--foreground)" },
+		...Object.fromEntries(
+			data.map((item) => [
+				item.name,
+				{
+					label: item.label || item.name,
+					color: item.color,
+				},
+			]),
+		),
+	};
 
   // Transform data for recharts - use individual fill colors
   const chartData = data.map((item) => ({
@@ -121,10 +121,33 @@ export function SimpleBarChart({
             hide
           />
           <XAxis dataKey={dataKey} type="number" hide />
-          <ChartTooltip
-            cursor={false}
-            content={<ChartTooltipContent nameKey={nameKey} />}
-          />
+			<ChartTooltip
+				cursor={false}
+				content={
+					<ChartTooltipContent
+						indicator="dot"
+						hideLabel
+						formatter={(value, _name, item) => (
+							<>
+								<div
+									className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+									style={{
+										backgroundColor: item.payload.fill,
+									}}
+								/>
+								<div className="flex flex-1 items-center justify-between gap-2">
+									<span className="text-muted-foreground">
+										{item.payload[nameKey]}
+									</span>
+									<span className="font-mono font-medium tabular-nums text-foreground">
+										{value}
+									</span>
+								</div>
+							</>
+						)}
+					/>
+				}
+			/>
           <Bar
             dataKey={dataKey}
             layout="vertical"
@@ -204,10 +227,33 @@ export function SimpleBarChart({
           }
         />
         <YAxis hide />
-        <ChartTooltip
-          cursor={false}
-          content={<ChartTooltipContent indicator="line" />}
-        />
+			<ChartTooltip
+				cursor={false}
+				content={
+					<ChartTooltipContent
+						indicator="dot"
+						hideLabel
+						formatter={(value, _name, item) => (
+							<>
+								<div
+									className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+									style={{
+										backgroundColor: item.payload.fill,
+									}}
+								/>
+								<div className="flex flex-1 items-center justify-between gap-2">
+									<span className="text-muted-foreground">
+										{item.payload[nameKey]}
+									</span>
+									<span className="font-mono font-medium tabular-nums text-foreground">
+										{value}
+									</span>
+								</div>
+							</>
+						)}
+					/>
+				}
+			/>
         <Bar dataKey={dataKey} radius={radius}>
           {showLabels && (
             <LabelList

@@ -36,7 +36,6 @@ import {
 import type { WSMessage } from "@/lib/ws";
 
 export default function OrganizationTasksHomePage() {
-  const { viewMode } = useTaskViewManager();
   const { ws } = useLayoutData();
   const {
     organization,
@@ -50,6 +49,7 @@ export default function OrganizationTasksHomePage() {
     isProjectPanelOpen,
     setProjectPanelOpen,
   } = useLayoutOrganization();
+  const { viewMode } = useTaskViewManager(views);
   const { tasks, setTasks } = useLayoutTasks();
   const ref = useRef<ResizablePanelHandle>(null);
   const useMobile = useIsMobile();
