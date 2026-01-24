@@ -16,7 +16,7 @@ import {
 	schema,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -378,19 +378,19 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					updates.description,
 				);
 			}
-		if (
-			updates.releaseId !== undefined &&
-			updates.releaseId !== existingTask.releaseId
-		) {
-			await addLogEventTask(
-				taskId,
-				orgId,
-				"release_change",
-				existingTask.releaseId,
-				updates.releaseId,
-				session?.userId,
-			);
-		}
+			if (
+				updates.releaseId !== undefined &&
+				updates.releaseId !== existingTask.releaseId
+			) {
+				await addLogEventTask(
+					taskId,
+					orgId,
+					"release_change",
+					existingTask.releaseId,
+					updates.releaseId,
+					session?.userId,
+				);
+			}
 		},
 		{
 			description: "Updating task and logging changes",
@@ -1882,6 +1882,7 @@ apiRouteAdminProjectTask.get("/voted", async (c) => {
 function baseTaskWhere(
 	orgId: string,
 	categoryId?: string,
+	search?: string,
 ) {
 	const conditions = [
 		eq(schema.task.organizationId, orgId),
@@ -1894,6 +1895,21 @@ function baseTaskWhere(
 
 	if (categoryId) {
 		conditions.push(eq(schema.task.category, categoryId));
+	}
+
+	if (search && search.trim().length > 0) {
+		const pattern = `%${search.trim()}%`;
+
+		conditions.push(
+			or(
+				ilike(schema.task.title, pattern),
+
+				// Fuzzy match against JSON description
+				sql<boolean>`
+					${schema.task.description}::text ILIKE ${pattern}
+				`,
+			),
+		);
 	}
 
 	return and(...conditions);
@@ -1910,6 +1926,10 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 				query.sortBy === "mostPopular"
 				? query.sortBy
 				: "mostPopular";
+		const searchQuery =
+			typeof query.q === "string" && query.q.trim().length > 0
+				? query.q.trim()
+				: undefined;
 		const category_id = query.category_id;
 		const orgId = query.org_id;
 		const page = Math.max(Number(query.page) || 1, 1);
@@ -1959,7 +1979,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 				const [result] = await db
 					.select({ count: sql<number>`count(*)` })
 					.from(schema.task)
-					.where(baseTaskWhere(orgId, category_id));
+					.where(baseTaskWhere(orgId, category_id, searchQuery));
 
 				return Number(result?.count ?? 0);
 			},
@@ -1974,7 +1994,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 			"organization.tasks.fetch",
 			async () =>
 				db.query.task.findMany({
-					where: baseTaskWhere(orgId, category_id),
+					where: baseTaskWhere(orgId, category_id, searchQuery),
 
 					// ✅ DB handles ordering when possible
 					orderBy: isTrending
