@@ -73,12 +73,12 @@ export default function PublicOrgHomePage() {
         const category = categories.find(
           (c) => generateSlug(c.name) === params.get("category"),
         );
+        const search = params.get("search")
         const categoryId = category?.id;
         const categoryParam = categoryId
           ? `category_id=${encodeURIComponent(categoryId)}`
           : "";
-        const fullUrl = `${url}&page=${pageParam}&sortBy=${sortBy}${categoryParam ? `&${categoryParam}` : ""
-          }`;
+        const fullUrl = `${url}&page=${pageParam}&sortBy=${sortBy}${categoryParam ? `&${categoryParam}` : ""}${search ? `&q=${search}` : ""}`;
 
         const res = await fetch(fullUrl);
         if (!res.ok) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { PublicTaskItem } from "./task-item";
 import {
@@ -32,7 +32,7 @@ import { SortOption } from ".";
 
 export function PublicTaskView({
   sortBy,
-  setSortBy
+  setSortBy,
 }: {
   sortBy: SortOption;
   setSortBy: (value: SortOption) => void;
@@ -43,6 +43,7 @@ export function PublicTaskView({
     setTasks,
     organization,
   } = usePublicOrganizationLayout();
+
   const queryClient = useQueryClient();
   const { stuck, stickyRef } = useSticky();
   const isMobile = useIsMobile();
@@ -53,6 +54,53 @@ export function PublicTaskView({
     voteCount: number;
     count: number;
   }[]>(["votes", organization.id], []);
+  const didMountRef = useRef(false);
+  // Instant typing state
+  const [searchInput, setSearchInput] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") ?? "";
+  });
+
+  // Debounced value (used for URL + refetch)
+  const [debouncedSearch, setDebouncedSearch] = useState(searchInput);
+
+  // Wait until user stops typing
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
+
+  // Sync URL + refetch only after debounce
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+
+    if (debouncedSearch) {
+      params.set("search", debouncedSearch);
+    } else {
+      params.delete("search");
+    }
+
+    const query = params.toString();
+    const newUrl = query
+      ? `${window.location.pathname}?${query}`
+      : window.location.pathname;
+
+    window.history.replaceState(null, "", newUrl);
+
+    queryClient.invalidateQueries({
+      queryKey: ["org-tasks", organization.id],
+    });
+  }, [debouncedSearch, organization.id, queryClient]);
+
   const handleVote = async (taskId: string) => {
     const votesKey = ["votes", organization.id];
     const previousVotes = queryClient.getQueryData<
@@ -62,34 +110,30 @@ export function PublicTaskView({
         count: number;
       }[]
     >(votesKey);
-    const isVoted = previousVotes?.some((v) => v.taskId === taskId);
 
-    // Optimistic Update Tasks
+    const isVoted = previousVotes?.some((v) => v.taskId === taskId);
     const previousTasks = [...tasks];
+
     setTasks(
-      tasks.map((t) => {
-        if (t.id === taskId) {
-          return {
+      tasks.map((t) =>
+        t.id === taskId
+          ? {
             ...t,
             voteCount: isVoted ? t.voteCount - 1 : t.voteCount + 1,
-          };
-        }
-        return t;
-      }),
+          }
+          : t,
+      ),
     );
 
-    // Optimistic Update Votes
     queryClient.setQueryData(
       votesKey,
       (
         old: { taskId: string; voteCount: number; count: number }[] | undefined,
       ) => {
         if (!old) return old;
-        if (isVoted) {
-          return old.filter((v) => v.taskId !== taskId);
-        } else {
-          return [...old, { taskId, voteCount: 0, count: 1 }];
-        }
+        return isVoted
+          ? old.filter((v) => v.taskId !== taskId)
+          : [...old, { taskId, voteCount: 0, count: 1 }];
       },
     );
 
@@ -101,7 +145,6 @@ export function PublicTaskView({
         title: "Failed to vote",
         description: "Could not update vote.",
       });
-      // Revert
       setTasks(previousTasks);
       queryClient.setQueryData(votesKey, previousVotes);
     }
@@ -140,7 +183,7 @@ export function PublicTaskView({
         >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="primary" size={"sm"}>
+              <Button variant="primary" size="sm">
                 <IconFilter2 />
                 {!isMobile && (
                   <span className="truncate">{getSortLabel(sortBy)}</span>
@@ -153,12 +196,12 @@ export function PublicTaskView({
               <DropdownMenuRadioGroup
                 value={sortBy}
                 onValueChange={(v) => {
-                  setSortBy(v as SortOption),
-                    setTimeout(() => {
-                      queryClient.invalidateQueries({
-                        queryKey: ["org-tasks", organization.id],
-                      });
-                    }, 100);
+                  setSortBy(v as SortOption);
+                  setTimeout(() => {
+                    queryClient.invalidateQueries({
+                      queryKey: ["org-tasks", organization.id],
+                    });
+                  }, 100);
                 }}
               >
                 <DropdownMenuRadioItem value="mostPopular">
@@ -175,7 +218,11 @@ export function PublicTaskView({
           </DropdownMenu>
 
           <InputGroup className="bg-accent rounded-lg border-transparent focus-within:bg-secondary transition-all focus-within:text-foreground placeholder:text-muted-foreground hover:bg-secondary max-w-48 h-9 ml-auto">
-            <InputGroupInput placeholder="Search..." />
+            <InputGroupInput
+              placeholder="Search..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
             <InputGroupAddon>
               <SearchIcon />
             </InputGroupAddon>
