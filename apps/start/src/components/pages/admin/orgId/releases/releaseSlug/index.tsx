@@ -5,8 +5,14 @@ import CreateRelease from "@/components/organization/create-release";
 import { UnifiedTaskView } from "@/components/tasks/views/unified-task-view";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
-import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
+import {
+  useWSMessageHandler,
+  type WSMessageHandler,
+} from "@/hooks/useWSMessageHandler";
+import {
+  getReleaseWithTasksAction,
+  updateReleaseAction,
+} from "@/lib/fetches/release";
 import { extractTextContent, useToastAction } from "@/lib/util";
 import type { WSMessage } from "@/lib/ws";
 import type { schema } from "@repo/database";
@@ -53,7 +59,7 @@ export default function ReleaseDetailPage({
   const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
   const [loading, setLoading] = useState(true);
   const [description, setDescription] = useState<NodeJSON | undefined>(
-    release?.description || undefined
+    release?.description || undefined,
   );
   const [savedDescription, setSavedDescription] = useState<
     NodeJSON | undefined
@@ -123,7 +129,11 @@ export default function ReleaseDetailPage({
     },
     DELETE_RELEASE: (msg) => {
       if (msg.scope === "CHANNEL" && "data" in msg && msg.data?.releaseId) {
-        setReleases(releases.filter((r: schema.releaseType) => r.id !== msg.data.releaseId));
+        setReleases(
+          releases.filter(
+            (r: schema.releaseType) => r.id !== msg.data.releaseId,
+          ),
+        );
         // If current release was deleted, redirect
         if (msg.data.releaseId === release?.id) {
           void router.navigate({ to: `/${organization.id}/releases` });
@@ -233,10 +243,14 @@ export default function ReleaseDetailPage({
   }
 
   const statusColors: Record<schema.releaseType["status"], string> = {
-    planned: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    "in-progress": "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-    released: "bg-green-500/10 text-green-500 border-green-500/20",
-    archived: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+    planned:
+      "bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 cursor-pointer",
+    "in-progress":
+      "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20 cursor-pointer",
+    released:
+      "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 cursor-pointer",
+    archived:
+      "bg-gray-500/10 text-gray-500 border-gray-500/20 hover:bg-gray-500/20 cursor-pointer",
   };
 
   const taskStats = {
@@ -254,9 +268,12 @@ export default function ReleaseDetailPage({
       title={release.name}
       description={release.slug}
       iconClassName="p-0 bg-transparent"
+      style="compact"
+      backButton=".."
+      // className="mt-3"
       icon={
         <div
-          className="p-1 rounded"
+          className="p-1 rounded-lg"
           style={{
             background: release.color
               ? `hsla(${extractHslValues(release.color)}, 0.2)`
@@ -271,67 +288,28 @@ export default function ReleaseDetailPage({
           />
         </div>
       }
+      topContent={
+        <div className="flex items-center gap-3">
+          <Badge
+            className={cn("border capitalize", statusColors[release.status])}
+          >
+            {release.status === "in-progress" ? "In Progress" : release.status}
+          </Badge>
+          {release.releasedAt && (
+            <div className="flex items-center gap-2">
+              <IconCheck className="w-4 h-4" />
+              <span>Released: {formatDate(release.releasedAt)}</span>
+            </div>
+          )}
+        </div>
+      }
     >
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="border-b bg-card">
-          <div className="p-6 space-y-4">
-            {/* Title Row */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className="flex items-center justify-center w-10 h-10 rounded-lg"
-                  style={{
-                    backgroundColor: release.color || "hsla(0, 0%, 50%, 0.1)",
-                  }}
-                >
-                  {release.icon ? (
-                    <span className="text-lg">{release.icon}</span>
-                  ) : (
-                    <IconRocket className="w-5 h-5" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-2xl font-semibold truncate">
-                    {release.name}
-                  </h1>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                    <IconHash className="w-4 h-4" />
-                    <span className="font-mono">{release.slug}</span>
-                  </div>
-                </div>
-              </div>
-              <Badge className={cn("border", statusColors[release.status])}>
-                {release.status === "in-progress"
-                  ? "In Progress"
-                  : release.status}
-              </Badge>
-            </div>
-
-            {/* Metadata Row */}
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              {release.targetDate && (
-                <div className="flex items-center gap-2">
-                  <IconCalendar className="w-4 h-4" />
-                  <span>Target: {formatDate(release.targetDate)}</span>
-                </div>
-              )}
-              {release.releasedAt && (
-                <div className="flex items-center gap-2">
-                  <IconCheck className="w-4 h-4" />
-                  <span>Released: {formatDate(release.releasedAt)}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <IconTag className="w-4 h-4" />
-                <span>
-                  {taskStats.total} {taskStats.total === 1 ? "task" : "tasks"}
-                </span>
-              </div>
-            </div>
-
+        <div className="bg-card rounded-lg">
+          <div className="p-3">
             {/* Task Stats */}
-            {taskStats.total > 0 && (
+            {/*{taskStats.total > 0 && (
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -350,35 +328,33 @@ export default function ReleaseDetailPage({
                   <span>Backlog: {taskStats.backlog}</span>
                 </div>
               </div>
-            )}
+            )}*/}
 
             {/* Description Section */}
-            <div className="border-b bg-card">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold">Description</h2>
-                  {hasUnsavedChanges && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleDescriptionSave(description)}
-                      disabled={isSavingDescription}
-                    >
-                      {isSavingDescription ? "Saving..." : "Save Description"}
-                    </Button>
-                  )}
-                </div>
-                <Editor
-                  defaultContent={release?.description || undefined}
-                  onChange={setDescription}
-                  placeholder="Add a description for this release..."
-                  users={availableUsers}
-                  categories={categories}
-                  tasks={tasks}
-                />
-              </div>
-            </div>
 
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                {hasUnsavedChanges && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="text-xs py-1 h-auto"
+                    onClick={() => handleDescriptionSave(description)}
+                    disabled={isSavingDescription}
+                  >
+                    {isSavingDescription ? "Saving..." : "Update"}
+                  </Button>
+                )}
+              </div>
+              <Editor
+                defaultContent={release?.description || undefined}
+                onChange={setDescription}
+                placeholder="Add a description for this release..."
+                users={availableUsers}
+                categories={categories}
+                tasks={tasks}
+              />
+            </div>
             {/* Tasks */}
             <div className="flex-1 overflow-hidden">
               {tasks.length === 0 ? (
@@ -402,9 +378,9 @@ export default function ReleaseDetailPage({
                 />
               )}
             </div>
-          </div >
-        </div >
-      </div >
-    </SubWrapper >
+          </div>
+        </div>
+      </div>
+    </SubWrapper>
   );
 }

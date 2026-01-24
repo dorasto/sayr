@@ -266,38 +266,7 @@ export function UnifiedTaskView({
     releases,
   ]);
 
-  // Auto-collapse empty groups in list view
-  useEffect(() => {
-    if (viewMode !== "list") return;
 
-    const emptyGroupIds = new Set<string>();
-
-    for (const group of groupedTasks) {
-      // Check primary groups without sub-groups
-      if (!group.subGroups?.length && group.tasks.length === 0) {
-        emptyGroupIds.add(group.id);
-      }
-      // Check sub-groups
-      if (group.subGroups) {
-        for (const subGroup of group.subGroups) {
-          if (subGroup.tasks.length === 0) {
-            emptyGroupIds.add(subGroup.id);
-          }
-        }
-      }
-    }
-
-    // Only update if there are empty groups to collapse
-    if (emptyGroupIds.size > 0) {
-      setCollapsedSections((prev) => {
-        const newSet = new Set(prev);
-        for (const id of emptyGroupIds) {
-          newSet.add(id);
-        }
-        return newSet;
-      });
-    }
-  }, [groupedTasks, viewMode]);
 
   // Kanban Specific Data Preparation
   const columns = useMemo(
