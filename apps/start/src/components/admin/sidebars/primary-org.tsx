@@ -31,6 +31,7 @@ import {
   IconChevronRight,
   IconDots,
   IconProgress,
+  IconRocket,
   IconSettings,
   IconStack2,
   IconUsers,
@@ -195,6 +196,25 @@ export default function OrgSection({
                   tooltip={"Views"}
                 >
                   <span>Views</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem
+              className="cursor-pointer min-h-auto"
+              isActive={pathname.includes(`/${organization.id}/releases`)}
+            >
+              <Link
+                to={`/$orgId/releases`}
+                params={{ orgId: organization.id }}
+                className="w-full cursor-pointer"
+              >
+                <SidebarMenuButton
+                  size="small"
+                  className="cursor-pointer"
+                  icon={<IconRocket size={16} />}
+                  tooltip={"Releases"}
+                >
+                  <span>Releases</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
