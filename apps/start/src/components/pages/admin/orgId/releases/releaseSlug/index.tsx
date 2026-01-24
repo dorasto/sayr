@@ -53,7 +53,7 @@ export default function ReleaseDetailPage({
   const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
   const [loading, setLoading] = useState(true);
   const [description, setDescription] = useState<NodeJSON | undefined>(
-    release?.description || undefined,
+    release?.description || undefined
   );
   const [savedDescription, setSavedDescription] = useState<
     NodeJSON | undefined
@@ -116,7 +116,7 @@ export default function ReleaseDetailPage({
             ...release,
             ...updatedRelease,
             tasks: release.tasks,
-            createdBy: release.createdBy
+            createdBy: release.createdBy,
           } as schema.ReleaseWithTasks);
         }
       }
@@ -221,6 +221,7 @@ export default function ReleaseDetailPage({
 
     return currentText !== savedText;
   }, [description, savedDescription]);
+
   if (loading || !release) {
     return (
       <div className="flex items-center justify-center h-full p-8">
@@ -401,9 +402,9 @@ export default function ReleaseDetailPage({
                 />
               )}
             </div>
-          </div>
-        </div>
-      </div>
-    </SubWrapper>
+          </div >
+        </div >
+      </div >
+    </SubWrapper >
   );
 }
