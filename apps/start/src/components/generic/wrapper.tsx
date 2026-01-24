@@ -55,6 +55,7 @@ interface SubProps {
   className?: string;
   rootClassName?: string;
   style?: "default" | "compact";
+  iconClassName?: string;
   title?: string;
   description?: string;
   descriptionRender?: React.ReactNode;
@@ -68,6 +69,7 @@ export function SubWrapper({
   children,
   className,
   rootClassName,
+  iconClassName,
   style = "default",
   title,
   description,
@@ -123,7 +125,12 @@ export function SubWrapper({
           <div className="flex flex-col">
             {icon ? (
               <div className="flex gap-2">
-                <div className="bg-accent p-1 rounded-lg [&_svg]:size-10! h-fit">
+                <div
+                  className={cn(
+                    "bg-accent p-1 rounded-lg [&_svg]:size-10! h-fit",
+                    iconClassName,
+                  )}
+                >
                   {icon}
                 </div>
                 <div className="flex flex-col">
