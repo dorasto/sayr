@@ -514,18 +514,19 @@ export function UnifiedTaskView({
                           >
                             {tasks.length > 0 ? (
                               tasks.map((task) => (
-                                <UnifiedTaskItem
-                                  key={task.id}
-                                  viewMode="kanban"
-                                  task={task}
-                                  columnId={primaryGroup.id}
-                                  onTaskClick={handleTaskClick}
-                                  tasks={tasks}
-                                  setTasks={setTasks}
-                                  availableUsers={availableUsers}
-                                  onTaskUpdate={handleTaskUpdate}
-                                  categories={categories}
-                                />
+										<UnifiedTaskItem
+											key={task.id}
+											viewMode="kanban"
+											task={task}
+											columnId={primaryGroup.id}
+											onTaskClick={handleTaskClick}
+											tasks={tasks}
+											setTasks={setTasks}
+											availableUsers={availableUsers}
+											onTaskUpdate={handleTaskUpdate}
+											categories={categories}
+											releases={releases}
+										/>
                               ))
                             ) : (
                               <div className="h-8" />
@@ -586,18 +587,19 @@ export function UnifiedTaskView({
                   className="gap-2 flex flex-col h-full overflow-y-auto px-0"
                 >
                   {(item) => (
-                    <UnifiedTaskItem
-                      key={item.id}
-                      viewMode="kanban"
-                      task={item as unknown as schema.TaskWithLabels}
-                      columnId={column.id}
-                      onTaskClick={handleTaskClick}
-                      tasks={tasks}
-                      setTasks={setTasks}
-                      availableUsers={availableUsers}
-                      onTaskUpdate={handleTaskUpdate}
-                      categories={categories}
-                    />
+						<UnifiedTaskItem
+							key={item.id}
+							viewMode="kanban"
+							task={item as unknown as schema.TaskWithLabels}
+							columnId={column.id}
+							onTaskClick={handleTaskClick}
+							tasks={tasks}
+							setTasks={setTasks}
+							availableUsers={availableUsers}
+							onTaskUpdate={handleTaskUpdate}
+							categories={categories}
+							releases={releases}
+						/>
                   )}
                 </KanbanCards>
               </KanbanBoard>
@@ -648,22 +650,21 @@ export function UnifiedTaskView({
                                 <div className="py-1 flex flex-col gap-1">
                                   {subGroup.tasks.length > 0 ? (
                                     subGroup.tasks.map((task) => (
-                                      <UnifiedTaskItem
-                                        viewMode="list"
-                                        key={`${subGroup.id}:${task.id}`}
-                                        task={task}
-                                        isSelected={selectedTasks.has(task.id)}
-                                        onSelect={(selected) =>
-                                          handleTaskSelect(task.id, selected)
-                                        }
-                                        onTaskClick={handleTaskClick}
-                                        tasks={tasks}
-                                        setTasks={setTasks}
-                                        availableUsers={availableUsers}
-                                        onTaskUpdate={handleTaskUpdate}
-                                        categories={categories}
-                                        compact={compact}
-                                      />
+									<UnifiedTaskItem
+										viewMode="list"
+										key={`${group.id}:${task.id}`}
+										task={task}
+										isSelected={selectedTasks.has(task.id)}
+										onSelect={(selected) => handleTaskSelect(task.id, selected)}
+										onTaskClick={handleTaskClick}
+										tasks={tasks}
+										setTasks={setTasks}
+										availableUsers={availableUsers}
+										onTaskUpdate={handleTaskUpdate}
+										categories={categories}
+										releases={releases}
+										compact={compact}
+									/>
                                     ))
                                   ) : (
                                     <div className="px-4 py-3 text-xs text-muted-foreground">

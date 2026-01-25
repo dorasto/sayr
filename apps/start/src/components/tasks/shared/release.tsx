@@ -1,6 +1,7 @@
 "use client";
 
 import type { schema } from "@repo/database";
+import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import {
@@ -23,6 +24,7 @@ import { Link } from "@tanstack/react-router";
 import { updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import RenderIcon from "@/components/generic/RenderIcon";
+import { InlineLabel } from "./inlinelabel";
 
 interface GlobalTaskReleaseProps {
 	task: schema.TaskWithLabels;
@@ -219,3 +221,42 @@ export default function GlobalTaskRelease({
 		</div>
 	);
 }
+
+interface RenderReleaseProps {
+	release: {
+		id: string;
+		name: string;
+		color?: string | null;
+		icon?: string | null;
+	};
+	onClick?: (e: React.MouseEvent, releaseId: string) => void;
+	className?: string;
+}
+
+export function RenderRelease({ release, onClick, className = "" }: RenderReleaseProps) {
+	return (
+		<Badge
+			data-no-propagate
+			key={release.id}
+			variant="secondary"
+			className={cn(
+				"flex items-center justify-center gap-1 bg-accent ps-0 text-xs h-5 border border-border rounded-2xl truncate group/release cursor-pointer w-fit relative",
+				className
+			)}
+			onClick={onClick ? (e) => onClick(e, release.id) : undefined}
+		>
+			<InlineLabel
+				text={release.name}
+				icon={
+					release.icon ? (
+						<RenderIcon iconName={release.icon} size={12} color={release.color || undefined} raw />
+					) : (
+						<div className="h-3 w-3 rounded-full" style={{ backgroundColor: release.color || "#cccccc" }} />
+					)
+				}
+				className=""
+			/>
+		</Badge>
+	);
+}
+

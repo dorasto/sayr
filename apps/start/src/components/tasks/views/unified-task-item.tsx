@@ -36,18 +36,16 @@ import {
 import { Link } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
 import { useRef, useState } from "react";
-import RenderIcon from "@/components/generic/RenderIcon";
 import {
   useTaskViewManager,
   type FilterState,
 } from "@/hooks/useTaskViewManager";
 import GlobalTaskAssignees from "../shared/assignee";
 import { priorityConfig, statusConfig } from "../shared/config";
-import { InlineLabel } from "../shared/inlinelabel";
 import { RenderLabel } from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
-import { RenderCategory } from "../shared";
+import { RenderCategory, RenderRelease } from "../shared";
 
 interface UnifiedTaskItemProps {
   task: schema.TaskWithLabels;
@@ -58,6 +56,7 @@ interface UnifiedTaskItemProps {
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   availableUsers: schema.userType[];
   categories?: schema.categoryType[];
+  releases?: schema.releaseType[];
 
   // Actions
   onTaskUpdate?: (
@@ -85,6 +84,7 @@ export function UnifiedTaskItem({
   setTasks,
   availableUsers,
   categories = [],
+  releases = [],
   onTaskUpdate,
   onTaskClick,
   isSelected = false,
@@ -96,6 +96,16 @@ export function UnifiedTaskItem({
   const taskId = String(task.shortId);
   const status = statusConfig[task.status as keyof typeof statusConfig];
   const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
+
+  // DEBUG: Check task data structure
+  if (task.shortId === 22) {
+    console.log('[UnifiedTaskItem #22] Task object:', task);
+    console.log('[UnifiedTaskItem #22] task.releaseId:', task.releaseId);
+    console.log('[UnifiedTaskItem #22] releases array:', releases);
+    console.log('[UnifiedTaskItem #22] releases.length:', releases.length);
+    const foundRelease = releases.find((r) => r.id === task.releaseId);
+    console.log('[UnifiedTaskItem #22] Found release:', foundRelease);
+  }
 
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
   const [priorityPopoverOpen, setPriorityPopoverOpen] = useState(false);
@@ -129,6 +139,32 @@ export function UnifiedTaskItem({
       operator: "AND",
     };
     applyFilter(categoryFilter);
+  };
+
+  const handleReleaseClick = (releaseId: string) => {
+    preventClickRef.current = true;
+    setTimeout(() => {
+      preventClickRef.current = false;
+    }, 200);
+
+    const releaseFilter: FilterState = {
+      groups: [
+        {
+          id: `release-${releaseId}-group`,
+          operator: "AND",
+          conditions: [
+            {
+              id: `release-any-${releaseId}`,
+              field: "release",
+              operator: "any",
+              value: releaseId,
+            },
+          ],
+        },
+      ],
+      operator: "AND",
+    };
+    applyFilter(releaseFilter);
   };
 
   // Check if any popover is currently open
@@ -530,17 +566,36 @@ export function UnifiedTaskItem({
                   </button>
                 ) : null;
               })()}
+            {/* Release */}
+            {task.releaseId &&
+              (() => {
+                const release = releases.find((r) => r.id === task.releaseId);
+                return release ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleReleaseClick(release.id);
+                    }}
+                    data-no-propagate
+                    className="cursor-pointer"
+                  >
+                    <RenderRelease release={release} />
+                  </button>
+                ) : null;
+              })()}
             {/* Labels */}
             {task.labels && task.labels.length > 0 && (
               <div className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto">
-                {task.labels.slice(0, 3).map((label) => (
+                {task.labels.slice(0, 2).map((label) => (
                   <RenderLabel
                     label={label}
                     key={label.id + nanoid(5)}
                     data-no-propagate
                   />
                 ))}
-                {task.labels.length > 3 && (
+                {task.labels.length > 2 && (
                   <Badge
                     variant="secondary"
                     className="flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative shrink-0"
@@ -549,7 +604,7 @@ export function UnifiedTaskItem({
                     }}
                   >
                     <div className="flex -space-x-1.5">
-                      {task.labels.slice(3).map((label) => (
+                      {task.labels.slice(2).map((label) => (
                         <IconCircleFilled
                           key={label.id + nanoid(5)}
                           className="h-3 w-3"
@@ -559,7 +614,7 @@ export function UnifiedTaskItem({
                         />
                       ))}
                     </div>
-                    +{task.labels.length - 3} more
+                    +{task.labels.length - 2}
                   </Badge>
                 )}
               </div>

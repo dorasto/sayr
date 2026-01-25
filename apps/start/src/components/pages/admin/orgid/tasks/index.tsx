@@ -43,6 +43,10 @@ export default function OrganizationTasksHomePage() {
 	const ref = useRef<ResizablePanelHandle>(null);
 	const useMobile = useIsMobile();
 
+	// DEBUG: Check releases in parent component
+	console.log('[OrganizationTasksHomePage] releases:', releases);
+	console.log('[OrganizationTasksHomePage] releases.length:', releases?.length ?? 'undefined');
+
 	useEffect(() => {
 		if (useMobile) {
 			setProjectPanelOpen(false);
@@ -139,15 +143,16 @@ export default function OrganizationTasksHomePage() {
 							viewMode === "kanban" && "px-0"
 						)}
 					>
-						<UnifiedTaskView
-							tasks={tasks}
-							setTasks={setTasks}
-							ws={ws}
-							labels={labels}
-							availableUsers={availableUsers}
-							organization={organization}
-							categories={categories}
-						/>
+					<UnifiedTaskView
+						tasks={tasks}
+						setTasks={setTasks}
+						ws={ws}
+						labels={labels}
+						availableUsers={availableUsers}
+						organization={organization}
+						categories={categories}
+						releases={releases}
+					/>
 					</div>
 				</ResizablePanel>
 				{useMobile ? (
