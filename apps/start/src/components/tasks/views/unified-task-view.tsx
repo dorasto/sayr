@@ -1,7 +1,6 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
 import {
   GridBoardCells,
   GridBoardColumnHeader,
@@ -14,12 +13,6 @@ import {
   GridBoardRows,
   type GridBoardRowData,
 } from "@repo/ui/components/doras-ui/grid-board";
-import {
-  KanbanBoard,
-  KanbanCards,
-  KanbanHeader,
-  KanbanProvider,
-} from "@repo/ui/components/kibo-ui/kanban/index";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
@@ -286,135 +279,6 @@ export function UnifiedTaskView({
     releases,
   ]);
 
-  // Kanban Specific Data Preparation
-  const columns = useMemo(
-    () => groupedTasks.map((g) => ({ ...g, name: g.label })),
-    [groupedTasks],
-  );
-
-  const kanbanData = useMemo(() => {
-    return groupedTasks.flatMap((g) =>
-      g.tasks.map((t) => ({ ...t, column: g.id, name: t.title || "Untitled" })),
-    );
-  }, [groupedTasks]);
-
-  // biome-ignore lint/suspicious/noExplicitAny: <any>
-  const handleKanbanDragEnd = async ({
-    active,
-    over,
-  }: {
-    active: any;
-    over: any;
-  }) => {
-    if (!over) return;
-
-    const itemId = active.id as string;
-    const overId = over.id as string;
-
-    // Helper — detect which column this task was dropped into
-    const findColumnId = (id: string): string | null => {
-      if (id.startsWith("status:")) return id;
-      for (const [columnId, column] of Object.entries(kanbanData)) {
-        // biome-ignore lint/suspicious/noExplicitAny: <any>
-        if ((column as any).items?.includes(id)) return columnId;
-      }
-      return null;
-    };
-
-    const targetColumn = findColumnId(overId);
-    if (!targetColumn) return;
-
-    const newColumnId = targetColumn;
-    const updateLocal = (updates: Partial<schema.TaskWithLabels>) => {
-      const updatedTasks = tasks.map((t) =>
-        t.id === itemId ? { ...t, ...updates } : t,
-      );
-      setTasks(updatedTasks);
-    };
-
-    // === STATUS GROUPING ===
-    if (grouping === "status" && newColumnId.startsWith("status:")) {
-      // biome-ignore lint/suspicious/noExplicitAny: <any>
-      const status = newColumnId.replace("status:", "") as any;
-
-      updateLocal({ status });
-      await runWithToast(
-        "update-task",
-        {
-          loading: { title: "Updating status..." },
-          success: { title: "Status updated" },
-          error: { title: "Failed to update status" },
-        },
-        () => updateTaskAction(organization.id, itemId, { status }, wsClientId),
-      );
-    }
-
-    // === PRIORITY GROUPING ===
-    else if (grouping === "priority") {
-      // biome-ignore lint/suspicious/noExplicitAny: <any>
-      const priority = newColumnId as any;
-      updateLocal({ priority });
-      await runWithToast(
-        "update-task",
-        {
-          loading: { title: "Updating priority..." },
-          success: { title: "Priority updated" },
-          error: { title: "Failed to update priority" },
-        },
-        () =>
-          updateTaskAction(organization.id, itemId, { priority }, wsClientId),
-      );
-    }
-
-    // === ASSIGNEE GROUPING ===
-    else if (grouping === "assignee") {
-      let newAssignees: schema.userType[] = [];
-      if (newColumnId !== "unassigned") {
-        const user = availableUsers.find((u) => u.id === newColumnId);
-        if (user) newAssignees = [user];
-      }
-
-      updateLocal({ assignees: newAssignees });
-      await runWithToast(
-        "update-task",
-        {
-          loading: { title: "Updating assignee..." },
-          success: { title: "Assignee updated" },
-          error: { title: "Failed to update assignee" },
-        },
-        () =>
-          updateAssigneesToTaskAction(
-            organization.id,
-            itemId,
-            newAssignees.map((u) => u.id),
-            wsClientId,
-          ),
-      );
-    }
-
-    // === CATEGORY GROUPING ===
-    else if (grouping === "category") {
-      const categoryId = newColumnId === "uncategorized" ? null : newColumnId;
-      updateLocal({ category: categoryId });
-      await runWithToast(
-        "update-task",
-        {
-          loading: { title: "Updating category..." },
-          success: { title: "Category updated" },
-          error: { title: "Failed to update category" },
-        },
-        () =>
-          updateTaskAction(
-            organization.id,
-            itemId,
-            { category: categoryId },
-            wsClientId,
-          ),
-      );
-    }
-
-    console.log(`✅ Task ${itemId} dropped into column ${newColumnId}`);
-  };
   // Check if we have sub-groups for kanban view
   const hasKanbanSubGroups =
     groupedTasks.length > 0 &&
@@ -472,7 +336,7 @@ export function UnifiedTaskView({
     <div className="flex items-center justify-center">No issues found</div>
   );
 
-  const renderKanbanWithSubGroups = () => {
+  const renderKanbanView = () => {
     // Transform groupedTasks into GridBoard columns
     const gridColumns: GridBoardColumnData[] = groupedTasks.map((group) => ({
       id: group.id,
@@ -493,7 +357,10 @@ export function UnifiedTaskView({
       : undefined;
 
     // Build a flat list of items with columnId and rowId for GridBoard
-    type GridItem = schema.TaskWithLabels & { columnId: string; rowId?: string };
+    type GridItem = schema.TaskWithLabels & {
+      columnId: string;
+      rowId?: string;
+    };
     const gridItems: GridItem[] = [];
 
     for (const group of groupedTasks) {
@@ -524,11 +391,16 @@ export function UnifiedTaskView({
 
     // Calculate row totals for row headers
     const getRowTotal = (rowId: string): number => {
-      return gridColumns.reduce((sum, col) => sum + getItemsForCell(col.id, rowId).length, 0);
+      return gridColumns.reduce(
+        (sum, col) => sum + getItemsForCell(col.id, rowId).length,
+        0,
+      );
     };
 
     // Handle drag end - update both column (primary grouping) and row (sub-grouping)
-    const handleGridDragEnd = async (event: GridBoardDragEndEvent<GridItem>) => {
+    const handleGridDragEnd = async (
+      event: GridBoardDragEndEvent<GridItem>,
+    ) => {
       const { item, toColumnId, toRowId } = event;
       const itemId = item.id;
 
@@ -611,11 +483,21 @@ export function UnifiedTaskView({
 
       // Check if there are any updates to apply
       if (Object.keys(updates).length === 0) {
-        console.log("[GridBoard] No updates to apply", { toColumnId, toRowId, grouping, subGrouping });
+        console.log("[GridBoard] No updates to apply", {
+          toColumnId,
+          toRowId,
+          grouping,
+          subGrouping,
+        });
         return;
       }
 
-      console.log("[GridBoard] Applying updates", { itemId, updates, toColumnId, toRowId });
+      console.log("[GridBoard] Applying updates", {
+        itemId,
+        updates,
+        toColumnId,
+        toRowId,
+      });
 
       // Apply optimistic update
       updateLocal(updates);
@@ -629,7 +511,13 @@ export function UnifiedTaskView({
             success: { title: "Status updated" },
             error: { title: "Failed to update status" },
           },
-          () => updateTaskAction(organization.id, itemId, { status: updates.status }, wsClientId),
+          () =>
+            updateTaskAction(
+              organization.id,
+              itemId,
+              { status: updates.status },
+              wsClientId,
+            ),
         );
       }
 
@@ -641,7 +529,13 @@ export function UnifiedTaskView({
             success: { title: "Priority updated" },
             error: { title: "Failed to update priority" },
           },
-          () => updateTaskAction(organization.id, itemId, { priority: updates.priority }, wsClientId),
+          () =>
+            updateTaskAction(
+              organization.id,
+              itemId,
+              { priority: updates.priority },
+              wsClientId,
+            ),
         );
       }
 
@@ -671,7 +565,13 @@ export function UnifiedTaskView({
             success: { title: "Category updated" },
             error: { title: "Failed to update category" },
           },
-          () => updateTaskAction(organization.id, itemId, { category: updates.category }, wsClientId),
+          () =>
+            updateTaskAction(
+              organization.id,
+              itemId,
+              { category: updates.category },
+              wsClientId,
+            ),
         );
       }
     };
@@ -703,10 +603,13 @@ export function UnifiedTaskView({
         getItemsForCell={getItemsForCell}
         onDragEnd={handleGridDragEnd}
         renderDragOverlay={renderDragOverlay}
+        mode={hasKanbanSubGroups ? "grid" : "kanban"}
       >
         {/* Column Headers */}
         <GridBoardColumns>
-          {(column) => <GridBoardColumnHeader key={column.id} column={column} />}
+          {(column) => (
+            <GridBoardColumnHeader key={column.id} column={column} />
+          )}
         </GridBoardColumns>
 
         {/* Rows with cells (if sub-groups exist) */}
@@ -726,7 +629,7 @@ export function UnifiedTaskView({
             )}
           </GridBoardRows>
         ) : (
-          /* No sub-groups: render cells directly */
+          /* No sub-groups: render cells directly (kanban mode) */
           <GridBoardCells>
             {(item: GridItem, column) => (
               <GridBoardItem key={item.id} item={item}>
@@ -738,62 +641,6 @@ export function UnifiedTaskView({
       </GridBoardProvider>
     );
   };
-
-  const renderKanbanStandard = () => (
-    <KanbanProvider
-      columns={columns}
-      data={kanbanData}
-      className="gap-1"
-      onDragEnd={handleKanbanDragEnd}
-    >
-      {(column) => (
-        <KanbanBoard
-          key={column.id}
-          id={column.id}
-          className="bg-transparent border-0 rounded-lg shadow-none flex flex-col h-full w-full min-w-[280px] flex-1 px-2"
-        >
-          <KanbanHeader className="pb-2 flex items-center justify-between bg-card border-0 rounded-lg shrink-0 min-h-[42px]">
-            <div className="flex items-center gap-2">
-              {column.icon && (
-                <span
-                  className={cn("text-sm font-medium", column.accentClassName)}
-                >
-                  {column.icon}
-                </span>
-              )}
-              <div className="flex flex-col leading-tight">
-                <span className="font-medium text-sm">{column.name}</span>
-                {column.description && (
-                  <span className="text-xs text-muted-foreground">
-                    {column.description}
-                  </span>
-                )}
-              </div>
-            </div>
-            <Badge
-              variant="outline"
-              className="rounded pointer-events-none border-transparent text-muted-foreground bg-transparent"
-            >
-              {kanbanData.filter((t) => t.column === column.id).length}
-            </Badge>
-          </KanbanHeader>
-          <KanbanCards
-            id={column.id}
-            className="gap-2 flex flex-col h-full overflow-y-auto px-0"
-          >
-            {(item) =>
-              renderTaskItem(
-                item as unknown as schema.TaskWithLabels,
-                column.id,
-                "kanban",
-                column.id,
-              )
-            }
-          </KanbanCards>
-        </KanbanBoard>
-      )}
-    </KanbanProvider>
-  );
 
   const renderListSubGroup = (group: NestedTaskGroup, subGroup: TaskGroup) => {
     const subGroupCollapsed = collapsedSections.has(subGroup.id);
@@ -867,15 +714,9 @@ export function UnifiedTaskView({
     );
   };
 
-  const renderKanbanView = () => {
-    if (hasKanbanSubGroups) {
-      return renderKanbanWithSubGroups();
-    }
-    return renderKanbanStandard();
-  };
-
   const renderMainContent = () => {
     if (viewMode === "kanban") {
+      // Always use GridBoard for kanban - mode is set based on hasKanbanSubGroups
       return renderKanbanView();
     }
     return renderListView();

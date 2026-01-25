@@ -63,6 +63,8 @@ export type GridBoardDragEndEvent<TItem extends GridBoardItemBase = GridBoardIte
 // Context
 // ============================================================================
 
+export type GridBoardMode = "grid" | "kanban";
+
 type GridBoardContextProps<
 	TItem extends GridBoardItemBase = GridBoardItemBase,
 	TColumn extends GridBoardColumnData = GridBoardColumnData,
@@ -74,6 +76,7 @@ type GridBoardContextProps<
 	getItemsForCell: (columnId: string, rowId?: string) => TItem[];
 	activeItemId: string | null;
 	renderDragOverlay?: (item: TItem) => ReactNode;
+	mode: GridBoardMode;
 };
 
 const GridBoardContext = createContext<GridBoardContextProps | null>(null);
@@ -137,6 +140,12 @@ export type GridBoardProviderProps<
 	onDragStart?: (event: DragStartEvent) => void;
 	/** Custom render function for the drag overlay */
 	renderDragOverlay?: (item: TItem) => ReactNode;
+	/**
+	 * Display mode:
+	 * - "grid": 2D grid with rows (sub-groups), global scroll (default)
+	 * - "kanban": Traditional kanban with full-height columns, each column scrolls independently
+	 */
+	mode?: GridBoardMode;
 	children: ReactNode;
 	className?: string;
 };
@@ -153,11 +162,14 @@ export function GridBoardProvider<
 	onDragEnd,
 	onDragStart,
 	renderDragOverlay,
+	mode = "grid",
 	children,
 	className,
 }: GridBoardProviderProps<TItem, TColumn, TRow>) {
 	const [activeItemId, setActiveItemId] = useState<string | null>(null);
 	const hasRows = rows && rows.length > 0;
+	// In kanban mode without rows, we use full-height columns
+	const isKanbanMode = mode === "kanban";
 
 	// Sensors for drag detection
 	const sensors = useSensors(
@@ -271,6 +283,7 @@ export function GridBoardProvider<
 		getItemsForCell: getCellItems,
 		activeItemId,
 		renderDragOverlay,
+		mode,
 	};
 
 	const activeItem = activeItemId ? items.find((i) => i.id === activeItemId) : null;
@@ -284,8 +297,26 @@ export function GridBoardProvider<
 				onDragOver={handleDragOver}
 				onDragEnd={handleDragEnd}
 			>
-				<div className={cn("h-full overflow-auto", className)}>
-					<div className="flex flex-col min-w-full w-fit">{children}</div>
+				<div
+					className={cn(
+						"h-full",
+						// Grid mode: global scroll for the entire board
+						!isKanbanMode && "overflow-auto",
+						// Kanban mode: flex layout, columns handle their own scroll
+						isKanbanMode && "flex flex-col overflow-hidden",
+						className,
+					)}
+				>
+					<div
+						className={cn(
+							// Grid mode: column layout, fit content width
+							!isKanbanMode && "flex flex-col min-w-full w-fit",
+							// Kanban mode: row layout for columns, fill height
+							isKanbanMode && "flex flex-col flex-1 min-h-0",
+						)}
+					>
+						{children}
+					</div>
 				</div>
 
 				{/* Drag overlay portal */}
@@ -434,19 +465,28 @@ export function GridBoardCells<
 	TItem extends GridBoardItemBase = GridBoardItemBase,
 	TColumn extends GridBoardColumnData = GridBoardColumnData,
 >({ rowId, children, renderEmpty, className, ...props }: GridBoardCellsProps<TItem, TColumn>) {
-	const { columns, getItemsForCell } = useGridBoardContext<TItem, TColumn>();
+	const { columns, getItemsForCell, mode } = useGridBoardContext<TItem, TColumn>();
+	const isKanbanMode = mode === "kanban";
 
 	const defaultRenderEmpty = () => <div className="h-8" />;
 	const emptyRenderer = renderEmpty ?? defaultRenderEmpty;
 
 	return (
-		<div className={cn("flex", className)} {...props}>
+		<div
+			className={cn(
+				"flex",
+				// Kanban mode: fill available height
+				isKanbanMode && "flex-1 min-h-0",
+				className,
+			)}
+			{...props}
+		>
 			{columns.map((column) => {
 				const cellItems = getItemsForCell(column.id, rowId) as TItem[];
 				const cellId = makeCellId(column.id, rowId);
 
 				return (
-					<GridBoardDroppableCell key={cellId} cellId={cellId} isEmpty={cellItems.length === 0}>
+					<GridBoardDroppableCell key={cellId} cellId={cellId} isEmpty={cellItems.length === 0} isKanbanMode={isKanbanMode}>
 						<SortableContext items={cellItems.map((item) => item.id)}>
 							{cellItems.length > 0
 								? cellItems.map((item) => children(item, column, rowId))
@@ -466,10 +506,11 @@ export function GridBoardCells<
 type GridBoardDroppableCellProps = {
 	cellId: string;
 	isEmpty: boolean;
+	isKanbanMode: boolean;
 	children: ReactNode;
 };
 
-function GridBoardDroppableCell({ cellId, isEmpty, children }: GridBoardDroppableCellProps) {
+function GridBoardDroppableCell({ cellId, isEmpty, isKanbanMode, children }: GridBoardDroppableCellProps) {
 	const { isOver, setNodeRef } = useDroppable({
 		id: cellId,
 	});
@@ -480,7 +521,10 @@ function GridBoardDroppableCell({ cellId, isEmpty, children }: GridBoardDroppabl
 			className={cn(
 				"min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1 transition-colors",
 				isOver && "bg-primary/5 ring-1 ring-primary/20 ring-inset",
-				isEmpty && "min-h-[40px]",
+				// Grid mode: minimal height when empty
+				!isKanbanMode && isEmpty && "min-h-[40px]",
+				// Kanban mode: full height with independent Y scroll
+				isKanbanMode && "overflow-y-auto min-h-0",
 			)}
 		>
 			{children}
