@@ -1,8 +1,26 @@
 "use client";
 
+import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
+import {
+	closestCenter,
+	DndContext,
+	DragOverlay,
+	KeyboardSensor,
+	MouseSensor,
+	TouchSensor,
+	useDroppable,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
+import { SortableContext, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
-import { createContext, useContext, type HTMLAttributes, type ReactNode } from "react";
+import { createContext, useContext, useState, type HTMLAttributes, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import tunnel from "tunnel-rat";
+
+const t = tunnel();
 
 // ============================================================================
 // Types
@@ -30,6 +48,17 @@ export type GridBoardItemBase = {
 	rowId?: string;
 };
 
+/** Event data passed to onDragEnd - includes the target cell info */
+export type GridBoardDragEndEvent<TItem extends GridBoardItemBase = GridBoardItemBase> = {
+	item: TItem;
+	fromColumnId: string;
+	fromRowId?: string;
+	toColumnId: string;
+	toRowId?: string;
+	/** The original dnd-kit event */
+	event: DragEndEvent;
+};
+
 // ============================================================================
 // Context
 // ============================================================================
@@ -43,6 +72,8 @@ type GridBoardContextProps<
 	rows?: TRow[];
 	items: TItem[];
 	getItemsForCell: (columnId: string, rowId?: string) => TItem[];
+	activeItemId: string | null;
+	renderDragOverlay?: (item: TItem) => ReactNode;
 };
 
 const GridBoardContext = createContext<GridBoardContextProps | null>(null);
@@ -60,7 +91,34 @@ function useGridBoardContext<
 }
 
 // ============================================================================
-// GridBoardProvider - Main container with context
+// Helper: Parse cell ID to get column and row
+// ============================================================================
+
+/** 
+ * Cell IDs are formatted as "cell:{columnId}" or "cell:{columnId}:{rowId}"
+ * Note: columnId and rowId may contain colons (e.g., "status:backlog")
+ * Format: "cell:status:backlog" or "cell:status:backlog:priority:medium"
+ * We use a different delimiter to separate column from row
+ */
+function makeCellId(columnId: string, rowId?: string): string {
+	// Use | as delimiter between columnId and rowId since : is used within IDs
+	return rowId ? `cell|${columnId}|${rowId}` : `cell|${columnId}`;
+}
+
+function parseCellId(cellId: string): { columnId: string; rowId?: string } | null {
+	if (!cellId.startsWith("cell|")) return null;
+	const parts = cellId.split("|");
+	if (parts.length === 2 && parts[1]) {
+		return { columnId: parts[1] };
+	}
+	if (parts.length === 3 && parts[1] && parts[2]) {
+		return { columnId: parts[1], rowId: parts[2] };
+	}
+	return null;
+}
+
+// ============================================================================
+// GridBoardProvider - Main container with DndContext
 // ============================================================================
 
 export type GridBoardProviderProps<
@@ -73,6 +131,12 @@ export type GridBoardProviderProps<
 	items: TItem[];
 	/** Custom function to get items for a cell. If not provided, filters items by columnId/rowId */
 	getItemsForCell?: (columnId: string, rowId?: string) => TItem[];
+	/** Called when an item is dropped into a new cell */
+	onDragEnd?: (event: GridBoardDragEndEvent<TItem>) => void;
+	/** Called when drag starts */
+	onDragStart?: (event: DragStartEvent) => void;
+	/** Custom render function for the drag overlay */
+	renderDragOverlay?: (item: TItem) => ReactNode;
 	children: ReactNode;
 	className?: string;
 };
@@ -81,8 +145,35 @@ export function GridBoardProvider<
 	TItem extends GridBoardItemBase = GridBoardItemBase,
 	TColumn extends GridBoardColumnData = GridBoardColumnData,
 	TRow extends GridBoardRowData = GridBoardRowData,
->({ columns, rows, items, getItemsForCell, children, className }: GridBoardProviderProps<TItem, TColumn, TRow>) {
+>({
+	columns,
+	rows,
+	items,
+	getItemsForCell,
+	onDragEnd,
+	onDragStart,
+	renderDragOverlay,
+	children,
+	className,
+}: GridBoardProviderProps<TItem, TColumn, TRow>) {
+	const [activeItemId, setActiveItemId] = useState<string | null>(null);
 	const hasRows = rows && rows.length > 0;
+
+	// Sensors for drag detection
+	const sensors = useSensors(
+		useSensor(MouseSensor, {
+			activationConstraint: {
+				distance: 10,
+			},
+		}),
+		useSensor(TouchSensor, {
+			activationConstraint: {
+				delay: 250,
+				tolerance: 5,
+			},
+		}),
+		useSensor(KeyboardSensor),
+	);
 
 	// Default implementation for getting items in a cell
 	const defaultGetItemsForCell = (columnId: string, rowId?: string): TItem[] => {
@@ -94,18 +185,122 @@ export function GridBoardProvider<
 		});
 	};
 
+	const getCellItems = getItemsForCell ?? defaultGetItemsForCell;
+
+	const handleDragStart = (event: DragStartEvent) => {
+		setActiveItemId(event.active.id as string);
+		onDragStart?.(event);
+	};
+
+	const handleDragOver = (_event: DragOverEvent) => {
+		// Could add visual feedback here if needed
+	};
+
+	const handleDragEnd = (event: DragEndEvent) => {
+		setActiveItemId(null);
+
+		const { active, over } = event;
+		if (!over) {
+			console.log("[GridBoard] No drop target");
+			return;
+		}
+
+		const itemId = active.id as string;
+		const overId = over.id as string;
+
+		console.log("[GridBoard] handleDragEnd", { itemId, overId });
+
+		// Find the dragged item
+		const item = items.find((i) => i.id === itemId);
+		if (!item) {
+			console.log("[GridBoard] Item not found", { itemId });
+			return;
+		}
+
+		// Determine target cell - could be dropping on a cell or on another item
+		let targetColumnId: string | undefined;
+		let targetRowId: string | undefined;
+
+		// First, check if we dropped on a cell directly
+		const cellInfo = parseCellId(overId);
+		if (cellInfo) {
+			targetColumnId = cellInfo.columnId;
+			targetRowId = cellInfo.rowId;
+			console.log("[GridBoard] Dropped on cell", { cellInfo });
+		} else {
+			// Dropped on an item - find which cell that item belongs to
+			const overItem = items.find((i) => i.id === overId);
+			if (overItem) {
+				targetColumnId = overItem.columnId;
+				targetRowId = overItem.rowId;
+				console.log("[GridBoard] Dropped on item", { overItemId: overItem.id, targetColumnId, targetRowId });
+			}
+		}
+
+		// If we couldn't determine target, abort
+		if (!targetColumnId) {
+			console.log("[GridBoard] Could not determine target column");
+			return;
+		}
+
+		// Check if anything actually changed
+		const fromColumnId = item.columnId;
+		const fromRowId = item.rowId;
+		if (fromColumnId === targetColumnId && fromRowId === targetRowId) {
+			console.log("[GridBoard] No change - same cell");
+			return;
+		}
+
+		console.log("[GridBoard] Calling onDragEnd", { fromColumnId, fromRowId, toColumnId: targetColumnId, toRowId: targetRowId });
+
+		// Call the handler with rich event data
+		onDragEnd?.({
+			item: item as TItem,
+			fromColumnId,
+			fromRowId,
+			toColumnId: targetColumnId,
+			toRowId: targetRowId,
+			event,
+		});
+	};
+
 	const contextValue: GridBoardContextProps<TItem, TColumn, TRow> = {
 		columns,
 		rows,
 		items,
-		getItemsForCell: getItemsForCell ?? defaultGetItemsForCell,
+		getItemsForCell: getCellItems,
+		activeItemId,
+		renderDragOverlay,
 	};
 
+	const activeItem = activeItemId ? items.find((i) => i.id === activeItemId) : null;
+
 	return (
-		<GridBoardContext.Provider value={contextValue as GridBoardContextProps}>
-			<div className={cn("h-full overflow-auto", className)}>
-				<div className="flex flex-col min-w-full w-fit">{children}</div>
-			</div>
+		<GridBoardContext.Provider value={contextValue as unknown as GridBoardContextProps}>
+			<DndContext
+				sensors={sensors}
+				collisionDetection={closestCenter}
+				onDragStart={handleDragStart}
+				onDragOver={handleDragOver}
+				onDragEnd={handleDragEnd}
+			>
+				<div className={cn("h-full overflow-auto", className)}>
+					<div className="flex flex-col min-w-full w-fit">{children}</div>
+				</div>
+
+				{/* Drag overlay portal */}
+				{typeof window !== "undefined" &&
+					createPortal(
+						<DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
+							{activeItem && renderDragOverlay ? (
+								renderDragOverlay(activeItem as TItem)
+							) : (
+								<t.Out />
+							)}
+						</DragOverlay>,
+						document.body,
+					)}
+			</DndContext>
 		</GridBoardContext.Provider>
 	);
 }
@@ -220,7 +415,7 @@ export function GridBoardRowHeader({ row, count, className, ...props }: GridBoar
 }
 
 // ============================================================================
-// GridBoardCells - Renders cells for a row (or all cells if no rows)
+// GridBoardCells - Renders droppable cells for a row (or all cells if no rows)
 // ============================================================================
 
 export type GridBoardCellsProps<
@@ -248,17 +443,94 @@ export function GridBoardCells<
 		<div className={cn("flex", className)} {...props}>
 			{columns.map((column) => {
 				const cellItems = getItemsForCell(column.id, rowId) as TItem[];
+				const cellId = makeCellId(column.id, rowId);
 
 				return (
-					<div
-						key={rowId ? `${column.id}-${rowId}` : column.id}
-						className="min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
-					>
-						{cellItems.length > 0 ? cellItems.map((item) => children(item, column, rowId)) : emptyRenderer()}
-					</div>
+					<GridBoardDroppableCell key={cellId} cellId={cellId} isEmpty={cellItems.length === 0}>
+						<SortableContext items={cellItems.map((item) => item.id)}>
+							{cellItems.length > 0
+								? cellItems.map((item) => children(item, column, rowId))
+								: emptyRenderer()}
+						</SortableContext>
+					</GridBoardDroppableCell>
 				);
 			})}
 		</div>
+	);
+}
+
+// ============================================================================
+// GridBoardDroppableCell - Internal droppable cell wrapper
+// ============================================================================
+
+type GridBoardDroppableCellProps = {
+	cellId: string;
+	isEmpty: boolean;
+	children: ReactNode;
+};
+
+function GridBoardDroppableCell({ cellId, isEmpty, children }: GridBoardDroppableCellProps) {
+	const { isOver, setNodeRef } = useDroppable({
+		id: cellId,
+	});
+
+	return (
+		<div
+			ref={setNodeRef}
+			className={cn(
+				"min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1 transition-colors",
+				isOver && "bg-primary/5 ring-1 ring-primary/20 ring-inset",
+				isEmpty && "min-h-[40px]",
+			)}
+		>
+			{children}
+		</div>
+	);
+}
+
+// ============================================================================
+// GridBoardItem - Draggable item wrapper
+// ============================================================================
+
+export type GridBoardItemProps<TItem extends GridBoardItemBase = GridBoardItemBase> = {
+	item: TItem;
+	children: ReactNode;
+	className?: string;
+};
+
+export function GridBoardItem<TItem extends GridBoardItemBase = GridBoardItemBase>({
+	item,
+	children,
+	className,
+}: GridBoardItemProps<TItem>) {
+	const { activeItemId, renderDragOverlay } = useGridBoardContext<TItem>();
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: item.id,
+	});
+
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+	};
+
+	return (
+		<>
+			<div
+				ref={setNodeRef}
+				style={style}
+				{...attributes}
+				{...listeners}
+				className={cn(
+					"cursor-grab active:cursor-grabbing",
+					isDragging && "opacity-30",
+					className,
+				)}
+			>
+				{children}
+			</div>
+			{/* Tunnel the content to the drag overlay when this item is being dragged */}
+			{activeItemId === item.id && !renderDragOverlay && <t.In>{children}</t.In>}
+		</>
 	);
 }
 
@@ -295,3 +567,9 @@ export function useGridBoard<
 >() {
 	return useGridBoardContext<TItem, TColumn, TRow>();
 }
+
+// ============================================================================
+// Re-export types for convenience
+// ============================================================================
+
+export type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";

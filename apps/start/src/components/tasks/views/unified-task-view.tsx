@@ -7,6 +7,8 @@ import {
   GridBoardColumnHeader,
   GridBoardColumns,
   type GridBoardColumnData,
+  type GridBoardDragEndEvent,
+  GridBoardItem,
   GridBoardProvider,
   GridBoardRowHeader,
   GridBoardRows,
@@ -525,12 +527,182 @@ export function UnifiedTaskView({
       return gridColumns.reduce((sum, col) => sum + getItemsForCell(col.id, rowId).length, 0);
     };
 
+    // Handle drag end - update both column (primary grouping) and row (sub-grouping)
+    const handleGridDragEnd = async (event: GridBoardDragEndEvent<GridItem>) => {
+      const { item, toColumnId, toRowId } = event;
+      const itemId = item.id;
+
+      // Helper to update local state optimistically
+      const updateLocal = (updates: Partial<schema.TaskWithLabels>) => {
+        const updatedTasks = tasks.map((t) =>
+          t.id === itemId ? { ...t, ...updates } : t,
+        );
+        setTasks(updatedTasks);
+      };
+
+      // Helper to extract the actual value from prefixed IDs like "status:backlog" -> "backlog"
+      const extractValue = (id: string, prefix: string): string | null => {
+        if (id.startsWith(`${prefix}:`)) {
+          return id.slice(prefix.length + 1);
+        }
+        return null;
+      };
+
+      // Determine what fields to update based on grouping/subGrouping
+      const updates: Partial<schema.TaskWithLabels> = {};
+
+      // Handle column change (primary grouping)
+      if (grouping === "status") {
+        const status = extractValue(toColumnId, "status");
+        if (status) {
+          updates.status = status as schema.TaskWithLabels["status"];
+        }
+      } else if (grouping === "priority") {
+        const priority = extractValue(toColumnId, "priority");
+        if (priority) {
+          updates.priority = priority as schema.TaskWithLabels["priority"];
+        }
+      } else if (grouping === "assignee") {
+        const assigneeId = extractValue(toColumnId, "assignee");
+        if (assigneeId === "unassigned") {
+          updates.assignees = [];
+        } else if (assigneeId) {
+          const user = availableUsers.find((u) => u.id === assigneeId);
+          if (user) updates.assignees = [user];
+        }
+      } else if (grouping === "category") {
+        const categoryId = extractValue(toColumnId, "category");
+        if (categoryId === "none") {
+          updates.category = null;
+        } else if (categoryId) {
+          updates.category = categoryId;
+        }
+      }
+
+      // Handle row change (sub-grouping)
+      if (toRowId !== undefined) {
+        if (subGrouping === "status") {
+          const status = extractValue(toRowId, "status");
+          if (status) {
+            updates.status = status as schema.TaskWithLabels["status"];
+          }
+        } else if (subGrouping === "priority") {
+          const priority = extractValue(toRowId, "priority");
+          if (priority) {
+            updates.priority = priority as schema.TaskWithLabels["priority"];
+          }
+        } else if (subGrouping === "assignee") {
+          const assigneeId = extractValue(toRowId, "assignee");
+          if (assigneeId === "unassigned") {
+            updates.assignees = [];
+          } else if (assigneeId) {
+            const user = availableUsers.find((u) => u.id === assigneeId);
+            if (user) updates.assignees = [user];
+          }
+        } else if (subGrouping === "category") {
+          const categoryId = extractValue(toRowId, "category");
+          if (categoryId === "none") {
+            updates.category = null;
+          } else if (categoryId) {
+            updates.category = categoryId;
+          }
+        }
+      }
+
+      // Check if there are any updates to apply
+      if (Object.keys(updates).length === 0) {
+        console.log("[GridBoard] No updates to apply", { toColumnId, toRowId, grouping, subGrouping });
+        return;
+      }
+
+      console.log("[GridBoard] Applying updates", { itemId, updates, toColumnId, toRowId });
+
+      // Apply optimistic update
+      updateLocal(updates);
+
+      // Send updates to server
+      if (updates.status) {
+        await runWithToast(
+          "update-task",
+          {
+            loading: { title: "Updating status..." },
+            success: { title: "Status updated" },
+            error: { title: "Failed to update status" },
+          },
+          () => updateTaskAction(organization.id, itemId, { status: updates.status }, wsClientId),
+        );
+      }
+
+      if (updates.priority) {
+        await runWithToast(
+          "update-task",
+          {
+            loading: { title: "Updating priority..." },
+            success: { title: "Priority updated" },
+            error: { title: "Failed to update priority" },
+          },
+          () => updateTaskAction(organization.id, itemId, { priority: updates.priority }, wsClientId),
+        );
+      }
+
+      if (updates.assignees !== undefined) {
+        await runWithToast(
+          "update-task",
+          {
+            loading: { title: "Updating assignee..." },
+            success: { title: "Assignee updated" },
+            error: { title: "Failed to update assignee" },
+          },
+          () =>
+            updateAssigneesToTaskAction(
+              organization.id,
+              itemId,
+              updates.assignees?.map((u) => u.id) || [],
+              wsClientId,
+            ),
+        );
+      }
+
+      if (updates.category !== undefined) {
+        await runWithToast(
+          "update-task",
+          {
+            loading: { title: "Updating category..." },
+            success: { title: "Category updated" },
+            error: { title: "Failed to update category" },
+          },
+          () => updateTaskAction(organization.id, itemId, { category: updates.category }, wsClientId),
+        );
+      }
+    };
+
+    // Render drag overlay
+    const renderDragOverlay = (item: GridItem) => (
+      <div className="opacity-90 rotate-2 scale-105">
+        <UnifiedTaskItem
+          viewMode="kanban"
+          task={item}
+          columnId={item.columnId}
+          onTaskClick={() => {}}
+          tasks={tasks}
+          setTasks={setTasks}
+          availableUsers={availableUsers}
+          onTaskUpdate={handleTaskUpdate}
+          categories={categories}
+          releases={releases}
+          compact={compact}
+        />
+      </div>
+    );
+
     return (
       <GridBoardProvider
         columns={gridColumns}
         rows={gridRows}
         items={gridItems}
         getItemsForCell={getItemsForCell}
+        onDragEnd={handleGridDragEnd}
+        renderDragOverlay={renderDragOverlay}
       >
         {/* Column Headers */}
         <GridBoardColumns>
@@ -544,9 +716,11 @@ export function UnifiedTaskView({
               <div key={row.id}>
                 <GridBoardRowHeader row={row} count={getRowTotal(row.id)} />
                 <GridBoardCells rowId={row.id}>
-                  {(item: GridItem, column) =>
-                    renderTaskItem(item, column.id, "kanban", column.id)
-                  }
+                  {(item: GridItem, column) => (
+                    <GridBoardItem key={item.id} item={item}>
+                      {renderTaskItem(item, column.id, "kanban", column.id)}
+                    </GridBoardItem>
+                  )}
                 </GridBoardCells>
               </div>
             )}
@@ -554,9 +728,11 @@ export function UnifiedTaskView({
         ) : (
           /* No sub-groups: render cells directly */
           <GridBoardCells>
-            {(item: GridItem, column) =>
-              renderTaskItem(item, column.id, "kanban", column.id)
-            }
+            {(item: GridItem, column) => (
+              <GridBoardItem key={item.id} item={item}>
+                {renderTaskItem(item, column.id, "kanban", column.id)}
+              </GridBoardItem>
+            )}
           </GridBoardCells>
         )}
       </GridBoardProvider>
