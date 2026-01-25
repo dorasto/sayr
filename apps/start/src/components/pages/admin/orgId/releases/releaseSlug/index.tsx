@@ -547,14 +547,15 @@ function ReleaseDetailPageContent() {
             {/* Description Section */}
             <div className="flex flex-col gap-3">
               <div className="w-full min-w-full">
-                <Editor
-                  defaultContent={release?.description || undefined}
-                  onChange={setDescription}
-                  placeholder="Add a description for this release..."
-                  users={availableUsers}
-                  categories={categories}
-                  tasks={tasks}
-                />
+							<Editor
+								defaultContent={release?.description || undefined}
+								onChange={setDescription}
+								placeholder="Add a description for this release..."
+								users={availableUsers}
+								categories={categories}
+								tasks={tasks}
+								hideBlockHandle={true}
+							/>
                 <div className="flex w-full">
                   {hasUnsavedChanges && (
                     <Button
