@@ -3,18 +3,11 @@ import type { Parameter } from "../lib/openapi";
 import { formatSchemaType } from "../lib/openapi";
 import { Badge } from "@/components/ui/badge";
 import { Frame } from "@/components/ui/frame";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Props {
-    title: string;
-    parameters: Parameter[];
+	title: string;
+	parameters: Parameter[];
 }
 
 const { title, parameters } = Astro.props;

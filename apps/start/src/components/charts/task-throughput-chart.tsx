@@ -40,21 +40,14 @@ function formatWeekLabel(weekKey: string): string {
 	return `${year.slice(2)}W${weekNum}`;
 }
 
-export function TaskThroughputChart({
-	tasks,
-	weeks = 8,
-	size = "md",
-	className,
-}: TaskThroughputChartProps) {
+export function TaskThroughputChart({ tasks, weeks = 8, size = "md", className }: TaskThroughputChartProps) {
 	const { chartData } = useMemo(() => {
 		// Debug: Log completed tasks
-		const completedTasks = tasks.filter((task) => 
-			task.status && COMPLETED_STATUSES.includes(task.status)
-		);
+		const completedTasks = tasks.filter((task) => task.status && COMPLETED_STATUSES.includes(task.status));
 		console.log("📈 Throughput Chart Debug:", {
 			totalTasks: tasks.length,
 			completedTasks: completedTasks.length,
-			sampleCompletedTasks: completedTasks.slice(0, 3).map(t => ({
+			sampleCompletedTasks: completedTasks.slice(0, 3).map((t) => ({
 				title: t.title,
 				status: t.status,
 				updatedAt: t.updatedAt,
@@ -81,12 +74,12 @@ export function TaskThroughputChart({
 
 			const completedDate = new Date(task.updatedAt);
 			const weekKey = formatWeekKey(completedDate);
-			
+
 			// Create bucket if it doesn't exist
 			if (!weekMap.has(weekKey)) {
 				weekMap.set(weekKey, 0);
 			}
-			
+
 			const count = weekMap.get(weekKey);
 			if (count !== undefined) {
 				weekMap.set(weekKey, count + 1);
@@ -116,13 +109,5 @@ export function TaskThroughputChart({
 		);
 	}
 
-	return (
-		<SimpleBarChart
-			data={chartData}
-			size={size}
-			className={className}
-			showLabels={true}
-			showGrid={true}
-		/>
-	);
+	return <SimpleBarChart data={chartData} size={size} className={className} showLabels={true} showGrid={true} />;
 }

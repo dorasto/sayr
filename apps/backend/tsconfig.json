@@ -12,15 +12,6 @@
 			"@/prosekit/*": ["./prosekit/*.ts"]
 		}
 	},
-	"include": [
-		"routes",
-		"public",
-		"index.ts",
-		"queue.ts",
-		"github",
-		"responses.ts",
-		"openapi",
-		"prosekit"
-	],
+	"include": ["routes", "public", "index.ts", "queue.ts", "github", "responses.ts", "openapi", "prosekit"],
 	"exclude": ["node_modules"]
 }

@@ -44,7 +44,7 @@ function calculateCycleTime(task: schema.TaskWithLabels): number | null {
 	if (!task.status || !COMPLETED_STATUSES.includes(task.status)) {
 		return null;
 	}
-	
+
 	if (!task.createdAt || !task.updatedAt) {
 		return null;
 	}
@@ -56,26 +56,22 @@ function calculateCycleTime(task: schema.TaskWithLabels): number | null {
 	return Math.max(0, diffInDays);
 }
 
-export function TaskCycleTimeChart({
-	tasks,
-	weeks = 8,
-	size = "md",
-	className,
-}: TaskCycleTimeChartProps) {
+export function TaskCycleTimeChart({ tasks, weeks = 8, size = "md", className }: TaskCycleTimeChartProps) {
 	const { chartData, series } = useMemo(() => {
 		// Debug: Log all tasks and their statuses
-		const completedTasks = tasks.filter((task) => 
-			task.status && COMPLETED_STATUSES.includes(task.status)
-		);
+		const completedTasks = tasks.filter((task) => task.status && COMPLETED_STATUSES.includes(task.status));
 		console.log("📊 Cycle Time Chart Debug:", {
 			totalTasks: tasks.length,
 			completedTasks: completedTasks.length,
-			statuses: tasks.reduce((acc, t) => {
-				const status = t.status || "unknown";
-				acc[status] = (acc[status] || 0) + 1;
-				return acc;
-			}, {} as Record<string, number>),
-			sampleCompletedTasks: completedTasks.slice(0, 3).map(t => ({
+			statuses: tasks.reduce(
+				(acc, t) => {
+					const status = t.status || "unknown";
+					acc[status] = (acc[status] || 0) + 1;
+					return acc;
+				},
+				{} as Record<string, number>
+			),
+			sampleCompletedTasks: completedTasks.slice(0, 3).map((t) => ({
 				title: t.title,
 				status: t.status,
 				createdAt: t.createdAt,
@@ -103,12 +99,12 @@ export function TaskCycleTimeChart({
 
 			const completedDate = new Date(task.updatedAt);
 			const weekKey = formatWeekKey(completedDate);
-			
+
 			// Create bucket if it doesn't exist (for tasks completed before date range)
 			if (!weekMap.has(weekKey)) {
 				weekMap.set(weekKey, { totalCycleTime: 0, count: 0 });
 			}
-			
+
 			const bucket = weekMap.get(weekKey);
 			if (bucket) {
 				bucket.totalCycleTime += cycleTime;

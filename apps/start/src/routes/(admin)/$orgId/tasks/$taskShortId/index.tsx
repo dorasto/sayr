@@ -63,7 +63,7 @@ function RouteComponent() {
 						payload: updatedTask.id,
 					},
 					"*"
-				)
+				);
 			}
 		},
 		UPDATE_TASK_COMMENTS: async (msg) => {
@@ -75,10 +75,10 @@ function RouteComponent() {
 						payload: msg.data.id,
 					},
 					"*"
-				)
+				);
 			}
 		},
-	}
+	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationProjectTaskHomePage]", { msg }),
 	});
@@ -88,7 +88,7 @@ function RouteComponent() {
 		// Cleanup on unmount or dependency change
 		return () => {
 			ws.removeEventListener("message", handleMessage);
-		}
+		};
 	}, [ws, handleMessage]);
 	return (
 		<TaskContentMain
@@ -100,5 +100,5 @@ function RouteComponent() {
 			categories={categories}
 			releases={releases}
 		/>
-	)
+	);
 }

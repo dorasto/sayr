@@ -8,15 +8,11 @@ const fetchInvites = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		const invites = await db.query.invite.findMany({
-			where: (invites, { eq, and }) =>
-				and(
-					eq(invites.status, "pending"),
-					eq(invites.organizationId, data.orgId),
-				),
+			where: (invites, { eq, and }) => and(eq(invites.status, "pending"), eq(invites.organizationId, data.orgId)),
 			with: {
 				user: {},
 			},
-		})
+		});
 		return { invites };
 	});
 
@@ -26,7 +22,7 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId/members/")({
 			data: {
 				orgId: params.orgId,
 			},
-		})
+		});
 	},
 	component: RouteComponent,
 });
@@ -40,5 +36,5 @@ function RouteComponent() {
 				<SettingsOrganizationPageTeam invites={invites} />
 			</div>
 		</SubWrapper>
-	)
+	);
 }

@@ -1,8 +1,6 @@
 import type { DorasUserType, GithubUserType } from "@/types";
 
-export async function getUserInfoGithub(
-	accessToken: string,
-): Promise<GithubUserType> {
+export async function getUserInfoGithub(accessToken: string): Promise<GithubUserType> {
 	const response = await fetch("https://api.github.com/user", {
 		method: "GET",
 		headers: {
@@ -13,18 +11,14 @@ export async function getUserInfoGithub(
 	});
 
 	if (!response.ok) {
-		throw new Error(
-			`GitHub API error: ${response.status} ${response.statusText}`,
-		);
+		throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
 	}
 
 	const data = await response.json();
 	return data;
 }
 
-export async function getUserInfoDoras(
-	accessToken: string,
-): Promise<DorasUserType> {
+export async function getUserInfoDoras(accessToken: string): Promise<DorasUserType> {
 	const response = await fetch("https://doras.to/api/v1/account/me", {
 		method: "GET",
 		headers: {
@@ -34,9 +28,7 @@ export async function getUserInfoDoras(
 	});
 
 	if (!response.ok) {
-		throw new Error(
-			`Doras API error: ${response.status} ${response.statusText}`,
-		);
+		throw new Error(`Doras API error: ${response.status} ${response.statusText}`);
 	}
 
 	const data = await response.json();

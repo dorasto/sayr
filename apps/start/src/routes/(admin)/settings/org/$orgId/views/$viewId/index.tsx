@@ -25,7 +25,7 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId/views/$viewId
 				orgId: params.orgId,
 				viewId: params.viewId,
 			},
-		})
+		});
 	},
 	component: RouteComponent,
 });
@@ -44,5 +44,5 @@ function RouteComponent() {
 		>
 			<SettingsOrganizationViewDetailPage viewId={view?.id as string} initialView={view} />
 		</SubWrapper>
-	)
+	);
 }

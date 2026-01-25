@@ -26,17 +26,7 @@ apiRouteAdminRelease.post("/create", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const {
-		org_id: orgId,
-		wsClientId,
-		name,
-		slug,
-		description,
-		status,
-		targetDate,
-		color,
-		icon,
-	} = await c.req.json();
+	const { org_id: orgId, wsClientId, name, slug, description, status, targetDate, color, icon } = await c.req.json();
 
 	// Only org admins can create releases
 	const isAuthorized = await traceAsync(
@@ -75,11 +65,10 @@ apiRouteAdminRelease.post("/create", async (c) => {
 	}
 
 	// Check if slug is already taken
-	const existingRelease = await traceAsync(
-		"release.create.check_slug",
-		() => getReleaseBySlug(orgId, slug),
-		{ description: "Checking if slug is taken", data: { slug, orgId } }
-	);
+	const existingRelease = await traceAsync("release.create.check_slug", () => getReleaseBySlug(orgId, slug), {
+		description: "Checking if slug is taken",
+		data: { slug, orgId },
+	});
 
 	if (existingRelease) {
 		await recordWideError({
@@ -178,11 +167,10 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 	}
 
 	// Check if release exists
-	const existingRelease = await traceAsync(
-		"release.update.lookup",
-		() => getRelease(releaseId),
-		{ description: "Finding release to update", data: { orgId, releaseId } }
-	);
+	const existingRelease = await traceAsync("release.update.lookup", () => getRelease(releaseId), {
+		description: "Finding release to update",
+		data: { orgId, releaseId },
+	});
 
 	if (!existingRelease || existingRelease.organizationId !== orgId) {
 		await recordWideError({
@@ -197,11 +185,10 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 
 	// If slug is being updated, check if it's available
 	if (updates.slug && updates.slug !== existingRelease.slug) {
-		const slugTaken = await traceAsync(
-			"release.update.check_slug",
-			() => getReleaseBySlug(orgId, updates.slug),
-			{ description: "Checking if new slug is taken", data: { slug: updates.slug, orgId } }
-		);
+		const slugTaken = await traceAsync("release.update.check_slug", () => getReleaseBySlug(orgId, updates.slug), {
+			description: "Checking if new slug is taken",
+			data: { slug: updates.slug, orgId },
+		});
 
 		if (slugTaken) {
 			await recordWideError({
@@ -237,14 +224,10 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 	if (updates.icon !== undefined) updateData.icon = updates.icon;
 
 	// Update the release
-	const updatedRelease = await traceAsync(
-		"release.update.save",
-		() => updateRelease(releaseId, updateData),
-		{
-			description: "Updating release record",
-			data: { releaseId, updates: Object.keys(updateData) },
-		}
-	);
+	const updatedRelease = await traceAsync("release.update.save", () => updateRelease(releaseId, updateData), {
+		description: "Updating release record",
+		data: { releaseId, updates: Object.keys(updateData) },
+	});
 
 	if (!updatedRelease) {
 		await recordWideError({
@@ -309,11 +292,10 @@ apiRouteAdminRelease.delete("/delete", async (c) => {
 	}
 
 	// Check if release exists
-	const existingRelease = await traceAsync(
-		"release.delete.lookup",
-		() => getRelease(releaseId),
-		{ description: "Finding release to delete", data: { orgId, releaseId } }
-	);
+	const existingRelease = await traceAsync("release.delete.lookup", () => getRelease(releaseId), {
+		description: "Finding release to delete",
+		data: { orgId, releaseId },
+	});
 
 	if (!existingRelease || existingRelease.organizationId !== orgId) {
 		await recordWideError({
@@ -327,14 +309,10 @@ apiRouteAdminRelease.delete("/delete", async (c) => {
 	}
 
 	// Delete the release (this also nullifies tasks' releaseId)
-	await traceAsync(
-		"release.delete.remove",
-		() => deleteRelease(releaseId),
-		{
-			description: "Deleting release and nullifying task associations",
-			data: { releaseId },
-		}
-	);
+	await traceAsync("release.delete.remove", () => deleteRelease(releaseId), {
+		description: "Deleting release and nullifying task associations",
+		data: { releaseId },
+	});
 
 	// Broadcast the deletion
 	await traceAsync(
@@ -391,10 +369,7 @@ apiRouteAdminRelease.post("/mark-released", async (c) => {
 	);
 
 	if (!isAuthorized) {
-		return c.json(
-			{ success: false, error: "You don't have permission to mark releases as released." },
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to mark releases as released." }, 401);
 	}
 
 	if (!session?.userId) {
@@ -409,11 +384,10 @@ apiRouteAdminRelease.post("/mark-released", async (c) => {
 	}
 
 	// Check if release exists
-	const existingRelease = await traceAsync(
-		"release.mark_released.lookup",
-		() => getRelease(releaseId),
-		{ description: "Finding release to mark as released", data: { orgId, releaseId } }
-	);
+	const existingRelease = await traceAsync("release.mark_released.lookup", () => getRelease(releaseId), {
+		description: "Finding release to mark as released",
+		data: { orgId, releaseId },
+	});
 
 	if (!existingRelease || existingRelease.organizationId !== orgId) {
 		await recordWideError({
@@ -555,11 +529,10 @@ apiRouteAdminRelease.get("/:releaseId", async (c) => {
 	}
 
 	// Fetch release with tasks
-	const release = await traceAsync(
-		"release.get.fetch",
-		() => getReleaseWithTasks(releaseId),
-		{ description: "Fetching release with tasks", data: { releaseId } }
-	);
+	const release = await traceAsync("release.get.fetch", () => getReleaseWithTasks(releaseId), {
+		description: "Fetching release with tasks",
+		data: { releaseId },
+	});
 
 	if (!release || release.organizationId !== orgId) {
 		await recordWideError({

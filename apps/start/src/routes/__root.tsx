@@ -37,8 +37,8 @@ export const Route = createRootRouteWithContext<{
 				rel: "manifest",
 				//@ts-expect-error
 				href: ctx.params?.orgSlug
-					//@ts-expect-error
-					? `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
+					? //@ts-expect-error
+						`/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
 					: "/manifest.webmanifest",
 			},
 		],

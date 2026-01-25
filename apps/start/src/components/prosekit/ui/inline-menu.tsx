@@ -1,9 +1,4 @@
-import {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupButton,
-	InputGroupInput,
-} from "@repo/ui/components/input-group";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import {
 	IconBold,
 	IconCheck,
@@ -204,17 +199,9 @@ export default function InlineMenu() {
 							}}
 						>
 							<InputGroup className="rounded-lg text-foreground w-full">
-								<InputGroupInput
-									defaultValue={items.link.currentLink}
-									placeholder="Paste the link..."
-								/>
+								<InputGroupInput defaultValue={items.link.currentLink} placeholder="Paste the link..." />
 								<InputGroupAddon align="inline-end">
-									<InputGroupButton
-										aria-label="Update link"
-										title="Update link"
-										size="icon-xs"
-										type="submit"
-									>
+									<InputGroupButton aria-label="Update link" title="Update link" size="icon-xs" type="submit">
 										<IconCheck className="size-4" />
 									</InputGroupButton>
 									{items.link.isActive && (

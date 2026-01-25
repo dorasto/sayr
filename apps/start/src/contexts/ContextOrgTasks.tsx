@@ -21,11 +21,7 @@ export function RootProviderOrganizationTasks({
 	tasks: ContextType["tasks"];
 	organization?: ContextType["organization"];
 }) {
-	const { value: newTasks, setValue: setTasks } = useStateManagement(
-		"tasks",
-		tasks,
-		30000,
-	);
+	const { value: newTasks, setValue: setTasks } = useStateManagement("tasks", tasks, 30000);
 	useEffect(() => setTasks(tasks), [tasks, setTasks]);
 	if (!tasks) {
 		return (
@@ -34,19 +30,13 @@ export function RootProviderOrganizationTasks({
 			</div>
 		);
 	}
-	return (
-		<RootContext.Provider value={{ tasks: newTasks, setTasks, organization }}>
-			{children}
-		</RootContext.Provider>
-	);
+	return <RootContext.Provider value={{ tasks: newTasks, setTasks, organization }}>{children}</RootContext.Provider>;
 }
 
 export function useLayoutTasks() {
 	const context = useContext(RootContext);
 	if (context === undefined) {
-		throw new Error(
-			"useLayoutProject must be used within a RootProviderOrganizationTasks",
-		);
+		throw new Error("useLayoutProject must be used within a RootProviderOrganizationTasks");
 	}
 	return context;
 }

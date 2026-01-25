@@ -25,23 +25,18 @@ function formatDateLabel(dateKey: string): string {
 	return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function TaskBurndownChart({
-	tasks,
-	targetDate,
-	size = "md",
-	className,
-}: TaskBurndownChartProps) {
+export function TaskBurndownChart({ tasks, targetDate, size = "md", className }: TaskBurndownChartProps) {
 	const { chartData, series } = useMemo(() => {
 		// Default target date is 2 weeks from now
 		const target = targetDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-		
+
 		// Find the earliest task creation date or use 14 days ago
 		const today = new Date();
 		today.setHours(23, 59, 59, 999);
-		
+
 		let startDate = new Date(today);
 		startDate.setDate(startDate.getDate() - 14);
-		
+
 		for (const task of tasks) {
 			if (task.createdAt) {
 				const created = new Date(task.createdAt);
@@ -50,7 +45,7 @@ export function TaskBurndownChart({
 				}
 			}
 		}
-		
+
 		startDate.setHours(0, 0, 0, 0);
 
 		// Calculate number of days
@@ -69,7 +64,7 @@ export function TaskBurndownChart({
 		for (const task of tasks) {
 			if (!task.createdAt) continue;
 			const created = new Date(task.createdAt);
-			
+
 			if (created <= startDate) {
 				// Task existed at start
 				if (task.status && COMPLETED_STATUSES.includes(task.status) && task.updatedAt) {
@@ -88,23 +83,23 @@ export function TaskBurndownChart({
 		// Calculate ideal burndown line (linear decrease)
 		const idealDecreasePerDay = initialCount / days;
 		let currentIdeal = initialCount;
-		
+
 		// Calculate actual remaining tasks for each day
 		const sortedDates = Array.from(dateMap.keys()).sort((a, b) => a.localeCompare(b));
-		
+
 		let cumulativeOpen = initialCount;
-		
+
 		for (const dateKey of sortedDates) {
 			const bucket = dateMap.get(dateKey);
 			if (!bucket) continue;
-			
+
 			const currentDate = new Date(dateKey);
 			currentDate.setHours(23, 59, 59, 999);
-			
+
 			// Calculate tasks created and completed on this day
 			let created = 0;
 			let completed = 0;
-			
+
 			for (const task of tasks) {
 				if (task.createdAt) {
 					const taskCreated = new Date(task.createdAt);
@@ -113,7 +108,7 @@ export function TaskBurndownChart({
 						created++;
 					}
 				}
-				
+
 				if (task.status && COMPLETED_STATUSES.includes(task.status) && task.updatedAt) {
 					const taskCompleted = new Date(task.updatedAt);
 					const taskCompletedKey = formatDateKey(taskCompleted);
@@ -122,12 +117,12 @@ export function TaskBurndownChart({
 					}
 				}
 			}
-			
+
 			cumulativeOpen = cumulativeOpen + created - completed;
-			
+
 			bucket.actual = Math.max(0, cumulativeOpen);
 			bucket.ideal = Math.max(0, currentIdeal);
-			
+
 			currentIdeal -= idealDecreasePerDay;
 		}
 

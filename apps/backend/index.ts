@@ -54,7 +54,7 @@ app.use(
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		credentials: true,
 		maxAge: 600,
-	}),
+	})
 );
 
 // -----------------------------------------------------------------------------
@@ -70,7 +70,7 @@ app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://fi
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
-app.route("/ws", wsRoute)
+app.route("/ws", wsRoute);
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.route("/render", renderRoute);
 app.get("/api/health", (c) => c.text("OK"));

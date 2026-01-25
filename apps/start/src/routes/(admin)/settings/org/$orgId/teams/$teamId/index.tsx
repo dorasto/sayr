@@ -20,14 +20,14 @@ const fetchteam = createServerFn({ method: "GET" })
 					},
 				},
 			},
-		})
+		});
 
 		// 🧭 Redirect if the team doesn't exist
 		if (!teamdata) {
 			throw redirect({
 				to: "/settings/org/$orgId/teams",
 				params: { orgId: data.orgid },
-			})
+			});
 		}
 
 		return { team: teamdata };
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId/teams/$teamId
 				orgid: params.orgId,
 				teamid: params.teamId,
 			},
-		})
+		});
 	},
 	component: RouteComponent,
 });
@@ -55,5 +55,5 @@ function RouteComponent() {
 				<SettingsOrganizationPageTeamSettings team={team} />
 			</div>
 		</SubWrapper>
-	)
+	);
 }

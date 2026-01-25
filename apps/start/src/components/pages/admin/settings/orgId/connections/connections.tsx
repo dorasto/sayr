@@ -1,10 +1,4 @@
-import {
-	Tile,
-	TileDescription,
-	TileHeader,
-	TileIcon,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Link } from "@tanstack/react-router";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
@@ -35,9 +29,7 @@ export default function SettingsOrganizationConnectionsPage() {
 									<connection.icon />
 								</TileIcon>
 								<TileTitle>{connection.name}</TileTitle>
-								<TileDescription className="line-clamp-1 ml-auto">
-									{connection.description}
-								</TileDescription>
+								<TileDescription className="line-clamp-1 ml-auto">{connection.description}</TileDescription>
 							</div>
 						</TileHeader>
 					</Tile>

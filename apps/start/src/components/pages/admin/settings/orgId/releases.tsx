@@ -11,8 +11,7 @@ import { useEffect } from "react";
 
 export default function SettingsOrganizationReleasesPage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, setReleases, tasks, releases } =
-		useLayoutOrganizationSettings();
+	const { organization, setOrganization, setReleases, tasks, releases } = useLayoutOrganizationSettings();
 
 	useWebSocketSubscription({
 		ws,

@@ -15,17 +15,15 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
 				orgId: params.orgId,
 				taskShortId: parseInt(params.taskShortId),
 			},
-		})
+		});
 	},
 	staleTime: 1000 * 60,
 	component: OrgTasksLayout,
-        head: ({ loaderData }) => ({
-            meta: seo({
-                title: `#${
-loaderData?.task.shortId
-                } ${loaderData?.task.title}`,
-            }),
-        }),
+	head: ({ loaderData }) => ({
+		meta: seo({
+			title: `#${loaderData?.task.shortId} ${loaderData?.task.title}`,
+		}),
+	}),
 });
 
 function OrgTasksLayout() {
@@ -35,5 +33,5 @@ function OrgTasksLayout() {
 		<RootProviderOrganizationTask task={task}>
 			<OrganizationTaskIdPage />
 		</RootProviderOrganizationTask>
-	)
+	);
 }

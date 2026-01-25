@@ -14,10 +14,10 @@ export const getConnections = createServerFn({ method: "GET" })
 			// Find GitHub account association for this user
 			const github = await db.query.account.findFirst({
 				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "github")),
-			})
+			});
 			const doras = await db.query.account.findFirst({
 				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "doras")),
-			})
+			});
 
 			let githubUser: GithubUserType | null = null;
 			let dorasUser: DorasUserType | null = null;
@@ -41,7 +41,7 @@ export const getConnections = createServerFn({ method: "GET" })
 			return {
 				githubUser,
 				dorasUser,
-			}
+			};
 		} catch (error) {
 			// If it's already a redirect, re-throw it
 			if (error && typeof error === "object" && "redirect" in error) {
@@ -67,5 +67,5 @@ function RouteComponent() {
 		<SubWrapper title="Connections" style="compact">
 			<UserConnections githubUser={githubUser} dorasUser={dorasUser} />
 		</SubWrapper>
-	)
+	);
 }

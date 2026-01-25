@@ -19,5 +19,5 @@ function RouteComponent() {
 				{/* <UserPreferences /> */}
 			</div>
 		</SubWrapper>
-	)
+	);
 }

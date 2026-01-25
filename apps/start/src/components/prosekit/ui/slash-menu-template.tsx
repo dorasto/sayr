@@ -4,11 +4,7 @@ import { canUseRegexLookbehind } from "prosekit/core";
 import { handleMediaUpload } from "../utils/uploadMedia";
 import SlashMenuEmpty from "./slash-menu-empty";
 import SlashMenuItem from "./slash-menu-item";
-import {
-	IconLibraryPhoto,
-	IconPhoto,
-	IconVideo,
-} from "@tabler/icons-react";
+import { IconLibraryPhoto, IconPhoto, IconVideo } from "@tabler/icons-react";
 import { useEditor } from "prosekit/react";
 import { GifPickerModal } from "./GifPickerModal";
 import { useState } from "react";
@@ -26,7 +22,6 @@ export default function SlashMenuTemplate() {
 				className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-lg border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
 			>
 				<AutocompleteList>
-
 					<SlashMenuItem
 						label="Image"
 						icon={<IconPhoto className="size-4" />}

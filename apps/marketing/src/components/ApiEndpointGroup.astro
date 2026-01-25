@@ -15,10 +15,7 @@ const { tag, endpoints, baseUrl } = Astro.props;
 const tagSlug = tag.toLowerCase().replace(/\s+/g, "-");
 
 const getEndpointSlug = (endpoint: ParsedEndpoint) => {
-	const path = endpoint.path
-		.replace(/[{}]/g, "")
-		.replace(/\//g, "-")
-		.replace(/^-/, "");
+	const path = endpoint.path.replace(/[{}]/g, "").replace(/\//g, "-").replace(/^-/, "");
 	return `${endpoint.method.toLowerCase()}-${path}`.replace(/-+/g, "-");
 };
 ---

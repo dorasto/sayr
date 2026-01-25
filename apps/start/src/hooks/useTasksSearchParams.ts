@@ -37,11 +37,7 @@ function getServerSnapshot() {
  */
 export function useTasksSearchParams() {
 	// Subscribe to URL changes for reactivity
-	const searchString = useSyncExternalStore(
-		subscribeToUrl,
-		getUrlSnapshot,
-		getServerSnapshot,
-	);
+	const searchString = useSyncExternalStore(subscribeToUrl, getUrlSnapshot, getServerSnapshot);
 
 	// Parse current search params
 	const searchParams = useMemo(() => {
@@ -84,38 +80,33 @@ export function useTasksSearchParams() {
 		(value: string | null) => {
 			updateUrl({ filters: value });
 		},
-		[updateUrl],
+		[updateUrl]
 	);
 
 	const setView = useCallback(
 		(value: string | null) => {
 			updateUrl({ view: value });
 		},
-		[updateUrl],
+		[updateUrl]
 	);
 
 	const setCategory = useCallback(
 		(value: string | null) => {
 			updateUrl({ category: value });
 		},
-		[updateUrl],
+		[updateUrl]
 	);
 
 	const setTask = useCallback(
 		(value: number | null) => {
 			updateUrl({ task: value ? String(value) : null });
 		},
-		[updateUrl],
+		[updateUrl]
 	);
 
 	// Batch setter for multiple params at once
 	const setSearchParams = useCallback(
-		(params: {
-			filters?: string | null;
-			view?: string | null;
-			task?: number | null;
-			category?: string | null;
-		}) => {
+		(params: { filters?: string | null; view?: string | null; task?: number | null; category?: string | null }) => {
 			const updates: Record<string, string | null> = {};
 
 			if (params.filters !== undefined) {
@@ -133,7 +124,7 @@ export function useTasksSearchParams() {
 
 			updateUrl(updates);
 		},
-		[updateUrl],
+		[updateUrl]
 	);
 
 	// Clear all task search params

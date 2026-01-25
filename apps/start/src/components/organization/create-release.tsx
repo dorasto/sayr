@@ -1,18 +1,16 @@
 "use client";
-import { createReleaseAction, deleteReleaseAction, updateReleaseAction, markReleaseAsReleasedAction } from "@/lib/fetches/release";
+import {
+	createReleaseAction,
+	deleteReleaseAction,
+	updateReleaseAction,
+	markReleaseAsReleasedAction,
+} from "@/lib/fetches/release";
 import { useToastAction } from "@/lib/util";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@repo/ui/components/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";

@@ -24,9 +24,7 @@ import { defaultTeamPermissions, type TeamPermissions } from "../../schema/membe
  * });
  * ```
  */
-export async function getOrganizations(
-	userId: string,
-): Promise<schema.OrganizationWithMembers[]> {
+export async function getOrganizations(userId: string): Promise<schema.OrganizationWithMembers[]> {
 	// Step 1: Find orgIds the user belongs to
 	const memberships = await db.query.member.findMany({
 		where: (member) => eq(member.userId, userId),
@@ -79,10 +77,7 @@ export async function getOrganizations(
  * }
  * ```
  */
-export async function getOrganization(
-	orgId: string,
-	userId: string,
-): Promise<schema.OrganizationWithMembers | null> {
+export async function getOrganization(orgId: string, userId: string): Promise<schema.OrganizationWithMembers | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.id, orgId),
 		with: {
@@ -99,9 +94,7 @@ export async function getOrganization(
 	return {
 		...organization,
 		logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
-		bannerImg: organization.bannerImg
-			? ensureCdnUrl(organization.bannerImg)
-			: null,
+		bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
 	};
 }
 
@@ -119,9 +112,7 @@ export async function getOrganization(
  * });
  * ```
  */
-export async function getOrganizationMembers(
-	orgId: string,
-): Promise<schema.OrganizationMemberType[]> {
+export async function getOrganizationMembers(orgId: string): Promise<schema.OrganizationMemberType[]> {
 	return db.query.member.findMany({
 		where: (member) => eq(member.organizationId, orgId),
 	});
@@ -145,9 +136,7 @@ export async function getOrganizationMembers(
  * }
  * ```
  */
-export async function getOrganizationPublic(
-	orgSlug: string,
-): Promise<schema.OrganizationWithMembers | null> {
+export async function getOrganizationPublic(orgSlug: string): Promise<schema.OrganizationWithMembers | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.slug, orgSlug),
 		with: {
@@ -169,9 +158,7 @@ export async function getOrganizationPublic(
 		return {
 			...organization,
 			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
-			bannerImg: organization.bannerImg
-				? ensureCdnUrl(organization.bannerImg)
-				: null,
+			bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
 			privateId: null,
 		};
 	}
@@ -196,9 +183,7 @@ export async function getOrganizationPublic(
  * }
  * ```
  */
-export async function getOrganizationPublicById(
-	orgId: string,
-): Promise<schema.organizationType | null> {
+export async function getOrganizationPublicById(orgId: string): Promise<schema.organizationType | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.id, orgId),
 	});
@@ -206,9 +191,7 @@ export async function getOrganizationPublicById(
 		return {
 			...organization,
 			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
-			bannerImg: organization.bannerImg
-				? ensureCdnUrl(organization.bannerImg)
-				: null,
+			bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
 			privateId: null,
 		};
 	}
@@ -261,13 +244,10 @@ const fullAdminPermissions: TeamPermissions = {
  * await bootstrapOrganizationAdminTeam("existing_org_456");
  * ```
  */
-export async function bootstrapOrganizationAdminTeam(
-	orgId: string,
-): Promise<schema.OrganizationTeamType> {
+export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<schema.OrganizationTeamType> {
 	// Check if Administrators team already exists
 	let adminTeam = await db.query.team.findFirst({
-		where: (t, { and, eq }) =>
-			and(eq(t.organizationId, orgId), eq(t.name, "Administrators")),
+		where: (t, { and, eq }) => and(eq(t.organizationId, orgId), eq(t.name, "Administrators")),
 	});
 
 	// Create if it doesn't exist
@@ -310,7 +290,7 @@ export async function bootstrapOrganizationAdminTeam(
 				id: crypto.randomUUID(),
 				memberId: m.id,
 				teamId: adminTeam.id,
-			})),
+			}))
 		);
 	}
 
@@ -324,17 +304,13 @@ export async function bootstrapOrganizationAdminTeam(
  * @param orgId - The ID of the organization.
  * @param memberId - The ID of the member to add.
  */
-export async function addMemberToAdminTeam(
-	orgId: string,
-	memberId: string,
-): Promise<void> {
+export async function addMemberToAdminTeam(orgId: string, memberId: string): Promise<void> {
 	// Ensure admin team exists
 	const adminTeam = await bootstrapOrganizationAdminTeam(orgId);
 
 	// Check if already a member
 	const existing = await db.query.memberTeam.findFirst({
-		where: (mt, { and, eq }) =>
-			and(eq(mt.teamId, adminTeam.id), eq(mt.memberId, memberId)),
+		where: (mt, { and, eq }) => and(eq(mt.teamId, adminTeam.id), eq(mt.memberId, memberId)),
 	});
 
 	if (!existing) {

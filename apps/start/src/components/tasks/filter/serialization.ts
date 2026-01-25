@@ -1,10 +1,4 @@
-import type {
-	FilterCondition,
-	FilterField,
-	FilterGroup,
-	FilterOperator,
-	FilterState,
-} from "./types";
+import type { FilterCondition, FilterField, FilterGroup, FilterOperator, FilterState } from "./types";
 
 // Browser-compatible base64 encoding/decoding with UTF-8 support
 const toBase64 = (str: string): string => {
@@ -24,9 +18,7 @@ const fromBase64 = (str: string): string => {
 
 export const serializeFilters = (state: FilterState): string => {
 	try {
-		const minimal = state.groups.map((g) =>
-			g.conditions.map((c) => [c.field, c.operator, c.value]),
-		);
+		const minimal = state.groups.map((g) => g.conditions.map((c) => [c.field, c.operator, c.value]));
 		if (minimal.length <= 0) {
 			return "";
 		}
@@ -66,9 +58,7 @@ export const deserializeFilters = (value: string): FilterState | null => {
 	}
 };
 
-export const getCategoryIdsFromFilters = (
-	filters: FilterState | null,
-): string[] => {
+export const getCategoryIdsFromFilters = (filters: FilterState | null): string[] => {
 	if (!filters) return [];
 
 	return filters.groups

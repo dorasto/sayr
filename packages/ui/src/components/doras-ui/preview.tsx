@@ -1,10 +1,6 @@
 "use client";
 
-import {
-	HoverCard,
-	HoverCardContent,
-	HoverCardTrigger,
-} from "@repo/ui/components/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@repo/ui/components/hover-card";
 import { cn } from "@repo/ui/lib/utils";
 import { IconExternalLink } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -81,10 +77,7 @@ export function Preview({
 	}, [url, onError]);
 
 	const defaultTrigger = (
-		<a
-			href={url}
-			className="text-primary hover:underline inline-flex items-center gap-1"
-		>
+		<a href={url} className="text-primary hover:underline inline-flex items-center gap-1">
 			{new URL(url).hostname}
 			<IconExternalLink className="size-3" />
 		</a>
@@ -100,10 +93,7 @@ export function Preview({
 				{children || defaultTrigger}
 			</HoverCardTrigger>
 			<HoverCardContent
-				className={cn(
-					"md:w-80 p-0 overflow-hidden border rounded-lg no-underline! select-none!",
-					contentClassName,
-				)}
+				className={cn("md:w-80 p-0 overflow-hidden border rounded-lg no-underline! select-none!", contentClassName)}
 			>
 				<a href={url} className="no-underline! pointer-events-auto! block">
 					{loading ? (
@@ -121,9 +111,7 @@ export function Preview({
 							)}
 							<div className="p-3 no-underline!">
 								{showTitle && metadata?.title && (
-									<h4 className="font-semibold text-sm leading-tight no-underline! m-0!">
-										{metadata.title}
-									</h4>
+									<h4 className="font-semibold text-sm leading-tight no-underline! m-0!">{metadata.title}</h4>
 								)}
 								{showDescription && metadata?.description && (
 									<p className="text-muted-foreground text-xs leading-relaxed line-clamp-2 p-0!">

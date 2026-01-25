@@ -2,11 +2,11 @@ import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
 export type ConsolidatedTimelineItem = {
-  id: string;
-  actor: schema.taskTimelineWithActor["actor"];
-  createdAt: Date;
-  items: schema.taskTimelineWithActor[];
-  eventTypes: string[];
+	id: string;
+	actor: schema.taskTimelineWithActor["actor"];
+	createdAt: Date;
+	items: schema.taskTimelineWithActor[];
+	eventTypes: string[];
 };
 
 /**
@@ -18,55 +18,55 @@ export type ConsolidatedTimelineItem = {
 export type TimelineItemVariant = "activity" | "comment" | "description";
 
 export interface TimelineItemWrapperProps {
-  item: schema.taskTimelineWithActor;
-  icon: React.ComponentType<{ size?: number }>;
-  color: string;
-  children?: React.ReactNode;
-  availableUsers?: schema.userType[];
-  categories?: schema.categoryType[];
-  tasks?: schema.TaskWithLabels[];
-  actionButtons?: React.ReactNode;
-  // Inline editing props
-  isEditing?: boolean;
-  onContentChange?: (content: NodeJSON | undefined) => void;
-  onSave?: () => void;
-  onCancel?: () => void;
-  isSaving?: boolean;
-  canSave?: boolean;
-  /**
-   * Controls the visual style of the timeline item
-   * @default "activity"
-   */
-  variant?: TimelineItemVariant;
-  /**
-   * Whether to show the separator line below this item.
-   * Should be false if the next item is not an activity.
-   * @default true
-   */
-  showSeparator?: boolean;
+	item: schema.taskTimelineWithActor;
+	icon: React.ComponentType<{ size?: number }>;
+	color: string;
+	children?: React.ReactNode;
+	availableUsers?: schema.userType[];
+	categories?: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
+	actionButtons?: React.ReactNode;
+	// Inline editing props
+	isEditing?: boolean;
+	onContentChange?: (content: NodeJSON | undefined) => void;
+	onSave?: () => void;
+	onCancel?: () => void;
+	isSaving?: boolean;
+	canSave?: boolean;
+	/**
+	 * Controls the visual style of the timeline item
+	 * @default "activity"
+	 */
+	variant?: TimelineItemVariant;
+	/**
+	 * Whether to show the separator line below this item.
+	 * Should be false if the next item is not an activity.
+	 * @default true
+	 */
+	showSeparator?: boolean;
 }
 
 export interface GlobalTimelineProps {
-  task: schema.TaskWithLabels;
-  labels: schema.labelType[];
-  availableUsers: schema.userType[];
-  categories: schema.categoryType[];
-  tasks: schema.TaskWithLabels[];
-  releases: schema.releaseType[];
+	task: schema.TaskWithLabels;
+	labels: schema.labelType[];
+	availableUsers: schema.userType[];
+	categories: schema.categoryType[];
+	tasks: schema.TaskWithLabels[];
+	releases: schema.releaseType[];
 }
 
 export interface TimelineItemProps {
-  item: schema.taskTimelineWithActor;
-  labels?: schema.labelType[];
-  availableUsers?: schema.userType[];
-  categories?: schema.categoryType[];
-  tasks?: schema.TaskWithLabels[];
-  releases?: schema.releaseType[];
+	item: schema.taskTimelineWithActor;
+	labels?: schema.labelType[];
+	availableUsers?: schema.userType[];
+	categories?: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
+	releases?: schema.releaseType[];
 }
 
 export interface ConsolidatedTimelineItemProps {
-  consolidatedItem: ConsolidatedTimelineItem;
-  labels: schema.labelType[];
-  availableUsers: schema.userType[];
-  showSeparator?: boolean;
+	consolidatedItem: ConsolidatedTimelineItem;
+	labels: schema.labelType[];
+	availableUsers: schema.userType[];
+	showSeparator?: boolean;
 }

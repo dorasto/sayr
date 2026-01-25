@@ -23,15 +23,9 @@ export async function getRelease(releaseId: string): Promise<schema.releaseType 
  * @param slug - The release slug
  * @returns Promise resolving to release data or null if not found
  */
-export async function getReleaseBySlug(
-	orgId: string,
-	slug: string
-): Promise<schema.releaseType | null> {
+export async function getReleaseBySlug(orgId: string, slug: string): Promise<schema.releaseType | null> {
 	const release = await db.query.release.findFirst({
-		where: and(
-			eq(schema.release.organizationId, orgId),
-			eq(schema.release.slug, slug)
-		),
+		where: and(eq(schema.release.organizationId, orgId), eq(schema.release.slug, slug)),
 	});
 
 	return release || null;
@@ -62,9 +56,7 @@ export async function getReleases(orgId: string): Promise<schema.releaseType[]> 
  * @param releaseId - The unique ID of the release
  * @returns Promise resolving to release with tasks or null if not found
  */
-export async function getReleaseWithTasks(
-	releaseId: string
-): Promise<schema.ReleaseWithTasks | null> {
+export async function getReleaseWithTasks(releaseId: string): Promise<schema.ReleaseWithTasks | null> {
 	const release = await db.query.release.findFirst({
 		where: eq(schema.release.id, releaseId),
 	});
@@ -213,10 +205,7 @@ export async function updateRelease(
  */
 export async function deleteRelease(releaseId: string): Promise<void> {
 	// First, set all tasks' releaseId to null
-	await db
-		.update(schema.task)
-		.set({ releaseId: null })
-		.where(eq(schema.task.releaseId, releaseId));
+	await db.update(schema.task).set({ releaseId: null }).where(eq(schema.task.releaseId, releaseId));
 
 	// Then delete the release
 	await db.delete(schema.release).where(eq(schema.release.id, releaseId));

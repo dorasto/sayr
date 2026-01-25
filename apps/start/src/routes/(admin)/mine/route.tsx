@@ -28,10 +28,10 @@ export const getMyTasks = createServerFn({ method: "GET" })
 			const allLabels: schema.labelType[] = labelsArrays.flat();
 			const views = await db.query.savedView.findMany({
 				where: (view) => inArray(view.organizationId, organizationIds),
-			})
+			});
 			const categories = await db.query.category.findMany({
 				where: (category) => inArray(category.organizationId, organizationIds),
-			})
+			});
 			const releasesPromises = organizationIds.map((orgId) => getReleases(orgId));
 			const releasesArrays = await Promise.all(releasesPromises);
 			const allReleases: schema.releaseType[] = releasesArrays.flat();
@@ -61,5 +61,5 @@ function MineLayout() {
 		<RootProviderMyTasks tasks={tasks} labels={labels} views={views} categories={categories} releases={releases}>
 			<Outlet />
 		</RootProviderMyTasks>
-	)
+	);
 }

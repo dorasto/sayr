@@ -7,11 +7,7 @@ import {
 	CommandItem,
 	CommandList,
 } from "@repo/ui/components/command";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@repo/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { cn } from "@repo/ui/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
 import type { CodeBlockAttrs } from "prosekit/extensions/code-block";
@@ -30,17 +26,12 @@ export default function CodeBlockView(props: ReactNodeViewProps) {
 		setOpen(false);
 	};
 
-	const currentLanguage = shikiBundledLanguagesInfo.find(
-		(info) => info.id === language,
-	);
+	const currentLanguage = shikiBundledLanguagesInfo.find((info) => info.id === language);
 
 	return (
 		<>
 			{props.view.editable && (
-				<div
-					className="relative mx-2 top-3.5 h-0 select-none overflow-visible text-xs"
-					contentEditable={false}
-				>
+				<div className="relative mx-2 top-3.5 h-0 select-none overflow-visible text-xs" contentEditable={false}>
 					<Popover open={open} onOpenChange={setOpen}>
 						<PopoverTrigger asChild>
 							<Button
@@ -55,36 +46,23 @@ export default function CodeBlockView(props: ReactNodeViewProps) {
 						</PopoverTrigger>
 						<PopoverContent className="w-[200px] p-0 max-h-[300px] overflow-hidden">
 							<Command>
-								<CommandInput
-									placeholder="Search language..."
-									className="h-9"
-								/>
+								<CommandInput placeholder="Search language..." className="h-9" />
 								<CommandList>
 									<CommandEmpty>No language found.</CommandEmpty>
 									<CommandGroup className="max-h-[260px] overflow-y-auto">
-										<CommandItem
-											value="plain text"
-											onSelect={() => setLanguage("")}
-										>
+										<CommandItem value="plain text" onSelect={() => setLanguage("")}>
 											Plain Text
 											<Check
-												className={cn(
-													"ml-auto h-4 w-4",
-													language === "" ? "opacity-100" : "opacity-0",
-												)}
+												className={cn("ml-auto h-4 w-4", language === "" ? "opacity-100" : "opacity-0")}
 											/>
 										</CommandItem>
 										{shikiBundledLanguagesInfo.map((info) => (
-											<CommandItem
-												key={info.id}
-												value={info.name}
-												onSelect={() => setLanguage(info.id)}
-											>
+											<CommandItem key={info.id} value={info.name} onSelect={() => setLanguage(info.id)}>
 												{info.name}
 												<Check
 													className={cn(
 														"ml-auto h-4 w-4",
-														language === info.id ? "opacity-100" : "opacity-0",
+														language === info.id ? "opacity-100" : "opacity-0"
 													)}
 												/>
 											</CommandItem>
@@ -96,12 +74,7 @@ export default function CodeBlockView(props: ReactNodeViewProps) {
 					</Popover>
 				</div>
 			)}
-			<pre
-				ref={props.contentRef}
-				data-language={language}
-				spellCheck={false}
-				className="bg-accent!"
-			></pre>
+			<pre ref={props.contentRef} data-language={language} spellCheck={false} className="bg-accent!"></pre>
 		</>
 	);
 }

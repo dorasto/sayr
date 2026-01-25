@@ -13,7 +13,6 @@ export async function initTracing(_serviceName: string) {
 
 	// ✅ LOCAL / NON-CLOUD: log spans to console
 	if (!SAYR_CLOUD) {
-
 		const sdk = new NodeSDK({
 			traceExporter: new PrettyConsoleSpanExporter(),
 			serviceName,
@@ -28,9 +27,7 @@ export async function initTracing(_serviceName: string) {
 
 	// ✅ CLOUD MODE (Axiom)
 	if (!process.env.AXIOM_OTEL_DOMAIN || !process.env.AXIOM_OTEL_TOKEN) {
-		console.warn(
-			"OpenTelemetry not configured — missing AXIOM_OTEL_DOMAIN or AXIOM_OTEL_TOKEN.",
-		);
+		console.warn("OpenTelemetry not configured — missing AXIOM_OTEL_DOMAIN or AXIOM_OTEL_TOKEN.");
 		return;
 	}
 
@@ -49,11 +46,7 @@ export async function initTracing(_serviceName: string) {
 
 	const shutdown = async () => {
 		console.log("🛑 Shutting down OpenTelemetry SDK...");
-		await sdk
-			.shutdown()
-			.catch((err) =>
-				console.error("Error shutting down OpenTelemetry SDK:", err),
-			);
+		await sdk.shutdown().catch((err) => console.error("Error shutting down OpenTelemetry SDK:", err));
 	};
 
 	process.on("SIGTERM", shutdown);

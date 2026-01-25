@@ -121,7 +121,7 @@ export interface FilterFieldConfig {
 		users: schema.userType[],
 		subSearch: string,
 		categories: schema.categoryType[],
-		releases: schema.releaseType[],
+		releases: schema.releaseType[]
 	) => FilterOption[];
 	renderValue?: (condition: FilterCondition) => React.ReactNode;
 }

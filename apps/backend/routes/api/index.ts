@@ -49,16 +49,19 @@ apiRoute.use("*", async (c, next) => {
 		onSuccess: (result) =>
 			result
 				? {
-					outcome: result.user.role === "system" ? "Session verified and attached for system user" : "Session verified and attached",
-					data: {
-						user_id: result.user.id,
-						user_name: result.user.name,
-						user_role: result.user.role,
-					},
-				}
+						outcome:
+							result.user.role === "system"
+								? "Session verified and attached for system user"
+								: "Session verified and attached",
+						data: {
+							user_id: result.user.id,
+							user_name: result.user.name,
+							user_role: result.user.role,
+						},
+					}
 				: {
-					outcome: "No active session found",
-				},
+						outcome: "No active session found",
+					},
 	});
 	if (!session) {
 		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
@@ -86,12 +89,12 @@ apiRoute.get("/github/org-check", async (c) => {
 			onSuccess: (result) => {
 				return result
 					? {
-						description: "Permission granted",
-						data: { orgId, userId: session?.userId },
-					}
+							description: "Permission granted",
+							data: { orgId, userId: session?.userId },
+						}
 					: {
-						description: "User does not have permission to do that",
-					};
+							description: "User does not have permission to do that",
+						};
 			},
 		}
 	);

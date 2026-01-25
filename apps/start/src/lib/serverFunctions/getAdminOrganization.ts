@@ -35,4 +35,3 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			throw redirect({ to: "/" });
 		}
 	});
-

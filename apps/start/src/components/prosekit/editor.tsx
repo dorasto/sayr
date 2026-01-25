@@ -33,7 +33,7 @@ export interface EditorProps {
 	categories?: schema.categoryType[];
 	tasks?: schema.TaskWithLabels[];
 	submit?: () => void;
-	hasTemplate?: boolean
+	hasTemplate?: boolean;
 }
 
 export default function Editor({
@@ -46,7 +46,7 @@ export default function Editor({
 	categories = [],
 	tasks = [],
 	submit,
-	hasTemplate = false
+	hasTemplate = false,
 }: EditorProps) {
 	const editor = useMemo(() => {
 		const extension = defineExtension({ readonly, placeholder });
@@ -76,9 +76,7 @@ export default function Editor({
 			}
 
 			const items = Array.from(event.clipboardData.items);
-			const mediaItems = items.filter(
-				(i) => i.type.startsWith("image/") || i.type.startsWith("video/"),
-			);
+			const mediaItems = items.filter((i) => i.type.startsWith("image/") || i.type.startsWith("video/"));
 
 			if (mediaItems.length === 0) {
 				console.log("😐 No media found in clipboard.");
@@ -173,7 +171,7 @@ export default function Editor({
 			const json = editor.getDocJSON();
 			if (onChange) onChange(json); // ✅ send data to parent
 		},
-		{ editor },
+		{ editor }
 	);
 	return (
 		<ProseKit editor={editor}>
@@ -185,15 +183,13 @@ export default function Editor({
 					ref={editor.mount}
 					className={cn(
 						'ProseMirror box-border min-h-full px-12 py-0! outline-none outline-0 [&_span[data-mention="tag"]]:text-violet-500',
-						readonly && "px-0",
+						readonly && "px-0"
 					)}
 				></div>
 				{!readonly && (
 					<>
 						<InlineMenu />
-						{!hasTemplate ? (
-							<SlashMenu />
-						) : (<SlashMenuTemplate />)}
+						{!hasTemplate ? <SlashMenu /> : <SlashMenuTemplate />}
 						<UserMenu users={users || []} />
 						<CategoryMenu categories={categories || []} />
 						<TaskMenu tasks={tasks || []} />
@@ -201,16 +197,10 @@ export default function Editor({
 				)}
 				<CodeBlockView />
 				<ImageView />
-				<MentionView
-					users={users || []}
-					categories={categories || []}
-					tasks={tasks || []}
-				/>
+				<MentionView users={users || []} categories={categories || []} tasks={tasks || []} />
 				{!readonly && (
 					<>
-						{!hasTemplate && (
-							<BlockHandle />
-						)}
+						{!hasTemplate && <BlockHandle />}
 						<TableHandle />
 						<DropIndicator />
 					</>

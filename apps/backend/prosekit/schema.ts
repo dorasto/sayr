@@ -52,11 +52,7 @@ export const prosekitSchema = new Schema({
 					}),
 				},
 			],
-			toDOM: (node) => [
-				"pre",
-				{ "data-language": node.attrs.language },
-				["code", 0],
-			],
+			toDOM: (node) => ["pre", { "data-language": node.attrs.language }, ["code", 0]],
 		},
 		bulletList: {
 			content: "listItem+",
@@ -78,10 +74,7 @@ export const prosekitSchema = new Schema({
 					}),
 				},
 			],
-			toDOM: (node) =>
-				node.attrs.start === 1
-					? ["ol", 0]
-					: ["ol", { start: node.attrs.start }, 0],
+			toDOM: (node) => (node.attrs.start === 1 ? ["ol", 0] : ["ol", { start: node.attrs.start }, 0]),
 		},
 		listItem: {
 			content: "paragraph block*",
@@ -154,15 +147,7 @@ export const prosekitSchema = new Schema({
 				},
 			],
 			toDOM: (node) => {
-				const {
-					src,
-					width,
-					height,
-					controls,
-					autoplay,
-					loop,
-					muted,
-				} = node.attrs;
+				const { src, width, height, controls, autoplay, loop, muted } = node.attrs;
 
 				const attrs: Record<string, string | null> = {
 					src,
@@ -296,10 +281,7 @@ export const prosekitSchema = new Schema({
 					}),
 				},
 			],
-			toDOM: (node) =>
-				node.attrs.kind === "ordered"
-					? ["ol", { start: node.attrs.start }, 0]
-					: ["ul", 0],
+			toDOM: (node) => (node.attrs.kind === "ordered" ? ["ol", { start: node.attrs.start }, 0] : ["ul", 0]),
 		},
 	},
 	marks: {
@@ -309,8 +291,7 @@ export const prosekitSchema = new Schema({
 				{ tag: "b" },
 				{
 					style: "font-weight",
-					getAttrs: (value) =>
-						/^(bold(er)?|[5-9]\d{2,})$/.test(value as string) && null,
+					getAttrs: (value) => /^(bold(er)?|[5-9]\d{2,})$/.test(value as string) && null,
 				},
 			],
 			toDOM: () => ["strong", 0],
@@ -324,12 +305,7 @@ export const prosekitSchema = new Schema({
 			toDOM: () => ["u", 0],
 		},
 		strike: {
-			parseDOM: [
-				{ tag: "s" },
-				{ tag: "del" },
-				{ tag: "strike" },
-				{ style: "text-decoration=line-through" },
-			],
+			parseDOM: [{ tag: "s" }, { tag: "del" }, { tag: "strike" }, { style: "text-decoration=line-through" }],
 			toDOM: () => ["s", 0],
 		},
 		code: {
@@ -351,11 +327,7 @@ export const prosekitSchema = new Schema({
 					}),
 				},
 			],
-			toDOM: (mark) => [
-				"a",
-				{ href: mark.attrs.href, title: mark.attrs.title },
-				0,
-			],
+			toDOM: (mark) => ["a", { href: mark.attrs.href, title: mark.attrs.title }, 0],
 		},
 	},
 });

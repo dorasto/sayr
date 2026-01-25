@@ -9,20 +9,9 @@ import {
 	AdaptiveDialogHeader,
 	AdaptiveDialogTitle,
 } from "@repo/ui/components/adaptive-dialog";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
-import {
-	Tile,
-	TileAction,
-	TileDescription,
-	TileHeader,
-	TileIcon,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -91,9 +80,7 @@ interface Props {
 	githubInfo: githubInstallationDetailsType | null;
 }
 
-export default function SettingsOrganizationConnectionsGitHubPage({
-	githubInfo,
-}: Props) {
+export default function SettingsOrganizationConnectionsGitHubPage({ githubInfo }: Props) {
 	const { ws } = useLayoutData();
 	useWebSocketSubscription({
 		ws,
@@ -104,10 +91,7 @@ export default function SettingsOrganizationConnectionsGitHubPage({
 			{githubInfo && (
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Tile
-							className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-							variant={"transparent"}
-						>
+						<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
 							<TileHeader className="md:w-full">
 								<TileIcon className="bg-transparent">
 									<Avatar className="h-10 w-10 rounded-md">
@@ -124,8 +108,7 @@ export default function SettingsOrganizationConnectionsGitHubPage({
 								</TileIcon>
 								<TileTitle>{githubInfo.account.login}</TileTitle>
 								<TileDescription>
-									Connected by {githubInfo.joinUserName} -{" "}
-									{formatDateTime(githubInfo.createdAt as Date)}
+									Connected by {githubInfo.joinUserName} - {formatDateTime(githubInfo.createdAt as Date)}
 								</TileDescription>
 							</TileHeader>
 							<TileAction className="">
@@ -169,10 +152,7 @@ interface PropsSync {
 	githubInfo: githubInstallationDetailsType | null;
 	githubConnections: githubRepositoryWithRepoName[];
 }
-export function SettingsOrganizationConnectionsGitHubSync({
-	githubInfo,
-	githubConnections,
-}: PropsSync) {
+export function SettingsOrganizationConnectionsGitHubSync({ githubInfo, githubConnections }: PropsSync) {
 	const { ws } = useLayoutData();
 	const { categories } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
@@ -181,7 +161,7 @@ export function SettingsOrganizationConnectionsGitHubSync({
 	const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
 	if (githubInfo) {
 		githubInfo.repositories = githubInfo.repositories.filter(
-			(repo) => !githubConnections.find((conn) => conn.repoId === repo.id),
+			(repo) => !githubConnections.find((conn) => conn.repoId === repo.id)
 		);
 	}
 	return (
@@ -189,15 +169,9 @@ export function SettingsOrganizationConnectionsGitHubSync({
 			<div className="flex items-start justify-between">
 				<div className="flex flex-col">
 					<Label variant={"heading"}>Task syncing</Label>
-					<Label variant={"description"}>
-						Link categories to specific repositories for syncing
-					</Label>
+					<Label variant={"description"}>Link categories to specific repositories for syncing</Label>
 				</div>
-				<Button
-					variant={"ghost"}
-					size={"icon"}
-					onClick={() => setIsSyncDialogOpen(true)}
-				>
+				<Button variant={"ghost"} size={"icon"} onClick={() => setIsSyncDialogOpen(true)}>
 					<IconPlus />
 				</Button>
 			</div>
@@ -205,10 +179,7 @@ export function SettingsOrganizationConnectionsGitHubSync({
 				{/* This is the default - will always be present. Basically if it doesn't match any category defined below, fall into here. Can be disabled. Enabled by default */}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild className="group">
-						<Tile
-							className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-							variant={"transparent"}
-						>
+						<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
 							<TileHeader className="md:w-full">
 								<TileIcon className="bg-transparent">
 									<Avatar className="h-10 w-10 rounded-md">
@@ -227,11 +198,7 @@ export function SettingsOrganizationConnectionsGitHubSync({
 								<TileDescription>organization/repo</TileDescription>
 							</TileHeader>
 							<TileAction className="">
-								<Button
-									variant={"accent"}
-									size={"sm"}
-									className="bg-transparent rounded-lg"
-								>
+								<Button variant={"accent"} size={"sm"} className="bg-transparent rounded-lg">
 									<IconCircleFilled className="text-success" /> Enabled
 								</Button>
 							</TileAction>
@@ -254,10 +221,7 @@ export function SettingsOrganizationConnectionsGitHubSync({
 				</DropdownMenu>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Tile
-							className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-							variant={"transparent"}
-						>
+						<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
 							<TileHeader className="md:w-full">
 								<TileIcon className="bg-transparent">
 									<Avatar className="h-10 w-10 rounded-md">
@@ -276,11 +240,7 @@ export function SettingsOrganizationConnectionsGitHubSync({
 								<TileDescription>organization/repo</TileDescription>
 							</TileHeader>
 							<TileAction className="">
-								<Button
-									variant={"accent"}
-									size={"sm"}
-									className="bg-transparent rounded-lg"
-								>
+								<Button variant={"accent"} size={"sm"} className="bg-transparent rounded-lg">
 									<IconCircleFilled className="text-success" /> Enabled
 								</Button>
 							</TileAction>
@@ -305,10 +265,7 @@ export function SettingsOrganizationConnectionsGitHubSync({
 					return (
 						<DropdownMenu key={connection.id}>
 							<DropdownMenuTrigger asChild className="group">
-								<Tile
-									className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-									variant={"transparent"}
-								>
+								<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
 									<TileHeader className="md:w-full">
 										<TileIcon className="bg-transparent">
 											<Avatar className="h-10 w-10 rounded-md">
@@ -325,20 +282,13 @@ export function SettingsOrganizationConnectionsGitHubSync({
 										</TileIcon>
 										<TileTitle>{connection.repoName}</TileTitle>
 										<TileDescription>
-											{
-												categories.find((c) => c.id === connection.categoryId)
-													?.name
-											}
+											{categories.find((c) => c.id === connection.categoryId)?.name}
 											{" - "}
 											{formatDateTime(connection.createdAt as Date)}
 										</TileDescription>
 									</TileHeader>
 									<TileAction className="">
-										<Button
-											variant={"accent"}
-											size={"sm"}
-											className="bg-transparent rounded-lg"
-										>
+										<Button variant={"accent"} size={"sm"} className="bg-transparent rounded-lg">
 											<IconCircleFilled className="text-success" /> Enabled
 										</Button>
 									</TileAction>
@@ -384,12 +334,8 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 	const { categories, organization } = useLayoutOrganizationSettings();
 	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
 	const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-	const selectedRepoName = githubInfo?.repositories.find(
-		(r) => r.full_name === selectedRepo,
-	)?.name;
-	const selectedCategoryData = categories.find(
-		(c) => c.id === selectedCategory,
-	);
+	const selectedRepoName = githubInfo?.repositories.find((r) => r.full_name === selectedRepo)?.name;
+	const selectedCategoryData = categories.find((c) => c.id === selectedCategory);
 	const { runWithToast, isFetching } = useToastAction();
 
 	return (
@@ -400,21 +346,15 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 						<Label variant={"heading"}>Task syncing</Label>
 					</AdaptiveDialogTitle>
 					<AdaptiveDialogDescription>
-						Link categories to repositories for syncing tasks within this
-						category to a repository.
+						Link categories to repositories for syncing tasks within this category to a repository.
 					</AdaptiveDialogDescription>
 				</AdaptiveDialogHeader>
 				<AdaptiveDialogBody className="flex flex-col gap-4">
 					<div className="flex flex-col gap-2">
 						<Label>GitHub repository</Label>
-						<ComboBox
-							value={selectedRepo || undefined}
-							onValueChange={setSelectedRepo}
-						>
+						<ComboBox value={selectedRepo || undefined} onValueChange={setSelectedRepo}>
 							<ComboBoxTrigger>
-								<ComboBoxValue placeholder="Select repository...">
-									{selectedRepoName}
-								</ComboBoxValue>
+								<ComboBoxValue placeholder="Select repository...">{selectedRepoName}</ComboBoxValue>
 								<ComboBoxIcon />
 							</ComboBoxTrigger>
 							<ComboBoxContent>
@@ -423,11 +363,7 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 									<ComboBoxEmpty>No repository found.</ComboBoxEmpty>
 									<ComboBoxGroup>
 										{githubInfo?.repositories.map((repo) => (
-											<ComboBoxItem
-												key={repo.id}
-												value={repo.full_name}
-												searchValue={repo.name}
-											>
+											<ComboBoxItem key={repo.id} value={repo.full_name} searchValue={repo.name}>
 												<div className="flex items-center gap-2">
 													<IconBrandGithub className="size-4!" />
 													<span>{repo.full_name}</span>
@@ -441,18 +377,13 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 					</div>
 					<div className="flex flex-col gap-2">
 						<Label>Category</Label>
-						<ComboBox
-							value={selectedCategory || undefined}
-							onValueChange={setSelectedCategory}
-						>
+						<ComboBox value={selectedCategory || undefined} onValueChange={setSelectedCategory}>
 							<ComboBoxTrigger>
 								<ComboBoxValue placeholder="Select category...">
 									{selectedCategoryData && (
 										<div className="flex items-center gap-2">
 											<RenderIcon
-												iconName={
-													selectedCategoryData.icon || "IconCircleFilled"
-												}
+												iconName={selectedCategoryData.icon || "IconCircleFilled"}
 												size={12}
 												color={selectedCategoryData.color || undefined}
 												raw
@@ -469,11 +400,7 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 									<ComboBoxEmpty>No category found.</ComboBoxEmpty>
 									<ComboBoxGroup>
 										{categories.map((category) => (
-											<ComboBoxItem
-												key={category.id}
-												value={category.id}
-												searchValue={category.name}
-											>
+											<ComboBoxItem key={category.id} value={category.id} searchValue={category.name}>
 												<div className="flex items-center gap-2">
 													<RenderIcon
 														iconName={category.icon || "IconCircleFilled"}
@@ -496,37 +423,23 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 						<Button
 							variant={"accent"}
 							onClick={async () => {
-								const repoId = githubInfo?.repositories.find(
-									(r) => r.full_name === selectedRepo,
-								)?.id;
-								const repoName = githubInfo?.repositories.find(
-									(r) => r.full_name === selectedRepo,
-								)?.name;
-								if (
-									!githubInfo ||
-									!selectedRepo ||
-									!selectedCategory ||
-									!repoId ||
-									!repoName
-								)
-									return;
+								const repoId = githubInfo?.repositories.find((r) => r.full_name === selectedRepo)?.id;
+								const repoName = githubInfo?.repositories.find((r) => r.full_name === selectedRepo)?.name;
+								if (!githubInfo || !selectedRepo || !selectedCategory || !repoId || !repoName) return;
 								const data = await runWithToast(
 									"create-github-sync-connection",
 									{
 										loading: {
 											title: "Creating sync connection...",
-											description:
-												"Please wait while we create the sync connection.",
+											description: "Please wait while we create the sync connection.",
 										},
 										success: {
 											title: "Sync connection created",
-											description:
-												"The sync connection has been successfully created.",
+											description: "The sync connection has been successfully created.",
 										},
 										error: {
 											title: "Failed to create sync connection",
-											description:
-												"An error occurred while creating the sync connection.",
+											description: "An error occurred while creating the sync connection.",
 										},
 									},
 									() =>
@@ -535,7 +448,7 @@ export function SettingsOrganizationConnectionsGitHubSyncDialog({
 											repoId: repoId,
 											repoName: repoName,
 											categoryId: selectedCategory,
-										}),
+										})
 								);
 								if (data?.success && data.data) {
 									onOpenChange(false);

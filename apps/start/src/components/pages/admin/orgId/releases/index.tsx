@@ -3,19 +3,10 @@ import { useLayoutData } from "@/components/generic/Context";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
-import {
-	useWSMessageHandler,
-	type WSMessageHandler,
-} from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
 import { Button } from "@repo/ui/components/button";
-import {
-	Tile,
-	TileAction,
-	TileHeader,
-	TileIcon,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { cn } from "@repo/ui/lib/utils";
 import { IconPlus, IconRocket, IconSettings } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -24,8 +15,7 @@ import { CreateReleaseDialog } from "./create-release-dialog";
 
 export default function OrganizationReleasesPage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, releases, setReleases } =
-		useLayoutOrganization();
+	const { organization, setOrganization, releases, setReleases } = useLayoutOrganization();
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
 	useWebSocketSubscription({
@@ -45,8 +35,7 @@ export default function OrganizationReleasesPage() {
 	};
 
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) =>
-			console.warn("⚠️ [UNHANDLED MESSAGE OrganizationReleasesPage]", msg),
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationReleasesPage]", msg),
 	});
 
 	useEffect(() => {
@@ -69,10 +58,7 @@ export default function OrganizationReleasesPage() {
 	const releasedReleases = releases.filter((r) => r.status === "released");
 	const archivedReleases = releases.filter((r) => r.status === "archived");
 
-	const renderReleasesList = (
-		releasesList: typeof releases,
-		title: string,
-	) => {
+	const renderReleasesList = (releasesList: typeof releases, title: string) => {
 		if (releasesList.length === 0) return null;
 
 		return (
@@ -82,7 +68,7 @@ export default function OrganizationReleasesPage() {
 					{releasesList.map((release) => (
 						<Tile
 							className={cn(
-								"bg-card hover:bg-accent md:w-full transition-colors cursor-pointer h-full p-0 gap-0",
+								"bg-card hover:bg-accent md:w-full transition-colors cursor-pointer h-full p-0 gap-0"
 							)}
 							key={release.id}
 						>
@@ -111,9 +97,7 @@ export default function OrganizationReleasesPage() {
 											</div>
 										)}
 									</TileIcon>
-									<TileTitle className="text-base font-semibold">
-										{release.name}
-									</TileTitle>
+									<TileTitle className="text-base font-semibold">{release.name}</TileTitle>
 									<div className="flex flex-col gap-1 w-full" />
 								</TileHeader>
 							</Link>
@@ -142,16 +126,9 @@ export default function OrganizationReleasesPage() {
 			<div className="flex items-center justify-between">
 				<div>
 					<h2 className="text-lg font-semibold">Releases</h2>
-					<p className="text-sm text-muted-foreground">
-						Track what ships in each version
-					</p>
+					<p className="text-sm text-muted-foreground">Track what ships in each version</p>
 				</div>
-				<Button
-					variant="default"
-					size="sm"
-					className="gap-2"
-					onClick={() => setCreateDialogOpen(true)}
-				>
+				<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
 					<IconPlus className="size-4" />
 					New Release
 				</Button>
@@ -171,15 +148,10 @@ export default function OrganizationReleasesPage() {
 					<IconRocket className="size-12 text-muted-foreground mb-4" />
 					<h3 className="text-lg font-semibold mb-2">No releases yet</h3>
 					<p className="text-sm text-muted-foreground mb-4 max-w-md">
-						Create releases to track which tasks ship in each version. Releases
-						help you organize work by milestones and communicate what's coming.
+						Create releases to track which tasks ship in each version. Releases help you organize work by
+						milestones and communicate what's coming.
 					</p>
-					<Button
-						variant="default"
-						size="sm"
-						className="gap-2"
-						onClick={() => setCreateDialogOpen(true)}
-					>
+					<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
 						<IconPlus className="size-4" />
 						Create Your First Release
 					</Button>
@@ -187,10 +159,7 @@ export default function OrganizationReleasesPage() {
 			)}
 
 			{/* Create Dialog */}
-			<CreateReleaseDialog
-				open={createDialogOpen}
-				onOpenChange={setCreateDialogOpen}
-			/>
+			<CreateReleaseDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 		</div>
 	);
 }

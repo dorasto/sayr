@@ -21,18 +21,11 @@ import { createOrganizationAction } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
 
 interface Props {
-	onSuccess?: (organization: {
-		id: string;
-		name: string;
-		slug: string;
-	}) => void;
+	onSuccess?: (organization: { id: string; name: string; slug: string }) => void;
 	trigger?: React.ReactNode;
 }
 
-export default function CreateOrganizationDialog({
-	onSuccess,
-	trigger,
-}: Props) {
+export default function CreateOrganizationDialog({ onSuccess, trigger }: Props) {
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [slug, setSlug] = useState("");
@@ -87,7 +80,7 @@ export default function CreateOrganizationDialog({
 					name: name.trim(),
 					slug: slug.trim(),
 					description: description.trim(),
-				}),
+				})
 		);
 
 		if (data?.success && data.data) {
@@ -108,11 +101,7 @@ export default function CreateOrganizationDialog({
 		<AdaptiveDialog open={open} onOpenChange={setOpen}>
 			<AdaptiveDialogTrigger asChild>
 				{trigger || (
-					<Button
-						variant="primary"
-						className="w-fit text-xs p-1 h-auto rounded-lg"
-						size="sm"
-					>
+					<Button variant="primary" className="w-fit text-xs p-1 h-auto rounded-lg" size="sm">
 						<IconPlus className="h-4 w-4" />
 						<span>New Organization</span>
 					</Button>
@@ -145,9 +134,7 @@ export default function CreateOrganizationDialog({
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="org-slug">
 							Slug
-							<span className="text-muted-foreground ml-1 text-xs">
-								(URL-friendly identifier)
-							</span>
+							<span className="text-muted-foreground ml-1 text-xs">(URL-friendly identifier)</span>
 						</Label>
 						<div className="flex items-center gap-2">
 							<Input
@@ -161,8 +148,7 @@ export default function CreateOrganizationDialog({
 						<p className="text-xs text-muted-foreground">
 							Your organization will be accessible at{" "}
 							<code className="bg-muted px-1 py-0.5 rounded">
-								{slug || "your-slug"}.
-								{import.meta.env.VITE_ROOT_DOMAIN || "example.com"}
+								{slug || "your-slug"}.{import.meta.env.VITE_ROOT_DOMAIN || "example.com"}
 							</code>
 						</p>
 					</div>
@@ -170,9 +156,7 @@ export default function CreateOrganizationDialog({
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="org-description">
 							Description
-							<span className="text-muted-foreground ml-1 text-xs">
-								(optional)
-							</span>
+							<span className="text-muted-foreground ml-1 text-xs">(optional)</span>
 						</Label>
 						<Textarea
 							id="org-description"
@@ -188,11 +172,7 @@ export default function CreateOrganizationDialog({
 					<Button variant="ghost" onClick={() => setOpen(false)}>
 						Cancel
 					</Button>
-					<Button
-						variant="default"
-						onClick={handleCreate}
-						disabled={isFetching || !name.trim() || !slug.trim()}
-					>
+					<Button variant="default" onClick={handleCreate} disabled={isFetching || !name.trim() || !slug.trim()}>
 						{isFetching ? "Creating..." : "Create Organization"}
 					</Button>
 				</AdaptiveDialogFooter>

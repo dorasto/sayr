@@ -24,9 +24,7 @@ export function TaskLabelDistributionChart({
 }: TaskLabelDistributionChartProps) {
 	const { chartData } = useMemo(() => {
 		// Filter to open tasks only
-		const openTasks = tasks.filter(
-			(task) => !task.status || !COMPLETED_STATUSES.includes(task.status),
-		);
+		const openTasks = tasks.filter((task) => !task.status || !COMPLETED_STATUSES.includes(task.status));
 
 		// Count tasks by label
 		const labelCounts = new Map<string, { name: string; count: number; color: string }>();
@@ -67,9 +65,7 @@ export function TaskLabelDistributionChart({
 		let data: BarChartDataItem[];
 		if (sortedLabels.length > maxItems) {
 			const topLabels = sortedLabels.slice(0, maxItems - 1);
-			const otherCount = sortedLabels
-				.slice(maxItems - 1)
-				.reduce((sum, label) => sum + label.count, 0);
+			const otherCount = sortedLabels.slice(maxItems - 1).reduce((sum, label) => sum + label.count, 0);
 
 			data = [
 				...topLabels.map((label) => ({
@@ -99,9 +95,7 @@ export function TaskLabelDistributionChart({
 
 	if (!hasData) {
 		return (
-			<div className="flex items-center justify-center h-[150px] text-muted-foreground text-sm">
-				No open tasks
-			</div>
+			<div className="flex items-center justify-center h-[150px] text-muted-foreground text-sm">No open tasks</div>
 		);
 	}
 

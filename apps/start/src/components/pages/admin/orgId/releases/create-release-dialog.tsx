@@ -13,14 +13,7 @@ import {
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@repo/ui/components/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
@@ -33,10 +26,7 @@ interface CreateReleaseDialogProps {
 	onOpenChange: (open: boolean) => void;
 }
 
-export function CreateReleaseDialog({
-	open,
-	onOpenChange,
-}: CreateReleaseDialogProps) {
+export function CreateReleaseDialog({ open, onOpenChange }: CreateReleaseDialogProps) {
 	const { organization, releases, setReleases } = useLayoutOrganization();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
@@ -48,9 +38,7 @@ export function CreateReleaseDialog({
 		hex: "#3B82F6",
 	});
 	const [icon, setIcon] = useState<string>("IconRocket");
-	const [status, setStatus] = useState<
-		"planned" | "in-progress" | "released" | "archived"
-	>("planned");
+	const [status, setStatus] = useState<"planned" | "in-progress" | "released" | "archived">("planned");
 
 	const handleCreate = async () => {
 		if (!name.trim() || !slug.trim()) {
@@ -83,8 +71,8 @@ export function CreateReleaseDialog({
 						icon,
 						status,
 					},
-					wsClientId,
-				),
+					wsClientId
+				)
 		);
 
 		if (data?.success && data.data) {
@@ -109,7 +97,7 @@ export function CreateReleaseDialog({
 					.toLowerCase()
 					.replace(/[^a-z0-9-_.]/g, "-")
 					.replace(/--+/g, "-")
-					.replace(/^-|-$/g, ""),
+					.replace(/^-|-$/g, "")
 			);
 		}
 	};
@@ -119,9 +107,7 @@ export function CreateReleaseDialog({
 			<DialogContent className="sm:max-w-[500px]">
 				<DialogHeader>
 					<DialogTitle>Create New Release</DialogTitle>
-					<DialogDescription>
-						Create a new release to track tasks and milestones.
-					</DialogDescription>
+					<DialogDescription>Create a new release to track tasks and milestones.</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4 py-4">
@@ -130,26 +116,14 @@ export function CreateReleaseDialog({
 						<Label>Icon & Color</Label>
 						<Popover modal>
 							<PopoverTrigger asChild>
-								<Button
-									variant="outline"
-									className="w-16 h-16 p-0 overflow-hidden"
-								>
-									<RenderIcon
-										iconName={icon}
-										color={color.hsla}
-										button
-										className="size-16 [&_svg]:size-8"
-									/>
+								<Button variant="outline" className="w-16 h-16 p-0 overflow-hidden">
+									<RenderIcon iconName={icon} color={color.hsla} button className="size-16 [&_svg]:size-8" />
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent className="p-0 w-64 md:w-96">
 								<div className="flex flex-col gap-3">
 									<div className="p-3">
-										<ColorPickerCustom
-											onChange={setColor}
-											defaultValue={color.hex}
-											height={100}
-										/>
+										<ColorPickerCustom onChange={setColor} defaultValue={color.hex} height={100} />
 									</div>
 									<div className="px-3">
 										<IconPicker
@@ -187,7 +161,7 @@ export function CreateReleaseDialog({
 									e.target.value
 										.toLowerCase()
 										.replace(/[^a-z0-9-_.]/g, "-")
-										.replace(/--+/g, "-"),
+										.replace(/--+/g, "-")
 								)
 							}
 						/>
@@ -199,10 +173,7 @@ export function CreateReleaseDialog({
 					{/* Status */}
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="release-status">Status</Label>
-						<Select
-							value={status}
-							onValueChange={(val) => setStatus(val as typeof status)}
-						>
+						<Select value={status} onValueChange={(val) => setStatus(val as typeof status)}>
 							<SelectTrigger id="release-status">
 								<SelectValue />
 							</SelectTrigger>
@@ -219,17 +190,10 @@ export function CreateReleaseDialog({
 				</div>
 
 				<DialogFooter>
-					<Button
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-						disabled={isFetching}
-					>
+					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isFetching}>
 						Cancel
 					</Button>
-					<Button
-						onClick={handleCreate}
-						disabled={!name.trim() || !slug.trim() || isFetching}
-					>
+					<Button onClick={handleCreate} disabled={!name.trim() || !slug.trim() || isFetching}>
 						Create Release
 					</Button>
 				</DialogFooter>

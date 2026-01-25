@@ -13,5 +13,5 @@ function RouteComponent() {
 				<SettingsOrganizationPageTeamSettings isNew={true} />
 			</div>
 		</SubWrapper>
-	)
+	);
 }

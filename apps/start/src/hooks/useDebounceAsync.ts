@@ -6,10 +6,7 @@ import { useCallback, useEffect, useMemo } from "react";
  */
 
 // biome-ignore lint/suspicious/noExplicitAny: <any>
-export function useDebounceAsync<TArgs extends any[], TResult>(
-	fn: (...args: TArgs) => Promise<TResult>,
-	wait = 500,
-) {
+export function useDebounceAsync<TArgs extends any[], TResult>(fn: (...args: TArgs) => Promise<TResult>, wait = 500) {
 	// keep fn stable for lodash
 	const stableFn = useCallback(fn, []);
 
@@ -33,7 +30,7 @@ export function useDebounceAsync<TArgs extends any[], TResult>(
 				}
 			},
 			wait,
-			{ leading: false, trailing: true },
+			{ leading: false, trailing: true }
 		);
 
 		const wrapped = (...args: TArgs): Promise<TResult> => {

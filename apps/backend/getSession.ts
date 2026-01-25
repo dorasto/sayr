@@ -41,16 +41,16 @@ function getSessionToken(headers: Headers): string {
 }
 // 🧠 Simple in-memory cache for system account existence
 const systemAccountCache: {
-	exists: boolean,
-	checkedAt: number,
-	ttl: number,
-	user: schema.userType | undefined
+	exists: boolean;
+	checkedAt: number;
+	ttl: number;
+	user: schema.userType | undefined;
 } = {
 	exists: false,
 	checkedAt: 0,
 	ttl: 48 * 60 * 60 * 1000, // 48 hours
-	user: undefined
-}
+	user: undefined,
+};
 
 export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60 * 1000): Promise<SessionValue | null> {
 	const key = getSessionToken(headers);
@@ -71,7 +71,11 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 		fromService === "sayr-worker";
 	if (isInternal) {
 		// ⚙️ Use cache if valid
-		if (systemAccountCache.exists && now - systemAccountCache.checkedAt < systemAccountCache.ttl && systemAccountCache.user) {
+		if (
+			systemAccountCache.exists &&
+			now - systemAccountCache.checkedAt < systemAccountCache.ttl &&
+			systemAccountCache.user
+		) {
 			console.log("✅ System account confirmed (from cache)");
 			return {
 				// biome-ignore lint/suspicious/noExplicitAny: <needed>
@@ -92,7 +96,7 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 			systemAccountCache.exists = exists;
 			systemAccountCache.checkedAt = now;
 			if (exists) {
-				systemAccountCache.user = systemAccount
+				systemAccountCache.user = systemAccount;
 				console.log("✅ System account confirmed (cached 48h)");
 			} else {
 				console.warn("⚠️ System account missing (cached 48h anyway)");

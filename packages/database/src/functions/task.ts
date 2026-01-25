@@ -25,56 +25,54 @@ import { db, schema } from "..";
  * });
  * ```
  */
-export async function getTasksByOrganizationId(
-  orgId: string,
-): Promise<schema.TaskWithLabels[]> {
-  const tasks = await db.query.task.findMany({
-    where: (t) => and(eq(t.organizationId, orgId)),
-    with: {
-      labels: {
-        with: {
-          label: true, // 👈 eager load the real label object
-        },
-      },
-      createdBy: {
-        columns: {
-          id: true,
-          name: true,
-          image: true,
-        },
-      },
-      assignees: {
-        with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-      },
-      comments: {
-        with: {
-          createdBy: {
-            columns: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-      },
-      githubIssue: {},
-    },
-  });
+export async function getTasksByOrganizationId(orgId: string): Promise<schema.TaskWithLabels[]> {
+	const tasks = await db.query.task.findMany({
+		where: (t) => and(eq(t.organizationId, orgId)),
+		with: {
+			labels: {
+				with: {
+					label: true, // 👈 eager load the real label object
+				},
+			},
+			createdBy: {
+				columns: {
+					id: true,
+					name: true,
+					image: true,
+				},
+			},
+			assignees: {
+				with: {
+					user: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+			comments: {
+				with: {
+					createdBy: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+			githubIssue: {},
+		},
+	});
 
-  // 🧹 map join rows into clean labels array
-  return tasks.map((task) => ({
-    ...task,
-    labels: task.labels.map((assignment) => assignment.label),
-    assignees: task.assignees.map((assignment) => assignment.user),
-  })) as schema.TaskWithLabels[];
+	// 🧹 map join rows into clean labels array
+	return tasks.map((task) => ({
+		...task,
+		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
+	})) as schema.TaskWithLabels[];
 }
 
 /**
@@ -104,27 +102,24 @@ export async function getTasksByOrganizationId(
  * }
  * ```
  */
-export async function getTaskByShortId(
-  orgId: string,
-  shortId: number,
-): Promise<schema.TaskWithLabels | null> {
-  const task = await db.query.task.findFirst({
-    where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId)),
-    with: {
-      labels: { with: { label: true } },
-      createdBy: { columns: { id: true, name: true, image: true } },
-      assignees: {
-        with: { user: { columns: { id: true, name: true, image: true } } },
-      },
-      githubIssue: {},
-    },
-  });
-  if (!task) return null;
-  return {
-    ...task,
-    labels: task.labels.map((assignment) => assignment.label),
-    assignees: task.assignees.map((assignment) => assignment.user),
-  } as schema.TaskWithLabels;
+export async function getTaskByShortId(orgId: string, shortId: number): Promise<schema.TaskWithLabels | null> {
+	const task = await db.query.task.findFirst({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId)),
+		with: {
+			labels: { with: { label: true } },
+			createdBy: { columns: { id: true, name: true, image: true } },
+			assignees: {
+				with: { user: { columns: { id: true, name: true, image: true } } },
+			},
+			githubIssue: {},
+		},
+	});
+	if (!task) return null;
+	return {
+		...task,
+		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
+	} as schema.TaskWithLabels;
 }
 
 /**
@@ -155,23 +150,23 @@ export async function getTaskByShortId(
  * ```
  */
 export async function getTaskById(orgId: string, Id: string) {
-  const task = await db.query.task.findFirst({
-    where: (t) => and(eq(t.organizationId, orgId), eq(t.id, Id)),
-    with: {
-      labels: { with: { label: true } },
-      createdBy: { columns: { id: true, name: true, image: true } },
-      assignees: {
-        with: { user: { columns: { id: true, name: true, image: true } } },
-      },
-      githubIssue: {},
-    },
-  });
-  if (!task) return null;
-  return {
-    ...task,
-    labels: task.labels.map((assignment) => assignment.label),
-    assignees: task.assignees.map((assignment) => assignment.user),
-  };
+	const task = await db.query.task.findFirst({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.id, Id)),
+		with: {
+			labels: { with: { label: true } },
+			createdBy: { columns: { id: true, name: true, image: true } },
+			assignees: {
+				with: { user: { columns: { id: true, name: true, image: true } } },
+			},
+			githubIssue: {},
+		},
+	});
+	if (!task) return null;
+	return {
+		...task,
+		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
+	};
 }
 
 /**
@@ -202,42 +197,42 @@ export async function getTaskById(orgId: string, Id: string) {
  * ```
  */
 export async function createTask(
-  orgId: string,
-  data: {
-    title: string;
-    description?: NodeJSON;
-    status?: schema.taskType["status"];
-    priority?: schema.taskType["priority"];
-    category?: schema.taskType["category"];
-    releaseId?: string | null;
-  },
-  createdBy?: string | null,
+	orgId: string,
+	data: {
+		title: string;
+		description?: NodeJSON;
+		status?: schema.taskType["status"];
+		priority?: schema.taskType["priority"];
+		category?: schema.taskType["category"];
+		releaseId?: string | null;
+	},
+	createdBy?: string | null
 ) {
-  // Get highest existing shortId for this project
-  const [max] = (await db
-    .select({ max: sql<number>`MAX(${schema.task.shortId})` })
-    .from(schema.task)
-    .where(eq(schema.task.organizationId, orgId))) || [{ max: 0 }];
+	// Get highest existing shortId for this project
+	const [max] = (await db
+		.select({ max: sql<number>`MAX(${schema.task.shortId})` })
+		.from(schema.task)
+		.where(eq(schema.task.organizationId, orgId))) || [{ max: 0 }];
 
-  const nextShortId = (max?.max ?? 0) + 1;
+	const nextShortId = (max?.max ?? 0) + 1;
 
-  // Insert the new task
-  const [task] = await db
-    .insert(schema.task)
-    .values({
-      organizationId: orgId,
-      shortId: nextShortId,
-      title: data.title,
-      description: data.description,
-      status: data.status ?? "todo",
-      priority: data.priority ?? "none",
-      category: data.category || null,
-      releaseId: data.releaseId ?? null,
-      createdBy: createdBy, // nullable for ANONYMOUS
-      visible: "public",
-    })
-    .returning();
-  return task;
+	// Insert the new task
+	const [task] = await db
+		.insert(schema.task)
+		.values({
+			organizationId: orgId,
+			shortId: nextShortId,
+			title: data.title,
+			description: data.description,
+			status: data.status ?? "todo",
+			priority: data.priority ?? "none",
+			category: data.category || null,
+			releaseId: data.releaseId ?? null,
+			createdBy: createdBy, // nullable for ANONYMOUS
+			visible: "public",
+		})
+		.returning();
+	return task;
 }
 
 /**
@@ -246,55 +241,55 @@ export async function createTask(
  * @param params - taskId, orgId, actorId, eventType, optional from/to values, comment
  */
 export async function addLogEventTask(
-  task_id: string,
-  org_id: string,
-  type: (typeof schema.timelineEventTypeEnum.enumValues)[number],
-  fromValue?: unknown,
-  toValue?: unknown,
-  actorId?: string,
-  content?: NodeJSON,
+	task_id: string,
+	org_id: string,
+	type: (typeof schema.timelineEventTypeEnum.enumValues)[number],
+	fromValue?: unknown,
+	toValue?: unknown,
+	actorId?: string,
+	content?: NodeJSON
 ) {
-  return await db.insert(taskTimeline).values({
-    taskId: task_id,
-    organizationId: org_id,
-    actorId: actorId ?? null,
-    eventType: type,
-    fromValue: fromValue ? JSON.stringify(fromValue) : null,
-    toValue: toValue ? JSON.stringify(toValue) : null,
-    content: content ?? null,
-  });
+	return await db.insert(taskTimeline).values({
+		taskId: task_id,
+		organizationId: org_id,
+		actorId: actorId ?? null,
+		eventType: type,
+		fromValue: fromValue ? JSON.stringify(fromValue) : null,
+		toValue: toValue ? JSON.stringify(toValue) : null,
+		content: content ?? null,
+	});
 }
 
 export async function createComment(
-  org_id: string,
-  task_id: string,
-  content: NodeJSON,
-  visibility: schema.taskCommentType["visibility"],
-  createdBy?: string,
+	org_id: string,
+	task_id: string,
+	content: NodeJSON,
+	visibility: schema.taskCommentType["visibility"],
+	createdBy?: string
 ) {
-  const [newComment] = await db
-    .insert(taskComment)
-    .values({
-      organizationId: org_id,
-      taskId: task_id,
-      content,
-      visibility,
-      createdBy,
-    })
-    .returning();
+	const [newComment] = await db
+		.insert(taskComment)
+		.values({
+			organizationId: org_id,
+			taskId: task_id,
+			content,
+			visibility,
+			createdBy,
+		})
+		.returning();
 
-  // Record the initial version in history
-  if (newComment) {
-    await db.insert(taskCommentHistory).values({
-      organizationId: org_id,
-      taskId: task_id,
-      commentId: newComment.id,
-      editedBy: createdBy,
-      content: content,
-    });
-  }
+	// Record the initial version in history
+	if (newComment) {
+		await db.insert(taskCommentHistory).values({
+			organizationId: org_id,
+			taskId: task_id,
+			commentId: newComment.id,
+			editedBy: createdBy,
+			content: content,
+		});
+	}
 
-  return newComment;
+	return newComment;
 }
 
 /**
@@ -335,94 +330,90 @@ export async function createComment(
  * ```
  */
 export async function getTaskComments(
-  orgId: string,
-  taskId: string,
-  { offset = 0, limit = 10 }: { offset?: number; limit?: number } = {},
+	orgId: string,
+	taskId: string,
+	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {}
 ) {
-  // Step 1: Paginated comments
-  const comments = await db.query.taskComment.findMany({
-    where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
-    with: {
-      createdBy: { columns: { id: true, name: true, image: true } },
-    },
-    orderBy: (c, { desc }) => [desc(c.createdAt)],
-    limit,
-    offset,
-  });
+	// Step 1: Paginated comments
+	const comments = await db.query.taskComment.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
+		with: {
+			createdBy: { columns: { id: true, name: true, image: true } },
+		},
+		orderBy: (c, { desc }) => [desc(c.createdAt)],
+		limit,
+		offset,
+	});
 
-  // Step 2: Count total comments (for pagination UI)
-  const totalCommentsResult = await db.query.taskComment.findMany({
-    where: (c) => and(eq(c.organizationId, orgId), eq(c.taskId, taskId)),
-    columns: { id: true },
-  });
-  const totalComments = totalCommentsResult.length;
+	// Step 2: Count total comments (for pagination UI)
+	const totalCommentsResult = await db.query.taskComment.findMany({
+		where: (c) => and(eq(c.organizationId, orgId), eq(c.taskId, taskId)),
+		columns: { id: true },
+	});
+	const totalComments = totalCommentsResult.length;
 
-  if (comments.length === 0) return null;
+	if (comments.length === 0) return null;
 
-  return { comments, totalComments };
+	return { comments, totalComments };
 }
 
 export async function getTaskTimeline(orgId: string, taskId: string) {
-  const timeline = await db.query.taskTimeline.findMany({
-    where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
-    with: {
-      actor: { columns: { id: true, name: true, image: true } },
-    },
-    orderBy: (c, { asc }) => [asc(c.createdAt)],
-  });
-  return timeline;
+	const timeline = await db.query.taskTimeline.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
+		with: {
+			actor: { columns: { id: true, name: true, image: true } },
+		},
+		orderBy: (c, { asc }) => [asc(c.createdAt)],
+	});
+	return timeline;
 }
 
-export async function getMergedTaskActivity(
-  orgId: string,
-  taskId: string,
-  isPublic: boolean,
-) {
-  const commentConditions = [
-    eq(schema.taskComment.organizationId, orgId),
-    eq(schema.taskComment.taskId, taskId),
-    ...(isPublic ? [eq(schema.taskComment.visibility, "public")] : []),
-  ];
-  // Fetch both datasets in parallel for efficiency
-  const [timeline, comments] = await Promise.all([
-    getTaskTimeline(orgId, taskId),
-    await db.query.taskComment.findMany({
-      where: () => and(...commentConditions),
-      with: {
-        createdBy: { columns: { id: true, name: true, image: true } },
-      },
-      orderBy: (c, { desc }) => [desc(c.createdAt)],
-    }),
-  ]);
+export async function getMergedTaskActivity(orgId: string, taskId: string, isPublic: boolean) {
+	const commentConditions = [
+		eq(schema.taskComment.organizationId, orgId),
+		eq(schema.taskComment.taskId, taskId),
+		...(isPublic ? [eq(schema.taskComment.visibility, "public")] : []),
+	];
+	// Fetch both datasets in parallel for efficiency
+	const [timeline, comments] = await Promise.all([
+		getTaskTimeline(orgId, taskId),
+		await db.query.taskComment.findMany({
+			where: () => and(...commentConditions),
+			with: {
+				createdBy: { columns: { id: true, name: true, image: true } },
+			},
+			orderBy: (c, { desc }) => [desc(c.createdAt)],
+		}),
+	]);
 
-  // Normalize data into a consistent format
-  const normalizedTimeline = timeline.map((item) => ({
-    id: item.id,
-    createdAt: item.createdAt,
-    actor: item.actor,
-    eventType: item.eventType,
-    fromValue: item.fromValue,
-    toValue: item.toValue,
-    content: item.content,
-  }));
+	// Normalize data into a consistent format
+	const normalizedTimeline = timeline.map((item) => ({
+		id: item.id,
+		createdAt: item.createdAt,
+		actor: item.actor,
+		eventType: item.eventType,
+		fromValue: item.fromValue,
+		toValue: item.toValue,
+		content: item.content,
+	}));
 
-  const normalizedComments = comments.map((comment) => ({
-    id: comment.id,
-    createdAt: comment.createdAt,
-    actor: comment.createdBy,
-    eventType: "comment" as const,
-    content: comment.content,
-    visibility: comment.visibility,
-  }));
+	const normalizedComments = comments.map((comment) => ({
+		id: comment.id,
+		createdAt: comment.createdAt,
+		actor: comment.createdBy,
+		eventType: "comment" as const,
+		content: comment.content,
+		visibility: comment.visibility,
+	}));
 
-  // Merge and sort chronologically (oldest → newest)
-  const merged = [...normalizedTimeline, ...normalizedComments].sort((a, b) => {
-    const timeA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const timeB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return timeA - timeB;
-  });
+	// Merge and sort chronologically (oldest → newest)
+	const merged = [...normalizedTimeline, ...normalizedComments].sort((a, b) => {
+		const timeA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+		const timeB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+		return timeA - timeB;
+	});
 
-  return merged;
+	return merged;
 }
 
 /**
@@ -439,217 +430,206 @@ export async function getMergedTaskActivity(
  * });
  * ```
  */
-export async function getTasksByUserId(
-  userId: string,
-): Promise<schema.TaskWithLabels[]> {
-  const tasks = await db.query.task.findMany({
-    where: (t) =>
-      sql`EXISTS (
+export async function getTasksByUserId(userId: string): Promise<schema.TaskWithLabels[]> {
+	const tasks = await db.query.task.findMany({
+		where: (t) =>
+			sql`EXISTS (
 				SELECT 1 FROM task_assignee
 				WHERE task_assignee.task_id = ${t.id}
 				AND task_assignee.user_id = ${userId}
 			)`,
-    with: {
-      labels: {
-        with: {
-          label: true,
-        },
-      },
-      createdBy: {
-        columns: {
-          id: true,
-          name: true,
-          image: true,
-        },
-      },
-      assignees: {
-        with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-      },
-      organization: {
-        columns: {
-          id: true,
-          name: true,
-          slug: true,
-          logo: true,
-        },
-      },
-    },
-    orderBy: (t, { desc }) => [desc(t.createdAt)],
-  });
+		with: {
+			labels: {
+				with: {
+					label: true,
+				},
+			},
+			createdBy: {
+				columns: {
+					id: true,
+					name: true,
+					image: true,
+				},
+			},
+			assignees: {
+				with: {
+					user: {
+						columns: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			},
+			organization: {
+				columns: {
+					id: true,
+					name: true,
+					slug: true,
+					logo: true,
+				},
+			},
+		},
+		orderBy: (t, { desc }) => [desc(t.createdAt)],
+	});
 
-  // 🧹 map join rows into clean labels and assignees arrays
-  return tasks.map((task) => ({
-    ...task,
-    labels: task.labels.map((assignment) => assignment.label),
-    assignees: task.assignees.map((assignment) => assignment.user),
-  })) as schema.TaskWithLabels[];
+	// 🧹 map join rows into clean labels and assignees arrays
+	return tasks.map((task) => ({
+		...task,
+		labels: task.labels.map((assignment) => assignment.label),
+		assignees: task.assignees.map((assignment) => assignment.user),
+	})) as schema.TaskWithLabels[];
 }
 
 export async function createOrToggleCommentReaction(
-  orgId: string,
-  taskId: string,
-  commentId: string,
-  emoji: string,
-  userId: string,
+	orgId: string,
+	taskId: string,
+	commentId: string,
+	emoji: string,
+	userId: string
 ) {
-  if (!orgId || !taskId || !commentId || !userId) {
-    throw new Error(
-      `Missing params: orgId=${orgId}, taskId=${taskId}, commentId=${commentId}, userId=${userId}`,
-    );
-  }
-  // Check if the reaction already exists
-  const existing = await db
-    .select()
-    .from(schema.taskCommentReaction)
-    .where(
-      and(
-        eq(schema.taskCommentReaction.organizationId, orgId),
-        eq(schema.taskCommentReaction.taskId, taskId),
-        eq(schema.taskCommentReaction.commentId, commentId),
-        eq(schema.taskCommentReaction.userId, userId),
-        eq(schema.taskCommentReaction.emoji, emoji),
-      ),
-    );
+	if (!orgId || !taskId || !commentId || !userId) {
+		throw new Error(`Missing params: orgId=${orgId}, taskId=${taskId}, commentId=${commentId}, userId=${userId}`);
+	}
+	// Check if the reaction already exists
+	const existing = await db
+		.select()
+		.from(schema.taskCommentReaction)
+		.where(
+			and(
+				eq(schema.taskCommentReaction.organizationId, orgId),
+				eq(schema.taskCommentReaction.taskId, taskId),
+				eq(schema.taskCommentReaction.commentId, commentId),
+				eq(schema.taskCommentReaction.userId, userId),
+				eq(schema.taskCommentReaction.emoji, emoji)
+			)
+		);
 
-  if (existing.length) {
-    // Remove reaction if already exists (toggle off)
-    await db
-      .delete(schema.taskCommentReaction)
-      .where(
-        and(
-          eq(schema.taskCommentReaction.organizationId, orgId),
-          eq(schema.taskCommentReaction.taskId, taskId),
-          eq(schema.taskCommentReaction.commentId, commentId),
-          eq(schema.taskCommentReaction.userId, userId),
-          eq(schema.taskCommentReaction.emoji, emoji),
-        ),
-      );
+	if (existing.length) {
+		// Remove reaction if already exists (toggle off)
+		await db
+			.delete(schema.taskCommentReaction)
+			.where(
+				and(
+					eq(schema.taskCommentReaction.organizationId, orgId),
+					eq(schema.taskCommentReaction.taskId, taskId),
+					eq(schema.taskCommentReaction.commentId, commentId),
+					eq(schema.taskCommentReaction.userId, userId),
+					eq(schema.taskCommentReaction.emoji, emoji)
+				)
+			);
 
-    return { added: false };
-  }
+		return { added: false };
+	}
 
-  // Otherwise, insert new reaction
-  await db
-    .insert(schema.taskCommentReaction)
-    .values({
-      commentId,
-      userId,
-      emoji,
-      createdAt: new Date(),
-      taskId,
-      organizationId: orgId,
-    })
-    .returning({ id: schema.taskCommentReaction.id });
+	// Otherwise, insert new reaction
+	await db
+		.insert(schema.taskCommentReaction)
+		.values({
+			commentId,
+			userId,
+			emoji,
+			createdAt: new Date(),
+			taskId,
+			organizationId: orgId,
+		})
+		.returning({ id: schema.taskCommentReaction.id });
 
-  return { added: true };
+	return { added: true };
 }
 
 /**
  * Get all reactions for a comment including
  * which users reacted with which emoji.
  */
-export async function getCommentReactionsWithUsers(
-  organizationId: string,
-  taskId: string,
-  commentId: string,
-) {
-  // Fetch raw rows: one row per (emoji, user)
-  const rows = await db
-    .select({
-      emoji: schema.taskCommentReaction.emoji,
-      userId: schema.taskCommentReaction.userId,
-    })
-    .from(schema.taskCommentReaction)
-    .where(
-      and(
-        eq(schema.taskCommentReaction.organizationId, organizationId),
-        eq(schema.taskCommentReaction.taskId, taskId),
-        eq(schema.taskCommentReaction.commentId, commentId),
-      ),
-    );
+export async function getCommentReactionsWithUsers(organizationId: string, taskId: string, commentId: string) {
+	// Fetch raw rows: one row per (emoji, user)
+	const rows = await db
+		.select({
+			emoji: schema.taskCommentReaction.emoji,
+			userId: schema.taskCommentReaction.userId,
+		})
+		.from(schema.taskCommentReaction)
+		.where(
+			and(
+				eq(schema.taskCommentReaction.organizationId, organizationId),
+				eq(schema.taskCommentReaction.taskId, taskId),
+				eq(schema.taskCommentReaction.commentId, commentId)
+			)
+		);
 
-  // Transform into { emoji: { count, users: [] } }
-  const summary: Record<string, { count: number; users: string[] }> = {};
+	// Transform into { emoji: { count, users: [] } }
+	const summary: Record<string, { count: number; users: string[] }> = {};
 
-  for (const row of rows) {
-    if (!summary[row.emoji]) {
-      summary[row.emoji] = { count: 0, users: [] };
-    }
-    const reactionData = summary[row.emoji];
-    if (reactionData) {
-      reactionData.count += 1;
-      reactionData.users.push(row.userId);
-    }
-  }
+	for (const row of rows) {
+		if (!summary[row.emoji]) {
+			summary[row.emoji] = { count: 0, users: [] };
+		}
+		const reactionData = summary[row.emoji];
+		if (reactionData) {
+			reactionData.count += 1;
+			reactionData.users.push(row.userId);
+		}
+	}
 
-  const total = rows.length;
+	const total = rows.length;
 
-  return {
-    commentId,
-    total,
-    reactions: summary,
-  };
+	return {
+		commentId,
+		total,
+		reactions: summary,
+	};
 }
 
 export async function createOrToggleTaskVote({
-  orgId,
-  taskId,
-  userId,
-  anonHash,
+	orgId,
+	taskId,
+	userId,
+	anonHash,
 }: {
-  orgId: string;
-  taskId: string;
-  userId: string | null;
-  anonHash: string | null;
+	orgId: string;
+	taskId: string;
+	userId: string | null;
+	anonHash: string | null;
 }) {
-  return db.transaction(async (tx) => {
-    const existing = await tx.query.taskVote.findFirst({
-      where: and(
-        eq(schema.taskVote.taskId, taskId),
-        or(
-          userId ? eq(schema.taskVote.userId, userId) : undefined,
-          eq(schema.taskVote.anonHash, anonHash || "")
-        ),
-      ),
-    });
+	return db.transaction(async (tx) => {
+		const existing = await tx.query.taskVote.findFirst({
+			where: and(
+				eq(schema.taskVote.taskId, taskId),
+				or(userId ? eq(schema.taskVote.userId, userId) : undefined, eq(schema.taskVote.anonHash, anonHash || ""))
+			),
+		});
 
-    if (existing) {
-      // REMOVE vote
-      await tx.delete(schema.taskVote).where(eq(schema.taskVote.id, existing.id));
+		if (existing) {
+			// REMOVE vote
+			await tx.delete(schema.taskVote).where(eq(schema.taskVote.id, existing.id));
 
-      await tx
-        .update(schema.task)
-        .set({
-          voteCount: sql`${schema.task.voteCount} - 1`,
-        })
-        .where(eq(schema.task.id, taskId));
+			await tx
+				.update(schema.task)
+				.set({
+					voteCount: sql`${schema.task.voteCount} - 1`,
+				})
+				.where(eq(schema.task.id, taskId));
 
-      return { added: false };
-    }
+			return { added: false };
+		}
 
-    // ADD vote
-    await tx.insert(schema.taskVote).values({
-      taskId,
-      organizationId: orgId,
-      userId,
-      anonHash,
-    });
+		// ADD vote
+		await tx.insert(schema.taskVote).values({
+			taskId,
+			organizationId: orgId,
+			userId,
+			anonHash,
+		});
 
-    await tx
-      .update(schema.task)
-      .set({
-        voteCount: sql`${schema.task.voteCount} + 1`,
-      })
-      .where(eq(schema.task.id, taskId));
+		await tx
+			.update(schema.task)
+			.set({
+				voteCount: sql`${schema.task.voteCount} + 1`,
+			})
+			.where(eq(schema.task.id, taskId));
 
-    return { added: true };
-  });
+		return { added: true };
+	});
 }

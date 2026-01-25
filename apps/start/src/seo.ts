@@ -5,9 +5,8 @@
 
 export const SITE_CONFIG = {
 	name: "Sayr",
-	url: "https://sayr.io", 
-	description:
-		"Project management and collaboration between developers, teams, and the public.",
+	url: "https://sayr.io",
+	description: "Project management and collaboration between developers, teams, and the public.",
 	ogImage: "/web-app-manifest-192x192.png", // Add your OG image path
 	twitterHandle: "@sayr", // Update with your Twitter handle
 	author: "Doras Media Limited",
@@ -74,9 +73,7 @@ export const generateStructuredData = ({
 /**
  * Breadcrumb schema generator
  */
-export const generateBreadcrumbSchema = (
-	items: Array<{ name: string; url: string }>,
-) => {
+export const generateBreadcrumbSchema = (items: Array<{ name: string; url: string }>) => {
 	return {
 		"@context": "https://schema.org",
 		"@type": "BreadcrumbList",
@@ -140,12 +137,12 @@ export const getCanonicalUrl = (path: string) => {
  * SEO helper for TanStack Router
  */
 export const seo = ({
-title,
-description,
-keywords,
-image,
+	title,
+	description,
+	keywords,
+	image,
 }: {
-title?: string;
+	title?: string;
 	description?: string;
 	keywords?: string;
 	image?: string;

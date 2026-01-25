@@ -1,7 +1,6 @@
 import type { schema } from "@repo/database";
 
-const API_URL =
-	import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 /**
  * Creates a new release in the organization

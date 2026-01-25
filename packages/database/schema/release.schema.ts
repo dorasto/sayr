@@ -6,12 +6,7 @@ import { user } from "./auth";
 import { organization } from "./organization.schema";
 import type { NodeJSON } from ".";
 
-export const releaseStatusEnum = v.pgEnum("release_status", [
-	"planned",
-	"in-progress",
-	"released",
-	"archived",
-]);
+export const releaseStatusEnum = v.pgEnum("release_status", ["planned", "in-progress", "released", "archived"]);
 
 export const release = table(
 	"release",

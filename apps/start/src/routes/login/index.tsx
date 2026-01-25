@@ -23,5 +23,5 @@ function RouteComponent() {
 		<div>
 			<LoginComponent />
 		</div>
-	)
+	);
 }

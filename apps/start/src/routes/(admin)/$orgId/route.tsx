@@ -20,7 +20,7 @@ export const getUserOrgPermissions = createServerFn({ method: "GET" })
 				account: data.account,
 				orgId: data.orgId,
 				permissions,
-			}
+			};
 		} catch (error) {
 			console.error("Error fetching org permissions:", error);
 			if (error && typeof error === "object" && "redirect" in error) {
@@ -43,7 +43,7 @@ export const Route = createFileRoute("/(admin)/$orgId")({
 				account,
 				orgId: params.orgId,
 			},
-		})
+		});
 		return { permissions };
 	},
 	loader: async ({ params, context }) => {
@@ -54,7 +54,7 @@ export const Route = createFileRoute("/(admin)/$orgId")({
 				account,
 				orgId: params.orgId,
 			},
-		})
+		});
 	},
 	// Prevent revalidation when only search params change (filters, view, task)
 	shouldRevalidate: ({ currentParams, nextParams }) => {
@@ -85,5 +85,5 @@ function OrgLayout() {
 		>
 			<Outlet />
 		</RootProviderOrganization>
-	)
+	);
 }

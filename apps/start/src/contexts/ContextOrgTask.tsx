@@ -20,25 +20,15 @@ export function RootProviderOrganizationTask({
 	task: ContextType["task"];
 	organization?: ContextType["organization"];
 }) {
-	const { value: newTask, setValue: setTask } = useStateManagement(
-		"_task_",
-		task,
-		1,
-	);
+	const { value: newTask, setValue: setTask } = useStateManagement("_task_", task, 1);
 	useEffect(() => setTask(task), [task, setTask]);
-	return (
-		<RootContext.Provider value={{ task: newTask, setTask, organization }}>
-			{children}
-		</RootContext.Provider>
-	);
+	return <RootContext.Provider value={{ task: newTask, setTask, organization }}>{children}</RootContext.Provider>;
 }
 
 export function useLayoutTask() {
 	const context = useContext(RootContext);
 	if (context === undefined) {
-		throw new Error(
-			"useLayoutTask must be used within a RootProviderOrganizationTask",
-		);
+		throw new Error("useLayoutTask must be used within a RootProviderOrganizationTask");
 	}
 	return context;
 }

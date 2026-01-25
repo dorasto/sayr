@@ -533,15 +533,12 @@ export async function CreateTaskVoteAction(
 		wsClientId,
 	};
 
-	const res = await fetch(
-		`${API_URL}/v1/admin/organization/task/create-vote`,
-		{
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			credentials: "include",
-			body: JSON.stringify(payload),
-		}
-	);
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/create-vote`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify(payload),
+	});
 
 	if (!res.ok) {
 		const text = await res.text();

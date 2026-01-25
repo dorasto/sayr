@@ -25,7 +25,7 @@ export default function TasksPageActions() {
 		<CreateIssueDialog
 			organization={organization}
 			tasks={tasks}
-			setTasks={() => { }} // Tasks will be updated via websocket/revalidation
+			setTasks={() => {}} // Tasks will be updated via websocket/revalidation
 			_labels={labels}
 			issueTemplates={issueTemplates ?? []}
 			releases={releases ?? []}
