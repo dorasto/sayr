@@ -3,6 +3,16 @@
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import {
+  GridBoardCells,
+  GridBoardColumnHeader,
+  GridBoardColumns,
+  type GridBoardColumnData,
+  GridBoardProvider,
+  GridBoardRowHeader,
+  GridBoardRows,
+  type GridBoardRowData,
+} from "@repo/ui/components/doras-ui/grid-board";
+import {
   KanbanBoard,
   KanbanCards,
   KanbanHeader,
@@ -460,119 +470,98 @@ export function UnifiedTaskView({
     <div className="flex items-center justify-center">No issues found</div>
   );
 
-  const renderKanbanWithSubGroups = () => (
-    <div className="h-full overflow-auto">
-      <div className="flex flex-col min-w-full w-fit">
-        {/* Column headers row */}
-        <div className="flex sticky top-0 z-30 overflow-hidden">
-          {groupedTasks.map((primaryGroup) => (
-            <div
-              key={primaryGroup.id}
-              className="flex items-center justify-between px-3 py-2 bg-muted min-w-[280px] flex-1 gap-2 border-r border-dashed last:border-r-0 p-3"
-            >
-              <div className="flex items-center gap-2">
-                {primaryGroup.icon && (
-                  <span className={cn("text-sm", primaryGroup.accentClassName)}>
-                    {primaryGroup.icon}
-                  </span>
-                )}
-                <span className="text-sm font-semibold">
-                  {primaryGroup.label}
-                </span>
+  const renderKanbanWithSubGroups = () => {
+    // Transform groupedTasks into GridBoard columns
+    const gridColumns: GridBoardColumnData[] = groupedTasks.map((group) => ({
+      id: group.id,
+      label: group.label,
+      count: group.count,
+      icon: group.icon,
+      accentClassName: group.accentClassName,
+    }));
+
+    // Transform subGroups into GridBoard rows (if they exist)
+    const gridRows: GridBoardRowData[] | undefined = hasKanbanSubGroups
+      ? groupedTasks[0]?.subGroups?.map((sg) => ({
+          id: sg.id,
+          label: sg.label,
+          icon: sg.icon,
+          accentClassName: sg.accentClassName,
+        }))
+      : undefined;
+
+    // Build a flat list of items with columnId and rowId for GridBoard
+    type GridItem = schema.TaskWithLabels & { columnId: string; rowId?: string };
+    const gridItems: GridItem[] = [];
+
+    for (const group of groupedTasks) {
+      if (hasKanbanSubGroups && group.subGroups) {
+        for (const subGroup of group.subGroups) {
+          for (const task of subGroup.tasks) {
+            gridItems.push({ ...task, columnId: group.id, rowId: subGroup.id });
+          }
+        }
+      } else {
+        for (const task of group.tasks) {
+          gridItems.push({ ...task, columnId: group.id });
+        }
+      }
+    }
+
+    // Custom getItemsForCell to look up tasks by column/row
+    const getItemsForCell = (columnId: string, rowId?: string): GridItem[] => {
+      const group = groupedTasks.find((g) => g.id === columnId);
+      if (!group) return [];
+
+      if (rowId !== undefined && group.subGroups) {
+        const subGroup = group.subGroups.find((sg) => sg.id === rowId);
+        return (subGroup?.tasks || []).map((t) => ({ ...t, columnId, rowId }));
+      }
+      return group.tasks.map((t) => ({ ...t, columnId }));
+    };
+
+    // Calculate row totals for row headers
+    const getRowTotal = (rowId: string): number => {
+      return gridColumns.reduce((sum, col) => sum + getItemsForCell(col.id, rowId).length, 0);
+    };
+
+    return (
+      <GridBoardProvider
+        columns={gridColumns}
+        rows={gridRows}
+        items={gridItems}
+        getItemsForCell={getItemsForCell}
+      >
+        {/* Column Headers */}
+        <GridBoardColumns>
+          {(column) => <GridBoardColumnHeader key={column.id} column={column} />}
+        </GridBoardColumns>
+
+        {/* Rows with cells (if sub-groups exist) */}
+        {hasKanbanSubGroups && gridRows ? (
+          <GridBoardRows>
+            {(row) => (
+              <div key={row.id}>
+                <GridBoardRowHeader row={row} count={getRowTotal(row.id)} />
+                <GridBoardCells rowId={row.id}>
+                  {(item: GridItem, column) =>
+                    renderTaskItem(item, column.id, "kanban", column.id)
+                  }
+                </GridBoardCells>
               </div>
-              <Badge variant="outline" className="text-xs h-5 px-2">
-                {primaryGroup.count}
-              </Badge>
-            </div>
-          ))}
-        </div>
-
-        {/* Sub-group rows (if sub-groups exist) */}
-        {hasKanbanSubGroups ? (
-          groupedTasks[0]?.subGroups?.map((subGroupTemplate) => {
-            const rowTotal = groupedTasks.reduce((sum, col) => {
-              const sg = col.subGroups?.find((s) => s.id === subGroupTemplate.id);
-              return sum + (sg?.tasks.length || 0);
-            }, 0);
-
-            return (
-              <div key={subGroupTemplate.id}>
-                {/* Row header */}
-                <div className="flex items-center gap-2 py-2 px-2 bg-accent border-b sticky top-9 z-20">
-                  <div className="flex items-center gap-2 z-10 sticky left-2">
-                    {subGroupTemplate.icon && (
-                      <span
-                        className={cn(
-                          "text-sm",
-                          subGroupTemplate.accentClassName,
-                        )}
-                      >
-                        {subGroupTemplate.icon}
-                      </span>
-                    )}
-                    <span className="text-sm font-medium whitespace-nowrap">
-                      {subGroupTemplate.label}
-                    </span>
-                    <Badge variant="secondary" className="text-xs h-5 px-1.5">
-                      {rowTotal}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Grid cells */}
-                <div className="flex">
-                  {groupedTasks.map((primaryGroup) => {
-                    const subGroup = primaryGroup.subGroups?.find(
-                      (sg) => sg.id === subGroupTemplate.id,
-                    );
-                    const subGroupTasks = subGroup?.tasks || [];
-
-                    return (
-                      <div
-                        key={`${primaryGroup.id}-${subGroupTemplate.id}`}
-                        className="min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
-                      >
-                        {subGroupTasks.length > 0 ? (
-                          subGroupTasks.map((task) =>
-                            renderTaskItem(
-                              task,
-                              primaryGroup.id,
-                              "kanban",
-                              primaryGroup.id,
-                            ),
-                          )
-                        ) : (
-                          <div className="h-8" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })
+            )}
+          </GridBoardRows>
         ) : (
-          /* No sub-groups: render tasks directly under columns */
-          <div className="flex">
-            {groupedTasks.map((primaryGroup) => (
-              <div
-                key={primaryGroup.id}
-                className="min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
-              >
-                {primaryGroup.tasks.length > 0 ? (
-                  primaryGroup.tasks.map((task) =>
-                    renderTaskItem(task, primaryGroup.id, "kanban", primaryGroup.id),
-                  )
-                ) : (
-                  <div className="h-8" />
-                )}
-              </div>
-            ))}
-          </div>
+          /* No sub-groups: render cells directly */
+          <GridBoardCells>
+            {(item: GridItem, column) =>
+              renderTaskItem(item, column.id, "kanban", column.id)
+            }
+          </GridBoardCells>
         )}
-      </div>
-    </div>
-  );
+      </GridBoardProvider>
+    );
+  };
 
   const renderKanbanStandard = () => (
     <KanbanProvider
