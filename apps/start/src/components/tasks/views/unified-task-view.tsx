@@ -693,6 +693,7 @@ export function UnifiedTaskView({
                             availableUsers={availableUsers}
                             onTaskUpdate={handleTaskUpdate}
                             categories={categories}
+                            releases={releases}
                             compact={compact}
                           />
                         ))

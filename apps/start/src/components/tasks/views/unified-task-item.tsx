@@ -810,6 +810,24 @@ export function UnifiedTaskItem({
                 </button>
               ) : null;
             })()}
+          {task.releaseId &&
+            (() => {
+              const release = releases.find((r) => r.id === task.releaseId);
+              return release ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleReleaseClick(release.id);
+                  }}
+                  data-no-propagate
+                  className="cursor-pointer"
+                >
+                  <RenderRelease release={release} />
+                </button>
+              ) : null;
+            })()}
         </div>
         <GlobalTaskAssignees
           task={task}
