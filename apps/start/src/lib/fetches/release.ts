@@ -60,6 +60,7 @@ export async function updateReleaseAction(
 		description?: schema.NodeJSON;
 		status?: "planned" | "in-progress" | "released" | "archived";
 		targetDate?: Date | null;
+		releasedAt?: Date | null;
 		color?: string;
 		icon?: string;
 	},
@@ -76,6 +77,7 @@ export async function updateReleaseAction(
 		...(data.description !== undefined ? { description: data.description } : {}),
 		...(data.status !== undefined ? { status: data.status } : {}),
 		...(data.targetDate !== undefined ? { targetDate: data.targetDate } : {}),
+		...(data.releasedAt !== undefined ? { releasedAt: data.releasedAt } : {}),
 		...(data.color !== undefined ? { color: data.color } : {}),
 		...(data.icon !== undefined ? { icon: data.icon } : {}),
 	};

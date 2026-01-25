@@ -25,7 +25,12 @@ import {
 import { Badge } from "@repo/ui/components/badge";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconCheck, IconRocket } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconRocket,
+  IconCalendarEvent,
+  IconX,
+} from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDate } from "@repo/util";
@@ -37,6 +42,7 @@ import RenderIcon from "@/components/generic/RenderIcon";
 import { extractHslValues } from "@repo/util";
 import { Separator } from "@repo/ui/components/separator";
 import { Label } from "@repo/ui/components/label";
+import { Calendar } from "@repo/ui/components/calendar";
 import {
   InputGroup,
   InputGroupAddon,
@@ -354,6 +360,12 @@ export default function ReleaseDetailPage({
     async (newStatus: schema.releaseType["status"]) => {
       if (!release || newStatus === release.status) return;
 
+      // Auto-set releasedAt when marking as released
+      const updates: any = { status: newStatus };
+      if (newStatus === "released" && !release.releasedAt) {
+        updates.releasedAt = new Date();
+      }
+
       const result = await runWithToast(
         "update-release-status",
         {
@@ -371,10 +383,54 @@ export default function ReleaseDetailPage({
           },
         },
         () =>
+          updateReleaseAction(organization.id, release.id, updates, wsClientId),
+      );
+
+      if (result?.success && result.data) {
+        setRelease((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: result.data.status,
+                releasedAt: result.data.releasedAt,
+              }
+            : null,
+        );
+      }
+    },
+    [release, organization.id, wsClientId, runWithToast],
+  );
+
+  // Handle target date update
+  const handleTargetDateUpdate = useCallback(
+    async (date: Date | null) => {
+      if (!release) return;
+
+      const result = await runWithToast(
+        "update-release-target-date",
+        {
+          loading: {
+            title: "Updating target date...",
+            description: date
+              ? "Setting target date."
+              : "Clearing target date.",
+          },
+          success: {
+            title: date ? "Target date set" : "Target date cleared",
+            description: date
+              ? `Target date set to ${formatDate(date)}.`
+              : "Target date has been cleared.",
+          },
+          error: {
+            title: "Failed",
+            description: "Could not update target date.",
+          },
+        },
+        () =>
           updateReleaseAction(
             organization.id,
             release.id,
-            { status: newStatus },
+            { targetDate: date },
             wsClientId,
           ),
       );
@@ -384,7 +440,54 @@ export default function ReleaseDetailPage({
           prev
             ? {
                 ...prev,
-                status: result.data.status,
+                targetDate: result.data.targetDate,
+              }
+            : null,
+        );
+      }
+    },
+    [release, organization.id, wsClientId, runWithToast],
+  );
+
+  // Handle released date update (admin only)
+  const handleReleasedAtUpdate = useCallback(
+    async (date: Date | null) => {
+      if (!release) return;
+
+      const result = await runWithToast(
+        "update-release-released-date",
+        {
+          loading: {
+            title: "Updating release date...",
+            description: date
+              ? "Setting release date."
+              : "Clearing release date.",
+          },
+          success: {
+            title: date ? "Release date set" : "Release date cleared",
+            description: date
+              ? `Release date set to ${formatDate(date)}.`
+              : "Release date has been cleared.",
+          },
+          error: {
+            title: "Failed",
+            description: "Could not update release date.",
+          },
+        },
+        () =>
+          updateReleaseAction(
+            organization.id,
+            release.id,
+            { releasedAt: date },
+            wsClientId,
+          ),
+      );
+
+      if (result?.success && result.data) {
+        setRelease((prev) =>
+          prev
+            ? {
+                ...prev,
                 releasedAt: result.data.releasedAt,
               }
             : null,
@@ -460,11 +563,86 @@ export default function ReleaseDetailPage({
               })}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Target Date */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-6 gap-1.5 text-xs",
+                  release.targetDate
+                    ? "text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                <IconCalendarEvent className="w-3 h-3" />
+                {release.targetDate
+                  ? formatDate(release.targetDate)
+                  : "Target date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={
+                  release.targetDate ? new Date(release.targetDate) : undefined
+                }
+                onSelect={(date) => handleTargetDateUpdate(date || null)}
+              />
+              {release.targetDate && (
+                <div className="p-2 border-t">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => handleTargetDateUpdate(null)}
+                  >
+                    <IconX className="w-3 h-3 mr-1" />
+                    Clear date
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          {/* Released Date */}
           {release.releasedAt && (
-            <div className="flex items-center gap-2">
-              <IconCheck className="w-4 h-4" />
-              <span>Released: {formatDate(release.releasedAt)}</span>
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1.5 text-xs text-green-600"
+                >
+                  <IconCheck className="w-3 h-3" />
+                  Released: {formatDate(release.releasedAt)}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={
+                    release.releasedAt
+                      ? new Date(release.releasedAt)
+                      : undefined
+                  }
+                  onSelect={(date) => handleReleasedAtUpdate(date || null)}
+                />
+                <div className="p-2 border-t">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => handleReleasedAtUpdate(null)}
+                  >
+                    <IconX className="w-3 h-3 mr-1" />
+                    Clear date
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
 
           {/* Edit Button */}
