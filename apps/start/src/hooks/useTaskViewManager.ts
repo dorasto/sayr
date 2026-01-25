@@ -9,7 +9,6 @@ import {
 	type FilterCondition,
 	type FilterGroup,
 	type FilterOperator,
-	type FilterField,
 	type TaskViewState,
 	type TaskGroupingId,
 	DEFAULT_TASK_VIEW_STATE,
@@ -101,7 +100,7 @@ function mapViewConfigToState(config: NonNullable<schema.savedViewType["viewConf
  * - Provides both granular setters and batch operations
  */
 export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
-	const { view: viewSlug, category: categorySlug, setSearchParams } = useTasksSearchParams();
+	const { view: viewSlug, category: categorySlug, filters: filtersParam, setSearchParams } = useTasksSearchParams();
 
 	// Track click handling to prevent useEffect from duplicating updates
 	const isHandlingAction = useRef(false);
@@ -451,6 +450,53 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 			hasInitializedFromUrl.current = true;
 		}
 	}, [viewSlug, availableViews, state, setCombinedState]);
+
+	/**
+	 * Auto-load filters from URL on mount
+	 * This syncs the filter state when the page is loaded with ?filters=<encoded>
+	 */
+	useEffect(() => {
+		// Skip if we have a view slug (view takes precedence), already handling, or already initialized
+		if (viewSlug || isHandlingAction.current || hasInitializedFromUrl.current) {
+			return;
+		}
+
+		// Skip if no filters param in URL
+		if (!filtersParam) {
+			return;
+		}
+
+		// Deserialize filters from URL
+		const urlFilters = deserializeFilters(filtersParam);
+
+		if (!urlFilters) {
+			// Failed to deserialize
+			return;
+		}
+
+		// Check if filters are actually different from current state
+		const targetState = {
+			...state,
+			filters: urlFilters,
+		};
+
+		// Only apply if the state is actually different from current state
+		if (!areStatesEqual(state, targetState)) {
+			// Mark as handling to prevent loops
+			isHandlingAction.current = true;
+			hasInitializedFromUrl.current = true;
+
+			setCombinedState(targetState);
+
+			// Reset flag after applying
+			setTimeout(() => {
+				isHandlingAction.current = false;
+			}, 0);
+		} else {
+			// Filters already match - just mark as initialized
+			hasInitializedFromUrl.current = true;
+		}
+	}, [viewSlug, filtersParam, state, setCombinedState]);
 
 	return {
 		// Current state

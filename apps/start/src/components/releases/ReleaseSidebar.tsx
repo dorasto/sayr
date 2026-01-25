@@ -20,8 +20,11 @@ import {
   IconTrendingUp,
 } from "@tabler/icons-react";
 import type { schema } from "@repo/database";
-import { useMemo } from "react";
+import { useMemo, useCallback, type ReactNode } from "react";
 import { ReleaseStats } from "./ReleaseStats";
+import { Link } from "@tanstack/react-router";
+import { serializeFilters } from "@/components/tasks/filter/serialization";
+import type { FilterState } from "@/components/tasks/filter/types";
 
 interface ReleaseSidebarProps {
   tasks: schema.TaskWithLabels[];
@@ -34,13 +37,62 @@ interface ReleaseSidebarProps {
     completionPercentage: number;
   };
   daysUntilTarget: number | null;
+  organizationId: string;
+  releaseId: string;
 }
 
 export function ReleaseSidebar({
   tasks,
   taskStats,
   daysUntilTarget,
+  organizationId,
+  releaseId,
 }: ReleaseSidebarProps) {
+  // Render prop to wrap each assignee tile with a Link
+  const renderTileWrapper = useCallback(
+    (assigneeId: string, children: ReactNode) => {
+      // Create filter state for this assignee + release
+      const filterState: FilterState = {
+        groups: [
+          {
+            id: "group-0",
+            operator: "AND",
+            conditions: [
+              {
+                id: "assignee-filter",
+                field: "assignee",
+                operator: assigneeId === "unassigned" ? "empty" : "any",
+                value: assigneeId === "unassigned" ? null : [assigneeId],
+              },
+              {
+                id: "release-filter",
+                field: "release",
+                operator: "any",
+                value: [releaseId],
+              },
+            ],
+          },
+        ],
+        operator: "AND",
+      };
+
+      // Serialize filters - this returns an already-encoded string
+      const filtersParam = serializeFilters(filterState);
+
+      return (
+        <Link
+          to="/$orgId/tasks"
+          params={{ orgId: organizationId }}
+          search={(prev) => ({ ...prev, filters: decodeURIComponent(filtersParam) })}
+          className="block"
+        >
+          {children}
+        </Link>
+      );
+    },
+    [organizationId, releaseId]
+  );
+
   // Generate progress data over time
   const progressData = useMemo(() => {
     if (tasks.length === 0) return [];
@@ -233,7 +285,7 @@ export function ReleaseSidebar({
           <TileTitle>Assignee Workload</TileTitle>
           <TileDescription>Tasks assigned per team member</TileDescription>
         </TileHeader>
-        <TaskAssigneeChart tasks={tasks} />
+        <TaskAssigneeChart tasks={tasks} renderTileWrapper={renderTileWrapper} />
       </Tile>
     </div>
   );

@@ -627,6 +627,8 @@ function ReleaseDetailPageContent() {
                   tasks={tasks}
                   taskStats={taskStats}
                   daysUntilTarget={daysUntilTarget}
+                  organizationId={organization.id}
+                  releaseId={release.id}
                 />
               </div>
             </SheetContent>
@@ -656,6 +658,8 @@ function ReleaseDetailPageContent() {
                   tasks={tasks}
                   taskStats={taskStats}
                   daysUntilTarget={daysUntilTarget}
+                  organizationId={organization.id}
+                  releaseId={release.id}
                 />
               </div>
             </ResizablePanel>

@@ -17,7 +17,7 @@ import {
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
 import { IconUser } from "@tabler/icons-react";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Cell, Pie, PieChart } from "recharts";
 
 export interface TaskAssigneeChartProps {
@@ -26,6 +26,8 @@ export interface TaskAssigneeChartProps {
   maxItems?: number;
   /** Additional className */
   className?: string;
+  /** Optional render prop to wrap each tile (e.g., with Link) */
+  renderTileWrapper?: (assigneeId: string, children: ReactNode) => ReactNode;
 }
 
 const chartConfig = {
@@ -92,6 +94,7 @@ export function TaskAssigneeChart({
   tasks,
   maxItems = 8,
   className,
+  renderTileWrapper,
 }: TaskAssigneeChartProps) {
   const assigneeData = useMemo(() => {
     const assigneeCounts = new Map<string, AssigneeData>();
@@ -171,8 +174,14 @@ export function TaskAssigneeChart({
             .slice(0, 2)
             .toUpperCase();
 
-          return (
-            <Tile key={assignee.id} className="bg-card md:w-full gap-3 p-1">
+          const tileContent = (
+            <Tile
+              key={assignee.id}
+              className={cn(
+                "bg-card md:w-full gap-3 p-1",
+                renderTileWrapper && "cursor-pointer hover:bg-accent/50 transition-colors"
+              )}
+            >
               <TileHeader>
                 <TileIcon className="bg-transparent">
                   {assignee.id === "unassigned" ? (
@@ -205,6 +214,8 @@ export function TaskAssigneeChart({
               </TileAction>
             </Tile>
           );
+
+          return renderTileWrapper ? renderTileWrapper(assignee.id, tileContent) : tileContent;
         })}
       </div>
     </div>
