@@ -34,6 +34,8 @@ import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(adm
 import { Route as adminConsoleConnectionsIndexRouteImport } from './routes/(admin)/console/connections/index'
 import { Route as adminOrgIdViewsIndexRouteImport } from './routes/(admin)/$orgId/views/index'
 import { Route as adminOrgIdTasksIndexRouteImport } from './routes/(admin)/$orgId/tasks/index'
+import { Route as adminOrgIdReleasesIndexRouteImport } from './routes/(admin)/$orgId/releases/index'
+import { Route as adminOrgIdReleasesReleaseSlugRouteImport } from './routes/(admin)/$orgId/releases/$releaseSlug'
 import { Route as adminSettingsOrgOrgIdRouteRouteImport } from './routes/(admin)/settings/org/$orgId/route'
 import { Route as adminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/route'
 import { Route as adminSettingsOrgOrgIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/index'
@@ -41,6 +43,7 @@ import { Route as adminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/(a
 import { Route as adminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/index'
 import { Route as adminSettingsOrgOrgIdTemplatesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/templates/index'
 import { Route as adminSettingsOrgOrgIdTeamsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/index'
+import { Route as adminSettingsOrgOrgIdReleasesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/releases/index'
 import { Route as adminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/(admin)/settings/org/$orgId/members/index'
 import { Route as adminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/labels/index'
 import { Route as adminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/index'
@@ -177,6 +180,17 @@ const adminOrgIdTasksIndexRoute = adminOrgIdTasksIndexRouteImport.update({
   path: '/',
   getParentRoute: () => adminOrgIdTasksRouteRoute,
 } as any)
+const adminOrgIdReleasesIndexRoute = adminOrgIdReleasesIndexRouteImport.update({
+  id: '/releases/',
+  path: '/releases/',
+  getParentRoute: () => adminOrgIdRouteRoute,
+} as any)
+const adminOrgIdReleasesReleaseSlugRoute =
+  adminOrgIdReleasesReleaseSlugRouteImport.update({
+    id: '/releases/$releaseSlug',
+    path: '/releases/$releaseSlug',
+    getParentRoute: () => adminOrgIdRouteRoute,
+  } as any)
 const adminSettingsOrgOrgIdRouteRoute =
   adminSettingsOrgOrgIdRouteRouteImport.update({
     id: '/org/$orgId',
@@ -217,6 +231,12 @@ const adminSettingsOrgOrgIdTeamsIndexRoute =
   adminSettingsOrgOrgIdTeamsIndexRouteImport.update({
     id: '/teams/',
     path: '/teams/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const adminSettingsOrgOrgIdReleasesIndexRoute =
+  adminSettingsOrgOrgIdReleasesIndexRouteImport.update({
+    id: '/releases/',
+    path: '/releases/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
 const adminSettingsOrgOrgIdMembersIndexRoute =
@@ -290,6 +310,8 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
+  '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/$orgId/releases': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
   '/$orgId/views': typeof adminOrgIdViewsIndexRoute
   '/console/connections': typeof adminConsoleConnectionsIndexRoute
@@ -302,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
   '/settings/org/$orgId/labels': typeof adminSettingsOrgOrgIdLabelsIndexRoute
   '/settings/org/$orgId/members': typeof adminSettingsOrgOrgIdMembersIndexRoute
+  '/settings/org/$orgId/releases': typeof adminSettingsOrgOrgIdReleasesIndexRoute
   '/settings/org/$orgId/teams': typeof adminSettingsOrgOrgIdTeamsIndexRoute
   '/settings/org/$orgId/templates': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
   '/settings/org/$orgId/views': typeof adminSettingsOrgOrgIdViewsIndexRoute
@@ -323,6 +346,8 @@ export interface FileRoutesByTo {
   '/settings': typeof adminSettingsIndexRoute
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug': typeof OrgsOrgSlugIndexRoute
+  '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/$orgId/releases': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksIndexRoute
   '/$orgId/views': typeof adminOrgIdViewsIndexRoute
   '/console/connections': typeof adminConsoleConnectionsIndexRoute
@@ -335,6 +360,7 @@ export interface FileRoutesByTo {
   '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
   '/settings/org/$orgId/labels': typeof adminSettingsOrgOrgIdLabelsIndexRoute
   '/settings/org/$orgId/members': typeof adminSettingsOrgOrgIdMembersIndexRoute
+  '/settings/org/$orgId/releases': typeof adminSettingsOrgOrgIdReleasesIndexRoute
   '/settings/org/$orgId/teams': typeof adminSettingsOrgOrgIdTeamsIndexRoute
   '/settings/org/$orgId/templates': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
   '/settings/org/$orgId/views': typeof adminSettingsOrgOrgIdViewsIndexRoute
@@ -366,6 +392,8 @@ export interface FileRoutesById {
   '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
   '/(admin)/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
   '/(admin)/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
+  '/(admin)/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/(admin)/$orgId/releases/': typeof adminOrgIdReleasesIndexRoute
   '/(admin)/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
   '/(admin)/$orgId/views/': typeof adminOrgIdViewsIndexRoute
   '/(admin)/console/connections/': typeof adminConsoleConnectionsIndexRoute
@@ -378,6 +406,7 @@ export interface FileRoutesById {
   '/(admin)/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
   '/(admin)/settings/org/$orgId/labels/': typeof adminSettingsOrgOrgIdLabelsIndexRoute
   '/(admin)/settings/org/$orgId/members/': typeof adminSettingsOrgOrgIdMembersIndexRoute
+  '/(admin)/settings/org/$orgId/releases/': typeof adminSettingsOrgOrgIdReleasesIndexRoute
   '/(admin)/settings/org/$orgId/teams/': typeof adminSettingsOrgOrgIdTeamsIndexRoute
   '/(admin)/settings/org/$orgId/templates/': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
   '/(admin)/settings/org/$orgId/views/': typeof adminSettingsOrgOrgIdViewsIndexRoute
@@ -409,6 +438,8 @@ export interface FileRouteTypes {
     | '/orgs/$orgSlug/'
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
+    | '/$orgId/releases/$releaseSlug'
+    | '/$orgId/releases'
     | '/$orgId/tasks/'
     | '/$orgId/views'
     | '/console/connections'
@@ -421,6 +452,7 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/connections'
     | '/settings/org/$orgId/labels'
     | '/settings/org/$orgId/members'
+    | '/settings/org/$orgId/releases'
     | '/settings/org/$orgId/teams'
     | '/settings/org/$orgId/templates'
     | '/settings/org/$orgId/views'
@@ -442,6 +474,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/invite/$orgId'
     | '/orgs/$orgSlug'
+    | '/$orgId/releases/$releaseSlug'
+    | '/$orgId/releases'
     | '/$orgId/tasks'
     | '/$orgId/views'
     | '/console/connections'
@@ -454,6 +488,7 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/connections'
     | '/settings/org/$orgId/labels'
     | '/settings/org/$orgId/members'
+    | '/settings/org/$orgId/releases'
     | '/settings/org/$orgId/teams'
     | '/settings/org/$orgId/templates'
     | '/settings/org/$orgId/views'
@@ -484,6 +519,8 @@ export interface FileRouteTypes {
     | '/orgs/$orgSlug/'
     | '/(admin)/$orgId/tasks/$taskShortId'
     | '/(admin)/settings/org/$orgId'
+    | '/(admin)/$orgId/releases/$releaseSlug'
+    | '/(admin)/$orgId/releases/'
     | '/(admin)/$orgId/tasks/'
     | '/(admin)/$orgId/views/'
     | '/(admin)/console/connections/'
@@ -496,6 +533,7 @@ export interface FileRouteTypes {
     | '/(admin)/settings/org/$orgId/connections/'
     | '/(admin)/settings/org/$orgId/labels/'
     | '/(admin)/settings/org/$orgId/members/'
+    | '/(admin)/settings/org/$orgId/releases/'
     | '/(admin)/settings/org/$orgId/teams/'
     | '/(admin)/settings/org/$orgId/templates/'
     | '/(admin)/settings/org/$orgId/views/'
@@ -693,6 +731,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdTasksIndexRouteImport
       parentRoute: typeof adminOrgIdTasksRouteRoute
     }
+    '/(admin)/$orgId/releases/': {
+      id: '/(admin)/$orgId/releases/'
+      path: '/releases'
+      fullPath: '/$orgId/releases'
+      preLoaderRoute: typeof adminOrgIdReleasesIndexRouteImport
+      parentRoute: typeof adminOrgIdRouteRoute
+    }
+    '/(admin)/$orgId/releases/$releaseSlug': {
+      id: '/(admin)/$orgId/releases/$releaseSlug'
+      path: '/releases/$releaseSlug'
+      fullPath: '/$orgId/releases/$releaseSlug'
+      preLoaderRoute: typeof adminOrgIdReleasesReleaseSlugRouteImport
+      parentRoute: typeof adminOrgIdRouteRoute
+    }
     '/(admin)/settings/org/$orgId': {
       id: '/(admin)/settings/org/$orgId'
       path: '/org/$orgId'
@@ -740,6 +792,13 @@ declare module '@tanstack/react-router' {
       path: '/teams'
       fullPath: '/settings/org/$orgId/teams'
       preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/releases/': {
+      id: '/(admin)/settings/org/$orgId/releases/'
+      path: '/releases'
+      fullPath: '/settings/org/$orgId/releases'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdReleasesIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/members/': {
@@ -832,12 +891,16 @@ const adminOrgIdTasksRouteRouteWithChildren =
 interface adminOrgIdRouteRouteChildren {
   adminOrgIdTasksRouteRoute: typeof adminOrgIdTasksRouteRouteWithChildren
   adminOrgIdIndexRoute: typeof adminOrgIdIndexRoute
+  adminOrgIdReleasesReleaseSlugRoute: typeof adminOrgIdReleasesReleaseSlugRoute
+  adminOrgIdReleasesIndexRoute: typeof adminOrgIdReleasesIndexRoute
   adminOrgIdViewsIndexRoute: typeof adminOrgIdViewsIndexRoute
 }
 
 const adminOrgIdRouteRouteChildren: adminOrgIdRouteRouteChildren = {
   adminOrgIdTasksRouteRoute: adminOrgIdTasksRouteRouteWithChildren,
   adminOrgIdIndexRoute: adminOrgIdIndexRoute,
+  adminOrgIdReleasesReleaseSlugRoute: adminOrgIdReleasesReleaseSlugRoute,
+  adminOrgIdReleasesIndexRoute: adminOrgIdReleasesIndexRoute,
   adminOrgIdViewsIndexRoute: adminOrgIdViewsIndexRoute,
 }
 
@@ -878,6 +941,7 @@ interface adminSettingsOrgOrgIdRouteRouteChildren {
   adminSettingsOrgOrgIdConnectionsIndexRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRoute
   adminSettingsOrgOrgIdLabelsIndexRoute: typeof adminSettingsOrgOrgIdLabelsIndexRoute
   adminSettingsOrgOrgIdMembersIndexRoute: typeof adminSettingsOrgOrgIdMembersIndexRoute
+  adminSettingsOrgOrgIdReleasesIndexRoute: typeof adminSettingsOrgOrgIdReleasesIndexRoute
   adminSettingsOrgOrgIdTeamsIndexRoute: typeof adminSettingsOrgOrgIdTeamsIndexRoute
   adminSettingsOrgOrgIdTemplatesIndexRoute: typeof adminSettingsOrgOrgIdTemplatesIndexRoute
   adminSettingsOrgOrgIdViewsIndexRoute: typeof adminSettingsOrgOrgIdViewsIndexRoute
@@ -898,6 +962,8 @@ const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteCh
       adminSettingsOrgOrgIdLabelsIndexRoute,
     adminSettingsOrgOrgIdMembersIndexRoute:
       adminSettingsOrgOrgIdMembersIndexRoute,
+    adminSettingsOrgOrgIdReleasesIndexRoute:
+      adminSettingsOrgOrgIdReleasesIndexRoute,
     adminSettingsOrgOrgIdTeamsIndexRoute: adminSettingsOrgOrgIdTeamsIndexRoute,
     adminSettingsOrgOrgIdTemplatesIndexRoute:
       adminSettingsOrgOrgIdTemplatesIndexRoute,

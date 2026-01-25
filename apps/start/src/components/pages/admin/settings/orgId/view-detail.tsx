@@ -389,9 +389,7 @@ export default function SettingsOrganizationViewDetailPage({
 									{viewConfig?.subGroupBy ? (
 										<>
 											<IconLayoutRows className="h-4 w-4" />
-											<span>
-												{TASK_GROUPINGS[(viewConfig.subGroupBy as TaskGroupingId)]?.label || "None"}
-											</span>
+											<span>{TASK_GROUPINGS[viewConfig.subGroupBy as TaskGroupingId]?.label || "None"}</span>
 										</>
 									) : (
 										<>
@@ -441,7 +439,7 @@ export default function SettingsOrganizationViewDetailPage({
 					<Button
 						onClick={handleSave}
 						variant={"primary"}
-					// disabled={name === view.name && filterParams === view.filterParams}
+						// disabled={name === view.name && filterParams === view.filterParams}
 					>
 						<IconDeviceFloppy className="" />
 						Save Changes

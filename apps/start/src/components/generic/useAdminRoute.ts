@@ -13,19 +13,13 @@ export function useAdminRoute() {
 	const isSettingsPage = /^\/settings(?:$|\/)/.test(pathname);
 
 	// /:orgId, but exclude known static routes
-	const isOrgPage =
-		/^\/[^/]+$/.test(pathname) &&
-		!/^\/(?:mine|console|settings)$/.test(pathname);
+	const isOrgPage = /^\/[^/]+$/.test(pathname) && !/^\/(?:mine|console|settings)$/.test(pathname);
 
 	// /:orgId/tasks
-	const isTasksPage =
-		/^\/[^/]+\/tasks$/.test(pathname) &&
-		!/^\/(?:console|mine|settings)\b/.test(pathname);
+	const isTasksPage = /^\/[^/]+\/tasks$/.test(pathname) && !/^\/(?:console|mine|settings)\b/.test(pathname);
 
 	// /:orgId/tasks/:taskId
-	const isTaskPage =
-		/^\/[^/]+\/tasks\/[^/]+$/.test(pathname) &&
-		!/^\/(?:console|mine|settings)\b/.test(pathname);
+	const isTaskPage = /^\/[^/]+\/tasks\/[^/]+$/.test(pathname) && !/^\/(?:console|mine|settings)\b/.test(pathname);
 
 	return {
 		isMinePage,

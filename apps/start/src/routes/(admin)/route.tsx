@@ -85,7 +85,7 @@ async function getCachedAuth(): Promise<{
 				cache.set(sessionId, {
 					account: result.account,
 					timestamp: Date.now(),
-				})
+				});
 			} else {
 				cache.delete(sessionId);
 			}
@@ -93,7 +93,7 @@ async function getCachedAuth(): Promise<{
 		})
 		.finally(() => {
 			inFlight.delete(sessionId);
-		})
+		});
 
 	inFlight.set(sessionId, newReq);
 	return newReq;
@@ -118,7 +118,7 @@ export const Route = createFileRoute("/(admin)")({
 
 		return await getUserOrganizations({
 			data: { account: context.account },
-		})
+		});
 	},
 	component: AdminLayout,
 });
@@ -140,5 +140,5 @@ function AdminLayout() {
 				</Wrapper>
 			</RootProvider>
 		</div>
-	)
+	);
 }

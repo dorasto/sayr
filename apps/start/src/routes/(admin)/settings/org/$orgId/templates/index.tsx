@@ -8,10 +8,14 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId/templates/")(
 
 function RouteComponent() {
 	return (
-		<SubWrapper title="Templates" description="Create and manage issue templates for your organization." style="compact">
+		<SubWrapper
+			title="Templates"
+			description="Create and manage issue templates for your organization."
+			style="compact"
+		>
 			<div className="flex flex-col gap-3">
 				<SettingsOrganizationTemplatesPage />
 			</div>
 		</SubWrapper>
-	)
+	);
 }

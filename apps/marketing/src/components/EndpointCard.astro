@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface Props {
-    endpoint: ParsedEndpoint;
-    baseUrl?: string;
+	endpoint: ParsedEndpoint;
+	baseUrl?: string;
 }
 
 const { endpoint, baseUrl = "https://sayr.io/api" } = Astro.props;
@@ -19,56 +19,53 @@ const pathParams = allParameters.filter((p) => p.in === "path");
 const queryParams = allParameters.filter((p) => p.in === "query");
 const headerParams = allParameters.filter((p) => p.in === "header");
 
-const methodConfig: Record<
-    string,
-    { bg: string; text: string; dotColor: string }
-> = {
-    GET: {
-        bg: "bg-green-800",
-        text: "text-green-200",
-        dotColor: "bg-green-200",
-    },
-    POST: {
-        bg: "bg-blue-800",
-        text: "text-blue-200",
-        dotColor: "bg-blue-200",
-    },
-    PUT: {
-        bg: "bg-orange-800",
-        text: "text-orange-200",
-        dotColor: "bg-orange-200",
-    },
-    PATCH: {
-        bg: "bg-yellow-800",
-        text: "text-yellow-200",
-        dotColor: "bg-yellow-200",
-    },
-    DELETE: {
-        bg: "bg-red-800",
-        text: "text-red-200",
-        dotColor: "bg-red-200",
-    },
+const methodConfig: Record<string, { bg: string; text: string; dotColor: string }> = {
+	GET: {
+		bg: "bg-green-800",
+		text: "text-green-200",
+		dotColor: "bg-green-200",
+	},
+	POST: {
+		bg: "bg-blue-800",
+		text: "text-blue-200",
+		dotColor: "bg-blue-200",
+	},
+	PUT: {
+		bg: "bg-orange-800",
+		text: "text-orange-200",
+		dotColor: "bg-orange-200",
+	},
+	PATCH: {
+		bg: "bg-yellow-800",
+		text: "text-yellow-200",
+		dotColor: "bg-yellow-200",
+	},
+	DELETE: {
+		bg: "bg-red-800",
+		text: "text-red-200",
+		dotColor: "bg-red-200",
+	},
 };
 
 const config = methodConfig[method] || {
-    bg: "bg-gray-500/10",
-    text: "text-gray-400",
-    dotColor: "bg-gray-500",
+	bg: "bg-gray-500/10",
+	text: "text-gray-400",
+	dotColor: "bg-gray-500",
 };
 
 // Prepare parameters for the RequestTester
 const testerParams = allParameters.map((p) => ({
-    name: p.name,
-    in: p.in,
-    description: p.description,
-    required: p.required,
-    schema: p.schema
-        ? {
-              type: p.schema.type,
-              default: p.schema.default,
-              enum: p.schema.enum,
-          }
-        : undefined,
+	name: p.name,
+	in: p.in,
+	description: p.description,
+	required: p.required,
+	schema: p.schema
+		? {
+				type: p.schema.type,
+				default: p.schema.default,
+				enum: p.schema.enum,
+			}
+		: undefined,
 }));
 ---
 

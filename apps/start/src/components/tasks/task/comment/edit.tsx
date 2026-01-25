@@ -37,22 +37,16 @@ export function TaskEditCommentContent({
 	const { runWithToast, isFetching } = useToastAction();
 
 	// Preload editor with current comment content + visibility
-	const [updatedContent, setUpdatedContent] = useState<NodeJSON | undefined>(
-		comment.content as NodeJSON | undefined,
-	);
+	const [updatedContent, setUpdatedContent] = useState<NodeJSON | undefined>(comment.content as NodeJSON | undefined);
 	const [editorKey, setEditorKey] = useState(0);
 	const oldCommentText = extractTextContent(comment.content);
 	const commentText = extractTextContent(updatedContent);
-	const disabled =
-		isFetching ||
-		commentText.trim().length === 0 ||
-		oldCommentText === commentText;
+	const disabled = isFetching || commentText.trim().length === 0 || oldCommentText === commentText;
 	async function handleUpdate() {
 		if (!updatedContent || disabled) {
 			headlessToast.error({
 				title: "Cannot update comment",
-				description:
-					"Please make sure there is content before updating this comment.",
+				description: "Please make sure there is content before updating this comment.",
 				id: "update-task-comment",
 			});
 			return;
@@ -62,7 +56,7 @@ export function TaskEditCommentContent({
 			updatedContent,
 			comment.visibility,
 			task.organizationId,
-			"update-task-comment",
+			"update-task-comment"
 		);
 		const data = await runWithToast(
 			"update-task-comment",
@@ -77,20 +71,12 @@ export function TaskEditCommentContent({
 				},
 				error: {
 					title: "Couldn't update comment",
-					description:
-						"The comment appears locally but could not be updated on the server.",
+					description: "The comment appears locally but could not be updated on the server.",
 				},
 			},
 			// Your custom action to update the comment — similar to CreateTaskCommentAction
 			() =>
-				UpdateTaskCommentAction(
-					task.organizationId,
-					task.id,
-					comment.id,
-					processed,
-					comment.visibility,
-					wsClientId,
-				),
+				UpdateTaskCommentAction(task.organizationId, task.id, comment.id, processed, comment.visibility, wsClientId)
 		);
 		if (data?.success && data.data && task && task.id === data.data.id) {
 			setEditorKey((prev) => prev + 1);
@@ -102,7 +88,7 @@ export function TaskEditCommentContent({
 		<div
 			className={cn(
 				"text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col",
-				comment.visibility === "internal" && "border-primary/30 bg-primary/5",
+				comment.visibility === "internal" && "border-primary/30 bg-primary/5"
 			)}
 		>
 			<Editor
@@ -124,8 +110,7 @@ export function TaskEditCommentContent({
 						onClick={handleUpdate}
 						className={cn(
 							"border-transparent",
-							comment.visibility === "internal" &&
-								"bg-primary/10 hover:bg-primary/20",
+							comment.visibility === "internal" && "bg-primary/10 hover:bg-primary/20"
 						)}
 					>
 						Save Changes

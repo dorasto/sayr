@@ -9,7 +9,7 @@ export default function CodeBlockView() {
 				name: "codeBlock",
 				component: CodeBlockViewInner,
 			}),
-		[],
+		[]
 	);
 
 	useExtension(extension);

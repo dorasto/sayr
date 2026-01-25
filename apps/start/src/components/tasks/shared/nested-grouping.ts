@@ -7,7 +7,7 @@ export interface NestedTaskGroup extends TaskGroup {
 
 /**
  * Apply nested grouping to tasks
- * 
+ *
  * @param grouping - Primary grouping field
  * @param subGrouping - Secondary grouping field (or "none")
  * @param context - Grouping context (users, categories, etc.)
@@ -16,7 +16,7 @@ export interface NestedTaskGroup extends TaskGroup {
 export function applyNestedGrouping(
 	grouping: TaskGroupingId,
 	subGrouping: TaskGroupingId | "none" | undefined,
-	context: TaskGroupingContext,
+	context: TaskGroupingContext
 ): NestedTaskGroup[] {
 	// If no sub-grouping, just return regular grouping
 	if (!subGrouping || subGrouping === "none") {

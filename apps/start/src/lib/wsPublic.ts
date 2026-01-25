@@ -38,7 +38,11 @@ const useWebSocketPublic = ({
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(import.meta.env.VITE_APP_ENV === "development" ? `ws://${window.location.hostname}:5468/ws?orgId=${organization.id}` || "/ws" : `/ws?orgId=${organization.id}`);
+				webSocket = new WebSocket(
+					import.meta.env.VITE_APP_ENV === "development"
+						? `ws://${window.location.hostname}:5468/ws?orgId=${organization.id}` || "/ws"
+						: `/ws?orgId=${organization.id}`
+				);
 				webSocket.onopen = () => {
 					setWs(webSocket);
 				};

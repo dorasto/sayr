@@ -1,13 +1,5 @@
-import {
-	Button as BaseButton,
-	type ButtonProps as BaseButtonProps,
-} from "@repo/ui/components/button";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@repo/ui/components/tooltip";
+import { Button as BaseButton, type ButtonProps as BaseButtonProps } from "@repo/ui/components/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
 import React from "react";
 
@@ -23,11 +15,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				ref={ref}
 				variant={pressed ? "primary" : "ghost"}
 				size="icon"
-				className={cn(
-					"h-8 w-8",
-					pressed && "bg-accent text-accent-foreground",
-					className,
-				)}
+				className={cn("h-8 w-8", pressed && "bg-accent text-accent-foreground", className)}
 				aria-pressed={pressed}
 				{...props}
 			>
@@ -49,7 +37,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 		}
 
 		return button;
-	},
+	}
 );
 
 Button.displayName = "Button";

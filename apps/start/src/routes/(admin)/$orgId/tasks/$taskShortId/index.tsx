@@ -18,7 +18,7 @@ function RouteComponent() {
 	const { ws } = useLayoutData();
 	const { tasks, setTasks } = useLayoutTasks();
 	const { task, setTask } = useLayoutTask();
-	const { organization, setOrganization, labels, categories, setLabels, setViews, setCategories } =
+	const { organization, setOrganization, labels, categories, releases, setLabels, setViews, setCategories } =
 		useLayoutOrganization();
 
 	const availableUsers = organization?.members.map((member) => member.user) || [];
@@ -63,7 +63,7 @@ function RouteComponent() {
 						payload: updatedTask.id,
 					},
 					"*"
-				)
+				);
 			}
 		},
 		UPDATE_TASK_COMMENTS: async (msg) => {
@@ -75,10 +75,10 @@ function RouteComponent() {
 						payload: msg.data.id,
 					},
 					"*"
-				)
+				);
 			}
 		},
-	}
+	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationProjectTaskHomePage]", { msg }),
 	});
@@ -88,7 +88,7 @@ function RouteComponent() {
 		// Cleanup on unmount or dependency change
 		return () => {
 			ws.removeEventListener("message", handleMessage);
-		}
+		};
 	}, [ws, handleMessage]);
 	return (
 		<TaskContentMain
@@ -98,6 +98,7 @@ function RouteComponent() {
 			availableUsers={availableUsers}
 			organization={organization}
 			categories={categories}
+			releases={releases}
 		/>
-	)
+	);
 }

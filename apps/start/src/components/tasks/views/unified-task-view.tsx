@@ -1,13 +1,18 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
 import {
-  KanbanBoard,
-  KanbanCards,
-  KanbanHeader,
-  KanbanProvider,
-} from "@repo/ui/components/kibo-ui/kanban/index";
+  GridBoardCells,
+  GridBoardColumnHeader,
+  GridBoardColumns,
+  type GridBoardColumnData,
+  type GridBoardDragEndEvent,
+  GridBoardItem,
+  GridBoardProvider,
+  GridBoardRowHeader,
+  GridBoardRows,
+  type GridBoardRowData,
+} from "@repo/ui/components/doras-ui/grid-board";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
@@ -26,6 +31,7 @@ import {
 import { useToastAction } from "@/lib/util";
 import type { WSMessage } from "@/lib/ws";
 import { applyFilters } from "../filter/filter-config";
+import type { TaskGroup } from "../filter/types";
 import {
   applyNestedGrouping,
   type NestedTaskGroup,
@@ -33,7 +39,6 @@ import {
 import { TaskContent } from "../task/task-content";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
-import { useSticky } from "@/hooks/use-sticky";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 
 interface UnifiedTaskViewProps {
@@ -44,6 +49,9 @@ interface UnifiedTaskViewProps {
   availableUsers: schema.userType[];
   organization: schema.OrganizationWithMembers;
   categories: schema.categoryType[];
+  releases?: schema.releaseType[];
+  compact?: boolean;
+  forceShowCompleted?: boolean;
 }
 
 export function UnifiedTaskView({
@@ -54,6 +62,9 @@ export function UnifiedTaskView({
   availableUsers = [],
   organization,
   categories,
+  releases = [],
+  compact = false,
+  forceShowCompleted = false,
 }: UnifiedTaskViewProps) {
   console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -73,6 +84,10 @@ export function UnifiedTaskView({
   // Consolidated task view state management - pass views to enable auto-loading
   const { filters, grouping, subGrouping, showCompletedTasks, viewMode } =
     useTaskViewManager(views);
+
+  // Override showCompletedTasks if forceShowCompleted is true
+  const effectiveShowCompleted = forceShowCompleted || showCompletedTasks;
+
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
@@ -250,506 +265,501 @@ export function UnifiedTaskView({
     return applyNestedGrouping(grouping, subGrouping, {
       tasks: filteredTasks,
       availableUsers,
-      showCompletedTasks,
+      showCompletedTasks: effectiveShowCompleted,
       categories,
+      releases,
     });
   }, [
     filteredTasks,
     availableUsers,
-    showCompletedTasks,
+    effectiveShowCompleted,
     grouping,
     subGrouping,
     categories,
+    releases,
   ]);
 
-  // Auto-collapse empty groups in list view
-  useEffect(() => {
-    if (viewMode !== "list") return;
-
-    const emptyGroupIds = new Set<string>();
-
-    for (const group of groupedTasks) {
-      // Check primary groups without sub-groups
-      if (!group.subGroups?.length && group.tasks.length === 0) {
-        emptyGroupIds.add(group.id);
-      }
-      // Check sub-groups
-      if (group.subGroups) {
-        for (const subGroup of group.subGroups) {
-          if (subGroup.tasks.length === 0) {
-            emptyGroupIds.add(subGroup.id);
-          }
-        }
-      }
-    }
-
-    // Only update if there are empty groups to collapse
-    if (emptyGroupIds.size > 0) {
-      setCollapsedSections((prev) => {
-        const newSet = new Set(prev);
-        for (const id of emptyGroupIds) {
-          newSet.add(id);
-        }
-        return newSet;
-      });
-    }
-  }, [groupedTasks, viewMode]);
-
-  // Kanban Specific Data Preparation
-  const columns = useMemo(
-    () => groupedTasks.map((g) => ({ ...g, name: g.label })),
-    [groupedTasks],
-  );
-
-  const kanbanData = useMemo(() => {
-    return groupedTasks.flatMap((g) =>
-      g.tasks.map((t) => ({ ...t, column: g.id, name: t.title || "Untitled" })),
-    );
-  }, [groupedTasks]);
-
-  // biome-ignore lint/suspicious/noExplicitAny: <any>
-  const handleKanbanDragEnd = async ({
-    active,
-    over,
-  }: {
-    active: any;
-    over: any;
-  }) => {
-    if (!over) return;
-
-    const itemId = active.id as string;
-    const overId = over.id as string;
-
-    // Helper — detect which column this task was dropped into
-    const findColumnId = (id: string): string | null => {
-      if (id.startsWith("status:")) return id;
-      for (const [columnId, column] of Object.entries(kanbanData)) {
-        // biome-ignore lint/suspicious/noExplicitAny: <any>
-        if ((column as any).items?.includes(id)) return columnId;
-      }
-      return null;
-    };
-
-    const targetColumn = findColumnId(overId);
-    if (!targetColumn) return;
-
-    const newColumnId = targetColumn;
-    const updateLocal = (updates: Partial<schema.TaskWithLabels>) => {
-      const updatedTasks = tasks.map((t) =>
-        t.id === itemId ? { ...t, ...updates } : t,
-      );
-      setTasks(updatedTasks);
-    };
-
-    // === STATUS GROUPING ===
-    if (grouping === "status" && newColumnId.startsWith("status:")) {
-      // biome-ignore lint/suspicious/noExplicitAny: <any>
-      const status = newColumnId.replace("status:", "") as any;
-
-      updateLocal({ status });
-      await runWithToast(
-        "update-task",
-        {
-          loading: { title: "Updating status..." },
-          success: { title: "Status updated" },
-          error: { title: "Failed to update status" },
-        },
-        () => updateTaskAction(organization.id, itemId, { status }, wsClientId),
-      );
-    }
-
-    // === PRIORITY GROUPING ===
-    else if (grouping === "priority") {
-      // biome-ignore lint/suspicious/noExplicitAny: <any>
-      const priority = newColumnId as any;
-      updateLocal({ priority });
-      await runWithToast(
-        "update-task",
-        {
-          loading: { title: "Updating priority..." },
-          success: { title: "Priority updated" },
-          error: { title: "Failed to update priority" },
-        },
-        () =>
-          updateTaskAction(organization.id, itemId, { priority }, wsClientId),
-      );
-    }
-
-    // === ASSIGNEE GROUPING ===
-    else if (grouping === "assignee") {
-      let newAssignees: schema.userType[] = [];
-      if (newColumnId !== "unassigned") {
-        const user = availableUsers.find((u) => u.id === newColumnId);
-        if (user) newAssignees = [user];
-      }
-
-      updateLocal({ assignees: newAssignees });
-      await runWithToast(
-        "update-task",
-        {
-          loading: { title: "Updating assignee..." },
-          success: { title: "Assignee updated" },
-          error: { title: "Failed to update assignee" },
-        },
-        () =>
-          updateAssigneesToTaskAction(
-            organization.id,
-            itemId,
-            newAssignees.map((u) => u.id),
-            wsClientId,
-          ),
-      );
-    }
-
-    // === CATEGORY GROUPING ===
-    else if (grouping === "category") {
-      const categoryId = newColumnId === "uncategorized" ? null : newColumnId;
-      updateLocal({ category: categoryId });
-      await runWithToast(
-        "update-task",
-        {
-          loading: { title: "Updating category..." },
-          success: { title: "Category updated" },
-          error: { title: "Failed to update category" },
-        },
-        () =>
-          updateTaskAction(
-            organization.id,
-            itemId,
-            { category: categoryId },
-            wsClientId,
-          ),
-      );
-    }
-
-    console.log(`✅ Task ${itemId} dropped into column ${newColumnId}`);
-  };
-  const { stuck, stickyRef } = useSticky();
-
-  if (!mounted) {
-    return (
-      <div className="fixed inset-0 z-[99999999] flex items-center justify-center bg-background">
-        <div className="relative flex items-center justify-center">
-          <IconLoader2 className="w-12 h-12 text-primary animate-spin" />
-          <IconLoader2 className="absolute w-6 h-6 text-primary/50 animate-spin direction-reverse" />
-        </div>
-      </div>
-    );
-  }
   // Check if we have sub-groups for kanban view
   const hasKanbanSubGroups =
-    viewMode === "kanban" &&
     groupedTasks.length > 0 &&
     groupedTasks[0]?.subGroups &&
     groupedTasks[0].subGroups.length > 0;
 
-  return (
-    <div className="h-full overflow-auto rounded">
-      {viewMode === "kanban" ? (
-        hasKanbanSubGroups ? (
-          // Linear-style grid: Column headers at top, sub-groups as horizontal ROWS spanning all columns
-          // Columns expand to fill width, but scroll horizontally if they'd be narrower than min-width
-          <div className="h-full overflow-auto">
-            <div className="flex flex-col min-w-full w-fit">
-              {/* Column headers row - sticky at top */}
-              <div className="flex sticky top-0 z-30 overflow-hidden">
-                {groupedTasks.map((primaryGroup) => (
-                  <div
-                    key={primaryGroup.id}
-                    className="flex items-center justify-between px-3 py-2 bg-muted min-w-[280px] flex-1 gap-2 border-r border-dashed last:border-r-0 p-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      {primaryGroup.icon && (
-                        <span
-                          className={cn(
-                            "text-sm",
-                            primaryGroup.accentClassName,
-                          )}
-                        >
-                          {primaryGroup.icon}
-                        </span>
-                      )}
-                      <span className="text-sm font-semibold">
-                        {primaryGroup.label}
-                      </span>
-                    </div>
-                    <Badge variant="outline" className="text-xs h-5 px-2">
-                      {primaryGroup.count}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
+  // ============================================================================
+  // Render Functions
+  // ============================================================================
 
-              {/* Rows - each sub-group is a row spanning all columns */}
-              {groupedTasks[0]?.subGroups?.map((subGroupTemplate) => {
-                const rowTotal = groupedTasks.reduce((sum, col) => {
-                  const sg = col.subGroups?.find(
-                    (s) => s.id === subGroupTemplate.id,
-                  );
-                  return sum + (sg?.tasks.length || 0);
-                }, 0);
+  const renderLoading = () => (
+    <div className="fixed inset-0 z-[99999999] flex items-center justify-center bg-background">
+      <div className="relative flex items-center justify-center">
+        <IconLoader2 className="w-12 h-12 text-primary animate-spin" />
+        <IconLoader2 className="absolute w-6 h-6 text-primary/50 animate-spin direction-reverse" />
+      </div>
+    </div>
+  );
 
-                return (
-                  <div key={subGroupTemplate.id} className="">
-                    {/* Row header bar - sticky below column headers (top-[50px] accounts for header height) */}
-                    <div
-                      className={cn(
-                        "flex items-center gap-2 py-2 px-2 bg-accent border-b sticky top-9 z-20 ",
-                      )}
-                    >
-                      <div className="flex items-center gap-2 z-10 sticky left-2">
-                        {subGroupTemplate.icon && (
-                          <span
-                            className={cn(
-                              "text-sm",
-                              subGroupTemplate.accentClassName,
-                            )}
-                          >
-                            {subGroupTemplate.icon}
-                          </span>
-                        )}
-                        <span className="text-sm font-medium whitespace-nowrap">
-                          {subGroupTemplate.label}
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className="text-xs h-5 px-1.5"
-                        >
-                          {rowTotal}
-                        </Badge>
-                      </div>
-                    </div>
+  const renderTaskItem = (
+    task: schema.TaskWithLabels,
+    groupId: string,
+    mode: "list" | "kanban",
+    columnId?: string,
+  ) => (
+    <UnifiedTaskItem
+      key={`${groupId}:${task.id}`}
+      viewMode={mode}
+      task={task}
+      columnId={columnId}
+      isSelected={mode === "list" ? selectedTasks.has(task.id) : undefined}
+      onSelect={
+        mode === "list"
+          ? (selected) => handleTaskSelect(task.id, selected)
+          : undefined
+      }
+      onTaskClick={handleTaskClick}
+      tasks={tasks}
+      setTasks={setTasks}
+      availableUsers={availableUsers}
+      onTaskUpdate={handleTaskUpdate}
+      categories={categories}
+      releases={releases}
+      compact={compact}
+    />
+  );
 
-                    {/* Grid of cells for this row */}
-                    <div className="flex ">
-                      {groupedTasks.map((primaryGroup) => {
-                        const subGroup = primaryGroup.subGroups?.find(
-                          (sg) => sg.id === subGroupTemplate.id,
-                        );
-                        const tasks = subGroup?.tasks || [];
+  const renderEmptyGroup = () => (
+    <div className="px-4 py-3 text-xs text-muted-foreground">
+      No tasks in this group
+    </div>
+  );
 
-                        return (
-                          <div
-                            key={`${primaryGroup.id}-${subGroupTemplate.id}`}
-                            className="min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
-                          >
-                            {tasks.length > 0 ? (
-                              tasks.map((task) => (
-                                <UnifiedTaskItem
-                                  key={task.id}
-                                  viewMode="kanban"
-                                  task={task}
-                                  columnId={primaryGroup.id}
-                                  onTaskClick={handleTaskClick}
-                                  tasks={tasks}
-                                  setTasks={setTasks}
-                                  availableUsers={availableUsers}
-                                  onTaskUpdate={handleTaskUpdate}
-                                  categories={categories}
-                                />
-                              ))
-                            ) : (
-                              <div className="h-8" />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          // Original kanban without sub-groups
-          <KanbanProvider
-            columns={columns}
-            data={kanbanData}
-            className="gap-1"
-            onDragEnd={handleKanbanDragEnd}
-          >
-            {(column) => (
-              <KanbanBoard
-                key={column.id}
-                id={column.id}
-                className="bg-transparent border-0 rounded-lg shadow-none flex flex-col h-full w-full min-w-72 max-w-72 px-2"
-              >
-                <KanbanHeader className="pb-2 flex items-center justify-between bg-card border-0 rounded-lg shrink-0 min-h-[42px]">
-                  <div className="flex items-center gap-2">
-                    {column.icon && (
-                      <span
-                        className={cn(
-                          "text-sm font-medium",
-                          column.accentClassName,
-                        )}
-                      >
-                        {column.icon}
-                      </span>
-                    )}
-                    <div className="flex flex-col leading-tight">
-                      <span className="font-medium text-sm">{column.name}</span>
-                      {column.description && (
-                        <span className="text-xs text-muted-foreground">
-                          {column.description}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="rounded pointer-events-none border-transparent text-muted-foreground bg-transparent"
-                  >
-                    {kanbanData.filter((t) => t.column === column.id).length}
-                  </Badge>
-                </KanbanHeader>
-                <KanbanCards
-                  id={column.id}
-                  className="gap-2 flex flex-col h-full overflow-y-auto px-0"
-                >
-                  {(item) => (
-                    <UnifiedTaskItem
-                      key={item.id}
-                      viewMode="kanban"
-                      task={item as unknown as schema.TaskWithLabels}
-                      columnId={column.id}
-                      onTaskClick={handleTaskClick}
-                      tasks={tasks}
-                      setTasks={setTasks}
-                      availableUsers={availableUsers}
-                      onTaskUpdate={handleTaskUpdate}
-                      categories={categories}
-                    />
-                  )}
-                </KanbanCards>
-              </KanbanBoard>
-            )}
-          </KanbanProvider>
-        )
-      ) : (
-        <div className="rounded h-full px-2">
-          {groupedTasks.length > 0 ? (
-            groupedTasks.map((group) => {
-              const isCollapsed = collapsedSections.has(group.id);
-              const hasSubGroups =
-                group.subGroups && group.subGroups.length > 0;
+  const renderEmptyState = () => (
+    <div className="flex items-center justify-center">No issues found</div>
+  );
 
-              return (
-                <div key={group.id} className="">
-                  <TaskGroupSectionHeader
-                    group={group}
-                    isCollapsed={isCollapsed}
-                    onToggleCollapse={() => handleToggleSection(group.id)}
-                    isSticky={true}
-                  />
+  const renderKanbanView = () => {
+    // Transform groupedTasks into GridBoard columns
+    const gridColumns: GridBoardColumnData[] = groupedTasks.map((group) => ({
+      id: group.id,
+      label: group.label,
+      count: group.count,
+      icon: group.icon,
+      accentClassName: group.accentClassName,
+    }));
 
-                  {!isCollapsed && (
-                    <div className="py-1 flex flex-col gap-1">
-                      {hasSubGroups && group.subGroups ? (
-                        // Render with sub-groups
-                        group.subGroups.map((subGroup) => {
-                          const subGroupCollapsed = collapsedSections.has(
-                            subGroup.id,
-                          );
+    // Transform subGroups into GridBoard rows (if they exist)
+    const gridRows: GridBoardRowData[] | undefined = hasKanbanSubGroups
+      ? groupedTasks[0]?.subGroups?.map((sg) => ({
+          id: sg.id,
+          label: sg.label,
+          icon: sg.icon,
+          accentClassName: sg.accentClassName,
+        }))
+      : undefined;
 
-                          return (
-                            <div key={subGroup.id} className="">
-                              <TaskGroupSectionHeader
-                                group={subGroup}
-                                isCollapsed={subGroupCollapsed}
-                                onToggleCollapse={() =>
-                                  handleToggleSection(subGroup.id)
-                                }
-                                isSubGroup={true}
-                                className="py-1"
-                                rootClassName="bg-muted/0 hover:bg-muted/20 transition-all"
-                              />
-                              {!subGroupCollapsed && (
-                                <div className="py-1 flex flex-col gap-1">
-                                  {subGroup.tasks.length > 0 ? (
-                                    subGroup.tasks.map((task) => (
-                                      <UnifiedTaskItem
-                                        viewMode="list"
-                                        key={`${subGroup.id}:${task.id}`}
-                                        task={task}
-                                        isSelected={selectedTasks.has(task.id)}
-                                        onSelect={(selected) =>
-                                          handleTaskSelect(task.id, selected)
-                                        }
-                                        onTaskClick={handleTaskClick}
-                                        tasks={tasks}
-                                        setTasks={setTasks}
-                                        availableUsers={availableUsers}
-                                        onTaskUpdate={handleTaskUpdate}
-                                        categories={categories}
-                                      />
-                                    ))
-                                  ) : (
-                                    <div className="px-4 py-3 text-xs text-muted-foreground">
-                                      No tasks in this group
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      ) : // Render without sub-groups (original behavior)
-                      group.tasks.length > 0 ? (
-                        group.tasks.map((task) => (
-                          <UnifiedTaskItem
-                            viewMode="list"
-                            key={`${group.id}:${task.id}`}
-                            task={task}
-                            isSelected={selectedTasks.has(task.id)}
-                            onSelect={(selected) =>
-                              handleTaskSelect(task.id, selected)
-                            }
-                            onTaskClick={handleTaskClick}
-                            tasks={tasks}
-                            setTasks={setTasks}
-                            availableUsers={availableUsers}
-                            onTaskUpdate={handleTaskUpdate}
-                            categories={categories}
-                          />
-                        ))
-                      ) : (
-                        <div className="px-4 py-3 text-xs text-muted-foreground">
-                          No tasks in this group
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <div className="flex items-center justify-center">
-              No issues found
-            </div>
-          )}
-        </div>
-      )}
+    // Build a flat list of items with columnId and rowId for GridBoard
+    type GridItem = schema.TaskWithLabels & {
+      columnId: string;
+      rowId?: string;
+    };
+    const gridItems: GridItem[] = [];
 
-      {selectedTask && (
-        <TaskContent
-          task={selectedTask}
-          open={typeof taskContentOpen === "number"}
-          onOpenChange={(value) => {
-            if (!value) {
-              setTaskContentOpen(0);
-              setSelectedTask(null);
-            }
-          }}
-          labels={labels}
+    for (const group of groupedTasks) {
+      if (hasKanbanSubGroups && group.subGroups) {
+        for (const subGroup of group.subGroups) {
+          for (const task of subGroup.tasks) {
+            gridItems.push({ ...task, columnId: group.id, rowId: subGroup.id });
+          }
+        }
+      } else {
+        for (const task of group.tasks) {
+          gridItems.push({ ...task, columnId: group.id });
+        }
+      }
+    }
+
+    // Custom getItemsForCell to look up tasks by column/row
+    const getItemsForCell = (columnId: string, rowId?: string): GridItem[] => {
+      const group = groupedTasks.find((g) => g.id === columnId);
+      if (!group) return [];
+
+      if (rowId !== undefined && group.subGroups) {
+        const subGroup = group.subGroups.find((sg) => sg.id === rowId);
+        return (subGroup?.tasks || []).map((t) => ({ ...t, columnId, rowId }));
+      }
+      return group.tasks.map((t) => ({ ...t, columnId }));
+    };
+
+    // Calculate row totals for row headers
+    const getRowTotal = (rowId: string): number => {
+      return gridColumns.reduce(
+        (sum, col) => sum + getItemsForCell(col.id, rowId).length,
+        0,
+      );
+    };
+
+    // Handle drag end - update both column (primary grouping) and row (sub-grouping)
+    const handleGridDragEnd = async (
+      event: GridBoardDragEndEvent<GridItem>,
+    ) => {
+      const { item, toColumnId, toRowId } = event;
+      const itemId = item.id;
+
+      // Helper to update local state optimistically
+      const updateLocal = (updates: Partial<schema.TaskWithLabels>) => {
+        const updatedTasks = tasks.map((t) =>
+          t.id === itemId ? { ...t, ...updates } : t,
+        );
+        setTasks(updatedTasks);
+      };
+
+      // Helper to extract the actual value from prefixed IDs like "status:backlog" -> "backlog"
+      const extractValue = (id: string, prefix: string): string | null => {
+        if (id.startsWith(`${prefix}:`)) {
+          return id.slice(prefix.length + 1);
+        }
+        return null;
+      };
+
+      // Determine what fields to update based on grouping/subGrouping
+      const updates: Partial<schema.TaskWithLabels> = {};
+
+      // Handle column change (primary grouping)
+      if (grouping === "status") {
+        const status = extractValue(toColumnId, "status");
+        if (status) {
+          updates.status = status as schema.TaskWithLabels["status"];
+        }
+      } else if (grouping === "priority") {
+        const priority = extractValue(toColumnId, "priority");
+        if (priority) {
+          updates.priority = priority as schema.TaskWithLabels["priority"];
+        }
+      } else if (grouping === "assignee") {
+        const assigneeId = extractValue(toColumnId, "assignee");
+        if (assigneeId === "unassigned") {
+          updates.assignees = [];
+        } else if (assigneeId) {
+          const user = availableUsers.find((u) => u.id === assigneeId);
+          if (user) updates.assignees = [user];
+        }
+      } else if (grouping === "category") {
+        const categoryId = extractValue(toColumnId, "category");
+        if (categoryId === "none") {
+          updates.category = null;
+        } else if (categoryId) {
+          updates.category = categoryId;
+        }
+      }
+
+      // Handle row change (sub-grouping)
+      if (toRowId !== undefined) {
+        if (subGrouping === "status") {
+          const status = extractValue(toRowId, "status");
+          if (status) {
+            updates.status = status as schema.TaskWithLabels["status"];
+          }
+        } else if (subGrouping === "priority") {
+          const priority = extractValue(toRowId, "priority");
+          if (priority) {
+            updates.priority = priority as schema.TaskWithLabels["priority"];
+          }
+        } else if (subGrouping === "assignee") {
+          const assigneeId = extractValue(toRowId, "assignee");
+          if (assigneeId === "unassigned") {
+            updates.assignees = [];
+          } else if (assigneeId) {
+            const user = availableUsers.find((u) => u.id === assigneeId);
+            if (user) updates.assignees = [user];
+          }
+        } else if (subGrouping === "category") {
+          const categoryId = extractValue(toRowId, "category");
+          if (categoryId === "none") {
+            updates.category = null;
+          } else if (categoryId) {
+            updates.category = categoryId;
+          }
+        }
+      }
+
+      // Check if there are any updates to apply
+      if (Object.keys(updates).length === 0) {
+        console.log("[GridBoard] No updates to apply", {
+          toColumnId,
+          toRowId,
+          grouping,
+          subGrouping,
+        });
+        return;
+      }
+
+      console.log("[GridBoard] Applying updates", {
+        itemId,
+        updates,
+        toColumnId,
+        toRowId,
+      });
+
+      // Apply optimistic update
+      updateLocal(updates);
+
+      // Send updates to server
+      if (updates.status) {
+        await runWithToast(
+          "update-task",
+          {
+            loading: { title: "Updating status..." },
+            success: { title: "Status updated" },
+            error: { title: "Failed to update status" },
+          },
+          () =>
+            updateTaskAction(
+              organization.id,
+              itemId,
+              { status: updates.status },
+              wsClientId,
+            ),
+        );
+      }
+
+      if (updates.priority) {
+        await runWithToast(
+          "update-task",
+          {
+            loading: { title: "Updating priority..." },
+            success: { title: "Priority updated" },
+            error: { title: "Failed to update priority" },
+          },
+          () =>
+            updateTaskAction(
+              organization.id,
+              itemId,
+              { priority: updates.priority },
+              wsClientId,
+            ),
+        );
+      }
+
+      if (updates.assignees !== undefined) {
+        await runWithToast(
+          "update-task",
+          {
+            loading: { title: "Updating assignee..." },
+            success: { title: "Assignee updated" },
+            error: { title: "Failed to update assignee" },
+          },
+          () =>
+            updateAssigneesToTaskAction(
+              organization.id,
+              itemId,
+              updates.assignees?.map((u) => u.id) || [],
+              wsClientId,
+            ),
+        );
+      }
+
+      if (updates.category !== undefined) {
+        await runWithToast(
+          "update-task",
+          {
+            loading: { title: "Updating category..." },
+            success: { title: "Category updated" },
+            error: { title: "Failed to update category" },
+          },
+          () =>
+            updateTaskAction(
+              organization.id,
+              itemId,
+              { category: updates.category },
+              wsClientId,
+            ),
+        );
+      }
+    };
+
+    // Render drag overlay
+    const renderDragOverlay = (item: GridItem) => (
+      <div className="opacity-90 rotate-2 scale-105">
+        <UnifiedTaskItem
+          viewMode="kanban"
+          task={item}
+          columnId={item.columnId}
+          onTaskClick={() => {}}
           tasks={tasks}
           setTasks={setTasks}
-          setSelectedTask={setSelectedTask}
           availableUsers={availableUsers}
-          organization={organization}
-          ws={ws}
+          onTaskUpdate={handleTaskUpdate}
           categories={categories}
+          releases={releases}
+          compact={compact}
         />
-      )}
+      </div>
+    );
+
+    return (
+      <GridBoardProvider
+        columns={gridColumns}
+        rows={gridRows}
+        items={gridItems}
+        getItemsForCell={getItemsForCell}
+        onDragEnd={handleGridDragEnd}
+        renderDragOverlay={renderDragOverlay}
+        mode={hasKanbanSubGroups ? "grid" : "kanban"}
+      >
+        {/* Column Headers */}
+        <GridBoardColumns>
+          {(column) => (
+            <GridBoardColumnHeader key={column.id} column={column} />
+          )}
+        </GridBoardColumns>
+
+        {/* Rows with cells (if sub-groups exist) */}
+        {hasKanbanSubGroups && gridRows ? (
+          <GridBoardRows>
+            {(row) => (
+              <div key={row.id}>
+                <GridBoardRowHeader row={row} count={getRowTotal(row.id)} />
+                <GridBoardCells rowId={row.id}>
+                  {(item: GridItem, column) => (
+                    <GridBoardItem key={item.id} item={item}>
+                      {renderTaskItem(item, column.id, "kanban", column.id)}
+                    </GridBoardItem>
+                  )}
+                </GridBoardCells>
+              </div>
+            )}
+          </GridBoardRows>
+        ) : (
+          /* No sub-groups: render cells directly (kanban mode) */
+          <GridBoardCells>
+            {(item: GridItem, column) => (
+              <GridBoardItem key={item.id} item={item}>
+                {renderTaskItem(item, column.id, "kanban", column.id)}
+              </GridBoardItem>
+            )}
+          </GridBoardCells>
+        )}
+      </GridBoardProvider>
+    );
+  };
+
+  const renderListSubGroup = (group: NestedTaskGroup, subGroup: TaskGroup) => {
+    const subGroupCollapsed = collapsedSections.has(subGroup.id);
+
+    return (
+      <div key={subGroup.id}>
+        <TaskGroupSectionHeader
+          group={subGroup}
+          isCollapsed={subGroupCollapsed}
+          onToggleCollapse={() => handleToggleSection(subGroup.id)}
+          isSubGroup={true}
+          className="py-1"
+          rootClassName="bg-muted/0 hover:bg-muted/20 transition-all"
+          compact={compact}
+        />
+        {!subGroupCollapsed && (
+          <div className="py-1 flex flex-col gap-1">
+            {subGroup.tasks.length > 0
+              ? subGroup.tasks.map((task) =>
+                  renderTaskItem(task, group.id, "list"),
+                )
+              : renderEmptyGroup()}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderListGroup = (group: NestedTaskGroup) => {
+    const isCollapsed = collapsedSections.has(group.id);
+    const hasSubGroups = group.subGroups && group.subGroups.length > 0;
+
+    const renderGroupContent = () => {
+      if (hasSubGroups && group.subGroups) {
+        return group.subGroups.map((subGroup) =>
+          renderListSubGroup(group, subGroup),
+        );
+      }
+      if (group.tasks.length > 0) {
+        return group.tasks.map((task) =>
+          renderTaskItem(task, group.id, "list"),
+        );
+      }
+      return renderEmptyGroup();
+    };
+
+    return (
+      <div key={group.id}>
+        <TaskGroupSectionHeader
+          group={group}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={() => handleToggleSection(group.id)}
+          isSticky={true}
+          compact={compact}
+        />
+        {!isCollapsed && (
+          <div className="flex flex-col gap-0">{renderGroupContent()}</div>
+        )}
+      </div>
+    );
+  };
+
+  const renderListView = () => {
+    if (groupedTasks.length === 0) {
+      return renderEmptyState();
+    }
+    return (
+      <div className={cn("rounded h-full", compact && "px-0")}>
+        {groupedTasks.map(renderListGroup)}
+      </div>
+    );
+  };
+
+  const renderMainContent = () => {
+    if (viewMode === "kanban") {
+      // Always use GridBoard for kanban - mode is set based on hasKanbanSubGroups
+      return renderKanbanView();
+    }
+    return renderListView();
+  };
+
+  const renderTaskContent = () => {
+    if (!selectedTask) return null;
+
+    return (
+      <TaskContent
+        task={selectedTask}
+        open={typeof taskContentOpen === "number"}
+        onOpenChange={(value) => {
+          if (!value) {
+            setTaskContentOpen(0);
+            setSelectedTask(null);
+          }
+        }}
+        labels={labels}
+        tasks={tasks}
+        setTasks={setTasks}
+        setSelectedTask={setSelectedTask}
+        availableUsers={availableUsers}
+        organization={organization}
+        ws={ws}
+        categories={categories}
+        releases={releases}
+      />
+    );
+  };
+
+  // ============================================================================
+  // Main Return
+  // ============================================================================
+
+  if (!mounted) {
+    return renderLoading();
+  }
+
+  return (
+    <div className="h-full overflow-auto rounded">
+      {renderMainContent()}
+      {renderTaskContent()}
     </div>
   );
 }

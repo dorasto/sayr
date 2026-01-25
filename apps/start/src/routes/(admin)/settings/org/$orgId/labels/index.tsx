@@ -13,5 +13,5 @@ function RouteComponent() {
 				<SettingsOrganizationLabelsPage />
 			</div>
 		</SubWrapper>
-	)
+	);
 }

@@ -49,11 +49,7 @@ export const getRouter = () => {
 				const isLocalhost = parts[parts.length - 1] === "localhost";
 
 				const subdomain =
-					isLocalhost && parts.length > 1
-						? parts[0]
-						: !isLocalhost && parts.length > 2
-							? parts[0]
-							: "";
+					isLocalhost && parts.length > 1 ? parts[0] : !isLocalhost && parts.length > 2 ? parts[0] : "";
 
 				if (!subdomain || subdomain === "www" || subdomain === "admin") {
 					return;

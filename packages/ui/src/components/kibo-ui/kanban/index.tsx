@@ -163,11 +163,9 @@ export const KanbanCards = <T extends KanbanItemProps = KanbanItemProps>({
 		}
 
 		const result: ReactNode[] = [];
-		
+
 		for (const subGroup of subGroups) {
-			const subGroupItems = filteredData.filter(
-				(item) => getItemSubGroup(item) === subGroup.id
-			);
+			const subGroupItems = filteredData.filter((item) => getItemSubGroup(item) === subGroup.id);
 
 			if (subGroupItems.length === 0) continue;
 
@@ -178,11 +176,7 @@ export const KanbanCards = <T extends KanbanItemProps = KanbanItemProps>({
 					className="sticky top-0 z-10 -mx-2 px-4 py-2 bg-muted/80 backdrop-blur-sm border-y border-border/50 flex items-center justify-between"
 				>
 					<div className="flex items-center gap-2">
-						{subGroup.icon && (
-							<span className={cn("text-xs", subGroup.accentClassName)}>
-								{subGroup.icon}
-							</span>
-						)}
+						{subGroup.icon && <span className={cn("text-xs", subGroup.accentClassName)}>{subGroup.icon}</span>}
 						<span className="text-xs font-semibold">{subGroup.label}</span>
 					</div>
 					<span className="text-[10px] font-medium text-muted-foreground px-1.5 py-0.5 bg-secondary rounded">

@@ -1,11 +1,5 @@
 import type { schema } from "@repo/database";
-import {
-	IconCalendar,
-	IconCategory2,
-	IconTag,
-	IconTextSize,
-	IconUser,
-} from "@tabler/icons-react";
+import { IconCalendar, IconCategory2, IconRocket, IconTag, IconTextSize, IconUser } from "@tabler/icons-react";
 import { priorityConfig, statusConfig } from "../shared/config";
 import type {
 	DateRangeValue,
@@ -24,14 +18,12 @@ const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({
 	icon: config.icon("w-3 h-3"),
 }));
 
-const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(
-	([value, config]) => ({
-		value,
-		label: config.label,
-		color: config.color,
-		icon: config.icon("w-3 h-3"),
-	}),
-);
+const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(([value, config]) => ({
+	value,
+	label: config.label,
+	color: config.color,
+	icon: config.icon("w-3 h-3"),
+}));
 export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 	// Single-value enumerations (status, priority) – only any/none + empties if ever needed
 	{
@@ -42,9 +34,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		filterDefault: "any",
 		multi: true,
 		getOptions: (_t, _l, _u, subSearch) =>
-			STATUS_OPTIONS.filter((o) =>
-				o.label.toLowerCase().includes(subSearch?.toLowerCase() || ""),
-			),
+			STATUS_OPTIONS.filter((o) => o.label.toLowerCase().includes(subSearch?.toLowerCase() || "")),
 	},
 	{
 		field: "priority",
@@ -54,9 +44,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		filterDefault: "any",
 		multi: true,
 		getOptions: (_t, _l, _u, subSearch) =>
-			PRIORITY_OPTIONS.filter((o) =>
-				o.label.toLowerCase().includes(subSearch?.toLowerCase() || ""),
-			),
+			PRIORITY_OPTIONS.filter((o) => o.label.toLowerCase().includes(subSearch?.toLowerCase() || "")),
 	},
 	{
 		field: "category",
@@ -78,6 +66,25 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 				}));
 		},
 	},
+	{
+		field: "release",
+		label: "Release",
+		icon: <IconRocket className="w-4 h-4" />,
+		operators: ["any", "none", "empty", "not_empty"],
+		filterDefault: "any",
+		multi: true,
+		empty: "No release",
+		getOptions: (tasks, _labels, _users, subSearch, categories, releases) => {
+			const q = subSearch.toLowerCase();
+			return releases
+				.filter((r) => r.name.toLowerCase().includes(q || ""))
+				.map((release) => ({
+					value: release.id,
+					label: release.name,
+					color: release.color || "#cccccc",
+				}));
+		},
+	},
 	// Multi-value relations
 	{
 		field: "assignee",
@@ -92,12 +99,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 			tasks.forEach((t) => t.assignees?.forEach((a) => ids.add(a.id)));
 			const q = subSearch.toLowerCase();
 			return users
-				.filter(
-					(u) =>
-						ids.has(u.id) &&
-						(u.name?.toLowerCase().includes(q) ||
-							u.email?.toLowerCase().includes(q)),
-				)
+				.filter((u) => ids.has(u.id) && (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)))
 				.map((u) => ({
 					value: u.id,
 					label: u.name || "Unknown User",
@@ -134,11 +136,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		getOptions: (_t, _l, users, subSearch) => {
 			const q = subSearch.toLowerCase();
 			return users
-				.filter(
-					(u) =>
-						u.name?.toLowerCase().includes(q) ||
-						u.email?.toLowerCase().includes(q),
-				)
+				.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
 				.map((u) => ({
 					value: u.id,
 					label: u.name || "Unknown User",
@@ -166,14 +164,7 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 		field: "title",
 		label: "Title",
 		icon: <IconTextSize className="w-4 h-4" />,
-		operators: [
-			"contains",
-			"not_contains",
-			"any",
-			"none",
-			"empty",
-			"not_empty",
-		],
+		operators: ["contains", "not_contains", "any", "none", "empty", "not_empty"],
 		filterDefault: "contains",
 		getOptions(tasks, _labels, _users, subSearch) {
 			const q = subSearch.toLowerCase();
@@ -192,19 +183,14 @@ export const FILTER_FIELD_CONFIGS: FilterFieldConfig[] = [
 ];
 
 // Filter application logic
-export function applyFilters(
-	tasks: schema.TaskWithLabels[],
-	filterState: FilterState,
-): schema.TaskWithLabels[] {
+export function applyFilters(tasks: schema.TaskWithLabels[], filterState: FilterState): schema.TaskWithLabels[] {
 	if (filterState.groups.length === 0) {
 		return tasks;
 	}
 
 	return tasks.filter((task) => {
 		const groupResults = filterState.groups.map((group) => {
-			const conditionResults = group.conditions.map((condition) =>
-				evaluateCondition(task, condition),
-			);
+			const conditionResults = group.conditions.map((condition) => evaluateCondition(task, condition));
 
 			return group.operator === "AND"
 				? conditionResults.every((result) => result)
@@ -222,16 +208,12 @@ export function applyFilters(
 function parseDateInput(val: FilterValue): Date | null {
 	if (!val) return null;
 	if (typeof val === "string") return new Date(val);
-	if (Array.isArray(val))
-		return val.length > 0 ? new Date(val[0] as string) : null; // not expected but fallback
+	if (Array.isArray(val)) return val.length > 0 ? new Date(val[0] as string) : null; // not expected but fallback
 	if (typeof val === "object" && "start" in val) return new Date(val.start);
 	return null;
 }
 // Handlers for each operator. All treat single raw values as length-1 arrays for uniformity.
-const operatorHandlers: Record<
-	FilterOperator,
-	(raw: unknown, fv: FilterValue) => boolean
-> = {
+const operatorHandlers: Record<FilterOperator, (raw: unknown, fv: FilterValue) => boolean> = {
 	any: (raw, fv) => {
 		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
 		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
@@ -297,10 +279,7 @@ const operatorHandlers: Record<
 	},
 };
 
-function extractFieldValue(
-	task: schema.TaskWithLabels,
-	field: string,
-): unknown {
+function extractFieldValue(task: schema.TaskWithLabels, field: string): unknown {
 	switch (field) {
 		case "status":
 			return task.status || null;
@@ -308,6 +287,8 @@ function extractFieldValue(
 			return task.priority || null;
 		case "category":
 			return task.category || null;
+		case "release":
+			return task.releaseId || null;
 		case "assignee":
 			return (task.assignees || []).map((a) => a.id);
 		case "label":
@@ -325,10 +306,7 @@ function extractFieldValue(
 	}
 }
 
-function evaluateCondition(
-	task: schema.TaskWithLabels,
-	condition: FilterCondition,
-): boolean {
+function evaluateCondition(task: schema.TaskWithLabels, condition: FilterCondition): boolean {
 	const raw = extractFieldValue(task, condition.field);
 	const handler = operatorHandlers[condition.operator];
 	if (!handler) return true;

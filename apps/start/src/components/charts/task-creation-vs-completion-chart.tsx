@@ -66,11 +66,11 @@ export function TaskCreationVsCompletionChart({
 			if (task.createdAt) {
 				const createdDate = new Date(task.createdAt);
 				const weekKey = formatWeekKey(createdDate);
-				
+
 				if (!weekMap.has(weekKey)) {
 					weekMap.set(weekKey, { created: 0, completed: 0 });
 				}
-				
+
 				const bucket = weekMap.get(weekKey);
 				if (bucket) {
 					bucket.created++;
@@ -81,11 +81,11 @@ export function TaskCreationVsCompletionChart({
 			if (task.status && COMPLETED_STATUSES.includes(task.status) && task.updatedAt) {
 				const completedDate = new Date(task.updatedAt);
 				const weekKey = formatWeekKey(completedDate);
-				
+
 				if (!weekMap.has(weekKey)) {
 					weekMap.set(weekKey, { created: 0, completed: 0 });
 				}
-				
+
 				const bucket = weekMap.get(weekKey);
 				if (bucket) {
 					bucket.completed++;

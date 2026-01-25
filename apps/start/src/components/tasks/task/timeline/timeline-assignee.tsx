@@ -17,11 +17,7 @@ export function TimelineAssigneeAdded({
 			icon={IconUserPlus}
 			color="bg-accent text-primary-foreground"
 		>
-			<InlineLabel
-				text={item.actor?.name || "Unknown"}
-				image={item.actor?.image || ""}
-			/>{" "}
-			assigned themself
+			<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> assigned themself
 		</TimelineItemWrapper>
 	) : (
 		<TimelineItemWrapper
@@ -30,11 +26,7 @@ export function TimelineAssigneeAdded({
 			icon={IconUserPlus}
 			color="bg-accent text-primary-foreground"
 		>
-			<InlineLabel
-				text={item.actor?.name || "Unknown"}
-				image={item.actor?.image || ""}
-			/>{" "}
-			assigned{" "}
+			<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> assigned{" "}
 			<InlineLabel text={user?.name || "Unknown"} image={user?.image || ""} />
 		</TimelineItemWrapper>
 	);
@@ -53,11 +45,7 @@ export function TimelineAssigneeRemoved({
 			icon={IconUserMinus}
 			color="bg-accent text-primary-foreground"
 		>
-			<InlineLabel
-				text={item.actor?.name || "Unknown"}
-				image={item.actor?.image || ""}
-			/>{" "}
-			removed
+			<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> removed
 			<InlineLabel text={user?.name || "Unknown"} image={user?.image || ""} />
 		</TimelineItemWrapper>
 	);

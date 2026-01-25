@@ -9,11 +9,7 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { Label } from "@repo/ui/components/label";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@repo/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/radio-group";
 import { Switch } from "@repo/ui/components/switch";
 import OptionField from "@repo/ui/components/tomui/option-field";
@@ -54,35 +50,30 @@ export function TaskViewDropdown() {
 	} = useTaskViewManager();
 
 	const activeGrouping = TASK_GROUPINGS[grouping] ?? TASK_GROUPINGS.status;
-	const activeSubGrouping = subGrouping && subGrouping !== "none" 
-		? TASK_GROUPINGS[subGrouping] 
-		: null;
+	const activeSubGrouping = subGrouping && subGrouping !== "none" ? TASK_GROUPINGS[subGrouping] : null;
 
 	const activeViewMode: ViewMode = viewMode;
 
 	const groupingOptions = useMemo(() => TASK_GROUPING_OPTIONS, []);
 
 	// Filter out the current grouping from sub-grouping options
-	const subGroupingOptions = useMemo(() => [
-		{ id: "none", label: "None", icon: <IconEyeOff className="h-4 w-4" /> },
-		...TASK_GROUPING_OPTIONS.filter(opt => opt.id !== grouping)
-	], [grouping]);
+	const subGroupingOptions = useMemo(
+		() => [
+			{ id: "none", label: "None", icon: <IconEyeOff className="h-4 w-4" /> },
+			...TASK_GROUPING_OPTIONS.filter((opt) => opt.id !== grouping),
+		],
+		[grouping]
+	);
 
 	return (
 		<Popover>
 			<PopoverTrigger asChild>
-				<Button
-					variant="accent"
-					className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
-				>
+				<Button variant="accent" className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}>
 					<IconAdjustmentsHorizontal className="w-4 h-4" />
 					<span className="text-xs">View</span>
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent
-				className="max-w-96 flex flex-col gap-3 p-3"
-				onOpenAutoFocus={(e) => e.preventDefault()}
-			>
+			<PopoverContent className="max-w-96 flex flex-col gap-3 p-3" onOpenAutoFocus={(e) => e.preventDefault()}>
 				<RadioGroup
 					defaultValue={activeViewMode}
 					className="flex items-center gap-2"
@@ -93,19 +84,13 @@ export function TaskViewDropdown() {
 							key={option.id}
 							className={cn(
 								"flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors",
-								activeViewMode === option.id && "border-primary/50 bg-accent",
+								activeViewMode === option.id && "border-primary/50 bg-accent"
 							)}
 						>
-							<RadioGroupItem
-								value={option.id}
-								checked={option.id === activeViewMode}
-								className="sr-only"
-							/>
+							<RadioGroupItem value={option.id} checked={option.id === activeViewMode} className="sr-only" />
 							<div className="flex items-center gap-1">
 								{option.icon}
-								<span className="cursor-pointer text-sm font-semibold">
-									{option.label}
-								</span>
+								<span className="cursor-pointer text-sm font-semibold">{option.label}</span>
 							</div>
 						</Label>
 					))}
@@ -116,10 +101,7 @@ export function TaskViewDropdown() {
 					customSide={
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button
-									variant="accent"
-									className={cn("gap-2 border-transparent p-1 h-auto")}
-								>
+								<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
 									{activeGrouping.icon}
 									<span className="text-xs">{activeGrouping.label}</span>
 								</Button>
@@ -127,25 +109,15 @@ export function TaskViewDropdown() {
 							<DropdownMenuContent className="w-64" side="bottom" align="end">
 								<DropdownMenuRadioGroup
 									value={grouping}
-									onValueChange={(value) =>
-										setGrouping(value as TaskGroupingId)
-									}
+									onValueChange={(value) => setGrouping(value as TaskGroupingId)}
 								>
 									{groupingOptions.map((option) => (
-										<DropdownMenuRadioItem
-											key={option.id}
-											value={option.id}
-											className="pl-8"
-										>
+										<DropdownMenuRadioItem key={option.id} value={option.id} className="pl-8">
 											<span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
 												{option.icon}
 											</span>
 											<span
-												className={cn(
-													"text-sm",
-													grouping === option.id &&
-														"font-semibold text-foreground",
-												)}
+												className={cn("text-sm", grouping === option.id && "font-semibold text-foreground")}
 											>
 												{option.label}
 											</span>
@@ -162,37 +134,25 @@ export function TaskViewDropdown() {
 					customSide={
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button
-									variant="accent"
-									className={cn("gap-2 border-transparent p-1 h-auto")}
-								>
+								<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
 									{activeSubGrouping ? activeSubGrouping.icon : <IconEyeOff className="h-4 w-4" />}
-									<span className="text-xs">
-										{activeSubGrouping ? activeSubGrouping.label : "None"}
-									</span>
+									<span className="text-xs">{activeSubGrouping ? activeSubGrouping.label : "None"}</span>
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent className="w-64" side="bottom" align="end">
 								<DropdownMenuRadioGroup
 									value={subGrouping ?? "none"}
-									onValueChange={(value) =>
-										setSubGrouping(value as TaskGroupingId | "none")
-									}
+									onValueChange={(value) => setSubGrouping(value as TaskGroupingId | "none")}
 								>
 									{subGroupingOptions.map((option) => (
-										<DropdownMenuRadioItem
-											key={option.id}
-											value={option.id}
-											className="pl-8"
-										>
+										<DropdownMenuRadioItem key={option.id} value={option.id} className="pl-8">
 											<span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
 												{option.icon}
 											</span>
 											<span
 												className={cn(
 													"text-sm",
-													option.id === subGrouping &&
-														"text-foreground font-medium",
+													option.id === subGrouping && "text-foreground font-medium"
 												)}
 											>
 												{option.label}
@@ -210,9 +170,7 @@ export function TaskViewDropdown() {
 					customSide={
 						<Switch
 							checked={showCompletedTasks}
-							onCheckedChange={(checked) =>
-								setShowCompletedTasks(Boolean(checked))
-							}
+							onCheckedChange={(checked) => setShowCompletedTasks(Boolean(checked))}
 						/>
 					}
 				/>

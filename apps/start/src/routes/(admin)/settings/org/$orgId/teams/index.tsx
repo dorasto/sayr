@@ -21,7 +21,7 @@ const fetchTeams = createServerFn({ method: "GET" })
 					},
 				},
 			},
-		})
+		});
 
 		return { teams };
 	});
@@ -43,5 +43,5 @@ function RouteComponent() {
 				<SettingsOrganizationPageTeams teams={teams} />
 			</div>
 		</SubWrapper>
-	)
+	);
 }

@@ -1,16 +1,14 @@
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Timeline } from "@repo/ui/components/tomui/timeline";
-import {
-	useStateManagementFetch,
-	useStateManagementInfiniteFetch,
-} from "@repo/ui/hooks/useStateManagement.ts";
+import { useStateManagementFetch, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { IconLoader2 } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { TaskNewCommentContent } from "../comment/new";
 import { TimelineCategoryChange } from "./category-change";
+import { TimelineReleaseChange } from "./release-change";
 import {
 	ConsolidatedTimelineItem,
 	TimelineAssigneeAdded,
@@ -32,6 +30,7 @@ export default function GlobalTimeline({
 	availableUsers,
 	categories,
 	tasks,
+	releases,
 }: GlobalTimelineProps) {
 	const queryClient = useQueryClient();
 	const commentLimit = 20;
@@ -46,6 +45,7 @@ export default function GlobalTimeline({
 		assignee_removed: TimelineAssigneeRemoved,
 		updated: TimelineUpdated,
 		category_change: TimelineCategoryChange,
+		release_change: TimelineReleaseChange,
 	};
 
 	// --- ACTIVITY FETCH ---
@@ -82,8 +82,9 @@ export default function GlobalTimeline({
 	>({
 		key: ["timeline", "comments", task.id, task.organizationId],
 		fetch: {
-			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${task.organizationId
-				}&task_id=${task.id}&limit=${commentLimit / 2}`,
+			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${
+				task.organizationId
+			}&task_id=${task.id}&limit=${commentLimit / 2}`,
 			custom: async (url, pageParam) => {
 				// pageParam manages current outer pages
 				const { fromStart = 1, fromEnd } = pageParam ?? {};
@@ -107,11 +108,8 @@ export default function GlobalTimeline({
 				}
 
 				const merged = [...(firstData.data || []), ...(lastData.data || [])];
-				const unique = Array.from(
-					new Map(merged.map((i) => [i.id, i])).values(),
-				).sort(
-					(a, b) =>
-						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+				const unique = Array.from(new Map(merged.map((i) => [i.id, i])).values()).sort(
+					(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
 				);
 
 				const nextStart = fromStart + 1;
@@ -151,26 +149,21 @@ export default function GlobalTimeline({
 		refetchOnWindowFocus: false,
 	});
 
-	const hasTimelineData =
-		Boolean(activity.data?.length) || Boolean(comments.data?.length);
-	const showInitialLoading =
-		(activity.isLoading || comments.isLoading) && !hasTimelineData;
+	const hasTimelineData = Boolean(activity.data?.length) || Boolean(comments.data?.length);
+	const showInitialLoading = (activity.isLoading || comments.isLoading) && !hasTimelineData;
 
 	// --- Update on external timeline updates ---
 	useEffect(() => {
-		const unsubscribe = onWindowMessage<{ type: string; payload: string }>(
-			"*",
-			(msg) => {
-				if (msg.type === "timeline-update" && msg.payload === task.id) {
-					activity.refetch();
-				}
-				if (msg.type === "timeline-update-comment" && msg.payload === task.id) {
-					queryClient.invalidateQueries({
-						queryKey: ["timeline", "comments", task.id, task.organizationId],
-					});
-				}
-			},
-		);
+		const unsubscribe = onWindowMessage<{ type: string; payload: string }>("*", (msg) => {
+			if (msg.type === "timeline-update" && msg.payload === task.id) {
+				activity.refetch();
+			}
+			if (msg.type === "timeline-update-comment" && msg.payload === task.id) {
+				queryClient.invalidateQueries({
+					queryKey: ["timeline", "comments", task.id, task.organizationId],
+				});
+			}
+		});
 		return unsubscribe;
 	}, [activity.refetch, task.id, queryClient, task.organizationId]);
 
@@ -205,12 +198,9 @@ export default function GlobalTimeline({
 	}, [comments.data]);
 	// --- Determine visible date range (oldest + newest) ---
 	const { oldestCommentTime, newestCommentTime } = useMemo(() => {
-		if (flattenedComments.length === 0)
-			return { oldestCommentTime: null, newestCommentTime: null };
+		if (flattenedComments.length === 0) return { oldestCommentTime: null, newestCommentTime: null };
 
-		const times = flattenedComments.map((c) =>
-			new Date(c.createdAt || 0).getTime(),
-		);
+		const times = flattenedComments.map((c) => new Date(c.createdAt || 0).getTime());
 		return {
 			oldestCommentTime: Math.min(...times),
 			newestCommentTime: Math.max(...times),
@@ -219,8 +209,7 @@ export default function GlobalTimeline({
 
 	// Include all activity inside, before, or after the visible comment date range
 	const visibleActivity = useMemo(() => {
-		if (!activity.data || !oldestCommentTime || !newestCommentTime)
-			return activity.data || [];
+		if (!activity.data || !oldestCommentTime || !newestCommentTime) return activity.data || [];
 
 		const now = Date.now();
 		const FUTURE_ALLOWANCE_MS = 5 * 60 * 1000; // 5 minutes
@@ -236,9 +225,7 @@ export default function GlobalTimeline({
 	const combinedData = [...visibleActivity, ...flattenedComments];
 
 	const consolidatedItems = consolidateTimelineItems(combinedData).sort(
-		(a, b) =>
-			new Date(a.createdAt ?? 0).getTime() -
-			new Date(b.createdAt ?? 0).getTime(),
+		(a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
 	);
 
 	// --- Split for mid‑timeline button placement ---
@@ -269,8 +256,7 @@ export default function GlobalTimeline({
 			);
 		}
 
-		const TimelineComponent =
-			timelineComponents[item.eventType as keyof typeof timelineComponents];
+		const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
 		if (!TimelineComponent) return null;
 
 		return (
@@ -281,6 +267,7 @@ export default function GlobalTimeline({
 				availableUsers={availableUsers}
 				categories={categories}
 				tasks={tasks}
+				releases={releases}
 				showSeparator={showSeparator}
 			/>
 		);
@@ -307,9 +294,7 @@ export default function GlobalTimeline({
 										// className="px-4 py-2 text-sm rounded bg-accent text-accent-foreground hover:opacity-80 disabled:opacity-50 transition"
 										variant={"primary"}
 									>
-										{comments.isFetchingNextPage
-											? "Loading more..."
-											: "Load more"}
+										{comments.isFetchingNextPage ? "Loading more..." : "Load more"}
 									</Button>
 								</div>
 							)}
@@ -323,12 +308,7 @@ export default function GlobalTimeline({
 							task={task}
 							onFinish={async () => {
 								queryClient.invalidateQueries({
-									queryKey: [
-										"timeline",
-										"comments",
-										task.id,
-										task.organizationId,
-									],
+									queryKey: ["timeline", "comments", task.id, task.organizationId],
 								});
 							}}
 							availableUsers={availableUsers}

@@ -23,7 +23,11 @@ const useWebSocket = () => {
 		const connectWebSocket = () => {
 			if (!webSocket) {
 				setWSStatus("Connecting");
-				webSocket = new WebSocket(import.meta.env.VITE_APP_ENV === "development" ? `ws://${window.location.hostname}:5468/ws` || "/ws" : "/ws");
+				webSocket = new WebSocket(
+					import.meta.env.VITE_APP_ENV === "development"
+						? `ws://${window.location.hostname}:5468/ws` || "/ws"
+						: "/ws"
+				);
 				webSocket.onopen = () => {
 					console.info("WebSocket connection established");
 					lastMessageTimestamp = Date.now();
@@ -205,86 +209,94 @@ export type BaseMessage = {
 
 export type WSMessage =
 	| (BaseMessage & {
-		type: "CONNECTION_STATUS";
-		data: { status: string; authenticated: boolean; wsClientId: string };
-	})
+			type: "CONNECTION_STATUS";
+			data: { status: string; authenticated: boolean; wsClientId: string };
+	  })
 	| (BaseMessage & {
-		type: "SERVER_MESSAGE" | "ERROR";
-		data: { message: string };
-	})
+			type: "SERVER_MESSAGE" | "ERROR";
+			data: { message: string };
+	  })
 	| (BaseMessage & {
-		type: "PING" | "PONG";
-	})
+			type: "PING" | "PONG";
+	  })
 	| (BaseMessage & {
-		type: "MESSAGE";
-		data: {
-			channel?: string;
-			text?: string;
-		};
-	})
+			type: "MESSAGE";
+			data: {
+				channel?: string;
+				text?: string;
+			};
+	  })
 	| (BaseMessage & {
-		type: "SUBSCRIBED";
-		data: {
-			orgId: string;
-			channel: string;
-		};
-	})
+			type: "SUBSCRIBED";
+			data: {
+				orgId: string;
+				channel: string;
+			};
+	  })
 	| (BaseMessage & {
-		type: "UPDATE_ORG";
-		data: schema.organizationType;
-	})
+			type: "UPDATE_ORG";
+			data: schema.organizationType;
+	  })
 	| (BaseMessage & {
-		type: "UPDATE_CATEGORIES";
-		data: schema.categoryType[];
-	})
+			type: "UPDATE_CATEGORIES";
+			data: schema.categoryType[];
+	  })
 	| (BaseMessage & {
-		type: "UPDATE_LABELS";
-		data: schema.labelType[];
-	})
+			type: "UPDATE_LABELS";
+			data: schema.labelType[];
+	  })
 	| (BaseMessage & {
-		type: "UPDATE_VIEWS";
-		data: schema.savedViewType[];
-	})
+			type: "UPDATE_VIEWS";
+			data: schema.savedViewType[];
+	  })
 	| (BaseMessage & {
-		type: "UPDATE_ISSUE_TEMPLATES";
-		data: schema.issueTemplateWithRelations[];
-	})
+			type: "UPDATE_ISSUE_TEMPLATES";
+			data: schema.issueTemplateWithRelations[];
+	  })
 	| (BaseMessage & {
-		type: "CREATE_TASK";
-		data: schema.TaskWithLabels;
-	})
+			type: "UPDATE_RELEASES";
+			data: schema.releaseType[];
+	  })
 	| (BaseMessage & {
-		type: "UPDATE_TASK";
-		data: schema.TaskWithLabels;
-	})
+			type: "DELETE_RELEASE";
+			data: { releaseId: string };
+	  })
 	| (BaseMessage & {
-		type: "UPDATE_TASK_VOTE";
-		data: {
-			id: schema.TaskWithLabels["id"];
-			voteCount: schema.TaskWithLabels["voteCount"];
-		}
-	})
+			type: "CREATE_TASK";
+			data: schema.TaskWithLabels;
+	  })
 	| (BaseMessage & {
-		type: "UPDATE_TASK_COMMENTS";
-		data: {
-			id: string;
-		};
-	})
+			type: "UPDATE_TASK";
+			data: schema.TaskWithLabels;
+	  })
 	| (BaseMessage & {
-		type: "FIREHOSE";
-		data: {
-			channel: string;
-			payload: WSMessage;
-		};
-	})
+			type: "UPDATE_TASK_VOTE";
+			data: {
+				id: schema.TaskWithLabels["id"];
+				voteCount: schema.TaskWithLabels["voteCount"];
+			};
+	  })
 	| (BaseMessage & {
-		type: "CONNECTIONS_SNAPSHOT";
-		data: FirehoseClient[];
-	})
+			type: "UPDATE_TASK_COMMENTS";
+			data: {
+				id: string;
+			};
+	  })
 	| (BaseMessage & {
-		type: "MEMBER_ACTIONS";
-		data: { action: "ADDED" | "REMOVED"; orgId: string; userId: string };
-	});
+			type: "FIREHOSE";
+			data: {
+				channel: string;
+				payload: WSMessage;
+			};
+	  })
+	| (BaseMessage & {
+			type: "CONNECTIONS_SNAPSHOT";
+			data: FirehoseClient[];
+	  })
+	| (BaseMessage & {
+			type: "MEMBER_ACTIONS";
+			data: { action: "ADDED" | "REMOVED"; orgId: string; userId: string };
+	  });
 
 export type FirehoseClient = {
 	wsClientId: string;

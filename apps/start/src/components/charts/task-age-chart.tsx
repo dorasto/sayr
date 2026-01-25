@@ -64,9 +64,7 @@ export function TaskAgeChart({ tasks, size = "md", className }: TaskAgeChartProp
 
 	if (!hasData) {
 		return (
-			<div className="flex items-center justify-center h-[150px] text-muted-foreground text-sm">
-				No open tasks
-			</div>
+			<div className="flex items-center justify-center h-[150px] text-muted-foreground text-sm">No open tasks</div>
 		);
 	}
 

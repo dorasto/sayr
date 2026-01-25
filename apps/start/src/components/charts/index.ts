@@ -12,14 +12,17 @@ export { TaskAssigneeChart, type TaskAssigneeChartProps } from "./task-assignee-
 export { TaskCategoryChart, type TaskCategoryChartProps } from "./task-category-chart";
 export { TaskCategoryBar, type TaskCategoryBarProps } from "./task-category-bar";
 export {
-   TaskCompletionChart,
-   type TaskCompletionChartProps,
-   useTaskCompletionStats,
+	TaskCompletionChart,
+	type TaskCompletionChartProps,
+	useTaskCompletionStats,
 } from "./task-completion-chart";
 export { TaskTimelineChart, type TaskTimelineChartProps } from "./task-timeline-chart";
 export { TaskCycleTimeChart, type TaskCycleTimeChartProps } from "./task-cycle-time-chart";
 export { TaskThroughputChart, type TaskThroughputChartProps } from "./task-throughput-chart";
 export { TaskAgeChart, type TaskAgeChartProps } from "./task-age-chart";
 export { TaskLabelDistributionChart, type TaskLabelDistributionChartProps } from "./task-label-distribution-chart";
-export { TaskCreationVsCompletionChart, type TaskCreationVsCompletionChartProps } from "./task-creation-vs-completion-chart";
+export {
+	TaskCreationVsCompletionChart,
+	type TaskCreationVsCompletionChartProps,
+} from "./task-creation-vs-completion-chart";
 export { TaskBurndownChart, type TaskBurndownChartProps } from "./task-burndown-chart";

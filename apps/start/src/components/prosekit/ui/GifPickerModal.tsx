@@ -1,8 +1,4 @@
-import {
-	Dialog,
-	DialogContent,
-	DialogOverlay,
-} from "@repo/ui/components/dialog";
+import { Dialog, DialogContent, DialogOverlay } from "@repo/ui/components/dialog";
 import GifPicker from "gif-picker-react";
 import type { BasicExtension } from "prosekit/basic";
 import type { Editor } from "prosekit/core";
@@ -16,11 +12,7 @@ type GifPickerModalProps = {
 /**
  * Shadcn‑based Tenor GIF picker used inside the Slash Menu.
  */
-export function GifPickerModal({
-	editor,
-	open,
-	onOpenChange,
-}: GifPickerModalProps) {
+export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalProps) {
 	const handleGifSelect = (gif: { url?: string }) => {
 		if (!gif?.url) return onOpenChange(false);
 		const { state, view } = editor;

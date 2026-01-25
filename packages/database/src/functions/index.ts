@@ -5,6 +5,7 @@ export * from "./label";
 export * from "./organization";
 export * from "./task";
 export * from "./issueTemplate";
+export * from "./release";
 
 /**
  * Fetches a single user by its unique id.

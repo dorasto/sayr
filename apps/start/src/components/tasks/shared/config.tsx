@@ -9,6 +9,7 @@ import StatusIcon from "@repo/ui/components/icons/status";
 import {
   IconAlertSquareFilled,
   IconCategory2,
+  IconRocket,
   IconUser,
 } from "@tabler/icons-react";
 import type {
@@ -101,7 +102,7 @@ export const priorityConfig = {
     icon: (className: string) => (
       <IconAlertSquareFilled className={className} />
     ),
-    className: " text-destructive",
+    className: "text-destructive",
     color: "#DC2626",
   },
   none: {
@@ -116,6 +117,64 @@ export const priorityConfig = {
 
 export type StatusKey = keyof typeof statusConfig;
 export type PriorityKey = keyof typeof priorityConfig;
+
+export interface GroupHeaderStyle {
+  rootClassName?: string;
+  getItemClassName?: (key: string) => string | undefined;
+}
+
+export const GROUP_HEADER_STYLES: Record<TaskGroupingId, GroupHeaderStyle> = {
+  status: {
+    rootClassName: "bg-background",
+    getItemClassName: (key: string) => {
+      switch (key as StatusKey) {
+        case "backlog":
+          return "bg-muted";
+        case "todo":
+          return "bg-muted";
+        case "in-progress":
+          return "bg-primary/5";
+        case "done":
+          return "bg-success/5";
+        case "canceled":
+          return "bg-destructive/5";
+        default:
+          return undefined;
+      }
+    },
+  },
+  priority: {
+    rootClassName: undefined,
+    getItemClassName: (key: string) => {
+      switch (key as PriorityKey) {
+        case "urgent":
+          return "bg-destructive/5";
+        case "high":
+          return "bg-orange-800/5";
+        case "medium":
+          return "bg-primary/5";
+        case "low":
+          return "bg-muted";
+        case "none":
+          return undefined;
+        default:
+          return undefined;
+      }
+    },
+  },
+  assignee: {
+    rootClassName: undefined,
+    getItemClassName: () => undefined,
+  },
+  category: {
+    rootClassName: undefined,
+    getItemClassName: () => undefined,
+  },
+  release: {
+    rootClassName: undefined,
+    getItemClassName: () => undefined,
+  },
+};
 
 const STATUS_ORDER: Array<keyof typeof statusConfig> = [
   "backlog",
@@ -226,10 +285,7 @@ const statusGrouping = createGroupingDefinition("status", {
   label: "Status",
   description: "Group tasks by their workflow status",
   icon: statusConfig.todo.icon("h-4 w-4"),
-  group: ({
-    tasks,
-    showCompletedTasks,
-  }: TaskGroupingContext) => {
+  group: ({ tasks, showCompletedTasks }: TaskGroupingContext) => {
     const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
     const groups = createInitialStatusGroups();
     const fallbackGroup = groups[0];
@@ -263,10 +319,7 @@ const priorityGrouping = createGroupingDefinition("priority", {
   label: "Priority",
   description: "Group tasks by priority level",
   icon: priorityConfig.medium.icon("h-4 w-4"),
-  group: ({
-    tasks,
-    showCompletedTasks,
-  }: TaskGroupingContext) => {
+  group: ({ tasks, showCompletedTasks }: TaskGroupingContext) => {
     const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
     const groups = createInitialPriorityGroups();
     const fallbackGroup =
@@ -370,11 +423,7 @@ export const categoryGrouping = createGroupingDefinition("category", {
   label: "Category",
   description: "Group tasks by categories",
   icon: <IconCategory2 className="h-4 w-4" />,
-  group: ({
-    tasks,
-    showCompletedTasks,
-    categories,
-  }: TaskGroupingContext) => {
+  group: ({ tasks, showCompletedTasks, categories }: TaskGroupingContext) => {
     const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
     const groupMap = new Map<string, TaskGroup>();
 
@@ -424,6 +473,79 @@ export const categoryGrouping = createGroupingDefinition("category", {
     });
   },
 });
+
+const createReleaseGroup = (release?: schema.releaseType | null): TaskGroup => {
+  const key = release?.id || "no-release";
+  const id = release?.id ? `release:${release.id}` : "release:none";
+  return {
+    id,
+    key,
+    label: release?.name || "No release",
+    icon: release?.icon ? (
+      <span className="text-lg">{release.icon}</span>
+    ) : (
+      <div
+        className="h-3 w-3 rounded-full border"
+        style={{ backgroundColor: release?.color || "#cccccc" }}
+      />
+    ),
+    tasks: [],
+    count: 0,
+  };
+};
+
+export const releaseGrouping = createGroupingDefinition("release", {
+  label: "Release",
+  description: "Group tasks by releases",
+  icon: <IconRocket className="h-4 w-4" />,
+  group: ({ tasks, showCompletedTasks, releases }: TaskGroupingContext) => {
+    const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
+    const groupMap = new Map<string, TaskGroup>();
+
+    // Safely create or retrieve a group without using non-null assertions
+    const ensureGroupForRelease = (
+      release?: schema.releaseType | null,
+    ): TaskGroup => {
+      const key = release?.id || "no-release";
+      const existingGroup = groupMap.get(key);
+      if (existingGroup) {
+        return existingGroup;
+      }
+      const newGroup = createReleaseGroup(release);
+      groupMap.set(key, newGroup);
+      return newGroup;
+    };
+
+    // Always pre-create groups for all releases
+    releases.forEach((rel) => ensureGroupForRelease(rel));
+    ensureGroupForRelease(null); // No release
+
+    // Assign each task to a release-based group
+    filteredTasks.forEach((task) => {
+      // Find the release by ID
+      const release = task.releaseId
+        ? (releases.find((r) => r.id === task.releaseId) ?? null)
+        : null;
+
+      const group = ensureGroupForRelease(release);
+      group.tasks.push(task);
+    });
+
+    // Compute counts for all groups
+    const groups = Array.from(groupMap.values()).map((group) => ({
+      ...group,
+      count: group.tasks.length,
+    }));
+
+    // Sort by slug (for semver), with "No release" last
+    return groups.sort((a, b) => {
+      if (a.key === "no-release") return 1;
+      if (b.key === "no-release") return -1;
+      return a.label.localeCompare(b.label);
+    });
+  },
+});
+
 function createGroupingDefinition(
   id: TaskGroupingId,
   definition: Omit<TaskGroupingDefinition, "id">,
@@ -439,6 +561,7 @@ export const TASK_GROUPINGS: Record<TaskGroupingId, TaskGroupingDefinition> = {
   priority: priorityGrouping,
   assignee: assigneeGrouping,
   category: categoryGrouping,
+  release: releaseGrouping,
 };
 
 export const TASK_GROUPING_OPTIONS: TaskGroupingDefinition[] =

@@ -26,5 +26,5 @@ function RouteComponent() {
 			</div>
 			<UserTable initialData={{ users, total }} />
 		</div>
-	)
+	);
 }

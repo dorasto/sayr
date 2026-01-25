@@ -1,9 +1,5 @@
 import { IconGripVertical, IconMenu2, IconPlus } from "@tabler/icons-react";
-import {
-	BlockHandleAdd,
-	BlockHandleDraggable,
-	BlockHandlePopover,
-} from "prosekit/react/block-handle";
+import { BlockHandleAdd, BlockHandleDraggable, BlockHandlePopover } from "prosekit/react/block-handle";
 
 interface Props {
 	dir?: "ltr" | "rtl";

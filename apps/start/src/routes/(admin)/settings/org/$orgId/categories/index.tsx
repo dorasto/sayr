@@ -17,5 +17,5 @@ function RouteComponent() {
 				<SettingsOrganizationCategoriesPage />
 			</div>
 		</SubWrapper>
-	)
+	);
 }

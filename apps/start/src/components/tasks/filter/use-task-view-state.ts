@@ -1,29 +1,18 @@
 "use client";
 
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import {
-	DEFAULT_TASK_VIEW_STATE,
-	TASK_VIEW_STATE_KEY,
-	type TaskGroupingId,
-	type TaskViewState,
-} from "./types";
+import { DEFAULT_TASK_VIEW_STATE, TASK_VIEW_STATE_KEY, type TaskGroupingId, type TaskViewState } from "./types";
 
 export function useTaskViewState() {
-	const { value, setValue } = useStateManagement<TaskViewState>(
-		TASK_VIEW_STATE_KEY,
-		DEFAULT_TASK_VIEW_STATE,
-		1,
-	);
+	const { value, setValue } = useStateManagement<TaskViewState>(TASK_VIEW_STATE_KEY, DEFAULT_TASK_VIEW_STATE, 1);
 
 	const viewState = value ?? DEFAULT_TASK_VIEW_STATE;
 
-	const updateViewState = (
-		next: Partial<TaskViewState> | ((prev: TaskViewState) => TaskViewState),
-	) => {
+	const updateViewState = (next: Partial<TaskViewState> | ((prev: TaskViewState) => TaskViewState)) => {
 		setValue(
 			typeof next === "function"
 				? (next as (prev: TaskViewState) => TaskViewState)(viewState)
-				: { ...viewState, ...next },
+				: { ...viewState, ...next }
 		);
 	};
 

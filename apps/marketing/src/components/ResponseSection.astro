@@ -3,14 +3,7 @@ import type { Response, Schema } from "../lib/openapi";
 import { formatSchemaType } from "../lib/openapi";
 import { Badge } from "@/components/ui/badge";
 import { Frame } from "@/components/ui/frame";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Props {
 	responses: Record<string, Response>;
@@ -34,17 +27,20 @@ function getStatusDotColor(status: string): string {
 	return "bg-muted-foreground/64";
 }
 
-function flattenSchema(schema: Schema | undefined, prefix = ""): Array<{ path: string; type: string; required: boolean; description?: string }> {
+function flattenSchema(
+	schema: Schema | undefined,
+	prefix = ""
+): Array<{ path: string; type: string; required: boolean; description?: string }> {
 	if (!schema) return [];
-	
+
 	const results: Array<{ path: string; type: string; required: boolean; description?: string }> = [];
-	
+
 	if (schema.type === "object" && schema.properties) {
 		const requiredFields = schema.required || [];
 		for (const [key, value] of Object.entries(schema.properties)) {
 			const path = prefix ? `${prefix}.${key}` : key;
 			const isRequired = requiredFields.includes(key);
-			
+
 			if (value.type === "object" && value.properties) {
 				results.push({ path, type: "object", required: isRequired, description: value.description });
 				results.push(...flattenSchema(value, path));
@@ -58,7 +54,7 @@ function flattenSchema(schema: Schema | undefined, prefix = ""): Array<{ path: s
 			}
 		}
 	}
-	
+
 	return results;
 }
 ---

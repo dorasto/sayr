@@ -10,18 +10,9 @@ import {
 	AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog";
 import { Button } from "@repo/ui/components/button";
-import {
-	Tile,
-	TileAction,
-	TileHeader,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Input } from "@repo/ui/components/input";
-import {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupInput,
-} from "@repo/ui/components/input-group";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@repo/ui/components/input-group";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { IconCheck, IconUser } from "@tabler/icons-react";
@@ -92,17 +83,12 @@ export default function UserSettings() {
 							<AlertDialogHeader>
 								<AlertDialogTitle>Change your email address</AlertDialogTitle>
 								<AlertDialogDescription>
-									In order to change you're email, we'll send a confirmation
-									link to your new email address.
+									In order to change you're email, we'll send a confirmation link to your new email address.
 								</AlertDialogDescription>
 							</AlertDialogHeader>
 							<div className="bg-card p-2 rounded-lg">
 								<Label className="pl-3">New email address</Label>
-								<Input
-									variant={"ghost"}
-									type="email"
-									placeholder="youremail@domain.com"
-								/>
+								<Input variant={"ghost"} type="email" placeholder="youremail@domain.com" />
 							</div>
 							<AlertDialogFooter>
 								<AlertDialogCancel>Cancel</AlertDialogCancel>

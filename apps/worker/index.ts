@@ -15,26 +15,19 @@ async function processGithubJob(job: JobGroups["github"]) {
 	}
 }
 
-async function handleJob<G extends keyof JobGroups>(
-	group: G,
-	job: JobGroups[G],
-) {
+async function handleJob<G extends keyof JobGroups>(group: G, job: JobGroups[G]) {
 	const traceContext = "traceContext" in job ? job.traceContext : undefined;
 
 	try {
-		await withTraceContext(
-			traceContext,
-			`worker.${group}.${job.type}`,
-			async () => {
-				switch (group) {
-					case "github":
-						await processGithubJob(job as JobGroups["github"]);
-						break;
-					default:
-						console.warn(`⚠️ No handler defined for group "${group}"`);
-				}
-			},
-		);
+		await withTraceContext(traceContext, `worker.${group}.${job.type}`, async () => {
+			switch (group) {
+				case "github":
+					await processGithubJob(job as JobGroups["github"]);
+					break;
+				default:
+					console.warn(`⚠️ No handler defined for group "${group}"`);
+			}
+		});
 	} catch (err) {
 		console.error(`❌ [${group}] ${job.type} failed:`, err);
 	}
@@ -70,9 +63,7 @@ async function main() {
 	const groupArg = process.argv[2] as keyof JobGroups | undefined;
 
 	if (!groupArg) {
-		console.error(
-			"❌ Missing group argument.\nUsage: bun run dev <group>\nExample: bun run dev github",
-		);
+		console.error("❌ Missing group argument.\nUsage: bun run dev <group>\nExample: bun run dev github");
 		process.exit(1);
 	}
 

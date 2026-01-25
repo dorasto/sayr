@@ -39,7 +39,9 @@ export default function SettingsOrganizationPageTeams({ teams }: { teams: schema
 	}
 
 	const handleDeleteTeam = async (team: schema.OrganizationTeamWithMembersType) => {
-		const confirmed = window.confirm(`Are you sure you want to delete the team "${team.name}"? This action cannot be undone.`);
+		const confirmed = window.confirm(
+			`Are you sure you want to delete the team "${team.name}"? This action cannot be undone.`
+		);
 		if (!confirmed) return;
 
 		setDeletingTeamId(team.id);
@@ -98,10 +100,7 @@ export default function SettingsOrganizationPageTeams({ teams }: { teams: schema
 							params={{ orgId: organization.id, teamId: team.name }}
 							className="flex-1"
 						>
-							<Tile
-								className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-								variant={"transparent"}
-							>
+							<Tile className="md:w-full hover:bg-accent data-[state=open]:bg-accent" variant={"transparent"}>
 								<TileHeader className="md:w-full">
 									<TileIcon className="bg-transparent">
 										<Avatar className="h-10 w-10 rounded-full">

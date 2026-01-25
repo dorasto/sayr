@@ -12,7 +12,7 @@ export const Route = createFileRoute("/(admin)/$orgId/")({
 				account: context.account,
 				orgId: params.orgId,
 			},
-		})
+		});
 	},
 	component: OrganizationHomePage,
 });

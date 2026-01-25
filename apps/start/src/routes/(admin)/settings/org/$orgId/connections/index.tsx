@@ -2,11 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SubWrapper } from "@/components/generic/wrapper";
 import SettingsOrganizationConnectionsPage from "@/components/pages/admin/settings/orgId/connections/connections";
 
-export const Route = createFileRoute("/(admin)/settings/org/$orgId/connections/")(
-	{
-		component: RouteComponent,
-	},
-);
+export const Route = createFileRoute("/(admin)/settings/org/$orgId/connections/")({
+	component: RouteComponent,
+});
 
 function RouteComponent() {
 	return (
@@ -19,5 +17,5 @@ function RouteComponent() {
 				<SettingsOrganizationConnectionsPage />
 			</div>
 		</SubWrapper>
-	)
+	);
 }

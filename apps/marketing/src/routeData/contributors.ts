@@ -49,14 +49,11 @@ function getFileContributors(filePath: string): PageContributors {
 
 		// Get all commits for this file with author info (newest first by default)
 		// Format: name<TAB>email
-		const gitLog = execSync(
-			`git log --follow --format="%aN\t%aE" -- "${absolutePath}"`,
-			{
-				cwd: marketingRoot,
-				encoding: "utf-8",
-				timeout: 5000,
-			}
-		);
+		const gitLog = execSync(`git log --follow --format="%aN\t%aE" -- "${absolutePath}"`, {
+			cwd: marketingRoot,
+			encoding: "utf-8",
+			timeout: 5000,
+		});
 
 		const lines = gitLog.trim().split("\n").filter(Boolean);
 
@@ -78,7 +75,7 @@ function getFileContributors(filePath: string): PageContributors {
 			if (!name || !email) continue;
 
 			const key = email.toLowerCase();
-			
+
 			// Skip the original author - they go in the "author" field
 			if (key === originalEmail.toLowerCase()) continue;
 
@@ -144,15 +141,15 @@ export const onRequest = defineRouteMiddleware((context) => {
 	// Go up two levels: routeData -> src -> marketing root
 	const marketingRoot = resolve(__dirname, "../..");
 	const baseContentPath = `src/content/docs/${entry.id}`;
-	
+
 	console.log("[contributors] __dirname:", __dirname);
 	console.log("[contributors] marketingRoot:", marketingRoot);
 	console.log("[contributors] entry.id:", entry.id);
-	
+
 	// Try common extensions
 	const extensions = [".md", ".mdx"];
 	let contentPath: string | null = null;
-	
+
 	for (const ext of extensions) {
 		const testPath = baseContentPath + ext;
 		const absoluteTestPath = resolve(marketingRoot, testPath);
@@ -162,12 +159,12 @@ export const onRequest = defineRouteMiddleware((context) => {
 			break;
 		}
 	}
-	
+
 	if (!contentPath) {
 		console.log("[contributors] Could not find file for:", baseContentPath);
 		return;
 	}
-	
+
 	console.log("[contributors] Looking for file:", contentPath);
 
 	// Fetch contributors from Git

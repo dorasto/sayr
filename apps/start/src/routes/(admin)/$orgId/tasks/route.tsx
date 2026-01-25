@@ -12,7 +12,7 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks")({
 				account: context.account,
 				orgId: params.orgId,
 			},
-		})
+		});
 	},
 	// Prevent refetching when only search params change (e.g., ?task=4, ?view=xyz, ?filters=...)
 	// The task list doesn't depend on search params - filtering is done client-side
@@ -31,5 +31,5 @@ function OrgTasksLayout() {
 		<RootProviderOrganizationTasks tasks={tasks}>
 			<Outlet />
 		</RootProviderOrganizationTasks>
-	)
+	);
 }

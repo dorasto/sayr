@@ -6,13 +6,7 @@ export default function Link(props: ReactMarkViewProps) {
 	const href = props.mark.attrs.href as string;
 	const isEditable = props.view.editable;
 
-	const content = (
-		<a
-			href={href}
-			className="text-primary hover:underline"
-			ref={props.contentRef}
-		/>
-	);
+	const content = <a href={href} className="text-primary hover:underline" ref={props.contentRef} />;
 
 	if (isEditable) {
 		return content;

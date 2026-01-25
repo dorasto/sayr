@@ -1,16 +1,10 @@
 import { db, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
-export async function getOrganization(
-	orgId: string,
-	userId: string,
-): Promise<{ id: string } | null> {
+export async function getOrganization(orgId: string, userId: string): Promise<{ id: string } | null> {
 	// Check if the user is a member of this org
 	const membership = await db.query.member.findFirst({
-		where: and(
-			eq(schema.member.organizationId, orgId),
-			eq(schema.member.userId, userId),
-		),
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
 	});
 
 	// If no membership found, deny access
@@ -29,11 +23,7 @@ export async function getOrganization(
 	return organization;
 }
 
-export async function safeGetOrganization(
-	orgId: string,
-	userId: string,
-	ms = 5000,
-) {
+export async function safeGetOrganization(orgId: string, userId: string, ms = 5000) {
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), ms);
 
@@ -69,14 +59,8 @@ export function getCookieValue(headers: Headers, name: string): string | null {
 	return match ? (match[1] ?? null) : null;
 }
 
-export function getAnonHash(
-	ip: string,
-	userAgent: string,
-	cookieId?: string
-) {
+export function getAnonHash(ip: string, userAgent: string, cookieId?: string) {
 	return createHash("sha256")
-		.update(
-			`${ip}|${userAgent}|${cookieId ?? ""}|${process.env.VOTE_SALT}`
-		)
+		.update(`${ip}|${userAgent}|${cookieId ?? ""}|${process.env.VOTE_SALT}`)
 		.digest("hex");
 }

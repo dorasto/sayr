@@ -1,11 +1,4 @@
-import {
-	type Attributes,
-	context,
-	type SpanContext,
-	SpanStatusCode,
-	trace,
-	TraceFlags,
-} from "@opentelemetry/api";
+import { type Attributes, context, type SpanContext, SpanStatusCode, trace, TraceFlags } from "@opentelemetry/api";
 import { getTracer } from ".";
 
 export function getTraceContext() {
@@ -34,7 +27,7 @@ export type TraceAsync = <T>(
 			description?: string;
 			outcome?: string;
 		};
-	},
+	}
 ) => Promise<T>;
 
 export function createTraceAsync(): TraceAsync {
@@ -55,7 +48,7 @@ export function createTraceAsync(): TraceAsync {
 				description?: string;
 				outcome?: string;
 			};
-		},
+		}
 	): Promise<T> => {
 		const span = tracer.startSpan(name, undefined, parentCtx);
 
@@ -71,10 +64,7 @@ export function createTraceAsync(): TraceAsync {
 			if (options?.onSuccess) {
 				const extra = options.onSuccess(result);
 				if (extra.data) {
-					span.setAttribute(
-						"data",
-						JSON.stringify({ ...(options?.data ?? {}), ...extra.data }),
-					);
+					span.setAttribute("data", JSON.stringify({ ...(options?.data ?? {}), ...extra.data }));
 				}
 				// Prefer outcome, fall back to deprecated description
 				const outcomeValue = extra.outcome ?? extra.description;
@@ -111,7 +101,7 @@ export async function withTraceContext<T>(
 		  }
 		| undefined,
 	spanName: string,
-	fn: () => Promise<T>,
+	fn: () => Promise<T>
 ): Promise<T> {
 	const tracer = getTracer();
 

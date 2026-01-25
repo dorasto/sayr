@@ -9,7 +9,7 @@ export default function ImageView() {
 				name: "image",
 				component: ImageViewInner,
 			}),
-		[],
+		[]
 	);
 
 	useExtension(extension);

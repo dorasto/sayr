@@ -9,15 +9,11 @@ import {
 	type FilterCondition,
 	type FilterGroup,
 	type FilterOperator,
-	type FilterField,
 	type TaskViewState,
 	type TaskGroupingId,
 	DEFAULT_TASK_VIEW_STATE,
 } from "@/components/tasks/filter/types";
-import {
-	serializeFilters,
-	deserializeFilters,
-} from "@/components/tasks/filter/serialization";
+import { serializeFilters, deserializeFilters } from "@/components/tasks/filter/serialization";
 import {
 	mergeOrAppendCondition,
 	toggleMultiValue as toggleValueHelper,
@@ -82,9 +78,7 @@ function areStatesEqual(a: TaskViewCombinedState, b: TaskViewCombinedState): boo
 /**
  * Maps a saved view's config to TaskViewState
  */
-function mapViewConfigToState(
-	config: NonNullable<schema.savedViewType["viewConfig"]>
-): TaskViewState {
+function mapViewConfigToState(config: NonNullable<schema.savedViewType["viewConfig"]>): TaskViewState {
 	return {
 		grouping: config.groupBy,
 		subGrouping: config.subGroupBy ?? "none",
@@ -106,11 +100,11 @@ function mapViewConfigToState(
  * - Provides both granular setters and batch operations
  */
 export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
-	const { view: viewSlug, category: categorySlug, setSearchParams } = useTasksSearchParams();
+	const { view: viewSlug, category: categorySlug, filters: filtersParam, setSearchParams } = useTasksSearchParams();
 
 	// Track click handling to prevent useEffect from duplicating updates
 	const isHandlingAction = useRef(false);
-	
+
 	// Track if we've already initialized from URL to prevent re-initialization
 	const hasInitializedFromUrl = useRef(false);
 
@@ -127,7 +121,7 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 	const { value: combinedState, setValue: setCombinedState } = useStateManagement<TaskViewCombinedState>(
 		TASK_VIEW_COMBINED_KEY,
 		DEFAULT_COMBINED_STATE,
-		1,
+		1
 	);
 
 	const state = combinedState ?? DEFAULT_COMBINED_STATE;
@@ -145,19 +139,22 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 	/**
 	 * Internal helper to execute the actual state + URL update
 	 */
-	const executeUpdate = useCallback((
-		newState: TaskViewCombinedState,
-		urlParams: { view?: string | null; filters?: string | null; category?: string | null }
-	) => {
-		isHandlingAction.current = true;
-		lastUpdateTime.current = Date.now();
-		setCombinedState(newState);
-		setSearchParams(urlParams);
-		// Reset flag after current event loop
-		setTimeout(() => {
-			isHandlingAction.current = false;
-		}, 0);
-	}, [setCombinedState, setSearchParams]);
+	const executeUpdate = useCallback(
+		(
+			newState: TaskViewCombinedState,
+			urlParams: { view?: string | null; filters?: string | null; category?: string | null }
+		) => {
+			isHandlingAction.current = true;
+			lastUpdateTime.current = Date.now();
+			setCombinedState(newState);
+			setSearchParams(urlParams);
+			// Reset flag after current event loop
+			setTimeout(() => {
+				isHandlingAction.current = false;
+			}, 0);
+		},
+		[setCombinedState, setSearchParams]
+	);
 
 	/**
 	 * Internal helper to update state and URL atomically with throttling.
@@ -166,179 +163,207 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 	 * - If enough time has passed, executes immediately
 	 * - If called too rapidly, queues the latest update and executes after throttle period
 	 */
-	const updateStateAndUrl = useCallback((
-		newState: TaskViewCombinedState,
-		urlParams: { view?: string | null; filters?: string | null; category?: string | null }
-	) => {
-		// CRITICAL: Skip if nothing actually changes - this prevents re-render cascades
-		const currentUrlView = viewSlug;
-		const newUrlView = urlParams.view;
-		const stateUnchanged = areStatesEqual(state, newState);
-		const urlUnchanged = currentUrlView === newUrlView;
+	const updateStateAndUrl = useCallback(
+		(
+			newState: TaskViewCombinedState,
+			urlParams: { view?: string | null; filters?: string | null; category?: string | null }
+		) => {
+			// CRITICAL: Skip if nothing actually changes - this prevents re-render cascades
+			const currentUrlView = viewSlug;
+			const newUrlView = urlParams.view;
+			const stateUnchanged = areStatesEqual(state, newState);
+			const urlUnchanged = currentUrlView === newUrlView;
 
-		if (stateUnchanged && urlUnchanged && categorySlug === (urlParams.category ?? null)) {
-			// Nothing to do - early return prevents unnecessary updates
-			return;
-		}
-
-		const now = Date.now();
-		const timeSinceLastUpdate = now - lastUpdateTime.current;
-
-		// If enough time has passed, execute immediately
-		if (timeSinceLastUpdate >= THROTTLE_MS) {
-			// Clear any pending scheduled update
-			if (throttleTimeout.current) {
-				clearTimeout(throttleTimeout.current);
-				throttleTimeout.current = null;
+			if (stateUnchanged && urlUnchanged && categorySlug === (urlParams.category ?? null)) {
+				// Nothing to do - early return prevents unnecessary updates
+				return;
 			}
-			pendingUpdate.current = null;
-			executeUpdate(newState, urlParams);
-			return;
-		}
 
-		// Otherwise, queue this update (replacing any previous pending update)
-		pendingUpdate.current = { state: newState, urlParams };
+			const now = Date.now();
+			const timeSinceLastUpdate = now - lastUpdateTime.current;
 
-		// Schedule execution if not already scheduled
-		if (!throttleTimeout.current) {
-			const timeToWait = THROTTLE_MS - timeSinceLastUpdate;
-			throttleTimeout.current = setTimeout(() => {
-				throttleTimeout.current = null;
-				if (pendingUpdate.current) {
-					executeUpdate(pendingUpdate.current.state, pendingUpdate.current.urlParams);
-					pendingUpdate.current = null;
+			// If enough time has passed, execute immediately
+			if (timeSinceLastUpdate >= THROTTLE_MS) {
+				// Clear any pending scheduled update
+				if (throttleTimeout.current) {
+					clearTimeout(throttleTimeout.current);
+					throttleTimeout.current = null;
 				}
-			}, timeToWait);
-		}
-	}, [executeUpdate, state, viewSlug, categorySlug]);
+				pendingUpdate.current = null;
+				executeUpdate(newState, urlParams);
+				return;
+			}
+
+			// Otherwise, queue this update (replacing any previous pending update)
+			pendingUpdate.current = { state: newState, urlParams };
+
+			// Schedule execution if not already scheduled
+			if (!throttleTimeout.current) {
+				const timeToWait = THROTTLE_MS - timeSinceLastUpdate;
+				throttleTimeout.current = setTimeout(() => {
+					throttleTimeout.current = null;
+					if (pendingUpdate.current) {
+						executeUpdate(pendingUpdate.current.state, pendingUpdate.current.urlParams);
+						pendingUpdate.current = null;
+					}
+				}, timeToWait);
+			}
+		},
+		[executeUpdate, state, viewSlug, categorySlug]
+	);
 
 	/**
 	 * Switch to a saved view - updates everything atomically
 	 */
-	const selectView = useCallback((view: schema.savedViewType) => {
-		const targetViewSlug = view.slug || view.id;
+	const selectView = useCallback(
+		(view: schema.savedViewType) => {
+			const targetViewSlug = view.slug || view.id;
 
-		// Skip if already on this view
-		if (viewSlug === targetViewSlug) {
-			return;
-		}
+			// Skip if already on this view
+			if (viewSlug === targetViewSlug) {
+				return;
+			}
 
-		const viewFilters = deserializeFilters(view.filterParams) || DEFAULT_FILTER_STATE;
-		const viewConfigFromView = view.viewConfig
-			? mapViewConfigToState(view.viewConfig)
-			: DEFAULT_TASK_VIEW_STATE;
+			const viewFilters = deserializeFilters(view.filterParams) || DEFAULT_FILTER_STATE;
+			const viewConfigFromView = view.viewConfig ? mapViewConfigToState(view.viewConfig) : DEFAULT_TASK_VIEW_STATE;
 
-		updateStateAndUrl(
-			{ filters: viewFilters, viewConfig: viewConfigFromView },
-			{ view: targetViewSlug, filters: null, category: null }
-		);
-	}, [updateStateAndUrl, viewSlug]);
+			updateStateAndUrl(
+				{ filters: viewFilters, viewConfig: viewConfigFromView },
+				{ view: targetViewSlug, filters: null, category: null }
+			);
+		},
+		[updateStateAndUrl, viewSlug]
+	);
 
 	/**
 	 * Clear current view and reset to defaults (optionally with new filters)
 	 */
-	const clearView = useCallback((newFilters?: FilterState) => {
-		const filtersToApply = newFilters || DEFAULT_FILTER_STATE;
+	const clearView = useCallback(
+		(newFilters?: FilterState) => {
+			const filtersToApply = newFilters || DEFAULT_FILTER_STATE;
 
-		updateStateAndUrl(
-			{ filters: filtersToApply, viewConfig: DEFAULT_TASK_VIEW_STATE },
-			{
-				view: null,
-				filters: filtersToApply.groups.length > 0 ? serializeFilters(filtersToApply) : null,
-				category: null,
-			}
-		);
-	}, [updateStateAndUrl]);
+			updateStateAndUrl(
+				{ filters: filtersToApply, viewConfig: DEFAULT_TASK_VIEW_STATE },
+				{
+					view: null,
+					filters: filtersToApply.groups.length > 0 ? serializeFilters(filtersToApply) : null,
+					category: null,
+				}
+			);
+		},
+		[updateStateAndUrl]
+	);
 
 	/**
 	 * Apply a filter (used by sidebar for category, priority, assignee filters)
 	 */
-	const applyFilter = useCallback((newFilters: FilterState) => {
-		updateStateAndUrl(
-			{ filters: newFilters, viewConfig: DEFAULT_TASK_VIEW_STATE },
-			{
-				view: null,
-				filters: newFilters.groups.length > 0 ? serializeFilters(newFilters) : null,
-				category: null,
-			}
-		);
-	}, [updateStateAndUrl]);
+	const applyFilter = useCallback(
+		(newFilters: FilterState) => {
+			updateStateAndUrl(
+				{ filters: newFilters, viewConfig: DEFAULT_TASK_VIEW_STATE },
+				{
+					view: null,
+					filters: newFilters.groups.length > 0 ? serializeFilters(newFilters) : null,
+					category: null,
+				}
+			);
+		},
+		[updateStateAndUrl]
+	);
 
 	/**
 	 * Apply a category filter using its slug
 	 */
-	const setCategoryFilter = useCallback((slug: string) => {
-		// When setting a category slug, we clear complex filters and the view
-		// The actual filter application happens in the UI where they have the category ID
-		updateStateAndUrl(
-			{ filters: DEFAULT_FILTER_STATE, viewConfig: DEFAULT_TASK_VIEW_STATE },
-			{
-				view: null,
-				filters: null,
-				category: slug,
-			}
-		);
-	}, [updateStateAndUrl]);
+	const setCategoryFilter = useCallback(
+		(slug: string) => {
+			// When setting a category slug, we clear complex filters and the view
+			// The actual filter application happens in the UI where they have the category ID
+			updateStateAndUrl(
+				{ filters: DEFAULT_FILTER_STATE, viewConfig: DEFAULT_TASK_VIEW_STATE },
+				{
+					view: null,
+					filters: null,
+					category: slug,
+				}
+			);
+		},
+		[updateStateAndUrl]
+	);
 
 	/**
 	 * Update filters (for filter dropdown UI) - doesn't change view config
 	 */
-	const setFilters = useCallback((newFilters: FilterState) => {
-		// Skip if filters haven't actually changed
-		if (areFiltersEqual(state.filters, newFilters)) {
-			return;
-		}
+	const setFilters = useCallback(
+		(newFilters: FilterState) => {
+			// Skip if filters haven't actually changed
+			if (areFiltersEqual(state.filters, newFilters)) {
+				return;
+			}
 
-		isHandlingAction.current = true;
-		setCombinedState({ ...state, filters: newFilters });
+			isHandlingAction.current = true;
+			setCombinedState({ ...state, filters: newFilters });
 
-		// Update URL if not in a saved view
-		if (!viewSlug) {
-			setSearchParams({
-				filters: newFilters.groups.length > 0 ? serializeFilters(newFilters) : null,
-				category: null, // Clear category slug when manual filters are applied
-			});
-		}
+			// Update URL if not in a saved view
+			if (!viewSlug) {
+				setSearchParams({
+					filters: newFilters.groups.length > 0 ? serializeFilters(newFilters) : null,
+					category: null, // Clear category slug when manual filters are applied
+				});
+			}
 
-		setTimeout(() => {
-			isHandlingAction.current = false;
-		}, 0);
-	}, [state, setCombinedState, viewSlug, setSearchParams]);
+			setTimeout(() => {
+				isHandlingAction.current = false;
+			}, 0);
+		},
+		[state, setCombinedState, viewSlug, setSearchParams]
+	);
 
 	/**
 	 * Add a filter condition (merges with existing if same field)
 	 */
-	const addFilter = useCallback((condition: FilterCondition) => {
-		const newFilters = mergeOrAppendCondition(state.filters, condition);
-		setFilters(newFilters);
-	}, [state.filters, setFilters]);
+	const addFilter = useCallback(
+		(condition: FilterCondition) => {
+			const newFilters = mergeOrAppendCondition(state.filters, condition);
+			setFilters(newFilters);
+		},
+		[state.filters, setFilters]
+	);
 
 	/**
 	 * Remove a filter condition by ID
 	 */
-	const removeFilter = useCallback((filterId: string) => {
-		const newGroups: FilterGroup[] = state.filters.groups
-			.map((g) => ({
-				...g,
-				conditions: g.conditions.filter((c) => c.id !== filterId),
-			}))
-			.filter((g) => g.conditions.length > 0);
-		setFilters({ ...state.filters, groups: newGroups });
-	}, [state.filters, setFilters]);
+	const removeFilter = useCallback(
+		(filterId: string) => {
+			const newGroups: FilterGroup[] = state.filters.groups
+				.map((g) => ({
+					...g,
+					conditions: g.conditions.filter((c) => c.id !== filterId),
+				}))
+				.filter((g) => g.conditions.length > 0);
+			setFilters({ ...state.filters, groups: newGroups });
+		},
+		[state.filters, setFilters]
+	);
 
 	/**
 	 * Update a filter's operator
 	 */
-	const updateFilterOperator = useCallback((filterId: string, operator: FilterOperator) => {
-		setFilters(updateConditionOperator(state.filters, filterId, operator));
-	}, [state.filters, setFilters]);
+	const updateFilterOperator = useCallback(
+		(filterId: string, operator: FilterOperator) => {
+			setFilters(updateConditionOperator(state.filters, filterId, operator));
+		},
+		[state.filters, setFilters]
+	);
 
 	/**
 	 * Toggle a value in a multi-select filter
 	 */
-	const toggleFilterValue = useCallback((conditionId: string, value: string) => {
-		setFilters(toggleValueHelper(state.filters, conditionId, value));
-	}, [state.filters, setFilters]);
+	const toggleFilterValue = useCallback(
+		(conditionId: string, value: string) => {
+			setFilters(toggleValueHelper(state.filters, conditionId, value));
+		},
+		[state.filters, setFilters]
+	);
 
 	/**
 	 * Clear all filters
@@ -350,35 +375,32 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 	/**
 	 * Update view config (grouping, viewMode, etc.) - doesn't change filters
 	 */
-	const setViewConfig = useCallback((updates: Partial<TaskViewState>) => {
-		const newViewConfig = { ...state.viewConfig, ...updates };
+	const setViewConfig = useCallback(
+		(updates: Partial<TaskViewState>) => {
+			const newViewConfig = { ...state.viewConfig, ...updates };
 
-		// Skip if view config hasn't actually changed
-		if (areViewConfigsEqual(state.viewConfig, newViewConfig)) {
-			return;
-		}
+			// Skip if view config hasn't actually changed
+			if (areViewConfigsEqual(state.viewConfig, newViewConfig)) {
+				return;
+			}
 
-		setCombinedState({
-			...state,
-			viewConfig: newViewConfig,
-		});
-	}, [state, setCombinedState]);
+			setCombinedState({
+				...state,
+				viewConfig: newViewConfig,
+			});
+		},
+		[state, setCombinedState]
+	);
 
 	// Granular setters for view config
-	const setGrouping = useCallback(
-		(grouping: TaskGroupingId) => setViewConfig({ grouping }),
-		[setViewConfig]
-	);
+	const setGrouping = useCallback((grouping: TaskGroupingId) => setViewConfig({ grouping }), [setViewConfig]);
 
 	const setSubGrouping = useCallback(
 		(subGrouping: TaskGroupingId | "none") => setViewConfig({ subGrouping }),
 		[setViewConfig]
 	);
 
-	const setViewMode = useCallback(
-		(viewMode: "list" | "kanban") => setViewConfig({ viewMode }),
-		[setViewConfig]
-	);
+	const setViewMode = useCallback((viewMode: "list" | "kanban") => setViewConfig({ viewMode }), [setViewConfig]);
 
 	const setShowCompletedTasks = useCallback(
 		(showCompletedTasks: boolean) => setViewConfig({ showCompletedTasks }),
@@ -396,8 +418,8 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 		}
 
 		// Find the view by slug or ID
-		const targetView = availableViews.find(v => v.slug === viewSlug || v.id === viewSlug);
-		
+		const targetView = availableViews.find((v) => v.slug === viewSlug || v.id === viewSlug);
+
 		if (!targetView) {
 			// View slug in URL doesn't match any available view - could be outdated/invalid
 			return;
@@ -416,9 +438,9 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 			// Mark as handling to prevent loops
 			isHandlingAction.current = true;
 			hasInitializedFromUrl.current = true;
-			
+
 			setCombinedState(targetState);
-			
+
 			// Reset flag after applying
 			setTimeout(() => {
 				isHandlingAction.current = false;
@@ -428,6 +450,53 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 			hasInitializedFromUrl.current = true;
 		}
 	}, [viewSlug, availableViews, state, setCombinedState]);
+
+	/**
+	 * Auto-load filters from URL on mount
+	 * This syncs the filter state when the page is loaded with ?filters=<encoded>
+	 */
+	useEffect(() => {
+		// Skip if we have a view slug (view takes precedence), already handling, or already initialized
+		if (viewSlug || isHandlingAction.current || hasInitializedFromUrl.current) {
+			return;
+		}
+
+		// Skip if no filters param in URL
+		if (!filtersParam) {
+			return;
+		}
+
+		// Deserialize filters from URL
+		const urlFilters = deserializeFilters(filtersParam);
+
+		if (!urlFilters) {
+			// Failed to deserialize
+			return;
+		}
+
+		// Check if filters are actually different from current state
+		const targetState = {
+			...state,
+			filters: urlFilters,
+		};
+
+		// Only apply if the state is actually different from current state
+		if (!areStatesEqual(state, targetState)) {
+			// Mark as handling to prevent loops
+			isHandlingAction.current = true;
+			hasInitializedFromUrl.current = true;
+
+			setCombinedState(targetState);
+
+			// Reset flag after applying
+			setTimeout(() => {
+				isHandlingAction.current = false;
+			}, 0);
+		} else {
+			// Filters already match - just mark as initialized
+			hasInitializedFromUrl.current = true;
+		}
+	}, [viewSlug, filtersParam, state, setCombinedState]);
 
 	return {
 		// Current state

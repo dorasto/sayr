@@ -63,8 +63,7 @@ function getToolbarItems(editor: Editor<BasicExtension>) {
 					canExec: editor.commands.insertCodeBlock.canExec({
 						language: "javascript",
 					}),
-					command: () =>
-						editor.commands.insertCodeBlock({ language: "javascript" }),
+					command: () => editor.commands.insertCodeBlock({ language: "javascript" }),
 				}
 			: undefined,
 		heading1: editor.commands.toggleHeading
@@ -350,11 +349,7 @@ export default function Toolbar(props: { uploader?: Uploader<string> }) {
 				</Button>
 			)}
 			{props.uploader && items.insertImage && (
-				<ImageUploadPopover
-					uploader={props.uploader}
-					disabled={!items.insertImage.canExec}
-					tooltip="Insert Image"
-				>
+				<ImageUploadPopover uploader={props.uploader} disabled={!items.insertImage.canExec} tooltip="Insert Image">
 					<div className="i-lucide-image size-5 block" />
 				</ImageUploadPopover>
 			)}

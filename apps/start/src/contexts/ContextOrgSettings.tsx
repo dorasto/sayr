@@ -16,6 +16,8 @@ interface ContextType {
 	setTasks: (newValue: ContextType["tasks"]) => void;
 	issueTemplates: schema.issueTemplateWithRelations[];
 	setIssueTemplates: (newValue: ContextType["issueTemplates"]) => void;
+	releases: schema.releaseType[];
+	setReleases: (newValue: ContextType["releases"]) => void;
 	isProjectPanelOpen: boolean;
 	setProjectPanelOpen: (newValue: boolean) => void;
 }
@@ -30,6 +32,7 @@ export function SettingsProviderOrganization({
 	categories,
 	tasks,
 	issueTemplates,
+	releases,
 }: {
 	children: ReactNode;
 	organization: ContextType["organization"];
@@ -38,6 +41,7 @@ export function SettingsProviderOrganization({
 	categories: ContextType["categories"];
 	tasks: ContextType["tasks"];
 	issueTemplates: ContextType["issueTemplates"];
+	releases: ContextType["releases"];
 }) {
 	const { value: NewOrganization, setValue: setOrganization } = useStateManagement(
 		"organization",
@@ -53,6 +57,7 @@ export function SettingsProviderOrganization({
 		issueTemplates,
 		30000
 	);
+	const { value: NewReleases, setValue: setReleases } = useStateManagement("releases", releases, 30000);
 	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement(
 		"isProjectPanelOpen",
 		true,
@@ -65,6 +70,7 @@ export function SettingsProviderOrganization({
 	useEffect(() => setCategories(categories), [categories, setCategories]);
 	useEffect(() => setTasks(tasks), [tasks, setTasks]);
 	useEffect(() => setIssueTemplates(issueTemplates), [issueTemplates, setIssueTemplates]);
+	useEffect(() => setReleases(releases), [releases, setReleases]);
 	return (
 		<RootContext.Provider
 			value={{
@@ -80,6 +86,8 @@ export function SettingsProviderOrganization({
 				setTasks,
 				issueTemplates: NewIssueTemplates,
 				setIssueTemplates,
+				releases: NewReleases,
+				setReleases,
 				isProjectPanelOpen,
 				setProjectPanelOpen,
 			}}

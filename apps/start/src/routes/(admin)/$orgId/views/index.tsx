@@ -9,12 +9,7 @@ export const Route = createFileRoute("/(admin)/$orgId/views/")({
 
 function RouteComponent() {
 	return (
-		<SubWrapper
-			style="compact"
-			title="Views"
-			icon={<IconStack2 />}
-			description="Drill into specifics"
-		>
+		<SubWrapper style="compact" title="Views" icon={<IconStack2 />} description="Drill into specifics">
 			<OrganizationViewsPage />
 		</SubWrapper>
 	);

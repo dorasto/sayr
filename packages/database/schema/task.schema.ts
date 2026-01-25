@@ -7,6 +7,7 @@ import { category } from "./category.schema";
 import { githubIssue } from "./github_issue.schema";
 import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
+import { release } from "./release.schema";
 import { taskAssignee } from "./taskAssignee.schema";
 import { taskComment } from "./taskComment.schema";
 import { taskTimeline } from "./taskTimeline.schema";
@@ -36,6 +37,7 @@ export const task = table(
 		priority: priorityEnum("none").notNull(),
 		createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),
 		category: v.text("category").references(() => category.id, { onDelete: "set null" }),
+		releaseId: v.text("release_id").references(() => release.id, { onDelete: "set null" }),
 		voteCount: v.integer("vote_count").notNull().default(0),
 	},
 	(t) => [
@@ -43,6 +45,7 @@ export const task = table(
 		v.index("idx_task_org_createdat").on(t.organizationId, t.createdAt),
 		v.index("idx_task_created_by").on(t.createdBy),
 		v.index("idx_task_org_category").on(t.organizationId, t.category),
+		v.index("idx_task_org_release").on(t.organizationId, t.releaseId),
 		v.unique("task_organization_shortid_unique").on(t.organizationId, t.shortId),
 	]
 );
@@ -61,6 +64,10 @@ export const taskRelations = relations(task, ({ one, many }) => ({
 	category: one(category, {
 		fields: [task.category],
 		references: [category.id],
+	}),
+	release: one(release, {
+		fields: [task.releaseId],
+		references: [release.id],
 	}),
 	labels: many(taskLabelAssignment),
 	assignees: many(taskAssignee),
