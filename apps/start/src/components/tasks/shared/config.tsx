@@ -1,427 +1,571 @@
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/avatar";
 import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
-import { IconAlertSquareFilled, IconCategory2, IconRocket, IconUser } from "@tabler/icons-react";
-import type { TaskGroup, TaskGroupingContext, TaskGroupingDefinition, TaskGroupingId } from "../filter/types";
+import {
+  IconAlertSquareFilled,
+  IconCategory2,
+  IconRocket,
+  IconUser,
+} from "@tabler/icons-react";
+import type {
+  TaskGroup,
+  TaskGroupingContext,
+  TaskGroupingDefinition,
+  TaskGroupingId,
+} from "../filter/types";
 
 export const statusConfig = {
-	backlog: {
-		label: "Backlog",
-		icon: (className: string) => <StatusIcon status="backlog" className={className} />,
-		className: "text-muted-foreground",
-		color: "#6B7280",
-		hsla: "hsla(220, 8.94%, 46.08%, 1)",
-		var: "muted-foreground",
-	},
-	todo: {
-		label: "Todo",
-		icon: (className: string) => <StatusIcon status="todo" className={className} />,
-		className: "text-foreground",
-		color: "#3B82F6",
-		hsla: "hsla(217.22, 91.22%, 59.8%, 1)",
-		var: "foreground",
-	},
-	"in-progress": {
-		label: "In Progress",
-		icon: (className: string) => <StatusIcon status="in-progress" className={className} />,
-		className: "text-primary fill-primary",
-		color: "#F59E0B",
-		hsla: "hsla(37.69, 92.13%, 50.2%, 1)",
-		var: "primary",
-	},
-	done: {
-		label: "Done",
-		icon: (className: string) => <StatusIcon status="done" className={className} />,
-		className: "text-success",
-		color: "#10B981",
-		hsla: "hsla(141.43, 99.9%, 59.8%, 1)",
-		var: "success",
-	},
-	canceled: {
-		label: "Canceled",
-		icon: (className: string) => <StatusIcon status="canceled" className={className} />,
-		className: "text-desctructive",
-		color: "#EF4444",
-		hsla: "hsla(359.43, 99.9%, 59.8%, 1)",
-		var: "destructive",
-	},
+  backlog: {
+    label: "Backlog",
+    icon: (className: string) => (
+      <StatusIcon status="backlog" className={className} />
+    ),
+    className: "text-muted-foreground",
+    color: "#6B7280",
+    hsla: "hsla(220, 8.94%, 46.08%, 1)",
+    var: "muted-foreground",
+  },
+  todo: {
+    label: "Todo",
+    icon: (className: string) => (
+      <StatusIcon status="todo" className={className} />
+    ),
+    className: "text-foreground",
+    color: "#3B82F6",
+    hsla: "hsla(217.22, 91.22%, 59.8%, 1)",
+    var: "foreground",
+  },
+  "in-progress": {
+    label: "In Progress",
+    icon: (className: string) => (
+      <StatusIcon status="in-progress" className={className} />
+    ),
+    className: "text-primary fill-primary",
+    color: "#F59E0B",
+    hsla: "hsla(37.69, 92.13%, 50.2%, 1)",
+    var: "primary",
+  },
+  done: {
+    label: "Done",
+    icon: (className: string) => (
+      <StatusIcon status="done" className={className} />
+    ),
+    className: "text-success",
+    color: "#10B981",
+    hsla: "hsla(141.43, 99.9%, 59.8%, 1)",
+    var: "success",
+  },
+  canceled: {
+    label: "Canceled",
+    icon: (className: string) => (
+      <StatusIcon status="canceled" className={className} />
+    ),
+    className: "text-desctructive",
+    color: "#EF4444",
+    hsla: "hsla(359.43, 99.9%, 59.8%, 1)",
+    var: "destructive",
+  },
 } as const;
 
 export const priorityConfig = {
-	low: {
-		label: "Low",
-		icon: (className: string) => <PriorityIcon bars={1} className={className} />,
-		className: "text-gray-500",
-		color: "#6B7280",
-	},
-	medium: {
-		label: "Medium",
-		icon: (className: string) => <PriorityIcon bars={2} className={className} />,
-		className: "text-yellow-500",
-		color: "#F59E0B",
-	},
-	high: {
-		label: "High",
-		icon: (className: string) => <PriorityIcon bars={3} className={className} />,
-		className: "text-red-500",
-		color: "#EF4444",
-	},
-	urgent: {
-		label: "Urgent",
-		icon: (className: string) => <IconAlertSquareFilled className={className} />,
-		className: " text-destructive",
-		color: "#DC2626",
-	},
-	none: {
-		label: "No Priority",
-		icon: (className: string) => <PriorityIcon bars="none" className={className} />,
-		className: "text-muted-foreground",
-		color: "#9CA3AF",
-	},
+  low: {
+    label: "Low",
+    icon: (className: string) => (
+      <PriorityIcon bars={1} className={className} />
+    ),
+    className: "text-gray-500",
+    color: "#6B7280",
+  },
+  medium: {
+    label: "Medium",
+    icon: (className: string) => (
+      <PriorityIcon bars={2} className={className} />
+    ),
+    className: "text-yellow-500",
+    color: "#F59E0B",
+  },
+  high: {
+    label: "High",
+    icon: (className: string) => (
+      <PriorityIcon bars={3} className={className} />
+    ),
+    className: "text-red-500",
+    color: "#EF4444",
+  },
+  urgent: {
+    label: "Urgent",
+    icon: (className: string) => (
+      <IconAlertSquareFilled className={className} />
+    ),
+    className: "text-destructive",
+    color: "#DC2626",
+  },
+  none: {
+    label: "No Priority",
+    icon: (className: string) => (
+      <PriorityIcon bars="none" className={className} />
+    ),
+    className: "text-muted-foreground",
+    color: "#9CA3AF",
+  },
 } as const;
 
 export type StatusKey = keyof typeof statusConfig;
 export type PriorityKey = keyof typeof priorityConfig;
 
-const STATUS_ORDER: Array<keyof typeof statusConfig> = ["backlog", "todo", "in-progress", "done", "canceled"];
-const PRIORITY_ORDER: Array<keyof typeof priorityConfig> = ["urgent", "high", "medium", "low", "none"];
-const COMPLETED_STATUSES: Array<keyof typeof statusConfig> = ["done", "canceled"];
-const filterCompletedTasks = (tasks: schema.TaskWithLabels[], showCompletedTasks: boolean): schema.TaskWithLabels[] => {
-	if (showCompletedTasks) return tasks;
-	return tasks.filter((task) => !COMPLETED_STATUSES.includes(task.status as keyof typeof statusConfig));
+export interface GroupHeaderStyle {
+  rootClassName?: string;
+  getItemClassName?: (key: string) => string | undefined;
+}
+
+export const GROUP_HEADER_STYLES: Record<TaskGroupingId, GroupHeaderStyle> = {
+  status: {
+    rootClassName: "bg-background",
+    getItemClassName: (key: string) => {
+      switch (key as StatusKey) {
+        case "backlog":
+          return "bg-muted";
+        case "todo":
+          return "bg-muted";
+        case "in-progress":
+          return "bg-primary/5";
+        case "done":
+          return "bg-success/5";
+        case "canceled":
+          return "bg-destructive/5";
+        default:
+          return undefined;
+      }
+    },
+  },
+  priority: {
+    rootClassName: undefined,
+    getItemClassName: (key: string) => {
+      switch (key as PriorityKey) {
+        case "urgent":
+          return "bg-destructive/5";
+        case "high":
+          return "bg-orange-800/5";
+        case "medium":
+          return "bg-primary/5";
+        case "low":
+          return "bg-muted";
+        case "none":
+          return undefined;
+        default:
+          return undefined;
+      }
+    },
+  },
+  assignee: {
+    rootClassName: undefined,
+    getItemClassName: () => undefined,
+  },
+  category: {
+    rootClassName: undefined,
+    getItemClassName: () => undefined,
+  },
+  release: {
+    rootClassName: undefined,
+    getItemClassName: () => undefined,
+  },
+};
+
+const STATUS_ORDER: Array<keyof typeof statusConfig> = [
+  "backlog",
+  "todo",
+  "in-progress",
+  "done",
+  "canceled",
+];
+const PRIORITY_ORDER: Array<keyof typeof priorityConfig> = [
+  "urgent",
+  "high",
+  "medium",
+  "low",
+  "none",
+];
+const COMPLETED_STATUSES: Array<keyof typeof statusConfig> = [
+  "done",
+  "canceled",
+];
+const filterCompletedTasks = (
+  tasks: schema.TaskWithLabels[],
+  showCompletedTasks: boolean,
+): schema.TaskWithLabels[] => {
+  if (showCompletedTasks) return tasks;
+  return tasks.filter(
+    (task) =>
+      !COMPLETED_STATUSES.includes(task.status as keyof typeof statusConfig),
+  );
 };
 
 const createInitialStatusGroups = () =>
-	STATUS_ORDER.map((statusKey) => {
-		const config = statusConfig[statusKey];
-		return {
-			id: `status:${statusKey}`,
-			key: statusKey,
-			label: config.label,
-			count: 0,
-			tasks: [] as schema.TaskWithLabels[],
-			icon: config.icon("h-4 w-4"),
-			description: undefined,
-			accentClassName: config.className,
-		};
-	});
+  STATUS_ORDER.map((statusKey) => {
+    const config = statusConfig[statusKey];
+    return {
+      id: `status:${statusKey}`,
+      key: statusKey,
+      label: config.label,
+      count: 0,
+      tasks: [] as schema.TaskWithLabels[],
+      icon: config.icon("h-4 w-4"),
+      description: undefined,
+      accentClassName: config.className,
+    };
+  });
 
 const createInitialPriorityGroups = () =>
-	PRIORITY_ORDER.map((priorityKey) => {
-		const config = priorityConfig[priorityKey];
-		return {
-			id: `priority:${priorityKey}`,
-			key: priorityKey,
-			label: config.label,
-			count: 0,
-			tasks: [] as schema.TaskWithLabels[],
-			icon: config.icon("h-4 w-4"),
-			description: undefined,
-			accentClassName: config.className,
-		};
-	});
+  PRIORITY_ORDER.map((priorityKey) => {
+    const config = priorityConfig[priorityKey];
+    return {
+      id: `priority:${priorityKey}`,
+      key: priorityKey,
+      label: config.label,
+      count: 0,
+      tasks: [] as schema.TaskWithLabels[],
+      icon: config.icon("h-4 w-4"),
+      description: undefined,
+      accentClassName: config.className,
+    };
+  });
 
 type AssigneeDisplay = {
-	id: string;
-	name?: string | null;
-	email?: string | null;
-	image?: string | null;
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
 };
 
 const getUserInitials = (user: AssigneeDisplay | undefined) => {
-	const source = user?.name || user?.email || "";
-	if (!source) return "?";
-	return source
-		.split(" ")
-		.filter(Boolean)
-		.map((part) => part[0])
-		.join("")
-		.slice(0, 2)
-		.toUpperCase();
+  const source = user?.name || user?.email || "";
+  if (!source) return "?";
+  return source
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 };
 
 const createAssigneeGroup = (user: AssigneeDisplay | undefined) => {
-	const id = user ? `assignee:${user.id}` : "assignee:unassigned";
-	const label = user?.name || user?.email || "Unassigned";
-	return {
-		id,
-		key: user?.id || "unassigned",
-		label,
-		count: 0,
-		tasks: [] as schema.TaskWithLabels[],
-		icon: user ? (
-			<Avatar className="h-4 w-4 border border-border">
-				<AvatarImage src={user.image || undefined} />
-				<AvatarFallback className="text-xs">{getUserInitials(user)}</AvatarFallback>
-			</Avatar>
-		) : (
-			<div className="flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
-				<IconUser className="h-4 w-4" />
-			</div>
-		),
-		description: undefined,
-		accentClassName: undefined,
-		metadata: user ? { user } : undefined,
-	};
+  const id = user ? `assignee:${user.id}` : "assignee:unassigned";
+  const label = user?.name || user?.email || "Unassigned";
+  return {
+    id,
+    key: user?.id || "unassigned",
+    label,
+    count: 0,
+    tasks: [] as schema.TaskWithLabels[],
+    icon: user ? (
+      <Avatar className="h-4 w-4 border border-border">
+        <AvatarImage src={user.image || undefined} />
+        <AvatarFallback className="text-xs">
+          {getUserInitials(user)}
+        </AvatarFallback>
+      </Avatar>
+    ) : (
+      <div className="flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
+        <IconUser className="h-4 w-4" />
+      </div>
+    ),
+    description: undefined,
+    accentClassName: undefined,
+    metadata: user ? { user } : undefined,
+  };
 };
 
 const statusGrouping = createGroupingDefinition("status", {
-	label: "Status",
-	description: "Group tasks by their workflow status",
-	icon: statusConfig.todo.icon("h-4 w-4"),
-	group: ({ tasks, showCompletedTasks }: TaskGroupingContext) => {
-		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
-		const groups = createInitialStatusGroups();
-		const fallbackGroup = groups[0];
-		if (!fallbackGroup) {
-			return [];
-		}
+  label: "Status",
+  description: "Group tasks by their workflow status",
+  icon: statusConfig.todo.icon("h-4 w-4"),
+  group: ({ tasks, showCompletedTasks }: TaskGroupingContext) => {
+    const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
+    const groups = createInitialStatusGroups();
+    const fallbackGroup = groups[0];
+    if (!fallbackGroup) {
+      return [];
+    }
 
-		filteredTasks.forEach((task) => {
-			const statusKey = (task.status as keyof typeof statusConfig) || fallbackGroup.key;
-			const target = groups.find((g) => g.key === statusKey) ?? fallbackGroup;
-			target.tasks.push(task);
-		});
+    filteredTasks.forEach((task) => {
+      const statusKey =
+        (task.status as keyof typeof statusConfig) || fallbackGroup.key;
+      const target = groups.find((g) => g.key === statusKey) ?? fallbackGroup;
+      target.tasks.push(task);
+    });
 
-		return groups
-			.map((group) => ({ ...group, count: group.tasks.length }))
-			.filter((group) => {
-				// Hide completed status groups when showCompletedTasks is false
-				if (!showCompletedTasks && COMPLETED_STATUSES.includes(group.key as keyof typeof statusConfig)) {
-					return false;
-				}
-				return true; // Always show all groups
-			});
-	},
+    return groups
+      .map((group) => ({ ...group, count: group.tasks.length }))
+      .filter((group) => {
+        // Hide completed status groups when showCompletedTasks is false
+        if (
+          !showCompletedTasks &&
+          COMPLETED_STATUSES.includes(group.key as keyof typeof statusConfig)
+        ) {
+          return false;
+        }
+        return true; // Always show all groups
+      });
+  },
 });
 
 const priorityGrouping = createGroupingDefinition("priority", {
-	label: "Priority",
-	description: "Group tasks by priority level",
-	icon: priorityConfig.medium.icon("h-4 w-4"),
-	group: ({ tasks, showCompletedTasks }: TaskGroupingContext) => {
-		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
-		const groups = createInitialPriorityGroups();
-		const fallbackGroup = groups.find((group) => group.key === "none") ?? groups[0];
-		if (!fallbackGroup) {
-			return [];
-		}
+  label: "Priority",
+  description: "Group tasks by priority level",
+  icon: priorityConfig.medium.icon("h-4 w-4"),
+  group: ({ tasks, showCompletedTasks }: TaskGroupingContext) => {
+    const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
+    const groups = createInitialPriorityGroups();
+    const fallbackGroup =
+      groups.find((group) => group.key === "none") ?? groups[0];
+    if (!fallbackGroup) {
+      return [];
+    }
 
-		filteredTasks.forEach((task) => {
-			const priorityKey = (task.priority as keyof typeof priorityConfig) || fallbackGroup.key;
-			const target = groups.find((g) => g.key === priorityKey) ?? fallbackGroup;
-			target.tasks.push(task);
-		});
+    filteredTasks.forEach((task) => {
+      const priorityKey =
+        (task.priority as keyof typeof priorityConfig) || fallbackGroup.key;
+      const target = groups.find((g) => g.key === priorityKey) ?? fallbackGroup;
+      target.tasks.push(task);
+    });
 
-		return groups.map((group) => ({ ...group, count: group.tasks.length }));
-	},
+    return groups.map((group) => ({ ...group, count: group.tasks.length }));
+  },
 });
 
 const assigneeGrouping = createGroupingDefinition("assignee", {
-	label: "Assignee",
-	description: "Group tasks by assigned team members",
-	icon: <IconUser className="h-4 w-4" />,
-	group: ({ tasks, availableUsers, showCompletedTasks }: TaskGroupingContext) => {
-		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
-		const groupMap = new Map<string, TaskGroup>();
+  label: "Assignee",
+  description: "Group tasks by assigned team members",
+  icon: <IconUser className="h-4 w-4" />,
+  group: ({
+    tasks,
+    availableUsers,
+    showCompletedTasks,
+  }: TaskGroupingContext) => {
+    const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
+    const groupMap = new Map<string, TaskGroup>();
 
-		const ensureGroupForUser = (user: AssigneeDisplay | undefined) => {
-			const key = user?.id || "unassigned";
-			const existing = groupMap.get(key);
-			if (existing) {
-				return existing;
-			}
-			const created = createAssigneeGroup(user);
-			groupMap.set(key, created);
-			return created;
-		};
+    const ensureGroupForUser = (user: AssigneeDisplay | undefined) => {
+      const key = user?.id || "unassigned";
+      const existing = groupMap.get(key);
+      if (existing) {
+        return existing;
+      }
+      const created = createAssigneeGroup(user);
+      groupMap.set(key, created);
+      return created;
+    };
 
-		// Always create groups for all available users
-		availableUsers.forEach((user) => {
-			ensureGroupForUser(user);
-		});
-		ensureGroupForUser(undefined);
+    // Always create groups for all available users
+    availableUsers.forEach((user) => {
+      ensureGroupForUser(user);
+    });
+    ensureGroupForUser(undefined);
 
-		filteredTasks.forEach((task) => {
-			if (task.assignees && task.assignees.length > 0) {
-				task.assignees.forEach((assignee) => {
-					const matchingUser = availableUsers.find((user) => user.id === assignee.id);
-					const fallbackUser: AssigneeDisplay = {
-						id: assignee.id,
-						name: assignee.name,
-						image: assignee.image,
-					};
-					const group = ensureGroupForUser(matchingUser ?? fallbackUser);
-					group.tasks.push(task);
-				});
-			} else {
-				const unassignedGroup = ensureGroupForUser(undefined);
-				unassignedGroup.tasks.push(task);
-			}
-		});
+    filteredTasks.forEach((task) => {
+      if (task.assignees && task.assignees.length > 0) {
+        task.assignees.forEach((assignee) => {
+          const matchingUser = availableUsers.find(
+            (user) => user.id === assignee.id,
+          );
+          const fallbackUser: AssigneeDisplay = {
+            id: assignee.id,
+            name: assignee.name,
+            image: assignee.image,
+          };
+          const group = ensureGroupForUser(matchingUser ?? fallbackUser);
+          group.tasks.push(task);
+        });
+      } else {
+        const unassignedGroup = ensureGroupForUser(undefined);
+        unassignedGroup.tasks.push(task);
+      }
+    });
 
-		const groups = Array.from(groupMap.values()).map((group) => ({
-			...group,
-			count: group.tasks.length,
-		}));
+    const groups = Array.from(groupMap.values()).map((group) => ({
+      ...group,
+      count: group.tasks.length,
+    }));
 
-		return groups.sort((a, b) => {
-			if (a.key === "unassigned") return 1;
-			if (b.key === "unassigned") return -1;
-			return a.label.localeCompare(b.label);
-		});
-	},
+    return groups.sort((a, b) => {
+      if (a.key === "unassigned") return 1;
+      if (b.key === "unassigned") return -1;
+      return a.label.localeCompare(b.label);
+    });
+  },
 });
-const createCategoryGroup = (category?: schema.categoryType | null): TaskGroup => {
-	const key = category?.id || "uncategorized";
-	const id = category?.id ? `category:${category.id}` : "category:none";
-	return {
-		id,
-		key,
-		label: category?.name || "No category",
-		icon: <div className="h-3 w-3 rounded-full border" style={{ backgroundColor: category?.color || "#cccccc" }} />,
-		tasks: [],
-		count: 0,
-	};
+const createCategoryGroup = (
+  category?: schema.categoryType | null,
+): TaskGroup => {
+  const key = category?.id || "uncategorized";
+  const id = category?.id ? `category:${category.id}` : "category:none";
+  return {
+    id,
+    key,
+    label: category?.name || "No category",
+    icon: (
+      <div
+        className="h-3 w-3 rounded-full border"
+        style={{ backgroundColor: category?.color || "#cccccc" }}
+      />
+    ),
+    tasks: [],
+    count: 0,
+  };
 };
 export const categoryGrouping = createGroupingDefinition("category", {
-	label: "Category",
-	description: "Group tasks by categories",
-	icon: <IconCategory2 className="h-4 w-4" />,
-	group: ({ tasks, showCompletedTasks, categories }: TaskGroupingContext) => {
-		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
-		const groupMap = new Map<string, TaskGroup>();
+  label: "Category",
+  description: "Group tasks by categories",
+  icon: <IconCategory2 className="h-4 w-4" />,
+  group: ({ tasks, showCompletedTasks, categories }: TaskGroupingContext) => {
+    const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
+    const groupMap = new Map<string, TaskGroup>();
 
-		// Safely create or retrieve a group without using non-null assertions
-		const ensureGroupForCategory = (category?: schema.categoryType | null): TaskGroup => {
-			const key = category?.id || "uncategorized";
-			const existingGroup = groupMap.get(key);
-			if (existingGroup) {
-				return existingGroup;
-			}
-			const newGroup = createCategoryGroup(category);
-			groupMap.set(key, newGroup);
-			return newGroup;
-		};
+    // Safely create or retrieve a group without using non-null assertions
+    const ensureGroupForCategory = (
+      category?: schema.categoryType | null,
+    ): TaskGroup => {
+      const key = category?.id || "uncategorized";
+      const existingGroup = groupMap.get(key);
+      if (existingGroup) {
+        return existingGroup;
+      }
+      const newGroup = createCategoryGroup(category);
+      groupMap.set(key, newGroup);
+      return newGroup;
+    };
 
-		// Always pre-create groups for all categories
-		categories.forEach((cat) => ensureGroupForCategory(cat));
-		ensureGroupForCategory(null); // Uncategorized
+    // Always pre-create groups for all categories
+    categories.forEach((cat) => ensureGroupForCategory(cat));
+    ensureGroupForCategory(null); // Uncategorized
 
-		// Assign each task to a category-based group
-		filteredTasks.forEach((task) => {
-			// Handle both string-based and object-based category fields
-			let category: schema.categoryType | null = null;
-			if (typeof task.category === "string") {
-				category = categories.find((c) => c.id === task.category) ?? null;
-			} else if (task.category && typeof task.category === "object") {
-				category = task.category as schema.categoryType;
-			}
+    // Assign each task to a category-based group
+    filteredTasks.forEach((task) => {
+      // Handle both string-based and object-based category fields
+      let category: schema.categoryType | null = null;
+      if (typeof task.category === "string") {
+        category = categories.find((c) => c.id === task.category) ?? null;
+      } else if (task.category && typeof task.category === "object") {
+        category = task.category as schema.categoryType;
+      }
 
-			const group = ensureGroupForCategory(category);
-			group.tasks.push(task);
-		});
+      const group = ensureGroupForCategory(category);
+      group.tasks.push(task);
+    });
 
-		// Compute counts for all groups
-		const groups = Array.from(groupMap.values()).map((group) => ({
-			...group,
-			count: group.tasks.length,
-		}));
+    // Compute counts for all groups
+    const groups = Array.from(groupMap.values()).map((group) => ({
+      ...group,
+      count: group.tasks.length,
+    }));
 
-		// Sort alphabetically, with "No category" last
-		return groups.sort((a, b) => {
-			if (a.key === "uncategorized") return 1;
-			if (b.key === "uncategorized") return -1;
-			return a.label.localeCompare(b.label);
-		});
-	},
+    // Sort alphabetically, with "No category" last
+    return groups.sort((a, b) => {
+      if (a.key === "uncategorized") return 1;
+      if (b.key === "uncategorized") return -1;
+      return a.label.localeCompare(b.label);
+    });
+  },
 });
 
 const createReleaseGroup = (release?: schema.releaseType | null): TaskGroup => {
-	const key = release?.id || "no-release";
-	const id = release?.id ? `release:${release.id}` : "release:none";
-	return {
-		id,
-		key,
-		label: release?.name || "No release",
-		icon: release?.icon ? (
-			<span className="text-lg">{release.icon}</span>
-		) : (
-			<div className="h-3 w-3 rounded-full border" style={{ backgroundColor: release?.color || "#cccccc" }} />
-		),
-		tasks: [],
-		count: 0,
-	};
+  const key = release?.id || "no-release";
+  const id = release?.id ? `release:${release.id}` : "release:none";
+  return {
+    id,
+    key,
+    label: release?.name || "No release",
+    icon: release?.icon ? (
+      <span className="text-lg">{release.icon}</span>
+    ) : (
+      <div
+        className="h-3 w-3 rounded-full border"
+        style={{ backgroundColor: release?.color || "#cccccc" }}
+      />
+    ),
+    tasks: [],
+    count: 0,
+  };
 };
 
 export const releaseGrouping = createGroupingDefinition("release", {
-	label: "Release",
-	description: "Group tasks by releases",
-	icon: <IconRocket className="h-4 w-4" />,
-	group: ({ tasks, showCompletedTasks, releases }: TaskGroupingContext) => {
-		const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
-		const groupMap = new Map<string, TaskGroup>();
+  label: "Release",
+  description: "Group tasks by releases",
+  icon: <IconRocket className="h-4 w-4" />,
+  group: ({ tasks, showCompletedTasks, releases }: TaskGroupingContext) => {
+    const filteredTasks = filterCompletedTasks(tasks, showCompletedTasks);
+    const groupMap = new Map<string, TaskGroup>();
 
-		// Safely create or retrieve a group without using non-null assertions
-		const ensureGroupForRelease = (release?: schema.releaseType | null): TaskGroup => {
-			const key = release?.id || "no-release";
-			const existingGroup = groupMap.get(key);
-			if (existingGroup) {
-				return existingGroup;
-			}
-			const newGroup = createReleaseGroup(release);
-			groupMap.set(key, newGroup);
-			return newGroup;
-		};
+    // Safely create or retrieve a group without using non-null assertions
+    const ensureGroupForRelease = (
+      release?: schema.releaseType | null,
+    ): TaskGroup => {
+      const key = release?.id || "no-release";
+      const existingGroup = groupMap.get(key);
+      if (existingGroup) {
+        return existingGroup;
+      }
+      const newGroup = createReleaseGroup(release);
+      groupMap.set(key, newGroup);
+      return newGroup;
+    };
 
-		// Always pre-create groups for all releases
-		releases.forEach((rel) => ensureGroupForRelease(rel));
-		ensureGroupForRelease(null); // No release
+    // Always pre-create groups for all releases
+    releases.forEach((rel) => ensureGroupForRelease(rel));
+    ensureGroupForRelease(null); // No release
 
-		// Assign each task to a release-based group
-		filteredTasks.forEach((task) => {
-			// Find the release by ID
-			const release = task.releaseId ? (releases.find((r) => r.id === task.releaseId) ?? null) : null;
+    // Assign each task to a release-based group
+    filteredTasks.forEach((task) => {
+      // Find the release by ID
+      const release = task.releaseId
+        ? (releases.find((r) => r.id === task.releaseId) ?? null)
+        : null;
 
-			const group = ensureGroupForRelease(release);
-			group.tasks.push(task);
-		});
+      const group = ensureGroupForRelease(release);
+      group.tasks.push(task);
+    });
 
-		// Compute counts for all groups
-		const groups = Array.from(groupMap.values()).map((group) => ({
-			...group,
-			count: group.tasks.length,
-		}));
+    // Compute counts for all groups
+    const groups = Array.from(groupMap.values()).map((group) => ({
+      ...group,
+      count: group.tasks.length,
+    }));
 
-		// Sort by slug (for semver), with "No release" last
-		return groups.sort((a, b) => {
-			if (a.key === "no-release") return 1;
-			if (b.key === "no-release") return -1;
-			return a.label.localeCompare(b.label);
-		});
-	},
+    // Sort by slug (for semver), with "No release" last
+    return groups.sort((a, b) => {
+      if (a.key === "no-release") return 1;
+      if (b.key === "no-release") return -1;
+      return a.label.localeCompare(b.label);
+    });
+  },
 });
 
 function createGroupingDefinition(
-	id: TaskGroupingId,
-	definition: Omit<TaskGroupingDefinition, "id">
+  id: TaskGroupingId,
+  definition: Omit<TaskGroupingDefinition, "id">,
 ): TaskGroupingDefinition {
-	return {
-		id,
-		...definition,
-	};
+  return {
+    id,
+    ...definition,
+  };
 }
 
 export const TASK_GROUPINGS: Record<TaskGroupingId, TaskGroupingDefinition> = {
-	status: statusGrouping,
-	priority: priorityGrouping,
-	assignee: assigneeGrouping,
-	category: categoryGrouping,
-	release: releaseGrouping,
+  status: statusGrouping,
+  priority: priorityGrouping,
+  assignee: assigneeGrouping,
+  category: categoryGrouping,
+  release: releaseGrouping,
 };
 
-export const TASK_GROUPING_OPTIONS: TaskGroupingDefinition[] = Object.values(TASK_GROUPINGS);
+export const TASK_GROUPING_OPTIONS: TaskGroupingDefinition[] =
+  Object.values(TASK_GROUPINGS);
 
 export const DEFAULT_STATUS_ORDER = STATUS_ORDER;
 export const DEFAULT_PRIORITY_ORDER = PRIORITY_ORDER;

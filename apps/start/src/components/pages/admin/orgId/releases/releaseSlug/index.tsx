@@ -534,46 +534,59 @@ function ReleaseDetailPageContent() {
     <div className="relative flex flex-col h-full max-h-full">
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel defaultSize={useMobile ? 100 : 70} minSize={50}>
-          <div className="h-full overflow-y-auto flex flex-col gap-3 p-3">
+          <div className="h-full overflow-y-auto flex flex-col gap-3">
             {/* Header Section */}
-            <ReleaseHeader
-              release={release}
-              onStatusUpdate={handleStatusUpdate}
-              onTargetDateUpdate={handleTargetDateUpdate}
-              onReleasedAtUpdate={handleReleasedAtUpdate}
-              onUpdate={handleNameSlugUpdate}
-            />
+            <div className="flex flex-col gap-3 p-3">
+              <ReleaseHeader
+                release={release}
+                onStatusUpdate={handleStatusUpdate}
+                onTargetDateUpdate={handleTargetDateUpdate}
+                onReleasedAtUpdate={handleReleasedAtUpdate}
+                onUpdate={handleNameSlugUpdate}
+              />
 
-            {/* Description Section */}
-            <div className="flex flex-col gap-3">
-              <div className="w-full min-w-full">
-							<Editor
-								defaultContent={release?.description || undefined}
-								onChange={setDescription}
-								placeholder="Add a description for this release..."
-								users={availableUsers}
-								categories={categories}
-								tasks={tasks}
-								hideBlockHandle={true}
-							/>
-                <div className="flex w-full">
-                  {hasUnsavedChanges && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="text-xs py-1 h-auto ml-auto"
-                      onClick={() => handleDescriptionSave(description)}
-                      disabled={isSavingDescription}
-                    >
-                      {isSavingDescription ? "Saving..." : "Update"}
-                    </Button>
-                  )}
+              {/* Description Section */}
+              <div className="flex flex-col gap-3">
+                <div className="w-full min-w-full">
+                  <Editor
+                    defaultContent={release?.description || undefined}
+                    onChange={setDescription}
+                    placeholder="Add a description for this release..."
+                    users={availableUsers}
+                    categories={categories}
+                    tasks={tasks}
+                    hideBlockHandle={true}
+                  />
+                  <div className="flex w-full">
+                    {hasUnsavedChanges && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="text-xs py-1 h-auto ml-auto"
+                        onClick={() => handleDescriptionSave(description)}
+                        disabled={isSavingDescription}
+                      >
+                        {isSavingDescription ? "Saving..." : "Update"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-
             {/* Tasks Section */}
-            <div className="bg-card rounded-lg p-3 flex flex-col gap-3">
+            <UnifiedTaskView
+              tasks={tasks}
+              setTasks={setTasks}
+              ws={ws}
+              labels={labels}
+              availableUsers={availableUsers}
+              organization={organization}
+              categories={categories}
+              releases={releases}
+              compact={true}
+              forceShowCompleted={true}
+            />
+            {/*<div className="bg-card rounded-lg p-3 flex flex-col gap-3">
               <Label variant={"heading"}>Tasks</Label>
               <div className="flex-1 overflow-hidden bg-card rounded-lg p-1">
                 {tasks.length === 0 ? (
@@ -599,7 +612,7 @@ function ReleaseDetailPageContent() {
                   />
                 )}
               </div>
-            </div>
+            </div>*/}
           </div>
         </ResizablePanel>
 
