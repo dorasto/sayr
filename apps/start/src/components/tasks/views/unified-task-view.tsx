@@ -45,6 +45,8 @@ interface UnifiedTaskViewProps {
   organization: schema.OrganizationWithMembers;
   categories: schema.categoryType[];
   releases?: schema.releaseType[];
+  compact?: boolean;
+  forceShowCompleted?: boolean;
 }
 
 export function UnifiedTaskView({
@@ -56,6 +58,8 @@ export function UnifiedTaskView({
   organization,
   categories,
   releases = [],
+  compact = false,
+  forceShowCompleted = false,
 }: UnifiedTaskViewProps) {
   console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -75,6 +79,10 @@ export function UnifiedTaskView({
   // Consolidated task view state management - pass views to enable auto-loading
   const { filters, grouping, subGrouping, showCompletedTasks, viewMode } =
     useTaskViewManager(views);
+  
+  // Override showCompletedTasks if forceShowCompleted is true
+  const effectiveShowCompleted = forceShowCompleted || showCompletedTasks;
+  
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
@@ -252,21 +260,19 @@ export function UnifiedTaskView({
     return applyNestedGrouping(grouping, subGrouping, {
       tasks: filteredTasks,
       availableUsers,
-      showCompletedTasks,
+      showCompletedTasks: effectiveShowCompleted,
       categories,
       releases,
     });
   }, [
     filteredTasks,
     availableUsers,
-    showCompletedTasks,
+    effectiveShowCompleted,
     grouping,
     subGrouping,
     categories,
     releases,
   ]);
-
-
 
   // Kanban Specific Data Preparation
   const columns = useMemo(
@@ -599,7 +605,7 @@ export function UnifiedTaskView({
           </KanbanProvider>
         )
       ) : (
-        <div className="rounded h-full px-2">
+        <div className={cn("rounded h-full px-2", compact && "px-0")}>
           {groupedTasks.length > 0 ? (
             groupedTasks.map((group) => {
               const isCollapsed = collapsedSections.has(group.id);
@@ -613,6 +619,7 @@ export function UnifiedTaskView({
                     isCollapsed={isCollapsed}
                     onToggleCollapse={() => handleToggleSection(group.id)}
                     isSticky={true}
+                    compact={compact}
                   />
 
                   {!isCollapsed && (
@@ -635,6 +642,7 @@ export function UnifiedTaskView({
                                 isSubGroup={true}
                                 className="py-1"
                                 rootClassName="bg-muted/0 hover:bg-muted/20 transition-all"
+                                compact={compact}
                               />
                               {!subGroupCollapsed && (
                                 <div className="py-1 flex flex-col gap-1">
@@ -654,6 +662,7 @@ export function UnifiedTaskView({
                                         availableUsers={availableUsers}
                                         onTaskUpdate={handleTaskUpdate}
                                         categories={categories}
+                                        compact={compact}
                                       />
                                     ))
                                   ) : (
@@ -683,6 +692,7 @@ export function UnifiedTaskView({
                             availableUsers={availableUsers}
                             onTaskUpdate={handleTaskUpdate}
                             categories={categories}
+                            compact={compact}
                           />
                         ))
                       ) : (

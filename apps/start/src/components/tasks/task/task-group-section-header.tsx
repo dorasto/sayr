@@ -16,6 +16,7 @@ interface TaskGroupSectionHeaderProps {
   isSticky?: boolean;
   className?: string;
   rootClassName?: string;
+  compact?: boolean;
 }
 
 export function TaskGroupSectionHeader({
@@ -27,6 +28,7 @@ export function TaskGroupSectionHeader({
   isSticky = false,
   className,
   rootClassName,
+  compact = false,
 }: TaskGroupSectionHeaderProps) {
   return (
     <div
@@ -34,6 +36,10 @@ export function TaskGroupSectionHeader({
         "z-10 rounded select-none group",
         isSubGroup ? "bg-accent z-9" : "bg-muted z-10",
         isSticky ? "sticky" : "",
+        compact && group.label == "Backlog" && "bg-accent/10",
+        compact && group.label == "Todo" && "bg-secondary/10",
+        compact && group.label == "In Progress" && "bg-primary/10",
+        compact && group.label == "Done" && "bg-success/10",
         rootClassName,
       )}
       style={{ top: stickyTop ?? (isSubGroup ? "44px" : "0px") }}
@@ -41,25 +47,28 @@ export function TaskGroupSectionHeader({
       <div
         className={cn(
           "flex items-center justify-between px-4 py-2 relative overflow-hidden shrink-0",
+          compact && "px-2 py-1.5",
           className,
         )}
       >
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleCollapse}
-            className={cn("h-3 w-3 p-0")}
-          >
-            <IconChevronDown
-              className={cn(
-                "h-3 w-3 transition-all duration-300",
-                isCollapsed && "-rotate-90",
-              )}
-            />
-          </Button>
+        <div className="flex items-center gap-2 shrink-0 w-full">
+          {!compact && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleCollapse}
+              className={cn("h-3 w-3 p-0")}
+            >
+              <IconChevronDown
+                className={cn(
+                  "h-3 w-3 transition-all duration-300",
+                  isCollapsed && "-rotate-90",
+                )}
+              />
+            </Button>
+          )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full">
             {group.icon && (
               <span
                 className={cn("text-sm font-medium", group.accentClassName)}
@@ -67,7 +76,12 @@ export function TaskGroupSectionHeader({
                 {group.icon}
               </span>
             )}
-            <div className="flex min-w-0 flex-col leading-tight">
+            <div
+              className={cn(
+                "flex min-w-0 flex-col leading-tight",
+                compact && "w-full",
+              )}
+            >
               <p className={cn("text-sm font-medium", isSubGroup && "text-xs")}>
                 {group.label}
               </p>
@@ -82,6 +96,7 @@ export function TaskGroupSectionHeader({
               className={cn(
                 "rounded pointer-events-none border-transparent text-muted-foreground",
                 isSubGroup && "text-xs",
+                compact && "ml-auto",
               )}
             >
               {group.count}

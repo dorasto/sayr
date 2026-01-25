@@ -73,6 +73,9 @@ interface UnifiedTaskItemProps {
 
   // Kanban View Specific
   columnId?: string;
+
+  // Compact mode - hides checkboxes and simplifies layout
+  compact?: boolean;
 }
 
 export function UnifiedTaskItem({
@@ -88,6 +91,7 @@ export function UnifiedTaskItem({
   onSelect,
   personal = false,
   columnId,
+  compact = false,
 }: UnifiedTaskItemProps) {
   const taskId = String(task.shortId);
   const status = statusConfig[task.status as keyof typeof statusConfig];
@@ -196,6 +200,189 @@ export function UnifiedTaskItem({
   };
 
   // --- Render Content based on View Mode ---
+
+  // Compact List View - simplified for releases
+  const renderCompactListContent = () => (
+    <Link
+      className={cn(
+        "block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg",
+        task.status === "backlog" && "bg-accent/5",
+        task.status === "todo" && "bg-secondary/5",
+        task.status === "in-progress" && "bg-primary/5",
+        task.status === "done" && "bg-success/5",
+      )}
+      to="/$orgId/tasks/$taskShortId"
+      params={{ orgId: task.organizationId, taskShortId: taskId }}
+      preload={false}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
+          e.preventDefault();
+        }
+        if (preventClickRef.current) {
+          e.preventDefault();
+          preventClickRef.current = false;
+        }
+      }}
+    >
+      <div
+        className={cn(
+          "p-1 group/list-block h-10 max-h-10 relative flex gap-2 bg-transparent hover:bg-secondary text-sm transition-colors flex-row items-center rounded data-[state=open]:bg-accent",
+          hasOpenPopover && "bg-accent",
+          task.status === "backlog" && "hover:bg-accent/15",
+          task.status === "todo" && "hover:bg-secondary/15",
+          task.status === "in-progress" && "hover:bg-primary/15",
+          task.status === "done" && "hover:bg-success/15",
+        )}
+      >
+        {/* Left section - task ID, status, and title */}
+        <div className="flex gap-2 w-full truncate">
+          <div className="flex grow items-center gap-2 truncate">
+            {/* Priority */}
+            <GlobalTaskPriority
+              task={task}
+              editable={true}
+              onChange={handlePriorityChange}
+              useInternalLogic={true}
+              tasks={tasks}
+              setTasks={setTasks}
+              open={priorityPopoverOpen}
+              setOpen={handlePriorityPopoverChange}
+              customTrigger={
+                <button
+                  type="button"
+                  className="h-4 flex items-center gap-1.5 rounded text-xs p-0.5 cursor-pointer"
+                  data-no-propagate
+                >
+                  {priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)}
+                </button>
+              }
+            />
+
+            {/* Title */}
+            <p className="truncate cursor-pointer text-sm text-foreground w-fit">
+              {task.title}
+            </p>
+          </div>
+        </div>
+
+        {/* Right section with metadata */}
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="relative flex flex-wrap grow shrink-0 items-center gap-2 whitespace-nowrap">
+            {/* Category */}
+            {task.category &&
+              (() => {
+                const category = categories.find((c) => c.id === task.category);
+                return category ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCategoryClick(category.id);
+                    }}
+                    data-no-propagate
+                    className="cursor-pointer"
+                  >
+                    <RenderCategory category={category} />
+                  </button>
+                ) : null;
+              })()}
+
+            {/* Labels */}
+            {task.labels && task.labels.length > 0 && (
+              <div className="hidden sm:flex h-5 gap-1 max-w-[300px] overflow-x-auto">
+                {task.labels.slice(0, 2).map((label) => (
+                  <RenderLabel
+                    label={label}
+                    key={label.id + nanoid(5)}
+                    data-no-propagate
+                  />
+                ))}
+                {task.labels.length > 2 && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    +{task.labels.length - 2}
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Assignees */}
+            <GlobalTaskAssignees
+              task={task}
+              editable={true}
+              availableUsers={availableUsers}
+              onChange={handleAssigneeChange}
+              useInternalLogic={true}
+              tasks={tasks}
+              setTasks={setTasks}
+              open={assigneePopoverOpen}
+              setOpen={handleAssigneePopoverChange}
+              side="left"
+              customTrigger={
+                task.assignees && task.assignees.length > 0 ? (
+                  <div
+                    className="flex items-center cursor-pointer"
+                    data-no-propagate
+                  >
+                    {task.assignees.length === 1 ? (
+                      <Avatar className={cn("rounded-full h-5 w-5")}>
+                        <AvatarImage
+                          src={task.assignees[0]?.image || "/avatar.jpg"}
+                          alt={task.assignees[0]?.name}
+                        />
+                        <AvatarFallback className="rounded-full bg-accent uppercase text-xs">
+                          {task.assignees[0]?.name.slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <div className="flex -space-x-2">
+                        {task.assignees.slice(0, 3).map((assignee, index) => (
+                          <Avatar
+                            key={assignee.id + nanoid(5)}
+                            className={cn(
+                              "rounded-full h-5 w-5",
+                              index > 0 && "relative",
+                            )}
+                            style={{ zIndex: task.assignees.length - index }}
+                          >
+                            <AvatarImage
+                              src={assignee?.image || "/avatar.jpg"}
+                              alt={assignee?.name}
+                            />
+                            <AvatarFallback className="rounded-full bg-accent uppercase text-xs">
+                              {assignee?.name.slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {task.assignees.length > 3 && (
+                          <div className="flex items-center justify-center rounded-full h-5 w-5 bg-muted border-2 border-background text-xs font-medium text-muted-foreground relative">
+                            +{task.assignees.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5 cursor-pointer"
+                    data-no-propagate
+                  >
+                    <IconUserOff className="h-3 w-3 shrink-0" />
+                  </div>
+                )
+              }
+            />
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
 
   const renderListContent = () => (
     <Link
@@ -763,6 +950,21 @@ export function UnifiedTaskItem({
       </ContextMenuSub>
     </ContextMenuContent>
   );
+
+  // Early return for compact mode
+  if (compact && viewMode === "list") {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger
+          className="relative select-none group/context data-[state=open]:bg-accent"
+          asChild
+        >
+          {renderCompactListContent()}
+        </ContextMenuTrigger>
+        {contextMenuContent}
+      </ContextMenu>
+    );
+  }
 
   if (viewMode === "kanban") {
     return (
