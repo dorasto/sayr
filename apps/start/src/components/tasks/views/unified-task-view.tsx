@@ -487,69 +487,89 @@ export function UnifiedTaskView({
           ))}
         </div>
 
-        {/* Sub-group rows */}
-        {groupedTasks[0]?.subGroups?.map((subGroupTemplate) => {
-          const rowTotal = groupedTasks.reduce((sum, col) => {
-            const sg = col.subGroups?.find((s) => s.id === subGroupTemplate.id);
-            return sum + (sg?.tasks.length || 0);
-          }, 0);
+        {/* Sub-group rows (if sub-groups exist) */}
+        {hasKanbanSubGroups ? (
+          groupedTasks[0]?.subGroups?.map((subGroupTemplate) => {
+            const rowTotal = groupedTasks.reduce((sum, col) => {
+              const sg = col.subGroups?.find((s) => s.id === subGroupTemplate.id);
+              return sum + (sg?.tasks.length || 0);
+            }, 0);
 
-          return (
-            <div key={subGroupTemplate.id}>
-              {/* Row header */}
-              <div className="flex items-center gap-2 py-2 px-2 bg-accent border-b sticky top-9 z-20">
-                <div className="flex items-center gap-2 z-10 sticky left-2">
-                  {subGroupTemplate.icon && (
-                    <span
-                      className={cn(
-                        "text-sm",
-                        subGroupTemplate.accentClassName,
-                      )}
-                    >
-                      {subGroupTemplate.icon}
+            return (
+              <div key={subGroupTemplate.id}>
+                {/* Row header */}
+                <div className="flex items-center gap-2 py-2 px-2 bg-accent border-b sticky top-9 z-20">
+                  <div className="flex items-center gap-2 z-10 sticky left-2">
+                    {subGroupTemplate.icon && (
+                      <span
+                        className={cn(
+                          "text-sm",
+                          subGroupTemplate.accentClassName,
+                        )}
+                      >
+                        {subGroupTemplate.icon}
+                      </span>
+                    )}
+                    <span className="text-sm font-medium whitespace-nowrap">
+                      {subGroupTemplate.label}
                     </span>
-                  )}
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {subGroupTemplate.label}
-                  </span>
-                  <Badge variant="secondary" className="text-xs h-5 px-1.5">
-                    {rowTotal}
-                  </Badge>
+                    <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                      {rowTotal}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Grid cells */}
+                <div className="flex">
+                  {groupedTasks.map((primaryGroup) => {
+                    const subGroup = primaryGroup.subGroups?.find(
+                      (sg) => sg.id === subGroupTemplate.id,
+                    );
+                    const subGroupTasks = subGroup?.tasks || [];
+
+                    return (
+                      <div
+                        key={`${primaryGroup.id}-${subGroupTemplate.id}`}
+                        className="min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
+                      >
+                        {subGroupTasks.length > 0 ? (
+                          subGroupTasks.map((task) =>
+                            renderTaskItem(
+                              task,
+                              primaryGroup.id,
+                              "kanban",
+                              primaryGroup.id,
+                            ),
+                          )
+                        ) : (
+                          <div className="h-8" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              {/* Grid cells */}
-              <div className="flex">
-                {groupedTasks.map((primaryGroup) => {
-                  const subGroup = primaryGroup.subGroups?.find(
-                    (sg) => sg.id === subGroupTemplate.id,
-                  );
-                  const subGroupTasks = subGroup?.tasks || [];
-
-                  return (
-                    <div
-                      key={`${primaryGroup.id}-${subGroupTemplate.id}`}
-                      className="min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
-                    >
-                      {subGroupTasks.length > 0 ? (
-                        subGroupTasks.map((task) =>
-                          renderTaskItem(
-                            task,
-                            primaryGroup.id,
-                            "kanban",
-                            primaryGroup.id,
-                          ),
-                        )
-                      ) : (
-                        <div className="h-8" />
-                      )}
-                    </div>
-                  );
-                })}
+            );
+          })
+        ) : (
+          /* No sub-groups: render tasks directly under columns */
+          <div className="flex">
+            {groupedTasks.map((primaryGroup) => (
+              <div
+                key={primaryGroup.id}
+                className="min-w-[280px] flex-1 flex flex-col gap-2 border-r border-dashed last:border-r-0 p-1"
+              >
+                {primaryGroup.tasks.length > 0 ? (
+                  primaryGroup.tasks.map((task) =>
+                    renderTaskItem(task, primaryGroup.id, "kanban", primaryGroup.id),
+                  )
+                ) : (
+                  <div className="h-8" />
+                )}
               </div>
-            </div>
-          );
-        })}
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -565,7 +585,7 @@ export function UnifiedTaskView({
         <KanbanBoard
           key={column.id}
           id={column.id}
-          className="bg-transparent border-0 rounded-lg shadow-none flex flex-col h-full w-full min-w-72 max-w-72 px-2"
+          className="bg-transparent border-0 rounded-lg shadow-none flex flex-col h-full w-full min-w-[280px] flex-1 px-2"
         >
           <KanbanHeader className="pb-2 flex items-center justify-between bg-card border-0 rounded-lg shrink-0 min-h-[42px]">
             <div className="flex items-center gap-2">
