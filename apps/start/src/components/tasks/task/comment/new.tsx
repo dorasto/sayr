@@ -96,6 +96,8 @@ export function TaskNewCommentContent({
 						size={"sm"}
 						disabled={disabled}
 						onClick={handleSubmit}
+						data-track="post-comment"
+						data-track-data={JSON.stringify({ taskId: task.id })}
 						className={cn("border-0", visibility === "internal" && "bg-primary/10 hover:bg-primary/20")}
 					>
 						Post

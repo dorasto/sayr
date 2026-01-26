@@ -104,6 +104,12 @@ http:
       service: start
       priority: 200
 
+    # opentelemetry -> start app (for trace ingestion)
+    sub-opentelemetry:
+      rule: "HostRegexp(`^.+\\.${VITE_ROOT_DOMAIN}$`) && PathPrefix(`/api/traces`)"
+      service: start
+      priority: 200
+
     # Other API routes -> backend
     sub-api:
       rule: "HostRegexp(`^.+\\.${VITE_ROOT_DOMAIN}$`) && PathPrefix(`/api`)"
