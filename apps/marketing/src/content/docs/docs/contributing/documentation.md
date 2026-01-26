@@ -329,14 +329,32 @@ All metadata is extracted from Git history automatically — you don't need to a
 
 ### How It Works
 
-The metadata is populated by route middleware (`apps/marketing/src/routeData/contributors.ts`) that:
+The metadata is populated through a build-time pre-computation system that extracts Git history during the build process.
 
-1. Reads the Git log for each documentation file
-2. Extracts commit authors and timestamps
-3. Maps email addresses to GitHub usernames (where possible)
-4. Passes the data to the `PageTitle` component for rendering
+**Build Time Process:**
 
-If your Git email is associated with your GitHub account, your avatar and profile link will appear automatically.
+1. An Astro integration (`apps/marketing/src/integrations/precompute-contributors.ts`) runs during `pnpm run build`
+2. It scans all documentation files in `src/content/docs/`
+3. For each file, it executes `git log --follow` to retrieve the complete commit history
+4. Author data is extracted from the oldest commit (file creation)
+5. Contributor data is aggregated from all subsequent commits
+6. All metadata is written to `src/data/contributors.json`
+7. This JSON file is copied to `dist/server/data/` and `dist/client/data/` for runtime access
+
+**Runtime Process:**
+
+1. Route middleware (`apps/marketing/src/routeData/contributors.ts`) loads the pre-computed JSON at server startup
+2. For each page request, it looks up the file path in the cached contributor data
+3. Metadata is attached to the route context
+4. The `PageTitle` component renders the author, contributors, and last updated information
+
+**Email-to-GitHub Mapping:**
+
+If your Git email follows GitHub's noreply format (`username@users.noreply.github.com` or `12345678+username@users.noreply.github.com`), the system automatically extracts your GitHub username and displays your avatar with a profile link. Otherwise, a Gravatar is used based on your email hash.
+
+:::tip[Why Pre-compute?]
+Pre-computing Git metadata at build time eliminates the need for the `.git` directory in production Docker containers. This makes deployments faster, more secure, and compatible with any hosting environment. The Git repository is only required during the build phase, not at runtime.
+:::
 
 ## Related Resources
 

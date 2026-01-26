@@ -2,7 +2,7 @@ FROM node:22.19.0-alpine AS base
 
 FROM base AS builder
 RUN apk update
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat git
 WORKDIR /app
 RUN npm install -g turbo
 RUN npm install -g pnpm
@@ -15,7 +15,7 @@ RUN turbo prune marketing --docker
 
 FROM base AS installer
 RUN apk update
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat git
 WORKDIR /app
 
 # Install pnpm
@@ -30,6 +30,7 @@ COPY --from=builder /app/out/full/ .
 RUN pnpm install
 
 # Build the application
+# Note: Git is required here for the precompute-contributors integration
 RUN cd apps/marketing && pnpm run build
 
 FROM base AS runner

@@ -6,6 +6,7 @@ import starlightPageActions from "starlight-page-actions";
 import starlightSidebarTopics from "starlight-sidebar-topics";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
+import { precomputeContributors } from "./src/integrations/precompute-contributors.ts";
 
 // https://astro.build/config
 export default defineConfig({
@@ -16,6 +17,7 @@ export default defineConfig({
 	}),
 
 	integrations: [
+		precomputeContributors(),
 		starlight({
 			title: "Sayr",
 			logo: { src: "./src/assets/logo.svg" },

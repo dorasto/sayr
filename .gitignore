@@ -4,6 +4,7 @@
 node_modules/
 .pnp
 .pnp.js
+.pnpm-store
 
 # Environment Variables
 .env
@@ -11,28 +12,40 @@ node_modules/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # Build Outputs
 .next/
 out/
 build/
 dist/
+_site/
+
+# Astro
+.astro/
+*.tsbuildinfo
 
 # Tools and Services
 .turbo/
 .vercel/
+.netlify/
 
 # Testing
 coverage/
+test-results/
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Miscellaneous
 .DS_Store
 *.pem
+
+# Generated data files
+apps/marketing/src/data/contributors.json
 
 # Additional entries to help Biome performance
 **/.cache/**
@@ -41,3 +54,9 @@ yarn-error.log*
 **/*.log
 **/.vscode/settings.json.bak
 .queues
+
+# IDE
+.idea
+*.code-workspace
+.vscode-test/
+.eslintcache
