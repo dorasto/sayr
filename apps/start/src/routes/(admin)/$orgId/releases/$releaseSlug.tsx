@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getReleaseBySlug, type schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
 import { seo } from "@/seo";
-import ReleaseDetailPage from "@/components/pages/admin/orgid/releases/releaseSlug/index";
+import ReleaseDetailPage from "@/components/pages/admin/orgid/releases/release-slug";
 
 export const getAdminOrganizationRelease = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType; orgId: string; releaseSlug: string }) => data)

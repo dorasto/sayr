@@ -67,6 +67,8 @@ app.use("*", async (c, next) => {
 	return next();
 });
 app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
+app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
+
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------

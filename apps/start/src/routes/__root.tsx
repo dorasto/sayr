@@ -11,24 +11,24 @@ import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import appCss from "../styles.css?url";
 import { DefaultCatchBoundary } from "@/components/Error";
 import { seo } from "@/seo";
-// import { initClickTracking, initOpenTel, patchGlobalFetch } from "@repo/opentelemetry/client"
-// if (typeof window !== "undefined" && import.meta.env.VITE_SAYR_CLOUD === "true") {
-// 	initOpenTel("sayr-admin");
-// 	patchGlobalFetch({
-// 		excludeUrls: [
-// 			/\/api\/traces/,
-// 			/\/api\/auth/, // blocks /api/auth, /api/auth/login, /api/auth/callback, etc.
-// 			/_server/,
-// 			/__manifest/,
-// 			/@vite/,
-// 			/@react-refresh/,
-// 			/node_modules/,
-// 			/\.hot-update\./,  // btw, escape the dots if you want literal dots
-// 		],
-// 		logBody: true,
-// 	});
-// 	initClickTracking();
-// }
+import { initClickTracking, initOpenTel, patchGlobalFetch } from "@repo/opentelemetry/client"
+if (typeof window !== "undefined" && import.meta.env.VITE_SAYR_CLOUD === "true") {
+	initOpenTel("sayr-admin");
+	patchGlobalFetch({
+		excludeUrls: [
+			/\/api\/traces/,
+			/\/api\/auth/, // blocks /api/auth, /api/auth/login, /api/auth/callback, etc.
+			/_server/,
+			/__manifest/,
+			/@vite/,
+			/@react-refresh/,
+			/node_modules/,
+			/\.hot-update\./,  // btw, escape the dots if you want literal dots
+		],
+		logBody: true,
+	});
+	initClickTracking();
+}
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
