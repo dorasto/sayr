@@ -9,7 +9,7 @@ import viteTsConfigPaths from "vite-tsconfig-paths";
 const config = defineConfig({
 	define: {
 		"import.meta.env.VITE_APP_ENV": JSON.stringify(process.env.APP_ENV ?? "development"),
-		"import.meta.env.VITE_SAYR_CLOUD": JSON.stringify(process.env.SAYR_CLOUD ?? "false"),
+		"import.meta.env.VITE_SAYR_CLOUD": JSON.stringify((process.env.SAYR_CLOUD || process.env.VITE_SAYR_CLOUD) ?? "false"),
 	},
 	plugins: [
 		devtools(),
