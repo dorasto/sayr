@@ -22,9 +22,6 @@ const config = defineConfig({
   plugins: [
     devtools(),
     nitro({
-      // Debug: disable minification and enable sourcemaps for Nitro/Rollup
-      minify: false,
-      sourcemap: true,
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],
       },
