@@ -44,9 +44,6 @@ pnpm-debug.log*
 .DS_Store
 *.pem
 
-# Generated data files
-apps/marketing/src/data/contributors.json
-
 # Additional entries to help Biome performance
 **/.cache/**
 **/temp/**

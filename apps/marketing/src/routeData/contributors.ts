@@ -8,6 +8,8 @@ export interface GitContributor {
 	email: string;
 	github?: string;
 	commits: number;
+	avatar_url?: string;
+	profile_url?: string;
 }
 
 export interface PageContributors {
@@ -43,12 +45,10 @@ try {
 		dataPath = resolve(currentDir, "data/contributors.json");
 	}
 
-	console.log("[contributors] Looking for data at:", dataPath);
-
 	if (existsSync(dataPath)) {
 		const rawData = readFileSync(dataPath, "utf-8");
 		contributorData = JSON.parse(rawData);
-		console.log("[contributors] Loaded pre-computed contributor data from", dataPath, "with", Object.keys(contributorData).length, "entries");
+		console.log(`[contributors] Loaded ${Object.keys(contributorData).length} entries from ${import.meta.env.DEV ? 'src/data' : 'dist/server/data'}`);
 	} else {
 		console.warn("[contributors] No pre-computed contributor data found at", dataPath);
 	}
@@ -63,21 +63,14 @@ try {
 export const onRequest = defineRouteMiddleware((context) => {
 	const { starlightRoute } = context.locals;
 
-	console.log("[contributors] Route middleware called for:", starlightRoute.slug);
-
 	// Get the content file path from the entry
 	const entry = starlightRoute.entry;
 	if (!entry) {
-		console.log("[contributors] No entry found, skipping");
 		return;
 	}
 
 	// The entry.id is the path relative to the content directory WITHOUT extension
-	const __dirname = dirname(fileURLToPath(import.meta.url));
-	const marketingRoot = resolve(__dirname, "../..");
 	const baseContentPath = `src/content/docs/${entry.id}`;
-
-	console.log("[contributors] entry.id:", entry.id);
 
 	// Try common extensions to find the matching pre-computed data
 	const extensions = [".md", ".mdx"];
@@ -85,17 +78,14 @@ export const onRequest = defineRouteMiddleware((context) => {
 
 	for (const ext of extensions) {
 		const testPath = baseContentPath + ext;
-		console.log("[contributors] Testing path:", testPath);
 
 		if (contributorData[testPath]) {
 			pageContributors = contributorData[testPath];
-			console.log("[contributors] Found contributors:", JSON.stringify(pageContributors));
 			break;
 		}
 	}
 
 	if (!pageContributors) {
-		console.log("[contributors] No contributor data found for:", baseContentPath);
 		return;
 	}
 

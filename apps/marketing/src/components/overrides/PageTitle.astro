@@ -5,7 +5,10 @@
  * automatically fetched from Git history via route middleware.
  * Also integrates starlight-page-actions for copy/open actions.
  */
-import type { PageContributors, GitContributor } from "../../routeData/contributors";
+import type {
+    PageContributors,
+    GitContributor,
+} from "../../routeData/contributors";
 import { createHash } from "node:crypto";
 import { Icon } from "@astrojs/starlight/components";
 import config from "virtual:starlight-page-actions/config";
@@ -16,7 +19,9 @@ const entry = starlightRoute?.entry;
 const title = entry?.data?.title ?? "Untitled";
 
 // Get contributors from route middleware (populated by contributors.ts)
-const pageContributors = starlightRoute?.pageContributors as PageContributors | undefined;
+const pageContributors = starlightRoute?.pageContributors as
+    | PageContributors
+    | undefined;
 const author = pageContributors?.author;
 const contributors = pageContributors?.contributors ?? [];
 
@@ -25,9 +30,9 @@ const lastUpdated = starlightRoute?.lastUpdated as Date | undefined;
 
 // Page actions setup
 interface OptionsProps {
-	label: string;
-	href: string;
-	id: "chatgpt" | "claude" | "markdown" | "v0" | "t3chat";
+    label: string;
+    href: string;
+    id: "chatgpt" | "claude" | "markdown" | "v0" | "t3chat";
 }
 
 const currentPath = Astro.url.pathname.replace(/\/$/, "");
@@ -35,51 +40,55 @@ const currentUrl = Astro.url.href;
 const { actions, prompt: userPrompt } = config;
 const { pageActions } = entry?.data ?? {};
 
-const prompt = userPrompt?.includes("{url}") ? userPrompt?.replace("{url}", currentUrl) : `${userPrompt} ${currentUrl}`;
+const prompt = userPrompt?.includes("{url}")
+    ? userPrompt?.replace("{url}", currentUrl)
+    : `${userPrompt} ${currentUrl}`;
 const encodedPrompt = encodeURIComponent(prompt as string);
 
 const defaultOptions: OptionsProps[] = [
-	{
-		label: (Astro.locals as any).t("open.chatgpt"),
-		href: `https://chatgpt.com/?q=${encodedPrompt}`,
-		id: "chatgpt",
-	},
-	{
-		label: (Astro.locals as any).t("open.claude"),
-		href: `https://claude.ai/new?q=${encodedPrompt}`,
-		id: "claude",
-	},
-	{
-		label: (Astro.locals as any).t("open.t3chat"),
-		href: `https://t3.chat/new?q=${encodedPrompt}`,
-		id: "t3chat",
-	},
-	{
-		label: (Astro.locals as any).t("open.v0"),
-		href: `https://v0.app/?q=${encodedPrompt}`,
-		id: "v0",
-	},
-	{
-		label: (Astro.locals as any).t("view.markdown"),
-		href: `${currentPath}.md`,
-		id: "markdown",
-	},
+    {
+        label: (Astro.locals as any).t("open.chatgpt"),
+        href: `https://chatgpt.com/?q=${encodedPrompt}`,
+        id: "chatgpt",
+    },
+    {
+        label: (Astro.locals as any).t("open.claude"),
+        href: `https://claude.ai/new?q=${encodedPrompt}`,
+        id: "claude",
+    },
+    {
+        label: (Astro.locals as any).t("open.t3chat"),
+        href: `https://t3.chat/new?q=${encodedPrompt}`,
+        id: "t3chat",
+    },
+    {
+        label: (Astro.locals as any).t("open.v0"),
+        href: `https://v0.app/?q=${encodedPrompt}`,
+        id: "v0",
+    },
+    {
+        label: (Astro.locals as any).t("view.markdown"),
+        href: `${currentPath}.md`,
+        id: "markdown",
+    },
 ];
 
 const filteredDefaultOptions = defaultOptions.filter((option) => {
-	const id = option.id;
-	if (actions && actions[id]) {
-		return option;
-	}
-	return;
+    const id = option.id;
+    if (actions && actions[id]) {
+        return option;
+    }
+    return;
 });
 
 type CustomAction = { label: string; href: string };
-const customEntries = actions?.custom ? (Object.entries(actions.custom) as [string, CustomAction][]) : [];
+const customEntries = actions?.custom
+    ? (Object.entries(actions.custom) as [string, CustomAction][])
+    : [];
 const customOptions: OptionsProps[] = customEntries.map(([key, value]) => ({
-	label: value.label,
-	href: `${value.href}${encodedPrompt}`,
-	id: key as OptionsProps["id"],
+    label: value.label,
+    href: `${value.href}${encodedPrompt}`,
+    id: key as OptionsProps["id"],
 }));
 
 const options = [...filteredDefaultOptions, ...customOptions];
@@ -87,30 +96,40 @@ const showPageActions = pageActions || typeof pageActions === "undefined";
 
 // Helper to get MD5 hash for Gravatar
 function md5(str: string): string {
-	return createHash("md5").update(str.trim().toLowerCase()).digest("hex");
+    return createHash("md5").update(str.trim().toLowerCase()).digest("hex");
 }
 
-// Helper to get avatar URL - GitHub if available, otherwise Gravatar
-function getAvatarUrl(person: GitContributor): string {
-	if (person.github) {
-		return `https://github.com/${person.github}.png?size=48`;
-	}
-	// Fallback to Gravatar using email hash
-	const hash = md5(person.email);
-	return `https://www.gravatar.com/avatar/${hash}?s=48&d=identicon`;
+// Helper to get avatar URL - uses pre-fetched URL or falls back to GitHub/Gravatar
+function getAvatarUrl(person: GitContributor, size: number = 48): string {
+    // Use pre-fetched avatar_url if available
+    if (person.avatar_url) {
+        return person.avatar_url;
+    }
+    // Fallback to GitHub if username is known
+    if (person.github) {
+        return `https://github.com/${person.github}.png?size=${size}`;
+    }
+    // Final fallback to Gravatar using email hash
+    const hash = md5(person.email);
+    return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
 }
 
 // Helper to get display name
 function getDisplayName(person: GitContributor): string {
-	return person.name;
+    return person.name;
 }
 
-// Helper to get profile URL
+// Helper to get profile URL - uses pre-fetched URL or falls back to GitHub
 function getProfileUrl(person: GitContributor): string | null {
-	if (person.github) {
-		return `https://github.com/${person.github}`;
-	}
-	return null;
+    // Use pre-fetched profile_url if available
+    if (person.profile_url) {
+        return person.profile_url;
+    }
+    // Fallback to GitHub if username is known
+    if (person.github) {
+        return `https://github.com/${person.github}`;
+    }
+    return null;
 }
 ---
 
@@ -119,6 +138,27 @@ function getProfileUrl(person: GitContributor): string | null {
     class="text-(length:--sl-text-h1) font-semibold leading-(--sl-line-height-headings) text-(--sl-color-white) flex-auto min-w-0"
 >
     {title}
+    {
+        lastUpdated && (
+            <div class="flex flex-col gap-1.5 ml-auto">
+                <span class="text-xs tracking-wide">
+                    {author?.commits === 1 && contributors.length === 0
+                        ? "Created on"
+                        : "Updated on"}{" "}
+                    <time
+                        datetime={lastUpdated.toISOString()}
+                        class="text-(--sl-color-white)"
+                    >
+                        {lastUpdated.toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                        })}
+                    </time>
+                </span>
+            </div>
+        )
+    }
 </h1>
 
 {
@@ -140,7 +180,7 @@ function getProfileUrl(person: GitContributor): string | null {
                         {getProfileUrl(author) ? (
                             <a
                                 href={getProfileUrl(author)!}
-                                class="text-(--sl-color-text-accent) no-underline hover:underline"
+                                class="text-(--sl-color-white) no-underline hover:underline"
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
@@ -155,55 +195,76 @@ function getProfileUrl(person: GitContributor): string | null {
                 </div>
             )}
 
-            {lastUpdated && (
-                <div class="flex flex-col gap-1.5">
-                    <span class="text-xs tracking-wide">
-                        Updated on{" "}
-                        <time
-                            datetime={lastUpdated.toISOString()}
-                            class="text-(--sl-color-white)"
-                        >
-                            {lastUpdated.toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                            })}
-                        </time>
-                    </span>
-                </div>
-            )}
-
             {contributors.length > 0 && (
-                <div class="flex flex-col gap-1.5">
-                    <span class="text-(--sl-color-gray-3) text-xs uppercase tracking-wide">
-                        Contributors
-                    </span>
-                    <div class="flex flex-row-reverse justify-end">
+                <div class="contributors-dropdown relative">
+                    <button
+                        class="action-button"
+                        id="contributors-toggle"
+                        aria-label="View contributors"
+                    >
+                        <div class="flex items-center -space-x-2">
+                            {contributors.slice(0, 3).map((contributor) => (
+                                <img
+                                    src={getAvatarUrl(contributor, 24)}
+                                    alt={getDisplayName(contributor)}
+                                    class="rounded-full border-2 border-(--sl-color-gray-6)"
+                                    width="24"
+                                    height="24"
+                                />
+                            ))}
+                        </div>
+                        <span>
+                            {contributors.length}{" "}
+                            {contributors.length === 1
+                                ? "Contributor"
+                                : "Contributors"}
+                        </span>
+                        <Icon name="down-caret" size="1rem" />
+                    </button>
+
+                    <div id="contributors-menu">
                         {contributors.map((contributor) => {
                             const profileUrl = getProfileUrl(contributor);
-                            const avatar = (
-                                <img
-                                    src={getAvatarUrl(contributor)}
-                                    alt={getDisplayName(contributor)}
-                                    class="rounded-full border-2 border-(--sl-color-bg) shadow-[0_0_0_1px_var(--sl-color-gray-5)] block"
-                                    width="28"
-                                    height="28"
-                                    title={getDisplayName(contributor)}
-                                />
-                            );
                             return profileUrl ? (
                                 <a
                                     href={profileUrl}
-                                    class="-ml-2 first:ml-0 transition-transform duration-150 hover:-translate-y-0.5 hover:z-10"
+                                    class="contributor-item"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    {avatar}
+                                    <img
+                                        src={getAvatarUrl(contributor, 32)}
+                                        alt={getDisplayName(contributor)}
+                                        class="rounded-full"
+                                        width="32"
+                                        height="32"
+                                    />
+                                    <div class="flex flex-col flex-1 min-w-0">
+                                        <span class="font-medium text-(--sl-color-white) truncate">
+                                            {getDisplayName(contributor)}
+                                        </span>
+                                    </div>
+                                    <Icon
+                                        name="external"
+                                        size="1rem"
+                                        class="external-icon flex-shrink-0"
+                                    />
                                 </a>
                             ) : (
-                                <span class="-ml-2 first:ml-0 transition-transform duration-150 hover:-translate-y-0.5 hover:z-10">
-                                    {avatar}
-                                </span>
+                                <div class="contributor-item non-clickable">
+                                    <img
+                                        src={getAvatarUrl(contributor, 32)}
+                                        alt={getDisplayName(contributor)}
+                                        class="rounded-full"
+                                        width="32"
+                                        height="32"
+                                    />
+                                    <div class="flex flex-col flex-1 min-w-0">
+                                        <span class="font-medium text-(--sl-color-white) truncate">
+                                            {getDisplayName(contributor)}
+                                        </span>
+                                    </div>
+                                </div>
                             );
                         })}
                     </div>
@@ -345,6 +406,59 @@ function getProfileUrl(person: GitContributor): string | null {
     .dropdown-item .external-icon {
         margin-left: auto;
     }
+
+    /* Contributors dropdown */
+    #contributors-menu {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        background-color: var(--sl-color-gray-6);
+        border: 1px solid var(--sl-color-gray-5);
+        border-radius: 0.25rem;
+        padding: 0.5rem;
+        min-width: 280px;
+        max-width: 320px;
+        max-height: 400px;
+        overflow-y: auto;
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.3),
+            0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        display: none;
+        z-index: 10;
+    }
+
+    #contributors-menu.show {
+        display: block;
+    }
+
+    .contributor-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        color: var(--sl-color-white);
+        text-decoration: none;
+        border-radius: 0.25rem;
+        transition: background-color 0.15s ease;
+        cursor: pointer;
+    }
+
+    .contributor-item:hover {
+        background-color: var(--sl-color-gray-5);
+    }
+
+    .contributor-item.non-clickable {
+        cursor: default;
+    }
+
+    .contributor-item .external-icon {
+        opacity: 0.5;
+        flex-shrink: 0;
+    }
+
+    .contributor-item:hover .external-icon {
+        opacity: 1;
+    }
 </style>
 
 <script>
@@ -394,6 +508,29 @@ function getProfileUrl(person: GitContributor): string | null {
     });
 
     dropdownMenu?.addEventListener("click", (e) => {
+        e.stopPropagation();
+    });
+
+    // Contributors dropdown toggle
+    const contributorsToggle = document.querySelector(
+        "#contributors-toggle",
+    ) as HTMLButtonElement;
+    const contributorsMenu = document.querySelector(
+        "#contributors-menu",
+    ) as HTMLElement;
+
+    contributorsToggle?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        contributorsMenu.classList.toggle("show");
+        // Close the other dropdown if open
+        dropdownMenu?.classList.remove("show");
+    });
+
+    document.addEventListener("click", () => {
+        contributorsMenu?.classList.remove("show");
+    });
+
+    contributorsMenu?.addEventListener("click", (e) => {
         e.stopPropagation();
     });
 </script>

@@ -338,22 +338,32 @@ The metadata is populated through a build-time pre-computation system that extra
 3. For each file, it executes `git log --follow` to retrieve the complete commit history
 4. Author data is extracted from the oldest commit (file creation)
 5. Contributor data is aggregated from all subsequent commits
-6. All metadata is written to `src/data/contributors.json`
-7. This JSON file is copied to `dist/server/data/` and `dist/client/data/` for runtime access
+6. For each contributor with a GitHub username, profile data (avatar URL, profile link) is fetched from GitHub's API
+7. All metadata (including GitHub avatars) is written to `src/data/contributors.json`
+8. This JSON file is committed to the repository and copied to `dist/server/data/` and `dist/client/data/` during builds
 
 **Runtime Process:**
 
 1. Route middleware (`apps/marketing/src/routeData/contributors.ts`) loads the pre-computed JSON at server startup
 2. For each page request, it looks up the file path in the cached contributor data
-3. Metadata is attached to the route context
-4. The `PageTitle` component renders the author, contributors, and last updated information
+3. Metadata is attached to the route context with all GitHub data already included
+4. The `PageTitle` component renders the author, contributors, and last updated information using pre-fetched avatars
 
 **Email-to-GitHub Mapping:**
 
-If your Git email follows GitHub's noreply format (`username@users.noreply.github.com` or `12345678+username@users.noreply.github.com`), the system automatically extracts your GitHub username and displays your avatar with a profile link. Otherwise, a Gravatar is used based on your email hash.
+The system extracts GitHub usernames using two methods:
+1. **GitHub noreply emails**: Automatically parsed from formats like `username@users.noreply.github.com` or `12345678+username@users.noreply.github.com`
+2. **Manual mapping**: Custom emails (like `tommerty@doras.to`) are mapped to GitHub usernames in the integration's `EMAIL_TO_GITHUB` configuration
 
-:::tip[Why Pre-compute?]
-Pre-computing Git metadata at build time eliminates the need for the `.git` directory in production Docker containers. This makes deployments faster, more secure, and compatible with any hosting environment. The Git repository is only required during the build phase, not at runtime.
+Once a GitHub username is identified, the build process fetches the user's avatar URL and profile link from GitHub's API. This data is stored in `contributors.json`, eliminating the need for any runtime API calls.
+
+:::tip[Why Pre-compute and Commit?]
+By pre-computing contributor data and committing it to the repository:
+- **Zero runtime dependencies**: No Git repository or GitHub API calls needed in production
+- **Maximum performance**: All data is pre-fetched and cached in a single JSON file
+- **Docker-friendly**: The `.git` directory isn't required in production containers
+- **Build anywhere**: Works in any CI/CD environment without Git access
+- **Fast page loads**: No external API calls delay page rendering
 :::
 
 ## Related Resources
