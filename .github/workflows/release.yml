@@ -15,6 +15,9 @@ jobs:
       contents: write
       pull-requests: write
       packages: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      version: ${{ steps.version.outputs.version }}
     
     steps:
       - name: Checkout repository
@@ -53,11 +56,11 @@ jobs:
           echo "version=v${VERSION}" >> $GITHUB_OUTPUT
           echo "Version: v${VERSION}"
 
-      - name: Set published outputs
-        id: published-info
+      - name: Log published info
         if: steps.changesets.outputs.published == 'true'
         run: |
           echo "Published: ${{ steps.changesets.outputs.published }}"
+          echo "Version: ${{ steps.version.outputs.version }}"
           echo "Published packages: ${{ steps.changesets.outputs.publishedPackages }}"
           
   trigger-build:
