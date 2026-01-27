@@ -10,12 +10,12 @@ metadata:
 
 ## What I do
 
-I analyze the changes in a pull request and update its title and description to provide a clear, comprehensive summary. I create well-structured PR descriptions that help reviewers understand:
+I analyze the changes in a pull request and update its title and description with release-ready documentation. The PR description serves as the source material for release notes, so I create well-structured content that helps both reviewers and end users understand:
 
 - What changed and why
-- Key technical improvements
+- User-facing improvements and fixes
+- Technical implementation details
 - Impact on the codebase
-- Testing considerations
 - File changes summary
 
 ## When to use me
@@ -29,58 +29,78 @@ Use this skill when:
 ## How I work
 
 1. **Fetch PR details**: I retrieve the current PR information from GitHub
-2. **Analyze changes**: I examine the commits, file changes, and diff to understand the scope
-3. **Craft comprehensive description**: I create a well-structured description with:
-   - Executive summary
-   - Key changes organized by category
-   - Technical details with file references
-   - Testing plan or considerations
-   - Files changed summary
+2. **Analyze changes**: I examine the commits, file changes, and diff to understand the scope and impact
+3. **Craft release notes**: I create a well-structured description with:
+   - User-focused summary suitable for release announcements
+   - Release notes organized by category (features, fixes, improvements, etc.)
+   - Technical details for developers reviewing the code
+   - Complete file changes summary
 4. **Update PR**: I use GitHub API to update the title and description
 5. **Confirm**: I provide you with the PR URL to review the changes
 
 ## Title format
 
-I follow conventional commit format for PR titles:
-- `feat:` for new features
-- `fix:` for bug fixes
-- `refactor:` for code improvements without behavior change
-- `docs:` for documentation updates
-- `chore:` for maintenance tasks
-- `test:` for test additions or fixes
+Focus on the PR's purpose and impact. Use a clear, concise title that summarizes what changed from a user or developer perspective. The title will be used as the release title, so make it meaningful.
+
+Examples:
+- "Add dark mode support to dashboard"
+- "Fix authentication timeout issues"
+- "Improve database query performance"
+- "Update API documentation for v2 endpoints"
 
 ## Description structure
 
+The PR description is structured to serve as release notes. Write in past tense and focus on user impact.
+
 ```markdown
 ## Summary
-Brief overview of what this PR accomplishes
+Brief, user-focused overview of what this release accomplishes. Write as if announcing the release to users or stakeholders.
 
+Example: "Fixed critical authentication issues and improved dashboard performance by 40%."
 
-## Release notes
-Generate release notes on
-### New features
+## Release Notes
+
+### New Features
+- List new capabilities or functionality added
+- Focus on what users can now do
+- Include relevant context about why the feature was added
+
+### Bug Fixes
+- List issues that were resolved
+- Describe the problem and the fix
+- Reference issue numbers if applicable
+
+### Improvements
+- Performance enhancements
+- Code quality improvements
+- Refactoring that improves maintainability
+
 ### Documentation
-### Chores
-### Refactors
-### Overview
+- New or updated documentation
+- API changes
+- Migration guides
 
-## Key Changes
-### Category 1
-- Bullet points of changes
-- With relevant context
-
-### Category 2
-- More organized changes
+### Breaking Changes
+- Any changes that require user action
+- API changes that break compatibility
+- Configuration changes
 
 ## Technical Details
-File paths and line references where helpful
+Provide implementation details for developers:
+- Key architectural decisions
+- File paths and line references
+- Code examples where helpful
+- Performance metrics or benchmarks
 
 ## Files Changed
 **New Files:**
-- List of new files
+- List new files with brief description of purpose
 
 **Modified Files:**
-- List of modified files with brief description
+- List modified files with description of changes
+
+**Removed Files:**
+- List removed files with reason for removal
 ```
 
 ## What I need from you
@@ -106,8 +126,8 @@ Examples:
 **I will**:
 1. Fetch PR #62 details from GitHub
 2. Analyze the commits and changes
-3. Generate comprehensive title following conventional commits
-4. Create structured description with summary, changes, technical details, and files
+3. Generate clear, release-focused title
+4. Create structured description with release notes, technical details, and file changes
 5. Update the PR via GitHub API
 6. Confirm with the PR URL
 
@@ -115,5 +135,6 @@ Examples:
 
 - I use the GitHub API, so the repo must be accessible
 - I respect the existing PR structure (base branch, reviewers, etc.)
-- I focus on clarity and completeness in descriptions
-- I organize information to make code review easier
+- I focus on clarity and completeness suitable for release notes
+- I organize information to make both code review and release documentation easier
+- The PR description will be used as release notes, so I write for both technical reviewers and end users

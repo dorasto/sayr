@@ -71,9 +71,9 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{version}},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{major}},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{version}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
 
       - name: Build and push Docker image
         id: build
@@ -150,9 +150,9 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{version}},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{major}},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{version}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
