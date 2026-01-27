@@ -85,6 +85,7 @@ jobs:
           "@repo/util": ${BUMP_TYPE}
           "@repo/opentelemetry": ${BUMP_TYPE}
           "@repo/queue": ${BUMP_TYPE}
+          "@repo/typescript-config": ${BUMP_TYPE}
           ---
           
           ${PR_TITLE}
