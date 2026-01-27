@@ -1,4 +1,4 @@
-# @repo/storage
+# start
 
 ## 0.0.8
 
@@ -238,39 +238,10 @@
   - See RELEASES.md for troubleshooting and manual release procedures
 
 - 48cea11: Configure Changesets and GitHub release workflow
-
-## 0.0.7
-
-### Patch Changes
-
-- efe75f4: fixed internal auth between worker and backend
-
-## 0.0.6
-
-### Patch Changes
-
-- 8c4e148: adding redis for queue system
-
-## 0.0.5
-
-### Patch Changes
-
-- f6938fb: fix public pages
-
-## 0.0.4
-
-### Patch Changes
-
-- d74a80b: Auto deploy when built
-
-## 0.0.3
-
-## 0.0.2
-
-### Patch Changes
-
-- ce1090d: Initial release - reset
-
-## 0.1.0
-
-## 0.0.7
+- Updated dependencies [336eaa5]
+- Updated dependencies [48cea11]
+  - @repo/auth@0.0.8
+  - @repo/database@0.0.8
+  - @repo/ui@0.0.8
+  - @repo/util@0.0.8
+  - @repo/opentelemetry@0.0.8
