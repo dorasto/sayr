@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { DefaultCatchBoundary } from "@/components/Error";
 import { seo } from "@/seo";
 import { initClickTracking, initOpenTel, patchGlobalFetch } from "@repo/opentelemetry/client"
+console.log("🚀 ~ import.meta.env.VITE_SAYR_CLOUD:", import.meta.env.VITE_SAYR_CLOUD)
 console.log(`🚀 ~ import.meta.env.VITE_SAYR_CLOUD === "true":`, import.meta.env.VITE_SAYR_CLOUD === "true")
 if (typeof window !== "undefined" && import.meta.env.VITE_SAYR_CLOUD === "true") {
 	initOpenTel("sayr-admin");
