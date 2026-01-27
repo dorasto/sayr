@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev",
-    "dev:op": "op inject -i apps/backend/.env -o apps/backend/.env.local && op inject -i apps/start/.env -o apps/start/.env.local && op inject -i apps/worker/.env -o apps/worker/.env.local && turbo dev --filter=!@sayrio/public",
+    "dev:op": "op inject --force -i apps/backend/.env -o apps/backend/.env.local && op inject --force -i apps/start/.env -o apps/start/.env.local && op inject --force -i apps/worker/.env -o apps/worker/.env.local && turbo dev --filter=!@sayrio/public",
     "build": "turbo build",
     "start": "turbo start",
     "clean": "turbo run clean && rm -rf node_modules",
