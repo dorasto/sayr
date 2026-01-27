@@ -83,6 +83,8 @@ jobs:
           "@repo/storage": ${BUMP_TYPE}
           "@repo/ui": ${BUMP_TYPE}
           "@repo/util": ${BUMP_TYPE}
+          "@repo/opentelemetry": ${BUMP_TYPE}
+          "@repo/queue": ${BUMP_TYPE}
           ---
           
           ${PR_TITLE}
