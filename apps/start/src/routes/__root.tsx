@@ -12,9 +12,19 @@ import appCss from "../styles.css?url";
 import { DefaultCatchBoundary } from "@/components/Error";
 import { seo } from "@/seo";
 import { initClickTracking, initOpenTel, patchGlobalFetch } from "@repo/opentelemetry/client"
-console.log("🚀 ~ import.meta.env.VITE_SAYR_CLOUD:", import.meta.env.VITE_SAYR_CLOUD)
-console.log(`🚀 ~ import.meta.env.VITE_SAYR_CLOUD === "true":`, import.meta.env.VITE_SAYR_CLOUD === "true")
-if (typeof window !== "undefined" && import.meta.env.VITE_SAYR_CLOUD === "true") {
+const isSayrCloud =
+	import.meta.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
+
+console.log(
+	"🚀 ~ import.meta.env.VITE_SAYR_CLOUD:",
+	import.meta.env.VITE_SAYR_CLOUD
+);
+console.log(
+	`🚀 ~ isSayrCloud:`,
+	isSayrCloud
+);
+
+if (typeof window !== "undefined" && isSayrCloud) {
 	initOpenTel("sayr-admin");
 	patchGlobalFetch({
 		excludeUrls: [
@@ -25,7 +35,7 @@ if (typeof window !== "undefined" && import.meta.env.VITE_SAYR_CLOUD === "true")
 			/@vite/,
 			/@react-refresh/,
 			/node_modules/,
-			/\.hot-update\./,  // btw, escape the dots if you want literal dots
+			/\.hot-update\./,
 		],
 		logBody: true,
 	});
