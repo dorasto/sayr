@@ -1,10 +1,13 @@
 name: Build and Deploy
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to tag (e.g., v1.2.3)'
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -67,6 +70,10 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}
           tags: |
             type=raw,value=latest
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{version}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
 
       - name: Build and push Docker image
         id: build
@@ -142,6 +149,10 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}
           tags: |
             type=raw,value=latest
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{version}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
@@ -153,16 +164,24 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:latest
 
-  # deploy:
-  #   needs: [merge-manifest]
-  #   runs-on: ubuntu-latest
-  #   container: ghcr.io/railwayapp/cli:latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       app: [start, backend, worker, traefik, marketing]
-  #   env:
-  #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-  #   steps:
-  #     - name: Redeploy ${{ matrix.app }}
-  #       run: railway redeploy -y --service ${{ matrix.app }}
+  deploy:
+    needs: [merge-manifest]
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Redeploy traefik
+        run: railway redeploy -y --service traefik --watch
+      
+      - name: Redeploy backend
+        run: railway redeploy -y --service backend --watch
+      
+      - name: Redeploy worker
+        run: railway redeploy -y --service worker --watch
+      
+      - name: Redeploy start
+        run: railway redeploy -y --service start --watch
+      
+      - name: Redeploy marketing
+        run: railway redeploy -y --service marketing --watch

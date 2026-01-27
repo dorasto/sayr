@@ -1,28 +1,28 @@
 {
-	"name": "worker",
-	"version": "0.0.7",
-	"private": false,
-	"scripts": {
-		"dev": "bun --watch run index.ts github",
-		"internal:dev": "op run --env-file .env -- bun run dev",
-		"build": "bun build index.ts --target=bun --outdir ./dist",
-		"start": "bun ./dist/index.js",
-		"internal:start": "op run --env-file .env -- bun run start",
-		"lint": "biome check .",
-		"lint:fix": "biome check . --write",
-		"format": "biome format --write ."
-	},
-	"dependencies": {
-		"@repo/database": "workspace:*",
-		"@repo/util": "workspace:*",
-		"@repo/opentelemetry": "workspace:*"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.1.1",
-		"@repo/queue": "workspace:*",
-		"@repo/typescript-config": "workspace:*",
-		"@types/bun": "^1.2.23",
-		"bun-types": "^1.2.21",
-		"typescript": "^5.3.3"
-	}
+  "name": "worker",
+  "version": "0.0.0",
+  "private": false,
+  "scripts": {
+    "dev": "bun --watch run index.ts github",
+    "internal:dev": "op run --env-file .env -- bun run dev",
+    "build": "bun build index.ts --target=bun --outdir ./dist",
+    "start": "bun ./dist/index.js",
+    "internal:start": "op run --env-file .env -- bun run start",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@repo/database": "workspace:*",
+    "@repo/util": "workspace:*",
+    "@repo/opentelemetry": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.1.1",
+    "@repo/queue": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/bun": "^1.2.23",
+    "bun-types": "^1.2.21",
+    "typescript": "^5.3.3"
+  }
 }

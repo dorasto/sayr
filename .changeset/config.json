@@ -3,11 +3,11 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [
-    ["web", "backend", "worker", "@repo/auth", "@repo/database", "@repo/storage", "@repo/ui", "@repo/util", "@repo/typescript-config"]
+    ["start", "backend", "worker", "marketing", "@repo/auth", "@repo/database", "@repo/storage", "@repo/ui", "@repo/util", "@repo/opentelemetry", "@repo/queue"]
   ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": ["@repo/typescript-config", "@repo/biome-config"]
 }

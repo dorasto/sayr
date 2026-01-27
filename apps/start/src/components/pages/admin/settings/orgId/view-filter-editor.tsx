@@ -33,6 +33,7 @@ interface ViewFilterEditorProps {
 	availableUsers: schema.userType[];
 	categories: schema.categoryType[];
 	tasks: schema.TaskWithLabels[];
+	releases: schema.releaseType[];
 }
 
 export function ViewFilterEditor({
@@ -42,6 +43,7 @@ export function ViewFilterEditor({
 	availableUsers,
 	categories,
 	tasks,
+	releases,
 }: ViewFilterEditorProps) {
 	const [filterState, setFilterState] = useState<FilterState>(
 		deserializeFilters(initialFilterParams) || { groups: [], operator: "AND" }
@@ -107,7 +109,7 @@ export function ViewFilterEditor({
 	const getAvailableOptions = (field: FilterField) => {
 		const config = FILTER_FIELD_CONFIGS.find((c) => c.field === field);
 		return typeof config?.getOptions === "function"
-			? config.getOptions(tasks, labels, availableUsers, "", categories)
+			? config.getOptions(tasks, labels, availableUsers, "", categories, releases)
 			: [];
 	};
 
@@ -200,6 +202,7 @@ export function ViewFilterEditor({
 							getAvailableOperators={getAvailableOperators}
 							renderFilterValue={renderFilterValue}
 							categories={categories}
+							releases={releases}
 						/>
 					</div>
 				}

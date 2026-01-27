@@ -1,45 +1,45 @@
 {
-	"name": "backend",
-	"version": "0.0.7",
-	"private": false,
-	"scripts": {
-		"dev": "bun --watch run index.ts",
-		"internal:dev": "op run --env-file .env -- bun run dev",
-		"build": "bun build index.ts --target=bun --outdir ./dist --external jsdom,canvas",
-		"start": "bun ./dist/index.js",
-		"internal:start": "op run --env-file .env -- bun run start",
-		"lint": "biome check .",
-		"lint:fix": "biome check . --write",
-		"format": "biome format --write ."
-	},
-	"dependencies": {
-		"@hono/standard-validator": "^0.2.0",
-		"@opentelemetry/api": "^1.9.0",
-		"@repo/auth": "workspace:*",
-		"@repo/database": "workspace:*",
-		"@repo/queue": "workspace:*",
-		"@repo/storage": "workspace:*",
-		"@repo/util": "workspace:*",
-		"@repo/opentelemetry": "workspace:*",
-		"@scalar/hono-api-reference": "^0.9.25",
-		"cron": "^4.3.4",
-		"drizzle-zod": "^0.8.3",
-		"hono": "^4.10.3",
-		"hono-openapi": "^1.1.1",
-		"jsdom": "^27.2.0",
-		"mime-types": "^3.0.2",
-		"prosemirror-markdown": "^1.13.2",
-		"prosemirror-model": "1.25.4",
-		"zod": "^4.0.5"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.1.1",
-		"@hono/node-server": "^1.15.0",
-		"@repo/typescript-config": "workspace:*",
-		"@types/bun": "^1.2.23",
-		"@types/jsdom": "^27.0.0",
-		"@types/mime-types": "^3.0.1",
-		"bun-types": "^1.2.21",
-		"typescript": "^5.3.3"
-	}
+  "name": "backend",
+  "version": "0.0.0",
+  "private": false,
+  "scripts": {
+    "dev": "bun --watch run index.ts",
+    "internal:dev": "op run --env-file .env -- bun run dev",
+    "build": "bun build index.ts --target=bun --outdir ./dist --external jsdom,canvas",
+    "start": "bun ./dist/index.js",
+    "internal:start": "op run --env-file .env -- bun run start",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@hono/standard-validator": "^0.2.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@repo/auth": "workspace:*",
+    "@repo/database": "workspace:*",
+    "@repo/queue": "workspace:*",
+    "@repo/storage": "workspace:*",
+    "@repo/util": "workspace:*",
+    "@repo/opentelemetry": "workspace:*",
+    "@scalar/hono-api-reference": "^0.9.25",
+    "cron": "^4.3.4",
+    "drizzle-zod": "^0.8.3",
+    "hono": "^4.10.3",
+    "hono-openapi": "^1.1.1",
+    "jsdom": "^27.2.0",
+    "mime-types": "^3.0.2",
+    "prosemirror-markdown": "^1.13.2",
+    "prosemirror-model": "1.25.4",
+    "zod": "^4.0.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.1.1",
+    "@hono/node-server": "^1.15.0",
+    "@repo/typescript-config": "workspace:*",
+    "@types/bun": "^1.2.23",
+    "@types/jsdom": "^27.0.0",
+    "@types/mime-types": "^3.0.1",
+    "bun-types": "^1.2.21",
+    "typescript": "^5.3.3"
+  }
 }
