@@ -175,12 +175,18 @@ export default function GlobalTaskRelease({
                         }}
                       />
                     )}
-                    <span className="truncate">
-                      {selectedRelease.name}{" "}
+                    {compact ? (
                       <span className="truncate font-mono">
-                        ({selectedRelease.slug})
+                        {selectedRelease.slug}
                       </span>
-                    </span>
+                    ) : (
+                      <span className="truncate">
+                        {selectedRelease.name}
+                        <span className="truncate font-mono">
+                          ({selectedRelease.slug})
+                        </span>
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground">
