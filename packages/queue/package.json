@@ -1,26 +1,26 @@
 {
-	"name": "@repo/queue",
-	"version": "0.0.7",
-	"private": true,
-	"license": "MIT",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		".": "./src/index.ts",
-		"./*": "./src/*.ts"
-	},
-	"dependencies": {
-		"ioredis": "^5.8.2"
-	},
-	"scripts": {
-		"lint": "biome check .",
-		"lint:fix": "biome check . --write",
-		"format": "biome format --write ."
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.1.1",
-		"@repo/typescript-config": "workspace:*",
-		"@types/node": "^24.0.14"
-	}
+  "name": "@repo/queue",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "ioredis": "^5.8.2"
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.1.1",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^24.0.14"
+  }
 }
