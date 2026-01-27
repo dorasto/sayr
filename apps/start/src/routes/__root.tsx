@@ -12,20 +12,9 @@ import appCss from "../styles.css?url";
 import { DefaultCatchBoundary } from "@/components/Error";
 import { seo } from "@/seo";
 import { initClickTracking, initOpenTel, patchGlobalFetch } from "@repo/opentelemetry/client"
-const isSayrCloud =
-	import.meta.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
-
-console.log(
-	"🚀 ~ import.meta.env.VITE_SAYR_CLOUD:",
-	import.meta.env.VITE_SAYR_CLOUD
-);
-console.log(
-	`🚀 ~ isSayrCloud:`,
-	isSayrCloud
-);
-
+const isSayrCloud = import.meta.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
 if (typeof window !== "undefined" && isSayrCloud) {
-	initOpenTel("sayr-admin");
+	initOpenTel("sayr-admin", import.meta.env.PROD === true);
 	patchGlobalFetch({
 		excludeUrls: [
 			/\/api\/traces/,

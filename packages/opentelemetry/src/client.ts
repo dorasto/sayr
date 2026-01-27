@@ -21,19 +21,18 @@ let activeInteractionSpan: Span | undefined;
 let activeInteractionCtx: Context | undefined;
 let interactionTimeout: ReturnType<typeof setTimeout> | undefined;
 
-export function initOpenTel(_serviceName: string) {
+export function initOpenTel(_serviceName: string, isProd: boolean) {
     if (typeof window === "undefined" || initialized) return;
     initialized = true;
-
-    const isProd = process.env.PROD as unknown as boolean === true;
     const serviceName = `${_serviceName}${isProd ? "" : "-dev"}`;
-
     const provider = new WebTracerProvider({
         resource: resourceFromAttributes({
             "service.name": serviceName,
         }),
         spanProcessors: [
-            new BatchSpanProcessor(new OTLPTraceExporter({ url: "/api/traces" })),
+            new BatchSpanProcessor(
+                new OTLPTraceExporter({ url: "/api/traces" })
+            ),
         ],
     });
 
