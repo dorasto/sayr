@@ -1,7 +1,7 @@
 {
   "name": "marketing",
   "type": "module",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "private": false,
   "scripts": {
     "dev": "astro dev --port 3002",

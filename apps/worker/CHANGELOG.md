@@ -1,5 +1,20 @@
 # worker
 
+## 0.0.9
+
+### Patch Changes
+
+- 841b5d8: Updating changeset config and workflow
+
+  Chores
+
+      Updated release automation configuration to improve package tracking in version management and changelog generation processes
+
+- Updated dependencies [841b5d8]
+  - @repo/database@0.0.9
+  - @repo/util@0.0.9
+  - @repo/opentelemetry@0.0.9
+
 ## 0.0.8
 
 ### Patch Changes
