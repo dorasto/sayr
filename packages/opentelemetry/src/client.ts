@@ -25,7 +25,7 @@ export function initOpenTel(_serviceName: string) {
     if (typeof window === "undefined" || initialized) return;
     initialized = true;
 
-    const isProd = process.env.VITE_APP_ENV === "production";
+    const isProd = process.env.PROD as unknown as boolean === true;
     const serviceName = `${_serviceName}${isProd ? "" : "-dev"}`;
 
     const provider = new WebTracerProvider({
