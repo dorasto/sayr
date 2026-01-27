@@ -14,13 +14,11 @@
     "check-types": "turbo check-types",
     "docker": "docker-compose down --remove-orphans --volumes && docker container prune -f && docker-compose up --build -d",
     "docker:build": "docker-compose -f docker-compose.yml build",
-    "release": "changeset tag && git push origin --tags",
     "env:all": "bash -c 'failed=0; bash ./gen.sh Sayr sayr-dev-local ./apps/worker/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/backend/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/start/.env || failed=1; exit $failed'",
     "env:ps:all": "powershell -Command \"./gen.ps1 Sayr sayr-dev-local ./apps/worker/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/backend/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/start/.env\""
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
-    "@changesets/cli": "^2.29.7",
     "@types/node": "^24.0.14",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"

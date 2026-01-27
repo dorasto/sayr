@@ -1,0 +1,124 @@
+name: Release on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Create Release and Deploy
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      released: ${{ steps.bump.outputs.released }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect release type from labels
+        id: release-type
+        env:
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          echo "Labels: $PR_LABELS"
+          
+          if echo "$PR_LABELS" | grep -q "release:major"; then
+            echo "bump=major" >> $GITHUB_OUTPUT
+            echo "Detected: MAJOR release"
+          elif echo "$PR_LABELS" | grep -q "release:minor"; then
+            echo "bump=minor" >> $GITHUB_OUTPUT
+            echo "Detected: MINOR release"
+          elif echo "$PR_LABELS" | grep -q "release:patch"; then
+            echo "bump=patch" >> $GITHUB_OUTPUT
+            echo "Detected: PATCH release"
+          elif echo "$PR_LABELS" | grep -q "release:skip"; then
+            echo "bump=skip" >> $GITHUB_OUTPUT
+            echo "Detected: SKIP release"
+          else
+            echo "bump=none" >> $GITHUB_OUTPUT
+            echo "No release label found - skipping release"
+          fi
+
+      - name: Calculate new version and create tag
+        id: bump
+        if: steps.release-type.outputs.bump != 'skip' && steps.release-type.outputs.bump != 'none'
+        env:
+          BUMP_TYPE: ${{ steps.release-type.outputs.bump }}
+        run: |
+          # Get the latest tag or default to v0.0.0
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Strip the 'v' prefix
+          CURRENT_VERSION=${LATEST_TAG#v}
+          
+          # Calculate new version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          
+          if [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [ "$BUMP_TYPE" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+          
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: v${NEW_VERSION}"
+          echo "version=v${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "released=true" >> $GITHUB_OUTPUT
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create and push git tag
+          git tag "v${NEW_VERSION}"
+          git push origin "v${NEW_VERSION}"
+
+      - name: Create GitHub Release
+        if: steps.bump.outputs.released == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          # Create release notes from PR
+          cat > release_notes.md <<EOF
+          ## Changes
+          
+          ${PR_BODY}
+          
+          ---
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/pull/${PR_NUMBER}
+          EOF
+          
+          # Create GitHub Release
+          gh release create "${VERSION}" \
+            --title "${PR_TITLE}" \
+            --notes-file release_notes.md
+
+  trigger-build:
+    name: Trigger Build and Deploy
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    uses: ./.github/workflows/build-and-deploy.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.release.outputs.version }}
