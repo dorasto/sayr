@@ -16,6 +16,7 @@ import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
 import { Route as LoginAuthCheckRouteImport } from './routes/login/auth-check'
 import { Route as ApiTracesRouteImport } from './routes/api/traces'
+import { Route as ApiSentryExampleRouteImport } from './routes/api/sentry-example'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
 import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
 import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
@@ -86,6 +87,11 @@ const LoginAuthCheckRoute = LoginAuthCheckRouteImport.update({
 const ApiTracesRoute = ApiTracesRouteImport.update({
   id: '/api/traces',
   path: '/api/traces',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSentryExampleRoute = ApiSentryExampleRouteImport.update({
+  id: '/api/sentry-example',
+  path: '/api/sentry-example',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof adminSettingsRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/sentry-example': typeof ApiSentryExampleRoute
   '/api/traces': typeof ApiTracesRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/sentry-example': typeof ApiSentryExampleRoute
   '/api/traces': typeof ApiTracesRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/(admin)/settings': typeof adminSettingsRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/sentry-example': typeof ApiSentryExampleRoute
   '/api/traces': typeof ApiTracesRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/(admin)/': typeof adminIndexRoute
@@ -433,6 +442,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/orgs/$orgSlug'
     | '/api/image-preview'
+    | '/api/sentry-example'
     | '/api/traces'
     | '/login/auth-check'
     | '/'
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/api/image-preview'
+    | '/api/sentry-example'
     | '/api/traces'
     | '/login/auth-check'
     | '/'
@@ -516,6 +527,7 @@ export interface FileRouteTypes {
     | '/(admin)/settings'
     | '/orgs/$orgSlug'
     | '/api/image-preview'
+    | '/api/sentry-example'
     | '/api/traces'
     | '/login/auth-check'
     | '/(admin)/'
@@ -560,6 +572,7 @@ export interface RootRouteChildren {
   ProsekitTestRoute: typeof ProsekitTestRoute
   OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
+  ApiSentryExampleRoute: typeof ApiSentryExampleRoute
   ApiTracesRoute: typeof ApiTracesRoute
   LoginAuthCheckRoute: typeof LoginAuthCheckRoute
   LoginIndexRoute: typeof LoginIndexRoute
@@ -616,6 +629,13 @@ declare module '@tanstack/react-router' {
       path: '/api/traces'
       fullPath: '/api/traces'
       preLoaderRoute: typeof ApiTracesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sentry-example': {
+      id: '/api/sentry-example'
+      path: '/api/sentry-example'
+      fullPath: '/api/sentry-example'
+      preLoaderRoute: typeof ApiSentryExampleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/image-preview': {
@@ -1058,6 +1078,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProsekitTestRoute: ProsekitTestRoute,
   OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
+  ApiSentryExampleRoute: ApiSentryExampleRoute,
   ApiTracesRoute: ApiTracesRoute,
   LoginAuthCheckRoute: LoginAuthCheckRoute,
   LoginIndexRoute: LoginIndexRoute,

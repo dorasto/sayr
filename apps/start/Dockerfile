@@ -40,6 +40,7 @@ ARG VITE_SAYR_FRONTEND_AXIOM_DATASET="___VITE_SAYR_FRONTEND_AXIOM_DATASET___"
 ARG VITE_SAYR_FRONTEND_AXIOM_TOKEN="___VITE_SAYR_FRONTEND_AXIOM_TOKEN___"
 ARG VITE_TENOR_API="___VITE_TENOR_API___"
 ARG VITE_SAYR_CLOUD="___VITE_SAYR_CLOUD___"
+ARG VITE_SENTRY_DSN="___VITE_SENTRY_DSN___"
 
 # Set environment variables for build time
 ENV VITE_URL_ROOT=$VITE_URL_ROOT
@@ -50,6 +51,7 @@ ENV VITE_SAYR_FRONTEND_AXIOM_DATASET=$VITE_SAYR_FRONTEND_AXIOM_DATASET
 ENV VITE_SAYR_FRONTEND_AXIOM_TOKEN=$VITE_SAYR_FRONTEND_AXIOM_TOKEN
 ENV VITE_TENOR_API=$VITE_TENOR_API
 ENV VITE_SAYR_CLOUD=$VITE_SAYR_CLOUD
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 ENV APP_ENV="production"
 
 ENV IS_DOCKER=1
@@ -98,8 +100,10 @@ RUN chmod +x ./entrypoint.sh
 # Copy necessary files
 # TanStack Start / Nitro outputs to .output
 COPY --from=installer --chown=reactjs:nodejs /app/apps/start/.output ./.output
+# Copy Sentry instrumentation file
+COPY --from=installer --chown=reactjs:nodejs /app/apps/start/.output/server/instrument.server.mjs ./.output/server/instrument.server.mjs
 
 EXPOSE 3000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["node", ".output/server/index.mjs"]
+CMD ["node", "--import", "./.output/server/instrument.server.mjs", ".output/server/index.mjs"]

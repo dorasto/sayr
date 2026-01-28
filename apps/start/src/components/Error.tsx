@@ -1,8 +1,17 @@
 import { Button } from "@repo/ui/components/button";
 import type { ErrorComponentProps } from "@tanstack/react-router";
+import * as Sentry from "@sentry/tanstackstart-react";
+import { useEffect } from "react";
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
 	console.error("DefaultCatchBoundary Error:", error);
+
+	useEffect(() => {
+		// Only capture to Sentry if it's configured (for self-hosted instances)
+		if (import.meta.env.VITE_SENTRY_DSN) {
+			Sentry.captureException(error);
+		}
+	}, [error]);
 
 	return (
 		<div className="via-surface to-surface flex min-h-screen items-center justify-center bg-[conic-gradient(at_bottom_left,var(--tw-gradient-stops))] from-primary">

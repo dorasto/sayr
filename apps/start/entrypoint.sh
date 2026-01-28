@@ -24,6 +24,7 @@ replace_env "VITE_SAYR_FRONTEND_AXIOM_DATASET" "___VITE_SAYR_FRONTEND_AXIOM_DATA
 replace_env "VITE_SAYR_FRONTEND_AXIOM_TOKEN" "___VITE_SAYR_FRONTEND_AXIOM_TOKEN___"
 replace_env "VITE_TENOR_API" "___VITE_TENOR_API___"
 replace_env "VITE_SAYR_CLOUD" "___VITE_SAYR_CLOUD___"
+replace_env "VITE_SENTRY_DSN" "___VITE_SENTRY_DSN___"
 
 echo "Starting App..."
 exec "$@"
