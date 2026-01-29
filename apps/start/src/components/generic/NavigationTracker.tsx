@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocation, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { navigationActions } from "@/lib/navigation-store";
 import { cn } from "@repo/ui/lib/utils";
 
@@ -11,6 +11,7 @@ export function NavigationTracker() {
 	const isLoading = useRouterState({ select: (s) => s.isLoading });
 	const [showProgress, setShowProgress] = useState(false);
 	const [progress, setProgress] = useState(0);
+	const previousPathnameRef = useRef(pathname);
 
 	useEffect(() => {
 		// If we are NOT in settings, update the last dashboard route
@@ -21,7 +22,11 @@ export function NavigationTracker() {
 
 	// Handle loading state with progress animation
 	useEffect(() => {
-		if (isLoading) {
+		// Only show loading bar if the pathname is actually changing
+		// (not just search params like ?view=priority-board)
+		const isPathnameChange = pathname !== previousPathnameRef.current;
+
+		if (isLoading && isPathnameChange) {
 			setShowProgress(true);
 			setProgress(0);
 
@@ -34,6 +39,9 @@ export function NavigationTracker() {
 		}
 
 		if (!isLoading && showProgress) {
+			// Update the previous pathname ref when loading completes
+			previousPathnameRef.current = pathname;
+
 			// Complete to 100% quickly
 			setProgress(100);
 
@@ -45,7 +53,7 @@ export function NavigationTracker() {
 
 			return () => clearTimeout(timer);
 		}
-	}, [isLoading, showProgress]);
+	}, [isLoading, showProgress, pathname]);
 
 	if (!showProgress) return null;
 

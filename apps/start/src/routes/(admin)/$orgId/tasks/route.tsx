@@ -18,17 +18,11 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks")({
 	// Prevent refetching when only search params change (e.g., ?task=4, ?view=xyz, ?filters=...)
 	// The task list doesn't depend on search params - filtering is done client-side
 	staleTime: 1000 * 60 * 5, // 5 minutes
-	// @ts-expect-error - shouldRevalidate exists but may not be in current type definitions
-	shouldRevalidate: ({ currentParams, nextParams }) => {
-		// Only revalidate if the orgId changes, not when search params change
-		return currentParams.orgId !== nextParams.orgId;
-	},
 	component: OrgTasksLayout,
 	pendingComponent: OrgTasksLayoutPending,
 });
 
 function OrgTasksLayout() {
-	// @ts-expect-error - Type inference issue with loader data, works at runtime
 	const { tasks } = Route.useLoaderData();
 
 	return (
