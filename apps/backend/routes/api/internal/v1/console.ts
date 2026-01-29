@@ -5,11 +5,9 @@ import { createTraceAsync } from "@repo/opentelemetry/trace";
 
 export const apiRouteConsole = new Hono<AppEnv>();
 
-// Get all tasks assigned to the logged-in user
 apiRouteConsole.post("/set-role", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
-	const recordWideEvent = c.get("recordWideEvent");
 
 	const session = c.get("session");
 	const user = c.get("user");
@@ -24,12 +22,18 @@ apiRouteConsole.post("/set-role", async (c) => {
 			error: new Error("Forbidden"),
 			code: "FORBIDDEN",
 			message: "User does not have admin privileges",
-			contextData: { userId: user?.id },
+			contextData: {
+				user: { id: user?.id },
+			},
 		});
 		return c.json({ success: false, error: "FORBIDDEN" }, 403);
 	}
 
-	const { userId, role }: { userId: string; role: "admin" | "user" } = await c.req.json();
+	const body = await c.req.json().catch(() => null);
+	const {
+		userId,
+		role,
+	}: { userId: string; role: "admin" | "user" } = body ?? {};
 
 	if (!userId || !role) {
 		await recordWideError({
@@ -37,7 +41,9 @@ apiRouteConsole.post("/set-role", async (c) => {
 			error: new Error("Invalid request data"),
 			code: "INVALID_REQUEST",
 			message: "User ID or role missing",
-			contextData: { adminId: session.userId },
+			contextData: {
+				user: { id: session.userId },
+			},
 		});
 		return c.json({ success: false, error: "Invalid request data" }, 400);
 	}
@@ -51,23 +57,19 @@ apiRouteConsole.post("/set-role", async (c) => {
 			}),
 		{
 			description: "Updating user role",
-			data: { userId, role, adminId: session.userId },
+			data: {
+				user: { id: userId },
+				admin: { id: session.userId },
+				role,
+			},
 			onSuccess: () => ({
-				description: "User role updated successfully",
-				data: { userId, newRole: role },
+				outcome: "User role updated",
+				data: {
+					user: { id: userId },
+					role,
+				},
 			}),
 		}
 	);
-
-	await recordWideEvent({
-		name: "console.set_role.success",
-		description: "User role updated successfully",
-		data: {
-			userId,
-			newRole: role,
-			adminId: session.userId,
-		},
-	});
-
 	return c.json({ success: true, data: result?.user });
 });

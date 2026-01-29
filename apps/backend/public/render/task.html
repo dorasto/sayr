@@ -285,6 +285,7 @@
 
         let ORG_SLUG = null;
         let TASK_SHORT_ID = null;
+        let TASK_ID = null;
 
         if (parts[1] === "org") {
             ORG_SLUG = parts[2] || null;
@@ -336,6 +337,7 @@
         }
 
         function renderTask(task) {
+            TASK_ID = task.id;
             document.title = `${task.title} · Sayr.io`;
             taskTitleEl.textContent = task.title;
 
@@ -456,11 +458,11 @@
         if (org.wsUrl) {
             Sayr.ws(org.wsUrl, {
                 [Sayr.WS_EVENTS.UPDATE_TASK]: (t) => {
-                    if (t.shortId === TASK_SHORT_ID) renderTask(t);
+                    if (t.id === TASK_ID) renderTask(t);
                 },
 
                 [Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS]: (p) => {
-                    if (p.shortId !== TASK_SHORT_ID) return;
+                    if (p.id !== TASK_ID) return;
                     page = 1;
                     hasMore = true;
                     commentsEl.innerHTML = "";
@@ -468,7 +470,7 @@
                 },
 
                 [Sayr.WS_EVENTS.UPDATE_TASK_VOTE]: (p) => {
-                    if (p.shortId !== TASK_SHORT_ID) return;
+                    if (p.id !== TASK_ID) return;
                     const badge = taskMetaEl.querySelector(".badge.votes");
                     if (badge) badge.textContent = `Votes: ${p.voteCount}`;
                 },
