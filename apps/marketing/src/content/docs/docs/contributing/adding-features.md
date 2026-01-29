@@ -189,9 +189,9 @@ Create or extend a route in `apps/backend/routes/api/`.
 import {
    toggleTaskBookmark,
    getUserBookmarks,
-   hasOrgPermission,
 } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { traceOrgPermissionCheck } from "@/util";
 import { broadcast, broadcastIndividual, findClientsByUserId } from "../ws";
 import type { WSBaseMessage } from "@/routes/ws/types";
 
@@ -210,11 +210,7 @@ apiRouteAdminProjectTask.post("/bookmark", async (c) => {
    }
 
    // 3. Check permissions (optional - bookmarks might not need special perms)
-   const isAuthorized = await traceAsync(
-      "hasOrgPermission",
-      () => hasOrgPermission(session.userId, orgId, "tasks.view"),
-      { description: "Checking view permission for bookmarking" }
-   );
+   const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "tasks.view");
 
    if (!isAuthorized) {
       return c.json({ success: false, error: "Permission denied" }, 401);
@@ -270,7 +266,7 @@ apiRouteAdminProjectTask.post("/bookmark", async (c) => {
 |------|---------|
 | Parse request | Extract data from `c.req.json()` |
 | Validate session | Check `c.get("session")` exists |
-| Check permissions | Use `hasOrgPermission()` for authorization |
+| Check permissions | Use `traceOrgPermissionCheck()` for authorization |
 | Wrap with tracing | Use `traceAsync()` for observability |
 | Handle errors | Use `recordWideError()` for logging |
 | Broadcast updates | Use `broadcast()` for real-time sync |
@@ -482,7 +478,7 @@ Before submitting your PR, verify:
 ### Permission check
 
 ```typescript
-const isAuthorized = await hasOrgPermission(session.userId, orgId, "tasks.create");
+const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "tasks.create");
 if (!isAuthorized) {
    return c.json({ success: false, error: "Permission denied" }, 401);
 }

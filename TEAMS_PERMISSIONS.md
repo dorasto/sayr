@@ -40,4 +40,4 @@ Called automatically on org creation.
 
 ## Backend
 
-All permission checks in `apps/backend/routes/api/organization.ts` and `task.ts` use `hasOrgPermission()` with the new dot-notation format.
+All permission checks in `apps/backend/routes/api/organization.ts` and `task.ts` use `traceOrgPermissionCheck()` with the new dot-notation format.

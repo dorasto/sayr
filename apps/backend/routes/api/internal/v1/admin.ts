@@ -12,7 +12,6 @@ export const apiRouteAdmin = new Hono<AppEnv>();
 // Get all tasks assigned to the logged-in user
 apiRouteAdmin.get("/tasks/mine", async (c) => {
 	const traceAsync = createTraceAsync();
-	const recordWideEvent = c.get("recordWideEvent");
 
 	const session = c.get("session");
 
@@ -29,22 +28,12 @@ apiRouteAdmin.get("/tasks/mine", async (c) => {
 		}),
 	});
 
-	await recordWideEvent({
-		name: "tasks.mine.success",
-		description: "Fetched user's assigned tasks",
-		data: {
-			taskCount: tasks.length,
-			userId: session.userId,
-		},
-	});
-
 	return c.json({ success: true, data: tasks });
 });
 
 apiRouteAdmin.post("/invite", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
-	const recordWideEvent = c.get("recordWideEvent");
 
 	const session = c.get("session");
 
@@ -52,7 +41,11 @@ apiRouteAdmin.post("/invite", async (c) => {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
 
-	const { invite, type }: { invite: schema.inviteType; type: "accept" | "deny" } = await c.req.json();
+	const body = await c.req.json().catch(() => null);
+	const { invite, type }: {
+		invite: schema.inviteType;
+		type: "accept" | "deny";
+	} = body ?? {};
 
 	if (!invite || !type) {
 		await recordWideError({
@@ -60,7 +53,7 @@ apiRouteAdmin.post("/invite", async (c) => {
 			error: new Error("Invalid request data"),
 			code: "INVALID_REQUEST",
 			message: "Invite data or type missing",
-			contextData: { userId: session.userId },
+			contextData: { user_id: session.userId },
 		});
 		return c.json({ success: false, error: "Invalid request data" }, 400);
 	}
@@ -71,27 +64,35 @@ apiRouteAdmin.post("/invite", async (c) => {
 			error: new Error("Unknown invite type"),
 			code: "UNKNOWN_INVITE_TYPE",
 			message: `Unknown invite response type: ${type}`,
-			contextData: { userId: session.userId, type },
+			contextData: { user_id: session.userId, type },
 		});
 		return c.json({ success: false, error: "Unknown invite type" }, 400);
 	}
 
-	// Delete the invite (common to both accept and deny)
+	// ✅ Delete invite (shared path)
 	await traceAsync(
-		"invite.response.delete_invite",
+		"invite.response.delete",
 		() =>
 			db
 				.delete(schema.invite)
-				.where(and(eq(schema.invite.id, invite.id), eq(schema.invite.organizationId, invite.organizationId))),
+				.where(
+					and(
+						eq(schema.invite.id, invite.id),
+						eq(schema.invite.organizationId, invite.organizationId)
+					)
+				),
 		{
 			description: "Deleting invite record",
-			data: { inviteId: invite.id, organizationId: invite.organizationId },
+			data: {
+				invite_id: invite.id,
+				user: { id: session.userId },
+				organization: { id: invite.organizationId },
+				action: type,
+			},
 		}
 	);
 
 	if (type === "accept") {
-		// TODO: fix the double db delete
-		// TODO: fix the role stuff with the new team roles
 		await traceAsync(
 			"invite.response.create_member",
 			() =>
@@ -99,39 +100,47 @@ apiRouteAdmin.post("/invite", async (c) => {
 					id: randomUUID(),
 					userId: session.userId,
 					organizationId: invite.organizationId,
-					// role: invite.role,
 				}),
 			{
 				description: "Creating organization membership",
-				data: { userId: session.userId, organizationId: invite.organizationId },
+				data: {
+					user: { id: session.userId },
+					organization: { id: invite.organizationId },
+				},
 				onSuccess: () => ({
-					description: "Membership created successfully",
-					data: { organizationId: invite.organizationId },
+					outcome: "Membership created",
 				}),
 			}
 		);
 
-		await recordWideEvent({
-			name: "invite.response.accepted",
-			description: "User accepted organization invite",
-			data: {
-				organizationId: invite.organizationId,
-				userId: session.userId,
-			},
-		});
+		// ✅ Trace acceptance event
+		await traceAsync(
+			"invite.response.accepted",
+			async () => { },
+			{
+				description: "User accepted organization invite",
+				data: {
+					user: { id: session.userId },
+					organization: { id: invite.organizationId },
+				},
+			}
+		);
 
 		return c.json({ success: true });
 	}
 
-	// type === "deny"
-	await recordWideEvent({
-		name: "invite.response.denied",
-		description: "User denied organization invite",
-		data: {
-			organizationId: invite.organizationId,
-			userId: session.userId,
-		},
-	});
+	// ✅ type === "deny"
+	await traceAsync(
+		"invite.response.denied",
+		async () => { },
+		{
+			description: "User denied organization invite",
+			data: {
+				user: { id: session.userId },
+				organization: { id: invite.organizationId },
+			},
+		}
+	);
 
 	return c.json({ success: true });
 });

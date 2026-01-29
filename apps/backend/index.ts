@@ -11,8 +11,8 @@ import { requestId } from "hono/request-id";
 import { apiRoute } from "./routes/api";
 import { webhookRoute } from "./routes/webhook";
 import { wsRoute } from "./routes/ws";
-import { type RecordWideError, type RecordWideEvent, wideEventMiddleware } from "./tracing/wideEvent";
-import { rootSpanMiddleware } from "@/tracing/rootSpanMiddleware";
+import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
+import { rootSpanPlugin } from "@/tracing/index";
 import { renderRoute } from "./routes/render";
 // -----------------------------------------------------------------------------
 // Types
@@ -21,7 +21,6 @@ export type AppEnv = {
 	Variables: {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
-		recordWideEvent: RecordWideEvent;
 		recordWideError: RecordWideError;
 	};
 };
@@ -76,7 +75,7 @@ app.route("/ws", wsRoute);
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.route("/render", renderRoute);
 app.get("/api/health", (c) => c.text("OK"));
-app.use("*", rootSpanMiddleware());
+app.use("*", rootSpanPlugin());
 app.use("*", wideEventMiddleware());
 app.route("/api/webhook", webhookRoute);
 app.route("/api", apiRoute);
