@@ -6,7 +6,6 @@ import {
 	getIssueTemplates,
 	getLabels,
 	getOrganizationMembers,
-	hasOrgPermission,
 	schema,
 	type TeamPermissions,
 } from "@repo/database";
@@ -20,6 +19,7 @@ import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from 
 import type { WSBaseMessage } from "../../../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { traceOrgPermissionCheck } from "@/util";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 // Create a new organization
@@ -88,7 +88,15 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 				.returning();
 			return org;
 		},
-		{ description: "Creating organization", data: { orgId, name, slug } }
+		{
+			description: "Creating organization", data: {
+				organization: {
+					id: orgId,
+					name: name,
+					slug: slug,
+				}
+			}
+		}
 	);
 
 	if (!newOrg) {
@@ -117,7 +125,9 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 		},
 		{
 			description: "Creating membership",
-			data: { orgId, userId: session.userId },
+			data: {
+				organization: { id: orgId },
+			},
 		}
 	);
 
@@ -143,7 +153,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 				// Don't fail org creation if admin team creation fails
 			}
 		},
-		{ description: "Bootstrapping admin team", data: { orgId } }
+		{ description: "Bootstrapping admin team", data: { organization: { id: orgId } } }
 	);
 
 	return c.json({
@@ -164,112 +174,158 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 
 	const { org_id: orgId, wsClientId, data } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
+	const isAuthorized = await traceOrgPermissionCheck(
+		session?.userId ?? "",
+		orgId,
+		"admin.manageMembers"
 	);
 
 	if (!isAuthorized) {
-		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+		return c.json(
+			{ success: false, error: "You don't have permission to do that." },
+			401
+		);
 	}
 
-	if (data.slug) {
-		const existing = await traceAsync(
-			"organization.update.check_slug",
-			async () => {
-				const [org] = await db
-					.select()
+	// -------------------------------------------------------------------------
+	// Transaction: slug check + update
+	// -------------------------------------------------------------------------
+	const result = await traceAsync(
+		"organization.update.transaction",
+		async () => {
+			return db.transaction(async (tx) => {
+				// 1️⃣ Fetch current org (lock row)
+				const [currentOrg] = await tx
+					.select({
+						id: schema.organization.id,
+						slug: schema.organization.slug,
+					})
 					.from(schema.organization)
-					.where(eq(schema.organization.slug, data.slug))
-					.limit(1);
-				return org;
-			},
-			{ description: "Checking if slug is taken", data: { slug: data.slug } }
-		);
+					.where(eq(schema.organization.id, orgId))
+					.limit(1)
+					.for("update");
 
-		if (existing && existing.id !== orgId) {
+				if (!currentOrg) {
+					return null;
+				}
+
+				// 2️⃣ Slug uniqueness check (only if changed)
+				if (
+					data.slug &&
+					data.slug !== currentOrg.slug
+				) {
+					const [existing] = await tx
+						.select({
+							id: schema.organization.id,
+						})
+						.from(schema.organization)
+						.where(eq(schema.organization.slug, data.slug))
+						.limit(1);
+
+					if (existing) {
+						throw new Error("SLUG_TAKEN");
+					}
+				}
+
+				// 3️⃣ Update org
+				const [updated] = await tx
+					.update(schema.organization)
+					.set({
+						...data,
+						logo:
+							data.logo &&
+							`organization/${orgId}/${getFileNameFromUrl(
+								data.logo
+							)}`,
+						bannerImg:
+							data.bannerImg &&
+							`organization/${orgId}/${getFileNameFromUrl(
+								data.bannerImg
+							)}`,
+						updatedAt: new Date(),
+					})
+					.where(eq(schema.organization.id, orgId))
+					.returning();
+
+				return updated ?? null;
+			});
+		},
+		{
+			description:
+				"Updating organization (transactional)",
+			data: {
+				organization: { id: orgId },
+			},
+		}
+	).catch(async (err) => {
+		if ((err as Error).message === "SLUG_TAKEN") {
 			await recordWideError({
 				name: "organization.update.slug_taken",
-				error: new Error("Slug already in use"),
+				error: err,
 				code: "SLUG_TAKEN",
-				message: "Slug already in use by another organization",
-				contextData: { orgId, slug: data.slug, existingOrgId: existing.id },
-			});
-			return c.json(
-				{
-					success: false,
-					error: "Slug already in use by another organization.",
+				message:
+					"Slug already in use by another organization",
+				contextData: {
+					organization: { id: orgId },
+					slug: data.slug,
 				},
-				400
-			);
-		}
-	}
+			});
 
-	const result = await traceAsync(
-		"organization.update.update",
-		async () => {
-			const [org] = await db
-				.update(schema.organization)
-				.set({
-					...data,
-					logo: data.logo && `organization/${orgId}/${getFileNameFromUrl(data.logo)}`,
-					bannerImg: data.bannerImg && `organization/${orgId}/${getFileNameFromUrl(data.bannerImg)}`,
-					updatedAt: new Date(),
-				})
-				.where(eq(schema.organization.id, orgId))
-				.returning();
-			return org;
-		},
-		{ description: "Updating organization", data: { orgId } }
-	);
+			return null;
+		}
+
+		throw err;
+	});
 
 	if (!result) {
-		await recordWideError({
-			name: "organization.update.failed",
-			error: new Error("Failed to update organization"),
-			code: "UPDATE_FAILED",
-			message: "Failed to update organization",
-			contextData: { orgId },
-		});
-		return c.json({ success: false, error: "Failed to update organization" }, 500);
+		return c.json(
+			{
+				success: false,
+				error:
+					"Slug already in use by another organization.",
+			},
+			400
+		);
 	}
 
 	await traceAsync(
 		"organization.update.broadcast",
 		async () => {
 			const found = findClientByWsId(wsClientId);
+
 			const dataMsg = {
 				type: "UPDATE_ORG" as WSBaseMessage["type"],
 				data: {
 					...result,
-					logo: result.logo ? ensureCdnUrl(result.logo) : null,
-					bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
+					logo: result.logo
+						? ensureCdnUrl(result.logo)
+						: null,
+					bannerImg: result.bannerImg
+						? ensureCdnUrl(result.bannerImg)
+						: null,
 				},
 			};
 
 			broadcast(orgId, "admin", dataMsg, found?.socket);
 			broadcastPublic(orgId, {
 				...dataMsg,
-				data: { ...dataMsg.data, privateId: null },
+				data: {
+					...dataMsg.data,
+					privateId: null,
+				},
 			});
 
-			const members = await getOrganizationMembers(orgId);
+			const members =
+				await getOrganizationMembers(orgId);
+
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, "", orgId, dataMsg, "");
+				broadcastByUserId(
+					member.userId,
+					"",
+					orgId,
+					dataMsg,
+					""
+				);
 			});
 		},
 		{ description: "Broadcasting organization update" }
@@ -280,7 +336,9 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		data: {
 			...result,
 			logo: result.logo ? ensureCdnUrl(result.logo) : null,
-			bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
+			bannerImg: result.bannerImg
+				? ensureCdnUrl(result.bannerImg)
+				: null,
 		},
 	});
 });
@@ -293,24 +351,7 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 	const orgId = c.req.param("orgId");
 	const oldLogo = c.req.header("X-old-file");
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -338,7 +379,12 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		await traceAsync(
 			"organization.logo.remove_old",
 			() => removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`),
-			{ description: "Removing old logo", data: { orgId, oldLogo } }
+			{
+				description: "Removing old logo", data: {
+					organization: { id: orgId },
+					logo: oldLogo
+				}
+			}
 		);
 	}
 
@@ -354,7 +400,7 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 			data: { orgId, objectName, fileType: file.type },
 			onSuccess: () => ({
 				description: "Organization logo uploaded successfully",
-				data: { orgId, userId: session?.userId },
+				data: { organization: { id: orgId }, user: { id: session?.userId } },
 			}),
 		}
 	);
@@ -375,24 +421,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 	const orgId = c.req.param("orgId");
 	const oldBanner = c.req.header("X-old-file");
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -436,7 +465,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 			data: { orgId, objectName, fileType: file.type },
 			onSuccess: () => ({
 				description: "Organization banner uploaded successfully",
-				data: { orgId, userId: session?.userId },
+				data: { organization: { id: orgId }, user: { id: session?.userId } },
 			}),
 		}
 	);
@@ -458,24 +487,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 
 	const { org_id: orgId, wsClientId, name, color } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "content.manageLabels"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -547,24 +559,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 
 	const { org_id: orgId, wsClientId, id, name, color } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "content.manageLabels"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -639,24 +634,7 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 
 	const { org_id: orgId, wsClientId, id } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "content.manageLabels"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -725,24 +703,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 
 	const { org_id: orgId, wsClientId, name, color, icon } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "content.manageCategories"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageCategories");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -819,24 +780,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 
 	const { org_id: orgId, wsClientId, id, name, color, icon } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "content.manageCategories"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageCategories");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -916,24 +860,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 
 	const { org_id: orgId, wsClientId, id } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "content.manageCategories"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageCategories");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -1017,24 +944,7 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 		assigneeIds,
 	} = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -1156,24 +1066,7 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 		assigneeIds,
 	} = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -1286,24 +1179,7 @@ apiRouteAdminOrganization.delete("/delete-issue-template", async (c) => {
 
 	const { org_id: orgId, wsClientId, id } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -1371,24 +1247,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -1468,24 +1327,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -1574,24 +1416,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, id } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -1674,24 +1499,7 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 		category_id: categoryId,
 	} = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -1768,24 +1576,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 	const { org_id: orgId, emails }: { org_id: string; emails: string[] } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to invite members." }, 401);
@@ -1806,8 +1597,8 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 					const existingMember = user
 						? await db.query.member.findFirst({
-								where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
-							})
+							where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
+						})
 						: null;
 
 					if (existingMember) continue;
@@ -1871,24 +1662,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 
 	const { org_id: orgId, user_id: userId } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove members." }, 401);
@@ -1940,24 +1714,7 @@ apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
 	const session = c.get("session");
 	const orgId = c.req.param("orgId");
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -2036,24 +1793,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 
 	const { org_id: orgId, name, description, permissions } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageTeams");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create teams." }, 401);
@@ -2061,14 +1801,14 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-				content: { ...defaultTeamPermissions.content, ...permissions.content },
-				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-				moderation: {
-					...defaultTeamPermissions.moderation,
-					...permissions.moderation,
-				},
-			}
+			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+			content: { ...defaultTeamPermissions.content, ...permissions.content },
+			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+			moderation: {
+				...defaultTeamPermissions.moderation,
+				...permissions.moderation,
+			},
+		}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -2113,24 +1853,7 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 
 	const { org_id: orgId, team_id: teamId, name, description, permissions } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageTeams");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to edit teams." }, 401);
@@ -2138,14 +1861,14 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-				content: { ...defaultTeamPermissions.content, ...permissions.content },
-				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-				moderation: {
-					...defaultTeamPermissions.moderation,
-					...permissions.moderation,
-				},
-			}
+			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+			content: { ...defaultTeamPermissions.content, ...permissions.content },
+			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+			moderation: {
+				...defaultTeamPermissions.moderation,
+				...permissions.moderation,
+			},
+		}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -2190,24 +1913,7 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 
 	const { org_id: orgId, team_id: teamId } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageTeams");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove teams." }, 401);
@@ -2249,24 +1955,7 @@ apiRouteAdminOrganization.post("/team-member", async (c) => {
 
 	const { org_id: orgId, team_id: teamId, member_id: memberId } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageTeams");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -2318,24 +2007,7 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 
 	const { org_id: orgId, team_id: teamId, member_id: memberId } = await c.req.json();
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageTeams"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageTeams");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -2380,69 +2052,127 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 });
 
 // Bootstrap default Administrators team for an existing organization
-apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
-	const traceAsync = createTraceAsync();
-	const recordWideError = c.get("recordWideError");
-	const recordWideEvent = c.get("recordWideEvent");
+apiRouteAdminOrganization.post(
+	"/bootstrap-admin-team",
+	async (c) => {
+		const traceAsync = createTraceAsync();
+		const recordWideError = c.get("recordWideError");
 
-	const session = c.get("session");
-	const { org_id: orgId } = await c.req.json();
-
-	const membership = await traceAsync(
-		"team.bootstrap.membership_check",
-		() =>
-			db.query.member.findFirst({
-				where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, session?.userId || "")),
-			}),
-		{
-			description: "Checking user membership",
-			data: { orgId, userId: session?.userId },
+		const session = c.get("session");
+		if (!session?.userId) {
+			return c.json(
+				{ success: false, error: "UNAUTHORIZED" },
+				401
+			);
 		}
-	);
 
-	if (!membership) {
-		await recordWideError({
-			name: "team.bootstrap.auth",
-			error: new Error("Unauthorized"),
-			code: "UNAUTHORIZED",
-			message: "User is not a member of this organization",
-			contextData: { orgId, userId: session?.userId },
-		});
-		return c.json({ success: false, error: "You must be a member of this organization." }, 401);
+		const body = await c.req.json().catch(() => null);
+		const { org_id: orgId }: { org_id?: string } = body ?? {};
+
+		if (!orgId) {
+			return c.json(
+				{ success: false, error: "Invalid organization" },
+				400
+			);
+		}
+
+		const membership = await traceAsync(
+			"team.bootstrap.membership_check",
+			() =>
+				db.query.member.findFirst({
+					where: and(
+						eq(schema.member.organizationId, orgId),
+						eq(schema.member.userId, session.userId)
+					),
+				}),
+			{
+				description: "Checking user membership",
+				data: {
+					user: { id: session.userId },
+					organization: { id: orgId },
+				},
+			}
+		);
+
+		if (!membership) {
+			await recordWideError({
+				name: "team.bootstrap.auth",
+				error: new Error("Unauthorized"),
+				code: "UNAUTHORIZED",
+				message:
+					"User is not a member of this organization",
+				contextData: {
+					user: { id: session.userId },
+					organization: { id: orgId },
+				},
+			});
+
+			return c.json(
+				{
+					success: false,
+					error:
+						"You must be a member of this organization.",
+				},
+				401
+			);
+		}
+
+		const adminTeam = await traceAsync(
+			"team.bootstrap.create",
+			() => bootstrapOrganizationAdminTeam(orgId),
+			{
+				description: "Bootstrapping admin team",
+				data: {
+					user: { id: session.userId },
+					organization: { id: orgId },
+				},
+				onSuccess: (team) => ({
+					outcome: "Admin team bootstrapped",
+					data: {
+						team: { id: team.id },
+					},
+				}),
+			}
+		);
+
+		if (!adminTeam) {
+			await recordWideError({
+				name: "team.bootstrap.failed",
+				error: new Error("Bootstrap failed"),
+				code: "BOOTSTRAP_FAILED",
+				message: "Failed to create admin team",
+				contextData: {
+					organization: { id: orgId },
+				},
+			});
+
+			return c.json(
+				{
+					success: false,
+					error: "Failed to create admin team.",
+				},
+				500
+			);
+		}
+
+		// ✅ Success “event” captured as a traced span
+		await traceAsync(
+			"team.bootstrap.success",
+			async () => { },
+			{
+				description:
+					"Admin team bootstrapped successfully",
+				data: {
+					user: { id: session.userId },
+					organization: { id: orgId },
+					team: { id: adminTeam.id },
+				},
+			}
+		);
+
+		return c.json({ success: true, data: adminTeam });
 	}
-
-	const adminTeam = await traceAsync("team.bootstrap.create", () => bootstrapOrganizationAdminTeam(orgId), {
-		description: "Bootstrapping admin team",
-		data: { orgId, userId: session?.userId },
-		onSuccess: (team) => ({
-			description: "Admin team bootstrapped successfully",
-			data: { teamId: team.id },
-		}),
-	});
-
-	if (!adminTeam) {
-		await recordWideError({
-			name: "team.bootstrap.failed",
-			error: new Error("Bootstrap failed"),
-			code: "BOOTSTRAP_FAILED",
-			message: "Failed to create admin team",
-			contextData: { orgId },
-		});
-		return c.json({ success: false, error: "Failed to create admin team." }, 500);
-	}
-
-	await recordWideEvent({
-		name: "team.bootstrap.success",
-		description: "Admin team bootstrapped successfully",
-		data: {
-			organizationId: orgId,
-			teamId: adminTeam.id,
-			bootstrappedByUserId: session?.userId || "",
-		},
-	});
-
-	return c.json({ success: true, data: adminTeam });
-});
+);
 
 // Task routes
 apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);

@@ -233,11 +233,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
    const { org_id: orgId, wsClientId, name, color } = await c.req.json();
 
    // 3. Check permissions
-   const isAuthorized = await traceAsync(
-      "hasOrgPermission",
-      () => hasOrgPermission(session?.userId || "", orgId, "content.manageLabels"),
-      { description: "Checking permissions" }
-   );
+   const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
    if (!isAuthorized) {
       return c.json({ success: false, error: "Permission denied" }, 401);

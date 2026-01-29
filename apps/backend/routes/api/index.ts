@@ -3,10 +3,11 @@ import { routeExists, type AppEnv } from "@/index";
 import { apiPublicRouteV1 } from "./public/v1";
 import { internalApiV1 } from "./internal/v1";
 import { safeGetSession } from "@/getSession";
-import { db, hasOrgPermission, schema } from "@repo/database";
+import { db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { createTraceAsync, maskEmail } from "@repo/opentelemetry/trace";
 import { Scalar } from "@scalar/hono-api-reference";
+import { traceOrgPermissionCheck } from "@/util";
 
 // Main API router
 export const apiRoute = new Hono<AppEnv>();
@@ -49,19 +50,21 @@ apiRoute.use("*", async (c, next) => {
 		onSuccess: (result) =>
 			result
 				? {
-						outcome:
-							result.user.role === "system"
-								? "Session verified and attached for system user"
-								: "Session verified and attached",
-						data: {
-							user_id: result.user.id,
-							user_name: result.user.name,
-							user_role: result.user.role,
-						},
-					}
-				: {
-						outcome: "No active session found",
+					outcome:
+						result.user.role === "system"
+							? "Session verified and attached for system user"
+							: "Session verified and attached",
+					data: {
+						user: {
+							id: result.user.id,
+							role: result.user.role,
+							email: maskEmail(result.user.email),
+						}
 					},
+				}
+				: {
+					outcome: "No active session found",
+				},
 	});
 	if (!session) {
 		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
@@ -73,31 +76,40 @@ apiRoute.use("*", async (c, next) => {
 });
 apiRoute.get("/github/org-check", async (c) => {
 	const traceAsync = createTraceAsync();
-	const installationId = Number(c.req.query("installation_id"));
-	const stateRaw = c.req.query("state") || "{}";
-	const orgId = stateRaw.split("org_")[1];
-	if (!installationId || !orgId) {
-		return c.text("❌ Missing installation_id or orgId", 400);
+
+	const installationIdRaw = c.req.query("installation_id");
+	const stateRaw = c.req.query("state");
+
+	const installationId = Number(installationIdRaw);
+
+	if (!installationIdRaw || Number.isNaN(installationId) || !stateRaw) {
+		return c.text("❌ Missing or invalid parameters", 400);
 	}
+
+	// ✅ Safe state parsing
+	let orgId: string | undefined;
+	try {
+		const match = stateRaw.match(/^org_(.+)$/);
+		orgId = match?.[1];
+	} catch {
+		return c.text("❌ Invalid state", 400);
+	}
+
+	if (!orgId) {
+		return c.text("❌ Invalid organization", 400);
+	}
+
 	const session = c.get("session");
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.administrator"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	if (!session?.userId) {
+		return c.text("❌ Not authenticated", 401);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(
+		session.userId,
+		orgId,
+		"admin.administrator"
+	)
+
 
 	if (!isAuthorized) {
 		return c.json(
@@ -108,37 +120,62 @@ apiRoute.get("/github/org-check", async (c) => {
 			401
 		);
 	}
-	// Helper: retry wrapper
-	async function retryFindInstallation(maxRetries = 5, delayMs = 500) {
-		for (let attempt = 1; attempt <= maxRetries; attempt++) {
-			const found = await db.query.githubInstallation.findFirst({
-				where: eq(schema.githubInstallation.installationId, installationId),
-			});
-			if (found) return found;
 
-			// Wait before retrying, with backoff
-			if (attempt < maxRetries) {
-				await new Promise((res) => setTimeout(res, delayMs * attempt));
+	// ✅ Trace retries
+	const found = await traceAsync(
+		"findGithubInstallation",
+		async () => {
+			for (let attempt = 1; attempt <= 5; attempt++) {
+				const found = await db.query.githubInstallation.findFirst({
+					where: eq(
+						schema.githubInstallation.installationId,
+						installationId
+					),
+				});
+
+				if (found) return found;
+
+				await new Promise((res) =>
+					setTimeout(res, 500 * attempt)
+				);
 			}
+			return null;
+		},
+		{
+			description: "Looking up GitHub installation",
+			data: { installation_id: installationId },
 		}
-		return null;
-	}
-	const found = await retryFindInstallation();
+	);
+
 	if (!found) {
-		return c.text("❌ Installation not found after retries", 404);
+		return c.text("❌ Installation not found", 404);
 	}
+
 	if (found.organizationId) {
 		return c.text("❌ Installation already linked", 400);
 	}
+
 	await db
 		.update(schema.githubInstallation)
 		.set({
 			organizationId: orgId,
-			userId: session?.userId || "",
+			userId: session.userId,
 		})
-		.where(eq(schema.githubInstallation.installationId, installationId));
-	const root = process.env.VITE_URL_ROOT || "http://localhost:3000/";
-	const redirectUrl = new URL(`/admin/settings/org/${orgId}/connections/github`, root).toString();
+		.where(
+			eq(
+				schema.githubInstallation.installationId,
+				installationId
+			)
+		);
+
+	const root =
+		process.env.VITE_URL_ROOT ??
+		"http://localhost:3000";
+
+	const redirectUrl = new URL(
+		`/admin/settings/org/${orgId}/connections/github`,
+		root
+	).toString();
 
 	return c.redirect(redirectUrl, 302);
 });

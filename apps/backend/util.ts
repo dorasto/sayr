@@ -1,4 +1,5 @@
-import { db, schema } from "@repo/database";
+import { db, hasOrgPermission, schema } from "@repo/database";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
 export async function getOrganization(orgId: string, userId: string): Promise<{ id: string } | null> {
@@ -59,8 +60,66 @@ export function getCookieValue(headers: Headers, name: string): string | null {
 	return match ? (match[1] ?? null) : null;
 }
 
+export function getClientIP(req: Request): string {
+	const cf = req.headers.get("cf-connecting-ip");
+	if (cf) return cf;
+
+	const trueClient = req.headers.get("true-client-ip");
+	if (trueClient) return trueClient;
+
+	// const xRealIP = req.headers.get("x-real-ip");
+	// if (xRealIP) return xRealIP;
+
+	const xForwardedFor = req.headers.get("x-forwarded-for");
+	if (xForwardedFor)
+		// Proxy chains: first IP is original client
+		return xForwardedFor.split(",")[0]?.trim() || "";
+
+	// Hono's req.raw is a Fetch Request; reaching the socket requires the adapter
+	// biome-ignore lint/suspicious/noExplicitAny: <dont care>
+	const raw = (req as any).raw;
+	const socketAddr = raw?.socket?.remoteAddress || raw?.connection?.remoteAddress || raw?._socket?.remoteAddress;
+
+	return socketAddr || "unknown";
+}
+
 export function getAnonHash(ip: string, userAgent: string, cookieId?: string) {
 	return createHash("sha256")
 		.update(`${ip}|${userAgent}|${cookieId ?? ""}|${process.env.VOTE_SALT}`)
 		.digest("hex");
+}
+
+export async function traceOrgPermissionCheck(
+	userId: string,
+	organizationId: string,
+	permission: Parameters<typeof hasOrgPermission>[2]
+): Promise<boolean> {
+	const traceAsync = createTraceAsync();
+
+	if (!userId || !organizationId) {
+		return false;
+	}
+
+	return traceAsync(
+		"hasOrgPermission",
+		() =>
+			hasOrgPermission(
+				userId,
+				organizationId,
+				permission
+			),
+		{
+			description: "Checking organization permissions",
+			data: {
+				user: { id: userId },
+				organization: { id: organizationId },
+				permission,
+			},
+			onSuccess: (result) => ({
+				outcome: result
+					? "Permission granted"
+					: "Permission denied",
+			}),
+		}
+	);
 }

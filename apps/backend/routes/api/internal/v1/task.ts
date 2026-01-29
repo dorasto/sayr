@@ -7,11 +7,9 @@ import {
 	createOrToggleTaskVote,
 	createTask,
 	db,
-	getMergedTaskActivity,
 	getOrganizationMembers,
 	getTaskById,
 	getTaskTimeline,
-	hasOrgPermission,
 	removeLabelFromTask,
 	schema,
 } from "@repo/database";
@@ -30,8 +28,7 @@ import {
 	findClientsByUserId,
 } from "../../../ws";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { getAnonHash } from "@/util";
-import { getClientIP } from "@/tracing/rootSpanMiddleware";
+import { getAnonHash, getClientIP, traceOrgPermissionCheck } from "@/util";
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
@@ -55,24 +52,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	} = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "tasks.create"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.create");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create tasks." }, 401);
@@ -225,24 +205,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const user = c.get("user");
 	const isSystemAccount = user?.role === "system";
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "members"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId, system: isSystemAccount },
-						}
-					: {
-							description: "Permission granted System",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to update tasks." }, 401);
@@ -549,24 +512,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	const { org_id: orgId, wsClientId, task_id: taskId, labels } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "members"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to update labels." }, 401);
@@ -688,24 +634,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	const { org_id: orgId, wsClientId, task_id: taskId, assignees } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "tasks.assign"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.assign");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -850,24 +779,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "members"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -930,24 +842,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	const { org_id: orgId, wsClientId, comment_id: commentId, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "members"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to edit comments." }, 401);
@@ -1044,24 +939,7 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	const session = c.get("session");
 
 	// 1️⃣ Permission check
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "members"),
-		{
-			description: "Checking permissions for reaction",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to react to comments",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -1137,24 +1015,7 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 		return c.json({ success: false, error: "Missing params" }, 400);
 	}
 
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "members"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 	if (!isAuthorized) {
 		return c.json(
 			{
@@ -1184,99 +1045,6 @@ apiRouteAdminProjectTask.get("/get-comment-history", async (c) => {
 	);
 
 	return c.json({ success: true, data: history });
-});
-
-// Get merged task activity timeline
-apiRouteAdminProjectTask.get("/timeline", async (c) => {
-	const traceAsync = createTraceAsync();
-	const recordWideEvent = c.get("recordWideEvent");
-	await recordWideEvent({
-		name: "task.timeline.fetch",
-		description: "Get task timeline requested",
-		data: {},
-	});
-
-	const query = c.req.query();
-	const org_id = query.org_id;
-	const task_id = query.task_id;
-
-	const missingParams = [];
-	if (!org_id) missingParams.push("org_id");
-	if (!task_id) missingParams.push("task_id");
-
-	if (missingParams.length > 0) {
-		await recordWideEvent({
-			name: "task.timeline.fetch",
-			description: "Missing required parameters for timeline",
-			data: {
-				type: "ValidationError",
-				code: "MISSING_PARAMETERS",
-				message: `Required: ${missingParams.join(", ")}`,
-			},
-		});
-		return c.json(
-			{
-				success: false,
-				error: "MISSING_PARAMETERS",
-				message: `The following parameters are required: ${missingParams.join(", ")}`,
-			},
-			400
-		);
-	}
-
-	const session = c.get("session");
-
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", org_id || "", "members"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { org_id, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to do that",
-						};
-			},
-		}
-	);
-
-	if (!isAuthorized) {
-		const timeline = await getMergedTaskActivity(org_id || "", task_id || "", true);
-		await recordWideEvent({
-			name: "task.timeline.fetch",
-			description: "Task timeline fetched (unauthorized – public mode)",
-			data: {
-				organizationId: org_id,
-				requestedByUserId: session?.userId || "",
-				taskId: task_id,
-				authorized: false,
-			},
-		});
-		return c.json({ success: true, data: timeline });
-	}
-
-	const timeline = await getMergedTaskActivity(org_id || "", task_id || "", false);
-
-	await recordWideEvent({
-		name: "task.timeline.fetch",
-		description: "Task timeline fetched successfully",
-		data: {
-			organizationId: org_id,
-			requestedByUserId: session?.userId || "",
-			taskId: task_id,
-			authorized: true,
-		},
-	});
-
-	return c.json({
-		success: true,
-		data: timeline,
-	});
 });
 
 apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
@@ -1345,24 +1113,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 		const session = c.get("session");
 
 		// 🧩 Permission check
-		const isPublic = await traceAsync(
-			"hasOrgPermission",
-			async () => !session || !(await hasOrgPermission(session?.userId, orgId, "members")),
-			{
-				description: "Checking org membership for comment timeline",
-				data: {},
-				onSuccess: (result) =>
-					result
-						? {
-								description: "Public organization (no member access required)",
-								data: { orgId },
-							}
-						: {
-								description: "Permission granted",
-								data: { orgId, userId: session?.userId },
-							},
-			}
-		);
+		const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
 
 		const page = Math.max(Number(q.page) || 1, 1);
 		const limit = Math.min(Number(q.limit) || 20, 50);
@@ -1745,13 +1496,13 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 					orderBy: isTrending
 						? undefined
 						: (t, { desc }) => {
-								if (sortBy === "newest") {
-									return [desc(t.createdAt)];
-								}
+							if (sortBy === "newest") {
+								return [desc(t.createdAt)];
+							}
 
-								// mostPopular
-								return [desc(t.voteCount), desc(t.createdAt)];
-							},
+							// mostPopular
+							return [desc(t.voteCount), desc(t.createdAt)];
+						},
 
 					limit: isTrending ? limit * 5 : limit,
 					offset: isTrending ? 0 : offset,

@@ -6,17 +6,16 @@ import {
 	getRelease,
 	getReleaseBySlug,
 	getReleaseWithTasks,
-	hasOrgPermission,
 	markReleaseAsReleased,
 	schema,
 	updateRelease,
 } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { broadcast, broadcastPublic, findClientByWsId } from "../../../ws";
 import type { WSBaseMessage } from "../../../ws/types";
+import { traceOrgPermissionCheck } from "@/util";
 
 export const apiRouteAdminRelease = new Hono<AppEnv>();
 
@@ -29,24 +28,7 @@ apiRouteAdminRelease.post("/create", async (c) => {
 	const { org_id: orgId, wsClientId, name, slug, description, status, targetDate, color, icon } = await c.req.json();
 
 	// Only org admins can create releases
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking admin permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to create releases",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create releases." }, 401);
@@ -143,24 +125,7 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 	const { org_id: orgId, wsClientId, release_id: releaseId, ...updates } = await c.req.json();
 
 	// Only org admins can update releases
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking admin permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to update releases",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to update releases." }, 401);
@@ -268,24 +233,7 @@ apiRouteAdminRelease.delete("/delete", async (c) => {
 	const { org_id: orgId, wsClientId, release_id: releaseId } = await c.req.json();
 
 	// Only org admins can delete releases
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking admin permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to delete releases",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to delete releases." }, 401);
@@ -349,24 +297,7 @@ apiRouteAdminRelease.post("/mark-released", async (c) => {
 	const { org_id: orgId, wsClientId, release_id: releaseId } = await c.req.json();
 
 	// Only org admins can mark releases as released
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "admin.manageMembers"),
-		{
-			description: "Checking admin permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to mark releases as released",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to mark releases as released." }, 401);
@@ -505,24 +436,7 @@ apiRouteAdminRelease.get("/:releaseId", async (c) => {
 	}
 
 	// Check if user has permission to view organization
-	const isAuthorized = await traceAsync(
-		"hasOrgPermission",
-		() => hasOrgPermission(session?.userId || "", orgId, "members"),
-		{
-			description: "Checking permissions",
-			data: {},
-			onSuccess: (result) => {
-				return result
-					? {
-							description: "Permission granted",
-							data: { orgId, userId: session?.userId },
-						}
-					: {
-							description: "User does not have permission to view releases",
-						};
-			},
-		}
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to view this release." }, 401);

@@ -156,7 +156,7 @@ export function TaskContent({ task, open, onOpenChange }: TaskContentProps) {
 
 ### Permission Checking (Backend)
 ```typescript
-const isAuthorized = await hasOrgPermission(session?.userId || "", orgId, "permission.key");
+const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "permission.key");
 if (!isAuthorized) {
    return c.json({ success: false, error: "Permission denied" }, 401);
 }
