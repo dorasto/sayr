@@ -11,7 +11,8 @@ import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import appCss from "../styles.css?url";
 import { DefaultCatchBoundary } from "@/components/Error";
 import { seo } from "@/seo";
-import { initClickTracking, initOpenTel, patchGlobalFetch } from "@repo/opentelemetry/client"
+import { initClickTracking, initOpenTel, patchGlobalFetch } from "@repo/opentelemetry/client";
+import { SentryUserSync } from "@/components/sentry-user-sync";
 const isSayrCloud = import.meta.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
 if (typeof window !== "undefined" && isSayrCloud) {
 	initOpenTel("sayr-admin", import.meta.env.PROD === true);
@@ -75,6 +76,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<SidebarScript />
 			</head>
 			<body className="dark relative">
+				{/* Sync user data to Sentry for better error tracking */}
+				<SentryUserSync />
 				{/* <Header /> */}
 				<HeadlessToastConfig
 					icons={{

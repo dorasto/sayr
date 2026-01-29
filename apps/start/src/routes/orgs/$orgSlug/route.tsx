@@ -4,6 +4,7 @@ import { db, getLabels, getOrganizationPublic } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { SentryOrgContext } from "@/components/sentry-user-sync";
 
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
@@ -75,6 +76,8 @@ function PublicLayout() {
 	}
 	return (
 		<PublicOrganizationProvider organization={organization} labels={labels} categories={categories}>
+			{/* Sync organization context to Sentry for better error tracking */}
+			<SentryOrgContext orgId={organization.id} orgName={organization.name} orgSlug={organization.slug} />
 			<div className="flex h-dvh flex-col overflow-hidden relative">
 				<div className="min-h-0 flex-1 overflow-y-auto relative">
 					<SubWrapper className="max-w-6xl mx-auto relative p-4!" blur={false} top={false}>
