@@ -560,7 +560,7 @@ export function UnifiedTaskItem({
                       handleCategoryClick(category.id);
                     }}
                     data-no-propagate
-                    className="cursor-pointer"
+                    className="cursor-pointer "
                   >
                     <RenderCategory category={category} />
                   </button>
@@ -593,6 +593,7 @@ export function UnifiedTaskItem({
                     label={label}
                     key={label.id + nanoid(5)}
                     data-no-propagate
+                    className="max-w-20"
                   />
                 ))}
                 {task.labels.length > 2 && (
@@ -685,7 +686,7 @@ export function UnifiedTaskItem({
                 )
               }
             />
-            <span className="text-xs text-muted-foreground truncate">
+            <span className="text-xs text-muted-foreground truncate hidden xl:flex">
               {formatDateCompact(task.createdAt as Date)}
             </span>
             <div className="flex items-center text-muted-foreground">
