@@ -142,7 +142,7 @@ export function Preview({
       </HoverCardTrigger>
       <HoverCardContent
         className={cn(
-          "md:w-80 p-0 overflow-hidden border rounded-lg no-underline! select-none! z-999999999999999999",
+          "md:w-80 p-0 overflow-hidden border rounded-lg no-underline! select-none!",
           contentClassName,
         )}
       >
