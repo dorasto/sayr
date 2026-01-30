@@ -40,6 +40,7 @@ import { TaskContent } from "../task/task-content";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import Loader from "@/components/Loader";
 
 interface UnifiedTaskViewProps {
   tasks: schema.TaskWithLabels[];
@@ -289,14 +290,7 @@ export function UnifiedTaskView({
   // Render Functions
   // ============================================================================
 
-  const renderLoading = () => (
-    <div className="fixed inset-0 z-[99999999] flex items-center justify-center bg-background">
-      <div className="relative flex items-center justify-center">
-        <IconLoader2 className="w-12 h-12 text-primary animate-spin" />
-        <IconLoader2 className="absolute w-6 h-6 text-primary/50 animate-spin direction-reverse" />
-      </div>
-    </div>
-  );
+  const renderLoading = () => <Loader />;
 
   const renderTaskItem = (
     task: schema.TaskWithLabels,
