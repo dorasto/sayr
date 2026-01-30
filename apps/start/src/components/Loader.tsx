@@ -1,4 +1,3 @@
-import { IconLoader2 } from "@tabler/icons-react";
 import { Spinner } from "@repo/ui/components/spinner";
 export default function Loader() {
   return (
