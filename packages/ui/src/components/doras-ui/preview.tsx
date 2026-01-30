@@ -50,7 +50,6 @@ const fetchMetadata = async (url: string): Promise<PreviewMetadata | null> => {
     // Use a CORS proxy for client-side requests
     const proxyUrl = `/api/image-preview?url=${encodeURIComponent(normalizedUrl)}`;
     const response = await fetch(proxyUrl);
-    console.log(response);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch metadata: ${response.statusText}`);
