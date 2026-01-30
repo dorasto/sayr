@@ -339,8 +339,8 @@ export function GridBoardProvider<
             "h-full",
             // Grid mode: global scroll for the entire board
             !isKanbanMode && "overflow-auto",
-            // Kanban mode: flex layout, columns handle their own scroll
-            isKanbanMode && "flex flex-col overflow-hidden",
+            // Kanban mode: flex layout, horizontal scroll, columns handle vertical scroll
+            isKanbanMode && "flex flex-col overflow-x-auto overflow-y-hidden",
             className,
           )}
         >
@@ -348,8 +348,8 @@ export function GridBoardProvider<
             className={cn(
               // Grid mode: column layout, fit content width
               !isKanbanMode && "flex flex-col min-w-full w-fit",
-              // Kanban mode: row layout for columns, fill height
-              isKanbanMode && "flex flex-col flex-1 min-h-0",
+              // Kanban mode: row layout for columns, fill height, fit content width but at least full width
+              isKanbanMode && "flex flex-col flex-1 min-h-0 min-w-full w-fit",
             )}
           >
             {children}
@@ -604,7 +604,7 @@ function GridBoardDroppableCell({
         // Grid mode: minimal height when empty
         !isKanbanMode && isEmpty && "min-h-[40px]",
         // Kanban mode: full height with independent Y scroll
-        isKanbanMode && "overflow-y-auto min-h-0",
+        isKanbanMode && "overflow-y-auto h-full",
       )}
     >
       {children}
