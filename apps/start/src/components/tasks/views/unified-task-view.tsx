@@ -66,7 +66,7 @@ export function UnifiedTaskView({
   compact = false,
   forceShowCompleted = false,
 }: UnifiedTaskViewProps) {
-  console.log("[RENDER] UnifiedTaskView");
+  // console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -157,8 +157,8 @@ export function UnifiedTaskView({
   };
 
   const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-    onUnhandled: (msg) =>
-      console.warn("⚠️ [UNHANDLED MESSAGE UnifiedTaskView]", msg),
+    // onUnhandled: (msg) =>
+    //   console.warn("⚠️ [UNHANDLED MESSAGE UnifiedTaskView]", msg),
   });
 
   useEffect(() => {
@@ -483,21 +483,21 @@ export function UnifiedTaskView({
 
       // Check if there are any updates to apply
       if (Object.keys(updates).length === 0) {
-        console.log("[GridBoard] No updates to apply", {
-          toColumnId,
-          toRowId,
-          grouping,
-          subGrouping,
-        });
+        // console.log("[GridBoard] No updates to apply", {
+        //   toColumnId,
+        //   toRowId,
+        //   grouping,
+        //   subGrouping,
+        // });
         return;
       }
 
-      console.log("[GridBoard] Applying updates", {
-        itemId,
-        updates,
-        toColumnId,
-        toRowId,
-      });
+      // console.log("[GridBoard] Applying updates", {
+      //   itemId,
+      //   updates,
+      //   toColumnId,
+      //   toRowId,
+      // });
 
       // Apply optimistic update
       updateLocal(updates);

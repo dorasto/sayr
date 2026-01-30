@@ -60,24 +60,24 @@ export function TaskCycleTimeChart({ tasks, weeks = 8, size = "md", className }:
 	const { chartData, series } = useMemo(() => {
 		// Debug: Log all tasks and their statuses
 		const completedTasks = tasks.filter((task) => task.status && COMPLETED_STATUSES.includes(task.status));
-		console.log("📊 Cycle Time Chart Debug:", {
-			totalTasks: tasks.length,
-			completedTasks: completedTasks.length,
-			statuses: tasks.reduce(
-				(acc, t) => {
-					const status = t.status || "unknown";
-					acc[status] = (acc[status] || 0) + 1;
-					return acc;
-				},
-				{} as Record<string, number>
-			),
-			sampleCompletedTasks: completedTasks.slice(0, 3).map((t) => ({
-				title: t.title,
-				status: t.status,
-				createdAt: t.createdAt,
-				updatedAt: t.updatedAt,
-			})),
-		});
+		// console.log("📊 Cycle Time Chart Debug:", {
+		// 	totalTasks: tasks.length,
+		// 	completedTasks: completedTasks.length,
+		// 	statuses: tasks.reduce(
+		// 		(acc, t) => {
+		// 			const status = t.status || "unknown";
+		// 			acc[status] = (acc[status] || 0) + 1;
+		// 			return acc;
+		// 		},
+		// 		{} as Record<string, number>
+		// 	),
+		// 	sampleCompletedTasks: completedTasks.slice(0, 3).map((t) => ({
+		// 		title: t.title,
+		// 		status: t.status,
+		// 		createdAt: t.createdAt,
+		// 		updatedAt: t.updatedAt,
+		// 	})),
+		// });
 
 		// Generate week range
 		const today = new Date();

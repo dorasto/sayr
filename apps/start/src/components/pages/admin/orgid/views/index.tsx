@@ -34,7 +34,7 @@ export default function OrganizationViewsPage() {
 	};
 
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationViewsPage]", msg),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationViewsPage]", msg),
 	});
 
 	useEffect(() => {

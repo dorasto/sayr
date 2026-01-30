@@ -23,7 +23,7 @@ import { type PriorityKey, priorityConfig } from "./shared";
 import SettingsOrganizationViewDetailPage from "../pages/admin/settings/orgId/view-detail";
 
 export default function ProjectSide() {
-	console.log("[RENDER] ProjectSide");
+	// console.log("[RENDER] ProjectSide");
 	const { stuck, stickyRef } = useSticky();
 	const { value: organization } = useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
 	const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", [], 1);

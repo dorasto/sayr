@@ -98,14 +98,14 @@ export function UnifiedTaskItem({
   const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
 
   // DEBUG: Check task data structure
-  if (task.shortId === 22) {
-    console.log('[UnifiedTaskItem #22] Task object:', task);
-    console.log('[UnifiedTaskItem #22] task.releaseId:', task.releaseId);
-    console.log('[UnifiedTaskItem #22] releases array:', releases);
-    console.log('[UnifiedTaskItem #22] releases.length:', releases.length);
-    const foundRelease = releases.find((r) => r.id === task.releaseId);
-    console.log('[UnifiedTaskItem #22] Found release:', foundRelease);
-  }
+  // if (task.shortId === 22) {
+  //   console.log('[UnifiedTaskItem #22] Task object:', task);
+  //   console.log('[UnifiedTaskItem #22] task.releaseId:', task.releaseId);
+  //   console.log('[UnifiedTaskItem #22] releases array:', releases);
+  //   console.log('[UnifiedTaskItem #22] releases.length:', releases.length);
+  //   const foundRelease = releases.find((r) => r.id === task.releaseId);
+  //   console.log('[UnifiedTaskItem #22] Found release:', foundRelease);
+  // }
 
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
   const [priorityPopoverOpen, setPriorityPopoverOpen] = useState(false);

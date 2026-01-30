@@ -33,7 +33,7 @@ export default function SettingsOrganizationCategoriesPage() {
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE SettingsOrganizationCategoriesPage]", msg),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE SettingsOrganizationCategoriesPage]", msg),
 	});
 	useEffect(() => {
 		if (!ws) return;

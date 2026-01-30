@@ -157,7 +157,7 @@ export default function MyTasksPage() {
 	};
 
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE MyTasksPage]", msg),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE MyTasksPage]", msg),
 	});
 
 	useEffect(() => {

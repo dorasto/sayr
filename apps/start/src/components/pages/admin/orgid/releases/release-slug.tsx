@@ -188,8 +188,8 @@ function ReleaseDetailPageContent() {
     };
 
     const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-        onUnhandled: (msg) =>
-            console.warn("⚠️ [UNHANDLED MESSAGE ReleaseDetailPage]", msg),
+        // onUnhandled: (msg) =>
+        //     console.warn("⚠️ [UNHANDLED MESSAGE ReleaseDetailPage]", msg),
     });
 
     useEffect(() => {

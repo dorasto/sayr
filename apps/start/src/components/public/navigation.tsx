@@ -10,7 +10,7 @@ import LoginDialog from "../auth/login";
 
 export default function PublicNavigation() {
 	const { data: session } = authClient.useSession();
-	console.log("🚀 ~ PublicNavigation ~ session:", session);
+	// console.log("🚀 ~ PublicNavigation ~ session:", session);
 
 	const { organization } = usePublicOrganizationLayout();
 	return (

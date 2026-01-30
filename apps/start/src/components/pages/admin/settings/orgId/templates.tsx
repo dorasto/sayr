@@ -28,7 +28,7 @@ export default function SettingsOrganizationTemplatesPage() {
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE SettingsOrganizationTemplatesPage]", msg),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE SettingsOrganizationTemplatesPage]", msg),
 	});
 	useEffect(() => {
 		if (!ws) return;

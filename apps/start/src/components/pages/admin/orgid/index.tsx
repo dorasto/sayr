@@ -27,7 +27,7 @@ import { Route as OrgIndexRoute } from "@/routes/(admin)/$orgId/index";
 export default function OrganizationHomePage() {
 	const { permissions } = OrgRoute.useRouteContext(); // 👈 from TanStack router context
 	const { tasks } = OrgIndexRoute.useLoaderData();
-	console.log("🚀 ~ OrganizationHomePage ~ permissions:", permissions);
+	// console.log("🚀 ~ OrganizationHomePage ~ permissions:", permissions);
 	const { ws } = useLayoutData();
 	const { organization, setOrganization, setLabels, setViews, setCategories, categories } = useLayoutOrganization();
 
@@ -62,7 +62,7 @@ export default function OrganizationHomePage() {
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE ORG PAGE]", msg),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE ORG PAGE]", msg),
 	});
 	useEffect(() => {
 		if (!ws) return;
@@ -72,7 +72,7 @@ export default function OrganizationHomePage() {
 			ws.removeEventListener("message", handleMessage);
 		};
 	}, [ws, handleMessage]);
-	console.log("orghomepage organization:", organization);
+	// console.log("orghomepage organization:", organization);
 	return (
 		<SubWrapper
 			title={`${organization.name}`}
