@@ -44,8 +44,8 @@ export default function OrganizationTasksHomePage() {
 	const useMobile = useIsMobile();
 
 	// DEBUG: Check releases in parent component
-	console.log('[OrganizationTasksHomePage] releases:', releases);
-	console.log('[OrganizationTasksHomePage] releases.length:', releases?.length ?? 'undefined');
+	// console.log('[OrganizationTasksHomePage] releases:', releases);
+	// console.log('[OrganizationTasksHomePage] releases.length:', releases?.length ?? 'undefined');
 
 	useEffect(() => {
 		if (useMobile) {
@@ -93,7 +93,7 @@ export default function OrganizationTasksHomePage() {
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
 	});
 	useEffect(() => {
 		if (!ws) return;

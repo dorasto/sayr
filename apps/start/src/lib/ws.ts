@@ -28,11 +28,11 @@ const useWebSocket = () => {
 						? `ws://${window.location.hostname}:5468/ws` || "/ws"
 						: "/ws"
 				);
-				webSocket.onopen = () => {
-					console.info("WebSocket connection established");
-					lastMessageTimestamp = Date.now();
-					setWs(webSocket);
-				};
+			webSocket.onopen = () => {
+				// console.info("WebSocket connection established");
+				lastMessageTimestamp = Date.now();
+				setWs(webSocket);
+			};
 				webSocket.addEventListener(
 					"message",
 					(event) => {
@@ -41,12 +41,12 @@ const useWebSocket = () => {
 							const data: WSMessage = JSON.parse(event.data);
 							switch (data.type) {
 								case "CONNECTION_STATUS":
-									if (data.data.authenticated) {
-										setWSStatus("Connected");
-										setWSClientId(data.data.wsClientId);
-										console.info("WebSocket authenticated", {
-											wsClientId: data.data.wsClientId,
-										});
+								if (data.data.authenticated) {
+									setWSStatus("Connected");
+									setWSClientId(data.data.wsClientId);
+									// console.info("WebSocket authenticated", {
+									// 	wsClientId: data.data.wsClientId,
+									// });
 										// ✅ After reconnect — broadcast if stable for 2 sec
 										if (disconnectTimeRef.current !== null) {
 											if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
@@ -55,11 +55,11 @@ const useWebSocket = () => {
 												disconnectTimeRef.current = null;
 											}, 2000);
 										}
-									} else {
-										webSocket?.close();
-										webSocket = null;
-										console.warn("WebSocket disconnected (unauthenticated)");
-										setWs(null);
+								} else {
+									webSocket?.close();
+									webSocket = null;
+									// console.warn("WebSocket disconnected (unauthenticated)");
+									setWs(null);
 										setWSStatus("Reconnecting");
 										headlessToast.error({
 											id: "ws-connection-status",
@@ -97,23 +97,23 @@ const useWebSocket = () => {
 								default:
 									break;
 							}
-						} catch (error) {
-							console.error("WebSocket message parse error", {
-								error,
-								data: event.data,
-							});
-						}
+					} catch (error) {
+						// console.error("WebSocket message parse error", {
+						// 	error,
+						// 	data: event.data,
+						// });
+					}
 					},
 					{ signal: abortController.signal }
 				);
-				webSocket.onclose = (event) => {
-					webSocket = null;
-					console.info("WebSocket disconnected", {
-						code: event.code,
-						reason: event.reason,
-						wasClean: event.wasClean,
-					});
-					disconnectTimeRef.current = Date.now();
+			webSocket.onclose = (event) => {
+				webSocket = null;
+				// console.info("WebSocket disconnected", {
+				// 	code: event.code,
+				// 	reason: event.reason,
+				// 	wasClean: event.wasClean,
+				// });
+				disconnectTimeRef.current = Date.now();
 					setWs(null);
 					setWSClientId("");
 					setWSStatus("Reconnecting");
@@ -130,9 +130,9 @@ const useWebSocket = () => {
 					connectWebSocket();
 				};
 
-				webSocket.onerror = (error) => {
-					console.error("WebSocket error", { error });
-					if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+			webSocket.onerror = (error) => {
+				// console.error("WebSocket error", { error });
+				if (webSocket && webSocket.readyState === WebSocket.OPEN) {
 						webSocket.close();
 					}
 					webSocket = null;
@@ -162,7 +162,7 @@ const useWebSocket = () => {
 			if (webSocket && webSocket.readyState === WebSocket.OPEN) {
 				const timeSinceLastMessage = Date.now() - lastMessageTimestamp;
 				if (timeSinceLastMessage > 45000) {
-					console.warn(`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`);
+					// console.warn(`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`);
 					// log.warn("WebSocket watchdog timeout", { timeSinceLastMessage });
 					webSocket.close(4000, "Watchdog timeout");
 				}
@@ -171,19 +171,19 @@ const useWebSocket = () => {
 
 		// Online/Offline listeners
 		const handleOnline = () => {
-			console.info("Browser online");
+			// console.info("Browser online");
 			if (!webSocket || webSocket.readyState === WebSocket.CLOSED) {
 				connectWebSocket();
 			}
 		};
 		const handleOffline = () => {
-			console.info("Browser offline");
+			// console.info("Browser offline");
 		};
 		window.addEventListener("online", handleOnline);
 		window.addEventListener("offline", handleOffline);
 
 		return () => {
-			console.log("Clearing WebSocket on unmount.");
+			// console.log("Clearing WebSocket on unmount.");
 			clearTimeout(timeoutId);
 			clearInterval(watchdogInterval);
 			window.removeEventListener("online", handleOnline);

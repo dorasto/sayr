@@ -98,14 +98,14 @@ export function UnifiedTaskItem({
   const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
 
   // DEBUG: Check task data structure
-  if (task.shortId === 22) {
-    console.log('[UnifiedTaskItem #22] Task object:', task);
-    console.log('[UnifiedTaskItem #22] task.releaseId:', task.releaseId);
-    console.log('[UnifiedTaskItem #22] releases array:', releases);
-    console.log('[UnifiedTaskItem #22] releases.length:', releases.length);
-    const foundRelease = releases.find((r) => r.id === task.releaseId);
-    console.log('[UnifiedTaskItem #22] Found release:', foundRelease);
-  }
+  // if (task.shortId === 22) {
+  //   console.log('[UnifiedTaskItem #22] Task object:', task);
+  //   console.log('[UnifiedTaskItem #22] task.releaseId:', task.releaseId);
+  //   console.log('[UnifiedTaskItem #22] releases array:', releases);
+  //   console.log('[UnifiedTaskItem #22] releases.length:', releases.length);
+  //   const foundRelease = releases.find((r) => r.id === task.releaseId);
+  //   console.log('[UnifiedTaskItem #22] Found release:', foundRelease);
+  // }
 
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
   const [priorityPopoverOpen, setPriorityPopoverOpen] = useState(false);
@@ -560,7 +560,7 @@ export function UnifiedTaskItem({
                       handleCategoryClick(category.id);
                     }}
                     data-no-propagate
-                    className="cursor-pointer"
+                    className="cursor-pointer "
                   >
                     <RenderCategory category={category} />
                   </button>
@@ -593,6 +593,7 @@ export function UnifiedTaskItem({
                     label={label}
                     key={label.id + nanoid(5)}
                     data-no-propagate
+                    className="max-w-20"
                   />
                 ))}
                 {task.labels.length > 2 && (
@@ -685,7 +686,7 @@ export function UnifiedTaskItem({
                 )
               }
             />
-            <span className="text-xs text-muted-foreground truncate">
+            <span className="text-xs text-muted-foreground truncate hidden xl:flex">
               {formatDateCompact(task.createdAt as Date)}
             </span>
             <div className="flex items-center text-muted-foreground">

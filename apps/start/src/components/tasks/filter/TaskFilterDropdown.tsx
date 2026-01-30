@@ -38,7 +38,7 @@ export function TaskFilterDropdown({
 	categories,
 	releases,
 }: Props) {
-	console.log("[RENDER] TaskFilterDropdown");
+	// console.log("[RENDER] TaskFilterDropdown");
 
 	// Consolidated task view state management
 	const {

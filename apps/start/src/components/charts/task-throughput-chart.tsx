@@ -44,15 +44,15 @@ export function TaskThroughputChart({ tasks, weeks = 8, size = "md", className }
 	const { chartData } = useMemo(() => {
 		// Debug: Log completed tasks
 		const completedTasks = tasks.filter((task) => task.status && COMPLETED_STATUSES.includes(task.status));
-		console.log("📈 Throughput Chart Debug:", {
-			totalTasks: tasks.length,
-			completedTasks: completedTasks.length,
-			sampleCompletedTasks: completedTasks.slice(0, 3).map((t) => ({
-				title: t.title,
-				status: t.status,
-				updatedAt: t.updatedAt,
-			})),
-		});
+		// console.log("📈 Throughput Chart Debug:", {
+		// 	totalTasks: tasks.length,
+		// 	completedTasks: completedTasks.length,
+		// 	sampleCompletedTasks: completedTasks.slice(0, 3).map((t) => ({
+		// 		title: t.title,
+		// 		status: t.status,
+		// 		updatedAt: t.updatedAt,
+		// 	})),
+		// });
 
 		// Generate week range
 		const today = new Date();

@@ -144,7 +144,7 @@ export default function PublicOrgHomePage() {
 		},
 	};
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PublicOrgHomePage]", { msg }),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PublicOrgHomePage]", { msg }),
 	});
 	useEffect(() => {
 		if (!ws) return;

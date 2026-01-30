@@ -47,7 +47,7 @@ export function useWebSocketSubscription({
 
 	// Stable handler for WebSocket `onmessage`
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE useWebSocketSubscription]", { msg }),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE useWebSocketSubscription]", { msg }),
 	});
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <will fix at somepoint>
 	useEffect(() => {
@@ -78,11 +78,11 @@ export function useWebSocketSubscription({
 					setWSSubscribedState(null);
 				};
 			}
-			if (changed && ws.readyState === WebSocket.OPEN && WSClientId) {
-				ws.send(JSON.stringify({ type: "SUBSCRIBE", orgId, channel }));
-				setWSSubscribedState({ orgId, channel });
-				console.info("🔄 Subscribed to", { orgId, channel });
-			}
+		if (changed && ws.readyState === WebSocket.OPEN && WSClientId) {
+			ws.send(JSON.stringify({ type: "SUBSCRIBE", orgId, channel }));
+			setWSSubscribedState({ orgId, channel });
+			// console.info("🔄 Subscribed to", { orgId, channel });
+		}
 		}, 50); // small delay avoids cross-layout overlap
 		return () => {
 			cancelled = true;

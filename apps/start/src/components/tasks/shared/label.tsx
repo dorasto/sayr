@@ -215,7 +215,7 @@ export function RenderLabel({
       key={label.id}
       variant="secondary"
       className={cn(
-        "flex items-center justify-center gap-1 max-w-36 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative peer ps-5",
+        "flex items-center justify-center gap-1 max-w-32 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative peer ps-5",
         showRemove && "pe-5",
         className,
       )}

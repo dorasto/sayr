@@ -69,11 +69,11 @@ export default function Editor({
     // 📋 PASTE HANDLER
     // -------------------------------
     const handlePaste = async (event: ClipboardEvent) => {
-      console.group("📋 Paste event detected!");
+      // console.group("📋 Paste event detected!");
 
       if (!event.clipboardData) {
-        console.log("⚠️ No clipboardData found on paste event.");
-        console.groupEnd();
+        // console.log("⚠️ No clipboardData found on paste event.");
+        // console.groupEnd();
         return;
       }
 
@@ -83,33 +83,33 @@ export default function Editor({
       );
 
       if (mediaItems.length === 0) {
-        console.log("😐 No media found in clipboard.");
-        console.groupEnd();
+        // console.log("😐 No media found in clipboard.");
+        // console.groupEnd();
         return;
       }
 
       event.preventDefault();
-      console.group(`🧩 Processing ${mediaItems.length} media item(s)`);
+      // console.group(`🧩 Processing ${mediaItems.length} media item(s)`);
 
       for (const item of mediaItems) {
-        console.log("➡️ Item type:", item.type);
+        // console.log("➡️ Item type:", item.type);
         const file = item.getAsFile();
         if (!file) {
-          console.log("🚫 Skipped — clipboard item not a File.");
+          // console.log("🚫 Skipped — clipboard item not a File.");
           continue;
         }
 
         const blobUrl = URL.createObjectURL(file);
-        console.log("🪣 Blob URL created:", blobUrl);
+        // console.log("🪣 Blob URL created:", blobUrl);
 
         const type = file.type.startsWith("video/") ? "video" : "image";
 
         if (type === "video") {
-          console.log("🎞️ Inserting video node...");
+          // console.log("🎞️ Inserting video node...");
           const { state, view } = editor;
           const videoType = state.schema.nodes.video;
           if (!videoType) {
-            console.warn("⚠️ No 'video' node type found in schema.");
+            // console.warn("⚠️ No 'video' node type found in schema.");
             continue;
           }
 
@@ -117,37 +117,37 @@ export default function Editor({
             const node = videoType.create({ src: blobUrl });
             const tr = state.tr.replaceSelectionWith(node).scrollIntoView();
             view.dispatch(tr);
-            console.log("✅ Video inserted successfully.");
+            // console.log("✅ Video inserted successfully.");
           } catch (err) {
-            console.error("❌ Video insert error:", err);
+            // console.error("❌ Video insert error:", err);
           }
         } else {
-          console.log("🖼️ Inserting image node...");
+          // console.log("🖼️ Inserting image node...");
           try {
             // @ts-expect-error ProseKit typing gap
             editor.commands?.insertImage?.({ src: blobUrl });
-            console.log("✅ Image inserted successfully.");
+            // console.log("✅ Image inserted successfully.");
           } catch (err) {
-            console.error("❌ Image insert error:", err);
+            // console.error("❌ Image insert error:", err);
           }
         }
       }
 
-      console.groupEnd();
-      console.log("🎉 Paste handler done.");
-      console.groupEnd();
+      // console.groupEnd();
+      // console.log("🎉 Paste handler done.");
+      // console.groupEnd();
     };
     // -------------------------------
     // 📌 Attach listeners
     // -------------------------------
     view.dom.addEventListener("paste", handlePaste, { signal });
-    console.log("✅ Paste listener attached");
+    // console.log("✅ Paste listener attached");
     // -------------------------------
     // 🧹 Cleanup
     // -------------------------------
     return () => {
       abort.abort();
-      console.log("🧹 Paste listener removed");
+      // console.log("🧹 Paste listener removed");
     };
   }, [editor, readonly]);
   useEffect(() => {

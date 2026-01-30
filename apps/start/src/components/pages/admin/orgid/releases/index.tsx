@@ -35,7 +35,7 @@ export default function OrganizationReleasesPage() {
 	};
 
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationReleasesPage]", msg),
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationReleasesPage]", msg),
 	});
 
 	useEffect(() => {
@@ -50,7 +50,7 @@ export default function OrganizationReleasesPage() {
 		return null;
 	}
 
-	console.log("📦 Releases data:", releases);
+	// console.log("📦 Releases data:", releases);
 
 	// Group releases by status
 	const plannedReleases = releases.filter((r) => r.status === "planned");
