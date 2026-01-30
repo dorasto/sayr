@@ -5,7 +5,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@repo/ui/components/hover-card";
-import { cn } from "@repo/ui/lib/utils";
+import { cn, normalizeUrl } from "@repo/ui/lib/utils";
 import { IconExternalLink } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -26,14 +26,6 @@ export interface PreviewProps {
   contentClassName?: string;
   onError?: (error: Error) => void;
 }
-
-const normalizeUrl = (url: string): string => {
-  // If URL doesn't start with a protocol, add https://
-  if (!url.match(/^[a-zA-Z][a-zA-Z\d+\-.]*:/)) {
-    return `https://${url}`;
-  }
-  return url;
-};
 
 const isValidUrl = (url: string): boolean => {
   try {
