@@ -30,7 +30,6 @@ import {
   patchGlobalFetch,
 } from "@repo/opentelemetry/client";
 import { NavigationProgress } from "@/components/NavigationProgress";
-import { NavigationSpinner } from "@/components/NavigationSpinner";
 const isSayrCloud = import.meta.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
 if (typeof window !== "undefined" && isSayrCloud) {
   initOpenTel("sayr-admin", import.meta.env.PROD === true);
