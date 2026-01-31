@@ -11,14 +11,12 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import type { QueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import NotFound from "@/components/NotFound";
 import { SidebarScript } from "@/lib/sidebar/sidebar-script";
 import appCss from "../styles.css?url";
@@ -30,6 +28,7 @@ import {
   patchGlobalFetch,
 } from "@repo/opentelemetry/client";
 import { NavigationProgress } from "@/components/NavigationProgress";
+import { HydrationProvider } from "@/contexts/HydrationContext";
 const isSayrCloud = import.meta.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
 if (typeof window !== "undefined" && isSayrCloud) {
   initOpenTel("sayr-admin", import.meta.env.PROD === true);
@@ -93,31 +92,33 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <SidebarScript />
       </head>
       <body className="dark relative">
-        {/* <Header /> */}
-        <NavigationProgress />
-        <HeadlessToastConfig
-          icons={{
-            success: <IconCheck className="text-success" />,
-            info: <IconInfoCircle className="text-primary" />,
-            warning: <IconAlertCircle className=" text-amber-500" />,
-            error: <IconAlertCircleFilled className="text-destructive" />,
-            loading: <IconLoader2 className="animate-spin text-primary" />,
-          }}
-        />
-        {children}
-        <Toaster
-          icons={{
-            success: <IconCheck />,
-            info: <IconInfoCircle />,
-            warning: <IconAlertCircle />,
-            error: <IconAlertCircleFilled />,
-            loading: <IconLoader2 />,
-          }}
-          toastOptions={{
-            unstyled: true,
-            duration: 10000,
-          }}
-        />
+        <HydrationProvider>
+          {/* <Header /> */}
+          <NavigationProgress />
+          <HeadlessToastConfig
+            icons={{
+              success: <IconCheck className="text-success" />,
+              info: <IconInfoCircle className="text-primary" />,
+              warning: <IconAlertCircle className=" text-amber-500" />,
+              error: <IconAlertCircleFilled className="text-destructive" />,
+              loading: <IconLoader2 className="animate-spin text-primary" />,
+            }}
+          />
+          {children}
+          <Toaster
+            icons={{
+              success: <IconCheck />,
+              info: <IconInfoCircle />,
+              warning: <IconAlertCircle />,
+              error: <IconAlertCircleFilled />,
+              loading: <IconLoader2 />,
+            }}
+            toastOptions={{
+              unstyled: true,
+              duration: 10000,
+            }}
+          />
+        </HydrationProvider>
         <TanStackDevtools
           plugins={[
             {

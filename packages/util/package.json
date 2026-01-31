@@ -1,27 +1,27 @@
 {
-  "name": "@repo/util",
-  "version": "0.0.8",
-  "private": true,
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
-  "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts"
-  },
-  "dependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
-    "jsonwebtoken": "^9.0.2"
-  },
-  "scripts": {
-    "lint": "biome check .",
-    "lint:fix": "biome check . --write",
-    "format": "biome format --write ."
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.1.1",
-    "@repo/typescript-config": "workspace:*",
-    "@types/node": "^24.0.14"
-  }
+	"name": "@repo/util",
+	"version": "0.0.8",
+	"private": true,
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*.ts"
+	},
+	"dependencies": {
+		"@types/jsonwebtoken": "^9.0.10",
+		"jsonwebtoken": "^9.0.2"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"format": "biome format --write ."
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.1.1",
+		"@repo/typescript-config": "workspace:*",
+		"@types/node": "^24.0.14"
+	}
 }

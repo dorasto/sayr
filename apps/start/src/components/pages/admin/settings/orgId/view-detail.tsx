@@ -64,6 +64,8 @@ import {
   TASK_GROUPINGS,
   TaskGroupingId,
 } from "@/components/tasks";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 
 const slugify = (text: string) => {
   return text
@@ -83,8 +85,7 @@ export default function SettingsOrganizationViewDetailPage({
   initialView?: schema.savedViewType;
 }) {
   const { ws } = useLayoutData();
-  const { value: organization, setValue: setOrganization } =
-    useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
+  const { organization, setOrganization, views, setViews, labels, categories, releases } = useLayoutOrganization();
   useWebSocketSubscription({
     ws,
     orgId: organization?.id,
@@ -92,29 +93,7 @@ export default function SettingsOrganizationViewDetailPage({
     channel: "admin",
     setOrganization: setOrganization,
   });
-  const { value: views, setValue: setViews } = useStateManagement<
-    schema.savedViewType[]
-  >("views", [], 3);
-  const { value: labels } = useStateManagement<schema.labelType[]>(
-    "labels",
-    [],
-    1,
-  );
-  const { value: categories } = useStateManagement<schema.categoryType[]>(
-    "categories",
-    [],
-    1,
-  );
-  const { value: releases } = useStateManagement<schema.releaseType[]>(
-    "releases",
-    [],
-    1,
-  );
-  const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>(
-    "tasks",
-    [],
-    1,
-  );
+  const { tasks } = useLayoutTasks();
   const router = useRouter();
   const { value: wsClientId } = useStateManagement<string>(
     "ws-clientId",

@@ -22,14 +22,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@repo/ui/components/sheet";
-import { Skeleton } from "@repo/ui/components/skeleton";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@repo/ui/components/tabs";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
 import {
@@ -56,32 +54,14 @@ import { type PriorityKey, priorityConfig } from "./shared";
 import SettingsOrganizationViewDetailPage from "../pages/admin/settings/orgId/view-detail";
 import { releaseStatusConfig } from "../releases/config";
 import { Badge } from "@repo/ui/components/badge";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 
 export default function ProjectSide() {
   // console.log("[RENDER] ProjectSide");
   const { stuck, stickyRef } = useSticky();
-  const { value: organization } =
-    useStateManagement<schema.OrganizationWithMembers>("organization", null, 1);
-  const { value: tasks } = useStateManagement<schema.TaskWithLabels[]>(
-    "tasks",
-    [],
-    1,
-  );
-  const { value: views } = useStateManagement<schema.savedViewType[]>(
-    "views",
-    [],
-    3,
-  );
-  const { value: categories } = useStateManagement<schema.categoryType[]>(
-    "categories",
-    [],
-    1,
-  );
-  const { value: releases } = useStateManagement<schema.releaseType[]>(
-    "releases",
-    [],
-    1,
-  );
+  const { organization, views, categories, releases } = useLayoutOrganization();
+  const { tasks } = useLayoutTasks();
 
   // Consolidated task view state management
   const {
@@ -196,11 +176,6 @@ export default function ProjectSide() {
       task.assignees.some((assignee) => assignee.id === account?.id),
   ).length;
 
-  if (!organization || !tasks) {
-    return (
-      <Skeleton className="flex items-center gap-2 shrink-0 rounded bg-accent border px-3 py-0.5 h-9 w-full justify-start" />
-    );
-  }
   // Check if no filters are active (showing all open tasks)
   const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
 

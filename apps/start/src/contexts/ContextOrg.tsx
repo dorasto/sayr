@@ -1,7 +1,10 @@
+"use client";
 import type { schema } from "@repo/database";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useQueryClient } from "@tanstack/react-query";
 import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { useHydration } from "./HydrationContext";
 
 interface ContextType {
 	organization: schema.OrganizationWithMembers;
@@ -26,12 +29,12 @@ const RootContext = createContext<ContextType | undefined>(undefined);
 
 export function RootProviderOrganization({
 	children,
-	organization,
-	labels,
-	views,
-	categories,
-	issueTemplates,
-	releases,
+	organization: initialOrganization,
+	labels: initialLabels,
+	views: initialViews,
+	categories: initialCategories,
+	issueTemplates: initialIssueTemplates,
+	releases: initialReleases,
 }: {
 	children: ReactNode;
 	organization: ContextType["organization"];
@@ -41,52 +44,55 @@ export function RootProviderOrganization({
 	issueTemplates: ContextType["issueTemplates"];
 	releases: ContextType["releases"];
 }) {
+	const queryClient = useQueryClient();
 	const isMobile = useIsMobile();
-	const { value: NewOrganization, setValue: setOrganization } = useStateManagement(
-		"organization",
-		organization,
-		30000
-	);
-	const { value: Newlabels, setValue: setLabels } = useStateManagement("labels", labels, 30000);
-	const { value: NewViews, setValue: setViews } = useStateManagement("views", views, 30000);
-	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories, 30000);
-	const { value: NewIssueTemplates, setValue: setIssueTemplates } = useStateManagement(
-		"issueTemplates",
-		issueTemplates,
-		30000
-	);
-	const { value: NewReleases, setValue: setReleases } = useStateManagement("releases", releases, 30000);
-	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement(
-		"isProjectPanelOpen",
-		isMobile ? false : true,
-		30000
-	);
-	// Sync props → state
-	useEffect(() => setOrganization(organization), [organization, setOrganization]);
-	useEffect(() => setLabels(labels), [labels, setLabels]);
-	useEffect(() => setViews(views), [views, setViews]);
-	useEffect(() => setCategories(categories), [categories, setCategories]);
-	useEffect(() => setIssueTemplates(issueTemplates), [issueTemplates, setIssueTemplates]);
-	useEffect(() => setReleases(releases), [releases, setReleases]);
+	const { isHydrated } = useHydration();
+
+	// Seed cache synchronously BEFORE useStateManagement hooks run
+	// This ensures the first render uses fresh props data, not stale cache
+	// setQueryData is safe to call during render (idempotent)
+	queryClient.setQueryData(["organization"], initialOrganization);
+	queryClient.setQueryData(["labels"], initialLabels);
+	queryClient.setQueryData(["views"], initialViews);
+	queryClient.setQueryData(["categories"], initialCategories);
+	queryClient.setQueryData(["issueTemplates"], initialIssueTemplates);
+	queryClient.setQueryData(["releases"], initialReleases);
+
+	// Use useStateManagement - cache is already seeded above, so it will find the data
+	const { value: organization, setValue: setOrganization } = useStateManagement("organization", initialOrganization, 30000);
+	const { value: labels, setValue: setLabels } = useStateManagement("labels", initialLabels, 30000);
+	const { value: views, setValue: setViews } = useStateManagement("views", initialViews, 30000);
+	const { value: categories, setValue: setCategories } = useStateManagement("categories", initialCategories, 30000);
+	const { value: issueTemplates, setValue: setIssueTemplates } = useStateManagement("issueTemplates", initialIssueTemplates, 30000);
+	const { value: releases, setValue: setReleases } = useStateManagement("releases", initialReleases, 30000);
+	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement("isProjectPanelOpen", true, 30000);
+
+	// After hydration, sync panel state with mobile detection (only once)
+	useEffect(() => {
+		if (isHydrated && isMobile) {
+			setProjectPanelOpen(false);
+		}
+	}, [isHydrated, isMobile, setProjectPanelOpen]);
+
 	return (
 		<RootContext.Provider
 			value={{
-				organization: NewOrganization,
+				organization,
 				setOrganization,
-				labels: Newlabels,
+				labels,
 				setLabels,
-				views: NewViews,
+				views,
 				setViews,
-				categories: NewCategories,
+				categories,
 				setCategories,
-				issueTemplates: NewIssueTemplates,
+				issueTemplates,
 				setIssueTemplates,
-				releases: NewReleases,
+				releases,
 				setReleases,
 				isProjectPanelOpen,
 				setProjectPanelOpen,
 				isMobile,
-				isMobileHydrated: true,
+				isMobileHydrated: isHydrated,
 			}}
 		>
 			{children}
