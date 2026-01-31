@@ -305,39 +305,39 @@ export interface FileRoutesByFullPath {
   '/api/traces': typeof ApiTracesRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
-  '/login': typeof LoginIndexRoute
+  '/login/': typeof LoginIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
   '/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/$orgId/': typeof adminOrgIdIndexRoute
-  '/console': typeof adminConsoleIndexRoute
+  '/console/': typeof adminConsoleIndexRoute
   '/mine/': typeof adminMineIndexRoute
   '/settings/': typeof adminSettingsIndexRoute
-  '/invite/$orgId': typeof InviteOrgIdIndexRoute
+  '/invite/$orgId/': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
   '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
-  '/$orgId/releases': typeof adminOrgIdReleasesIndexRoute
+  '/$orgId/releases/': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
-  '/$orgId/views': typeof adminOrgIdViewsIndexRoute
-  '/console/connections': typeof adminConsoleConnectionsIndexRoute
+  '/$orgId/views/': typeof adminOrgIdViewsIndexRoute
+  '/console/connections/': typeof adminConsoleConnectionsIndexRoute
   '/settings/connections/': typeof adminSettingsConnectionsIndexRoute
-  '/orgs/$orgSlug/$shortId': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
   '/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
-  '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
-  '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
-  '/settings/org/$orgId/labels': typeof adminSettingsOrgOrgIdLabelsIndexRoute
-  '/settings/org/$orgId/members': typeof adminSettingsOrgOrgIdMembersIndexRoute
-  '/settings/org/$orgId/releases': typeof adminSettingsOrgOrgIdReleasesIndexRoute
-  '/settings/org/$orgId/teams': typeof adminSettingsOrgOrgIdTeamsIndexRoute
-  '/settings/org/$orgId/templates': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
-  '/settings/org/$orgId/views': typeof adminSettingsOrgOrgIdViewsIndexRoute
-  '/settings/org/$orgId/connections/$connectionId': typeof adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
-  '/settings/org/$orgId/teams/$teamId': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  '/settings/org/$orgId/views/$viewId': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
+  '/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
+  '/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
+  '/settings/org/$orgId/labels/': typeof adminSettingsOrgOrgIdLabelsIndexRoute
+  '/settings/org/$orgId/members/': typeof adminSettingsOrgOrgIdMembersIndexRoute
+  '/settings/org/$orgId/releases/': typeof adminSettingsOrgOrgIdReleasesIndexRoute
+  '/settings/org/$orgId/teams/': typeof adminSettingsOrgOrgIdTeamsIndexRoute
+  '/settings/org/$orgId/templates/': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
+  '/settings/org/$orgId/views/': typeof adminSettingsOrgOrgIdViewsIndexRoute
+  '/settings/org/$orgId/connections/$connectionId/': typeof adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute
+  '/settings/org/$orgId/teams/$teamId/': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
+  '/settings/org/$orgId/views/$viewId/': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -436,39 +436,39 @@ export interface FileRouteTypes {
     | '/api/traces'
     | '/login/auth-check'
     | '/'
-    | '/login'
+    | '/login/'
     | '/$orgId/tasks'
     | '/settings/connections'
     | '/api/auth/$'
     | '/$orgId/'
-    | '/console'
+    | '/console/'
     | '/mine/'
     | '/settings/'
-    | '/invite/$orgId'
+    | '/invite/$orgId/'
     | '/orgs/$orgSlug/'
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
     | '/$orgId/releases/$releaseSlug'
-    | '/$orgId/releases'
+    | '/$orgId/releases/'
     | '/$orgId/tasks/'
-    | '/$orgId/views'
-    | '/console/connections'
+    | '/$orgId/views/'
+    | '/console/connections/'
     | '/settings/connections/'
-    | '/orgs/$orgSlug/$shortId'
+    | '/orgs/$orgSlug/$shortId/'
     | '/$orgId/tasks/$taskShortId/'
     | '/settings/org/$orgId/'
     | '/settings/org/$orgId/teams/new'
-    | '/settings/org/$orgId/categories'
-    | '/settings/org/$orgId/connections'
-    | '/settings/org/$orgId/labels'
-    | '/settings/org/$orgId/members'
-    | '/settings/org/$orgId/releases'
-    | '/settings/org/$orgId/teams'
-    | '/settings/org/$orgId/templates'
-    | '/settings/org/$orgId/views'
-    | '/settings/org/$orgId/connections/$connectionId'
-    | '/settings/org/$orgId/teams/$teamId'
-    | '/settings/org/$orgId/views/$viewId'
+    | '/settings/org/$orgId/categories/'
+    | '/settings/org/$orgId/connections/'
+    | '/settings/org/$orgId/labels/'
+    | '/settings/org/$orgId/members/'
+    | '/settings/org/$orgId/releases/'
+    | '/settings/org/$orgId/teams/'
+    | '/settings/org/$orgId/templates/'
+    | '/settings/org/$orgId/views/'
+    | '/settings/org/$orgId/connections/$connectionId/'
+    | '/settings/org/$orgId/teams/$teamId/'
+    | '/settings/org/$orgId/views/$viewId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/manifest.webmanifest'
@@ -593,7 +593,7 @@ declare module '@tanstack/react-router' {
     '/login/': {
       id: '/login/'
       path: '/login'
-      fullPath: '/login'
+      fullPath: '/login/'
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -663,7 +663,7 @@ declare module '@tanstack/react-router' {
     '/invite/$orgId/': {
       id: '/invite/$orgId/'
       path: '/invite/$orgId'
-      fullPath: '/invite/$orgId'
+      fullPath: '/invite/$orgId/'
       preLoaderRoute: typeof InviteOrgIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -684,7 +684,7 @@ declare module '@tanstack/react-router' {
     '/(admin)/console/': {
       id: '/(admin)/console/'
       path: '/console'
-      fullPath: '/console'
+      fullPath: '/console/'
       preLoaderRoute: typeof adminConsoleIndexRouteImport
       parentRoute: typeof adminRouteRoute
     }
@@ -719,7 +719,7 @@ declare module '@tanstack/react-router' {
     '/orgs/$orgSlug/$shortId/': {
       id: '/orgs/$orgSlug/$shortId/'
       path: '/$shortId'
-      fullPath: '/orgs/$orgSlug/$shortId'
+      fullPath: '/orgs/$orgSlug/$shortId/'
       preLoaderRoute: typeof OrgsOrgSlugShortIdIndexRouteImport
       parentRoute: typeof OrgsOrgSlugRouteRoute
     }
@@ -733,14 +733,14 @@ declare module '@tanstack/react-router' {
     '/(admin)/console/connections/': {
       id: '/(admin)/console/connections/'
       path: '/console/connections'
-      fullPath: '/console/connections'
+      fullPath: '/console/connections/'
       preLoaderRoute: typeof adminConsoleConnectionsIndexRouteImport
       parentRoute: typeof adminRouteRoute
     }
     '/(admin)/$orgId/views/': {
       id: '/(admin)/$orgId/views/'
       path: '/views'
-      fullPath: '/$orgId/views'
+      fullPath: '/$orgId/views/'
       preLoaderRoute: typeof adminOrgIdViewsIndexRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
@@ -754,7 +754,7 @@ declare module '@tanstack/react-router' {
     '/(admin)/$orgId/releases/': {
       id: '/(admin)/$orgId/releases/'
       path: '/releases'
-      fullPath: '/$orgId/releases'
+      fullPath: '/$orgId/releases/'
       preLoaderRoute: typeof adminOrgIdReleasesIndexRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
@@ -796,56 +796,56 @@ declare module '@tanstack/react-router' {
     '/(admin)/settings/org/$orgId/views/': {
       id: '/(admin)/settings/org/$orgId/views/'
       path: '/views'
-      fullPath: '/settings/org/$orgId/views'
+      fullPath: '/settings/org/$orgId/views/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdViewsIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/templates/': {
       id: '/(admin)/settings/org/$orgId/templates/'
       path: '/templates'
-      fullPath: '/settings/org/$orgId/templates'
+      fullPath: '/settings/org/$orgId/templates/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdTemplatesIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/teams/': {
       id: '/(admin)/settings/org/$orgId/teams/'
       path: '/teams'
-      fullPath: '/settings/org/$orgId/teams'
+      fullPath: '/settings/org/$orgId/teams/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/releases/': {
       id: '/(admin)/settings/org/$orgId/releases/'
       path: '/releases'
-      fullPath: '/settings/org/$orgId/releases'
+      fullPath: '/settings/org/$orgId/releases/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdReleasesIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/members/': {
       id: '/(admin)/settings/org/$orgId/members/'
       path: '/members'
-      fullPath: '/settings/org/$orgId/members'
+      fullPath: '/settings/org/$orgId/members/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdMembersIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/labels/': {
       id: '/(admin)/settings/org/$orgId/labels/'
       path: '/labels'
-      fullPath: '/settings/org/$orgId/labels'
+      fullPath: '/settings/org/$orgId/labels/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdLabelsIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/connections/': {
       id: '/(admin)/settings/org/$orgId/connections/'
       path: '/connections'
-      fullPath: '/settings/org/$orgId/connections'
+      fullPath: '/settings/org/$orgId/connections/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/categories/': {
       id: '/(admin)/settings/org/$orgId/categories/'
       path: '/categories'
-      fullPath: '/settings/org/$orgId/categories'
+      fullPath: '/settings/org/$orgId/categories/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
@@ -859,21 +859,21 @@ declare module '@tanstack/react-router' {
     '/(admin)/settings/org/$orgId/views/$viewId/': {
       id: '/(admin)/settings/org/$orgId/views/$viewId/'
       path: '/views/$viewId'
-      fullPath: '/settings/org/$orgId/views/$viewId'
+      fullPath: '/settings/org/$orgId/views/$viewId/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdViewsViewIdIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/teams/$teamId/': {
       id: '/(admin)/settings/org/$orgId/teams/$teamId/'
       path: '/teams/$teamId'
-      fullPath: '/settings/org/$orgId/teams/$teamId'
+      fullPath: '/settings/org/$orgId/teams/$teamId/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/connections/$connectionId/': {
       id: '/(admin)/settings/org/$orgId/connections/$connectionId/'
       path: '/connections/$connectionId'
-      fullPath: '/settings/org/$orgId/connections/$connectionId'
+      fullPath: '/settings/org/$orgId/connections/$connectionId/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsConnectionIdIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
