@@ -1,7 +1,17 @@
 import { Button } from "@repo/ui/components/button";
 import type { ErrorComponentProps } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { captureUserFacingError } from "./PostHogProvider";
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
+	// Capture the error to PostHog when the error boundary renders
+	useEffect(() => {
+		captureUserFacingError(error, {
+			displayType: "error_boundary",
+			location: "DefaultCatchBoundary",
+		});
+	}, [error]);
+
 	console.error("DefaultCatchBoundary Error:", error);
 
 	return (

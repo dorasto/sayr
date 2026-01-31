@@ -25,5 +25,22 @@ replace_env "VITE_SAYR_FRONTEND_AXIOM_TOKEN" "___VITE_SAYR_FRONTEND_AXIOM_TOKEN_
 replace_env "VITE_TENOR_API" "___VITE_TENOR_API___"
 replace_env "VITE_SAYR_CLOUD" "___VITE_SAYR_CLOUD___"
 
+# Upload source maps to PostHog (only on first startup, only if credentials are provided)
+# This enables readable stack traces in PostHog error tracking
+SOURCEMAP_MARKER="/tmp/.posthog_sourcemaps_uploaded"
+if [ -n "$POSTHOG_CLI_TOKEN" ] && [ -n "$POSTHOG_CLI_ENV_ID" ] && [ ! -f "$SOURCEMAP_MARKER" ]; then
+    echo "📦 Uploading source maps to PostHog..."
+    # Use VITE_PUBLIC_POSTHOG_HOST if set, otherwise default to US region
+    POSTHOG_HOST="${VITE_PUBLIC_POSTHOG_HOST:-https://us.posthog.com}"
+    if POSTHOG_CLI_HOST="$POSTHOG_HOST" posthog-cli sourcemap upload --directory /app/.output/public 2>/dev/null; then
+        touch "$SOURCEMAP_MARKER"
+        echo "✅ Source maps uploaded successfully to $POSTHOG_HOST"
+    else
+        echo "⚠️ Source map upload failed (non-fatal, continuing...)"
+    fi
+elif [ -f "$SOURCEMAP_MARKER" ]; then
+    echo "⏭️ Source maps already uploaded, skipping..."
+fi
+
 echo "Starting App..."
 exec "$@"
