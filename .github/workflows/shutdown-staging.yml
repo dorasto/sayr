@@ -1,0 +1,103 @@
+name: Shutdown Staging Services
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: "Shutdown start (frontend)"
+        type: boolean
+        default: false
+      backend:
+        description: "Shutdown backend"
+        type: boolean
+        default: false
+      worker:
+        description: "Shutdown worker"
+        type: boolean
+        default: false
+      traefik:
+        description: "Shutdown traefik"
+        type: boolean
+        default: false
+      marketing:
+        description: "Shutdown marketing"
+        type: boolean
+        default: false
+      all:
+        description: "Shutdown ALL services"
+        type: boolean
+        default: false
+
+jobs:
+  shutdown:
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+    steps:
+      - name: Shutdown all services
+        if: inputs.all == true
+        run: |
+          echo "🛑 Shutting down ALL staging services..."
+          railway down -y --service traefik || echo "⚠️ traefik not running or already down"
+          railway down -y --service backend || echo "⚠️ backend not running or already down"
+          railway down -y --service worker || echo "⚠️ worker not running or already down"
+          railway down -y --service start || echo "⚠️ start not running or already down"
+          railway down -y --service marketing || echo "⚠️ marketing not running or already down"
+          echo "✅ All services shutdown complete"
+
+      - name: Shutdown traefik
+        if: inputs.all != true && inputs.traefik == true
+        run: |
+          echo "🛑 Shutting down traefik..."
+          railway down -y --service traefik
+          echo "✅ traefik shutdown complete"
+
+      - name: Shutdown backend
+        if: inputs.all != true && inputs.backend == true
+        run: |
+          echo "🛑 Shutting down backend..."
+          railway down -y --service backend
+          echo "✅ backend shutdown complete"
+
+      - name: Shutdown worker
+        if: inputs.all != true && inputs.worker == true
+        run: |
+          echo "🛑 Shutting down worker..."
+          railway down -y --service worker
+          echo "✅ worker shutdown complete"
+
+      - name: Shutdown start
+        if: inputs.all != true && inputs.start == true
+        run: |
+          echo "🛑 Shutting down start..."
+          railway down -y --service start
+          echo "✅ start shutdown complete"
+
+      - name: Shutdown marketing
+        if: inputs.all != true && inputs.marketing == true
+        run: |
+          echo "🛑 Shutting down marketing..."
+          railway down -y --service marketing
+          echo "✅ marketing shutdown complete"
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🛑 Staging Shutdown Complete"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          if [ "${{ inputs.all }}" == "true" ]; then
+            echo "✅ All staging services have been shut down"
+          else
+            echo "Services shut down:"
+            [ "${{ inputs.traefik }}" == "true" ] && echo "  - traefik"
+            [ "${{ inputs.backend }}" == "true" ] && echo "  - backend"
+            [ "${{ inputs.worker }}" == "true" ] && echo "  - worker"
+            [ "${{ inputs.start }}" == "true" ] && echo "  - start"
+            [ "${{ inputs.marketing }}" == "true" ] && echo "  - marketing"
+          fi
+          echo ""
+          echo "💡 To bring services back up, run the 'Deploy to Staging' workflow"
+          echo ""
