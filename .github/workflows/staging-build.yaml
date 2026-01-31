@@ -1,0 +1,255 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: false
+        type: string
+      deploy_start:
+        description: 'Deploy start (frontend)'
+        type: boolean
+        default: true
+      deploy_backend:
+        description: 'Deploy backend'
+        type: boolean
+        default: true
+      deploy_worker:
+        description: 'Deploy worker'
+        type: boolean
+        default: true
+      deploy_traefik:
+        description: 'Deploy traefik'
+        type: boolean
+        default: false
+      deploy_marketing:
+        description: 'Deploy marketing'
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TAG: staging
+
+jobs:
+  determine-apps:
+    name: Determine Apps to Build
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.set-apps.outputs.apps }}
+      matrix: ${{ steps.set-apps.outputs.matrix }}
+    steps:
+      - name: Set apps to build
+        id: set-apps
+        run: |
+          APPS=()
+          if [ "${{ inputs.deploy_start }}" == "true" ]; then
+            APPS+=("start")
+          fi
+          if [ "${{ inputs.deploy_backend }}" == "true" ]; then
+            APPS+=("backend")
+          fi
+          if [ "${{ inputs.deploy_worker }}" == "true" ]; then
+            APPS+=("worker")
+          fi
+          if [ "${{ inputs.deploy_traefik }}" == "true" ]; then
+            APPS+=("traefik")
+          fi
+          if [ "${{ inputs.deploy_marketing }}" == "true" ]; then
+            APPS+=("marketing")
+          fi
+          
+          if [ ${#APPS[@]} -eq 0 ]; then
+            echo "Error: No apps selected for deployment"
+            exit 1
+          fi
+          
+          # Convert to JSON array for matrix
+          MATRIX=$(printf '%s\n' "${APPS[@]}" | jq -R . | jq -s .)
+          echo "apps=${APPS[*]}" >> $GITHUB_OUTPUT
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "Building apps: ${APPS[*]}"
+
+  build-image:
+    name: Build and Push
+    needs: [determine-apps]
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'blacksmith-4vcpu-ubuntu-2404-arm' || 'blacksmith-4vcpu-ubuntu-2404' }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.determine-apps.outputs.matrix) }}
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Determine Docker Config
+        id: config
+        run: |
+          if [[ "${{ matrix.app }}" == "start" ]]; then
+            echo "dockerfile=./apps/start/Dockerfile" >> $GITHUB_OUTPUT
+            echo "image_suffix=-start" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "backend" ]]; then
+            echo "dockerfile=./apps/backend/Dockerfile" >> $GITHUB_OUTPUT
+            echo "image_suffix=-backend" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "worker" ]]; then
+            echo "dockerfile=./apps/worker/Dockerfile" >> $GITHUB_OUTPUT
+            echo "image_suffix=-worker" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
+            echo "dockerfile=./apps/traefik/Dockerfile" >> $GITHUB_OUTPUT
+            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "marketing" ]]; then
+            echo "dockerfile=./apps/marketing/Dockerfile" >> $GITHUB_OUTPUT
+            echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Builder
+        uses: useblacksmith/setup-docker-builder@v1
+        with:
+          platforms: ${{ matrix.platform }}
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}
+          tags: |
+            type=raw,value=${{ env.TAG }}
+            type=raw,value=${{ env.TAG }}-${{ github.sha }}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.config.outputs.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.app }}-${{ strategy.job-index }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-manifest:
+    needs: [determine-apps, build-image]
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.determine-apps.outputs.matrix) }}
+    steps:
+      - name: Determine Docker Config
+        id: config
+        run: |
+          if [[ "${{ matrix.app }}" == "start" ]]; then
+            echo "image_suffix=-start" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "backend" ]]; then
+            echo "image_suffix=-backend" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "worker" ]]; then
+            echo "image_suffix=-worker" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
+            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.app }}" == "marketing" ]]; then
+            echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digests-${{ matrix.app }}-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      - name: Set up Docker Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}
+          tags: |
+            type=raw,value=${{ env.TAG }}
+            type=raw,value=${{ env.TAG }}-${{ github.sha }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:${{ env.TAG }}
+
+  deploy:
+    needs: [determine-apps, merge-manifest]
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+    steps:
+      - name: Redeploy traefik
+        if: inputs.deploy_traefik == true
+        run: railway redeploy -y --service traefik
+
+      - name: Redeploy backend
+        if: inputs.deploy_backend == true
+        run: railway redeploy -y --service backend
+
+      - name: Redeploy worker
+        if: inputs.deploy_worker == true
+        run: railway redeploy -y --service worker
+
+      - name: Redeploy start
+        if: inputs.deploy_start == true
+        run: railway redeploy -y --service start
+
+      - name: Redeploy marketing
+        if: inputs.deploy_marketing == true
+        run: railway redeploy -y --service marketing
+
+      - name: Deployment Summary
+        run: |
+          echo "✅ Staging deployment completed!"
+          echo ""
+          echo "Deployed apps: ${{ needs.determine-apps.outputs.apps }}"
+          echo "Branch: ${{ inputs.branch || github.ref }}"
+          echo "Images tagged with: staging, staging-${{ github.sha }}"
