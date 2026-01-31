@@ -3,28 +3,24 @@ name: Deploy to Staging
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch to deploy'
-        required: false
-        type: string
-      deploy_start:
-        description: 'Deploy start (frontend)'
+      start:
+        description: "Deploy start (frontend)"
         type: boolean
         default: true
-      deploy_backend:
-        description: 'Deploy backend'
+      backend:
+        description: "Deploy backend"
         type: boolean
         default: true
-      deploy_worker:
-        description: 'Deploy worker'
+      worker:
+        description: "Deploy worker"
         type: boolean
         default: true
-      deploy_traefik:
-        description: 'Deploy traefik'
+      traefik:
+        description: "Deploy traefik"
         type: boolean
         default: false
-      deploy_marketing:
-        description: 'Deploy marketing'
+      marketing:
+        description: "Deploy marketing"
         type: boolean
         default: false
 
@@ -34,47 +30,35 @@ env:
   TAG: staging
 
 jobs:
-  determine-apps:
-    name: Determine Apps to Build
-    runs-on: ubuntu-latest
+  define-matrix:
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     outputs:
-      apps: ${{ steps.set-apps.outputs.apps }}
-      matrix: ${{ steps.set-apps.outputs.matrix }}
+      apps: ${{ steps.set-matrix.outputs.apps }}
     steps:
-      - name: Set apps to build
-        id: set-apps
+      - id: set-matrix
         run: |
-          APPS=()
-          if [ "${{ inputs.deploy_start }}" == "true" ]; then
-            APPS+=("start")
+          apps="[]"
+          if [[ "${{ inputs.start }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["start"]')
           fi
-          if [ "${{ inputs.deploy_backend }}" == "true" ]; then
-            APPS+=("backend")
+          if [[ "${{ inputs.backend }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["backend"]')
           fi
-          if [ "${{ inputs.deploy_worker }}" == "true" ]; then
-            APPS+=("worker")
+          if [[ "${{ inputs.worker }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["worker"]')
           fi
-          if [ "${{ inputs.deploy_traefik }}" == "true" ]; then
-            APPS+=("traefik")
+          if [[ "${{ inputs.traefik }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["traefik"]')
           fi
-          if [ "${{ inputs.deploy_marketing }}" == "true" ]; then
-            APPS+=("marketing")
+          if [[ "${{ inputs.marketing }}" == "true" ]]; then
+            apps=$(echo $apps | jq '. + ["marketing"]')
           fi
-          
-          if [ ${#APPS[@]} -eq 0 ]; then
-            echo "Error: No apps selected for deployment"
-            exit 1
-          fi
-          
-          # Convert to JSON array for matrix
-          MATRIX=$(printf '%s\n' "${APPS[@]}" | jq -R . | jq -s .)
-          echo "apps=${APPS[*]}" >> $GITHUB_OUTPUT
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-          echo "Building apps: ${APPS[*]}"
+          echo "apps=$(echo $apps | jq -c .)" >> $GITHUB_OUTPUT
 
   build-image:
+    needs: define-matrix
+    if: needs.define-matrix.outputs.apps != '[]'
     name: Build and Push
-    needs: [determine-apps]
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'blacksmith-4vcpu-ubuntu-2404-arm' || 'blacksmith-4vcpu-ubuntu-2404' }}
     permissions:
       contents: read
@@ -82,15 +66,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: ${{ fromJson(needs.determine-apps.outputs.matrix) }}
+        app: ${{ fromJson(needs.define-matrix.outputs.apps) }}
         platform:
           - linux/amd64
           - linux/arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch || github.ref }}
 
       - name: Determine Docker Config
         id: config
@@ -158,7 +140,8 @@ jobs:
           retention-days: 1
 
   merge-manifest:
-    needs: [determine-apps, build-image]
+    needs: [define-matrix, build-image]
+    if: needs.define-matrix.outputs.apps != '[]'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -166,7 +149,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: ${{ fromJson(needs.determine-apps.outputs.matrix) }}
+        app: ${{ fromJson(needs.define-matrix.outputs.apps) }}
     steps:
       - name: Determine Docker Config
         id: config
@@ -220,36 +203,37 @@ jobs:
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:${{ env.TAG }}
 
   deploy:
-    needs: [determine-apps, merge-manifest]
+    needs: [define-matrix, merge-manifest]
+    if: needs.define-matrix.outputs.apps != '[]'
     runs-on: ubuntu-latest
     container: ghcr.io/railwayapp/cli:latest
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
     steps:
       - name: Redeploy traefik
-        if: inputs.deploy_traefik == true
+        if: inputs.traefik == true
         run: railway redeploy -y --service traefik
 
       - name: Redeploy backend
-        if: inputs.deploy_backend == true
+        if: inputs.backend == true
         run: railway redeploy -y --service backend
 
       - name: Redeploy worker
-        if: inputs.deploy_worker == true
+        if: inputs.worker == true
         run: railway redeploy -y --service worker
 
       - name: Redeploy start
-        if: inputs.deploy_start == true
+        if: inputs.start == true
         run: railway redeploy -y --service start
 
       - name: Redeploy marketing
-        if: inputs.deploy_marketing == true
+        if: inputs.marketing == true
         run: railway redeploy -y --service marketing
 
       - name: Deployment Summary
         run: |
           echo "✅ Staging deployment completed!"
           echo ""
-          echo "Deployed apps: ${{ needs.determine-apps.outputs.apps }}"
-          echo "Branch: ${{ inputs.branch || github.ref }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
           echo "Images tagged with: staging, staging-${{ github.sha }}"
