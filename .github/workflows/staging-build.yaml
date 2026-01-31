@@ -18,11 +18,11 @@ on:
       traefik:
         description: "Deploy traefik"
         type: boolean
-        default: false
+        default: true
       marketing:
         description: "Deploy marketing"
         type: boolean
-        default: false
+        default: true
 
 env:
   REGISTRY: ghcr.io
