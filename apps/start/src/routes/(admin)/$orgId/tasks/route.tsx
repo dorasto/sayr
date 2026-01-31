@@ -14,13 +14,12 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks")({
 			},
 		});
 	},
-	// Prevent refetching when only search params change (e.g., ?task=4, ?view=xyz, ?filters=...)
-	// The task list doesn't depend on search params - filtering is done client-side
+	// staleTime prevents refetching for this duration
+	// Path params (orgId) automatically determine cache identity
 	staleTime: 1000 * 60 * 5, // 5 minutes
-	shouldRevalidate: ({ currentParams, nextParams }) => {
-		// Only revalidate if the orgId changes, not when search params change
-		return currentParams.orgId !== nextParams.orgId;
-	},
+	// Prevent loader from re-running when only search params change (e.g., ?task=4, ?view=xyz, ?filters=...)
+	// The task list doesn't depend on search params - filtering is done client-side
+	shouldReload: false,
 	component: OrgTasksLayout,
 });
 

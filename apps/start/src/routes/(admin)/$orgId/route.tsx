@@ -56,10 +56,9 @@ export const Route = createFileRoute("/(admin)/$orgId")({
 			},
 		});
 	},
-	// Prevent revalidation when only search params change (filters, view, task)
-	shouldRevalidate: ({ currentParams, nextParams }) => {
-		return currentParams.orgId !== nextParams.orgId;
-	},
+	// staleTime prevents refetching for this duration
+	// Path params (orgId) automatically determine cache identity
+	staleTime: 1000 * 60 * 5, // 5 minutes
 	component: OrgLayout,
 	head: ({ loaderData }) => ({
 		meta: seo({

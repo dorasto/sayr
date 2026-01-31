@@ -2,7 +2,8 @@ import { SubWrapper } from "@/components/generic/wrapper";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
 import { db, getLabels, getOrganizationPublic } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
@@ -19,21 +20,39 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 		return { organization, labels, categories };
 	});
 
+// Loading component shown during SSR and while data loads
+function PublicLayoutPending() {
+	return (
+		<div className="flex h-dvh flex-col overflow-hidden relative">
+			<div className="min-h-0 flex-1 overflow-y-auto relative">
+				<SubWrapper className="max-w-6xl mx-auto relative p-4!" blur={false} top={false}>
+					{/* Header skeleton */}
+					<div className="space-y-4">
+						<Skeleton className="h-48 w-full rounded-lg" />
+						<div className="flex items-center gap-4">
+							<Skeleton className="h-16 w-16 rounded-full" />
+							<div className="space-y-2">
+								<Skeleton className="h-8 w-48" />
+								<Skeleton className="h-4 w-32" />
+							</div>
+						</div>
+						{/* Content skeleton */}
+						<div className="mt-8 space-y-4">
+							<Skeleton className="h-10 w-full" />
+							<Skeleton className="h-10 w-full" />
+							<Skeleton className="h-10 w-full" />
+						</div>
+					</div>
+				</SubWrapper>
+			</div>
+		</div>
+	);
+}
+
 export const Route = createFileRoute("/orgs/$orgSlug")({
-	beforeLoad: ({ location }) => {
-		const hostname = new URL(location.url).hostname;
-		const parts = hostname.split(".");
-		const isLocalhost = parts[parts.length - 1] === "localhost";
-		const hasSubdomain = (isLocalhost && parts.length > 1) || (!isLocalhost && parts.length > 2);
-		const subdomain = hasSubdomain ? parts[0] : "";
-		// 🚫 Redirect if no subdomain OR admin subdomain
-		if (!hasSubdomain || subdomain === "admin") {
-			throw redirect({
-				to: "/",
-				replace: true,
-			});
-		}
-	},
+	// Note: We removed the beforeLoad redirect check because the rewrite system
+	// already handles routing. The input rewrite only transforms subdomain URLs
+	// to /orgs/$slug, so this route only receives valid subdomain requests.
 	loader: async ({ params }) => {
 		return await fetchPublicOrganizationAndTasks({
 			data: {
@@ -41,6 +60,7 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 			},
 		});
 	},
+	pendingComponent: PublicLayoutPending,
 	component: PublicLayout,
 });
 

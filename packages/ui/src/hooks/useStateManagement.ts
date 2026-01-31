@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <allow any> */
 import { type UseQueryResult, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 export interface UseStateManagementResult<T> {
 	value: T;
 	setValue: (newValue: T) => void;
@@ -36,14 +37,22 @@ export function useStateManagement<T>(
 	gcTime?: number | undefined
 ): UseStateManagementResult<T> {
 	const queryClient = useQueryClient();
-	const queryKey = [key];
+	const queryKey = useMemo(() => [key], [key]);
 
-	const { data: value = defaultValue as any } = useQuery<T>({
+	// Check cache first - if data exists, use it; otherwise return defaultValue
+	// This ensures SSR-seeded data is used when available
+	const cachedData = queryClient.getQueryData<T>(queryKey);
+	const initialValue = cachedData !== undefined ? cachedData : defaultValue;
+
+	const { data: value } = useQuery<T>({
 		queryKey: queryKey,
 		queryFn: () => {
 			const storedValue = queryClient.getQueryData<T>(queryKey);
-			return storedValue ?? (defaultValue as any);
+			return storedValue ?? (defaultValue as T);
 		},
+		// Use cached data if available, otherwise defaultValue
+		// This is evaluated synchronously during render
+		initialData: initialValue as T,
 		staleTime: Infinity,
 		gcTime: gcTime || Infinity,
 	});
@@ -58,7 +67,7 @@ export function useStateManagement<T>(
 	});
 
 	return {
-		value,
+		value: value as T,
 		setValue,
 	};
 }
@@ -70,12 +79,18 @@ export function useStateManagementKey<T>(
 	const queryClient = useQueryClient();
 	const queryKey = key;
 
-	const { data: value = defaultValue as any } = useQuery<T>({
+	// Check cache first - if data exists, use it; otherwise return defaultValue
+	const cachedData = queryClient.getQueryData<T>(queryKey);
+	const initialValue = cachedData !== undefined ? cachedData : defaultValue;
+
+	const { data: value } = useQuery<T>({
 		queryKey: queryKey,
 		queryFn: () => {
 			const storedValue = queryClient.getQueryData<T>(queryKey);
-			return storedValue ?? (defaultValue as any);
+			return storedValue ?? (defaultValue as T);
 		},
+		// Use cached data if available, otherwise defaultValue
+		initialData: initialValue as T,
 		staleTime: Infinity,
 		gcTime: gcTime || Infinity,
 	});
@@ -90,7 +105,7 @@ export function useStateManagementKey<T>(
 	});
 
 	return {
-		value,
+		value: value as T,
 		setValue,
 	};
 }

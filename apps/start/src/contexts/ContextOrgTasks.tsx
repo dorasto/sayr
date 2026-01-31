@@ -1,8 +1,8 @@
 "use client";
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconLoader2 } from "@tabler/icons-react";
-import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { createContext, type ReactNode, useContext } from "react";
 
 interface ContextType {
 	tasks: schema.TaskWithLabels[];
@@ -14,29 +14,29 @@ const RootContext = createContext<ContextType | undefined>(undefined);
 
 export function RootProviderOrganizationTasks({
 	children,
-	tasks,
+	tasks: initialTasks,
 	organization,
 }: {
 	children: ReactNode;
 	tasks: ContextType["tasks"];
 	organization?: ContextType["organization"];
 }) {
-	const { value: newTasks, setValue: setTasks } = useStateManagement("tasks", tasks, 30000);
-	useEffect(() => setTasks(tasks), [tasks, setTasks]);
-	if (!tasks) {
-		return (
-			<div className="flex items-center h-full mx-auto place-items-center">
-				<IconLoader2 className="animate-spin" />
-			</div>
-		);
-	}
-	return <RootContext.Provider value={{ tasks: newTasks, setTasks, organization }}>{children}</RootContext.Provider>;
+	const queryClient = useQueryClient();
+
+	// Seed cache synchronously BEFORE useStateManagement hooks run
+	// This ensures the first render uses fresh props data, not stale cache
+	queryClient.setQueryData(["tasks"], initialTasks);
+
+	// Use useStateManagement - cache is already seeded above, so it will find the data
+	const { value: tasks, setValue: setTasks } = useStateManagement("tasks", initialTasks, 30000);
+
+	return <RootContext.Provider value={{ tasks, setTasks, organization }}>{children}</RootContext.Provider>;
 }
 
 export function useLayoutTasks() {
 	const context = useContext(RootContext);
 	if (context === undefined) {
-		throw new Error("useLayoutProject must be used within a RootProviderOrganizationTasks");
+		throw new Error("useLayoutTasks must be used within a RootProviderOrganizationTasks");
 	}
 	return context;
 }
