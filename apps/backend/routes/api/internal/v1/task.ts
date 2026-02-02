@@ -49,6 +49,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		assignees,
 		category,
 		releaseId,
+		visible,
 	} = await c.req.json();
 	const session = c.get("session");
 
@@ -60,10 +61,10 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 
 	const task = await traceAsync(
 		"task.create.insert",
-		() => createTask(orgId, { title, description, status, priority, category, releaseId }, session?.userId),
+		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible }, session?.userId),
 		{
 			description: "Creating task record",
-			data: { orgId, title, status, priority, category, releaseId },
+			data: { orgId, title, status, priority, category, releaseId, visible },
 		}
 	);
 

@@ -52,6 +52,7 @@ export async function createTaskAction(
 		category?: string | null;
 		assignees?: string[];
 		releaseId?: string;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -69,6 +70,7 @@ export async function createTaskAction(
 			category: data.category,
 			assignees: data.assignees,
 			releaseId: data.releaseId,
+			visible: data.visible,
 		}),
 		headers: {
 			"Content-Type": "application/json",
