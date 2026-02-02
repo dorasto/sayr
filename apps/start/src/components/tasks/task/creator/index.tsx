@@ -378,7 +378,9 @@ export default function CreateIssueDialog({
                   ? DIALOG_SIZES.expanded.maxHeight
                   : DIALOG_SIZES.collapsed.maxHeight
                 : undefined,
-              transition: !isMobile ? "height 0.25s ease-in-out, min-height 0.25s ease-in-out, max-height 0.25s ease-in-out" : undefined,
+              transition: !isMobile
+                ? "height 0.25s ease-in-out, min-height 0.25s ease-in-out, max-height 0.25s ease-in-out"
+                : undefined,
             }}
           >
             <AdaptiveDialogHeader
@@ -437,28 +439,48 @@ export default function CreateIssueDialog({
                     </ComboBox>
                   )}
                   <div className="flex items-center gap-1 ml-auto">
-                    {visible === "private" && (
-                      <div className="w-fit text-xs h-7 border border-primary/50 bg-accent text-accent-foreground hover:bg-primary/50 rounded-lg px-2 mb-0 flex items-center gap-2 transition-all pointer-events-none">
-                        <IconLock className="size-4" />
-                        Private
-                      </div>
+                    <Button
+                      variant={"primary"}
+                      size={"icon"}
+                      className={cn(
+                        "w-fit text-xs h-7 bg-accent text-accent-foreground rounded-lg px-2 mb-0 flex items-center gap-2 transition-all",
+                        visible === "private"
+                          ? "border border-primary/50 hover:border-primary"
+                          : "bg-accent text-accent-foreground",
+                      )}
+                      onClick={() =>
+                        setVisible(visible === "public" ? "private" : "public")
+                      }
+                    >
+                      {visible === "private" ? (
+                        <>
+                          <IconLock className="size-4" /> Private
+                        </>
+                      ) : (
+                        <>
+                          <IconLockOpen2 className="size-4" /> Public
+                        </>
+                      )}
+                    </Button>
+                    {!isMobile && (
+                      <Button
+                        variant={"ghost"}
+                        size={"icon"}
+                        className="h-7 w-7"
+                        onClick={() => setExpand(!expand)}
+                      >
+                        {expand ? (
+                          <IconArrowsDiagonalMinimize2 className="size-4" />
+                        ) : (
+                          <IconArrowsDiagonal className="size-4" />
+                        )}
+                      </Button>
                     )}
+
                     <Button
                       variant={"ghost"}
                       size={"icon"}
                       className="h-7 w-7"
-                      onClick={() => setExpand(!expand)}
-                    >
-                      {expand ? (
-                        <IconArrowsDiagonalMinimize2 className="size-4" />
-                      ) : (
-                        <IconArrowsDiagonal className="size-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant={"ghost"}
-                      size={"icon"}
-                      className="h-7 w-7 ml-4"
                       onClick={() => setOpen(false)}
                     >
                       <IconX className="size-4" />
@@ -727,26 +749,10 @@ export default function CreateIssueDialog({
                     variant={"primary"}
                     onClick={handleUpdate}
                     disabled={isFetching || !title.trim()}
-                    className={cn(
-                      "h-7 w-auto",
-                      visible === "private" &&
-                        "bg-primary/20 hover:bg-primary/30 border-transparent hover:border-transparent",
-                    )}
+                    className={cn("h-7 w-auto")}
                   >
-                    Create task
+                    Create
                   </Button>
-                  <Toggle
-                    aria-label="Toggle visibility"
-                    size="sm"
-                    className="border-0 bg-accent hover:bg-secondary data-[state=on]:bg-primary/20 data-[state=on]:hover:bg-primary/30 size-7"
-                    variant={"primary"}
-                    pressed={visible === "private"}
-                    onPressedChange={(pressed) =>
-                      setVisible(pressed ? "private" : "public")
-                    }
-                  >
-                    {visible === "private" ? <IconLock /> : <IconLockOpen2 />}
-                  </Toggle>
                 </ButtonGroup>
               </div>
             </AdaptiveDialogFooter>
