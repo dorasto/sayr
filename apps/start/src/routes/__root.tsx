@@ -47,6 +47,7 @@ if (typeof window !== "undefined") {
         /__manifest/,
         /@vite/,
         /@react-refresh/,
+        /__tsd\/console-pipe/,
         /node_modules/,
         /\.hot-update\./,
       ],
@@ -82,7 +83,7 @@ export const Route = createRootRouteWithContext<{
         //@ts-expect-error
         href: ctx.params?.orgSlug
           ? //@ts-expect-error
-            `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
+          `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
           : "/manifest.webmanifest",
       },
     ],

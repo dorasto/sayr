@@ -21,6 +21,76 @@ let activeInteractionSpan: Span | undefined;
 let activeInteractionCtx: Context | undefined;
 let interactionTimeout: ReturnType<typeof setTimeout> | undefined;
 
+// ✅ Page-level trace context (same trace ID for whole session)
+let pageTraceContext: Context | undefined;
+let pageSessionSpan: Span | undefined;
+let currentPath: string | undefined;
+
+function createPageSession() {
+    if (!globalTracer) return;
+
+    const path = window.location.pathname;
+
+    // Skip if same path (avoid duplicates on replaceState)
+    if (path === currentPath) return;
+    currentPath = path;
+
+    // ✅ Get performance timing for start time
+    const perf = performance.getEntriesByType(
+        "navigation"
+    )[0] as PerformanceNavigationTiming;
+
+    const startTime = perf
+        ? performance.timeOrigin + perf.fetchStart
+        : Date.now();
+
+    // ✅ Create session span with correct start time
+    pageSessionSpan = globalTracer.startSpan("page.session", {
+        startTime,
+        attributes: {
+            "page.url": window.location.href,
+            "page.path": path,
+        },
+    });
+
+    // ✅ Store the context with this trace ID
+    pageTraceContext = trace.setSpan(context.active(), pageSessionSpan);
+
+    // ✅ Get trace ID for logging
+    const traceId = pageSessionSpan.spanContext().traceId;
+
+    console.group(`New page session: ${path}`);
+    console.log(`Trace ID: ${traceId}`);
+    console.groupEnd();
+
+    // ✅ Add load timing when available
+    if (document.readyState === "complete") {
+        captureLoadTiming();
+    } else {
+        window.addEventListener("load", captureLoadTiming, { once: true });
+    }
+}
+
+function captureLoadTiming() {
+    if (!pageSessionSpan) return;
+
+    const perf = performance.getEntriesByType(
+        "navigation"
+    )[0] as PerformanceNavigationTiming;
+
+    if (perf) {
+        pageSessionSpan.setAttributes({
+            "page.load.dns": perf.domainLookupEnd - perf.domainLookupStart,
+            "page.load.tcp": perf.connectEnd - perf.connectStart,
+            "page.load.request": perf.responseStart - perf.requestStart,
+            "page.load.response": perf.responseEnd - perf.responseStart,
+            "page.load.dom_interactive": perf.domInteractive,
+            "page.load.dom_complete": perf.domComplete,
+            "page.load.total": perf.loadEventEnd - perf.fetchStart,
+        });
+    }
+}
+
 export function initOpenTel(_serviceName: string, isProd: boolean) {
     if (typeof window === "undefined" || initialized) return;
     initialized = true;
@@ -39,6 +109,35 @@ export function initOpenTel(_serviceName: string, isProd: boolean) {
     provider.register();
 
     globalTracer = trace.getTracer(serviceName);
+
+    // ✅ Create initial page session
+    createPageSession();
+
+    // ✅ Listen for navigation changes
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (...args) {
+        originalPushState.apply(this, args);
+        createPageSession();
+    };
+
+    history.replaceState = function (...args) {
+        originalReplaceState.apply(this, args);
+        createPageSession();
+    };
+
+    window.addEventListener("popstate", () => {
+        createPageSession();
+    });
+
+    // ✅ End session on unload
+    window.addEventListener("beforeunload", () => {
+        if (pageSessionSpan) {
+            pageSessionSpan.end();
+        }
+    });
+
     console.log(`OpenTelemetry initialized (${serviceName})`);
 }
 
@@ -55,13 +154,21 @@ function startInteraction(name: string, attrs: Attributes) {
     endInteraction();
 
     const tracer = getTracer();
-    activeInteractionSpan = tracer.startSpan(name);
+    // ✅ Use page trace context so same trace ID
+    activeInteractionSpan = tracer.startSpan(
+        name,
+        undefined,
+        pageTraceContext ?? context.active()
+    );
     activeInteractionSpan.setAttributes({
         ...attrs,
         "page.path": window.location.pathname,
     });
 
-    activeInteractionCtx = trace.setSpan(context.active(), activeInteractionSpan);
+    activeInteractionCtx = trace.setSpan(
+        pageTraceContext ?? context.active(),
+        activeInteractionSpan
+    );
 
     // safety timeout only
     interactionTimeout = setTimeout(() => endInteraction(), 5000);
@@ -95,7 +202,9 @@ export function patchGlobalFetch(options?: {
 
     const shouldExclude = (url: string) =>
         excludeUrls.some((pattern) =>
-            typeof pattern === "string" ? url.includes(pattern) : pattern.test(url)
+            typeof pattern === "string"
+                ? url.includes(pattern)
+                : pattern.test(url)
         );
 
     window.fetch = async (
@@ -118,7 +227,9 @@ export function patchGlobalFetch(options?: {
         const urlObj = new URL(url, window.location.origin);
         const path = urlObj.pathname;
 
-        const parentCtx = activeInteractionCtx ?? context.active();
+        // ✅ Use page trace context if no active interaction
+        const parentCtx =
+            activeInteractionCtx ?? pageTraceContext ?? context.active();
 
         const span = tracer.startSpan(
             `${method} ${path}`,
@@ -138,12 +249,13 @@ export function patchGlobalFetch(options?: {
         if (logBody && init?.body) {
             const bodyInfo = getBodyInfo(init.body);
             attrs["http.request.body_type"] = bodyInfo.type;
-            if (bodyInfo.size) attrs["http.request.body_size"] = bodyInfo.size;
+            if (bodyInfo.size)
+                attrs["http.request.body_size"] = bodyInfo.size;
         }
 
         span.setAttributes(attrs);
 
-        const spanCtx = trace.setSpan(context.active(), span);
+        const spanCtx = trace.setSpan(parentCtx, span);
 
         try {
             const headers = new Headers(init?.headers);
@@ -186,7 +298,9 @@ export function initClickTracking() {
         "click",
         (event) => {
             const target = event.target as HTMLElement;
-            const el = target.closest("button, a, [role='button'], [data-track]");
+            const el = target.closest(
+                "button, a, [role='button'], [data-track]"
+            );
             if (!el) return;
 
             const trackName = el.getAttribute("data-track");
@@ -210,7 +324,8 @@ function getBodyInfo(body: RequestInit["body"]): {
     size?: number;
 } {
     if (!body) return { type: "empty" };
-    if (typeof body === "string") return { type: "string", size: body.length };
+    if (typeof body === "string")
+        return { type: "string", size: body.length };
     if (body instanceof Blob) return { type: "Blob", size: body.size };
     if (body instanceof ArrayBuffer)
         return { type: "ArrayBuffer", size: body.byteLength };
