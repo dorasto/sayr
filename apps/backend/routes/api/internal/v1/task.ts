@@ -275,15 +275,22 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				);
 			}
 			if (updates.title && updates.title !== existingTask.title) {
-				await addLogEventTask(taskId, orgId, "updated", existingTask.title, updates.title, session?.userId);
+				await addLogEventTask(
+					taskId,
+					orgId,
+					"updated",
+					{ field: "title", value: existingTask.title },
+					{ field: "title", value: updates.title },
+					session?.userId
+				);
 			}
 			if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
 				await addLogEventTask(
 					taskId,
 					orgId,
 					"updated",
-					existingTask.description,
-					updates.description,
+					{ field: "description", value: existingTask.description },
+					{ field: "description", value: updates.description },
 					session?.userId,
 					updates.description
 				);

@@ -94,6 +94,8 @@ function RouteComponent() {
 		<TaskContentMain
 			task={task}
 			tasks={tasks}
+			setTasks={setTasks}
+			setTask={setTask}
 			labels={labels}
 			availableUsers={availableUsers}
 			organization={organization}
