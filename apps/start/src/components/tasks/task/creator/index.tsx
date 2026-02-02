@@ -349,13 +349,10 @@ export default function CreateIssueDialog({
           className={cn(
             "z-50 border",
             visible === "private" && "border-primary/50",
-            // Remove default max-width and sizing - let motion handle it
+            // Remove default sizing - let motion handle it
             !isMobile && "md:max-w-none! md:w-auto! md:h-auto!",
-            // Collapsed: top 15%, no translate (grows downward)
-            // Expanded: centered with top 50% and translate -50%
-            !isMobile && "transition-[top,transform] duration-250 ease-in-out",
-            !isMobile && !expand && "top-[15%]! translate-y-0!",
-            !isMobile && expand && "top-[50%]! -translate-y-1/2!",
+            // Fixed position at 15% from top, grows downward
+            !isMobile && "top-[15%]! translate-y-0!",
           )}
           childClassName={cn(
             !isMobile && "flex flex-col min-h-0 overflow-hidden",
@@ -393,7 +390,8 @@ export default function CreateIssueDialog({
             }}
           >
             <AdaptiveDialogHeader
-            // className={cn("", visible === "private" && "bg-primary/15")}
+              className={cn(!isMobile && "pb-0!")}
+              // className={cn("", visible === "private" && "bg-primary/15")}
             >
               <AdaptiveDialogTitle asChild>
                 <div className="flex items-center gap-1 w-full">
@@ -484,7 +482,7 @@ export default function CreateIssueDialog({
             <div
               className={cn(
                 "flex flex-col gap-3 w-full p-3",
-                !isMobile && "flex-1 min-h-0",
+                !isMobile && "flex-1 min-h-0 pt-0!",
               )}
             >
               <div
