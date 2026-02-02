@@ -85,7 +85,7 @@ const DIALOG_SIZES = {
   collapsed: {
     width: "min(38rem, calc(100vw - 2rem))", // 38rem but shrinks on smaller screens
     height: "auto", // Grows with content
-    minHeight: "18rem", // Minimum height to prevent collapse during animation
+    minHeight: "18rem",
     maxHeight: "min(38rem, calc(100vh - 4rem))",
   },
   expanded: {
@@ -96,17 +96,9 @@ const DIALOG_SIZES = {
   },
   // Animation settings
   transition: {
-    layout: {
-      type: "tween" as const,
-      ease: "easeInOut" as const,
-      duration: 0.25,
-    },
-    // For width/height animations
-    default: {
-      type: "tween" as const,
-      ease: "easeInOut" as const,
-      duration: 0.25,
-    },
+    type: "tween" as const,
+    ease: "easeInOut" as const,
+    duration: 0.25,
   },
 } as const;
 
@@ -361,7 +353,6 @@ export default function CreateIssueDialog({
         >
           <motion.div
             className={cn(!isMobile && "flex flex-col")}
-            layout
             initial={false}
             animate={{
               width: !isMobile
@@ -369,14 +360,14 @@ export default function CreateIssueDialog({
                   ? DIALOG_SIZES.expanded.width
                   : DIALOG_SIZES.collapsed.width
                 : "100%",
-              height: !isMobile
-                ? expand
-                  ? DIALOG_SIZES.expanded.height
-                  : DIALOG_SIZES.collapsed.height
-                : "auto",
             }}
             transition={DIALOG_SIZES.transition}
             style={{
+              height: !isMobile
+                ? expand
+                  ? DIALOG_SIZES.expanded.height
+                  : "auto"
+                : "auto",
               minHeight: !isMobile
                 ? expand
                   ? DIALOG_SIZES.expanded.minHeight
@@ -387,6 +378,7 @@ export default function CreateIssueDialog({
                   ? DIALOG_SIZES.expanded.maxHeight
                   : DIALOG_SIZES.collapsed.maxHeight
                 : undefined,
+              transition: !isMobile ? "height 0.25s ease-in-out, min-height 0.25s ease-in-out, max-height 0.25s ease-in-out" : undefined,
             }}
           >
             <AdaptiveDialogHeader
@@ -728,7 +720,7 @@ export default function CreateIssueDialog({
                 </div>
               </div>
             </div>
-            <AdaptiveDialogFooter className="mt-auto bg-background flex flex-col! gap-2">
+            <AdaptiveDialogFooter className="mt-auto bg-background flex flex-col! gap-2 shrink-0">
               <div className="flex items-center gap-2 ml-auto">
                 <ButtonGroup>
                   <Button
