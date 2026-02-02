@@ -413,7 +413,8 @@ export default function CreateIssueDialog({
                     !!templateData && typeof templateData === "object"
                   }
                   hideBlockHandle={true}
-                  placeholder="Task description"
+                  firstLinePlaceholder="Task description"
+                  placeholder="Press / for commands..."
                 />
               </div>
               <div className="flex items-center flex-wrap gap-1 w-full">
