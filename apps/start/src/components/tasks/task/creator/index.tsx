@@ -26,6 +26,9 @@ import {
 import { Toggle } from "@repo/ui/components/toggle";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import {
+  IconArrowsDiagonal,
+  IconArrowsDiagonalMinimize,
+  IconArrowsDiagonalMinimize2,
   IconCategory,
   IconLabel,
   IconLock,
@@ -99,6 +102,7 @@ export default function CreateIssueDialog({
     1,
   );
   const [open, setOpen] = useState(false);
+  const [expand, setExpand] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] =
     useState<string>("__none__");
   const [title, setTitle] = useState("");
@@ -273,6 +277,7 @@ export default function CreateIssueDialog({
     );
     if (data?.success && data.data) {
       setOpen(false);
+      setExpand(false);
       setSelectedTemplateId("__none__");
       setTitle("");
       setDescription(undefined);
@@ -316,6 +321,7 @@ export default function CreateIssueDialog({
           className={cn(
             "z-50 border",
             visible === "private" && "border-primary/50",
+            !isMobile && expand && "md:max-w-[90vw] md:h-[90vh] transition-all",
           )}
           showClose={false}
         >
@@ -377,6 +383,18 @@ export default function CreateIssueDialog({
                       Private
                     </div>
                   )}
+                  <Button
+                    variant={"ghost"}
+                    size={"icon"}
+                    className="h-7 w-7"
+                    onClick={() => setExpand(!expand)}
+                  >
+                    {expand ? (
+                      <IconArrowsDiagonalMinimize2 className="size-4" />
+                    ) : (
+                      <IconArrowsDiagonal className="size-4" />
+                    )}
+                  </Button>
                   <Button
                     variant={"ghost"}
                     size={"icon"}
