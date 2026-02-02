@@ -21,11 +21,13 @@ import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
 import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
 import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
 import { Route as adminMineRouteRouteImport } from './routes/(admin)/mine/route'
+import { Route as adminHomeRouteRouteImport } from './routes/(admin)/home/route'
 import { Route as adminOrgIdRouteRouteImport } from './routes/(admin)/$orgId/route'
 import { Route as OrgsOrgSlugIndexRouteImport } from './routes/orgs/$orgSlug/index'
 import { Route as InviteOrgIdIndexRouteImport } from './routes/invite/$orgId/index'
 import { Route as adminSettingsIndexRouteImport } from './routes/(admin)/settings/index'
 import { Route as adminMineIndexRouteImport } from './routes/(admin)/mine/index'
+import { Route as adminHomeIndexRouteImport } from './routes/(admin)/home/index'
 import { Route as adminConsoleIndexRouteImport } from './routes/(admin)/console/index'
 import { Route as adminOrgIdIndexRouteImport } from './routes/(admin)/$orgId/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -114,6 +116,11 @@ const adminMineRouteRoute = adminMineRouteRouteImport.update({
   path: '/mine',
   getParentRoute: () => adminRouteRoute,
 } as any)
+const adminHomeRouteRoute = adminHomeRouteRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => adminRouteRoute,
+} as any)
 const adminOrgIdRouteRoute = adminOrgIdRouteRouteImport.update({
   id: '/$orgId',
   path: '/$orgId',
@@ -138,6 +145,11 @@ const adminMineIndexRoute = adminMineIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => adminMineRouteRoute,
+} as any)
+const adminHomeIndexRoute = adminHomeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => adminHomeRouteRoute,
 } as any)
 const adminConsoleIndexRoute = adminConsoleIndexRouteImport.update({
   id: '/console/',
@@ -305,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/$orgId': typeof adminOrgIdRouteRouteWithChildren
+  '/home': typeof adminHomeRouteRouteWithChildren
   '/mine': typeof adminMineRouteRouteWithChildren
   '/settings': typeof adminSettingsRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
@@ -318,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/$orgId/': typeof adminOrgIdIndexRoute
   '/console/': typeof adminConsoleIndexRoute
+  '/home/': typeof adminHomeIndexRoute
   '/mine/': typeof adminMineIndexRoute
   '/settings/': typeof adminSettingsIndexRoute
   '/invite/$orgId/': typeof InviteOrgIdIndexRoute
@@ -358,6 +372,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/$orgId': typeof adminOrgIdIndexRoute
   '/console': typeof adminConsoleIndexRoute
+  '/home': typeof adminHomeIndexRoute
   '/mine': typeof adminMineIndexRoute
   '/settings': typeof adminSettingsIndexRoute
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
@@ -391,6 +406,7 @@ export interface FileRoutesById {
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
+  '/(admin)/home': typeof adminHomeRouteRouteWithChildren
   '/(admin)/mine': typeof adminMineRouteRouteWithChildren
   '/(admin)/settings': typeof adminSettingsRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
@@ -404,6 +420,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/(admin)/$orgId/': typeof adminOrgIdIndexRoute
   '/(admin)/console/': typeof adminConsoleIndexRoute
+  '/(admin)/home/': typeof adminHomeIndexRoute
   '/(admin)/mine/': typeof adminMineIndexRoute
   '/(admin)/settings/': typeof adminSettingsIndexRoute
   '/invite/$orgId/': typeof InviteOrgIdIndexRoute
@@ -439,6 +456,7 @@ export interface FileRouteTypes {
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/$orgId'
+    | '/home'
     | '/mine'
     | '/settings'
     | '/orgs/$orgSlug'
@@ -452,6 +470,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/$orgId/'
     | '/console/'
+    | '/home/'
     | '/mine/'
     | '/settings/'
     | '/invite/$orgId/'
@@ -492,6 +511,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/$orgId'
     | '/console'
+    | '/home'
     | '/mine'
     | '/settings'
     | '/invite/$orgId'
@@ -524,6 +544,7 @@ export interface FileRouteTypes {
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/(admin)/$orgId'
+    | '/(admin)/home'
     | '/(admin)/mine'
     | '/(admin)/settings'
     | '/orgs/$orgSlug'
@@ -537,6 +558,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/(admin)/$orgId/'
     | '/(admin)/console/'
+    | '/(admin)/home/'
     | '/(admin)/mine/'
     | '/(admin)/settings/'
     | '/invite/$orgId/'
@@ -666,6 +688,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminMineRouteRouteImport
       parentRoute: typeof adminRouteRoute
     }
+    '/(admin)/home': {
+      id: '/(admin)/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof adminHomeRouteRouteImport
+      parentRoute: typeof adminRouteRoute
+    }
     '/(admin)/$orgId': {
       id: '/(admin)/$orgId'
       path: '/$orgId'
@@ -700,6 +729,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/mine/'
       preLoaderRoute: typeof adminMineIndexRouteImport
       parentRoute: typeof adminMineRouteRoute
+    }
+    '/(admin)/home/': {
+      id: '/(admin)/home/'
+      path: '/'
+      fullPath: '/home/'
+      preLoaderRoute: typeof adminHomeIndexRouteImport
+      parentRoute: typeof adminHomeRouteRoute
     }
     '/(admin)/console/': {
       id: '/(admin)/console/'
@@ -948,6 +984,18 @@ const adminOrgIdRouteRouteWithChildren = adminOrgIdRouteRoute._addFileChildren(
   adminOrgIdRouteRouteChildren,
 )
 
+interface adminHomeRouteRouteChildren {
+  adminHomeIndexRoute: typeof adminHomeIndexRoute
+}
+
+const adminHomeRouteRouteChildren: adminHomeRouteRouteChildren = {
+  adminHomeIndexRoute: adminHomeIndexRoute,
+}
+
+const adminHomeRouteRouteWithChildren = adminHomeRouteRoute._addFileChildren(
+  adminHomeRouteRouteChildren,
+)
+
 interface adminMineRouteRouteChildren {
   adminMineIndexRoute: typeof adminMineIndexRoute
 }
@@ -1039,6 +1087,7 @@ const adminSettingsRouteRouteWithChildren =
 
 interface adminRouteRouteChildren {
   adminOrgIdRouteRoute: typeof adminOrgIdRouteRouteWithChildren
+  adminHomeRouteRoute: typeof adminHomeRouteRouteWithChildren
   adminMineRouteRoute: typeof adminMineRouteRouteWithChildren
   adminSettingsRouteRoute: typeof adminSettingsRouteRouteWithChildren
   adminIndexRoute: typeof adminIndexRoute
@@ -1048,6 +1097,7 @@ interface adminRouteRouteChildren {
 
 const adminRouteRouteChildren: adminRouteRouteChildren = {
   adminOrgIdRouteRoute: adminOrgIdRouteRouteWithChildren,
+  adminHomeRouteRoute: adminHomeRouteRouteWithChildren,
   adminMineRouteRoute: adminMineRouteRouteWithChildren,
   adminSettingsRouteRoute: adminSettingsRouteRouteWithChildren,
   adminIndexRoute: adminIndexRoute,

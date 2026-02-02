@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import AdminHomePage from "@/components/admin";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/(admin)/")({
-	component: AdminHomePage,
+	loader: () => {
+		throw redirect({ to: "/home" });
+	},
 });
