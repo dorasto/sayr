@@ -83,20 +83,30 @@ interface Props {
 // Using CSS min() to make sizes adaptable to screen size
 const DIALOG_SIZES = {
   collapsed: {
-    width: "min(38rem, calc(100vw - 2rem))", // 42rem but shrinks on smaller screens
-    height: "auto",
-    maxHeight: "min(38rem, calc(100vh - 4rem))", // ~480px but adapts to screen
+    width: "min(38rem, calc(100vw - 2rem))", // 38rem but shrinks on smaller screens
+    height: "auto", // Grows with content
+    minHeight: "18rem", // Minimum height to prevent collapse during animation
+    maxHeight: "min(38rem, calc(100vh - 4rem))",
   },
   expanded: {
-    width: "min(50rem, calc(100vw - 2rem))", // 60rem but shrinks on smaller screens
-    height: "min(50rem, calc(100vh - 4rem))", // ~800px but adapts to screen
-    maxHeight: "min(50rem, calc(100vh - 4rem))",
+    width: "min(50rem, calc(100vw - 2rem))", // 50rem but shrinks on smaller screens
+    height: "min(40rem, calc(100vh - 6rem))", // Max 40rem or screen height minus margin
+    minHeight: "min(40rem, calc(100vh - 6rem))",
+    maxHeight: "min(40rem, calc(100vh - 6rem))",
   },
   // Animation settings
   transition: {
-    type: "spring" as const,
-    stiffness: 500,
-    damping: 35,
+    layout: {
+      type: "tween" as const,
+      ease: "easeInOut" as const,
+      duration: 0.25,
+    },
+    // For width/height animations
+    default: {
+      type: "tween" as const,
+      ease: "easeInOut" as const,
+      duration: 0.25,
+    },
   },
 } as const;
 
@@ -339,12 +349,13 @@ export default function CreateIssueDialog({
           className={cn(
             "z-50 border",
             visible === "private" && "border-primary/50",
-            // Remove fixed heights - let motion handle the animation
+            // Remove default max-width and sizing - let motion handle it
             !isMobile && "md:max-w-none! md:w-auto! md:h-auto!",
-            // Position at top when collapsed (remove the -50% translate so it grows downward)
-            // Center when expanded
-            !isMobile && !expand && "top-[15%] translate-y-0!",
-            !isMobile && expand && "top-[50%] translate-y-[-50%]",
+            // Collapsed: top 15%, no translate (grows downward)
+            // Expanded: centered with top 50% and translate -50%
+            !isMobile && "transition-[top,transform] duration-250 ease-in-out",
+            !isMobile && !expand && "top-[15%]! translate-y-0!",
+            !isMobile && expand && "top-[50%]! -translate-y-1/2!",
           )}
           childClassName={cn(
             !isMobile && "flex flex-col min-h-0 overflow-hidden",
@@ -352,7 +363,8 @@ export default function CreateIssueDialog({
           showClose={false}
         >
           <motion.div
-            className={cn(!isMobile && "flex flex-col min-h-0")}
+            className={cn(!isMobile && "flex flex-col")}
+            layout
             initial={false}
             animate={{
               width: !isMobile
@@ -368,6 +380,11 @@ export default function CreateIssueDialog({
             }}
             transition={DIALOG_SIZES.transition}
             style={{
+              minHeight: !isMobile
+                ? expand
+                  ? DIALOG_SIZES.expanded.minHeight
+                  : DIALOG_SIZES.collapsed.minHeight
+                : undefined,
               maxHeight: !isMobile
                 ? expand
                   ? DIALOG_SIZES.expanded.maxHeight
@@ -486,7 +503,7 @@ export default function CreateIssueDialog({
                 <div
                   className={cn(
                     "w-full transition-all",
-                    !isMobile && "flex-1 min-h-0 overflow-y-auto",
+                    !isMobile && "flex-1 min-h-24 overflow-y-auto",
                   )}
                 >
                   <Editor
@@ -502,7 +519,7 @@ export default function CreateIssueDialog({
                     firstLinePlaceholder="Task description"
                   />
                 </div>
-                <div className="flex items-center flex-wrap gap-1 w-full mt-auto">
+                <div className="flex items-center flex-wrap gap-1 w-full mt-auto shrink-0">
                   <GlobalTaskStatus
                     task={draftTask}
                     editable
