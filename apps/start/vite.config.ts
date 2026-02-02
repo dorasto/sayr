@@ -6,6 +6,8 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const config = defineConfig({
   build: {
     minify: false,
@@ -18,21 +20,24 @@ const config = defineConfig({
   },
   plugins: [
     devtools(),
-    nitro({
-      externals: {
-        inline: ["@tabler/icons-react", "lucide-react"],
-      },
-      routeRules: {
-        "/api/auth/**": {}, // local auth
-        "/api/image-preview/**": {},
-        // ✅ proxy ONLY backend-api
-        "/backend-api/**": {
-          proxy: {
-            to: "http://localhost:5468/api/**",
+    !isDev &&
+      nitro({
+        // @ts-expect-error - externals exists at runtime, types may be outdated
+        externals: {
+          inline: ["@tabler/icons-react", "lucide-react"],
+        },
+        routeRules: {
+          "/api/auth/**": {}, // local auth
+          "/api/image-preview/**": {},
+          // ✅ proxy ONLY backend-api
+          "/backend-api/**": {
+            proxy: {
+              to: "http://localhost:5468/api/**",
+            },
           },
         },
-      },
-    }),
+      }),
+
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
