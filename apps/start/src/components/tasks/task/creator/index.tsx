@@ -319,9 +319,12 @@ export default function CreateIssueDialog({
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
         <AdaptiveDialogContent
           className={cn(
-            "z-50 border",
+            "z-50 border transition-all",
             visible === "private" && "border-primary/50",
-            !isMobile && expand && "md:max-w-[90vw] md:h-[90vh] transition-all",
+            !isMobile && expand ? "md:max-w-[50vw] md:h-[70vh]" : "",
+          )}
+          childClassName={cn(
+            !isMobile && expand && "flex flex-col min-h-0 overflow-hidden",
           )}
           showClose={false}
         >
@@ -411,8 +414,18 @@ export default function CreateIssueDialog({
             </AdaptiveDialogDescription>
           </AdaptiveDialogHeader>
 
-          <div className="flex flex-col gap-3 w-full p-3">
-            <div className="flex flex-col gap-1 w-full">
+          <div
+            className={cn(
+              "flex flex-col gap-3 w-full p-3 ",
+              !isMobile && expand && "flex-1 min-h-0",
+            )}
+          >
+            <div
+              className={cn(
+                "flex flex-col gap-1 w-full ",
+                !isMobile && expand && "flex-1 min-h-0",
+              )}
+            >
               <Input
                 variant={"strong"}
                 placeholder="Task title"
@@ -420,7 +433,14 @@ export default function CreateIssueDialog({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
-              <div className="w-full max-h-96 overflow-scroll">
+              <div
+                className={cn(
+                  "w-full max-h-96 overflow-scroll transition-all",
+                  !isMobile &&
+                    expand &&
+                    "flex-1 min-h-0 max-h-none overflow-y-auto",
+                )}
+              >
                 <Editor
                   onChange={setDescription}
                   users={availableUsers}
@@ -434,7 +454,7 @@ export default function CreateIssueDialog({
                   firstLinePlaceholder="Task description"
                 />
               </div>
-              <div className="flex items-center flex-wrap gap-1 w-full">
+              <div className="flex items-center flex-wrap gap-1 w-full mt-auto">
                 <GlobalTaskStatus
                   task={draftTask}
                   editable
