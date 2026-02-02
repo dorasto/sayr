@@ -20,6 +20,7 @@ import { SubWrapper } from "@/components/generic/wrapper";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { useMyTasks } from "@/contexts/ContextMine";
+import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 
 // Priority order for sorting tasks
 const priorityOrder: Record<string, number> = {
@@ -31,8 +32,9 @@ const priorityOrder: Record<string, number> = {
 };
 
 export default function AdminHomePage() {
-  const { account, organizations } = useLayoutData();
+  const { account, organizations, ws } = useLayoutData();
   const { tasks } = useMyTasks();
+  useWebSocketSubscription({ ws });
 
   // Filter open tasks
   const openTasks = tasks.filter(
