@@ -18,6 +18,28 @@ const config = defineConfig({
       process.env.APP_ENV ?? "development",
     ),
   },
+  // Use Vite's built-in proxy in development (avoids nitro caching/hydration issues)
+  // See: https://github.com/TanStack/router/issues/6556
+  server: {
+    proxy: isDev
+      ? {
+          // /backend-api/internal/v1/... → http://localhost:5468/api/internal/v1/...
+          "/backend-api": {
+            target: "http://localhost:5468",
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/backend-api/, "/api"),
+            configure: (proxy) => {
+              proxy.on("error", (err) => {
+                console.log("[Proxy Error]", err);
+              });
+              proxy.on("proxyReq", (_proxyReq, req) => {
+                console.log("[Proxy]", req.method, req.url, "→", `http://localhost:5468${req.url?.replace(/^\/backend-api/, "/api")}`);
+              });
+            },
+          },
+        }
+      : undefined,
+  },
   plugins: [
     devtools(),
     !isDev &&
