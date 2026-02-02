@@ -1,0 +1,22 @@
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { RootProviderMyTasks } from "@/contexts/ContextMine";
+import { getMyTasks } from "../mine/route";
+
+export const Route = createFileRoute("/(admin)/home")({
+	loader: async ({ context }) => {
+		if (!context.account) {
+			throw redirect({ to: "/login" });
+		}
+		return await getMyTasks({ data: { account: context.account } });
+	},
+	component: HomeLayout,
+});
+
+function HomeLayout() {
+	const { tasks, labels, views, categories, releases } = Route.useLoaderData();
+	return (
+		<RootProviderMyTasks tasks={tasks} labels={labels} views={views} categories={categories} releases={releases}>
+			<Outlet />
+		</RootProviderMyTasks>
+	);
+}
