@@ -110,7 +110,7 @@ export default function AdminHomePage() {
             return (
               <Link
                 key={org.id}
-                to="/$orgId"
+                to="/$orgId/tasks"
                 params={{ orgId: org.id }}
                 className="w-full"
               >
@@ -129,7 +129,8 @@ export default function AdminHomePage() {
                         {org.name}
                       </TileTitle>
                       <TileDescription className="text-xs">
-                        {orgTaskCount} open task{orgTaskCount !== 1 ? "s" : ""}
+                        {orgTaskCount} open task
+                        {orgTaskCount !== 1 ? "s" : ""}{" "}
                       </TileDescription>
                     </div>
                   </TileHeader>
