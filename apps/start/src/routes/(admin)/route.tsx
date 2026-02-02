@@ -8,6 +8,7 @@ import { Wrapper } from "@/components/generic/wrapper";
 import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
 import { seo } from "@/seo";
+import { PostHogUserSync } from "@/components/PostHogProvider";
 
 // --- SERVER FUNCTIONS ---
 
@@ -131,6 +132,7 @@ function AdminLayout() {
 	return (
 		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
 			<RootProvider account={account} organizations={organizations}>
+				<PostHogUserSync user={account ? { id: account.id, email: account.email, name: account.name } : null} />
 				<NavigationTracker />
 				<AdminNavigation />
 				<Wrapper>

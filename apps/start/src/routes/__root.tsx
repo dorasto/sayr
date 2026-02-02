@@ -27,25 +27,34 @@ import {
   initOpenTel,
   patchGlobalFetch,
 } from "@repo/opentelemetry/client";
+import { initPostHog } from "@/components/PostHogProvider";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { HydrationProvider } from "@/contexts/HydrationContext";
+
 const isSayrCloud = import.meta.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
-if (typeof window !== "undefined" && isSayrCloud) {
-  initOpenTel("sayr-admin", import.meta.env.PROD === true);
-  patchGlobalFetch({
-    excludeUrls: [
-      /\/api\/traces/,
-      /\/api\/auth/, // blocks /api/auth, /api/auth/login, /api/auth/callback, etc.
-      /_server/,
-      /__manifest/,
-      /@vite/,
-      /@react-refresh/,
-      /node_modules/,
-      /\.hot-update\./,
-    ],
-    logBody: true,
-  });
-  initClickTracking();
+if (typeof window !== "undefined") {
+  // Initialize PostHog for analytics, session recordings, and web vitals
+  initPostHog();
+
+  // Initialize OpenTelemetry client-side tracing (Sayr Cloud only)
+  if (isSayrCloud) {
+    initOpenTel("sayr-admin", import.meta.env.PROD === true);
+    patchGlobalFetch({
+      excludeUrls: [
+        /\/api\/traces/,
+        /\/api\/auth/, // blocks /api/auth, /api/auth/login, /api/auth/callback, etc.
+        /_server/,
+        /__manifest/,
+        /@vite/,
+        /@react-refresh/,
+        /__tsd\/console-pipe/,
+        /node_modules/,
+        /\.hot-update\./,
+      ],
+      logBody: true,
+    });
+    initClickTracking();
+  }
 }
 
 export const Route = createRootRouteWithContext<{
@@ -74,7 +83,7 @@ export const Route = createRootRouteWithContext<{
         //@ts-expect-error
         href: ctx.params?.orgSlug
           ? //@ts-expect-error
-            `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
+          `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
           : "/manifest.webmanifest",
       },
     ],

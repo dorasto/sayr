@@ -57,8 +57,17 @@ ENV IS_DOCKER=1
 # Build the application
 RUN cd apps/start && pnpm run build
 
+# Inject PostHog chunk IDs into source maps (required for source map uploads to work)
+# This only adds metadata - actual upload happens at runtime if PostHog env vars are set
+RUN npm install -g @posthog/cli && \
+    posthog-cli sourcemap inject --directory ./apps/start/.output/public --project sayr-start || \
+    echo "⚠️ Source map injection skipped (non-fatal)"
+
 FROM base AS runner
 WORKDIR /app
+
+# Install PostHog CLI for runtime source map uploads (before switching to non-root user)
+RUN npm install -g @posthog/cli
 
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs
@@ -90,6 +99,11 @@ ENV SAYR_EMAIL=""
 ENV DORAS_ORGANIZATION=""
 ENV SAYR_CLOUD=""
 ENV APP_ENV="production"
+
+# PostHog source map upload env vars (optional - for readable error stack traces)
+# Uses VITE_PUBLIC_POSTHOG_HOST for the API host
+ENV POSTHOG_CLI_TOKEN=""
+ENV POSTHOG_CLI_ENV_ID=""
 
 # Copy entrypoint script
 COPY --from=builder --chown=reactjs:nodejs /app/apps/start/entrypoint.sh ./entrypoint.sh

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
+import { Route as HealthRouteImport } from './routes/health'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
@@ -64,6 +65,11 @@ const ProsekitTestRoute = ProsekitTestRouteImport.update({
 const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
   id: '/manifest.webmanifest',
   path: '/manifest.webmanifest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminRouteRoute = adminRouteRouteImport.update({
@@ -307,6 +313,7 @@ const adminSettingsOrgOrgIdConnectionsConnectionIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/health': typeof HealthRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/$orgId': typeof adminOrgIdRouteRouteWithChildren
@@ -354,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/settings/org/$orgId/views/$viewId/': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/health': typeof HealthRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
@@ -394,6 +402,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(admin)': typeof adminRouteRouteWithChildren
+  '/health': typeof HealthRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
@@ -443,6 +452,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/health'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/$orgId'
@@ -490,6 +500,7 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/views/$viewId/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/health'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/api/image-preview'
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/(admin)'
+    | '/health'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/(admin)/$orgId'
@@ -578,6 +590,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   adminRouteRoute: typeof adminRouteRouteWithChildren
+  HealthRoute: typeof HealthRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ProsekitTestRoute: typeof ProsekitTestRoute
   OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
@@ -603,6 +616,13 @@ declare module '@tanstack/react-router' {
       path: '/manifest.webmanifest'
       fullPath: '/manifest.webmanifest'
       preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)': {
@@ -1104,6 +1124,7 @@ const OrgsOrgSlugRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   adminRouteRoute: adminRouteRouteWithChildren,
+  HealthRoute: HealthRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ProsekitTestRoute: ProsekitTestRoute,
   OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,
