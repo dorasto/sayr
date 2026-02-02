@@ -319,12 +319,13 @@ export default function CreateIssueDialog({
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
         <AdaptiveDialogContent
           className={cn(
-            "z-50 border transition-all",
+            "z-50 border",
             visible === "private" && "border-primary/50",
-            !isMobile && expand ? "md:max-w-[50vw] md:h-[70vh]" : "",
+            !isMobile && "transition-[max-width,height] duration-300 ease-in-out md:h-[40vh]",
+            !isMobile && expand && "md:max-w-[50vw] md:!h-[70vh]",
           )}
           childClassName={cn(
-            !isMobile && expand && "flex flex-col min-h-0 overflow-hidden",
+            !isMobile && "flex flex-col min-h-0 overflow-hidden",
           )}
           showClose={false}
         >
@@ -416,14 +417,14 @@ export default function CreateIssueDialog({
 
           <div
             className={cn(
-              "flex flex-col gap-3 w-full p-3 ",
-              !isMobile && expand && "flex-1 min-h-0",
+              "flex flex-col gap-3 w-full p-3",
+              !isMobile && "flex-1 min-h-0",
             )}
           >
             <div
               className={cn(
-                "flex flex-col gap-1 w-full ",
-                !isMobile && expand && "flex-1 min-h-0",
+                "flex flex-col gap-1 w-full",
+                !isMobile && "flex-1 min-h-0",
               )}
             >
               <Input
@@ -435,10 +436,8 @@ export default function CreateIssueDialog({
               />
               <div
                 className={cn(
-                  "w-full max-h-96 overflow-scroll transition-all",
-                  !isMobile &&
-                    expand &&
-                    "flex-1 min-h-0 max-h-none overflow-y-auto",
+                  "w-full transition-all",
+                  !isMobile && "flex-1 min-h-0 overflow-y-auto",
                 )}
               >
                 <Editor
