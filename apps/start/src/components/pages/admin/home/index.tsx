@@ -73,6 +73,8 @@ export default function AdminHomePage() {
           </AvatarFallback>
         </Avatar>
       }
+      iconClassName="bg-transparent"
+      style="compact"
     >
       {/* Quick Stats Row */}
       {openTasks.length > 0 && (
@@ -99,7 +101,7 @@ export default function AdminHomePage() {
             Your Organizations
           </Label>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="flex flex-wrap gap-3 w-full">
           {organizations.map((org) => {
             const orgTaskCount = tasks.filter(
               (t) =>
@@ -112,7 +114,7 @@ export default function AdminHomePage() {
                 key={org.id}
                 to="/$orgId/tasks"
                 params={{ orgId: org.id }}
-                className="w-full"
+                className="flex-[1_1_calc(33.333%-0.5rem)] min-w-[200px]"
               >
                 <Tile className="hover:bg-accent md:w-full transition-colors h-full">
                   <TileHeader className="w-full">
