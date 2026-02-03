@@ -233,7 +233,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	}
 
 	const allowed: Partial<schema.taskType> = {};
-	["title", "description", "status", "priority", "category", "releaseId"].forEach((field) => {
+	["title", "description", "status", "priority", "category", "releaseId", "visible"].forEach((field) => {
 		if (updates[field] !== undefined) {
 			// @ts-expect-error dynamic field
 			allowed[field] = updates[field];
@@ -302,6 +302,16 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"release_change",
 					existingTask.releaseId,
 					updates.releaseId,
+					session?.userId
+				);
+			}
+			if (updates.visible !== undefined && updates.visible !== existingTask.visible) {
+				await addLogEventTask(
+					taskId,
+					orgId,
+					"updated",
+					{ field: "visible", value: existingTask.visible },
+					{ field: "visible", value: updates.visible },
 					session?.userId
 				);
 			}

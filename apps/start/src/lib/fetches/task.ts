@@ -132,6 +132,7 @@ export async function updateTaskAction(
 		priority?: string | null;
 		category?: string | null;
 		releaseId?: string | null;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -146,6 +147,7 @@ export async function updateTaskAction(
 		...(data.category !== undefined ? { category: data.category } : {}),
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
 		...(data.releaseId !== undefined ? { releaseId: data.releaseId } : {}),
+		...(data.visible !== undefined ? { visible: data.visible } : {}),
 	};
 
 	console.info("Updating task", {

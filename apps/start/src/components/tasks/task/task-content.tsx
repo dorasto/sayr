@@ -41,6 +41,7 @@ import GlobalTaskLabels from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskRelease from "../shared/release";
 import GlobalTaskStatus from "../shared/status";
+import GlobalTaskVisibility from "../shared/visibility";
 import GlobalTimeline from "./timeline/root";
 import { Separator } from "@repo/ui/components/separator";
 import { InlineLabel } from "../shared/inlinelabel";
@@ -275,6 +276,17 @@ export function TaskContentSideContent({
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
           releases={releases}
+        />
+        <GlobalTaskVisibility
+          showLabel={false}
+          className="bg-transparent p-1 h-auto w-fit"
+          showChevron={false}
+          task={task}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
         />
       </div>
       <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
@@ -553,6 +565,19 @@ export function TaskContentMobileContent({
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
           releases={releases}
+          compact={true}
+        />
+        {/* Visibility - icon only */}
+        <GlobalTaskVisibility
+          showLabel={false}
+          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
+          showChevron={false}
+          task={task}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
           compact={true}
         />
         {/* Assignees - stacked avatars */}
