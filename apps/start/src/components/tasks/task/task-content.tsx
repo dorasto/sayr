@@ -671,10 +671,7 @@ export function TaskContentMain({
 
   return (
     <div className="">
-      <SubWrapper
-        style="compact"
-        className="max-w-6xl gap-3"
-      >
+      <SubWrapper style="compact" className="max-w-6xl gap-3">
         {/* Editable Header with title and description */}
         <TaskEditableHeader
           task={task}
@@ -684,12 +681,7 @@ export function TaskContentMain({
           availableUsers={availableUsers}
           categories={categories}
         />
-        <Label
-          variant={"description"}
-          className="text-muted-foreground"
-        >
-          #{task.shortId}
-        </Label>
+
         <GlobalTimeline
           task={task}
           labels={labels}
@@ -731,11 +723,7 @@ export function TaskContent({
       {/* Body of content */}
       <div className="flex gap-0 min-h-full overflow-scroll">
         <div className="flex flex-col gap-3 w-full overflow-scroll overflow-x-visible p-4 pt-0">
-          <SubWrapper
-            style="compact"
-            className="max-w-6xl"
-            backButton=".."
-          >
+          <SubWrapper style="compact" className="max-w-6xl" backButton="..">
             {/* Editable Header with title and description */}
             <div className="flex gap-2 mb-6">
               <div className="bg-accent p-1 rounded-lg h-fit shrink-0">
