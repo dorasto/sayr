@@ -939,6 +939,208 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	return c.json({ success: true, data: { id: comment.taskId } });
 });
 
+// Delete a comment
+apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const { org_id: orgId, task_id: taskId, comment_id: commentId, wsClientId } = await c.req.json();
+	const session = c.get("session");
+
+	// First, check if user is a member of the organization
+	const isMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isMember) {
+		return c.json({ success: false, error: "You don't have permission to access this organization." }, 401);
+	}
+
+	// Fetch the comment
+	const comment = await traceAsync(
+		"task.comment.delete.lookup",
+		() => db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) }),
+		{ description: "Finding comment to delete", data: { commentId } }
+	);
+
+	if (!comment) {
+		await recordWideError({
+			name: "task.comment.delete.notfound",
+			error: new Error("Comment not found"),
+			code: "COMMENT_NOT_FOUND",
+			message: "Comment not found in database",
+			contextData: { orgId, commentId },
+		});
+		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
+	}
+
+	// Check if user is the comment author
+	const isAuthor = comment.createdBy === session?.userId;
+
+	// Check if user has admin or moderation.manageComments permission
+	const hasAdminPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+	const hasModPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "moderation.manageComments");
+
+	if (!isAuthor && !hasAdminPermission && !hasModPermission) {
+		return c.json(
+			{ success: false, error: "You don't have permission to delete this comment." },
+			403
+		);
+	}
+
+	// Delete the comment and its history
+	await traceAsync(
+		"task.comment.delete.transaction",
+		() =>
+			db.transaction(async (tx) => {
+				// Delete comment history first (foreign key constraint)
+				await tx
+					.delete(schema.taskCommentHistory)
+					.where(eq(schema.taskCommentHistory.commentId, commentId));
+
+				// Delete reactions
+				await tx
+					.delete(schema.taskCommentReaction)
+					.where(eq(schema.taskCommentReaction.commentId, commentId));
+
+				// Delete the comment
+				await tx
+					.delete(schema.taskComment)
+					.where(eq(schema.taskComment.id, commentId));
+			}),
+		{
+			description: "Deleting comment and related data",
+			data: { orgId, commentId, taskId },
+		}
+	);
+
+	// Broadcast update
+	await traceAsync(
+		"task.comment.delete.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				data: { id: taskId },
+			};
+
+			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			broadcastPublic(orgId, { ...data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						client.wsClientId !== wsClientId &&
+						client.orgId !== orgId &&
+						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
+						broadcastIndividual(client.socket, data, orgId)
+				);
+			});
+		},
+		{ description: "Broadcasting comment deletion to clients" }
+	);
+
+	return c.json({ success: true, data: { id: commentId } });
+});
+
+// Update comment visibility
+apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const { org_id: orgId, task_id: taskId, comment_id: commentId, visibility, wsClientId } = await c.req.json();
+	const session = c.get("session");
+
+	// Validate visibility value
+	if (visibility !== "public" && visibility !== "internal") {
+		return c.json({ success: false, error: "Invalid visibility value. Must be 'public' or 'internal'." }, 400);
+	}
+
+	// First, check if user is a member of the organization
+	const isMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isMember) {
+		return c.json({ success: false, error: "You don't have permission to access this organization." }, 401);
+	}
+
+	// Fetch the comment
+	const comment = await traceAsync(
+		"task.comment.visibility.lookup",
+		() => db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) }),
+		{ description: "Finding comment to update visibility", data: { commentId } }
+	);
+
+	if (!comment) {
+		await recordWideError({
+			name: "task.comment.visibility.notfound",
+			error: new Error("Comment not found"),
+			code: "COMMENT_NOT_FOUND",
+			message: "Comment not found in database",
+			contextData: { orgId, commentId },
+		});
+		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
+	}
+
+	// Check if user is the comment author
+	const isAuthor = comment.createdBy === session?.userId;
+
+	// Check if user has admin or moderation.manageComments permission
+	const hasAdminPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+	const hasModPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "moderation.manageComments");
+
+	if (!isAuthor && !hasAdminPermission && !hasModPermission) {
+		return c.json(
+			{ success: false, error: "You don't have permission to change this comment's visibility." },
+			403
+		);
+	}
+
+	// Update the comment visibility
+	await traceAsync(
+		"task.comment.visibility.update",
+		() =>
+			db
+				.update(schema.taskComment)
+				.set({
+					visibility,
+					updatedAt: new Date(),
+				})
+				.where(eq(schema.taskComment.id, commentId)),
+		{
+			description: "Updating comment visibility",
+			data: { orgId, commentId, visibility },
+		}
+	);
+
+	// Broadcast update
+	await traceAsync(
+		"task.comment.visibility.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				data: { id: taskId },
+			};
+
+			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			broadcastPublic(orgId, { ...data });
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						client.wsClientId !== wsClientId &&
+						client.orgId !== orgId &&
+						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
+						broadcastIndividual(client.socket, data, orgId)
+				);
+			});
+		},
+		{ description: "Broadcasting comment visibility update to clients" }
+	);
+
+	return c.json({ success: true, data: { id: commentId, visibility } });
+});
+
 apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	const traceAsync = createTraceAsync();
 
