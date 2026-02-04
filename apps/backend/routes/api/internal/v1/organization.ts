@@ -485,7 +485,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, name, color } = await c.req.json();
+	const { org_id: orgId, wsClientId, name, color, visible } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
@@ -502,11 +502,12 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 					organizationId: orgId,
 					name,
 					color: color ?? "#cccccc",
+					visible: visible ?? "public",
 				})
 				.returning();
 			return label;
 		},
-		{ description: "Creating label", data: { orgId, name, color } }
+		{ description: "Creating label", data: { orgId, name, color, visible } }
 	);
 
 	if (!created) {
@@ -557,7 +558,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, id, name, color } = await c.req.json();
+	const { org_id: orgId, wsClientId, id, name, color, visible } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
@@ -573,6 +574,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 				.set({
 					name,
 					color: color ?? "hsla(0, 0%, 0%, 1)",
+					...(visible !== undefined && { visible }),
 				})
 				.where(and(eq(schema.label.id, id), eq(schema.label.organizationId, orgId)))
 				.returning();
@@ -580,7 +582,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 		},
 		{
 			description: "Updating label",
-			data: { orgId, labelId: id, name, color },
+			data: { orgId, labelId: id, name, color, visible },
 		}
 	);
 

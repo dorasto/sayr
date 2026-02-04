@@ -5,6 +5,10 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
 
+// Label visibility enum - reuses the existing "visible" PostgreSQL enum
+// (same DB enum as task.visible, but defined here to avoid circular imports)
+const labelVisibleEnum = v.pgEnum("visible", ["public", "private"]);
+
 // Universal label (scoped to an organization)
 export const label = table("label", {
 	id: v
@@ -19,6 +23,7 @@ export const label = table("label", {
 		.references(() => organization.id, { onDelete: "cascade" }),
 	name: v.varchar("name", { length: 100 }).notNull(),
 	color: v.varchar("color").default("#cccccc"), // hex color (#RRGGBB)
+	visible: labelVisibleEnum("visible").default("public").notNull(),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 });
 
