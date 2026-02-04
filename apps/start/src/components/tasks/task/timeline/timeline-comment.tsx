@@ -11,11 +11,6 @@ import {
 } from "@repo/ui/components/alert-dialog";
 import { Button } from "@repo/ui/components/button";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@repo/ui/components/collapsible";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,10 +28,7 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Label } from "@repo/ui/components/label";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import {
-  IconArrowRight,
   IconDots,
-  IconEye,
-  IconEyeOff,
   IconHistory,
   IconLock,
   IconLockOpen2,
@@ -47,8 +39,10 @@ import {
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DiffViewer } from "@/components/prosekit/diff-viewer";
 import { processUploadsAndDeletions } from "@/components/prosekit/upload";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
 import {
   CreateTaskReactionAction,
   DeleteTaskCommentAction,
@@ -60,27 +54,28 @@ import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
 import { ReactionPicker, type ReactionEmoji } from "./reactions";
 import type { TimelineItemProps } from "./types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
 
 function CommentHistoryDialog({
   orgId,
   taskId,
   commentId,
-  visibility,
-  tasks,
-  categories,
-  availableUsers,
+  currentContent,
   open,
   onOpenChange,
+  availableUsers,
 }: {
   orgId: string;
   taskId: string;
   commentId: string;
-  visibility: "public" | "internal";
-  tasks?: schema.TaskWithLabels[];
-  availableUsers?: schema.userType[];
-  categories?: schema.categoryType[];
+  currentContent: NodeJSON | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  availableUsers?: schema.userType[];
 }) {
   const [history, setHistory] = useState<schema.taskCommentHistoryType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,21 +105,73 @@ function CommentHistoryDialog({
     fetchHistory();
   }, [open, orgId, taskId, commentId]);
 
+  // Build a list of diffs to display
+  // History now stores the OLD content BEFORE each edit (ordered newest first by editedAt)
+  // So history[0] = content BEFORE the most recent edit
+  // history[1] = content BEFORE the previous edit
+  // currentContent = the current live content (after all edits)
+  //
+  // We want to show diffs in reverse chronological order:
+  // - Latest diff: history[0] (before last edit) → currentContent (after last edit)
+  // - Previous diff: history[1] (before 2nd last edit) → history[0] (after 2nd last edit, which is before last edit)
+  const diffs = useMemo(() => {
+    if (!currentContent || history.length === 0) return [];
+
+    const result: {
+      id: string;
+      parentContent: NodeJSON; // The "before" state
+      currentContent: NodeJSON; // The "after" state
+      editedAt: Date | null;
+      editedBy: string | null;
+    }[] = [];
+
+    // For each history entry, show the diff
+    // history[i] contains the content BEFORE edit i was made
+    // The "after" state for edit i is either history[i-1] (if exists) or currentContent (if i=0)
+    for (let i = 0; i < history.length; i++) {
+      const entry = history[i];
+      if (!entry || !entry.content) continue;
+
+      const beforeContent = entry.content as NodeJSON;
+
+      // The "after" content: for the most recent edit (i=0), it's currentContent
+      // For older edits, it's the next newer history entry
+      let afterContent: NodeJSON;
+      if (i === 0) {
+        afterContent = currentContent;
+      } else {
+        const newerEntry = history[i - 1];
+        if (!newerEntry?.content) continue;
+        afterContent = newerEntry.content as NodeJSON;
+      }
+
+      result.push({
+        id: entry.id,
+        parentContent: beforeContent,
+        currentContent: afterContent,
+        editedAt: entry.editedAt ?? null,
+        editedBy: entry.editedBy ?? null,
+      });
+    }
+
+    return result;
+  }, [currentContent, history]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden p-0 gap-0">
         <DialogHeader className="p-3 border-b">
           <DialogTitle asChild>
-            <Label variant={"heading"}>Comment History</Label>
+            <Label variant={"heading"}>Comment history</Label>
           </DialogTitle>
           <DialogDescription asChild>
             <Label variant={"description"}>
-              Previous versions of this comment.
+              {history.length} {history.length === 1 ? "edit" : "edits"}
             </Label>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
           {loading && (
             <p className="text-sm text-muted-foreground animate-pulse">
               Loading…
@@ -133,69 +180,66 @@ function CommentHistoryDialog({
 
           {error && <p className="text-sm text-destructive">Error: {error}</p>}
 
-          {!loading && !error && history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No history found.</p>
-          ) : (
+          {!loading && !error && history.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              {history.length} edits
+              No edit history found.
             </p>
           )}
 
-          {!loading &&
-            !error &&
-            history.map((entry) => {
-              const actor = availableUsers?.find(
-                (user) => user.id === entry.editedBy,
-              );
-              return (
-                <Collapsible
-                  key={entry.id}
-                  className="data-[state=open]:bg-accent p-2 rounded-lg hover:bg-accent"
-                >
-                  <CollapsibleTrigger asChild>
-                    <div className="flex items-center gap-2 w-full data-[state=open]:[&_svg]:rotate-90">
-                      <InlineLabel
-                        text={actor?.name || ""}
-                        textNode={
+          {!loading && !error && diffs.length > 0 && (
+            <>
+              {/* Show diffs between consecutive versions */}
+              {diffs.map((diff) => {
+                const actor = diff.editedBy
+                  ? availableUsers?.find((user) => user.id === diff.editedBy)
+                  : null;
+
+                const editTime = diff.editedAt
+                  ? formatDateTimeFromNow(diff.editedAt)
+                  : "Unknown time";
+
+                return (
+                  <div
+                    key={diff.id}
+                    className="border rounded-lg overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between gap-2 p-2 bg-accent/50 border-b">
+                      <div className="flex items-center gap-2">
+                        {actor && (
                           <InlineLabel
-                            text={actor?.name || ""}
-                            image={actor?.image}
+                            text={actor.name || "Unknown"}
+                            image={actor.image}
                           />
-                        }
-                        icon={
-                          <IconArrowRight className="size-3 transition-all text-foreground" />
-                        }
-                      />
-                      <Label variant={"description"}> - 9 minutes ago</Label>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Label variant={"description"}>{editTime}</Label>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {formatDateTime(diff.editedAt as Date)}
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <TimelineItemWrapper
-                      item={{
-                        id: entry.id,
-                        organizationId: entry.organizationId,
-                        taskId: entry.taskId || "",
-                        createdAt: entry.editedAt,
-                        updatedAt: entry.editedAt,
-                        eventType: "comment",
-                        actor,
-                        content: entry.content,
-                        visibility,
-                        toValue: "",
-                        fromValue: "",
-                        actorId: entry.editedBy,
-                      }}
-                      icon={IconMessageDots}
-                      color="bg-accent text-primary-foreground"
-                      variant="comment"
-                      availableUsers={availableUsers || []}
-                      categories={categories || []}
-                      tasks={tasks || []}
-                    />
-                  </CollapsibleContent>
-                </Collapsible>
-              );
-            })}
+                    <div className="p-3 bg-background">
+                      <DiffViewer
+                        parentDoc={diff.parentContent}
+                        currentDoc={diff.currentContent}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {!loading && !error && history.length > 0 && diffs.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {history.length} {history.length === 1 ? "edit" : "edits"}{" "}
+              recorded, but no previous version available to compare.
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -616,10 +660,8 @@ export function TimelineComment({
           commentId={item.id}
           orgId={item.organizationId}
           taskId={item.taskId ?? ""}
+          currentContent={item.content as NodeJSON | undefined}
           availableUsers={availableUsers}
-          categories={categories}
-          tasks={tasks}
-          visibility={item.visibility}
           open={historyOpen}
           onOpenChange={setHistoryOpen}
         />

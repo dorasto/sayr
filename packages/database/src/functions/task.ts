@@ -1,5 +1,5 @@
 import { and, eq, sql, or } from "drizzle-orm";
-import { taskCommentHistory, type NodeJSON } from "../../schema";
+import { type NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db, schema } from "..";
@@ -279,16 +279,9 @@ export async function createComment(
 		})
 		.returning();
 
-	// Record the initial version in history
-	if (newComment) {
-		await db.insert(taskCommentHistory).values({
-			organizationId: org_id,
-			taskId: task_id,
-			commentId: newComment.id,
-			editedBy: createdBy,
-			content: content,
-		});
-	}
+	// Note: We don't record the initial version in history.
+	// History only tracks edits (the content BEFORE each edit).
+	// The current content is always available from the comment itself.
 
 	return newComment;
 }

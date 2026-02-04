@@ -887,6 +887,16 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 		"task.comment.edit.transaction",
 		() =>
 			db.transaction(async (tx) => {
+				// First, save the OLD content to history before overwriting
+				await tx.insert(schema.taskCommentHistory).values({
+					organizationId: comment.organizationId,
+					taskId: comment.taskId,
+					commentId: comment.id,
+					editedBy: session?.userId,
+					content: comment.content, // Save the OLD content, not the new one
+				});
+
+				// Then update the comment with the new content
 				await tx
 					.update(schema.taskComment)
 					.set({
@@ -895,14 +905,6 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 						updatedAt: new Date(),
 					})
 					.where(eq(schema.taskComment.id, commentId));
-
-				await tx.insert(schema.taskCommentHistory).values({
-					organizationId: comment.organizationId,
-					taskId: comment.taskId,
-					commentId: comment.id,
-					editedBy: session?.userId,
-					content,
-				});
 			}),
 		{
 			description: "Updating comment and inserting history",
