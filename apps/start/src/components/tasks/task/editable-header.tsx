@@ -2,6 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import type { NodeJSON } from "prosekit/core";
@@ -34,6 +35,22 @@ export function TaskEditableHeader({
   const { organization } = useLayoutOrganization();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
+
+  // Task-specific mounted state for skeleton loading
+  const { value: isMounted, setValue: setIsMounted } = useStateManagement<boolean>(
+    `task-${task.id}-header-mounted`,
+    false,
+    5000, // Garbage collect after 5 seconds of inactivity
+  );
+
+  // Set mounted to true after component mounts
+  useEffect(() => {
+    if (!isMounted) {
+      // Small delay to ensure editor has time to initialize
+      const timeout = setTimeout(() => setIsMounted(true), 50);
+      return () => clearTimeout(timeout);
+    }
+  }, [isMounted, setIsMounted]);
 
   // Local state for editing
   const titleRef = useRef<HTMLDivElement>(null);
@@ -161,12 +178,12 @@ export function TaskEditableHeader({
     }
   };
 
-  // Sync ref content when task changes
+  // Sync ref content when task changes or when mounted
   useEffect(() => {
-    if (titleRef.current) {
+    if (isMounted && titleRef.current) {
       titleRef.current.textContent = task.title || "";
     }
-  }, [task.title]);
+  }, [task.title, isMounted]);
 
   // Handle description save
   const handleDescriptionSave = useCallback(
@@ -246,6 +263,20 @@ export function TaskEditableHeader({
     const savedText = extractTextContent(savedDescription);
     return currentText !== savedText;
   }, [description, savedDescription]);
+
+  // Skeleton loading state
+  if (!isMounted) {
+    return (
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-8 w-3/4" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      </div>
+    );
+  }
 
   if (!canEdit) {
     // Read-only view
