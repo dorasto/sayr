@@ -8,6 +8,29 @@ export * from "./issueTemplate";
 export * from "./release";
 
 /**
+ * Standard columns for user summary in Drizzle relation queries.
+ * Use with: { user: { columns: userSummaryColumns } }
+ * IMPORTANT: Keep in sync with UserSummary type in schema/index.ts
+ */
+export const userSummaryColumns = {
+	id: true,
+	name: true,
+	image: true,
+	displayName: true,
+} as const;
+
+/**
+ * Standard select fields for user summary in db.select() queries.
+ * Use with: db.select(userSummarySelect).from(auth.user)
+ */
+export const userSummarySelect = {
+	id: auth.user.id,
+	name: auth.user.name,
+	image: auth.user.image,
+	displayName: auth.user.displayName,
+};
+
+/**
  * Fetches a single user by its unique id.
  *
  * @param uesr_id - The unique slug identifier of the user.
@@ -41,8 +64,8 @@ export async function getUserById(uesr_id: string): Promise<schema.userType | nu
  * Fetches multiple users by their unique IDs.
  *
  * @param userIds - An array of unique user IDs to look up.
- * @returns A promise that resolves to an array of user objects,
- * each containing the user's `id`, `name`, and `image`. Returns
+ * @returns A promise that resolves to an array of UserSummary objects,
+ * each containing the user's `id`, `name`, `image`, and `displayName`. Returns
  * an empty array if no users match the provided IDs.
  *
  * @example
@@ -58,15 +81,8 @@ export async function getUserById(uesr_id: string): Promise<schema.userType | nu
  * }
  * ```
  */
-export async function getUsersByIds(userIds: string[]) {
+export async function getUsersByIds(userIds: string[]): Promise<schema.UserSummary[]> {
 	if (!userIds.length) return [];
-	const users = await db
-		.select({
-			id: auth.user.id,
-			name: auth.user.name,
-			image: auth.user.image,
-		})
-		.from(auth.user)
-		.where(inArray(auth.user.id, userIds));
+	const users = await db.select(userSummarySelect).from(auth.user).where(inArray(auth.user.id, userIds));
 	return users;
 }

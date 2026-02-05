@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import { getDisplayName } from "@repo/util";
 import { IconArrowRight, IconCategory } from "@tabler/icons-react";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../../shared/inlinelabel";
@@ -14,7 +15,7 @@ export function TimelineCategoryChange({
 		if (!item.fromValue && !item.toValue) {
 			return (
 				<>
-					<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the category
+					<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> changed the category
 				</>
 			);
 		}
@@ -26,7 +27,7 @@ export function TimelineCategoryChange({
 
 		return (
 			<>
-				<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the category{" "}
+				<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> changed the category{" "}
 				{fromCategory ? (
 					<>
 						from{" "}

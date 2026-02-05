@@ -3,6 +3,7 @@ import { type NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db, schema } from "..";
+import { userSummaryColumns } from "./index";
 
 /**
  * Retrieves all tasks for a given project including their full label information.
@@ -35,31 +36,19 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
 				},
 			},
 			createdBy: {
-				columns: {
-					id: true,
-					name: true,
-					image: true,
-				},
+				columns: userSummaryColumns,
 			},
 			assignees: {
 				with: {
 					user: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
+						columns: userSummaryColumns,
 					},
 				},
 			},
 			comments: {
 				with: {
 					createdBy: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
+						columns: userSummaryColumns,
 					},
 				},
 			},
@@ -107,9 +96,9 @@ export async function getTaskByShortId(orgId: string, shortId: number, visible?:
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId), visible ? eq(t.visible, visible) : undefined),
 		with: {
 			labels: { with: { label: true } },
-			createdBy: { columns: { id: true, name: true, image: true } },
+			createdBy: { columns: userSummaryColumns },
 			assignees: {
-				with: { user: { columns: { id: true, name: true, image: true } } },
+				with: { user: { columns: userSummaryColumns } },
 			},
 			githubIssue: {},
 		},
@@ -154,9 +143,9 @@ export async function getTaskById(orgId: string, Id: string) {
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.id, Id)),
 		with: {
 			labels: { with: { label: true } },
-			createdBy: { columns: { id: true, name: true, image: true } },
+			createdBy: { columns: userSummaryColumns },
 			assignees: {
-				with: { user: { columns: { id: true, name: true, image: true } } },
+				with: { user: { columns: userSummaryColumns } },
 			},
 			githubIssue: {},
 		},
@@ -332,7 +321,7 @@ export async function getTaskComments(
 	const comments = await db.query.taskComment.findMany({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
 		with: {
-			createdBy: { columns: { id: true, name: true, image: true } },
+			createdBy: { columns: userSummaryColumns },
 		},
 		orderBy: (c, { desc }) => [desc(c.createdAt)],
 		limit,
@@ -355,7 +344,7 @@ export async function getTaskTimeline(orgId: string, taskId: string) {
 	const timeline = await db.query.taskTimeline.findMany({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
 		with: {
-			actor: { columns: { id: true, name: true, image: true } },
+			actor: { columns: userSummaryColumns },
 		},
 		orderBy: (c, { asc }) => [asc(c.createdAt)],
 	});
@@ -374,7 +363,7 @@ export async function getMergedTaskActivity(orgId: string, taskId: string, isPub
 		await db.query.taskComment.findMany({
 			where: () => and(...commentConditions),
 			with: {
-				createdBy: { columns: { id: true, name: true, image: true } },
+				createdBy: { columns: userSummaryColumns },
 			},
 			orderBy: (c, { desc }) => [desc(c.createdAt)],
 		}),
@@ -439,20 +428,12 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 				},
 			},
 			createdBy: {
-				columns: {
-					id: true,
-					name: true,
-					image: true,
-				},
+				columns: userSummaryColumns,
 			},
 			assignees: {
 				with: {
 					user: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
+						columns: userSummaryColumns,
 					},
 				},
 			},

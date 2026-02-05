@@ -49,6 +49,35 @@ export function getDisplayName(user: { name: string; displayName?: string | null
 }
 
 /**
+ * Resolves a user's display name by looking them up in the availableUsers list.
+ * Falls back to the actor's name if not found in the list.
+ *
+ * @param actor - The actor object containing at least `id` and `name`.
+ * @param availableUsers - List of full user objects that may contain `displayName`.
+ * @returns The display name if found, otherwise the actor's name, or "Unknown".
+ *
+ * @example
+ * ```ts
+ * const name = getActorDisplayName(
+ *   { id: "123", name: "johndoe" },
+ *   [{ id: "123", name: "johndoe", displayName: "John Doe" }]
+ * );
+ * // "John Doe"
+ * ```
+ */
+export function getActorDisplayName(
+	actor: { id: string; name: string } | null | undefined,
+	availableUsers: Array<{ id: string; name: string; displayName?: string | null }>
+): string {
+	if (!actor) return "Unknown";
+	const fullUser = availableUsers.find((u) => u.id === actor.id);
+	if (fullUser) {
+		return getDisplayName(fullUser);
+	}
+	return actor.name;
+}
+
+/**
  * Extracts the file name (last path segment) from a given URL or path.
  *
  * @param url - A full URL or path string.

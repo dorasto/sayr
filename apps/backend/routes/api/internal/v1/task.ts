@@ -12,6 +12,7 @@ import {
 	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
+	userSummaryColumns,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
@@ -673,7 +674,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 					with: {
 						assignees: {
 							with: {
-								user: { columns: { id: true, name: true, image: true } },
+								user: { columns: userSummaryColumns },
 							},
 						},
 					},
@@ -1370,7 +1371,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 					offset,
 					with: {
 						createdBy: {
-							columns: { name: true, image: true },
+							columns: userSummaryColumns,
 						},
 						reactions: {
 							columns: { emoji: true, userId: true },
@@ -1732,12 +1733,12 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 					with: {
 						labels: { with: { label: true } },
 						createdBy: {
-							columns: { id: true, name: true, image: true },
+							columns: userSummaryColumns,
 						},
 						assignees: {
 							with: {
 								user: {
-									columns: { id: true, name: true, image: true },
+									columns: userSummaryColumns,
 								},
 							},
 						},

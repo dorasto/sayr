@@ -5,6 +5,7 @@ import {
   IconLockOpen2,
   IconPencil,
 } from "@tabler/icons-react";
+import { getDisplayName } from "@repo/util";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
@@ -67,7 +68,7 @@ export function TimelineUpdated({
       return (
         <>
           <InlineLabel
-            text={item.actor?.name || "Unknown"}
+            text={item.actor ? getDisplayName(item.actor) : "Unknown"}
             image={item.actor?.image || ""}
           />{" "}
           changed the title from{" "}
@@ -84,7 +85,7 @@ export function TimelineUpdated({
       return (
         <>
           <InlineLabel
-            text={item.actor?.name || "Unknown"}
+            text={item.actor ? getDisplayName(item.actor) : "Unknown"}
             image={item.actor?.image || ""}
           />{" "}
           updated the description
@@ -100,7 +101,7 @@ export function TimelineUpdated({
       return (
         <>
           <InlineLabel
-            text={item.actor?.name || "Unknown"}
+            text={item.actor ? getDisplayName(item.actor) : "Unknown"}
             image={item.actor?.image || ""}
           />{" "}
           made this task{" "}
@@ -125,7 +126,7 @@ export function TimelineUpdated({
     return (
       <>
         <InlineLabel
-          text={item.actor?.name || "Unknown"}
+          text={item.actor ? getDisplayName(item.actor) : "Unknown"}
           image={item.actor?.image || ""}
         />{" "}
         updated the task

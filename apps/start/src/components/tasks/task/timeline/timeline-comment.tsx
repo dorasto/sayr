@@ -42,7 +42,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DiffViewer } from "@/components/prosekit/diff-viewer";
 import { processUploadsAndDeletions } from "@/components/prosekit/upload";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
-import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
+import { formatDateTime, formatDateTimeFromNow, getDisplayName } from "@repo/util";
 import {
   CreateTaskReactionAction,
   DeleteTaskCommentAction,
@@ -207,7 +207,7 @@ function CommentHistoryDialog({
                       <div className="flex items-center gap-2">
                         {actor && (
                           <InlineLabel
-                            text={actor.name || "Unknown"}
+                            text={getDisplayName(actor)}
                             image={actor.image}
                           />
                         )}

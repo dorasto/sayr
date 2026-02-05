@@ -1,4 +1,5 @@
 import { cn } from "@repo/ui/lib/utils";
+import { getDisplayName } from "@repo/util";
 import { IconArrowRight } from "@tabler/icons-react";
 import { priorityConfig } from "../../shared/config";
 import { InlineLabel } from "../../shared/inlinelabel";
@@ -30,7 +31,7 @@ export function TimelinePriorityChange({
 
 		return (
 			<>
-				<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the priority
+				<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> changed the priority
 				from{" "}
 				<InlineLabel
 					text={fromConfig?.label || from.replaceAll('"', "")}

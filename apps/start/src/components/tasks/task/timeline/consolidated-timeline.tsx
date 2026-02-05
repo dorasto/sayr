@@ -1,3 +1,4 @@
+import { getDisplayName } from "@repo/util";
 import { IconCircleFilled, IconTag, IconUserMinus, IconUserPlus } from "@tabler/icons-react";
 import { nanoid } from "nanoid";
 import { Fragment } from "react";
@@ -28,7 +29,7 @@ export function ConsolidatedTimelineLabels({
 	const renderContent = () => {
 		return (
 			<>
-				<InlineLabel text={consolidatedItem.actor?.name || "Unknown"} image={consolidatedItem.actor?.image || ""} />
+				<InlineLabel text={consolidatedItem.actor ? getDisplayName(consolidatedItem.actor) : "Unknown"} image={consolidatedItem.actor?.image || ""} />
 				{addedLabels.length > 0 && (
 					<>
 						{" added "}
@@ -102,13 +103,13 @@ export function ConsolidatedTimelineAssignees({
 	const renderContent = () => {
 		return (
 			<>
-				<InlineLabel text={consolidatedItem.actor?.name || "Unknown"} image={consolidatedItem.actor?.image || ""} />
+				<InlineLabel text={consolidatedItem.actor ? getDisplayName(consolidatedItem.actor) : "Unknown"} image={consolidatedItem.actor?.image || ""} />
 				{addedAssignees.length > 0 && (
 					<>
 						{" assigned "}
 						{addedAssignees.map((user, index) => (
 							<Fragment key={user.id + nanoid(5)}>
-								<InlineLabel text={user.name || "Unknown"} image={user.image || ""} />
+								<InlineLabel text={getDisplayName(user)} image={user.image || ""} />
 								{index < addedAssignees.length - 1 && " "}
 							</Fragment>
 						))}
@@ -120,7 +121,7 @@ export function ConsolidatedTimelineAssignees({
 						{" removed "}
 						{removedAssignees.map((user, index) => (
 							<Fragment key={user.id + nanoid(5)}>
-								<InlineLabel text={user.name || "Unknown"} image={user.image || ""} />
+								<InlineLabel text={getDisplayName(user)} image={user.image || ""} />
 								{index < removedAssignees.length - 1 && " "}
 							</Fragment>
 						))}

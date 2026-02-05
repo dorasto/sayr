@@ -1,4 +1,5 @@
 import { IconPlus } from "@tabler/icons-react";
+import { getDisplayName } from "@repo/util";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
 import { InlineLabel } from "../../shared/inlinelabel";
@@ -24,7 +25,7 @@ export function TimelineCreated({
 				icon={IconPlus}
 				color="bg-accent text-primary-foreground"
 			>
-				<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> created this task
+				<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> created this task
 			</TimelineItemWrapper>
 		</>
 	);

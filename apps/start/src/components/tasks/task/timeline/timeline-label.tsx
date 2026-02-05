@@ -1,3 +1,4 @@
+import { getDisplayName } from "@repo/util";
 import { IconTag, IconTagMinus, IconTagPlus } from "@tabler/icons-react";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
@@ -29,7 +30,7 @@ export function TimelineLabelAdded({
 			icon={IconTagPlus}
 			color="bg-accent text-primary-foreground"
 		>
-			<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> added{" "}
+			<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> added{" "}
 			<InlineLabel text={label.name} icon={<IconTag size={12} style={{ color: label.color || undefined }} />} />
 		</TimelineItemWrapper>
 	);
@@ -61,7 +62,7 @@ export function TimelineLabelRemoved({
 			icon={IconTagMinus}
 			color="bg-accent text-primary-foreground"
 		>
-			<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> removed{" "}
+			<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> removed{" "}
 			<InlineLabel text={label.name} icon={<IconTag size={12} style={{ color: label.color || undefined }} />} />
 		</TimelineItemWrapper>
 	);

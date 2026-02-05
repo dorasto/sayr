@@ -20,7 +20,11 @@ import {
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDateTime, formatDateTimeFromNow } from "@repo/util";
+import {
+  formatDateTime,
+  formatDateTimeFromNow,
+  getDisplayName,
+} from "@repo/util";
 import { IconCheck, IconLock, IconX } from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import Editor from "@/components/prosekit/editor";
@@ -121,7 +125,7 @@ export function TimelineItemWrapper({
                 <InlineLabel
                   // className="ps-6"
                   // avatarClassName="size-4!"
-                  text={item.actor?.name || "Unknown"}
+                  text={item.actor ? getDisplayName(item.actor) : "Unknown"}
                   image={item.actor?.image || ""}
                   textNode={
                     <div className="flex items-center gap-3">
@@ -129,7 +133,7 @@ export function TimelineItemWrapper({
                         className="text-xs text-foreground"
                         variant={"description"}
                       >
-                        {item.actor?.name || "Unknown"}
+                        {item.actor ? getDisplayName(item.actor) : "Unknown"}
                       </Label>
                       <Tooltip delayDuration={500}>
                         <TooltipTrigger asChild>

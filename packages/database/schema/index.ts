@@ -39,13 +39,25 @@ export interface NodeJSON {
 	attrs?: Record<string, any>;
 }
 
+/**
+ * Lightweight user data for display purposes (avatars, names, etc.)
+ * Used for actor/createdBy/assignee relations throughout the app.
+ * IMPORTANT: Keep in sync with userSummaryColumns in functions/index.ts
+ */
+export type UserSummary = {
+	id: string;
+	name: string;
+	image: string | null;
+	displayName?: string | null;
+};
+
 export interface OrganizationWithMembers extends organizationType {
 	members: (OrganizationMemberType & { user: userType })[];
 }
-export type TaskWithLabels = taskType & {
+export type TaskWithLabels = Omit<taskType, "createdBy"> & {
 	labels: labelType[];
-	assignees: { id: string; name: string; image: string | null }[];
-	createdBy?: { id: string; name: string; image: string | null } | null;
+	assignees: UserSummary[];
+	createdBy?: UserSummary | null;
 	organization?: { id: string; name: string; slug: string; logo: string | null };
 	comments?: CommentsWithAuthor;
 	githubIssue?: githubIssueType;
@@ -53,15 +65,15 @@ export type TaskWithLabels = taskType & {
 };
 
 export type CommentsWithAuthor = Array<
-	taskCommentType & {
-		createdBy: { id: string; name: string; image: string | null } | null;
+	Omit<taskCommentType, "createdBy"> & {
+		createdBy: UserSummary | null;
 		content: NodeJSON;
 	}
 >;
 
 export type taskTimelineWithActor = taskTimelineType & {
 	visibility: "public" | "internal";
-	actor?: { id: string; name: string; image: string | null };
+	actor?: UserSummary;
 	updatedAt?: Date | null;
 	reactions?: {
 		total: number;
@@ -77,13 +89,13 @@ export type taskTimelineWithActor = taskTimelineType & {
 
 export type issueTemplateWithRelations = issueTemplateType & {
 	labels: LabelTypeImport[];
-	assignees: { id: string; name: string; image: string | null }[];
+	assignees: UserSummary[];
 	category?: { id: string; name: string; color: string | null; icon: string | null } | null;
 };
 
-export type ReleaseWithTasks = releaseType & {
+export type ReleaseWithTasks = Omit<releaseType, "createdBy"> & {
 	tasks: TaskWithLabels[];
-	createdBy?: { id: string; name: string; image: string | null } | null;
+	createdBy?: UserSummary | null;
 };
 
 /* -------------------------------------------------------------------------- */

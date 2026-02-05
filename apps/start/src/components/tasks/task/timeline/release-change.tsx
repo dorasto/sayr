@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import { getDisplayName } from "@repo/util";
 import { IconArrowRight, IconRocket } from "@tabler/icons-react";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../../shared/inlinelabel";
@@ -14,7 +15,7 @@ export function TimelineReleaseChange({
 		if (!item.fromValue && !item.toValue) {
 			return (
 				<>
-					<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the release
+					<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> changed the release
 				</>
 			);
 		}
@@ -28,7 +29,7 @@ export function TimelineReleaseChange({
 		if (!fromId && toId) {
 			return (
 				<>
-					<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> added this to{" "}
+					<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> added this to{" "}
 					{toRelease ? (
 						<InlineLabel
 							text={toRelease.name}
@@ -54,7 +55,7 @@ export function TimelineReleaseChange({
 		if (fromId && !toId) {
 			return (
 				<>
-					<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> removed this from{" "}
+					<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> removed this from{" "}
 					{fromRelease ? (
 						<InlineLabel
 							text={fromRelease.name}
@@ -84,7 +85,7 @@ export function TimelineReleaseChange({
 		// Case 3: Release → Different Release (changed from X to Y)
 		return (
 			<>
-				<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the release{" "}
+				<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> changed the release{" "}
 				{fromRelease ? (
 					<>
 						from{" "}

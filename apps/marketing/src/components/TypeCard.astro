@@ -1,0 +1,95 @@
+---
+/**
+ * Type documentation card with two-column layout.
+ * Left: Description and usage info (with h3 heading for sidebar)
+ * Right: Code example (sticky) - use standard markdown code blocks in the slot
+ */
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+interface Props {
+    name: string;
+    category?: "utility" | "base" | "extended";
+    description?: string;
+    usedIn?: string[];
+}
+
+const { name, category = "base", description, usedIn } = Astro.props;
+
+const categoryConfig = {
+    utility: {
+        bg: "bg-purple-800",
+        text: "text-purple-200",
+        dot: "bg-purple-200",
+        label: "Utility",
+    },
+    base: {
+        bg: "bg-blue-800",
+        text: "text-blue-200",
+        dot: "bg-blue-200",
+        label: "Base",
+    },
+    extended: {
+        bg: "bg-green-800",
+        text: "text-green-200",
+        dot: "bg-green-200",
+        label: "Extended",
+    },
+};
+
+const config = categoryConfig[category];
+const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+---
+
+<div class="mb-10 pb-10 border-b border-border last:border-b-0 scroll-mt-20">
+    <!-- H3 heading that Starlight will pick up for "On this page" -->
+    <h3 id={slug} class="flex items-center gap-3 flex-wrap !mt-0 !mb-3">
+        <span class="font-mono">{name}</span>
+        <Badge
+            variant="outline"
+            className={cn(
+                "font-mono text-xs font-medium flex items-center border-0 gap-1.5",
+                config.bg,
+                config.text,
+            )}
+        >
+            <span
+                aria-hidden="true"
+                class={cn("size-1.5 rounded-full", config.dot)}></span>
+            {config.label}
+        </Badge>
+    </h3>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <!-- Left Column: Documentation -->
+        <div class="space-y-4 not-content">
+            {
+                description && (
+                    <p class="text-sm text-muted-foreground !mt-0">{description}</p>
+                )
+            }
+
+            {
+                usedIn && usedIn.length > 0 && (
+                    <div>
+                        <h4 class="text-sm font-semibold text-foreground mb-2">
+                            Used in
+                        </h4>
+                        <div class="flex flex-wrap gap-2">
+                            {usedIn.map((item) => (
+                                <code class="text-xs px-2 py-1 bg-[--sl-color-gray-5] rounded text-muted-foreground">
+                                    {item}
+                                </code>
+                            ))}
+                        </div>
+                    </div>
+                )
+            }
+        </div>
+
+        <!-- Right Column: Code (Sticky) -->
+        <div class="lg:sticky lg:top-20 [&>*]:!mt-0">
+            <slot />
+        </div>
+    </div>
+</div>

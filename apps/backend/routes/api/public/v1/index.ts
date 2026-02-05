@@ -6,6 +6,7 @@ import {
 	schema,
 	auth as authSchema,
 	getOrganizations,
+	userSummaryColumns,
 } from "@repo/database";
 import { and, eq, sql } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
@@ -403,7 +404,7 @@ apiPublicRouteV1.get(
 						limit,
 						offset,
 						with: {
-							createdBy: { columns: { name: true, image: true } },
+							createdBy: { columns: userSummaryColumns },
 							category: { columns: { id: true, name: true } },
 						},
 					});
@@ -723,7 +724,7 @@ apiPublicRouteV1.get(
 						limit,
 						offset,
 						with: {
-							createdBy: { columns: { name: true, image: true } },
+							createdBy: { columns: userSummaryColumns },
 							reactions: {
 								columns: { emoji: true, userId: true },
 							},

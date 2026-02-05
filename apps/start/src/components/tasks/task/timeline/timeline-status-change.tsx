@@ -1,5 +1,6 @@
 import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
+import { getDisplayName } from "@repo/util";
 import { IconArrowRight } from "@tabler/icons-react";
 import { statusConfig } from "../../shared/config";
 import { InlineLabel } from "../../shared/inlinelabel";
@@ -21,7 +22,7 @@ export function TimelineStatusChange({ item, showSeparator = true }: TimelineIte
 
 		return (
 			<>
-				<InlineLabel text={item.actor?.name || "Unknown"} image={item.actor?.image || ""} /> changed the status from{" "}
+				<InlineLabel text={item.actor ? getDisplayName(item.actor) : "Unknown"} image={item.actor?.image || ""} /> changed the status from{" "}
 				<InlineLabel
 					text={fromConfig?.label || to.replaceAll('"', "")}
 					icon={fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
