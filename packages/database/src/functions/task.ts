@@ -102,9 +102,9 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
  * }
  * ```
  */
-export async function getTaskByShortId(orgId: string, shortId: number): Promise<schema.TaskWithLabels | null> {
+export async function getTaskByShortId(orgId: string, shortId: number, visible?: "public" | "private"): Promise<schema.TaskWithLabels | null> {
 	const task = await db.query.task.findFirst({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId)),
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId), visible ? eq(t.visible, visible) : undefined),
 		with: {
 			labels: { with: { label: true } },
 			createdBy: { columns: { id: true, name: true, image: true } },

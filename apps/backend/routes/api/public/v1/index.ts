@@ -126,9 +126,9 @@ apiPublicRouteV1.get(
 			onSuccess: (result) =>
 				result
 					? {
-							description: "Public organization data fetched",
-							data: { id: result.id, slug: result.slug },
-						}
+						description: "Public organization data fetched",
+						data: { id: result.id, slug: result.slug },
+					}
 					: { description: "No organization found" },
 		});
 
@@ -195,7 +195,9 @@ apiPublicRouteV1.get(
 			return c.json(errorResponse("No organization found"), 404);
 		}
 
-		const labels = await traceAsync("organization.labels.fetch", () => getLabels(organization.id), {
+		const labels = await traceAsync("organization.labels.fetch", () => db.query.label.findMany({
+			where: (label) => and(eq(label.organizationId, organization.id), eq(label.visible, "public")),
+		}), {
 			description: "Fetching organization labels",
 			data: { orgId: organization.id, slug: organization.slug },
 			onSuccess: (result) => ({
@@ -397,7 +399,7 @@ apiPublicRouteV1.get(
 				async () => {
 					const rows = await db.query.task.findMany({
 						orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
-						where: (t) => eq(t.organizationId, organization.id),
+						where: (t) => and(eq(t.organizationId, organization.id), eq(t.visible, "public")),
 						limit,
 						offset,
 						with: {
@@ -500,15 +502,15 @@ apiPublicRouteV1.get(
 			return c.json(errorResponse("No organization found"), 404);
 		}
 
-		const task = await traceAsync("task.byshortid.fetch", () => getTaskByShortId(organization.id, taskShortId), {
+		const task = await traceAsync("task.byshortid.fetch", () => getTaskByShortId(organization.id, taskShortId, "public"), {
 			description: "Fetching task by short ID",
 			data: { orgId: organization.id, taskShortId },
 			onSuccess: (result) =>
 				result
 					? {
-							description: "Task fetched successfully",
-							data: { taskId: result.id, shortId: result.shortId },
-						}
+						description: "Task fetched successfully",
+						data: { taskId: result.id, shortId: result.shortId },
+					}
 					: { description: "Task not found" },
 		});
 
