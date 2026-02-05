@@ -176,11 +176,11 @@ export default function UserSettings() {
               <InputGroupButton
                 variant="accent"
                 size="icon-sm"
-                className="relative group/avatar overflow-hidden rounded-full border-0"
+                className="relative group/avatar overflow-hidden rounded-md border-0"
                 onClick={openFileDialog}
                 disabled={isUploading}
               >
-                <Avatar className="size-7">
+                <Avatar className="size-7 rounded-md ">
                   <AvatarImage
                     src={account.image || undefined}
                     alt={account.name}
