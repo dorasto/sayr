@@ -530,13 +530,23 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 		"label.create.broadcast",
 		async () => {
 			const found = findClientByWsId(wsClientId);
+
+			const publicVisibleLabels = labels.filter(
+				(label) => label.visible === "public"
+			);
+
 			const data = {
 				type: "UPDATE_LABELS" as WSBaseMessage["type"],
 				data: labels,
 			};
 
+			const publicData = {
+				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				data: publicVisibleLabels,
+			};
+
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -606,13 +616,20 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 		"label.edit.broadcast",
 		async () => {
 			const found = findClientByWsId(wsClientId);
+			const publicVisibleLabels = labels.filter(
+				(label) => label.visible === "public"
+			);
 			const data = {
 				type: "UPDATE_LABELS" as WSBaseMessage["type"],
 				data: labels,
 			};
+			const publicData = {
+				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				data: publicVisibleLabels,
+			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -674,13 +691,20 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 		"label.delete.broadcast",
 		async () => {
 			const found = findClientByWsId(wsClientId);
+			const publicVisibleLabels = labels.filter(
+				(label) => label.visible === "public"
+			);
 			const data = {
 				type: "UPDATE_LABELS" as WSBaseMessage["type"],
 				data: labels,
 			};
+			const publicData = {
+				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				data: publicVisibleLabels,
+			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
