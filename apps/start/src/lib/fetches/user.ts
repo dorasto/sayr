@@ -32,3 +32,46 @@ export async function updateUserAction(data: UpdateUserData): Promise<{
 
 	return result;
 }
+
+/**
+ * Upload the current user's profile picture.
+ *
+ * @param file - The image file to upload.
+ * @param old - The URL of the previous profile picture, or null if none.
+ * @returns A promise resolving to the upload result with updated user data.
+ */
+export async function uploadUserProfilePicture(
+	file: File,
+	old: string | undefined | null
+): Promise<{
+	success: boolean;
+	data?: schema.userType;
+	image?: string;
+	originalName?: string;
+	error?: string;
+}> {
+	const formData = new FormData();
+	formData.append("file", file);
+
+	try {
+		const res = await fetch(`${API_URL}/v1/admin/user/profile-picture`, {
+			method: "PUT",
+			body: formData,
+			credentials: "include",
+			headers: {
+				"X-old-file": old || "",
+			},
+		});
+
+		const result = await res.json();
+
+		if (!res.ok) {
+			return { success: false, error: result.error || "Profile picture upload failed" };
+		}
+
+		return result;
+	} catch (error) {
+		console.error("Failed to upload profile picture", { error });
+		return { success: false, error: "Profile picture upload failed" };
+	}
+}
