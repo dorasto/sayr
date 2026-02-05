@@ -27,6 +27,28 @@ export function extractPrivateIdFromUrl(url?: string): {
 }
 
 /**
+ * Gets the display name for a user, falling back to username if no display name is set.
+ *
+ * @param user - A user object containing at least `name` and optionally `displayName`.
+ * @returns The display name if set, otherwise the username.
+ *
+ * @example
+ * ```ts
+ * const name1 = getDisplayName({ name: "johndoe", displayName: "John Doe" });
+ * // "John Doe"
+ *
+ * const name2 = getDisplayName({ name: "janedoe", displayName: null });
+ * // "janedoe"
+ *
+ * const name3 = getDisplayName({ name: "bob" });
+ * // "bob"
+ * ```
+ */
+export function getDisplayName(user: { name: string; displayName?: string | null }): string {
+	return user.displayName || user.name;
+}
+
+/**
  * Extracts the file name (last path segment) from a given URL or path.
  *
  * @param url - A full URL or path string.
