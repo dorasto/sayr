@@ -56,6 +56,7 @@ export const auth = betterAuth({
 					id: String(profile.id),
 					email: profile.email ?? `${profile.id}@github.local`, // fallback
 					name: profile.name ?? profile.login,
+					displayName: profile.name ?? profile.login,
 					image: profile.avatar_url,
 					emailVerified: true,
 					createdAt: new Date(),
@@ -105,6 +106,7 @@ export const auth = betterAuth({
 							id: profile.id,
 							email: profile.email,
 							name: profile.username,
+							displayName: profile.displayName ?? profile.username,
 							emailVerified: true,
 							createdAt: new Date(),
 							updatedAt: new Date(),
