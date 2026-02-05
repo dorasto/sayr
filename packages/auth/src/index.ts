@@ -41,6 +41,10 @@ export const auth = betterAuth({
 				type: "string",
 				input: false,
 			},
+			displayName: {
+				type: "string",
+				input: true,
+			},
 		},
 	},
 	emailAndPassword: {

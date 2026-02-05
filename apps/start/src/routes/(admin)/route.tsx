@@ -48,6 +48,19 @@ const authInFlightMap =
 		: null;
 
 /**
+ * Clears the client-side auth cache.
+ * Call this after updating user data to ensure fresh data on next navigation/refresh.
+ */
+export function clearAuthCache(): void {
+	if (authCacheMap) {
+		authCacheMap.clear();
+	}
+	if (authInFlightMap) {
+		authInFlightMap.clear();
+	}
+}
+
+/**
  * Session-aware cached auth fetcher.
  * - Uses sessionId for isolation
  * - Deduplicates concurrent requests
