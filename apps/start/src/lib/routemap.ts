@@ -55,7 +55,7 @@ export const orgSettingsNavigation = [
     slug: "",
     icon: Icon.IconSettings,
     activeIcon: Icon.IconSettings,
-    activeClass: "",
+    activeClass: "fill-white",
     matchType: "exact" as const,
   },
   {
