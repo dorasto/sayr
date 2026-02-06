@@ -27,7 +27,7 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			const releases = await getReleases(organization.id);
 			return { organization, labels, views, categories, issueTemplates, releases };
 		} catch (error) {
-			console.log("🚀 ~ error:", error);
+			// console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;
