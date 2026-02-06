@@ -132,7 +132,9 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			};
 
 			broadcast(orgId, `tasks`, data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			if (taskWithData?.visible === "public") {
+				broadcastPublic(orgId, { ...data, data: data });
+			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -341,7 +343,9 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
-			broadcastPublic(orgId, { ...data });
+			if (taskWithData?.visible === "public") {
+				broadcastPublic(orgId, { ...data });
+			}
 
 			// If releaseId changed, broadcast release update as well
 			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
@@ -505,7 +509,9 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, undefined, true);
-			broadcastPublic(orgId, { ...data });
+			if (taskWithData?.visible === "public") {
+				broadcastPublic(orgId, { ...data });
+			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -614,7 +620,9 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 				};
 
 				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
-				broadcastPublic(orgId, { ...data });
+				if (taskWithData?.visible === "public") {
+					broadcastPublic(orgId, { ...data });
+				}
 
 				const members = await getOrganizationMembers(orgId);
 				members.forEach((member) => {
@@ -759,7 +767,9 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 				};
 
 				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
-				broadcastPublic(orgId, { ...data });
+				if (taskWithData?.visible === "public") {
+					broadcastPublic(orgId, { ...data });
+				}
 
 				const members = await getOrganizationMembers(orgId);
 				members.forEach((member) => {
@@ -833,7 +843,9 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			if (visibility === "public") {
+				broadcastPublic(orgId, { ...data });
+			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1627,6 +1639,7 @@ function baseTaskWhere(orgId: string, categoryId?: string, search?: string) {
 	const conditions = [
 		eq(schema.task.organizationId, orgId),
 		or(eq(schema.task.status, "todo"), eq(schema.task.status, "in-progress"), eq(schema.task.status, "backlog")),
+		eq(schema.task.visible, "public"),
 	];
 
 	if (categoryId) {
@@ -1764,7 +1777,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 			async () => {
 				let normalized = rows.map((task) => ({
 					...task,
-					labels: task.labels.map((l) => l.label),
+					labels: task.labels.map((l) => l.label).filter((l) => l.visible === "public"),
 					assignees: task.assignees.map((a) => a.user),
 					comments: task.comments?.filter((c) => c.visibility === "public"),
 				})) as schema.TaskWithLabels[];
