@@ -39,9 +39,9 @@ This guide documents all TypeScript types available in the `@repo/database` pack
 
 ```typescript
 // Importing types from @repo/database
-import type { 
+import type {
    userType,           // Base types
-   TaskWithLabels,     // Extended types  
+   TaskWithLabels,     // Extended types
    UserSummary,        // Utility types
 } from "@repo/database";
 ```
@@ -152,7 +152,6 @@ type accountType = {
 
 </TypeCard>
 
----
 
 ## Task Types
 
@@ -197,11 +196,11 @@ type TaskWithLabels = Omit<taskType, "createdBy"> & {
   labels: labelType[];
   assignees: UserSummary[];
   createdBy?: UserSummary | null;
-  organization?: { 
-    id: string; 
-    name: string; 
-    slug: string; 
-    logo: string | null; 
+  organization?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
   };
   comments?: CommentsWithAuthor;
   githubIssue?: githubIssueType;
@@ -248,8 +247,6 @@ type taskVoteType = {
 ```
 
 </TypeCard>
-
----
 
 ## Comment Types
 
@@ -334,7 +331,6 @@ type taskCommentHistoryType = {
 
 </TypeCard>
 
----
 
 ## Timeline Types
 
@@ -359,7 +355,7 @@ type taskTimelineType = {
   createdAt: Date | null;
 };
 
-type TimelineEventType = 
+type TimelineEventType =
   | "status_change" | "priority_change"
   | "comment" | "label_added" | "label_removed"
   | "assignee_added" | "assignee_removed"
@@ -430,8 +426,8 @@ type organizationType = {
 
 ```typescript
 interface OrganizationWithMembers extends organizationType {
-  members: (OrganizationMemberType & { 
-    user: userType 
+  members: (OrganizationMemberType & {
+    user: userType
   })[];
 }
 ```
@@ -511,7 +507,6 @@ interface TeamPermissions {
 
 </TypeCard>
 
----
 
 ## Release Types
 
@@ -559,7 +554,6 @@ type ReleaseWithTasks = Omit<releaseType, "createdBy"> & {
 
 </TypeCard>
 
----
 
 ## Label & Category Types
 
@@ -620,7 +614,6 @@ type categoryType = {
 
 </TypeCard>
 
----
 
 ## Template Types
 
@@ -660,18 +653,17 @@ type issueTemplateType = {
 type issueTemplateWithRelations = issueTemplateType & {
   labels: labelType[];
   assignees: UserSummary[];
-  category?: { 
-    id: string; 
-    name: string; 
-    color: string | null; 
-    icon: string | null; 
+  category?: {
+    id: string;
+    name: string;
+    color: string | null;
+    icon: string | null;
   } | null;
 };
 ```
 
 </TypeCard>
 
----
 
 ## GitHub Integration Types
 
@@ -739,7 +731,6 @@ type githubIssueType = {
 
 </TypeCard>
 
----
 
 ## Other Types
 
@@ -851,7 +842,6 @@ type ApikeyType = {
 
 </TypeCard>
 
----
 
 ## Type Inference Patterns
 
@@ -904,7 +894,6 @@ const task = await db.query.task.findFirst({
 });
 ```
 
----
 
 ## Related Documentation
 
