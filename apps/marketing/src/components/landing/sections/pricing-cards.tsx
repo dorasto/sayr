@@ -80,7 +80,7 @@ export function PricingCards() {
               className="w-full rounded-full shadow-lg shadow-primary/20"
               asChild
             >
-              <a href="https://app.sayr.io">
+              <a href="https://admin.sayr.io">
                 Start Free <ArrowUpRight className="size-4" />
               </a>
             </Button>
