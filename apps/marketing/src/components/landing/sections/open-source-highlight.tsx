@@ -26,8 +26,10 @@ const highlights = [
 
 export function OpenSourceHighlight() {
   return (
-    <section className="py-24 px-6">
-      <div className="max-w-(--breakpoint-lg) mx-auto">
+    <section className="py-24 px-6 relative">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_100%,var(--primary)_0%,transparent_50%)] opacity-[0.03]" />
+
+      <div className="relative z-10 max-w-(--breakpoint-lg) mx-auto">
         <div className="relative overflow-hidden rounded-3xl border p-10 md:p-16">
           <div className="absolute inset-0">
             <div className="absolute top-0 right-0 w-100 h-100 bg-primary/5 rounded-full blur-[80px]" />

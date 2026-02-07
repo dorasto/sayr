@@ -1,3 +1,4 @@
+import TasqIcon from "@repo/ui/components/brand-icon";
 import {
   IconChevronDown as ChevronDown,
   IconChevronRight as ChevronRight,
@@ -39,7 +40,9 @@ export function Navbar() {
       <div className="mx-auto">
         <div className="flex items-center justify-between gap-4">
           <div className="flex w-full items-center justify-between gap-3 md:w-auto">
-            <span className="font-semibold">Logo</span>
+            <a className="flex items-center gap-1 font-bold" href="/">
+              <TasqIcon /> Sayr
+            </a>
             <motion.button
               aria-label="Toggle menu"
               className="hover:bg-muted inline-flex size-10 items-center justify-center rounded-md border md:hidden"
@@ -122,7 +125,7 @@ export function Navbar() {
               </AnimatePresence>
             </div>
             <motion.a
-              href="#"
+              href="#pricing"
               className="hover:bg-muted rounded-md px-3 py-2 text-sm"
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
