@@ -1203,17 +1203,35 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 
 	const session = c.get("session");
 
-	// 1️⃣ Permission check
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	// 1️⃣ Permission check — org members get full access; non-members must be signed in + task must be public
+	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
-	if (!isAuthorized) {
-		return c.json(
-			{
-				success: false,
-				error: "You don't have permission to react to comments.",
-			},
-			401
-		);
+	if (!isOrgMember) {
+		if (!session?.userId) {
+			return c.json(
+				{
+					success: false,
+					error: "You must be signed in to react.",
+				},
+				401
+			);
+		}
+
+		// Verify the task exists and is publicly visible
+		const task = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+			columns: { id: true },
+		});
+
+		if (!task) {
+			return c.json(
+				{
+					success: false,
+					error: "Task not found or is not public.",
+				},
+				404
+			);
+		}
 	}
 
 	// 2️⃣ Insert or toggle reaction

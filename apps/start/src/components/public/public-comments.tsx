@@ -1,16 +1,21 @@
+import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { useStateManagement, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTimeFromNow, getDisplayName } from "@repo/util";
-import { IconLoader2, IconSend } from "@tabler/icons-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { IconLoader2, IconSend, IconShieldCheck } from "@tabler/icons-react";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { authClient } from "@repo/auth/client";
-import { CreateTaskCommentAction } from "@/lib/fetches/task";
+import { CreateTaskCommentAction, CreateTaskReactionAction } from "@/lib/fetches/task";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { ReactionDisplay, type ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -49,12 +54,25 @@ interface CommentsPage {
 export function PublicComments({ taskId, organizationId }: PublicCommentsProps) {
 	const queryClient = useQueryClient();
 	const { data: session } = authClient.useSession();
+	const { organization, categories } = usePublicOrganizationLayout();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(undefined);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [editorKey, setEditorKey] = useState(0);
 
 	const commentLimit = 20;
+
+	// Build a Set of org member user IDs for badge display
+	const memberUserIds = useMemo(
+		() => new Set(organization.members.map((m) => m.user.id)),
+		[organization.members],
+	);
+
+	// Map org members to a user array for mentions + reaction tooltips
+	const orgUsers = useMemo(
+		() => organization.members.map((m) => m.user) as schema.userType[],
+		[organization.members],
+	);
 
 	const {
 		value: { data: commentsData, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage },
@@ -137,6 +155,75 @@ export function PublicComments({ taskId, organizationId }: PublicCommentsProps) 
 	const topComments = allComments.slice(0, halfway);
 	const bottomComments = allComments.slice(halfway);
 
+	// Optimistic reaction toggle (mirrors admin timeline-comment.tsx pattern)
+	const handleToggleReaction = useCallback(
+		async (commentId: string, emoji: ReactionEmoji) => {
+			if (!session?.user?.id) return;
+
+			const queryKey = ["public-comments", taskId, organizationId];
+			const userId = session.user.id;
+
+			const previousData = queryClient.getQueryData<InfiniteData<CommentsPage>>(queryKey);
+
+			queryClient.setQueryData<InfiniteData<CommentsPage>>(queryKey, (old) => {
+				if (!old) return old;
+
+				return {
+					...old,
+					pages: old.pages.map((page) => ({
+						...page,
+						data: page.data.map((comment) => {
+							if (comment.id !== commentId) return comment;
+
+							const currentReactions = comment.reactions?.reactions ?? {};
+							const emojiData = currentReactions[emoji] ?? { count: 0, users: [] };
+							const hasReacted = emojiData.users.includes(userId);
+
+							let updatedEmojiData: { count: number; users: string[] };
+							if (hasReacted) {
+								updatedEmojiData = {
+									count: Math.max(0, emojiData.count - 1),
+									users: emojiData.users.filter((id) => id !== userId),
+								};
+							} else {
+								updatedEmojiData = {
+									count: emojiData.count + 1,
+									users: [...emojiData.users, userId],
+								};
+							}
+
+							const newReactions = { ...currentReactions };
+							if (updatedEmojiData.count === 0) {
+								delete newReactions[emoji];
+							} else {
+								newReactions[emoji] = updatedEmojiData;
+							}
+
+							const total = Object.values(newReactions).reduce((sum, r) => sum + r.count, 0);
+
+							return {
+								...comment,
+								reactions: total > 0 ? { total, reactions: newReactions } : undefined,
+							};
+						}),
+					})),
+				};
+			});
+
+			try {
+				await CreateTaskReactionAction(organizationId, taskId, commentId, emoji, wsClientId);
+			} catch {
+				queryClient.setQueryData(queryKey, previousData);
+				headlessToast.error({
+					title: "Reaction failed",
+					description: "Could not update your reaction. Please try again.",
+					id: "reaction-error",
+				});
+			}
+		},
+		[session?.user?.id, taskId, organizationId, queryClient, wsClientId],
+	);
+
 	const handleSubmitComment = useCallback(async () => {
 		if (!commentContent || isSubmitting) return;
 
@@ -185,7 +272,13 @@ export function PublicComments({ taskId, organizationId }: PublicCommentsProps) 
 				<div className="flex flex-col gap-3">
 					{/* Top (oldest) comments */}
 					{topComments.map((comment) => (
-						<PublicCommentItem key={comment.id} comment={comment} />
+						<PublicCommentItem
+							key={comment.id}
+							comment={comment}
+							isMember={!!comment.createdBy && memberUserIds.has(comment.createdBy.id)}
+							onToggleReaction={session?.user ? handleToggleReaction : undefined}
+							users={orgUsers}
+						/>
 					))}
 
 					{/* Load more in the middle */}
@@ -211,7 +304,13 @@ export function PublicComments({ taskId, organizationId }: PublicCommentsProps) 
 
 					{/* Bottom (newest) comments */}
 					{bottomComments.map((comment) => (
-						<PublicCommentItem key={comment.id} comment={comment} />
+						<PublicCommentItem
+							key={comment.id}
+							comment={comment}
+							isMember={!!comment.createdBy && memberUserIds.has(comment.createdBy.id)}
+							onToggleReaction={session?.user ? handleToggleReaction : undefined}
+							users={orgUsers}
+						/>
 					))}
 				</div>
 			)}
@@ -237,6 +336,8 @@ export function PublicComments({ taskId, organizationId }: PublicCommentsProps) 
 							className="min-h-[80px] border rounded-lg p-2 bg-background"
 							onChange={setCommentContent}
 							submit={handleSubmitComment}
+							users={orgUsers}
+							categories={categories}
 							hideBlockHandle
 						/>
 					</Suspense>
@@ -262,13 +363,25 @@ export function PublicComments({ taskId, organizationId }: PublicCommentsProps) 
 	);
 }
 
-function PublicCommentItem({ comment }: { comment: CommentData }) {
+interface PublicCommentItemProps {
+	comment: CommentData;
+	isMember: boolean;
+	onToggleReaction?: (commentId: string, emoji: ReactionEmoji) => void;
+	users: schema.userType[];
+}
+
+function PublicCommentItem({ comment, isMember, onToggleReaction, users }: PublicCommentItemProps) {
 	const authorName = comment.createdBy ? getDisplayName(comment.createdBy) : "Anonymous";
 	const reactions = comment.reactions?.reactions;
 	const hasReactions = reactions && Object.keys(reactions).length > 0;
 
 	return (
-		<div className="flex gap-3 p-3 rounded-lg bg-accent/50">
+		<div
+			className={cn(
+				"flex gap-3 p-3 rounded-lg",
+				isMember ? "bg-primary/5 border border-primary/15" : "bg-accent/50",
+			)}
+		>
 			<Avatar className="size-8 shrink-0 mt-0.5">
 				<AvatarImage src={comment.createdBy?.image || ""} alt={authorName} />
 				<AvatarFallback className="text-xs">{authorName.slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -278,32 +391,58 @@ function PublicCommentItem({ comment }: { comment: CommentData }) {
 					<Label variant="description" className="text-sm font-medium">
 						{authorName}
 					</Label>
+					{isMember && (
+						<Tooltip delayDuration={200}>
+							<TooltipTrigger asChild>
+								<Badge
+									variant="outline"
+									className="gap-1 text-xs py-0 h-5 bg-primary/10 border-primary/20 text-primary"
+								>
+									<IconShieldCheck className="size-3" />
+									Member
+								</Badge>
+							</TooltipTrigger>
+							<TooltipContent side="top">
+								<span className="text-xs">This user is a member of the organization</span>
+							</TooltipContent>
+						</Tooltip>
+					)}
 					<span className="text-xs text-muted-foreground">{formatDateTimeFromNow(comment.createdAt)}</span>
 				</div>
 
 				{comment.content && (
 					<div className="prose prose-sm dark:prose-invert max-w-none">
 						<Suspense fallback={<div className="h-4 animate-pulse bg-muted rounded w-3/4" />}>
-							<Editor readonly={true} defaultContent={comment.content} hideBlockHandle />
+							<Editor readonly={true} defaultContent={comment.content} users={users} hideBlockHandle />
 						</Suspense>
 					</div>
 				)}
 
-				{/* Read-only reaction display */}
-				{hasReactions && (
-					<div className="flex items-center gap-1 flex-wrap mt-1">
-						{Object.entries(reactions).map(([emoji, info]) => (
-							<span
-								key={emoji}
-								className={cn(
-									"inline-flex items-center gap-1 h-6 px-2 text-sm rounded-full",
-									"bg-accent/50 border border-border",
-								)}
-							>
-								<span className="text-base leading-none">{emoji}</span>
-								<span className="text-xs font-medium">{info.count}</span>
-							</span>
-						))}
+				{/* Interactive reactions */}
+				{(hasReactions || onToggleReaction) && (
+					<div className="mt-1">
+						{onToggleReaction ? (
+							<ReactionDisplay
+								reactions={reactions}
+								toggleReaction={(emoji) => onToggleReaction(comment.id, emoji)}
+								users={users}
+							/>
+						) : hasReactions ? (
+							<div className="flex items-center gap-1 flex-wrap">
+								{Object.entries(reactions).map(([emoji, info]) => (
+									<span
+										key={emoji}
+										className={cn(
+											"inline-flex items-center gap-1 h-6 px-2 text-sm rounded-full",
+											"bg-accent/50 border border-border",
+										)}
+									>
+										<span className="text-base leading-none">{emoji}</span>
+										<span className="text-xs font-medium">{info.count}</span>
+									</span>
+								))}
+							</div>
+						) : null}
 					</div>
 				)}
 			</div>
