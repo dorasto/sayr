@@ -14,11 +14,8 @@ import {
   type GridBoardRowData,
 } from "@repo/ui/components/doras-ui/grid-board";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconLoader2 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
-import { useTaskDetailParam } from "@/hooks/useTasksSearchParams";
 import { useTaskViewManager } from "@/hooks/useTaskViewManager";
 import {
   useWSMessageHandler,
@@ -36,7 +33,6 @@ import {
   applyNestedGrouping,
   type NestedTaskGroup,
 } from "../shared/nested-grouping";
-import { TaskContent } from "../task/task-content";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
@@ -46,7 +42,6 @@ interface UnifiedTaskViewProps {
   tasks: schema.TaskWithLabels[];
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   ws: WebSocket | null;
-  labels: schema.labelType[];
   availableUsers: schema.userType[];
   organization: schema.OrganizationWithMembers;
   categories: schema.categoryType[];
@@ -59,7 +54,6 @@ export function UnifiedTaskView({
   tasks,
   setTasks,
   ws,
-  labels,
   availableUsers = [],
   organization,
   categories,
@@ -78,10 +72,6 @@ export function UnifiedTaskView({
   const { views } = useLayoutOrganization();
 
   // Shared State
-  const { value: selectedTask, setValue: setSelectedTask } =
-    useStateManagement<schema.TaskWithLabels | null>("task", null, 3000);
-  const [taskContentOpen, setTaskContentOpen] = useTaskDetailParam();
-
   // Consolidated task view state management - pass views to enable auto-loading
   const { filters, grouping, subGrouping, showCompletedTasks, viewMode } =
     useTaskViewManager(views);
@@ -109,20 +99,6 @@ export function UnifiedTaskView({
     return applyFilters(tasks, filters);
   }, [tasks, filters]);
 
-  // Sync selected task with query param
-  useEffect(() => {
-    if (taskContentOpen === 0) {
-      setSelectedTask(null);
-      return;
-    }
-    const task = filteredTasks.find((t) => t.shortId === taskContentOpen);
-    if (task) {
-      setSelectedTask(task);
-      // Only update URL if the value is different (prevents unnecessary URL updates)
-      // This can happen when filteredTasks changes but the selected task is still the same
-    }
-  }, [taskContentOpen, setSelectedTask, filteredTasks]);
-
   // WebSocket Handlers
   const handlers: WSMessageHandler<WSMessage> = {
     UPDATE_TASK: (msg) => {
@@ -131,30 +107,8 @@ export function UnifiedTaskView({
         task.id === updatedTask.id ? updatedTask : task,
       );
       setTasks(updatedTasks);
-      if (selectedTask && selectedTask.id === updatedTask.id) {
-        setSelectedTask({ ...selectedTask, ...updatedTask });
-        sendWindowMessage(
-          window,
-          {
-            type: "timeline-update",
-            payload: updatedTask.id,
-          },
-          "*",
-        );
-      }
     },
-    UPDATE_TASK_COMMENTS: async (msg) => {
-      if (selectedTask && selectedTask.id === msg.data.id) {
-        sendWindowMessage(
-          window,
-          {
-            type: "timeline-update-comment",
-            payload: msg.data.id,
-          },
-          "*",
-        );
-      }
-    },
+    UPDATE_TASK_COMMENTS: async (_msg) => {},
   };
 
   const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
@@ -171,14 +125,6 @@ export function UnifiedTaskView({
   }, [ws, handleMessage]);
 
   // Handlers
-  const handleTaskClick = (taskId: string) => {
-    const task = filteredTasks.find((t) => t.id === taskId);
-    if (task) {
-      setSelectedTask(task);
-      setTaskContentOpen(task.shortId);
-    }
-  };
-
   const handleTaskSelect = (taskId: string, selected: boolean) => {
     const newSelected = new Set(selectedTasks);
     if (selected) {
@@ -309,7 +255,6 @@ export function UnifiedTaskView({
           ? (selected) => handleTaskSelect(task.id, selected)
           : undefined
       }
-      onTaskClick={handleTaskClick}
       tasks={tasks}
       setTasks={setTasks}
       availableUsers={availableUsers}
@@ -577,7 +522,6 @@ export function UnifiedTaskView({
           viewMode="kanban"
           task={item}
           columnId={item.columnId}
-          onTaskClick={() => {}}
           tasks={tasks}
           setTasks={setTasks}
           availableUsers={availableUsers}
@@ -716,32 +660,6 @@ export function UnifiedTaskView({
     return renderListView();
   };
 
-  const renderTaskContent = () => {
-    if (!selectedTask) return null;
-
-    return (
-      <TaskContent
-        task={selectedTask}
-        open={typeof taskContentOpen === "number"}
-        onOpenChange={(value) => {
-          if (!value) {
-            setTaskContentOpen(0);
-            setSelectedTask(null);
-          }
-        }}
-        labels={labels}
-        tasks={tasks}
-        setTasks={setTasks}
-        setSelectedTask={setSelectedTask}
-        availableUsers={availableUsers}
-        organization={organization}
-        ws={ws}
-        categories={categories}
-        releases={releases}
-      />
-    );
-  };
-
   // ============================================================================
   // Main Return
   // ============================================================================
@@ -753,7 +671,6 @@ export function UnifiedTaskView({
   return (
     <div className="h-full overflow-auto rounded">
       {renderMainContent()}
-      {renderTaskContent()}
     </div>
   );
 }

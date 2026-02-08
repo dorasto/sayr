@@ -30,7 +30,6 @@ import {
   IconAppWindow,
   IconChevronUp,
   IconCircleFilled,
-  IconLink,
   IconUserOff,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -63,7 +62,6 @@ interface UnifiedTaskItemProps {
     taskId: string,
     updates: Partial<schema.TaskWithLabels>,
   ) => void;
-  onTaskClick?: (taskId: string, organizationId?: string) => void;
 
   // List View Specific
   isSelected?: boolean;
@@ -86,7 +84,6 @@ export function UnifiedTaskItem({
   categories = [],
   releases = [],
   onTaskUpdate,
-  onTaskClick,
   isSelected = false,
   onSelect,
   personal = false,
@@ -878,17 +875,13 @@ export function UnifiedTaskItem({
         #{task.shortId} - {task.title}
       </ContextMenuLabel>
       <ContextMenuSeparator />
-      <ContextMenuItem
-        onClick={() => onTaskClick?.(task.id, task.organizationId)}
-        className="gap-3 w-full"
+      <Link
+        to="/$orgId/tasks/$taskShortId"
+        params={{ orgId: task.organizationId, taskShortId: taskId }}
       >
-        <IconAppWindow className="size-4" />
-        Open
-      </ContextMenuItem>
-      <Link to={`/`}>
         <ContextMenuItem className="gap-3 w-full">
-          <IconLink className="size-4" />
-          Full page
+          <IconAppWindow className="size-4" />
+          Open
         </ContextMenuItem>
       </Link>
       <ContextMenuSeparator />

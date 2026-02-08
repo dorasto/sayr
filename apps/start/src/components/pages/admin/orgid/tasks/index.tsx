@@ -147,7 +147,6 @@ export default function OrganizationTasksHomePage() {
 						tasks={tasks}
 						setTasks={setTasks}
 						ws={ws}
-						labels={labels}
 						availableUsers={availableUsers}
 						organization={organization}
 						categories={categories}
