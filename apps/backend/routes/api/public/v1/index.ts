@@ -373,7 +373,7 @@ apiPublicRouteV1.get(
 					const [result] = await db
 						.select({ count: sql<number>`count(*)` })
 						.from(schema.task)
-						.where(eq(schema.task.organizationId, organization.id));
+						.where(and(eq(schema.task.organizationId, organization.id), eq(schema.task.visible, "public")));
 					return Number(result?.count ?? 0);
 				},
 				{
