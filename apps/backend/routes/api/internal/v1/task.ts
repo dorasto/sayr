@@ -903,11 +903,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	const { org_id: orgId, wsClientId, comment_id: commentId, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
-
-	if (!isAuthorized) {
-		return c.json({ success: false, error: "You don't have permission to edit comments." }, 401);
-	}
+	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	const comment = await traceAsync(
 		"task.comment.edit.lookup",
@@ -924,6 +920,29 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 			contextData: { orgId, commentId },
 		});
 		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
+	}
+
+	// Non-members can only edit their own public comments on public tasks
+	if (!isOrgMember) {
+		if (!session?.userId) {
+			return c.json({ success: false, error: "You must be signed in to edit comments." }, 401);
+		}
+
+		if (comment.createdBy !== session.userId) {
+			return c.json({ success: false, error: "You can only edit your own comments." }, 403);
+		}
+
+		// Verify the task is public
+		const task = comment.taskId
+			? await db.query.task.findFirst({
+					where: (t) => and(eq(t.id, comment.taskId!), eq(t.organizationId, orgId), eq(t.visible, "public")),
+					columns: { id: true },
+				})
+			: null;
+
+		if (!task) {
+			return c.json({ success: false, error: "Task not found or is not public." }, 404);
+		}
 	}
 
 	await traceAsync(
@@ -1002,11 +1021,8 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 	const { org_id: orgId, task_id: taskId, comment_id: commentId, wsClientId } = await c.req.json();
 	const session = c.get("session");
 
-	// First, check if user is a member of the organization
+	// Check if user is a member of the organization
 	const isMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
-	if (!isMember) {
-		return c.json({ success: false, error: "You don't have permission to access this organization." }, 401);
-	}
 
 	// Fetch the comment
 	const comment = await traceAsync(
@@ -1026,18 +1042,44 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
 	}
 
-	// Check if user is the comment author
 	const isAuthor = comment.createdBy === session?.userId;
 
-	// Check if user has admin or moderation.manageComments permission
-	const hasAdminPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
-	const hasModPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "moderation.manageComments");
-
-	if (!isAuthor && !hasAdminPermission && !hasModPermission) {
-		return c.json(
-			{ success: false, error: "You don't have permission to delete this comment." },
-			403
+	if (isMember) {
+		// Org members: author, admin, or mod can delete
+		const hasAdminPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+		const hasModPermission = await traceOrgPermissionCheck(
+			session?.userId || "",
+			orgId,
+			"moderation.manageComments",
 		);
+
+		if (!isAuthor && !hasAdminPermission && !hasModPermission) {
+			return c.json(
+				{ success: false, error: "You don't have permission to delete this comment." },
+				403,
+			);
+		}
+	} else {
+		// Non-members: must be signed in and can only delete their own comments on public tasks
+		if (!session?.userId) {
+			return c.json({ success: false, error: "You must be signed in to delete comments." }, 401);
+		}
+
+		if (!isAuthor) {
+			return c.json({ success: false, error: "You can only delete your own comments." }, 403);
+		}
+
+		// Verify the task is public
+		const task = taskId
+			? await db.query.task.findFirst({
+					where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+					columns: { id: true },
+				})
+			: null;
+
+		if (!task) {
+			return c.json({ success: false, error: "Task not found or is not public." }, 404);
+		}
 	}
 
 	// Delete the comment and its history

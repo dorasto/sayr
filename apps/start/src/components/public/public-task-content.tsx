@@ -363,18 +363,17 @@ export function PublicTaskContent({
       </div>
 
       {/* Main content */}
-      <div className="md:col-span-3 flex flex-col gap-6 pt-3">
+      <div className="md:col-span-3 flex flex-col">
         {/* Title */}
         <div className="flex flex-col gap-2">
-          <span className="text-muted-foreground text-sm">#{task.shortId}</span>
           <h1 className="text-2xl font-bold leading-tight">{task.title}</h1>
+          <span className="text-muted-foreground text-sm">#{task.shortId}</span>
         </div>
 
         {/* Description */}
         {task.description && (
           <>
-            <Separator />
-            <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="prose prose-sm dark:prose-invert max-w-none pb-3">
               <Suspense
                 fallback={
                   <div className="h-20 animate-pulse bg-muted rounded" />
@@ -389,9 +388,6 @@ export function PublicTaskContent({
             </div>
           </>
         )}
-
-        <Separator />
-
         {/* Comments */}
         <PublicComments taskId={task.id} organizationId={task.organizationId} />
       </div>
