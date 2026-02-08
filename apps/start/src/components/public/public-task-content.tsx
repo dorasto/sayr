@@ -211,7 +211,7 @@ export function PublicTaskContent({
         >
           {/* Back button - outside the card */}
           <Link
-            to="/orgs/$orgSlug"
+            to=".."
             params={{ orgSlug: organization.slug }}
             className="w-fit"
           >
@@ -227,13 +227,9 @@ export function PublicTaskContent({
 
           {/* Metadata card */}
           <div className="flex flex-col gap-0 bg-card rounded-xl">
-            <div
-              className={cn(
-                "grid transition-all duration-300 ease-out grid-rows-[1fr]",
-              )}
-            >
-              <div className="overflow-hidden min-h-0">
-                <Tile className="bg-card md:w-full cursor-pointer select-none">
+            <div className="flex flex-col gap-1 p-1">
+              <Link to=".." params={{ orgSlug: organization.slug }}>
+                <Tile className="bg-card md:w-full cursor-pointer select-none hover:bg-accent">
                   <TileHeader className="w-full">
                     <div className="flex flex-row gap-3 w-full">
                       <TileTitle className="flex items-center gap-2 w-full">
@@ -255,10 +251,7 @@ export function PublicTaskContent({
                     </div>
                   </TileHeader>
                 </Tile>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1 p-1">
+              </Link>
               {/* Vote button */}
               <Tile
                 className={cn(
@@ -364,24 +357,6 @@ export function PublicTaskContent({
                   </div>
                 </div>
               )}
-
-              <Separator />
-
-              {/* Powered by Sayr.io */}
-              <Tile className="bg-card md:w-full cursor-pointer select-none hover:bg-accent">
-                <TileHeader className="w-full">
-                  <div className="flex flex-row gap-3 w-full">
-                    <TileTitle className="flex items-center gap-2 w-full">
-                      <TileIcon className="size-6! bg-transparent">
-                        <TasqIcon className="size-4! transition-all" />
-                      </TileIcon>
-                      <span className="line-clamp-1 text-xs">
-                        Powered by Sayr.io
-                      </span>
-                    </TileTitle>
-                  </div>
-                </TileHeader>
-              </Tile>
             </div>
           </div>
         </div>

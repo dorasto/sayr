@@ -7,7 +7,7 @@ import { formatDateTimeFromNow, getDisplayName } from "@repo/util";
 import { IconLoader2, IconSend } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { authClient } from "@repo/auth/client";
 import { CreateTaskCommentAction } from "@/lib/fetches/task";
 import { headlessToast } from "@repo/ui/components/headless-toast";
@@ -39,9 +39,8 @@ interface CommentData {
 interface CommentsPage {
 	data: CommentData[];
 	pagination: {
-		page: number;
-		limit: number;
-		totalItems: number;
+		pageFromStart: number;
+		pageFromEnd: number;
 		totalPages: number;
 		hasMore: boolean;
 	};
@@ -62,20 +61,81 @@ export function PublicComments({ taskId, organizationId }: PublicCommentsProps) 
 	} = useStateManagementInfiniteFetch<CommentsPage>({
 		key: ["public-comments", taskId, organizationId],
 		fetch: {
-			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${organizationId}&task_id=${taskId}&limit=${commentLimit}`,
+			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${organizationId}&task_id=${taskId}&limit=${commentLimit / 2}`,
 			custom: async (url, pageParam) => {
-				const page = pageParam ?? 1;
-				const fullUrl = `${url}&page=${page}`;
-				const res = await fetch(fullUrl, { credentials: "include" });
-				if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
-				return res.json();
+				const { fromStart = 1, fromEnd } = pageParam ?? {};
+
+				// Fetch the "start" page first to discover totalPages
+				const firstUrl = `${url}&page=${fromStart}`;
+				const firstRes = await fetch(firstUrl, { credentials: "include" });
+				if (!firstRes.ok) throw new Error(`Failed: ${firstRes.statusText}`);
+				const firstData = await firstRes.json();
+
+				const totalPages = Number(firstData.pagination?.totalPages ?? 1);
+				const endPage = fromEnd ?? totalPages;
+
+				// If start and end are the same page, skip second fetch
+				let lastData = { data: [] };
+				if (endPage !== fromStart) {
+					const lastUrl = `${url}&page=${endPage}`;
+					const lastRes = await fetch(lastUrl, { credentials: "include" });
+					if (lastRes.ok) lastData = await lastRes.json();
+				}
+
+				// Merge, deduplicate by id, sort chronologically
+				const merged = [...(firstData.data || []), ...(lastData.data || [])];
+				const unique = Array.from(new Map(merged.map((i: CommentData) => [i.id, i])).values()).sort(
+					(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+				);
+
+				const nextStart = fromStart + 1;
+				const nextEnd = endPage - 1;
+				const hasMore = nextStart <= nextEnd;
+
+				return {
+					data: unique,
+					pagination: {
+						pageFromStart: fromStart,
+						pageFromEnd: endPage,
+						totalPages,
+						hasMore,
+					},
+				};
 			},
-			getNextPageParam: (lastPage) => (lastPage.pagination.hasMore ? lastPage.pagination.page + 1 : undefined),
+			getNextPageParam: (lastPage) => {
+				const p = lastPage.pagination;
+				if (!p || !p.hasMore) return undefined;
+				return {
+					fromStart: p.pageFromStart + 1,
+					fromEnd: p.pageFromEnd - 1,
+				};
+			},
 		},
 		staleTime: 1000 * 30,
 	});
 
-	const allComments = commentsData?.flatMap((page) => page.data) ?? [];
+	// Flatten all pages with deduplication (prefer newer pages)
+	const allComments = useMemo(() => {
+		if (!commentsData) return [];
+		const seen = new Set<string>();
+		const result: CommentData[] = [];
+
+		for (let i = commentsData.length - 1; i >= 0; i--) {
+			const page = commentsData[i];
+			for (const item of page?.data ?? []) {
+				if (!item?.id || seen.has(item.id)) continue;
+				seen.add(item.id);
+				result.push(item);
+			}
+		}
+
+		return result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+	}, [commentsData]);
+
+	// Split at midpoint for outside-in rendering
+	const halfway = Math.floor(allComments.length / 2);
+	const topComments = allComments.slice(0, halfway);
+	const bottomComments = allComments.slice(halfway);
 
 	const handleSubmitComment = useCallback(async () => {
 		if (!commentContent || isSubmitting) return;
@@ -123,27 +183,36 @@ export function PublicComments({ taskId, organizationId }: PublicCommentsProps) 
 				</div>
 			) : (
 				<div className="flex flex-col gap-3">
-					{allComments.map((comment) => (
+					{/* Top (oldest) comments */}
+					{topComments.map((comment) => (
 						<PublicCommentItem key={comment.id} comment={comment} />
 					))}
 
+					{/* Load more in the middle */}
 					{hasNextPage && (
-						<Button
-							variant="ghost"
-							className="w-full"
-							onClick={() => fetchNextPage()}
-							disabled={isFetchingNextPage}
-						>
-							{isFetchingNextPage ? (
-								<>
-									<IconLoader2 className="animate-spin size-4 mr-2" />
-									Loading...
-								</>
-							) : (
-								"Load more comments"
-							)}
-						</Button>
+						<div className="flex justify-center py-4 my-2 border-t border-b border-dashed">
+							<Button
+								variant="ghost"
+								className="w-full"
+								onClick={() => fetchNextPage()}
+								disabled={isFetchingNextPage}
+							>
+								{isFetchingNextPage ? (
+									<>
+										<IconLoader2 className="animate-spin size-4 mr-2" />
+										Loading...
+									</>
+								) : (
+									"Load more comments"
+								)}
+							</Button>
+						</div>
 					)}
+
+					{/* Bottom (newest) comments */}
+					{bottomComments.map((comment) => (
+						<PublicCommentItem key={comment.id} comment={comment} />
+					))}
 				</div>
 			)}
 
