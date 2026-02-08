@@ -9,6 +9,7 @@ import {
 	db,
 	getOrganizationMembers,
 	getTaskById,
+	getTaskByShortId,
 	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
@@ -808,16 +809,45 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
-	if (!isAuthorized) {
-		return c.json(
-			{
-				success: false,
-				error: "You don't have permission to create comments.",
-			},
-			401
-		);
+	// Allow non-members to post public-only comments on public tasks
+	if (!isOrgMember) {
+		if (!session?.userId) {
+			return c.json(
+				{
+					success: false,
+					error: "You must be signed in to comment.",
+				},
+				401
+			);
+		}
+
+		if (visibility !== "public") {
+			return c.json(
+				{
+					success: false,
+					error: "You can only post public comments.",
+				},
+				403
+			);
+		}
+
+		// Verify the task exists and is publicly visible
+		const task = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+			columns: { id: true },
+		});
+
+		if (!task) {
+			return c.json(
+				{
+					success: false,
+					error: "Task not found or is not public.",
+				},
+				404
+			);
+		}
 	}
 
 	await traceAsync(
