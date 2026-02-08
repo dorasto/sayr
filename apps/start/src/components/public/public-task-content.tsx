@@ -290,34 +290,6 @@ export function PublicTaskContent({
                 </TileHeader>
               </Tile>
 
-              {/* Short ID */}
-              <Tile className="bg-card md:w-full select-none">
-                <TileHeader className="w-full">
-                  <div className="flex flex-row gap-3 w-full">
-                    <TileTitle className="flex items-center gap-2">
-                      <TileIcon className="text-muted-foreground">
-                        <IconHash />
-                      </TileIcon>
-                      {task.shortId}
-                    </TileTitle>
-                  </div>
-                </TileHeader>
-              </Tile>
-
-              {/* Created date */}
-              <Tile className="bg-card md:w-full select-none">
-                <TileHeader className="w-full">
-                  <div className="flex flex-row gap-3 w-full">
-                    <TileTitle className="flex items-center gap-2">
-                      <TileIcon className="text-muted-foreground">
-                        <IconCalendar />
-                      </TileIcon>
-                      {formatDateCompact(task.createdAt as Date)}
-                    </TileTitle>
-                  </div>
-                </TileHeader>
-              </Tile>
-
               {/* Status */}
               {status && (
                 <Tile className="bg-card md:w-full select-none">
@@ -391,45 +363,6 @@ export function PublicTaskContent({
                     ))}
                   </div>
                 </div>
-              )}
-
-              {/* Assignees */}
-              {task.assignees && task.assignees.length > 0 && (
-                <Tile className="bg-card md:w-full select-none">
-                  <TileHeader className="w-full">
-                    <div className="flex flex-row gap-3 w-full">
-                      <TileTitle className="flex items-center gap-2">
-                        <div className="flex -space-x-2">
-                          {task.assignees.map((assignee) => (
-                            <Tooltip key={assignee.id}>
-                              <TooltipTrigger>
-                                <Avatar className="size-6 border-2 border-background">
-                                  <AvatarImage
-                                    src={assignee.image || ""}
-                                    alt={getDisplayName(assignee)}
-                                  />
-                                  <AvatarFallback className="text-xs">
-                                    {getDisplayName(assignee)
-                                      .slice(0, 2)
-                                      .toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {getDisplayName(assignee)}
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
-                        </div>
-                        <span className="truncate text-sm">
-                          {task.assignees.length === 1
-                            ? getDisplayName(task.assignees[0]!)
-                            : `${task.assignees.length} assignees`}
-                        </span>
-                      </TileTitle>
-                    </div>
-                  </TileHeader>
-                </Tile>
               )}
 
               <Separator />
