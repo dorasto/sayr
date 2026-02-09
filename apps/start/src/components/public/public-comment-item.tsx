@@ -108,6 +108,7 @@ export function PublicCommentItem({
       <div
         className={cn(
           "flex gap-3 p-3 rounded-lg group bg-muted border",
+          comment.visibility === "internal" && "border-primary/30 bg-primary/5",
           // isMember ? "bg-primary/5 border border-primary/15" : "bg-accent/50",
         )}
       >

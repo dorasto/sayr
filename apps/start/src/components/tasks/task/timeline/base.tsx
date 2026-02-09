@@ -158,11 +158,17 @@ export function TimelineItemWrapper({
                             ? getDisplayName(item.actor)
                             : "Unknown"}{" "}
                         {item.source === "github" && (
-                          <InlineLabel
-                            text="via GitHub"
-                            icon={<IconBrandGithub size={12} />}
-                            className="bg-secondary border rounded-lg pe-1"
-                          />
+                          <a
+                            href={item.externalCommentUrl || ""}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <InlineLabel
+                              text="via GitHub"
+                              icon={<IconBrandGithub size={12} />}
+                              className="bg-secondary border rounded-lg pe-1"
+                            />
+                          </a>
                         )}
                       </Label>
 
