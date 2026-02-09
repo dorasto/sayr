@@ -2,9 +2,10 @@
 
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWSMessageHandler, type WSMessageHandler } from "../hooks/useWSMessageHandler";
 import type { WSMessage } from "./ws";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
 let webSocket: WebSocket | null = null;
 
@@ -18,10 +19,19 @@ const useWebSocketPublic = ({
 	const [ws, setWs] = useState<WebSocket | null>(null);
 	const { setValue: setWSStatus } = useStateManagement<string>("ws-status", "Disconnected");
 	const { setValue: setWSClientId } = useStateManagement<string>("ws-clientId", "");
+	const disconnectTimeRef = useRef<number | null>(null);
+	const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 	const handlers: WSMessageHandler<WSMessage> = {
 		CONNECTION_STATUS: (msg) => {
 			setWSStatus("Connected");
 			setWSClientId(msg.data.wsClientId);
+			if (disconnectTimeRef.current !== null) {
+				if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+				reconnectTimerRef.current = setTimeout(() => {
+					sendWindowMessage(window, { type: "WS_RECONNECTED" }, "*");
+					disconnectTimeRef.current = null;
+				}, 2000);
+			}
 		},
 		PING: () => {
 			webSocket?.send(JSON.stringify({ type: "PONG", meta: { ts: Date.now() } } as WSMessage));

@@ -50,6 +50,7 @@ import {
 } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
 import { PublicComments } from "./public-comments";
+import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -200,14 +201,24 @@ export function PublicTaskContent({
       ws.removeEventListener("message", handleMessage);
     };
   }, [ws, handleMessage]);
-
+  useEffect(() => {
+    const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
+      if (msg.type === "WS_RECONNECTED") {
+        console.log("🟢 Global WS reconnected — refreshing data");
+        queryClient.invalidateQueries({
+          queryKey: ["public-comments", task.id, task.organizationId],
+        });
+      }
+    });
+    return unsubscribe;
+  }, [task.id, queryClient, task.organizationId]);
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       {/* Sidebar */}
       <div className="md:col-span-1">
         <div
           className="flex flex-col gap-3 w-full sticky top-0 pt-3 self-start"
-          // ref={stickyRef}
+        // ref={stickyRef}
         >
           {/* Back button - outside the card */}
           <Link

@@ -134,7 +134,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 
 			broadcast(orgId, `tasks`, data, found?.socket);
 			if (taskWithData?.visible === "public") {
-				broadcastPublic(orgId, { ...data, data: data });
+				broadcastPublic(orgId, { ...data, data: data }, found?.socket);
 			}
 
 			const members = await getOrganizationMembers(orgId);
@@ -345,7 +345,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 
 			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
 			if (taskWithData?.visible === "public") {
-				broadcastPublic(orgId, { ...data });
+				broadcastPublic(orgId, { ...data }, found?.socket);
 			}
 
 			// If releaseId changed, broadcast release update as well
@@ -622,7 +622,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 
 				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
 				if (taskWithData?.visible === "public") {
-					broadcastPublic(orgId, { ...data });
+					broadcastPublic(orgId, { ...data }, found?.socket);
 				}
 
 				const members = await getOrganizationMembers(orgId);
@@ -769,7 +769,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 
 				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
 				if (taskWithData?.visible === "public") {
-					broadcastPublic(orgId, { ...data });
+					broadcastPublic(orgId, { ...data }, found?.socket);
 				}
 
 				const members = await getOrganizationMembers(orgId);
@@ -874,7 +874,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 
 			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
 			if (visibility === "public") {
-				broadcastPublic(orgId, { ...data });
+				broadcastPublic(orgId, { ...data }, found?.socket);
 			}
 
 			const members = await getOrganizationMembers(orgId);
@@ -935,9 +935,9 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 		// Verify the task is public
 		const task = comment.taskId
 			? await db.query.task.findFirst({
-					where: (t) => and(eq(t.id, comment.taskId!), eq(t.organizationId, orgId), eq(t.visible, "public")),
-					columns: { id: true },
-				})
+				where: (t) => and(eq(t.id, comment.taskId!), eq(t.organizationId, orgId), eq(t.visible, "public")),
+				columns: { id: true },
+			})
 			: null;
 
 		if (!task) {
@@ -993,7 +993,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `task:${comment.taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			broadcastPublic(orgId, { ...data }, found?.socket);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1072,9 +1072,9 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 		// Verify the task is public
 		const task = taskId
 			? await db.query.task.findFirst({
-					where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
-					columns: { id: true },
-				})
+				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+				columns: { id: true },
+			})
 			: null;
 
 		if (!task) {
@@ -1119,7 +1119,7 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			broadcastPublic(orgId, { ...data }, found?.socket);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1218,7 +1218,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			broadcastPublic(orgId, { ...data }, found?.socket);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1300,7 +1300,7 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			broadcastPublic(orgId, { ...data }, found?.socket);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
