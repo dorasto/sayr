@@ -121,6 +121,7 @@ async function handleContentEvents(
 
 	const traceContext = getTraceContext();
 
+	console.log("🚀 ~ handleContentEvents ~ event:", event)
 	switch (event) {
 		case "issues":
 			if (payload.action === "opened") {
