@@ -173,11 +173,17 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const owner = repoInfo.owner.login;
 			const repo = repoInfo.name;
 
-			const { data: issue } = await octokit.request("POST /repos/{owner}/{repo}/issues", {
-				owner,
-				repo,
-				title,
-			});
+			const body =
+				`↪ From Sayr task ${taskWithData.shortId}\n\n`
+			const { data: issue } = await octokit.request(
+				"POST /repos/{owner}/{repo}/issues",
+				{
+					owner,
+					repo,
+					title,
+					body,
+				}
+			);
 
 			await db.insert(schema.githubIssue).values({
 				repositoryId: foundLink.id,

@@ -185,6 +185,9 @@ export function TimelineItemWrapper({
                     </TooltipContent>
                   </Tooltip>
                 )}
+                {item.source && (
+                  <>{item.source}</>
+                )}
               </div>
             </div>
             {isEditing ? (
