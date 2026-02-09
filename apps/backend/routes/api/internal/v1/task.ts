@@ -16,7 +16,7 @@ import {
 	userSummaryColumns,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -540,6 +540,138 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 	);
 
 	return c.json({ success: true, data: newLink });
+});
+
+apiRouteAdminProjectTask.post("/activity", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const {
+		org_id: orgId,
+		task_id: taskId,
+		type,
+		data, // ✅ this becomes fromValue
+	} = await c.req.json();
+
+	const session = c.get("session");
+	const user = c.get("user");
+	const isSystemAccount = user?.role === "system";
+
+	// --------------------
+	// Auth (system only)
+	// --------------------
+	if (!isSystemAccount) {
+		await recordWideError({
+			name: "task.activity.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to create task activity",
+			contextData: { orgId, userId: session?.userId },
+		});
+
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to create task activity.",
+			},
+			401
+		);
+	}
+
+	// --------------------
+	// Task lookup
+	// --------------------
+	const task = await traceAsync(
+		"task.activity.task_lookup",
+		() =>
+			db.query.task.findFirst({
+				where: (t) =>
+					and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+			}),
+		{
+			description: "Finding task for activity",
+			data: { orgId, taskId },
+		}
+	);
+
+	if (!task) {
+		await recordWideError({
+			name: "task.activity.notfound",
+			error: new Error("Task not found"),
+			code: "TASK_NOT_FOUND",
+			message: "Task not found in organization",
+			contextData: { orgId, taskId },
+		});
+
+		return c.json({ success: false, error: "Task not found" }, 404);
+	}
+
+	// --------------------
+	// Insert timeline event (✅ canonical path)
+	// --------------------
+	const activity = await traceAsync(
+		"task.activity.insert",
+		() =>
+			addLogEventTask(
+				taskId,
+				orgId,
+				type,
+				data ?? null, // ✅ commit metadata lives here
+				null,
+				undefined
+			),
+		{
+			description: "Creating task timeline activity",
+			data: { orgId, taskId, type },
+		}
+	);
+
+	// --------------------
+	// Broadcast updates
+	// --------------------
+	await traceAsync(
+		"task.activity.broadcast",
+		async () => {
+			const taskWithData = await getTaskById(orgId, taskId);
+
+			const message = {
+				type: "UPDATE_TASK" as WSBaseMessage["type"],
+				data: taskWithData,
+			};
+
+			broadcastToRoom(
+				orgId,
+				`tasks;task:${taskId}`,
+				message,
+				undefined,
+				true
+			);
+
+			if (taskWithData?.visible === "public") {
+				broadcastPublic(orgId, { ...message });
+			}
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						!(
+							client.channel === `task:${taskId}` ||
+							client.channel === "tasks"
+						) &&
+						broadcastIndividual(
+							client.socket,
+							message,
+							orgId
+						)
+				);
+			});
+		},
+		{ description: "Broadcasting task activity to clients" }
+	);
+
+	return c.json({ success: true, data: activity });
 });
 
 // Update task labels

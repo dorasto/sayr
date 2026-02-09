@@ -34,7 +34,25 @@ export type GithubSayrKeywordParsePayload = {
 	organizationId?: string | null;
 	categoryId?: string | null;
 };
+export type GithubCommitRefPayload = {
+	organizationId: string;
 
+	repoOwner: string;
+	repoName: string;
+	repoPrivate: boolean;
+
+	commitSha: string;
+	commitUrl: string;
+	commitMessage: string;
+
+	authorLogin?: string | null;
+	authorEmail?: string | null;
+
+	matches: {
+		keyword: string;
+		taskKey: number;
+	}[];
+};
 // 🔹 Union for GitHub group
 export type GithubJob =
 	| {
@@ -51,4 +69,8 @@ export type GithubJob =
 		type: "sayr_keyword_parse";
 		traceContext?: { traceId?: string; spanId?: string; traceFlags?: number };
 		payload: GithubSayrKeywordParsePayload;
+	} | {
+		type: "github_commit_ref";
+		traceContext?: { traceId?: string; spanId?: string; traceFlags?: number };
+		payload: GithubCommitRefPayload;
 	};

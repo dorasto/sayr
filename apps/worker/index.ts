@@ -2,6 +2,7 @@ import { dequeue, type JobGroups } from "@repo/queue";
 import { handleComment, handleSayrKeywordParse } from "./github";
 import { withTraceContext } from "@repo/opentelemetry/trace";
 import { initTracing } from "@repo/opentelemetry";
+import { handleGithubCommitRef } from "./github/commitRef";
 
 const APP_ENV = process.env.APP_ENV;
 const env =
@@ -28,6 +29,9 @@ async function processGithubJob(job: JobGroups["github"]) {
 			break;
 		case "issue_comment":
 			await handleComment(job)
+			break;
+		case "github_commit_ref":
+			await handleGithubCommitRef(job);
 			break;
 		default:
 			console.warn(`⚠️ Unhandled GitHub job type: ${job.type}`);
@@ -77,6 +81,7 @@ async function workerLoop<G extends keyof JobGroups>(group: G) {
 			const job = await dequeue(group);
 
 			if (!job) {
+				//@ts-expect-error
 				await Bun.sleep(idleMs);
 				idleMs = Math.min(idleMs * 2, 5000);
 				continue;

@@ -35,6 +35,7 @@ webhookRoute.post("/github", async (c) => {
 		case "issues":
 		case "issue_comment":
 		case "pull_request":
+		case "push":
 			await handleContentEvents(event, payload, traceAsync);
 			break;
 
@@ -121,8 +122,47 @@ async function handleContentEvents(
 
 	const traceContext = getTraceContext();
 
-	console.log("🚀 ~ handleContentEvents ~ event:", event)
 	switch (event) {
+		case "push": {
+			const commits =
+				Array.isArray(payload.commits) && payload.commits.length > 0
+					? payload.commits
+					: payload.head_commit
+						? [payload.head_commit]
+						: [];
+
+			if (!commits.length) return;
+
+			for (const commit of commits) {
+				const message = commit.message?.trim();
+				if (!message) continue;
+
+				const keywordMatches = extractSayrKeywords(message);
+				if (!keywordMatches.length) continue;
+
+				await enqueue("github", {
+					type: "github_commit_ref",
+					traceContext,
+					payload: {
+						organizationId: linked.organizationId || "",
+						repoOwner: repository.owner.login,
+						repoName: repository.name,
+						repoPrivate: repository.private,
+
+						commitSha: commit.id,
+						commitUrl: commit.url,
+						commitMessage: message,
+
+						authorLogin: commit.author?.username ?? null,
+						authorEmail: commit.author?.email ?? null,
+
+						matches: keywordMatches,
+					},
+				});
+			}
+
+			break;
+		}
 		case "issues":
 			if (payload.action === "opened") {
 				await traceAsync(
