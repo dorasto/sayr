@@ -14,6 +14,7 @@ export interface KeywordContext {
 	merged?: boolean;
 	orgId: string;
 	categoryId: string;
+	message: string;
 }
 
 /* -------------------------------------------------------------- */

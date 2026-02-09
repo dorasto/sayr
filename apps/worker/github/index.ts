@@ -28,7 +28,7 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 
 	if (!matches.length) return;
 
-	const ctxBase: Omit<KeywordContext, "taskKey"> = {
+	const ctxBase: Omit<KeywordContext, "taskKey" | "message"> = {
 		owner,
 		repoId,
 		repo,
@@ -42,7 +42,7 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 	const summaryLines: string[] = [];
 
 	for (const m of matches) {
-		const ctx: KeywordContext = { ...ctxBase, taskKey: m.taskKey };
+		const ctx: KeywordContext = { ...ctxBase, taskKey: m.taskKey, message: text };
 		const action = m.keyword.toLowerCase();
 
 		await traceAsync(
@@ -86,7 +86,7 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 		summaryLines.join("\n") +
 		(merged ? "\n✅ PR merged!" : "");
 
-	await traceAsync("github.comment.post", () => postGithubComment({ ...ctxBase, taskKey: 0 }, comment), {
+	await traceAsync("github.comment.post", () => postGithubComment({ ...ctxBase }, comment), {
 		description: "Posting summary comment to GitHub",
 		data: { repo, number, keywordCount: matches.length },
 		onSuccess: () => ({
@@ -99,7 +99,7 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 }
 
 // --- GitHub comment summary (optional) ---
-export async function postGithubComment(ctx: KeywordContext, body: string) {
+export async function postGithubComment(ctx: Omit<KeywordContext, "taskKey" | "message">, body: string) {
 	const token = await getInstallationToken(ctx.installationId);
 	const octokit = new Octokit({ auth: token });
 
