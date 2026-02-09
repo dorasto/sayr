@@ -160,10 +160,11 @@ async function handleContentEvents(
 			}
 			break;
 
-		case "issue_comment":
+			case "issue_comment":
 			if (payload.action === "created") {
 				const issueNum = payload.issue.number;
 				const commenter = payload.comment?.user?.login ?? "unknown";
+				const commenterId = payload.comment?.user?.id;
 				const body = payload.comment?.body?.trim() ?? "";
 
 				if (!body) return;
@@ -210,6 +211,7 @@ async function handleContentEvents(
 						commentId: payload.comment.id,
 						commentBody: payload.comment.body ?? "",
 						user: commenter,
+						userId: commenterId,
 					},
 				});
 			}

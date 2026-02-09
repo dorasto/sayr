@@ -15,6 +15,7 @@ export type GithubIssueCommentPayload = {
 	commentId: number;
 	commentBody: string;
 	user: string;
+	userId?: number;
 };
 
 export type GithubSayrKeywordParsePayload = {

@@ -20,7 +20,27 @@ export type PostSayrCommentContext = {
 
     // Attribution
     authorLogin?: string;
+    authorGithubId?: number;
 };
+
+/**
+ * Attempts to find a Sayr user linked to the given GitHub numeric ID.
+ * Returns the Sayr user ID if found, otherwise undefined.
+ */
+async function findLinkedSayrUser(githubId?: number): Promise<string | undefined> {
+    if (!githubId) return undefined;
+
+    const linked = await db.query.account.findFirst({
+        where: (a) =>
+            and(
+                eq(a.providerId, "github"),
+                eq(a.accountId, String(githubId))
+            ),
+        columns: { userId: true },
+    });
+
+    return linked?.userId;
+}
 
 export async function postSayrComment(
     ctx: PostSayrCommentContext,
@@ -47,6 +67,9 @@ export async function postSayrComment(
                 return;
             }
 
+            // Look up linked Sayr user from GitHub account
+            const linkedUserId = await findLinkedSayrUser(ctx.authorGithubId);
+
             const prosekitContent = markdownToProsekitJSON(body);
 
             const res = await fetch(
@@ -68,18 +91,19 @@ export async function postSayrComment(
                         source: "github",
                         externalAuthorLogin: ctx.authorLogin,
                         externalAuthorUrl: `https://github.com/${ctx.authorLogin}`,
+                        ...(linkedUserId && { createdBy: linkedUserId }),
                     }),
                 }
             );
 
             if (!res.ok) {
-                const msg = `❌ Failed to post comment to task ${ctx.taskKey}: ${res.statusText}`;
+                const msg = `Failed to post comment to task ${ctx.taskKey}: ${res.statusText}`;
                 console.error(msg);
                 return msg;
             }
 
-            console.log(`💬 Comment posted to task ${ctx.taskKey}.`);
-            return `💬 Comment posted to task ${ctx.taskKey}.`;
+            console.log(`Comment posted to task ${ctx.taskKey}${linkedUserId ? ` (linked to Sayr user ${linkedUserId})` : ""}.`);
+            return `Comment posted to task ${ctx.taskKey}.`;
         },
         {
             description: "Post Sayr comment from GitHub",

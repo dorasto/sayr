@@ -123,6 +123,7 @@ export async function handleComment(
 		commentId,
 		commentBody,
 		user,
+		userId,
 	} = job.payload;
 
 	// --------------------
@@ -177,6 +178,7 @@ export async function handleComment(
 					repo,
 					number,
 					authorLogin: user,
+					authorGithubId: userId,
 				},
 				sanitizedBody
 			),

@@ -812,7 +812,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl } = await c.req.json();
+	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, createdBy: bodyCreatedBy } = await c.req.json();
 	const session = c.get("session");
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -858,7 +858,12 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 
 	await traceAsync(
 		"task.comment.create.insert",
-		() => createComment(orgId, taskId, content, visibility, session?.userId, source, externalAuthorLogin, externalAuthorUrl),
+		() => {
+			// For GitHub-sourced comments, only set createdBy if explicitly provided (linked Sayr user).
+			// Otherwise leave it null so unlinked GitHub users show their GitHub identity, not the system account.
+			const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
+			return createComment(orgId, taskId, content, visibility, effectiveCreatedBy, source, externalAuthorLogin, externalAuthorUrl);
+		},
 		{
 			description: "Creating task comment",
 			data: { orgId, taskId, visibility, userId: session?.userId },
