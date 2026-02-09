@@ -616,8 +616,8 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 				taskId,
 				orgId,
 				type,
-				data ?? null, // ✅ commit metadata lives here
 				null,
+				data ?? null, // ✅ commit metadata lives here
 				undefined
 			),
 		{
