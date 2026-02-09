@@ -278,6 +278,9 @@ export async function createComment(
 	source?: string,
 	externalAuthorLogin?: string,
 	externalAuthorUrl?: string,
+	externalIssueNumber?: string,
+	externalCommentId?: string,
+	externalCommentUrl?: string
 ) {
 	const [newComment] = await db
 		.insert(taskComment)
@@ -289,7 +292,10 @@ export async function createComment(
 			createdBy,
 			source: source ?? "sayr",
 			externalAuthorLogin,
-			externalAuthorUrl
+			externalAuthorUrl,
+			externalIssueNumber,
+			externalCommentId,
+			externalCommentUrl
 		})
 		.returning();
 

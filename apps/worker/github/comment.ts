@@ -22,6 +22,9 @@ export type PostSayrCommentContext = {
     // Attribution
     authorLogin?: string;
     authorGithubId?: number;
+
+    // External IDs
+    externalCommentId?: number;
 };
 
 /**
@@ -72,7 +75,11 @@ export async function postSayrComment(
             const linkedUserId = await findLinkedSayrUser(ctx.authorGithubId);
 
             const prosekitContent = markdownToProsekitJSON(body);
-
+            const issueUrl = `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`;
+            const commentUrl =
+                ctx.externalCommentId
+                    ? `${issueUrl}#issuecomment-${ctx.externalCommentId}`
+                    : undefined;
             const res = await fetch(
                 `${API_URL}/v1/admin/organization/task/create-comment`,
                 {
@@ -93,7 +100,15 @@ export async function postSayrComment(
                         externalAuthorLogin: ctx.authorLogin,
                         externalAuthorUrl: `https://github.com/${ctx.authorLogin}`,
                         ...(linkedUserId && { createdBy: linkedUserId }),
-                        visibility: ctx.repo_private ? "internal" : "public"
+                        // Visibility mirrors repo privacy
+                        visibility: ctx.repo_private
+                            ? "internal"
+                            : "public",
+                        // External linkage
+                        externalIssueNumber: ctx.number,
+                        externalCommentId:
+                            ctx.externalCommentId,
+                        externalCommentUrl: commentUrl,
                     }),
                 }
             );

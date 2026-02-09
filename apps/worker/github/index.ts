@@ -180,7 +180,8 @@ export async function handleComment(
 					number,
 					authorLogin: user,
 					authorGithubId: userId,
-					repo_private
+					repo_private,
+					externalCommentId: commentId
 				},
 				sanitizedBody
 			),

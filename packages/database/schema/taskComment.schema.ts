@@ -38,6 +38,12 @@ export const taskComment = table(
 		// ✅ External author metadata (GitHub, etc.)
 		externalAuthorLogin: v.text("external_author_login"),
 		externalAuthorUrl: v.text("external_author_url"),
+		// ✅ External GitHub identifiers
+		externalIssueNumber: v.integer("external_issue_number"),
+		externalCommentId: v.bigint("external_comment_id", {
+			mode: "number",
+		}),
+		externalCommentUrl: v.text("external_comment_url"),
 	},
 	(t) => [
 		v.index("idx_task_comment_task").on(t.organizationId, t.taskId, t.createdAt),

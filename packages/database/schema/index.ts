@@ -99,6 +99,9 @@ export type taskTimelineWithActor = taskTimelineType & {
 	source: "sayr" | "github";
 	externalAuthorLogin: string | null;
 	externalAuthorUrl: string | null
+	externalCommentId: string | null
+	externalCommentUrl: string | null
+	externalIssueNumber: number | null
 };
 
 export type issueTemplateWithRelations = issueTemplateType & {
