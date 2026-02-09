@@ -1,3 +1,4 @@
+//@ts-expect-error
 import MarkdownIt from "markdown-it";
 import { MarkdownParser } from "prosemirror-markdown";
 import type { schema } from "@repo/database";
