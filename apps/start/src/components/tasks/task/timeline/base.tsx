@@ -25,7 +25,12 @@ import {
   formatDateTimeFromNow,
   getDisplayName,
 } from "@repo/util";
-import { IconBrandGithub, IconCheck, IconLock, IconX } from "@tabler/icons-react";
+import {
+  IconBrandGithub,
+  IconCheck,
+  IconLock,
+  IconX,
+} from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
@@ -124,14 +129,18 @@ export function TimelineItemWrapper({
               {!isDescription && (
                 <InlineLabel
                   text={
-                    item.source === "github" && !item.actor && item.externalAuthorLogin
+                    item.source === "github" &&
+                    !item.actor &&
+                    item.externalAuthorLogin
                       ? item.externalAuthorLogin
                       : item.actor
                         ? getDisplayName(item.actor)
                         : "Unknown"
                   }
                   image={
-                    item.source === "github" && !item.actor && item.externalAuthorLogin
+                    item.source === "github" &&
+                    !item.actor &&
+                    item.externalAuthorLogin
                       ? `https://github.com/${item.externalAuthorLogin}.png?size=64`
                       : item.actor?.image || ""
                   }
@@ -141,20 +150,22 @@ export function TimelineItemWrapper({
                         className="text-xs text-foreground"
                         variant={"description"}
                       >
-                        {item.source === "github" && !item.actor && item.externalAuthorLogin
+                        {item.source === "github" &&
+                        !item.actor &&
+                        item.externalAuthorLogin
                           ? item.externalAuthorLogin
                           : item.actor
                             ? getDisplayName(item.actor)
-                            : "Unknown"}
+                            : "Unknown"}{" "}
+                        {item.source === "github" && (
+                          <InlineLabel
+                            text="via GitHub"
+                            icon={<IconBrandGithub size={12} />}
+                            className="bg-secondary border rounded-lg pe-1"
+                          />
+                        )}
                       </Label>
-                      {item.source === "github" && (
-                        <Label
-                          variant={"description"}
-                          className="text-muted-foreground inline-flex items-center gap-1"
-                        >
-                          via <IconBrandGithub size={12} /> GitHub
-                        </Label>
-                      )}
+
                       <Tooltip delayDuration={500}>
                         <TooltipTrigger asChild>
                           <Label
@@ -202,22 +213,6 @@ export function TimelineItemWrapper({
                         This is an internal comment. Only team members can see
                         it.
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-                {item.source === "github" && (
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
-                      >
-                        <IconBrandGithub size={16} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>Synced from GitHub</p>
                     </TooltipContent>
                   </Tooltip>
                 )}
