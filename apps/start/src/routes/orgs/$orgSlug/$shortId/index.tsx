@@ -1,5 +1,6 @@
 import { PublicTaskContent } from "@/components/public/public-task-content";
 import { getOrganizationPublic, getTaskByShortId } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -29,12 +30,28 @@ function RouteComponent() {
 
 	if (!task) {
 		return (
-			<div className="flex flex-col items-center justify-center py-24 text-center">
-				<h1 className="text-2xl font-bold">Task not found</h1>
-				<p className="text-muted-foreground mt-2">
-					This task doesn't exist or isn't publicly available.
-				</p>
-			</div>
+			<>
+				<link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any" />
+				<title>Task Not Available</title>
+
+				<div className="via-surface to-surface flex min-h-[60vh] items-center justify-center bg-[conic-gradient(at_bottom_left,var(--tw-gradient-stops))] from-primary">					<div className="mx-auto max-w-xl text-center text-white">
+					<h1 className="text-5xl font-black">Task Not Available</h1>
+
+					<p className="mb-7 mt-3">
+						Sorry, this task could not be found or isn’t publicly available.
+						It may have been removed, or the link is incorrect.
+					</p>
+
+					<div className="flex place-content-center items-center gap-3">
+						<a href="/">
+							<Button className="border-surface-100! text-surface-100 w-full p-4 font-bold">
+								Back to organization
+							</Button>
+						</a>
+					</div>
+				</div>
+				</div>
+			</>
 		);
 	}
 

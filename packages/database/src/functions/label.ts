@@ -190,22 +190,37 @@ export async function getLabelUsage(labelId: string) {
 }
 
 /**
- * Fetches all labels belonging to a given organization.
+ * Fetches labels belonging to a given organization, optionally filtered by
+ * visibility.
  *
  * @param orgId - The ID of the organization whose labels should be retrieved.
+ * @param visible - Optional visibility filter. When provided, only labels with
+ * the given visibility ("public" or "private") are returned.
+ *
  * @returns A promise that resolves to an array of label records from the database.
  *
  * @example
  * ```ts
- * const labels = await getLabels("org_123");
- * labels.forEach(label => {
+ * // Fetch all labels for an organization
+ * const allLabels = await getLabels("org_123");
+ *
+ * // Fetch only public labels
+ * const publicLabels = await getLabels("org_123", "public");
+ *
+ * publicLabels.forEach((label) => {
  *   console.log(`${label.name} (${label.color})`);
  * });
  * ```
  */
-export async function getLabels(orgId: string) {
-	const lbl = await db.query.label.findMany({
-		where: (label) => eq(label.organizationId, orgId),
+export async function getLabels(
+	orgId: string,
+	visible?: "public" | "private",
+) {
+	return await db.query.label.findMany({
+		where: (label) =>
+			and(
+				eq(label.organizationId, orgId),
+				visible ? eq(label.visible, visible) : undefined,
+			),
 	});
-	return lbl;
 }
