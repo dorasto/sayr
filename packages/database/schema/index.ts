@@ -1,7 +1,7 @@
 import type { account, session, user, verification } from "./auth";
 import type { githubIssueType } from "./github_issue.schema";
 import type { labelType } from "./label.schema";
-import type { OrganizationMemberType } from "./member.schema";
+import type { OrganizationMemberType, TeamPermissions } from "./member.schema";
 import type { organizationType } from "./organization.schema";
 import type { releaseType } from "./release.schema";
 import type { taskType } from "./task.schema";
@@ -51,8 +51,19 @@ export type UserSummary = {
 	displayName?: string | null;
 };
 
+export interface MemberTeamInfo {
+	id: string;
+	memberId: string;
+	teamId: string;
+	team: {
+		id: string;
+		name: string;
+		permissions: TeamPermissions;
+	};
+}
+
 export interface OrganizationWithMembers extends organizationType {
-	members: (OrganizationMemberType & { user: userType })[];
+	members: (OrganizationMemberType & { user: userType; teams?: MemberTeamInfo[] })[];
 }
 export type TaskWithLabels = Omit<taskType, "createdBy"> & {
 	labels: labelType[];

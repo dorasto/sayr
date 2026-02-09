@@ -1,4 +1,4 @@
-import type { schema } from "@repo/database";
+import type { schema, TeamPermissions } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import {
@@ -29,6 +29,34 @@ const baseApiUrl =
     ? "/backend-api/internal"
     : "/api/internal";
 
+/**
+ * Score a team's permissions to determine hierarchy weight.
+ * Higher score = higher rank. Admin perms are weighted most heavily.
+ */
+function scorePermissions(permissions: TeamPermissions): number {
+  let score = 0;
+  // Admin group (highest weight)
+  if (permissions.admin.administrator) score += 100;
+  if (permissions.admin.manageMembers) score += 50;
+  if (permissions.admin.manageTeams) score += 50;
+  // Moderation group
+  if (permissions.moderation.manageComments) score += 20;
+  if (permissions.moderation.approveSubmissions) score += 20;
+  if (permissions.moderation.manageVotes) score += 20;
+  // Tasks group
+  if (permissions.tasks.editAny) score += 10;
+  if (permissions.tasks.deleteAny) score += 10;
+  if (permissions.tasks.create) score += 5;
+  if (permissions.tasks.assign) score += 5;
+  if (permissions.tasks.changeStatus) score += 5;
+  if (permissions.tasks.changePriority) score += 5;
+  // Content group
+  if (permissions.content.manageCategories) score += 5;
+  if (permissions.content.manageLabels) score += 5;
+  if (permissions.content.manageViews) score += 5;
+  return score;
+}
+
 interface PublicCommentsProps {
   taskId: string;
   organizationId: string;
@@ -50,11 +78,28 @@ export function PublicComments({
 
   const commentLimit = 20;
 
-  // Build a Set of org member user IDs for badge display
-  const memberUserIds = useMemo(
-    () => new Set(organization.members.map((m) => m.user.id)),
-    [organization.members],
-  );
+  // Build a map of userId -> highest team name (by permission weight)
+  const memberHighestTeam = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const m of organization.members) {
+      const teams = m.teams;
+      if (!teams || teams.length === 0) {
+        // Member but no team assigned
+        map.set(m.user.id, "Member");
+        continue;
+      }
+      // Pick the team with the highest permission score
+      let bestTeam: { name: string; score: number } | null = null;
+      for (const mt of teams) {
+        const score = scorePermissions(mt.team.permissions);
+        if (!bestTeam || score > bestTeam.score) {
+          bestTeam = { name: mt.team.name, score };
+        }
+      }
+      map.set(m.user.id, bestTeam?.name ?? "Member");
+    }
+    return map;
+  }, [organization.members]);
 
   // Map org members to a user array for mentions + reaction tooltips
   const orgUsers = useMemo(
@@ -366,10 +411,12 @@ export function PublicComments({
             <PublicCommentItem
               key={comment.id}
               comment={comment}
-              isMember={
-                !!comment.createdBy && memberUserIds.has(comment.createdBy.id)
+              memberTeamName={
+                comment.createdBy
+                  ? (memberHighestTeam.get(comment.createdBy.id) ?? null)
+                  : null
               }
-              onToggleReaction={
+               onToggleReaction={
                 session?.user ? handleToggleReaction : undefined
               }
               users={orgUsers}
@@ -406,8 +453,10 @@ export function PublicComments({
             <PublicCommentItem
               key={comment.id}
               comment={comment}
-              isMember={
-                !!comment.createdBy && memberUserIds.has(comment.createdBy.id)
+              memberTeamName={
+                comment.createdBy
+                  ? (memberHighestTeam.get(comment.createdBy.id) ?? null)
+                  : null
               }
               onToggleReaction={
                 session?.user ? handleToggleReaction : undefined

@@ -29,7 +29,7 @@ export interface CommentsPage {
 
 export interface PublicCommentItemProps {
 	comment: CommentData;
-	isMember: boolean;
+	memberTeamName: string | null;
 	onToggleReaction?: (commentId: string, emoji: ReactionEmoji) => void;
 	users: schema.userType[];
 	currentUserId?: string;

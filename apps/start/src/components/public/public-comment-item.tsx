@@ -52,7 +52,7 @@ const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 export function PublicCommentItem({
   comment,
-  isMember,
+  memberTeamName,
   onToggleReaction,
   users,
   currentUserId,
@@ -122,7 +122,7 @@ export function PublicCommentItem({
             <Label variant="description" className="text-sm font-medium">
               {authorName}
             </Label>
-            {isMember && (
+            {memberTeamName && (
               <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
                   <Badge
@@ -130,7 +130,7 @@ export function PublicCommentItem({
                     className="gap-1 text-xs py-0 h-5 bg-primary/10 border-primary/20 text-primary"
                   >
                     <IconShieldCheck className="size-3" />
-                    Member
+                    {memberTeamName}
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent side="top">
