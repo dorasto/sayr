@@ -1,5 +1,5 @@
 import { dequeue, type JobGroups } from "@repo/queue";
-import { handleSayrKeywordParse } from "./github";
+import { handleComment, handleSayrKeywordParse } from "./github";
 import { withTraceContext } from "@repo/opentelemetry/trace";
 import { initTracing } from "@repo/opentelemetry";
 
@@ -25,6 +25,9 @@ async function processGithubJob(job: JobGroups["github"]) {
 	switch (job.type) {
 		case "sayr_keyword_parse":
 			await handleSayrKeywordParse(job);
+			break;
+		case "issue_comment":
+			await handleComment(job)
 			break;
 		default:
 			console.warn(`⚠️ Unhandled GitHub job type: ${job.type}`);

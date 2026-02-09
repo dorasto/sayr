@@ -10,6 +10,7 @@ export type GithubIssueOpenedPayload = {
 export type GithubIssueCommentPayload = {
 	owner: string;
 	repo: string;
+	organizationId?: string | null;
 	number: number;
 	commentId: number;
 	commentBody: string;
@@ -33,17 +34,17 @@ export type GithubSayrKeywordParsePayload = {
 // 🔹 Union for GitHub group
 export type GithubJob =
 	| {
-			type: "issue_opened";
-			traceContext?: { traceId?: string; spanId?: string; traceFlags?: number };
-			payload: GithubIssueOpenedPayload;
-	  }
+		type: "issue_opened";
+		traceContext?: { traceId?: string; spanId?: string; traceFlags?: number };
+		payload: GithubIssueOpenedPayload;
+	}
 	| {
-			type: "issue_comment";
-			traceContext?: { traceId?: string; spanId?: string; traceFlags?: number };
-			payload: GithubIssueCommentPayload;
-	  }
+		type: "issue_comment";
+		traceContext?: { traceId?: string; spanId?: string; traceFlags?: number };
+		payload: GithubIssueCommentPayload;
+	}
 	| {
-			type: "sayr_keyword_parse";
-			traceContext?: { traceId?: string; spanId?: string; traceFlags?: number };
-			payload: GithubSayrKeywordParsePayload;
-	  };
+		type: "sayr_keyword_parse";
+		traceContext?: { traceId?: string; spanId?: string; traceFlags?: number };
+		payload: GithubSayrKeywordParsePayload;
+	};

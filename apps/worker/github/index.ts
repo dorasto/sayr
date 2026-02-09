@@ -4,6 +4,9 @@ import { extractSayrKeywords } from "./keywords";
 import { getInstallationToken } from "@repo/util/github/auth";
 import { Octokit } from "@octokit/rest";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { db } from "@repo/database";
+import { postSayrComment } from "./comment";
+import { eq, and } from "drizzle-orm";
 
 export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: "sayr_keyword_parse" }) {
 	const traceAsync = createTraceAsync();
@@ -106,4 +109,84 @@ export async function postGithubComment(ctx: KeywordContext, body: string) {
 		issue_number: ctx.number,
 		body,
 	});
+}
+
+export async function handleComment(
+	job: JobGroups["github"] & { type: "issue_comment" }
+) {
+	const traceAsync = createTraceAsync();
+	const {
+		owner,
+		organizationId,
+		number,
+		repo,
+		commentId,
+		commentBody,
+		user,
+	} = job.payload;
+
+	// --------------------
+	// Sanitize content (no uploads)
+	// --------------------
+	console.log("🚀 ~ handleComment ~ commentBody:", commentBody)
+	const sanitizedBody = commentBody.replace(
+		/<(img|video|iframe|object|embed)[^>]*>/gi,
+		""
+	);
+
+	if (!sanitizedBody.trim()) {
+		return;
+	}
+
+	// --------------------
+	// Find linked Sayr task
+	// --------------------
+	const githubIssue = await traceAsync(
+		"github.issue.link.lookup",
+		() =>
+			db.query.githubIssue.findFirst({
+				where: (gi) =>
+					and(
+						eq(gi.organizationId, organizationId || ""),
+						eq(gi.issueNumber, number)
+					),
+				with: { task: true },
+			}),
+		{
+			description: "Looking up linked Sayr task for GitHub issue",
+			data: { owner, organizationId, number },
+		}
+	);
+
+	if (!githubIssue?.task) {
+		return;
+	}
+
+	// --------------------
+	// Post comment to Sayr
+	// (prefix + prosekit handled inside)
+	// --------------------
+	await traceAsync(
+		"sayr.comment.sync",
+		() =>
+			postSayrComment(
+				{
+					taskKey: githubIssue.task.shortId || 0,
+					orgId: githubIssue.task.organizationId,
+					owner,
+					repo,
+					number,
+					authorLogin: user,
+				},
+				sanitizedBody
+			),
+		{
+			description: "Posting GitHub comment to Sayr",
+			data: {
+				taskKey: githubIssue.task.shortId,
+				commentId,
+				user,
+			},
+		}
+	);
 }

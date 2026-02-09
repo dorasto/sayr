@@ -806,7 +806,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility } = await c.req.json();
+	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl } = await c.req.json();
 	const session = c.get("session");
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -852,7 +852,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 
 	await traceAsync(
 		"task.comment.create.insert",
-		() => createComment(orgId, taskId, content, visibility, session?.userId),
+		() => createComment(orgId, taskId, content, visibility, session?.userId, source, externalAuthorLogin, externalAuthorUrl),
 		{
 			description: "Creating task comment",
 			data: { orgId, taskId, visibility, userId: session?.userId },

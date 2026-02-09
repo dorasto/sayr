@@ -274,7 +274,10 @@ export async function createComment(
 	task_id: string,
 	content: NodeJSON,
 	visibility: schema.taskCommentType["visibility"],
-	createdBy?: string
+	createdBy?: string,
+	source?: string,
+	externalAuthorLogin?: string,
+	externalAuthorUrl?: string,
 ) {
 	const [newComment] = await db
 		.insert(taskComment)
@@ -284,6 +287,9 @@ export async function createComment(
 			content,
 			visibility,
 			createdBy,
+			source: source ?? "sayr",
+			externalAuthorLogin,
+			externalAuthorUrl
 		})
 		.returning();
 

@@ -164,49 +164,90 @@ async function handleContentEvents(
 			if (payload.action === "created") {
 				const issueNum = payload.issue.number;
 				const commenter = payload.comment?.user?.login ?? "unknown";
-				const body = payload.comment.body.trim();
+				const body = payload.comment?.body?.trim() ?? "";
 
+				if (!body) return;
 				if (commenter.endsWith("[bot]")) return;
 
-				await traceAsync(
-					"webhook.github.comment.enqueue",
-					() =>
-						enqueue("github", {
-							type: "sayr_keyword_parse",
-							traceContext,
-							payload: {
-								text: body,
-								title: "",
-								owner: repository.owner.login,
-								repoId: repository.id,
-								repo: repository.name,
-								number: issueNum,
-								installationId,
-								eventType: "comment",
-								merged: false,
-								organizationId: linked.organizationId,
-								categoryId: linked.categoryId,
-							},
-						}),
-					{
-						description: "Enqueueing comment for processing",
-						data: {
-							issueNum,
-							commenter,
-							repoId,
+				const keywordMatches = extractSayrKeywords(body);
+
+				// ---------------------------
+				// CASE 1: KEYWORDS → automation
+				// ---------------------------
+				if (keywordMatches.length > 0) {
+					await enqueue("github", {
+						type: "sayr_keyword_parse",
+						traceContext,
+						payload: {
+							text: body,
+							title: "",
+							eventType: "comment",
+							number: issueNum,
+							owner: repository.owner.login,
+							repo: repository.name,
+							repoId: repository.id,
+							installationId,
+							merged: false,
 							organizationId: linked.organizationId,
-							traceId: traceContext?.traceId,
+							categoryId: linked.categoryId,
 						},
-						onSuccess: () => ({
-							outcome: "Comment enqueued successfully",
-							data: { issueNum, commenter },
-						}),
-					}
-				);
+					});
+
+					return;
+				}
+
+				// ---------------------------
+				// CASE 2: NO KEYWORDS → comment sync
+				// ---------------------------
+				await enqueue("github", {
+					type: "issue_comment",
+					traceContext,
+					payload: {
+						owner: repository.owner.login,
+						repo: repository.name,
+						organizationId: linked.organizationId,
+						number: issueNum,
+						commentId: payload.comment.id,
+						commentBody: payload.comment.body ?? "",
+						user: commenter,
+					},
+				});
 			}
 			break;
-
 		default:
 			break;
 	}
+}
+
+export type KeywordMatch = {
+	keyword: string;
+	taskKey: number;
+};
+
+// ✅ Supports: "Ref 10", "Ref #10", "Fixes SA-123", "Sayr 42"
+export function extractSayrKeywords(text: string): KeywordMatch[] {
+	if (!text) return [];
+
+	// Only match digits for the second capture group.
+	// Will handle "Fixes 10", "Ref #15", "Sayr 42" etc.
+	const regex = /\b(?:(Fixes|Fixed|Closes|Closed|Resolves|Resolved|Blocked by|Ref|Sayr)[\s:#-]*)#?(\d+)\b/gi;
+
+	const matches: KeywordMatch[] = [];
+
+	for (; ;) {
+		const result = regex.exec(text);
+		if (result === null) break;
+
+		const taskKey = Number(result[2]); // force numeric
+
+		// Skip invalid conversions (NaN guard)
+		if (Number.isNaN(taskKey)) continue;
+
+		matches.push({
+			keyword: result[1] ?? "",
+			taskKey,
+		});
+	}
+
+	return matches;
 }

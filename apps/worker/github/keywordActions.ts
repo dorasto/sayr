@@ -83,8 +83,15 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 	return traceAsync(
 		"sayr.keyword.link",
 		async () => {
+			// --------------------
+			// Find Sayr task
+			// --------------------
 			const foundTask = await db.query.task.findFirst({
-				where: (t) => and(eq(t.organizationId, ctx.orgId), eq(t.shortId, ctx.taskKey)),
+				where: (t) =>
+					and(
+						eq(t.organizationId, ctx.orgId),
+						eq(t.shortId, ctx.taskKey)
+					),
 			});
 
 			if (!foundTask) {
@@ -93,34 +100,64 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 				return msg;
 			}
 
-			const existingIssue = await db.query.githubIssue.findFirst({
-				where: (gi) => and(eq(gi.organizationId, foundTask.organizationId), eq(gi.taskId, foundTask.id)),
+			// --------------------
+			// Check: issue already linked?
+			// --------------------
+			const issueAlreadyLinked = await db.query.githubIssue.findFirst({
+				where: (gi) =>
+					and(
+						eq(gi.organizationId, foundTask.organizationId),
+						eq(gi.issueNumber, ctx.number)
+					),
 			});
 
-			if (existingIssue) {
-				const msg = `⚠️ Task ${ctx.taskKey} already linked (#${existingIssue.issueNumber}).`;
+			if (issueAlreadyLinked) {
+				const msg = `⚠️ GitHub issue #${ctx.number} is already linked to task ${issueAlreadyLinked.taskId}.`;
 				console.warn(msg);
 				return msg;
 			}
 
-			const res = await fetch(`${API_URL}/v1/admin/organization/task/github-link`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
-					"user-agent": "Sayr-Worker/1.0",
-					"x-internal-secret": process.env.INTERNAL_SECRET!,
-					"x-internal-service": "sayr-worker",
-					"x-internal-timestamp": new Date().toISOString(),
-				},
-				body: JSON.stringify({
-					org_id: ctx.orgId,
-					task_id: foundTask.id,
-					repo_id: ctx.repoId,
-					issue_number: ctx.number,
-					issue_url: `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`,
-				}),
+			// --------------------
+			// Check: task already linked?
+			// --------------------
+			const taskAlreadyLinked = await db.query.githubIssue.findFirst({
+				where: (gi) =>
+					and(
+						eq(gi.organizationId, foundTask.organizationId),
+						eq(gi.taskId, foundTask.id)
+					),
 			});
+
+			if (taskAlreadyLinked) {
+				const msg = `⚠️ Task ${ctx.taskKey} is already linked to GitHub issue #${taskAlreadyLinked.issueNumber}.`;
+				console.warn(msg);
+				return msg;
+			}
+
+			// --------------------
+			// Create link
+			// --------------------
+			const res = await fetch(
+				`${API_URL}/v1/admin/organization/task/github-link`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
+						"user-agent": "Sayr-Worker/1.0",
+						"x-internal-secret": process.env.INTERNAL_SECRET!,
+						"x-internal-service": "sayr-worker",
+						"x-internal-timestamp": new Date().toISOString(),
+					},
+					body: JSON.stringify({
+						org_id: ctx.orgId,
+						task_id: foundTask.id,
+						repo_id: ctx.repoId,
+						issue_number: ctx.number,
+						issue_url: `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`,
+					}),
+				}
+			);
 
 			if (!res.ok) {
 				const msg = `❌ Failed to link task ${ctx.taskKey}: ${res.statusText}`;
@@ -132,7 +169,7 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			return `✅ Linked task ${ctx.taskKey} to #${ctx.number}.`;
 		},
 		{
-			description: "Link Sayr task to GitHub issue",
+			description: "Link Sayr task to GitHub issue (1:1 enforced)",
 			data: {
 				orgId: ctx.orgId,
 				taskKey: ctx.taskKey,
