@@ -10,17 +10,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@/components/prosekit/editor";
 import processUploads from "@/components/prosekit/upload";
 import { useLayoutData } from "@/components/generic/Context";
-import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { updateTaskAction } from "@/lib/fetches/task";
 import { extractTextContent, useToastAction } from "@/lib/util";
 
+type ContentVisibility = "title" | "description" | "both";
+
 interface TaskEditableHeaderProps {
-  task: schema.TaskWithLabels;
-  tasks: schema.TaskWithLabels[];
-  setTasks: (tasks: schema.TaskWithLabels[]) => void;
-  setSelectedTask: (task: schema.TaskWithLabels | null) => void;
-  availableUsers: schema.userType[];
-  categories: schema.categoryType[];
+   task: schema.TaskWithLabels;
+   tasks: schema.TaskWithLabels[];
+   setTasks: (tasks: schema.TaskWithLabels[]) => void;
+   setSelectedTask: (task: schema.TaskWithLabels | null) => void;
+   availableUsers: schema.userType[];
+   categories: schema.categoryType[];
+   organization?:
+     | schema.OrganizationWithMembers
+     | { id: string; name: string; slug: string; logo: string | null };
+   showContent?: ContentVisibility;
 }
 
 export function TaskEditableHeader({
@@ -30,18 +35,20 @@ export function TaskEditableHeader({
   setSelectedTask,
   availableUsers,
   categories,
+  organization,
+  showContent = "both",
 }: TaskEditableHeaderProps) {
   const { account } = useLayoutData();
-  const { organization } = useLayoutOrganization();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
 
   // Task-specific mounted state for skeleton loading
-  const { value: isMounted, setValue: setIsMounted } = useStateManagement<boolean>(
-    `task-${task.id}-header-mounted`,
-    false,
-    5000, // Garbage collect after 5 seconds of inactivity
-  );
+  const { value: isMounted, setValue: setIsMounted } =
+    useStateManagement<boolean>(
+      `task-${task.id}-header-mounted`,
+      false,
+      5000, // Garbage collect after 5 seconds of inactivity
+    );
 
   // Set mounted to true after component mounts
   useEffect(() => {
@@ -79,9 +86,10 @@ export function TaskEditableHeader({
 
     // Check if user is an organization admin
     // Find the user's member record and their teams to check permissions
-    const member = organization?.members?.find(
-      (m) => m.user?.id === account.id,
-    );
+    const hasMembers = organization && "members" in organization;
+    const member = hasMembers
+      ? organization.members.find((m) => m.user?.id === account.id)
+      : undefined;
     if (!member) return false;
 
     // For now, we check if the user has the administrator permission via their teams
@@ -92,12 +100,12 @@ export function TaskEditableHeader({
     // Since we don't have direct access to team permissions here, we'll rely on
     // the backend to verify permissions
     return true; // Allow UI editing, backend will verify
-  }, [account?.id, task.createdBy?.id, organization?.members]);
+  }, [account?.id, task.createdBy?.id, organization]);
 
   // Handle title blur (save on blur)
   const handleTitleBlur = useCallback(async () => {
     const currentText = titleRef.current?.textContent || "";
-    
+
     if (currentText === task.title || !currentText.trim()) {
       // Reset to original if empty or unchanged
       if (titleRef.current) {
@@ -268,12 +276,17 @@ export function TaskEditableHeader({
   if (!isMounted) {
     return (
       <div className="flex flex-col gap-3">
-        <Skeleton className="h-8 w-3/4" />
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
+        {showContent === "title" || showContent === "both" ? (
+          <Skeleton className="h-8 w-3/4" />
+        ) : null}
+
+        {showContent === "description" || showContent === "both" ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -282,8 +295,14 @@ export function TaskEditableHeader({
     // Read-only view
     return (
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-foreground">{task.title}</h1>
-        {task.description && (
+        {showContent === "title" || showContent === "both" ? (
+          <div className="text-2xl font-bold outline-none focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/50">
+            {task.title}
+          </div>
+        ) : null}
+
+        {task.description &&
+        (showContent === "description" || showContent === "both") ? (
           <div className="w-full min-w-full">
             <Editor
               defaultContent={task.description}
@@ -295,7 +314,7 @@ export function TaskEditableHeader({
               readonly={true}
             />
           </div>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -303,46 +322,54 @@ export function TaskEditableHeader({
   return (
     <div className="flex flex-col gap-1">
       {/* Title Input - using contentEditable for multi-line wrapping */}
-      {/* biome-ignore lint/a11y/useSemanticElements: contentEditable div is intentional for text wrapping behavior */}
-      <div
-        ref={titleRef}
-        role="textbox"
-        tabIndex={isFetching ? -1 : 0}
-        aria-label="Task title"
-        contentEditable={!isFetching}
-        suppressContentEditableWarning
-        onBlur={handleTitleBlur}
-        onKeyDown={handleTitleKeyDown}
-        className="text-2xl font-bold outline-none focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/50"
-        data-placeholder="Task title"
-      />
+      {showContent === "title" || showContent === "both" ? (
+        <>
+          {/* biome-ignore lint/a11y/useSemanticElements: contentEditable div is intentional for text wrapping behavior */}
+          <div
+            ref={titleRef}
+            role="textbox"
+            tabIndex={isFetching ? -1 : 0}
+            aria-label="Task title"
+            contentEditable={!isFetching}
+            suppressContentEditableWarning
+            onBlur={handleTitleBlur}
+            onKeyDown={handleTitleKeyDown}
+            className="text-2xl font-bold outline-none focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/50"
+            data-placeholder="Task title"
+          />
+        </>
+      ) : null}
 
       {/* Description Editor */}
-      <div className="w-full min-w-full">
-        <Editor
-          defaultContent={task.description || undefined}
-          onChange={setDescription}
-          // placeholder="Add a description for this task..."
-          firstLinePlaceholder="Task description"
-          users={availableUsers}
-          categories={categories}
-          tasks={tasks}
-          hideBlockHandle={true}
-        />
-        <div className="flex w-full">
-          {hasUnsavedChanges && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="text-xs py-1 h-auto ml-auto"
-              onClick={() => handleDescriptionSave(description)}
-              disabled={isSavingDescription}
-            >
-              {isSavingDescription ? "Saving..." : "Update"}
-            </Button>
-          )}
-        </div>
-      </div>
+      {showContent === "description" || showContent === "both" ? (
+        <>
+          <div className="w-full min-w-full">
+            <Editor
+              defaultContent={task.description || undefined}
+              onChange={setDescription}
+              // placeholder="Add a description for this task..."
+              firstLinePlaceholder="Task description"
+              users={availableUsers}
+              categories={categories}
+              tasks={tasks}
+              hideBlockHandle={true}
+            />
+            <div className="flex w-full">
+              {hasUnsavedChanges && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="text-xs py-1 h-auto ml-auto"
+                  onClick={() => handleDescriptionSave(description)}
+                  disabled={isSavingDescription}
+                >
+                  {isSavingDescription ? "Saving..." : "Update"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

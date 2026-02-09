@@ -30,13 +30,18 @@ import {
 } from "@repo/util";
 import {
   IconArrowLeft,
+  IconArrowRight,
   IconCalendar,
   IconChevronUp,
+  IconDashboard,
   IconHash,
+  IconLock,
+  IconProgress,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { lazy, useState, useEffect, Suspense } from "react";
+import { lazy, useState, useEffect, useMemo, Suspense } from "react";
+import { authClient } from "@repo/auth/client";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -70,6 +75,13 @@ export function PublicTaskContent({
   const queryClient = useQueryClient();
   // const { stuck, stickyRef } = useSticky();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { data: session } = authClient.useSession();
+
+  // Check if the logged-in user is a member of this organization
+  const isOrgMember = useMemo(() => {
+    if (!session?.user?.id) return false;
+    return organization.members.some((m) => m.user.id === session.user.id);
+  }, [session?.user?.id, organization.members]);
 
   // Local task state so WS updates can mutate it in real-time
   const [task, setTask] = useState(initialTask);
@@ -218,23 +230,41 @@ export function PublicTaskContent({
       <div className="md:col-span-1">
         <div
           className="flex flex-col gap-3 w-full sticky top-0 pt-3 self-start"
-        // ref={stickyRef}
+          // ref={stickyRef}
         >
-          {/* Back button - outside the card */}
-          <Link
-            to=".."
-            params={{ orgSlug: organization.slug }}
-            className="w-fit"
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-muted-foreground hover:text-foreground"
+          {/* Back button and member actions */}
+          <div className="flex items-center gap-1 w-full justify-between">
+            <Link
+              to=".."
+              params={{ orgSlug: organization.slug }}
+              className="w-fit"
             >
-              <IconArrowLeft className="size-4" />
-              Back
-            </Button>
-          </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <IconArrowLeft className="size-4" />
+                Back
+              </Button>
+            </Link>
+            {isOrgMember && (
+              <a
+                href={`${import.meta.env.VITE_URL_ROOT}/${organization.id}/tasks/${task.shortId}`}
+                className="w-fit"
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                  tooltipText="Open this issue on the admin portal"
+                >
+                  Open internally
+                  <IconLock className="size-4" />
+                </Button>
+              </a>
+            )}
+          </div>
 
           {/* Metadata card */}
           <div className="flex flex-col gap-0 bg-card rounded-xl">

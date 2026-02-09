@@ -686,6 +686,7 @@ export function TaskContentMain({
   setTask,
   labels,
   availableUsers = [],
+  organization,
   categories,
   releases = [],
 }: TaskContentMainProps) {
@@ -705,6 +706,7 @@ export function TaskContentMain({
           setSelectedTask={setSelectedTask}
           availableUsers={availableUsers}
           categories={categories}
+          organization={organization}
         />
 
         <GlobalTimeline
@@ -768,6 +770,7 @@ export function TaskContent({
                   setSelectedTask={setSelectedTask}
                   availableUsers={availableUsers}
                   categories={categories}
+                  organization={organization}
                 />
                 <Label
                   variant={"description"}

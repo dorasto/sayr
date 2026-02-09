@@ -1,6 +1,8 @@
 import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
+type MinimalOrganization = { id: string; name: string; slug: string; logo: string | null };
+
 export type ConsolidatedTimelineItem = {
 	id: string;
 	actor: schema.taskTimelineWithActor["actor"];
@@ -47,21 +49,23 @@ export interface TimelineItemWrapperProps {
 }
 
 export interface GlobalTimelineProps {
-	task: schema.TaskWithLabels;
-	labels: schema.labelType[];
-	availableUsers: schema.userType[];
-	categories: schema.categoryType[];
-	tasks: schema.TaskWithLabels[];
-	releases: schema.releaseType[];
+  task: schema.TaskWithLabels;
+  labels: schema.labelType[];
+  availableUsers: schema.userType[];
+  categories: schema.categoryType[];
+  tasks: schema.TaskWithLabels[];
+  releases: schema.releaseType[];
+  organization?: schema.OrganizationWithMembers | MinimalOrganization;
 }
 
 export interface TimelineItemProps {
-	item: schema.taskTimelineWithActor;
-	labels?: schema.labelType[];
-	availableUsers?: schema.userType[];
-	categories?: schema.categoryType[];
-	tasks?: schema.TaskWithLabels[];
-	releases?: schema.releaseType[];
+  item: schema.taskTimelineWithActor;
+  labels?: schema.labelType[];
+  availableUsers?: schema.userType[];
+  categories?: schema.categoryType[];
+  tasks?: schema.TaskWithLabels[];
+  releases?: schema.releaseType[];
+  organization?: schema.OrganizationWithMembers | MinimalOrganization;
 }
 
 export interface ConsolidatedTimelineItemProps {
@@ -69,4 +73,5 @@ export interface ConsolidatedTimelineItemProps {
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
 	showSeparator?: boolean;
+	organization?: schema.OrganizationWithMembers | MinimalOrganization;
 }

@@ -25,12 +25,13 @@ import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 export default function GlobalTimeline({
-	task,
-	labels,
-	availableUsers,
-	categories,
-	tasks,
-	releases,
+  task,
+  labels,
+  availableUsers,
+  categories,
+  tasks,
+  releases,
+  organization,
 }: GlobalTimelineProps) {
 	const queryClient = useQueryClient();
 	const commentLimit = 20;
@@ -252,6 +253,7 @@ export default function GlobalTimeline({
 					labels={labels}
 					availableUsers={availableUsers}
 					showSeparator={showSeparator}
+					organization={organization}
 				/>
 			);
 		}
@@ -269,6 +271,7 @@ export default function GlobalTimeline({
 				tasks={tasks}
 				releases={releases}
 				showSeparator={showSeparator}
+				organization={organization}
 			/>
 		);
 	};

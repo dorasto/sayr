@@ -41,7 +41,11 @@ import {
 } from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useState } from "react";
-import { ReactionDisplay, ReactionPicker, type ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
+import {
+  ReactionDisplay,
+  ReactionPicker,
+  type ReactionEmoji,
+} from "@/components/tasks/task/timeline/reactions";
 import type { PublicCommentItemProps } from "./public-comments-types";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
@@ -154,7 +158,9 @@ export function PublicCommentItem({
                     existingReactions={
                       currentUserId && reactions
                         ? (Object.entries(reactions)
-                            .filter(([, data]) => data.users.includes(currentUserId))
+                            .filter(([, data]) =>
+                              data.users.includes(currentUserId),
+                            )
                             .map(([emoji]) => emoji) as ReactionEmoji[])
                         : []
                     }

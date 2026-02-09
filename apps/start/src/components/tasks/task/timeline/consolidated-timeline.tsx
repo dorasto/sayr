@@ -155,10 +155,11 @@ export function ConsolidatedTimelineAssignees({
 }
 
 export function ConsolidatedTimelineItem({
-	consolidatedItem,
-	labels,
-	availableUsers,
-	showSeparator = true,
+  consolidatedItem,
+  labels,
+  availableUsers,
+  showSeparator = true,
+  organization,
 }: ConsolidatedTimelineItemProps) {
 	const hasLabelEvents = consolidatedItem.eventTypes.some(
 		(type) => type === "label_added" || type === "label_removed"
@@ -192,7 +193,7 @@ export function ConsolidatedTimelineItem({
 			)}
 
 			{/* 🧩 Fallback */}
-			{hasOtherEvents && <TimelineUpdated item={firstItem} showSeparator={showSeparator} />}
+			{hasOtherEvents && <TimelineUpdated item={firstItem} showSeparator={showSeparator} organization={organization} />}
 		</>
 	);
 }

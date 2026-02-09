@@ -41,7 +41,6 @@ import type { NodeJSON } from "prosekit/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DiffViewer } from "@/components/prosekit/diff-viewer";
 import { processUploadsAndDeletions } from "@/components/prosekit/upload";
-import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { formatDateTime, formatDateTimeFromNow, getDisplayName } from "@repo/util";
 import {
   CreateTaskReactionAction,
@@ -326,9 +325,9 @@ export function TimelineComment({
   categories,
   tasks,
   showSeparator = true,
+  organization,
 }: TimelineItemProps & { showSeparator?: boolean }) {
   const queryClient = useQueryClient();
-  const { organization } = useLayoutOrganization();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
 
@@ -367,11 +366,12 @@ export function TimelineComment({
     // For non-authors, check if user is a member of the organization
     // If they are a member, show the options - backend will enforce actual permissions
     // This handles the case where we don't have team permissions loaded client-side
-    const isMember = organization?.members?.some(
+    const hasMembers = organization && "members" in organization;
+    const isMember = hasMembers ? organization.members.some(
       (m) => m.user?.id === account.id,
-    );
+    ) : false;
     return !!isMember;
-  }, [account?.id, item.actor?.id, organization?.members]);
+  }, [account?.id, item.actor?.id, organization]);
 
   async function handleSave() {
     if (!editedContent || !canSave || !task) {
