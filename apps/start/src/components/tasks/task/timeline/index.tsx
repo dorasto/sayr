@@ -21,6 +21,7 @@ export {
 	TimelineAssigneeRemoved,
 } from "./timeline-assignee";
 export { TimelineUpdated } from "./timeline-updated";
+export { TimelineGithubCommit } from "./timeline-github-commit";
 export { TimelineCategoryChange } from "./category-change";
 export { TimelineReleaseChange } from "./release-change";
 

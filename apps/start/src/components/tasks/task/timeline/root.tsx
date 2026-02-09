@@ -15,6 +15,7 @@ import {
 	TimelineAssigneeRemoved,
 	TimelineComment,
 	TimelineCreated,
+	TimelineGithubCommit,
 	TimelineLabelAdded,
 	TimelineLabelRemoved,
 	TimelinePriorityChange,
@@ -47,6 +48,7 @@ export default function GlobalTimeline({
 		updated: TimelineUpdated,
 		category_change: TimelineCategoryChange,
 		release_change: TimelineReleaseChange,
+		github_commit_ref: TimelineGithubCommit,
 	};
 
 	// --- ACTIVITY FETCH ---
