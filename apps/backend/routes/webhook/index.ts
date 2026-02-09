@@ -136,6 +136,7 @@ async function handleContentEvents(
 								owner: repository.owner.login,
 								repoId: repository.id,
 								repo: repository.name,
+								repo_private: repository.private,
 								number: payload.issue.number,
 								installationId,
 								eventType: "issue",
@@ -160,7 +161,7 @@ async function handleContentEvents(
 			}
 			break;
 
-			case "issue_comment":
+		case "issue_comment":
 			if (payload.action === "created") {
 				const issueNum = payload.issue.number;
 				const commenter = payload.comment?.user?.login ?? "unknown";
@@ -187,6 +188,7 @@ async function handleContentEvents(
 							owner: repository.owner.login,
 							repo: repository.name,
 							repoId: repository.id,
+							repo_private: repository.private,
 							installationId,
 							merged: false,
 							organizationId: linked.organizationId,
@@ -206,6 +208,7 @@ async function handleContentEvents(
 					payload: {
 						owner: repository.owner.login,
 						repo: repository.name,
+						repo_private: repository.private,
 						organizationId: linked.organizationId,
 						number: issueNum,
 						commentId: payload.comment.id,

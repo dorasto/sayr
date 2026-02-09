@@ -1,6 +1,7 @@
 export type GithubIssueOpenedPayload = {
 	owner: string;
 	repo: string;
+	repo_private: boolean;
 	number: number;
 	title: string;
 	body: string;
@@ -11,6 +12,7 @@ export type GithubIssueCommentPayload = {
 	owner: string;
 	repo: string;
 	organizationId?: string | null;
+	repo_private: boolean;
 	number: number;
 	commentId: number;
 	commentBody: string;
@@ -26,6 +28,7 @@ export type GithubSayrKeywordParsePayload = {
 	owner: string;
 	repo: string;
 	repoId: number;
+	repo_private: boolean;
 	merged?: boolean;
 	installationId: number;
 	organizationId?: string | null;

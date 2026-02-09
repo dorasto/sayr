@@ -16,6 +16,7 @@ export type PostSayrCommentContext = {
     // GitHub source
     owner: string;
     repo: string;
+    repo_private: boolean;
     number: number;
 
     // Attribution
@@ -92,6 +93,7 @@ export async function postSayrComment(
                         externalAuthorLogin: ctx.authorLogin,
                         externalAuthorUrl: `https://github.com/${ctx.authorLogin}`,
                         ...(linkedUserId && { createdBy: linkedUserId }),
+                        visibility: ctx.repo_private ? "internal" : "public"
                     }),
                 }
             );

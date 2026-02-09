@@ -162,7 +162,11 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			});
 
 			if (!foundLink || !taskWithData) return;
-
+			const org = await db.query.organization.findFirst({
+				where: eq(schema.organization.id, orgId),
+			});
+			if (!org || !taskWithData) return;
+			const sayrTaskUrl = `https://${org.slug}.sayr.io/${taskWithData.shortId}`;
 			const token = await getInstallationToken(foundLink.installationId);
 			const octokit = new Octokit({ auth: token });
 
@@ -174,7 +178,9 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const repo = repoInfo.name;
 
 			const body =
-				`↪ From Sayr task ${taskWithData.shortId}\n\n`
+				`↪ From Sayr task ${sayrTaskUrl}\n\n` +
+				`<!-- sayr-task:${taskWithData.id} -->\n\n` +
+				`---\n\n`;
 			const { data: issue } = await octokit.request(
 				"POST /repos/{owner}/{repo}/issues",
 				{
