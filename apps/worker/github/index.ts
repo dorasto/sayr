@@ -40,13 +40,25 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 	};
 
 	const summaryLines: string[] = [];
-
+	const processed = new Set<string>();
 	for (const m of matches) {
-		const ctx: KeywordContext = { ...ctxBase, taskKey: m.taskKey, message: text };
 		const action = m.keyword.toLowerCase();
+		const dedupeKey = `${action}:${m.taskKey}`;
+
+		if (processed.has(dedupeKey)) {
+			continue;
+		}
+
+		processed.add(dedupeKey);
+
+		const ctx: KeywordContext = {
+			...ctxBase,
+			taskKey: m.taskKey,
+			message: text,
+		};
 
 		await traceAsync(
-			`github.keyword.${action.replace(" ", "_")}`,
+			`github.keyword.${action.replace(/\s+/g, "_")}`,
 			async () => {
 				switch (action) {
 					case "fixes":
@@ -56,21 +68,20 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 					case "resolves":
 					case "resolved": {
 						const closeResult = await handleCloseKeyword(ctx);
-						summaryLines.push(closeResult);
+						if (closeResult) summaryLines.push(closeResult);
 						break;
 					}
 					case "blocked by":
 						await handleBlockKeyword(ctx);
-						summaryLines.push(`🚧 Blocked by ${m.taskKey}`);
+						summaryLines.push(`Marked as blocked by ${m.taskKey}`);
 						break;
 					case "ref":
 					case "sayr": {
 						const linkResult = await handleLinkKeyword(ctx);
-						summaryLines.push(linkResult);
+						if (linkResult) summaryLines.push(linkResult);
 						break;
 					}
 					default:
-						summaryLines.push(`⚙️ Unknown keyword ${m.keyword}`);
 						break;
 				}
 			},
@@ -80,11 +91,17 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 			}
 		);
 	}
-
+	if (!summaryLines.length) {
+		await traceAsync("github.comment.skip", async () => { }, {
+			description: "No actionable Sayr keywords found",
+			data: { repo, number },
+		});
+		return;
+	}
 	const comment =
-		`🤖 Sayr keyword(s) detected on this ${eventType}:\n` +
-		summaryLines.join("\n") +
-		(merged ? "\n✅ PR merged!" : "");
+		`Sayr updates from this ${eventType}:\n` +
+		summaryLines.map((l) => `• ${l}`).join("\n") +
+		(merged ? "\n\nThis pull request has been merged." : "");
 
 	await traceAsync("github.comment.post", () => postGithubComment({ ...ctxBase }, comment), {
 		description: "Posting summary comment to GitHub",

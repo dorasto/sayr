@@ -31,7 +31,7 @@ export async function handleCloseKeyword(ctx: KeywordContext) {
 			});
 
 			if (!task) {
-				const msg = `❌ task ${ctx.taskKey} not found within org ${ctx.orgId} and category ${ctx.categoryId}.`;
+				const msg = `Task ${ctx.taskKey} was not found in this Sayr organization and category.`;
 				console.error(msg);
 				return msg;
 			}
@@ -54,13 +54,13 @@ export async function handleCloseKeyword(ctx: KeywordContext) {
 			});
 
 			if (!res.ok) {
-				const msg = `❌ Failed to close ${ctx.taskKey}: ${res.statusText}`;
+				const msg = `Failed to close task ${ctx.taskKey} in Sayr.`;
 				console.error(msg);
 				return msg;
 			}
 
 			console.log(`✅ Closed task ${ctx.taskKey}.`);
-			return `✅ Closed task ${ctx.taskKey}.`;
+			return `Closed task ${ctx.taskKey} in Sayr.`;
 		},
 		{
 			description: "Close Sayr task from keyword",
@@ -96,7 +96,7 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			});
 
 			if (!foundTask) {
-				const msg = `❌ Task ${ctx.taskKey} not found within this organization (${ctx.orgId}).`;
+				const msg = `Task ${ctx.taskKey} was not found in this Sayr organization.`;
 				console.error(msg);
 				return msg;
 			}
@@ -113,7 +113,7 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			});
 
 			if (issueAlreadyLinked) {
-				const msg = `⚠️ GitHub issue #${ctx.number} is already linked to task ${issueAlreadyLinked.taskId}.`;
+				const msg = `GitHub issue #${ctx.number} is already linked to a Sayr task.`;
 				console.warn(msg);
 				return msg;
 			}
@@ -130,7 +130,7 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			});
 
 			if (taskAlreadyLinked) {
-				const msg = `⚠️ Task ${ctx.taskKey} is already linked to GitHub issue #${taskAlreadyLinked.issueNumber}.`;
+				const msg = `Task ${ctx.taskKey} is already linked to a GitHub issue #${taskAlreadyLinked.issueNumber}.`;
 				console.warn(msg);
 				return msg;
 			}
@@ -161,13 +161,13 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			);
 
 			if (!res.ok) {
-				const msg = `❌ Failed to link task ${ctx.taskKey}: ${res.statusText}`;
+				const msg = `Failed to link task ${ctx.taskKey} to this GitHub issue.`;
 				console.error(msg);
 				return msg;
 			}
 
 			console.log(`✅ Linked task ${ctx.taskKey} to #${ctx.number}.`);
-			return `✅ Linked task ${ctx.taskKey} to #${ctx.number}.`;
+			return `Linked task ${ctx.taskKey} to GitHub issue #${ctx.number}.`;
 		},
 		{
 			description: "Link Sayr task to GitHub issue (1:1 enforced)",
