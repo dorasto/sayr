@@ -55,7 +55,7 @@ export function TimelineGithubCommit({
       <InlineLabel
         text={authorName}
         image={authorImage}
-        className="text-mutedforeground"
+        className="text-muted-foreground hover:text-foreground"
       />{" "}
       mentioned in{" "}
       <a
@@ -67,7 +67,7 @@ export function TimelineGithubCommit({
         <InlineLabel
           text=""
           icon={<IconBrandGithub size={12} />}
-          className="max-w-52"
+          className="max-w-52 "
           textNode={
             <span className="flex items-center min-w-0 overflow-hidden!">
               <span className="truncate">

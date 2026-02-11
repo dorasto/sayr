@@ -68,6 +68,7 @@ export function TimelineUpdated({
       return (
         <>
           <InlineLabel
+            className="text-muted-foreground hover:text-foreground"
             text={item.actor ? getDisplayName(item.actor) : "Unknown"}
             image={item.actor?.image || ""}
           />{" "}
@@ -85,6 +86,7 @@ export function TimelineUpdated({
       return (
         <>
           <InlineLabel
+            className="text-muted-foreground hover:text-foreground"
             text={item.actor ? getDisplayName(item.actor) : "Unknown"}
             image={item.actor?.image || ""}
           />{" "}
@@ -101,6 +103,7 @@ export function TimelineUpdated({
       return (
         <>
           <InlineLabel
+            className="text-muted-foreground hover:text-foreground"
             text={item.actor ? getDisplayName(item.actor) : "Unknown"}
             image={item.actor?.image || ""}
           />{" "}
@@ -108,11 +111,13 @@ export function TimelineUpdated({
           <span className="font-medium inline-flex items-center gap-1">
             {isNowPrivate ? (
               <InlineLabel
+                className="text-muted-foreground hover:text-foreground"
                 text="private"
                 icon={<IconLock className="size-3" />}
               />
             ) : (
               <InlineLabel
+                className="text-muted-foreground hover:text-foreground"
                 text="public"
                 icon={<IconLockOpen2 className="size-3" />}
               />
@@ -126,6 +131,7 @@ export function TimelineUpdated({
     return (
       <>
         <InlineLabel
+          className="text-muted-foreground hover:text-foreground"
           text={item.actor ? getDisplayName(item.actor) : "Unknown"}
           image={item.actor?.image || ""}
         />{" "}

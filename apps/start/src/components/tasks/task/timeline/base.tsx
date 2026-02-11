@@ -85,7 +85,7 @@ export function TimelineItemWrapper({
           <TimelineTitle className="mt-0.5">
             <Label
               variant={"description"}
-              className="text-foreground items-center flex flex-wrap gap-2"
+              className="text-muted-foreground items-center flex flex-wrap gap-2"
             >
               <span>{children}</span>·{/*{!item.content && (*/}
               <Tooltip delayDuration={500}>
@@ -106,7 +106,7 @@ export function TimelineItemWrapper({
             </Label>
           </TimelineTitle>
 
-          <TimelineIndicator className="bg-primary/10 group-data-completed/timeline-item:bg-primary group-data-completed/timeline-item:text-primary-foreground flex size-6 items-center justify-center border-none group-data-[orientation=vertical]/timeline:-left-4">
+          <TimelineIndicator className="group-data-completed/timeline-item:bg-primary group-data-completed/timeline-item:text-muted-foreground flex size-6 items-center justify-center border-none group-data-[orientation=vertical]/timeline:-left-4 [&_svg]:text-foreground">
             <Avatar className={cn("h-6! w-6! rounded-full", color)}>
               <AvatarFallback className="rounded-full bg-transparent">
                 <Icon size={12} />
