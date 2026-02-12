@@ -63,32 +63,39 @@ async function handleJob<G extends keyof JobGroups>(
 	}
 }
 
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function workerLoop<G extends keyof JobGroups>(group: G) {
 	const MODE = env === "production" ? "redis" : "file";
-	console.log(`⚙️  Worker for "${group}" started (${MODE} mode)`);
 
-	if (MODE === "redis") {
-		while (!shuttingDown) {
+	console.log(
+		`⚙️ Worker for "${group}" started (${MODE} mode)`
+	);
+
+	let idleMs = 100;
+
+	while (!shuttingDown) {
+		try {
 			const job = await dequeue(group);
 			if (shuttingDown) break;
-			if (!job) continue;
-			await handleJob(group, job);
-		}
-	} else {
-		let idleMs = 100;
-
-		while (!shuttingDown) {
-			const job = await dequeue(group);
-
 			if (!job) {
-				//@ts-expect-error
-				await Bun.sleep(idleMs);
-				idleMs = Math.min(idleMs * 2, 5000);
+				if (MODE === "file") {
+					await sleep(idleMs);
+					idleMs = Math.min(idleMs * 2, 5000);
+				}
 				continue;
 			}
-
 			idleMs = 100;
 			await handleJob(group, job);
+		} catch (err) {
+			console.error(
+				`❌ Worker error in group "${group}":`,
+				err
+			);
+			// prevent crash loops
+			await sleep(1000);
 		}
 	}
 
