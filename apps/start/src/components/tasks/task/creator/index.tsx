@@ -30,6 +30,7 @@ import {
   IconArrowsDiagonalMinimize2,
   IconCategory,
   IconLabel,
+  IconLoader2,
   IconLock,
   IconLockOpen2,
   IconPlus,
@@ -70,13 +71,20 @@ import { cn } from "@repo/ui/lib/utils";
 import { Label } from "@repo/ui/components/label";
 interface Props {
   organization: schema.OrganizationWithMembers;
-  tasks: schema.TaskWithLabels[];
-  setTasks: (newValue: schema.TaskWithLabels[]) => void;
+  tasks?: schema.TaskWithLabels[];
+  setTasks?: (newValue: schema.TaskWithLabels[]) => void;
   _labels: schema.labelType[];
   issueTemplates?: schema.issueTemplateWithRelations[];
   releases?: schema.releaseType[];
-  // open?: boolean;
-  // setOpen?: (open: boolean) => void;
+  categories?: schema.categoryType[];
+  // External open state control (for global dialog)
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  // Org picker (for global dialog)
+  organizations?: schema.OrganizationWithMembers[];
+  onOrganizationChange?: (orgId: string) => void;
+  showTriggerButton?: boolean;
+  loading?: boolean;
 }
 
 // Dialog size configuration - centralized for easy modification
@@ -109,19 +117,28 @@ export default function CreateIssueDialog({
   _labels,
   issueTemplates = [],
   releases = [],
-  // open,
-  // setOpen = () => {
-  // 	false;
-  // },
+  categories: categoriesProp,
+  open: externalOpen,
+  onOpenChange,
+  organizations,
+  onOrganizationChange,
+  showTriggerButton = true,
+  loading = false,
 }: Props) {
   const navigate = useNavigate();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-  const { value: categories } = useStateManagement<schema.categoryType[]>(
+  const { value: cachedCategories } = useStateManagement<schema.categoryType[]>(
     "categories",
     [],
     1,
   );
-  const [open, setOpen] = useState(false);
+  const categories = categoriesProp ?? cachedCategories;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = externalOpen !== undefined;
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpen = isControlled
+    ? (onOpenChange ?? setInternalOpen)
+    : setInternalOpen;
   const [expand, setExpand] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] =
     useState<string>("__none__");
@@ -308,7 +325,7 @@ export default function CreateIssueDialog({
       setLabels([]);
       setAssignees([]);
       setVisible("public");
-      setTasks([...tasks, data.data]);
+      setTasks?.([...(tasks ?? []), data.data]);
       navigate({
         to: "/$orgId/tasks/$taskShortId",
         params: {
@@ -326,16 +343,20 @@ export default function CreateIssueDialog({
   const selectedAssigneeCount = draftTask.assignees.length;
   const isMobile = useIsMobile();
   return (
-    <div className="flex items-center gap-3">
-      <Button
-        variant={"primary"}
-        className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-        size={"sm"}
-        onClick={() => setOpen(true)}
-      >
-        <IconPlus />
-        {!isMobile && <span className="text-inherit">New task</span>}
-      </Button>
+    <>
+      {showTriggerButton && (
+        <div className="flex items-center gap-3">
+          <Button
+            variant={"primary"}
+            className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+            size={"sm"}
+            onClick={() => setOpen(true)}
+          >
+            <IconPlus />
+            {!isMobile && <span className="text-inherit">New task</span>}
+          </Button>
+        </div>
+      )}
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
         <AdaptiveDialogContent
           className={cn(
@@ -389,6 +410,59 @@ export default function CreateIssueDialog({
             >
               <AdaptiveDialogTitle asChild>
                 <div className="flex items-center gap-1 w-full">
+                  {organizations && organizations.length > 0 && (
+                    <ComboBox
+                      value={organization.id}
+                      onValueChange={(val) => {
+                        if (
+                          val &&
+                          val !== organization.id &&
+                          onOrganizationChange
+                        ) {
+                          onOrganizationChange(val);
+                        }
+                      }}
+                    >
+                      <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 mb-0 flex items-center gap-2">
+                        <Avatar className="h-4 w-4 rounded-md">
+                          <AvatarImage
+                            src={organization.logo || ""}
+                            alt={organization.name}
+                          />
+                          <AvatarFallback className="rounded-md uppercase text-[8px]">
+                            {organization.name.slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <ComboBoxValue placeholder="Select org...">
+                          {organization.name}
+                        </ComboBoxValue>
+                      </ComboBoxTrigger>
+                      <ComboBoxContent>
+                        <ComboBoxSearch placeholder="Search organizations..." />
+                        <ComboBoxList>
+                          <ComboBoxEmpty>No organizations found.</ComboBoxEmpty>
+                          <ComboBoxGroup>
+                            {organizations.map((org) => (
+                              <ComboBoxItem key={org.id} value={org.id}>
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-4 w-4 rounded-md">
+                                    <AvatarImage
+                                      src={org.logo || ""}
+                                      alt={org.name}
+                                    />
+                                    <AvatarFallback className="rounded-md uppercase text-[8px]">
+                                      {org.name.slice(0, 2)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  {org.name}
+                                </div>
+                              </ComboBoxItem>
+                            ))}
+                          </ComboBoxGroup>
+                        </ComboBoxList>
+                      </ComboBoxContent>
+                    </ComboBox>
+                  )}
                   {issueTemplates.length > 0 && (
                     <ComboBox
                       value={selectedTemplateId}
@@ -396,11 +470,17 @@ export default function CreateIssueDialog({
                         handleTemplateSelect(val || "__none__")
                       }
                     >
-                      <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 mb-0 flex items-center gap-2">
-                        <IconTemplate className="h-4 w-4 text-muted-foreground" />
+                      <ComboBoxTrigger
+                        className={cn(
+                          "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 mb-0 flex items-center gap-2",
+                          selectedTemplateId === "__none__" &&
+                            "bg-transparent hover:bg-accent hover:border-accent text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <IconTemplate className="h-4 w-4" />
                         <ComboBoxValue placeholder="Choose a template...">
                           {selectedTemplateId === "__none__"
-                            ? "No template"
+                            ? "Template"
                             : issueTemplates.find(
                                 (t) => t.id === selectedTemplateId,
                               )?.name || "Choose a template..."}
@@ -493,272 +573,282 @@ export default function CreateIssueDialog({
               </AdaptiveDialogDescription>
             </AdaptiveDialogHeader>
 
-            <div
-              className={cn(
-                "flex flex-col gap-3 w-full p-3",
-                !isMobile && "flex-1 min-h-0 pt-0!",
+            <div className="relative flex-1 flex flex-col min-h-0">
+              {loading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-[1px] rounded-b-lg">
+                  <IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
               )}
-            >
+
               <div
                 className={cn(
-                  "flex flex-col gap-1 w-full",
-                  !isMobile && "flex-1 min-h-0",
+                  "flex flex-col gap-3 w-full p-3",
+                  !isMobile && "flex-1 min-h-0 pt-0!",
                 )}
               >
-                <Input
-                  variant={"strong"}
-                  placeholder="Task title"
-                  className="px-0 p-0"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
                 <div
                   className={cn(
-                    "w-full transition-all",
-                    !isMobile && "flex-1 min-h-24 overflow-y-auto",
+                    "flex flex-col gap-1 w-full",
+                    !isMobile && "flex-1 min-h-0",
                   )}
                 >
-                  <Editor
-                    onChange={setDescription}
-                    users={availableUsers}
-                    categories={categories}
-                    tasks={tasks}
-                    defaultContent={templateData}
-                    hasTemplate={
-                      !!templateData && typeof templateData === "object"
-                    }
-                    hideBlockHandle={true}
-                    firstLinePlaceholder="Task description"
+                  <Input
+                    variant={"strong"}
+                    placeholder="Task title"
+                    className="px-0 p-0"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                   />
-                </div>
-                <div className="flex items-center flex-wrap gap-1 w-full mt-auto shrink-0">
-                  <GlobalTaskStatus
-                    task={draftTask}
-                    editable
-                    onChange={(value) => setStatus(value)}
-                    customTrigger={
-                      <Button
-                        variant={"primary"}
-                        className="w-fit text-xs h-7"
-                        size={"sm"}
-                      >
-                        {statusconfig?.icon(
-                          `h-3.5 w-3.5 ${statusconfig?.className || ""}`,
-                        )}
-                        {statusconfig?.label}
-                      </Button>
-                    }
-                  />
-                  <GlobalTaskPriority
-                    task={draftTask}
-                    editable
-                    onChange={(value) => setPriority(value)}
-                    customTrigger={
-                      <Button
-                        variant={"primary"}
-                        className="w-fit text-xs h-7"
-                        size={"sm"}
-                      >
-                        {priorityconfig?.icon(
-                          `h-3.5 w-3.5 ${priorityconfig?.className || ""}`,
-                        )}
-                        {priorityconfig?.label}
-                      </Button>
-                    }
-                  />
-                  <GlobalTaskLabels
-                    task={draftTask}
-                    editable
-                    availableLabels={_labels}
-                    onLabelsChange={setLabels}
-                    customChildren
-                    customTrigger={
-                      <Button
-                        variant={"primary"}
-                        className="w-fit text-xs h-7 line-clamp-1"
-                        size={"sm"}
-                      >
-                        {selectedLabelCount > 1 ? (
-                          <div className="flex items-center gap-2">
-                            <div className="flex -space-x-1">
-                              {draftTask.labels.map((label) => (
-                                <span
-                                  key={label.id}
-                                  className="h-2 w-2 shrink-0 rounded-full"
-                                  style={{
-                                    backgroundColor: label.color || "#cccccc",
-                                  }}
-                                />
-                              ))}
-                            </div>
-                            <span>{selectedLabelCount} labels</span>
-                          </div>
-                        ) : selectedLabelCount === 1 ? (
-                          <div className="flex items-center">
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full mr-2"
-                              style={{
-                                backgroundColor:
-                                  draftTask.labels[0]?.color || "#cccccc",
-                              }}
-                            />
-                            <span>{draftTask.labels[0]?.name}</span>
-                          </div>
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            <IconLabel className="h-3.5 w-3.5 mr-1" />
-                            Labels
-                          </span>
-                        )}
-                      </Button>
-                    }
-                  />
-                  <GlobalTaskAssignees
-                    task={draftTask}
-                    editable
-                    availableUsers={availableUsers}
-                    onChange={(value) => setAssignees(value)}
-                    customTrigger={
-                      <Button
-                        variant={"primary"}
-                        className="w-fit text-xs h-7 line-clamp-1"
-                        size={"sm"}
-                      >
-                        {selectedAssigneeCount > 1 ? (
-                          <div className="flex items-center gap-2">
-                            <div className="flex -space-x-1">
-                              {draftTask.assignees.map((assignee) => (
-                                <Avatar
-                                  key={assignee.id}
-                                  className="h-4 w-4 border border-background"
-                                >
-                                  <AvatarImage
-                                    src={assignee.image || undefined}
-                                    alt={assignee.name}
-                                  />
-                                  <AvatarFallback className="text-[8px]">
-                                    {assignee.name
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")
-                                      .toUpperCase()
-                                      .slice(0, 2)}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ))}
-                            </div>
-                            <span>{selectedAssigneeCount} assignees</span>
-                          </div>
-                        ) : selectedAssigneeCount === 1 ? (
-                          <div className="flex items-center">
-                            <Avatar className="h-4 w-4 mr-2">
-                              <AvatarImage
-                                src={draftTask.assignees[0]?.image || undefined}
-                                alt={draftTask.assignees[0]?.name}
-                              />
-                              <AvatarFallback className="text-[8px]">
-                                {draftTask.assignees[0]?.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .toUpperCase()
-                                  .slice(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span>{draftTask.assignees[0]?.name}</span>
-                          </div>
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            <IconUserPlus className="h-3.5 w-3.5 mr-1" />
-                            Assignees
-                          </span>
-                        )}
-                      </Button>
-                    }
-                  />
-                  <GlobalTaskCategory
-                    task={draftTask}
-                    editable
-                    categories={categories}
-                    onChange={(value) => setCategory(value)}
-                    customTrigger={
-                      <Button
-                        variant={"primary"}
-                        className="w-fit text-xs h-7"
-                        size={"sm"}
-                      >
-                        {selectedCategory ? (
-                          <>
-                            <RenderIcon
-                              iconName={
-                                selectedCategory.icon || "IconCircleFilled"
-                              }
-                              className="size-3.5! [&_svg]:size-3.5! mr-1"
-                              color={selectedCategory.color || undefined}
-                              button
-                            />
-                            {selectedCategory.name}
-                          </>
-                        ) : (
-                          <>
-                            <IconCategory className="h-3.5 w-3.5 mr-1" />
-                            Category
-                          </>
-                        )}
-                      </Button>
-                    }
-                  />
-                  <GlobalTaskRelease
-                    task={draftTask}
-                    editable
-                    releases={releases}
-                    onChange={(value) => setReleaseId(value)}
-                    customTrigger={
-                      <Button
-                        variant={"primary"}
-                        className="w-fit text-xs h-7"
-                        size={"sm"}
-                      >
-                        {selectedRelease ? (
-                          <>
-                            {selectedRelease.icon ? (
-                              <span className="text-sm mr-1">
-                                {selectedRelease.icon}
-                              </span>
-                            ) : (
-                              <IconRocket className="h-3.5 w-3.5 mr-1" />
-                            )}
-                            {selectedRelease.name}
-                          </>
-                        ) : (
-                          <>
-                            <IconRocket className="h-3.5 w-3.5 mr-1" />
-                            Release
-                          </>
-                        )}
-                      </Button>
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-            <AdaptiveDialogFooter className="mt-auto bg-background flex flex-col! gap-2 shrink-0">
-              <div className="flex items-center gap-2 ml-auto">
-                <ButtonGroup>
-                  <Button
-                    variant={"primary"}
-                    onClick={handleUpdate}
-                    disabled={isFetching || !title.trim()}
-                    className={cn("h-7 w-auto")}
+                  <div
+                    className={cn(
+                      "w-full transition-all",
+                      !isMobile && "flex-1 min-h-24 overflow-y-auto",
+                    )}
                   >
-                    Create
-                  </Button>
-                </ButtonGroup>
+                    <Editor
+                      onChange={setDescription}
+                      users={availableUsers}
+                      categories={categories}
+                      tasks={tasks ?? []}
+                      defaultContent={templateData}
+                      hasTemplate={
+                        !!templateData && typeof templateData === "object"
+                      }
+                      hideBlockHandle={true}
+                      firstLinePlaceholder="Task description"
+                    />
+                  </div>
+                  <div className="flex items-center flex-wrap gap-1 w-full mt-auto shrink-0">
+                    <GlobalTaskStatus
+                      task={draftTask}
+                      editable
+                      onChange={(value) => setStatus(value)}
+                      customTrigger={
+                        <Button
+                          variant={"primary"}
+                          className="w-fit text-xs h-7"
+                          size={"sm"}
+                        >
+                          {statusconfig?.icon(
+                            `h-3.5 w-3.5 ${statusconfig?.className || ""}`,
+                          )}
+                          {statusconfig?.label}
+                        </Button>
+                      }
+                    />
+                    <GlobalTaskPriority
+                      task={draftTask}
+                      editable
+                      onChange={(value) => setPriority(value)}
+                      customTrigger={
+                        <Button
+                          variant={"primary"}
+                          className="w-fit text-xs h-7"
+                          size={"sm"}
+                        >
+                          {priorityconfig?.icon(
+                            `h-3.5 w-3.5 ${priorityconfig?.className || ""}`,
+                          )}
+                          {priorityconfig?.label}
+                        </Button>
+                      }
+                    />
+                    <GlobalTaskLabels
+                      task={draftTask}
+                      editable
+                      availableLabels={_labels}
+                      onLabelsChange={setLabels}
+                      customChildren
+                      customTrigger={
+                        <Button
+                          variant={"primary"}
+                          className="w-fit text-xs h-7 line-clamp-1"
+                          size={"sm"}
+                        >
+                          {selectedLabelCount > 1 ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex -space-x-1">
+                                {draftTask.labels.map((label) => (
+                                  <span
+                                    key={label.id}
+                                    className="h-2 w-2 shrink-0 rounded-full"
+                                    style={{
+                                      backgroundColor: label.color || "#cccccc",
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                              <span>{selectedLabelCount} labels</span>
+                            </div>
+                          ) : selectedLabelCount === 1 ? (
+                            <div className="flex items-center">
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full mr-2"
+                                style={{
+                                  backgroundColor:
+                                    draftTask.labels[0]?.color || "#cccccc",
+                                }}
+                              />
+                              <span>{draftTask.labels[0]?.name}</span>
+                            </div>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <IconLabel className="h-3.5 w-3.5 mr-1" />
+                              Labels
+                            </span>
+                          )}
+                        </Button>
+                      }
+                    />
+                    <GlobalTaskAssignees
+                      task={draftTask}
+                      editable
+                      availableUsers={availableUsers}
+                      onChange={(value) => setAssignees(value)}
+                      customTrigger={
+                        <Button
+                          variant={"primary"}
+                          className="w-fit text-xs h-7 line-clamp-1"
+                          size={"sm"}
+                        >
+                          {selectedAssigneeCount > 1 ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex -space-x-1">
+                                {draftTask.assignees.map((assignee) => (
+                                  <Avatar
+                                    key={assignee.id}
+                                    className="h-4 w-4 border border-background"
+                                  >
+                                    <AvatarImage
+                                      src={assignee.image || undefined}
+                                      alt={assignee.name}
+                                    />
+                                    <AvatarFallback className="text-[8px]">
+                                      {assignee.name
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .toUpperCase()
+                                        .slice(0, 2)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                ))}
+                              </div>
+                              <span>{selectedAssigneeCount} assignees</span>
+                            </div>
+                          ) : selectedAssigneeCount === 1 ? (
+                            <div className="flex items-center">
+                              <Avatar className="h-4 w-4 mr-2">
+                                <AvatarImage
+                                  src={
+                                    draftTask.assignees[0]?.image || undefined
+                                  }
+                                  alt={draftTask.assignees[0]?.name}
+                                />
+                                <AvatarFallback className="text-[8px]">
+                                  {draftTask.assignees[0]?.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .toUpperCase()
+                                    .slice(0, 2)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{draftTask.assignees[0]?.name}</span>
+                            </div>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <IconUserPlus className="h-3.5 w-3.5 mr-1" />
+                              Assignees
+                            </span>
+                          )}
+                        </Button>
+                      }
+                    />
+                    <GlobalTaskCategory
+                      task={draftTask}
+                      editable
+                      categories={categories}
+                      onChange={(value) => setCategory(value)}
+                      customTrigger={
+                        <Button
+                          variant={"primary"}
+                          className="w-fit text-xs h-7"
+                          size={"sm"}
+                        >
+                          {selectedCategory ? (
+                            <>
+                              <RenderIcon
+                                iconName={
+                                  selectedCategory.icon || "IconCircleFilled"
+                                }
+                                className="size-3.5! [&_svg]:size-3.5! mr-1"
+                                color={selectedCategory.color || undefined}
+                                button
+                              />
+                              {selectedCategory.name}
+                            </>
+                          ) : (
+                            <>
+                              <IconCategory className="h-3.5 w-3.5 mr-1" />
+                              Category
+                            </>
+                          )}
+                        </Button>
+                      }
+                    />
+                    <GlobalTaskRelease
+                      task={draftTask}
+                      editable
+                      releases={releases}
+                      onChange={(value) => setReleaseId(value)}
+                      customTrigger={
+                        <Button
+                          variant={"primary"}
+                          className="w-fit text-xs h-7"
+                          size={"sm"}
+                        >
+                          {selectedRelease ? (
+                            <>
+                              {selectedRelease.icon ? (
+                                <span className="text-sm mr-1">
+                                  {selectedRelease.icon}
+                                </span>
+                              ) : (
+                                <IconRocket className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              {selectedRelease.name}
+                            </>
+                          ) : (
+                            <>
+                              <IconRocket className="h-3.5 w-3.5 mr-1" />
+                              Release
+                            </>
+                          )}
+                        </Button>
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-            </AdaptiveDialogFooter>
+              <AdaptiveDialogFooter className="mt-auto bg-background flex flex-col! gap-2 shrink-0">
+                <div className="flex items-center gap-2 ml-auto">
+                  <ButtonGroup>
+                    <Button
+                      variant={"primary"}
+                      onClick={handleUpdate}
+                      disabled={isFetching || !title.trim()}
+                      className={cn("h-7 w-auto")}
+                    >
+                      Create
+                    </Button>
+                  </ButtonGroup>
+                </div>
+              </AdaptiveDialogFooter>
+            </div>
           </motion.div>
         </AdaptiveDialogContent>
       </AdaptiveDialog>
-    </div>
+    </>
   );
 }
