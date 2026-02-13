@@ -1,9 +1,66 @@
+import { PublicTaskContent } from "@/components/public/public-task-content";
+import { getOrganizationPublic, getTaskByShortId } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+
+const fetchPublicTask = createServerFn({ method: "GET" })
+	.inputValidator((data: { slug: string; shortId: number }) => data)
+	.handler(async ({ data }) => {
+		const organization = await getOrganizationPublic(data.slug);
+		if (!organization) return { task: null };
+		const task = await getTaskByShortId(organization.id, data.shortId, "public");
+		return { task };
+	});
 
 export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
+	loader: async ({ params }) => {
+		return await fetchPublicTask({
+			data: {
+				slug: params.orgSlug,
+				shortId: Number(params.shortId),
+			},
+		});
+	},
 	component: RouteComponent,
 });
 
 function RouteComponent() {
-	return <div>Hello "/orgs/$orgSlug/$shortId/"!</div>;
+	const { task } = Route.useLoaderData();
+
+	if (!task) {
+		return (
+			<>
+				<link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any" />
+				<title>Task Not Available</title>
+
+				<div className="via-surface to-surface flex min-h-[60vh] items-center justify-center bg-[conic-gradient(at_bottom_left,var(--tw-gradient-stops))] from-primary">					<div className="mx-auto max-w-xl text-center text-white">
+					<h1 className="text-5xl font-black">Task Not Available</h1>
+
+					<p className="mb-7 mt-3">
+						Sorry, this task could not be found or isn’t publicly available.
+						It may have been removed, or the link is incorrect.
+					</p>
+
+					<div className="flex place-content-center items-center gap-3">
+						<a href="/">
+							<Button className="border-surface-100! text-surface-100 w-full p-4 font-bold">
+								Back to organization
+							</Button>
+						</a>
+					</div>
+				</div>
+				</div>
+			</>
+		);
+	}
+
+	return (
+		<>
+			<title>
+				#{task.shortId} - {task.title}
+			</title>
+			<PublicTaskContent task={task} />
+		</>
+	);
 }

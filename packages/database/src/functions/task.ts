@@ -1,8 +1,9 @@
 import { and, eq, sql, or } from "drizzle-orm";
-import { taskCommentHistory, type NodeJSON } from "../../schema";
+import { type NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db, schema } from "..";
+import { userSummaryColumns } from "./index";
 
 /**
  * Retrieves all tasks for a given project including their full label information.
@@ -35,31 +36,19 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
 				},
 			},
 			createdBy: {
-				columns: {
-					id: true,
-					name: true,
-					image: true,
-				},
+				columns: userSummaryColumns,
 			},
 			assignees: {
 				with: {
 					user: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
+						columns: userSummaryColumns,
 					},
 				},
 			},
 			comments: {
 				with: {
 					createdBy: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
+						columns: userSummaryColumns,
 					},
 				},
 			},
@@ -102,22 +91,41 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
  * }
  * ```
  */
-export async function getTaskByShortId(orgId: string, shortId: number): Promise<schema.TaskWithLabels | null> {
+export async function getTaskByShortId(
+	orgId: string,
+	shortId: number,
+	visible?: "public" | "private",
+): Promise<schema.TaskWithLabels | null> {
 	const task = await db.query.task.findFirst({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.shortId, shortId)),
+		where: (t) =>
+			and(
+				eq(t.organizationId, orgId),
+				eq(t.shortId, shortId),
+				visible ? eq(t.visible, visible) : undefined,
+			),
 		with: {
-			labels: { with: { label: true } },
-			createdBy: { columns: { id: true, name: true, image: true } },
+			labels: {
+				with: {
+					label: {
+						where: visible ? eq(schema.label.visible, visible) : undefined,
+					},
+				},
+			},
+			createdBy: { columns: userSummaryColumns },
 			assignees: {
-				with: { user: { columns: { id: true, name: true, image: true } } },
+				with: { user: { columns: userSummaryColumns } },
 			},
 			githubIssue: {},
 		},
 	});
+
 	if (!task) return null;
+
 	return {
 		...task,
-		labels: task.labels.map((assignment) => assignment.label),
+		labels: task.labels
+			.map((assignment) => assignment.label)
+			.filter(Boolean),
 		assignees: task.assignees.map((assignment) => assignment.user),
 	} as schema.TaskWithLabels;
 }
@@ -154,9 +162,9 @@ export async function getTaskById(orgId: string, Id: string) {
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.id, Id)),
 		with: {
 			labels: { with: { label: true } },
-			createdBy: { columns: { id: true, name: true, image: true } },
+			createdBy: { columns: userSummaryColumns },
 			assignees: {
-				with: { user: { columns: { id: true, name: true, image: true } } },
+				with: { user: { columns: userSummaryColumns } },
 			},
 			githubIssue: {},
 		},
@@ -205,6 +213,7 @@ export async function createTask(
 		priority?: schema.taskType["priority"];
 		category?: schema.taskType["category"];
 		releaseId?: string | null;
+		visible?: schema.taskType["visible"];
 	},
 	createdBy?: string | null
 ) {
@@ -229,7 +238,7 @@ export async function createTask(
 			category: data.category || null,
 			releaseId: data.releaseId ?? null,
 			createdBy: createdBy, // nullable for ANONYMOUS
-			visible: "public",
+			visible: data.visible ?? "public",
 		})
 		.returning();
 	return task;
@@ -265,7 +274,13 @@ export async function createComment(
 	task_id: string,
 	content: NodeJSON,
 	visibility: schema.taskCommentType["visibility"],
-	createdBy?: string
+	createdBy?: string,
+	source?: string,
+	externalAuthorLogin?: string,
+	externalAuthorUrl?: string,
+	externalIssueNumber?: string,
+	externalCommentId?: string,
+	externalCommentUrl?: string
 ) {
 	const [newComment] = await db
 		.insert(taskComment)
@@ -275,19 +290,18 @@ export async function createComment(
 			content,
 			visibility,
 			createdBy,
+			source: source ?? "sayr",
+			externalAuthorLogin,
+			externalAuthorUrl,
+			externalIssueNumber,
+			externalCommentId,
+			externalCommentUrl
 		})
 		.returning();
 
-	// Record the initial version in history
-	if (newComment) {
-		await db.insert(taskCommentHistory).values({
-			organizationId: org_id,
-			taskId: task_id,
-			commentId: newComment.id,
-			editedBy: createdBy,
-			content: content,
-		});
-	}
+	// Note: We don't record the initial version in history.
+	// History only tracks edits (the content BEFORE each edit).
+	// The current content is always available from the comment itself.
 
 	return newComment;
 }
@@ -338,7 +352,7 @@ export async function getTaskComments(
 	const comments = await db.query.taskComment.findMany({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
 		with: {
-			createdBy: { columns: { id: true, name: true, image: true } },
+			createdBy: { columns: userSummaryColumns },
 		},
 		orderBy: (c, { desc }) => [desc(c.createdAt)],
 		limit,
@@ -361,7 +375,7 @@ export async function getTaskTimeline(orgId: string, taskId: string) {
 	const timeline = await db.query.taskTimeline.findMany({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
 		with: {
-			actor: { columns: { id: true, name: true, image: true } },
+			actor: { columns: userSummaryColumns },
 		},
 		orderBy: (c, { asc }) => [asc(c.createdAt)],
 	});
@@ -380,7 +394,7 @@ export async function getMergedTaskActivity(orgId: string, taskId: string, isPub
 		await db.query.taskComment.findMany({
 			where: () => and(...commentConditions),
 			with: {
-				createdBy: { columns: { id: true, name: true, image: true } },
+				createdBy: { columns: userSummaryColumns },
 			},
 			orderBy: (c, { desc }) => [desc(c.createdAt)],
 		}),
@@ -445,20 +459,12 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 				},
 			},
 			createdBy: {
-				columns: {
-					id: true,
-					name: true,
-					image: true,
-				},
+				columns: userSummaryColumns,
 			},
 			assignees: {
 				with: {
 					user: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
+						columns: userSummaryColumns,
 					},
 				},
 			},
@@ -480,6 +486,56 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
 	})) as schema.TaskWithLabels[];
+}
+
+/**
+ * Searches tasks across all organizations a user belongs to by title.
+ * Returns a limited set of results for use in the command palette.
+ *
+ * @param userId - The ID of the user performing the search
+ * @param query - The search query string to match against task titles
+ * @param limit - Maximum number of results to return (default: 10)
+ * @returns An array of matching tasks with org metadata
+ */
+export async function searchTasksForUser(
+	userId: string,
+	query: string,
+	limit = 10,
+): Promise<
+	{
+		id: string;
+		title: string | null;
+		shortId: number | null;
+		status: string;
+		priority: string;
+		organizationId: string;
+		organizationName: string | null;
+		organizationSlug: string | null;
+	}[]
+> {
+	if (!query || query.trim().length < 2) return [];
+
+	const searchPattern = `%${query.trim()}%`;
+
+	const results = await db
+		.select({
+			id: schema.task.id,
+			title: schema.task.title,
+			shortId: schema.task.shortId,
+			status: schema.task.status,
+			priority: schema.task.priority,
+			organizationId: schema.task.organizationId,
+			organizationName: schema.organization.name,
+			organizationSlug: schema.organization.slug,
+		})
+		.from(schema.task)
+		.innerJoin(schema.member, and(eq(schema.member.organizationId, schema.task.organizationId), eq(schema.member.userId, userId)))
+		.innerJoin(schema.organization, eq(schema.organization.id, schema.task.organizationId))
+		.where(sql`${schema.task.title} ILIKE ${searchPattern}`)
+		.orderBy(sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${query.trim().toLowerCase()}%`} THEN 0 ELSE 1 END`, sql`${schema.task.updatedAt} DESC`)
+		.limit(limit);
+
+	return results;
 }
 
 export async function createOrToggleCommentReaction(

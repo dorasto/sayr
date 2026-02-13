@@ -40,6 +40,7 @@ interface ReactionDisplayProps {
 	toggleReaction: (emoji: ReactionEmoji) => void;
 	className?: string;
 	users?: schema.userType[] | undefined;
+	currentUserId?: string;
 }
 
 // --------------------------------
@@ -86,8 +87,9 @@ export function ReactionPicker({ onSelect, existingReactions = [] }: ReactionPic
 // --------------------------------
 // ReactionDisplay
 // --------------------------------
-export function ReactionDisplay({ reactions, toggleReaction, className, users }: ReactionDisplayProps) {
+export function ReactionDisplay({ reactions, toggleReaction, className, users, currentUserId }: ReactionDisplayProps) {
 	const { value: Newaccount } = useStateManagement<schema.userType>("account", null);
+	const resolvedUserId = currentUserId ?? Newaccount?.id;
 	const [pickerOpen, setPickerOpen] = useState(false);
 
 	const visibleReactions = useMemo(() => {
@@ -95,10 +97,10 @@ export function ReactionDisplay({ reactions, toggleReaction, className, users }:
 		return Object.entries(record).map(([emoji, info]) => ({
 			emoji,
 			count: info.count,
-			reacted: Newaccount && info.users.includes(Newaccount.id),
+			reacted: resolvedUserId ? info.users.includes(resolvedUserId) : false,
 			userObjs: info.users.map((id) => users?.find((u) => u.id === id)).filter(Boolean) as schema.userType[],
 		}));
-	}, [reactions, Newaccount, users]);
+	}, [reactions, resolvedUserId, users]);
 
 	const reactedEmojis = visibleReactions.filter((r) => r.reacted).map((r) => r.emoji as ReactionEmoji);
 

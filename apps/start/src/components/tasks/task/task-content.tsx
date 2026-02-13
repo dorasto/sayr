@@ -41,9 +41,11 @@ import GlobalTaskLabels from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskRelease from "../shared/release";
 import GlobalTaskStatus from "../shared/status";
+import GlobalTaskVisibility from "../shared/visibility";
 import GlobalTimeline from "./timeline/root";
 import { Separator } from "@repo/ui/components/separator";
 import { InlineLabel } from "../shared/inlinelabel";
+import { TaskEditableHeader } from "./editable-header";
 
 interface TaskContentProps {
   isDialog?: boolean;
@@ -274,6 +276,17 @@ export function TaskContentSideContent({
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
           releases={releases}
+        />
+        <GlobalTaskVisibility
+          showLabel={false}
+          className="bg-transparent p-1 h-auto w-fit"
+          showChevron={false}
+          task={task}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
         />
       </div>
       <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
@@ -554,6 +567,19 @@ export function TaskContentMobileContent({
           releases={releases}
           compact={true}
         />
+        {/* Visibility - icon only */}
+        <GlobalTaskVisibility
+          showLabel={false}
+          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
+          showChevron={false}
+          task={task}
+          editable={true}
+          useInternalLogic={true}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
+          compact={true}
+        />
         {/* Assignees - stacked avatars */}
         <GlobalTaskAssignees
           className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
@@ -644,6 +670,8 @@ export function TaskContentMobileContent({
 interface TaskContentMainProps {
   task: schema.TaskWithLabels;
   tasks: schema.TaskWithLabels[];
+  setTasks: (tasks: schema.TaskWithLabels[]) => void;
+  setTask: (task: schema.TaskWithLabels) => void;
   labels: schema.labelType[];
   availableUsers?: schema.userType[];
   organization: schema.OrganizationWithMembers;
@@ -654,27 +682,33 @@ interface TaskContentMainProps {
 export function TaskContentMain({
   task,
   tasks,
+  setTasks,
+  setTask,
   labels,
   availableUsers = [],
+  organization,
   categories,
   releases = [],
 }: TaskContentMainProps) {
-  const [openData, onOpenDataChange] = useState(false);
+  // Wrapper function to match setSelectedTask signature
+  const setSelectedTask = (t: schema.TaskWithLabels | null) => {
+    if (t) setTask(t);
+  };
 
   return (
     <div className="">
-      <SubWrapper
-        style="compact"
-        className="max-w-6xl gap-3"
-        title={task.title || "No title"}
-        // description={`#${task.shortId}`}
-      >
-        {/*<JsonViewer
-          data={task}
-          name="task"
-          open={openData}
-          onOpenChange={onOpenDataChange}
-        />*/}
+      <SubWrapper style="compact" className="max-w-6xl gap-3">
+        {/* Editable Header with title and description */}
+        <TaskEditableHeader
+          task={task}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
+          availableUsers={availableUsers}
+          categories={categories}
+          organization={organization}
+        />
+
         <GlobalTimeline
           task={task}
           labels={labels}
@@ -716,22 +750,28 @@ export function TaskContent({
       {/* Body of content */}
       <div className="flex gap-0 min-h-full overflow-scroll">
         <div className="flex flex-col gap-3 w-full overflow-scroll overflow-x-visible p-4 pt-0">
-          <SubWrapper
-            style="compact"
-            className="max-w-6xl"
-            title={task.title || "No title"}
-            backButton=".."
-            icon={
-              <Avatar>
-                <AvatarImage
-                  src={organization.logo || ""}
-                  alt={organization.name}
+          <SubWrapper style="compact" className="max-w-6xl" backButton="..">
+            {/* Editable Header with title and description */}
+            <div className="flex gap-2 mb-6">
+              <div className="bg-accent p-1 rounded-lg h-fit shrink-0">
+                <Avatar className="size-10">
+                  <AvatarImage
+                    src={organization.logo || ""}
+                    alt={organization.name}
+                  />
+                  <AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </div>
+              <div className="flex flex-col w-full">
+                <TaskEditableHeader
+                  task={task}
+                  tasks={tasks}
+                  setTasks={setTasks}
+                  setSelectedTask={setSelectedTask}
+                  availableUsers={availableUsers}
+                  categories={categories}
+                  organization={organization}
                 />
-                <AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-            }
-            descriptionRender={
-              <div className="flex gap-1">
                 <Label
                   variant={"description"}
                   className="text-muted-foreground"
@@ -739,8 +779,7 @@ export function TaskContent({
                   #{task.shortId}
                 </Label>
               </div>
-            }
-          >
+            </div>
             <JsonViewer
               data={task}
               name="task"

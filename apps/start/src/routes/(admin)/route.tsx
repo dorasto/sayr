@@ -9,6 +9,8 @@ import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
 import { seo } from "@/seo";
 import { PostHogUserSync } from "@/components/PostHogProvider";
+import { GlobalCreateTaskDialog } from "@/components/generic/GlobalCreateTaskDialog";
+import { useGlobalCommands } from "@/hooks/commands/useGlobalCommands";
 
 // --- SERVER FUNCTIONS ---
 
@@ -46,6 +48,19 @@ const authInFlightMap =
 	typeof window !== "undefined"
 		? new Map<string, Promise<{ account: schema.userType | null; sessionId?: string }>>()
 		: null;
+
+/**
+ * Clears the client-side auth cache.
+ * Call this after updating user data to ensure fresh data on next navigation/refresh.
+ */
+export function clearAuthCache(): void {
+	if (authCacheMap) {
+		authCacheMap.clear();
+	}
+	if (authInFlightMap) {
+		authInFlightMap.clear();
+	}
+}
 
 /**
  * Session-aware cached auth fetcher.
@@ -134,6 +149,8 @@ function AdminLayout() {
 			<RootProvider account={account} organizations={organizations}>
 				<PostHogUserSync user={account ? { id: account.id, email: account.email, name: account.name } : null} />
 				<NavigationTracker />
+				<GlobalCommandRegistrar />
+				<GlobalCreateTaskDialog />
 				<AdminNavigation />
 				<Wrapper>
 					<div className="relative h-full max-h-full">
@@ -143,4 +160,10 @@ function AdminLayout() {
 			</RootProvider>
 		</div>
 	);
+}
+
+/** Registers global commands. Must be rendered inside RootProvider. */
+function GlobalCommandRegistrar() {
+	useGlobalCommands();
+	return null;
 }

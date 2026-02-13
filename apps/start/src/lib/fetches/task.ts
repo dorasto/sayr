@@ -52,6 +52,7 @@ export async function createTaskAction(
 		category?: string | null;
 		assignees?: string[];
 		releaseId?: string;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -69,6 +70,7 @@ export async function createTaskAction(
 			category: data.category,
 			assignees: data.assignees,
 			releaseId: data.releaseId,
+			visible: data.visible,
 		}),
 		headers: {
 			"Content-Type": "application/json",
@@ -130,6 +132,7 @@ export async function updateTaskAction(
 		priority?: string | null;
 		category?: string | null;
 		releaseId?: string | null;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -144,6 +147,7 @@ export async function updateTaskAction(
 		...(data.category !== undefined ? { category: data.category } : {}),
 		...(data.priority !== undefined ? { priority: data.priority } : {}),
 		...(data.releaseId !== undefined ? { releaseId: data.releaseId } : {}),
+		...(data.visible !== undefined ? { visible: data.visible } : {}),
 	};
 
 	console.info("Updating task", {
@@ -556,4 +560,117 @@ export async function CreateTaskVoteAction(
 		};
 		error?: string;
 	};
+}
+
+/**
+ * Calls the `/admin/organization/task/delete-comment` API to delete a comment.
+ *
+ * Permanently deletes a comment from a task. Only the comment author or users
+ * with admin/moderation permissions can delete comments.
+ *
+ * @param organizationId - The organization ID.
+ * @param taskId - The task ID.
+ * @param commentId - The comment ID to delete.
+ * @param wsClientId - The WebSocket client ID of the sender.
+ *
+ * @returns A promise resolving to:
+ *  - `success` — Whether the deletion succeeded.
+ *  - `data` — Object containing the deleted comment ID.
+ *  - `error` — Optional error message.
+ *
+ * @example
+ * ```ts
+ * const res = await DeleteTaskCommentAction(
+ *   "org_001",
+ *   "task_777",
+ *   "comment_ABC",
+ *   "ws_client_42"
+ * );
+ * if (res.success) console.log("Comment deleted!");
+ * ```
+ */
+export async function DeleteTaskCommentAction(
+	organizationId: string,
+	taskId: string,
+	commentId: string,
+	wsClientId: string
+): Promise<{
+	success: boolean;
+	data: { id: string };
+	error?: string;
+}> {
+	const payload = {
+		org_id: organizationId,
+		task_id: taskId,
+		comment_id: commentId,
+		wsClientId,
+	};
+
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/delete-comment`, {
+		method: "DELETE",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify(payload),
+	});
+
+	return res.json();
+}
+
+/**
+ * Calls the `/admin/organization/task/update-comment-visibility` API to change
+ * a comment's visibility between public and internal.
+ *
+ * Only the comment author or users with admin/moderation permissions can
+ * change comment visibility.
+ *
+ * @param organizationId - The organization ID.
+ * @param taskId - The task ID.
+ * @param commentId - The comment ID to update.
+ * @param visibility - The new visibility setting ("public" or "internal").
+ * @param wsClientId - The WebSocket client ID of the sender.
+ *
+ * @returns A promise resolving to:
+ *  - `success` — Whether the update succeeded.
+ *  - `data` — Object containing the updated comment ID and new visibility.
+ *  - `error` — Optional error message.
+ *
+ * @example
+ * ```ts
+ * const res = await UpdateCommentVisibilityAction(
+ *   "org_001",
+ *   "task_777",
+ *   "comment_ABC",
+ *   "internal",
+ *   "ws_client_42"
+ * );
+ * if (res.success) console.log("Visibility changed!");
+ * ```
+ */
+export async function UpdateCommentVisibilityAction(
+	organizationId: string,
+	taskId: string,
+	commentId: string,
+	visibility: "public" | "internal",
+	wsClientId: string
+): Promise<{
+	success: boolean;
+	data: { id: string; visibility: "public" | "internal" };
+	error?: string;
+}> {
+	const payload = {
+		org_id: organizationId,
+		task_id: taskId,
+		comment_id: commentId,
+		visibility,
+		wsClientId,
+	};
+
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/update-comment-visibility`, {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify(payload),
+	});
+
+	return res.json();
 }

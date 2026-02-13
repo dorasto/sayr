@@ -6,6 +6,7 @@ import { defineMention } from "prosekit/extensions/mention";
 import { definePlaceholder } from "prosekit/extensions/placeholder";
 import { defineReadonly } from "prosekit/extensions/readonly";
 import { defineReactMarkView } from "prosekit/react";
+import type { EditorState } from "prosekit/pm/state";
 import Link from "../ui/links";
 import { defineGif } from "./gif-extension";
 import { defineVideo } from "./video-extension";
@@ -13,13 +14,27 @@ import { defineVideo } from "./video-extension";
 export function defineExtension({
 	readonly = false,
 	placeholder = "Press / for commands...",
+	firstLinePlaceholder,
 }: {
 	readonly?: boolean;
 	placeholder?: string;
+	firstLinePlaceholder?: string;
 } = {}) {
+	// Create placeholder function that shows different text for first line
+	const placeholderFn = firstLinePlaceholder
+		? (state: EditorState) => {
+				// Get the current selection position
+				const { $from } = state.selection;
+				// Check if cursor is in the first block (first child of doc)
+				// $from.depth tells us how deep we are, and we check if the parent index is 0
+				const isFirstBlock = $from.depth >= 1 && $from.index($from.depth - 1) === 0;
+				return isFirstBlock ? firstLinePlaceholder : placeholder;
+			}
+		: placeholder;
+
 	const extensions = [
 		defineBasicExtension(),
-		definePlaceholder({ placeholder }),
+		definePlaceholder({ placeholder: placeholderFn }),
 		defineCodeBlock(),
 		defineCodeBlockShiki(),
 		defineMention(),

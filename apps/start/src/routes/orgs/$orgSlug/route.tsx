@@ -12,7 +12,7 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 		const organization = await getOrganizationPublic(data.slug);
 		if (!organization) return { organization: null, labels: [], categories: [] };
 		const [labels, categories] = await Promise.all([
-			getLabels(organization.id),
+			getLabels(organization.id, "public"),
 			db.query.category.findMany({
 				where: (c, { eq }) => eq(c.organizationId, organization.id),
 			}),

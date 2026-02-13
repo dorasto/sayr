@@ -56,14 +56,13 @@ interface ReleaseDetailPageProps {
 
 function ReleaseDetailPageContent() {
   const { ws } = useLayoutData();
-  const {
-    organization,
-    setOrganization,
-    labels,
-    categories,
-    releases,
-    setReleases,
-  } = useLayoutOrganization();
+   const {
+     organization,
+     setOrganization,
+     categories,
+     releases,
+     setReleases,
+   } = useLayoutOrganization();
   const { release, setRelease } = useLayoutRelease();
 
   const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
@@ -572,7 +571,6 @@ function ReleaseDetailPageContent() {
               tasks={tasks}
               setTasks={setTasks}
               ws={ws}
-              labels={labels}
               availableUsers={availableUsers}
               organization={organization}
               categories={categories}

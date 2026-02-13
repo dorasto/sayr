@@ -50,9 +50,11 @@ import "../styles/global.css";
         <meta name="description" content={description} />
         <title>{title}</title>
     </head>
-    <body class="space-y-9">
-        <main class="w-full max-w-6xl mx-auto flex flex-col gap-9">
+    <body>
+        <div class="w-full max-w-6xl mx-auto sticky top-0 z-50">
             <Navbar client:load />
+        </div>
+        <main class="w-full">
             <slot />
         </main>
         <Footer client:load />

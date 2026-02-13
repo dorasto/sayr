@@ -150,6 +150,17 @@ export async function getOrganizationPublic(orgSlug: string): Promise<schema.Org
 							createdAt: true,
 						},
 					},
+					teams: {
+						with: {
+							team: {
+								columns: {
+									id: true,
+									name: true,
+									permissions: true,
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -226,10 +237,10 @@ const fullAdminPermissions: TeamPermissions = {
 };
 
 /**
- * Creates a default "Administrators" team for an organization with full permissions
+ * Creates a default "Admin" team for an organization with full permissions
  * and adds all existing organization members to it.
  *
- * This function is idempotent - if an "Administrators" team already exists,
+ * This function is idempotent - if an "Admin" team already exists,
  * it will just ensure all members are added to it.
  *
  * @param orgId - The ID of the organization to bootstrap.
@@ -247,7 +258,7 @@ const fullAdminPermissions: TeamPermissions = {
 export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<schema.OrganizationTeamType> {
 	// Check if Administrators team already exists
 	let adminTeam = await db.query.team.findFirst({
-		where: (t, { and, eq }) => and(eq(t.organizationId, orgId), eq(t.name, "Administrators")),
+		where: (t, { and, eq }) => and(eq(t.organizationId, orgId), eq(t.name, "Admin")),
 	});
 
 	// Create if it doesn't exist
@@ -257,7 +268,7 @@ export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<sch
 			.values({
 				id: crypto.randomUUID(),
 				organizationId: orgId,
-				name: "Administrators",
+				name: "Admin",
 				description: "Full access to all organization settings and content",
 				permissions: fullAdminPermissions,
 			})

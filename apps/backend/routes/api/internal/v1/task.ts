@@ -9,12 +9,14 @@ import {
 	db,
 	getOrganizationMembers,
 	getTaskById,
+	getTaskByShortId,
 	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
+	userSummaryColumns,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -49,6 +51,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		assignees,
 		category,
 		releaseId,
+		visible,
 	} = await c.req.json();
 	const session = c.get("session");
 
@@ -60,10 +63,10 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 
 	const task = await traceAsync(
 		"task.create.insert",
-		() => createTask(orgId, { title, description, status, priority, category, releaseId }, session?.userId),
+		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible }, session?.userId),
 		{
 			description: "Creating task record",
-			data: { orgId, title, status, priority, category, releaseId },
+			data: { orgId, title, status, priority, category, releaseId, visible },
 		}
 	);
 
@@ -130,7 +133,9 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			};
 
 			broadcast(orgId, `tasks`, data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			if (taskWithData?.visible === "public") {
+				broadcastPublic(orgId, { ...data, data: data }, found?.socket);
+			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -157,7 +162,11 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			});
 
 			if (!foundLink || !taskWithData) return;
-
+			const org = await db.query.organization.findFirst({
+				where: eq(schema.organization.id, orgId),
+			});
+			if (!org || !taskWithData) return;
+			const sayrTaskUrl = `https://${org.slug}.sayr.io/${taskWithData.shortId}`;
 			const token = await getInstallationToken(foundLink.installationId);
 			const octokit = new Octokit({ auth: token });
 
@@ -168,11 +177,19 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const owner = repoInfo.owner.login;
 			const repo = repoInfo.name;
 
-			const { data: issue } = await octokit.request("POST /repos/{owner}/{repo}/issues", {
-				owner,
-				repo,
-				title,
-			});
+			const body =
+				`↪ From Sayr task ${sayrTaskUrl}\n\n` +
+				`<!-- sayr-task:${taskWithData.id} -->\n\n` +
+				`---\n\n`;
+			const { data: issue } = await octokit.request(
+				"POST /repos/{owner}/{repo}/issues",
+				{
+					owner,
+					repo,
+					title,
+					body,
+				}
+			);
 
 			await db.insert(schema.githubIssue).values({
 				repositoryId: foundLink.id,
@@ -232,7 +249,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	}
 
 	const allowed: Partial<schema.taskType> = {};
-	["title", "description", "status", "priority", "category", "releaseId"].forEach((field) => {
+	["title", "description", "status", "priority", "category", "releaseId", "visible"].forEach((field) => {
 		if (updates[field] !== undefined) {
 			// @ts-expect-error dynamic field
 			allowed[field] = updates[field];
@@ -274,15 +291,22 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				);
 			}
 			if (updates.title && updates.title !== existingTask.title) {
-				await addLogEventTask(taskId, orgId, "updated", existingTask.title, updates.title, session?.userId);
+				await addLogEventTask(
+					taskId,
+					orgId,
+					"updated",
+					{ field: "title", value: existingTask.title },
+					{ field: "title", value: updates.title },
+					session?.userId
+				);
 			}
 			if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
 				await addLogEventTask(
 					taskId,
 					orgId,
 					"updated",
-					existingTask.description,
-					updates.description,
+					{ field: "description", value: existingTask.description },
+					{ field: "description", value: updates.description },
 					session?.userId,
 					updates.description
 				);
@@ -294,6 +318,16 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"release_change",
 					existingTask.releaseId,
 					updates.releaseId,
+					session?.userId
+				);
+			}
+			if (updates.visible !== undefined && updates.visible !== existingTask.visible) {
+				await addLogEventTask(
+					taskId,
+					orgId,
+					"updated",
+					{ field: "visible", value: existingTask.visible },
+					{ field: "visible", value: updates.visible },
 					session?.userId
 				);
 			}
@@ -322,7 +356,9 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
-			broadcastPublic(orgId, { ...data });
+			if (taskWithData?.visible === "public") {
+				broadcastPublic(orgId, { ...data }, found?.socket);
+			}
 
 			// If releaseId changed, broadcast release update as well
 			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
@@ -486,7 +522,9 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, undefined, true);
-			broadcastPublic(orgId, { ...data });
+			if (taskWithData?.visible === "public") {
+				broadcastPublic(orgId, { ...data });
+			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -502,6 +540,138 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 	);
 
 	return c.json({ success: true, data: newLink });
+});
+
+apiRouteAdminProjectTask.post("/activity", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const {
+		org_id: orgId,
+		task_id: taskId,
+		type,
+		data, // ✅ this becomes fromValue
+	} = await c.req.json();
+
+	const session = c.get("session");
+	const user = c.get("user");
+	const isSystemAccount = user?.role === "system";
+
+	// --------------------
+	// Auth (system only)
+	// --------------------
+	if (!isSystemAccount) {
+		await recordWideError({
+			name: "task.activity.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User does not have permission to create task activity",
+			contextData: { orgId, userId: session?.userId },
+		});
+
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to create task activity.",
+			},
+			401
+		);
+	}
+
+	// --------------------
+	// Task lookup
+	// --------------------
+	const task = await traceAsync(
+		"task.activity.task_lookup",
+		() =>
+			db.query.task.findFirst({
+				where: (t) =>
+					and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+			}),
+		{
+			description: "Finding task for activity",
+			data: { orgId, taskId },
+		}
+	);
+
+	if (!task) {
+		await recordWideError({
+			name: "task.activity.notfound",
+			error: new Error("Task not found"),
+			code: "TASK_NOT_FOUND",
+			message: "Task not found in organization",
+			contextData: { orgId, taskId },
+		});
+
+		return c.json({ success: false, error: "Task not found" }, 404);
+	}
+
+	// --------------------
+	// Insert timeline event (✅ canonical path)
+	// --------------------
+	const activity = await traceAsync(
+		"task.activity.insert",
+		() =>
+			addLogEventTask(
+				taskId,
+				orgId,
+				type,
+				null,
+				data ?? null, // ✅ commit metadata lives here
+				undefined
+			),
+		{
+			description: "Creating task timeline activity",
+			data: { orgId, taskId, type },
+		}
+	);
+
+	// --------------------
+	// Broadcast updates
+	// --------------------
+	await traceAsync(
+		"task.activity.broadcast",
+		async () => {
+			const taskWithData = await getTaskById(orgId, taskId);
+
+			const message = {
+				type: "UPDATE_TASK" as WSBaseMessage["type"],
+				data: taskWithData,
+			};
+
+			broadcastToRoom(
+				orgId,
+				`tasks;task:${taskId}`,
+				message,
+				undefined,
+				true
+			);
+
+			if (taskWithData?.visible === "public") {
+				broadcastPublic(orgId, { ...message });
+			}
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						!(
+							client.channel === `task:${taskId}` ||
+							client.channel === "tasks"
+						) &&
+						broadcastIndividual(
+							client.socket,
+							message,
+							orgId
+						)
+				);
+			});
+		},
+		{ description: "Broadcasting task activity to clients" }
+	);
+
+	return c.json({ success: true, data: activity });
 });
 
 // Update task labels
@@ -595,7 +765,9 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 				};
 
 				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
-				broadcastPublic(orgId, { ...data });
+				if (taskWithData?.visible === "public") {
+					broadcastPublic(orgId, { ...data }, found?.socket);
+				}
 
 				const members = await getOrganizationMembers(orgId);
 				members.forEach((member) => {
@@ -655,7 +827,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 					with: {
 						assignees: {
 							with: {
-								user: { columns: { id: true, name: true, image: true } },
+								user: { columns: userSummaryColumns },
 							},
 						},
 					},
@@ -740,7 +912,9 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 				};
 
 				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
-				broadcastPublic(orgId, { ...data });
+				if (taskWithData?.visible === "public") {
+					broadcastPublic(orgId, { ...data }, found?.socket);
+				}
 
 				const members = await getOrganizationMembers(orgId);
 				members.forEach((member) => {
@@ -776,24 +950,58 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility } = await c.req.json();
+	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, createdBy: bodyCreatedBy } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
-	if (!isAuthorized) {
-		return c.json(
-			{
-				success: false,
-				error: "You don't have permission to create comments.",
-			},
-			401
-		);
+	// Allow non-members to post public-only comments on public tasks
+	if (!isOrgMember) {
+		if (!session?.userId) {
+			return c.json(
+				{
+					success: false,
+					error: "You must be signed in to comment.",
+				},
+				401
+			);
+		}
+
+		if (visibility !== "public") {
+			return c.json(
+				{
+					success: false,
+					error: "You can only post public comments.",
+				},
+				403
+			);
+		}
+
+		// Verify the task exists and is publicly visible
+		const task = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+			columns: { id: true },
+		});
+
+		if (!task) {
+			return c.json(
+				{
+					success: false,
+					error: "Task not found or is not public.",
+				},
+				404
+			);
+		}
 	}
 
 	await traceAsync(
 		"task.comment.create.insert",
-		() => createComment(orgId, taskId, content, visibility, session?.userId),
+		() => {
+			// For GitHub-sourced comments, only set createdBy if explicitly provided (linked Sayr user).
+			// Otherwise leave it null so unlinked GitHub users show their GitHub identity, not the system account.
+			const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
+			return createComment(orgId, taskId, content, visibility, effectiveCreatedBy, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl);
+		},
 		{
 			description: "Creating task comment",
 			data: { orgId, taskId, visibility, userId: session?.userId },
@@ -814,7 +1022,9 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			if (visibility === "public") {
+				broadcastPublic(orgId, { ...data }, found?.socket);
+			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -842,11 +1052,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	const { org_id: orgId, wsClientId, comment_id: commentId, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
-
-	if (!isAuthorized) {
-		return c.json({ success: false, error: "You don't have permission to edit comments." }, 401);
-	}
+	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	const comment = await traceAsync(
 		"task.comment.edit.lookup",
@@ -865,10 +1071,43 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
 	}
 
+	// Non-members can only edit their own public comments on public tasks
+	if (!isOrgMember) {
+		if (!session?.userId) {
+			return c.json({ success: false, error: "You must be signed in to edit comments." }, 401);
+		}
+
+		if (comment.createdBy !== session.userId) {
+			return c.json({ success: false, error: "You can only edit your own comments." }, 403);
+		}
+
+		// Verify the task is public
+		const task = comment.taskId
+			? await db.query.task.findFirst({
+				where: (t) => and(eq(t.id, comment.taskId!), eq(t.organizationId, orgId), eq(t.visible, "public")),
+				columns: { id: true },
+			})
+			: null;
+
+		if (!task) {
+			return c.json({ success: false, error: "Task not found or is not public." }, 404);
+		}
+	}
+
 	await traceAsync(
 		"task.comment.edit.transaction",
 		() =>
 			db.transaction(async (tx) => {
+				// First, save the OLD content to history before overwriting
+				await tx.insert(schema.taskCommentHistory).values({
+					organizationId: comment.organizationId,
+					taskId: comment.taskId,
+					commentId: comment.id,
+					editedBy: session?.userId,
+					content: comment.content, // Save the OLD content, not the new one
+				});
+
+				// Then update the comment with the new content
 				await tx
 					.update(schema.taskComment)
 					.set({
@@ -877,14 +1116,6 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 						updatedAt: new Date(),
 					})
 					.where(eq(schema.taskComment.id, commentId));
-
-				await tx.insert(schema.taskCommentHistory).values({
-					organizationId: comment.organizationId,
-					taskId: comment.taskId,
-					commentId: comment.id,
-					editedBy: session?.userId,
-					content,
-				});
 			}),
 		{
 			description: "Updating comment and inserting history",
@@ -911,7 +1142,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `task:${comment.taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			broadcastPublic(orgId, { ...data }, found?.socket);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -931,6 +1162,231 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	return c.json({ success: true, data: { id: comment.taskId } });
 });
 
+// Delete a comment
+apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const { org_id: orgId, task_id: taskId, comment_id: commentId, wsClientId } = await c.req.json();
+	const session = c.get("session");
+
+	// Check if user is a member of the organization
+	const isMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+
+	// Fetch the comment
+	const comment = await traceAsync(
+		"task.comment.delete.lookup",
+		() => db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) }),
+		{ description: "Finding comment to delete", data: { commentId } }
+	);
+
+	if (!comment) {
+		await recordWideError({
+			name: "task.comment.delete.notfound",
+			error: new Error("Comment not found"),
+			code: "COMMENT_NOT_FOUND",
+			message: "Comment not found in database",
+			contextData: { orgId, commentId },
+		});
+		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
+	}
+
+	const isAuthor = comment.createdBy === session?.userId;
+
+	if (isMember) {
+		// Org members: author, admin, or mod can delete
+		const hasAdminPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+		const hasModPermission = await traceOrgPermissionCheck(
+			session?.userId || "",
+			orgId,
+			"moderation.manageComments",
+		);
+
+		if (!isAuthor && !hasAdminPermission && !hasModPermission) {
+			return c.json(
+				{ success: false, error: "You don't have permission to delete this comment." },
+				403,
+			);
+		}
+	} else {
+		// Non-members: must be signed in and can only delete their own comments on public tasks
+		if (!session?.userId) {
+			return c.json({ success: false, error: "You must be signed in to delete comments." }, 401);
+		}
+
+		if (!isAuthor) {
+			return c.json({ success: false, error: "You can only delete your own comments." }, 403);
+		}
+
+		// Verify the task is public
+		const task = taskId
+			? await db.query.task.findFirst({
+				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+				columns: { id: true },
+			})
+			: null;
+
+		if (!task) {
+			return c.json({ success: false, error: "Task not found or is not public." }, 404);
+		}
+	}
+
+	// Delete the comment and its history
+	await traceAsync(
+		"task.comment.delete.transaction",
+		() =>
+			db.transaction(async (tx) => {
+				// Delete comment history first (foreign key constraint)
+				await tx
+					.delete(schema.taskCommentHistory)
+					.where(eq(schema.taskCommentHistory.commentId, commentId));
+
+				// Delete reactions
+				await tx
+					.delete(schema.taskCommentReaction)
+					.where(eq(schema.taskCommentReaction.commentId, commentId));
+
+				// Delete the comment
+				await tx
+					.delete(schema.taskComment)
+					.where(eq(schema.taskComment.id, commentId));
+			}),
+		{
+			description: "Deleting comment and related data",
+			data: { orgId, commentId, taskId },
+		}
+	);
+
+	// Broadcast update
+	await traceAsync(
+		"task.comment.delete.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				data: { id: taskId },
+			};
+
+			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			broadcastPublic(orgId, { ...data }, found?.socket);
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						client.wsClientId !== wsClientId &&
+						client.orgId !== orgId &&
+						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
+						broadcastIndividual(client.socket, data, orgId)
+				);
+			});
+		},
+		{ description: "Broadcasting comment deletion to clients" }
+	);
+
+	return c.json({ success: true, data: { id: commentId } });
+});
+
+// Update comment visibility
+apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const { org_id: orgId, task_id: taskId, comment_id: commentId, visibility, wsClientId } = await c.req.json();
+	const session = c.get("session");
+
+	// Validate visibility value
+	if (visibility !== "public" && visibility !== "internal") {
+		return c.json({ success: false, error: "Invalid visibility value. Must be 'public' or 'internal'." }, 400);
+	}
+
+	// First, check if user is a member of the organization
+	const isMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isMember) {
+		return c.json({ success: false, error: "You don't have permission to access this organization." }, 401);
+	}
+
+	// Fetch the comment
+	const comment = await traceAsync(
+		"task.comment.visibility.lookup",
+		() => db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) }),
+		{ description: "Finding comment to update visibility", data: { commentId } }
+	);
+
+	if (!comment) {
+		await recordWideError({
+			name: "task.comment.visibility.notfound",
+			error: new Error("Comment not found"),
+			code: "COMMENT_NOT_FOUND",
+			message: "Comment not found in database",
+			contextData: { orgId, commentId },
+		});
+		return c.json({ success: false, error: "COMMENT_NOT_FOUND" }, 404);
+	}
+
+	// Check if user is the comment author
+	const isAuthor = comment.createdBy === session?.userId;
+
+	// Check if user has admin or moderation.manageComments permission
+	const hasAdminPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+	const hasModPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "moderation.manageComments");
+
+	if (!isAuthor && !hasAdminPermission && !hasModPermission) {
+		return c.json(
+			{ success: false, error: "You don't have permission to change this comment's visibility." },
+			403
+		);
+	}
+
+	// Update the comment visibility
+	await traceAsync(
+		"task.comment.visibility.update",
+		() =>
+			db
+				.update(schema.taskComment)
+				.set({
+					visibility,
+					updatedAt: new Date(),
+				})
+				.where(eq(schema.taskComment.id, commentId)),
+		{
+			description: "Updating comment visibility",
+			data: { orgId, commentId, visibility },
+		}
+	);
+
+	// Broadcast update
+	await traceAsync(
+		"task.comment.visibility.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				data: { id: taskId },
+			};
+
+			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			broadcastPublic(orgId, { ...data }, found?.socket);
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						client.wsClientId !== wsClientId &&
+						client.orgId !== orgId &&
+						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
+						broadcastIndividual(client.socket, data, orgId)
+				);
+			});
+		},
+		{ description: "Broadcasting comment visibility update to clients" }
+	);
+
+	return c.json({ success: true, data: { id: commentId, visibility } });
+});
+
 apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	const traceAsync = createTraceAsync();
 
@@ -938,17 +1394,35 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 
 	const session = c.get("session");
 
-	// 1️⃣ Permission check
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	// 1️⃣ Permission check — org members get full access; non-members must be signed in + task must be public
+	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
-	if (!isAuthorized) {
-		return c.json(
-			{
-				success: false,
-				error: "You don't have permission to react to comments.",
-			},
-			401
-		);
+	if (!isOrgMember) {
+		if (!session?.userId) {
+			return c.json(
+				{
+					success: false,
+					error: "You must be signed in to react.",
+				},
+				401
+			);
+		}
+
+		// Verify the task exists and is publicly visible
+		const task = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+			columns: { id: true },
+		});
+
+		if (!task) {
+			return c.json(
+				{
+					success: false,
+					error: "Task not found or is not public.",
+				},
+				404
+			);
+		}
 	}
 
 	// 2️⃣ Insert or toggle reaction
@@ -975,7 +1449,7 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 			};
 
 			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			broadcastPublic(orgId, { ...data }, found?.socket);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1148,7 +1622,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 					offset,
 					with: {
 						createdBy: {
-							columns: { name: true, image: true },
+							columns: userSummaryColumns,
 						},
 						reactions: {
 							columns: { emoji: true, userId: true },
@@ -1404,6 +1878,7 @@ function baseTaskWhere(orgId: string, categoryId?: string, search?: string) {
 	const conditions = [
 		eq(schema.task.organizationId, orgId),
 		or(eq(schema.task.status, "todo"), eq(schema.task.status, "in-progress"), eq(schema.task.status, "backlog")),
+		eq(schema.task.visible, "public"),
 	];
 
 	if (categoryId) {
@@ -1510,12 +1985,12 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 					with: {
 						labels: { with: { label: true } },
 						createdBy: {
-							columns: { id: true, name: true, image: true },
+							columns: userSummaryColumns,
 						},
 						assignees: {
 							with: {
 								user: {
-									columns: { id: true, name: true, image: true },
+									columns: userSummaryColumns,
 								},
 							},
 						},
@@ -1541,7 +2016,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 			async () => {
 				let normalized = rows.map((task) => ({
 					...task,
-					labels: task.labels.map((l) => l.label),
+					labels: task.labels.map((l) => l.label).filter((l) => l.visible === "public"),
 					assignees: task.assignees.map((a) => a.user),
 					comments: task.comments?.filter((c) => c.visibility === "public"),
 				})) as schema.TaskWithLabels[];

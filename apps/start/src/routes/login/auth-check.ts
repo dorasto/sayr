@@ -6,10 +6,11 @@ function getCookie(request: Request, name: string): string | undefined {
 
 	return cookie
 		.split("; ")
-		.find((row) => row.startsWith(name + "="))
-		?.split("=")[1];
+		.find((row) => row.startsWith(`${name}=`))
+		?.split("=")
+		.slice(1)
+		.join("=");
 }
-
 function getCookieDomain(url: string) {
 	try {
 		const { hostname } = new URL(url);
@@ -19,34 +20,52 @@ function getCookieDomain(url: string) {
 		return undefined;
 	}
 }
-
 export const Route = createFileRoute("/login/auth-check")({
 	server: {
 		handlers: {
 			GET: async ({ request }) => {
 				const originRaw = getCookie(request, "login_origin");
+				const redirectRaw = getCookie(request, "post_login_redirect");
 
-				let redirectTo = import.meta.env.VITE_URL_ROOT ?? "/";
+				let origin: string | undefined;
+				let redirectPath = "/";
 
 				if (originRaw) {
-					redirectTo = decodeURIComponent(originRaw);
+					try {
+						origin = decodeURIComponent(originRaw);
+					} catch { }
 				}
 
+				if (redirectRaw) {
+					try {
+						const decoded = decodeURIComponent(redirectRaw);
+						if (decoded.startsWith("/")) {
+							redirectPath = decoded;
+						}
+					} catch { }
+				}
+
+				const location = origin
+					? `${origin}${redirectPath}`
+					: redirectPath;
+
+				const headers = new Headers();
+				headers.set("Location", location);
 				const domain = originRaw ? getCookieDomain(decodeURIComponent(originRaw)) : undefined;
 
-				// Clear cookie
-				const clearCookie = ["login_origin=", "path=/", "max-age=0", "samesite=lax"];
+				headers.append(
+					"Set-Cookie",
+					`login_origin=; Path=/; Max-Age=0; SameSite=Lax; domain=.${domain}`
+				);
 
-				if (domain) {
-					clearCookie.push(`domain=.${domain}`);
-				}
+				headers.append(
+					"Set-Cookie",
+					"post_login_redirect=; Path=/; Max-Age=0; SameSite=Lax"
+				);
 
 				return new Response(null, {
 					status: 302,
-					headers: {
-						Location: redirectTo,
-						"Set-Cookie": clearCookie.join("; "),
-					},
+					headers,
 				});
 			},
 		},

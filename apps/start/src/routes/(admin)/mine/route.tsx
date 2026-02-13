@@ -17,9 +17,9 @@ export const getMyTasks = createServerFn({ method: "GET" })
 				...task,
 				organization: task.organization
 					? {
-							...task.organization,
-							logo: task.organization.logo ? ensureCdnUrl(task.organization.logo) : null,
-						}
+						...task.organization,
+						logo: task.organization.logo ? ensureCdnUrl(task.organization.logo) : null,
+					}
 					: undefined,
 			}));
 			const organizationIds = Array.from(new Set(tasks.map((task) => task.organizationId)));

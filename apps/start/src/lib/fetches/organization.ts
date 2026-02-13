@@ -285,7 +285,7 @@ export async function deleteOrganizationMemberAction(
  * Creates new labels in an organization.
  *
  * @param organizationId - The ID of the organization the labels belong to.
- * @param data - The label properties (name, color).
+ * @param data - The label properties (name, color, visible).
  * @param wsClientId - The WebSocket client ID (for broadcasting updates).
  */
 export async function createLabelAction(
@@ -293,6 +293,7 @@ export async function createLabelAction(
 	data: {
 		name: string;
 		color: string;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
@@ -300,6 +301,7 @@ export async function createLabelAction(
 		org_id: organizationId,
 		name: data.name,
 		color: data.color,
+		visible: data.visible,
 		wsClientId,
 	};
 
@@ -325,7 +327,7 @@ export async function createLabelAction(
  * Updates an existing label in an organization.
  *
  * @param organizationId - The ID of the organization the labels belong to.
- * @param data - The label properties to update (id, name, color).
+ * @param data - The label properties to update (id, name, color, visible).
  * @param wsClientId - The WebSocket client ID (for broadcasting updates).
  */
 export async function editLabelAction(
@@ -334,6 +336,7 @@ export async function editLabelAction(
 		id: string;
 		name: string;
 		color: string;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
@@ -342,6 +345,7 @@ export async function editLabelAction(
 		id: data.id,
 		name: data.name,
 		color: data.color,
+		visible: data.visible,
 		wsClientId,
 	};
 

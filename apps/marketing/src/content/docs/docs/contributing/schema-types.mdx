@@ -1,0 +1,902 @@
+---
+title: Schema Types Reference
+description: Complete reference for TypeScript types in the Sayr database schema
+sidebar:
+   order: 5
+---
+
+import TypeCard from "../../../../components/TypeCard.astro";
+import { Badge } from "@/components/ui/badge";
+
+This guide documents all TypeScript types available in the `@repo/database` package. Understanding these types is essential for working with the database layer and ensuring type safety across the codebase.
+
+<div class="not-content mb-8 p-4 rounded-lg border border-border bg-[--sl-color-bg]">
+	<h4 class="text-base font-semibold mb-3">Type Categories</h4>
+	<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+		<div class="flex items-center gap-2">
+			<Badge variant="outline" className="bg-blue-800 text-blue-200 border-0 gap-1.5">
+				<span class="size-1.5 rounded-full bg-blue-200"></span>
+				Base
+			</Badge>
+			<span class="text-sm text-muted-foreground">Direct table rows</span>
+		</div>
+		<div class="flex items-center gap-2">
+			<Badge variant="outline" className="bg-green-800 text-green-200 border-0 gap-1.5">
+				<span class="size-1.5 rounded-full bg-green-200"></span>
+				Extended
+			</Badge>
+			<span class="text-sm text-muted-foreground">With relations</span>
+		</div>
+		<div class="flex items-center gap-2">
+			<Badge variant="outline" className="bg-purple-800 text-purple-200 border-0 gap-1.5">
+				<span class="size-1.5 rounded-full bg-purple-200"></span>
+				Utility
+			</Badge>
+			<span class="text-sm text-muted-foreground">Reusable fragments</span>
+		</div>
+	</div>
+</div>
+
+```typescript
+// Importing types from @repo/database
+import type {
+   userType,           // Base types
+   TaskWithLabels,     // Extended types
+   UserSummary,        // Utility types
+} from "@repo/database";
+```
+
+---
+
+## User Types
+
+Types for users, authentication, and sessions.
+
+<TypeCard
+	name="userType"
+	category="base"
+	description="Full user record from the user table. Contains all user profile data including authentication status and ban information."
+>
+
+```typescript
+type userType = {
+  id: string;
+  name: string;
+  displayName: string | null;
+  email: string;
+  emailVerified: boolean;
+  image: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  role: string | null;
+  banned: boolean | null;
+  banReason: string | null;
+  banExpires: Date | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="UserSummary"
+	category="utility"
+	description="Lightweight user data for display purposes. Used whenever you need to show user information (avatars, names) without loading the full user record. Derived from userType."
+	usedIn={["TaskWithLabels.createdBy", "TaskWithLabels.assignees", "CommentsWithAuthor.createdBy", "taskTimelineWithActor.actor", "ReleaseWithTasks.createdBy"]}
+>
+
+```typescript
+type UserSummary = {
+  id: string;
+  name: string;
+  image: string | null;
+  displayName?: string | null;
+};
+
+// Related constants for queries:
+import { userSummaryColumns } from "@repo/database";
+
+const task = await db.query.task.findFirst({
+  with: {
+    createdBy: { columns: userSummaryColumns },
+  },
+});
+```
+
+</TypeCard>
+
+<TypeCard
+	name="sessionType"
+	category="base"
+	description="User session record for authentication. Tracks login sessions with device info."
+>
+
+```typescript
+type sessionType = {
+  id: string;
+  expiresAt: Date;
+  token: string;
+  createdAt: Date;
+  updatedAt: Date;
+  ipAddress: string | null;
+  userAgent: string | null;
+  userId: string;
+  impersonatedBy: string | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="accountType"
+	category="base"
+	description="OAuth account linkage (GitHub, Doras, etc.). Links external auth providers to users."
+>
+
+```typescript
+type accountType = {
+  id: string;
+  accountId: string;
+  providerId: string;
+  userId: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  idToken: string | null;
+  accessTokenExpiresAt: Date | null;
+  refreshTokenExpiresAt: Date | null;
+  scope: string | null;
+  password: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+```
+
+</TypeCard>
+
+
+## Task Types
+
+Types for tasks and related entities - the core of Sayr's functionality.
+
+<TypeCard
+	name="taskType"
+	category="base"
+	description="Base task record from the database. Note: createdBy is a string (user ID) in this type, not a UserSummary."
+>
+
+```typescript
+type taskType = {
+  id: string;
+  organizationId: string;
+  shortId: number | null;
+  visible: "public" | "private";
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  title: string | null;
+  description: NodeJSON | null;
+  status: "backlog" | "todo" | "in-progress" | "done" | "canceled";
+  priority: "none" | "low" | "medium" | "high" | "urgent";
+  createdBy: string | null;  // User ID
+  category: string | null;
+  releaseId: string | null;
+  voteCount: number;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="TaskWithLabels"
+	category="extended"
+	description="The primary task type used throughout the application. Includes all related data needed for display in task lists, detail pages, and API responses."
+	usedIn={["Task list views", "Task detail pages", "WebSocket updates", "API responses"]}
+>
+
+```typescript
+type TaskWithLabels = Omit<taskType, "createdBy"> & {
+  labels: labelType[];
+  assignees: UserSummary[];
+  createdBy?: UserSummary | null;
+  organization?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+  };
+  comments?: CommentsWithAuthor;
+  githubIssue?: githubIssueType;
+  description: NodeJSON;
+};
+
+// Uses Omit because base type has createdBy: string
+// but we need createdBy: UserSummary
+```
+
+</TypeCard>
+
+<TypeCard
+	name="taskAssigneeType"
+	category="base"
+	description="Join table for task-user assignments. Links users to tasks they're assigned to."
+>
+
+```typescript
+type taskAssigneeType = {
+  taskId: string;
+  organizationId: string;
+  userId: string;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="taskVoteType"
+	category="base"
+	description="User vote on a task. Supports both authenticated and anonymous voting via fingerprinting."
+>
+
+```typescript
+type taskVoteType = {
+  id: string;
+  organizationId: string;
+  taskId: string;
+  userId: string | null;    // null for anon
+  anonHash: string | null;  // fingerprint
+  createdAt: Date | null;
+};
+```
+
+</TypeCard>
+
+## Comment Types
+
+Types for task comments, reactions, and edit history.
+
+<TypeCard
+	name="taskCommentType"
+	category="base"
+	description="Base comment record. Supports public and internal visibility for team-only comments."
+>
+
+```typescript
+type taskCommentType = {
+  id: string;
+  organizationId: string;
+  taskId: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  content: NodeJSON | null;
+  createdBy: string | null;  // User ID
+  visibility: "public" | "internal";
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="CommentsWithAuthor"
+	category="extended"
+	description="Comments array with resolved author information. Used when displaying comments in task detail views."
+	usedIn={["Task detail views", "Comment lists", "TaskWithLabels.comments"]}
+>
+
+```typescript
+type CommentsWithAuthor = Array<
+  Omit<taskCommentType, "createdBy"> & {
+    createdBy: UserSummary | null;
+    content: NodeJSON;
+  }
+>;
+```
+
+</TypeCard>
+
+<TypeCard
+	name="taskCommentReactionType"
+	category="base"
+	description="Emoji reaction on a comment. Each user can react once per emoji per comment."
+>
+
+```typescript
+type taskCommentReactionType = {
+  id: string;
+  organizationId: string;
+  taskId: string;
+  commentId: string;
+  userId: string;
+  emoji: string;  // Raw emoji character
+  createdAt: Date | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="taskCommentHistoryType"
+	category="base"
+	description="Edit history for a comment. Stores previous versions when comments are edited."
+>
+
+```typescript
+type taskCommentHistoryType = {
+  id: string;
+  organizationId: string;
+  taskId: string | null;
+  commentId: string;
+  editedAt: Date | null;
+  editedBy: string | null;
+  content: NodeJSON | null;
+};
+```
+
+</TypeCard>
+
+
+## Timeline Types
+
+Types for task activity timeline and event tracking.
+
+<TypeCard
+	name="taskTimelineType"
+	category="base"
+	description="Base timeline event record. Tracks all changes made to a task including status changes, assignments, and comments."
+>
+
+```typescript
+type taskTimelineType = {
+  id: string;
+  taskId: string;
+  organizationId: string;
+  actorId: string | null;
+  eventType: TimelineEventType;
+  fromValue: unknown;   // Previous value
+  toValue: unknown;     // New value
+  content: NodeJSON | null;
+  createdAt: Date | null;
+};
+
+type TimelineEventType =
+  | "status_change" | "priority_change"
+  | "comment" | "label_added" | "label_removed"
+  | "assignee_added" | "assignee_removed"
+  | "created" | "updated"
+  | "category_change" | "release_change";
+```
+
+</TypeCard>
+
+<TypeCard
+	name="taskTimelineWithActor"
+	category="extended"
+	description="Timeline event with resolved actor and visibility. Used when displaying task activity feeds."
+	usedIn={["Task activity feeds", "Timeline components"]}
+>
+
+```typescript
+type taskTimelineWithActor = taskTimelineType & {
+  visibility: "public" | "internal";
+  actor?: UserSummary;
+  updatedAt?: Date | null;
+  reactions?: {
+    total: number;
+    reactions: Record<string, {
+      count: number;
+      users: string[];
+    }>;
+  };
+};
+```
+
+</TypeCard>
+
+---
+
+## Organization Types
+
+Types for organizations, membership, and teams.
+
+<TypeCard
+	name="organizationType"
+	category="base"
+	description="Base organization record. Contains org profile and settings."
+>
+
+```typescript
+type organizationType = {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  bannerImg: string | null;
+  description: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  privateId: string;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="OrganizationWithMembers"
+	category="extended"
+	description="Organization with its member list loaded. Used for org details with team members."
+	usedIn={["Organization settings", "Member management"]}
+>
+
+```typescript
+interface OrganizationWithMembers extends organizationType {
+  members: (OrganizationMemberType & {
+    user: userType
+  })[];
+}
+```
+
+</TypeCard>
+
+<TypeCard
+	name="OrganizationMemberType"
+	category="base"
+	description="A user's membership in an organization. Links users to orgs."
+>
+
+```typescript
+type OrganizationMemberType = {
+  id: string;
+  userId: string;
+  organizationId: string;
+  createdAt: Date | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="OrganizationTeamType"
+	category="base"
+	description="A team within an organization with granular permissions."
+>
+
+```typescript
+type OrganizationTeamType = {
+  id: string;
+  organizationId: string;
+  name: string;
+  description: string | null;
+  permissions: TeamPermissions;
+  createdAt: Date | null;
+  updatedAt: Date;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="TeamPermissions"
+	category="utility"
+	description="Granular permission structure for teams. Uses Discord-style inheritance: if ANY team grants a permission, the user has it."
+>
+
+```typescript
+interface TeamPermissions {
+  admin: {
+    administrator: boolean;
+    manageMembers: boolean;
+    manageTeams: boolean;
+  };
+  content: {
+    manageCategories: boolean;
+    manageLabels: boolean;
+    manageViews: boolean;
+  };
+  tasks: {
+    create: boolean;
+    editAny: boolean;
+    deleteAny: boolean;
+    assign: boolean;
+    changeStatus: boolean;
+    changePriority: boolean;
+  };
+  moderation: {
+    manageComments: boolean;
+    approveSubmissions: boolean;
+    manageVotes: boolean;
+  };
+}
+```
+
+</TypeCard>
+
+
+## Release Types
+
+Types for releases and milestones.
+
+<TypeCard
+	name="releaseType"
+	category="base"
+	description="Base release record for tracking milestones and versioned releases."
+>
+
+```typescript
+type releaseType = {
+  id: string;
+  organizationId: string;
+  name: string;
+  slug: string;
+  description: NodeJSON | null;
+  status: "planned" | "in-progress" | "released" | "archived";
+  targetDate: Date | null;
+  releasedAt: Date | null;
+  color: string | null;
+  icon: string | null;
+  createdBy: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="ReleaseWithTasks"
+	category="extended"
+	description="Release with its associated tasks. Used for release detail pages and roadmap views."
+	usedIn={["Release pages", "Roadmap views"]}
+>
+
+```typescript
+type ReleaseWithTasks = Omit<releaseType, "createdBy"> & {
+  tasks: TaskWithLabels[];
+  createdBy?: UserSummary | null;
+};
+```
+
+</TypeCard>
+
+
+## Label & Category Types
+
+Types for organizing tasks with labels and categories.
+
+<TypeCard
+	name="labelType"
+	category="base"
+	description="A reusable label within an organization. Supports visibility settings for public/private labels."
+>
+
+```typescript
+type labelType = {
+  id: string;
+  organizationId: string;
+  name: string;
+  color: string | null;  // Hex (#RRGGBB)
+  visible: "public" | "private";
+  createdAt: Date | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="taskLabelType"
+	category="base"
+	description="Join table for task-label assignments. Links labels to tasks."
+>
+
+```typescript
+type taskLabelType = {
+  id: string;
+  taskId: string;
+  organizationId: string;
+  labelId: string;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="categoryType"
+	category="base"
+	description="A category/project within an organization. Used for grouping related tasks."
+>
+
+```typescript
+type categoryType = {
+  id: string;
+  organizationId: string;
+  name: string;
+  color: string | null;  // HSLA
+  icon: string | null;
+  createdAt: Date | null;
+};
+```
+
+</TypeCard>
+
+
+## Template Types
+
+Types for task templates that pre-fill values when creating new tasks.
+
+<TypeCard
+	name="issueTemplateType"
+	category="base"
+	description="Base template record for creating tasks with preset values."
+>
+
+```typescript
+type issueTemplateType = {
+  id: string;
+  organizationId: string;
+  name: string;
+  titlePrefix: string | null;
+  description: NodeJSON | null;
+  status: string | null;
+  priority: string | null;
+  categoryId: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="issueTemplateWithRelations"
+	category="extended"
+	description="Template with labels, assignees, and category loaded. Used when displaying and applying templates."
+	usedIn={["Template selection UI", "Task creation forms"]}
+>
+
+```typescript
+type issueTemplateWithRelations = issueTemplateType & {
+  labels: labelType[];
+  assignees: UserSummary[];
+  category?: {
+    id: string;
+    name: string;
+    color: string | null;
+    icon: string | null;
+  } | null;
+};
+```
+
+</TypeCard>
+
+
+## GitHub Integration Types
+
+Types for GitHub sync features and issue linking.
+
+<TypeCard
+	name="githubInstallationType"
+	category="base"
+	description="GitHub App installation record. Tracks which orgs have installed the GitHub app."
+>
+
+```typescript
+type githubInstallationType = {
+  id: string;
+  organizationId: string | null;
+  installationId: number;
+  userId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="githubRepositoryType"
+	category="base"
+	description="A repository linked to an installation. Maps GitHub repos to Sayr categories."
+>
+
+```typescript
+type githubRepositoryType = {
+  id: string;
+  installationId: number;
+  repoId: number;
+  repoName: string;
+  organizationId: string | null;
+  categoryId: string | null;
+  userId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="githubIssueType"
+	category="base"
+	description="A GitHub issue synced to a Sayr task. Links external issues to internal tasks."
+>
+
+```typescript
+type githubIssueType = {
+  id: string;
+  repositoryId: string;
+  organizationId: string;
+  issueNumber: number;
+  issueUrl: string;
+  taskId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+```
+
+</TypeCard>
+
+
+## Other Types
+
+Additional utility and configuration types.
+
+<TypeCard
+	name="NodeJSON"
+	category="utility"
+	description="Represents TipTap/ProseMirror rich text content stored as JSONB in the database."
+	usedIn={["task.description", "taskComment.content", "taskTimeline.content", "release.description"]}
+>
+
+```typescript
+interface NodeJSON {
+  type: string;
+  marks?: Array<{
+    type: string;
+    attrs?: Record<string, any>;
+  }>;
+  text?: string;
+  content?: NodeJSON[];
+  attrs?: Record<string, any>;
+}
+```
+
+</TypeCard>
+
+<TypeCard
+	name="savedViewType"
+	category="base"
+	description="A saved filter/view configuration for tasks. Stores user-created views with filters and display settings."
+>
+
+```typescript
+type savedViewType = {
+  id: string;
+  organizationId: string;
+  createdById: string | null;
+  name: string;
+  slug: string | null;
+  logo: string | null;
+  filterParams: string;
+  viewConfig: {
+    mode: "list" | "kanban";
+    groupBy: "status" | "priority" | "assignee" | "category";
+    subGroupBy?: "status" | "priority" | "assignee" | "category" | "none";
+    showCompletedTasks: boolean;
+    color?: string;
+    icon?: string;
+  };
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="inviteType"
+	category="base"
+	description="Organization invitation record. Tracks pending and accepted invites."
+>
+
+```typescript
+type inviteType = {
+  id: string;
+  organizationId: string;
+  email: string;
+  userId: string | null;
+  invitedById: string;
+  role: string;
+  inviteCode: string;
+  status: "pending" | "accepted" | "declined" | "expired";
+  createdAt: Date | null;
+  expiresAt: Date | null;
+};
+```
+
+</TypeCard>
+
+<TypeCard
+	name="ApikeyType"
+	category="base"
+	description="API key record with rate limiting support. Used for external API access."
+>
+
+```typescript
+type ApikeyType = {
+  id: string;
+  name: string | null;
+  start: string | null;
+  prefix: string | null;
+  key: string;  // Hashed
+  userId: string;
+  enabled: boolean;
+  rateLimitEnabled: boolean;
+  rateLimitTimeWindow: number | null;
+  rateLimitMax: number | null;
+  requestCount: number;
+  remaining: number | null;
+  lastRequest: Date | null;
+  expiresAt: Date | null;
+  permissions: string | null;
+  metadata: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+};
+```
+
+</TypeCard>
+
+
+## Type Inference Patterns
+
+### Inferring Types from Schema
+
+Drizzle provides automatic type inference from your schema definitions:
+
+```typescript
+import { schema } from "@repo/database";
+
+// SELECT result type (what you get from queries)
+type Task = typeof schema.task.$inferSelect;
+
+// INSERT input type (what you pass to inserts)
+type NewTask = typeof schema.task.$inferInsert;
+```
+
+### Creating Extended Types
+
+When queries include relations, define extended types in `packages/database/schema/index.ts`:
+
+```typescript
+// Good: Use Omit when overriding a field type
+export type TaskWithLabels = Omit<taskType, "createdBy"> & {
+   labels: labelType[];
+   createdBy?: UserSummary | null;  // Changed from string to UserSummary
+};
+
+// Bad: Intersection creates impossible type (string & UserSummary = never)
+export type TaskWithLabels = taskType & {
+   createdBy: UserSummary;
+};
+```
+
+### Using UserSummary Consistently
+
+Always use `userSummaryColumns` when fetching user data for display:
+
+```typescript
+import { userSummaryColumns } from "@repo/database";
+
+const task = await db.query.task.findFirst({
+   where: eq(task.id, taskId),
+   with: {
+      createdBy: { columns: userSummaryColumns },
+      assignees: {
+         with: { user: { columns: userSummaryColumns } },
+      },
+   },
+});
+```
+
+
+## Related Documentation
+
+- [Database Guide](/docs/contributing/database) - Working with Drizzle ORM
+- [Architecture](/docs/contributing/architecture) - How the database fits into the system
+- [Adding Features](/docs/contributing/adding-features) - Complete feature implementation guide

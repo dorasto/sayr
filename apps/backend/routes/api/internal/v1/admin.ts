@@ -1,13 +1,44 @@
 import { randomUUID } from "node:crypto";
-import { db, getTasksByUserId, schema } from "@repo/database";
+import { db, getTasksByUserId, schema, searchTasksForUser } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { apiRouteAdminOrganization } from "./organization";
 import { apiRouteAdminRelease } from "./release";
+import { apiRouteAdminUser } from "./user";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 
 export const apiRouteAdmin = new Hono<AppEnv>();
+
+// Search tasks across all orgs the user belongs to
+apiRouteAdmin.get("/tasks/search", async (c) => {
+	const traceAsync = createTraceAsync();
+
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const query = c.req.query("q") || "";
+	const limitParam = c.req.query("limit");
+	const limit = Math.min(Math.max(Number.parseInt(limitParam || "10", 10) || 10, 1), 25);
+
+	if (query.trim().length < 2) {
+		return c.json({ success: true, data: [] });
+	}
+
+	const results = await traceAsync("tasks.search", () => searchTasksForUser(session.userId, query, limit), {
+		description: "Searching tasks across user's organizations",
+		data: { userId: session.userId, query, limit },
+		onSuccess: (result) => ({
+			description: "Task search completed",
+			data: { resultCount: result.length },
+		}),
+	});
+
+	return c.json({ success: true, data: results });
+});
 
 // Get all tasks assigned to the logged-in user
 apiRouteAdmin.get("/tasks/mine", async (c) => {
@@ -150,3 +181,6 @@ apiRouteAdmin.route("/organization", apiRouteAdminOrganization);
 
 // Release routes
 apiRouteAdmin.route("/release", apiRouteAdminRelease);
+
+// User routes
+apiRouteAdmin.route("/user", apiRouteAdminUser);

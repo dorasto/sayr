@@ -6,6 +6,7 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 export const user = table("user", {
 	id: v.text("id").primaryKey(),
 	name: v.text("name").notNull(),
+	displayName: v.text("display_name"),
 	email: v.text("email").notNull().unique(),
 	emailVerified: v
 		.boolean("email_verified")

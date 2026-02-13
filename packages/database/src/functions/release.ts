@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull, not, or } from "drizzle-orm";
 import { db, schema } from "..";
-import { getUsersByIds } from "./index";
+import { getUsersByIds, userSummaryColumns } from "./index";
 
 /**
  * Fetches a single release by its ID.
@@ -77,20 +77,12 @@ export async function getReleaseWithTasks(releaseId: string): Promise<schema.Rel
 			assignees: {
 				with: {
 					user: {
-						columns: {
-							id: true,
-							name: true,
-							image: true,
-						},
+						columns: userSummaryColumns,
 					},
 				},
 			},
 			createdBy: {
-				columns: {
-					id: true,
-					name: true,
-					image: true,
-				},
+				columns: userSummaryColumns,
 			},
 		},
 	});
@@ -104,7 +96,7 @@ export async function getReleaseWithTasks(releaseId: string): Promise<schema.Rel
 	}));
 
 	// Get creator info if available
-	let createdBy: { id: string; name: string; image: string | null } | null = null;
+	let createdBy: schema.UserSummary | null = null;
 	if (release.createdBy) {
 		const creators = await getUsersByIds([release.createdBy]);
 		if (creators[0]) {

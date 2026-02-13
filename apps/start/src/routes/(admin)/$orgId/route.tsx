@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { RootProviderOrganization } from "@/contexts/ContextOrg";
+import { useOrgCommands } from "@/hooks/commands/useOrgCommands";
 import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
 import { createServerFn } from "@tanstack/react-start";
 import { getOrgPermissions, type schema } from "@repo/database";
@@ -33,17 +34,41 @@ export const getUserOrgPermissions = createServerFn({ method: "GET" })
  * Route configuration
  */
 export const Route = createFileRoute("/(admin)/$orgId")({
-	beforeLoad: async ({ params, context }) => {
+	beforeLoad: async ({ params, context, location }) => {
 		const { account } = context;
-		if (!account) {
-			throw redirect({ to: "/login" });
+
+		// ❌ Skip non-app / internal routes
+		if (
+			location.external ||
+			location.pathname.startsWith("/.well-known")
+		) {
+			return;
 		}
+
+		const searchParams = new URLSearchParams(location.search);
+		const currentUrl = `${location.pathname}${searchParams.toString()
+			? `?${searchParams.toString()}`
+			: ""
+			}`;
+
+		if (!account) {
+			throw redirect({
+				to: "/login",
+				headers: {
+					"Set-Cookie": `post_login_redirect=${encodeURIComponent(
+						currentUrl
+					)}; Path=/; HttpOnly; SameSite=Lax`,
+				},
+			});
+		}
+
 		const { permissions } = await getUserOrgPermissions({
 			data: {
 				account,
 				orgId: params.orgId,
 			},
 		});
+
 		return { permissions };
 	},
 	loader: async ({ params, context }) => {
@@ -82,7 +107,14 @@ function OrgLayout() {
 			issueTemplates={issueTemplates}
 			releases={releases}
 		>
+			<OrgCommandRegistrar />
 			<Outlet />
 		</RootProviderOrganization>
 	);
+}
+
+/** Registers org-specific commands. Must be rendered inside RootProviderOrganization. */
+function OrgCommandRegistrar() {
+	useOrgCommands();
+	return null;
 }

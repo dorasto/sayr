@@ -7,7 +7,10 @@ import { organization } from "./organization.schema";
 import { task } from "./task.schema";
 import { taskCommentReaction, type NodeJSON } from ".";
 export const taskCommentVisibilityEnum = v.pgEnum("task_comment_visibility", ["public", "internal"]);
-
+export const taskCommentSourceEnum = v.pgEnum(
+	"task_comment_source",
+	["sayr", "github"]
+);
 export const taskComment = table(
 	"task_comment",
 	{
@@ -27,10 +30,27 @@ export const taskComment = table(
 		content: v.jsonb("content").$type<NodeJSON>(),
 		createdBy: v.text("created_by").references(() => user.id),
 		visibility: taskCommentVisibilityEnum("visibility").notNull().default("public"),
+		// ✅ Source of comment
+		source: taskCommentSourceEnum("source")
+			.notNull()
+			.default("sayr"),
+
+		// ✅ External author metadata (GitHub, etc.)
+		externalAuthorLogin: v.text("external_author_login"),
+		externalAuthorUrl: v.text("external_author_url"),
+		// ✅ External GitHub identifiers
+		externalIssueNumber: v.integer("external_issue_number"),
+		externalCommentId: v.bigint("external_comment_id", {
+			mode: "number",
+		}),
+		externalCommentUrl: v.text("external_comment_url"),
 	},
 	(t) => [
 		v.index("idx_task_comment_task").on(t.organizationId, t.taskId, t.createdAt),
 		v.index("idx_task_comment_creator").on(t.createdBy),
+		v.index("idx_task_comment_external_author").on(
+			t.externalAuthorLogin
+		),
 	]
 );
 

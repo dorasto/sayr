@@ -1,34 +1,25 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues, extractTaskText, formatDateCompact } from "@repo/util";
 import {
-	IconArrowUp,
 	IconCalendar,
 	IconChevronUp,
 	IconCircleFilled,
 	IconHash,
 	IconMessage,
-	IconMeterCube,
-	IconUserOff,
 } from "@tabler/icons-react";
 import { nanoid } from "nanoid";
-import { useRef } from "react";
-import { useTaskViewManager, type FilterState } from "@/hooks/useTaskViewManager";
-import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
-import { RenderLabel } from "@/components/tasks/shared/label";
-import { RenderCategory } from "@/components/tasks/shared";
+import { statusConfig } from "@/components/tasks/shared/config";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { useTaskDetailParam } from "@/hooks/useTasksSearchParams";
-import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction, TileDescription, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
 import { Button } from "@repo/ui/components/button";
 import { InlineLabel } from "../tasks/shared/inlinelabel";
-import { Separator } from "@repo/ui/components/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
+import { Link } from "@tanstack/react-router";
+import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 
 interface PublicTaskItemProps {
 	task: schema.TaskWithLabels;
@@ -39,58 +30,18 @@ interface PublicTaskItemProps {
 
 export function PublicTaskItem({ task, categories = [], voted, onVote }: PublicTaskItemProps) {
 	const status = statusConfig[task.status as keyof typeof statusConfig];
-	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
-	const preventClickRef = useRef(false);
-
-	// Consolidated task view state management
-	const { applyFilter } = useTaskViewManager();
-	const [, setTaskContentOpen] = useTaskDetailParam();
-
-	const handleCategoryClick = (categoryId: string) => {
-		preventClickRef.current = true;
-		setTimeout(() => {
-			preventClickRef.current = false;
-		}, 200);
-
-		const categoryFilter: FilterState = {
-			groups: [
-				{
-					id: `category-${categoryId}-group`,
-					operator: "AND",
-					conditions: [
-						{
-							id: `category-any-${categoryId}`,
-							field: "category",
-							operator: "any",
-							value: categoryId,
-						},
-					],
-				},
-			],
-			operator: "AND",
-		};
-		applyFilter(categoryFilter);
-	};
-
-	const handleClick = (e: React.MouseEvent) => {
-		// Prevent navigation when clicking on interactive elements
-		if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
-			e.preventDefault();
-			return;
-		}
-		if (preventClickRef.current) {
-			e.preventDefault();
-			preventClickRef.current = false;
-			return;
-		}
-		setTaskContentOpen(task.shortId);
-	};
+	const { organization } = usePublicOrganizationLayout();
 
 	const descriptionPreview = extractTaskText(task.description);
 	const taskCommentsCountString = task.comments?.length.toString() || "0";
 
 	return (
-		<Tile className="md:w-full flex-col gap-3 items-start p-6 bg-accent hover:bg-secondary">
+		<Link
+			to="/orgs/$orgSlug/$shortId"
+			params={{ orgSlug: organization.slug, shortId: String(task.shortId) }}
+			className="block"
+		>
+			<Tile className="md:w-full flex-col gap-3 items-start p-6 bg-accent hover:bg-secondary">
 			<div className="flex items-center justify-between w-full gap-9">
 				<TileHeader className="w-full">
 					<TileTitle asChild>
@@ -222,5 +173,6 @@ export function PublicTaskItem({ task, categories = [], voted, onVote }: PublicT
 				</TileAction>
 			</div>
 		</Tile>
+		</Link>
 	);
 }

@@ -1,12 +1,11 @@
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { getDisplayName } from "@repo/util";
 import type { ReactNodeViewProps } from "prosekit/react";
 import { defineReactNodeView, useExtension } from "prosekit/react";
 import { useMemo } from "react";
-import { RenderCategory, statusConfig } from "@/components/tasks";
+import { RenderCategory } from "@/components/tasks";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
-import { cn } from "@/lib/utils";
 import { TaskMention } from "./TaskMention";
 
 function MentionViewInner(
@@ -20,7 +19,8 @@ function MentionViewInner(
 
 	if (kind === "user") {
 		const user = users.find((u) => u.id.toString() === id);
-		const username = user ? user.name : value.replace(/^@/, "");
+		// Use displayName if available, fall back to username from stored value
+		const displayText = user ? getDisplayName(user) : value.replace(/^@/, "");
 		const image = user?.image;
 		const isCurrentUser = currentUserId && user?.id?.toString() === currentUserId;
 
@@ -31,7 +31,7 @@ function MentionViewInner(
 					isCurrentUser ? "bg-primary text-primary-foreground font-semibold" : "bg-accent text-accent-foreground",
 				].join(" ")}
 				avatarClassName="size-4"
-				text={`@${username}`}
+				text={`@${displayText}`}
 				image={image}
 			/>
 		);

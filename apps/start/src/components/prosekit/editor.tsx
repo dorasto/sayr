@@ -25,6 +25,7 @@ import SlashMenuTemplate from "./ui/slash-menu-template";
 export interface EditorProps {
   readonly?: boolean;
   placeholder?: string;
+  firstLinePlaceholder?: string;
   defaultContent?: NodeJSON;
   uploader?: Uploader<string>;
   className?: string;
@@ -40,6 +41,7 @@ export interface EditorProps {
 export default function Editor({
   readonly = false,
   placeholder,
+  firstLinePlaceholder,
   defaultContent,
   className,
   onChange,
@@ -51,9 +53,9 @@ export default function Editor({
   hideBlockHandle = false,
 }: EditorProps) {
   const editor = useMemo(() => {
-    const extension = defineExtension({ readonly, placeholder });
+    const extension = defineExtension({ readonly, placeholder, firstLinePlaceholder });
     return createEditor({ extension, defaultContent });
-  }, [readonly, placeholder, defaultContent]);
+  }, [readonly, placeholder, firstLinePlaceholder, defaultContent]);
   useEffect(() => {
     if (readonly) {
       return;
