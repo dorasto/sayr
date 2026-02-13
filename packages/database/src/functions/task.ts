@@ -488,6 +488,56 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 	})) as schema.TaskWithLabels[];
 }
 
+/**
+ * Searches tasks across all organizations a user belongs to by title.
+ * Returns a limited set of results for use in the command palette.
+ *
+ * @param userId - The ID of the user performing the search
+ * @param query - The search query string to match against task titles
+ * @param limit - Maximum number of results to return (default: 10)
+ * @returns An array of matching tasks with org metadata
+ */
+export async function searchTasksForUser(
+	userId: string,
+	query: string,
+	limit = 10,
+): Promise<
+	{
+		id: string;
+		title: string | null;
+		shortId: number | null;
+		status: string;
+		priority: string;
+		organizationId: string;
+		organizationName: string | null;
+		organizationSlug: string | null;
+	}[]
+> {
+	if (!query || query.trim().length < 2) return [];
+
+	const searchPattern = `%${query.trim()}%`;
+
+	const results = await db
+		.select({
+			id: schema.task.id,
+			title: schema.task.title,
+			shortId: schema.task.shortId,
+			status: schema.task.status,
+			priority: schema.task.priority,
+			organizationId: schema.task.organizationId,
+			organizationName: schema.organization.name,
+			organizationSlug: schema.organization.slug,
+		})
+		.from(schema.task)
+		.innerJoin(schema.member, and(eq(schema.member.organizationId, schema.task.organizationId), eq(schema.member.userId, userId)))
+		.innerJoin(schema.organization, eq(schema.organization.id, schema.task.organizationId))
+		.where(sql`${schema.task.title} ILIKE ${searchPattern}`)
+		.orderBy(sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${query.trim().toLowerCase()}%`} THEN 0 ELSE 1 END`, sql`${schema.task.updatedAt} DESC`)
+		.limit(limit);
+
+	return results;
+}
+
 export async function createOrToggleCommentReaction(
 	orgId: string,
 	taskId: string,

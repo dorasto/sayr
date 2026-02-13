@@ -10,10 +10,11 @@ import {
 	CommandShortcut,
 } from "@repo/ui/components/command";
 import { DialogTitle } from "@repo/ui/components/dialog";
-import { IconArrowBack, IconArrowLeft, IconArrowsUpDown } from "@tabler/icons-react";
+import { IconArrowBack, IconArrowLeft, IconArrowsUpDown, IconLoader2 } from "@tabler/icons-react";
 import { useStore } from "@tanstack/react-store";
 import * as React from "react";
 import { useCommandRegistry } from "@/hooks/use-command-registry";
+import { useCommandSearch } from "@/hooks/useCommandSearch";
 import { commandActions, commandStore } from "@/lib/command-store";
 import type { CommandGroup as CommandGroupType, CommandItem as CommandItemType } from "@/types/command";
 
@@ -22,6 +23,7 @@ export default function AdminCommand() {
 	const [viewStack, setViewStack] = React.useState<string[]>(["root"]);
 	const [search, setSearch] = React.useState("");
 	const commands = useCommandRegistry();
+	const { results: searchResults, isSearching } = useCommandSearch(search, open);
 
 	const activeView = viewStack[viewStack.length - 1] || "root";
 	const activeGroups = commands[activeView] || [];
@@ -71,15 +73,10 @@ export default function AdminCommand() {
 		}
 	};
 
+	const hasSearchResults = searchResults.length > 0;
+
 	return (
 		<>
-			{/*<Button type="button" onClick={() => setOpen(true)} variant={"primary"} className="" size={"sm"}>
-				<span className="flex grow items-center">
-					<IconSearch className="text-muted-foreground -ms-1 me-3" size={16} aria-hidden="true" />
-					<span className="text-muted-foreground">Search...</span>
-				</span>
-				<Kbd className="ms-12 -me-1 inline-flex h-5 bg-accent text-muted-foreground">⌘K</Kbd>
-			</Button>*/}
 			<CommandDialog open={open} onOpenChange={commandActions.setOpen}>
 				<DialogTitle className="sr-only">Search input</DialogTitle>
 				<CommandInput
@@ -97,14 +94,68 @@ export default function AdminCommand() {
 					}
 				/>
 				<CommandList>
-					<CommandEmpty>No results found.</CommandEmpty>
+					<CommandEmpty>
+						{isSearching ? (
+							<div className="flex items-center justify-center gap-2 text-muted-foreground">
+								<IconLoader2 className="h-4 w-4 animate-spin" />
+								<span>Searching...</span>
+							</div>
+						) : (
+							"No results found."
+						)}
+					</CommandEmpty>
+
+					{/* Search results from server-side task search */}
+					{hasSearchResults && (
+						<>
+							<CommandGroup heading="Tasks">
+								{searchResults.map((item: CommandItemType) => (
+									<CommandItem
+										key={item.id}
+										onSelect={() => handleSelect(item)}
+										value={item.value || item.label}
+										keywords={item.keywords ? [item.keywords] : undefined}
+									>
+										{item.icon}
+										<span className="truncate">{item.label}</span>
+										{item.metadata && (
+											<span className="ml-auto text-xs text-muted-foreground shrink-0">
+												{item.metadata}
+											</span>
+										)}
+									</CommandItem>
+								))}
+							</CommandGroup>
+							{activeGroups.length > 0 && <CommandSeparator />}
+						</>
+					)}
+
+					{/* Loading indicator when searching */}
+					{isSearching && !hasSearchResults && search.length >= 2 && (
+						<div className="flex items-center justify-center gap-2 py-4 text-muted-foreground text-sm">
+							<IconLoader2 className="h-4 w-4 animate-spin" />
+							<span>Searching tasks...</span>
+						</div>
+					)}
+
+					{/* Static + dynamic command groups */}
 					{activeGroups.map((group: CommandGroupType, groupIndex: number) => (
 						<React.Fragment key={group.heading}>
 							<CommandGroup heading={group.heading}>
 								{group.items.map((item: CommandItemType) => (
-									<CommandItem key={item.id} onSelect={() => handleSelect(item)} value={item.label}>
+									<CommandItem
+										key={item.id}
+										onSelect={() => handleSelect(item)}
+										value={item.value || item.label}
+										keywords={item.keywords ? [item.keywords] : undefined}
+									>
 										{item.icon}
 										<span>{item.label}</span>
+										{item.metadata && (
+											<span className="ml-auto text-xs text-muted-foreground shrink-0">
+												{item.metadata}
+											</span>
+										)}
 										{item.shortcut && (
 											<CommandShortcut className="justify-center">{item.shortcut}</CommandShortcut>
 										)}

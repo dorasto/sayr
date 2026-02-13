@@ -9,6 +9,8 @@ import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
 import { seo } from "@/seo";
 import { PostHogUserSync } from "@/components/PostHogProvider";
+import { GlobalCreateTaskDialog } from "@/components/generic/GlobalCreateTaskDialog";
+import { useGlobalCommands } from "@/hooks/commands/useGlobalCommands";
 
 // --- SERVER FUNCTIONS ---
 
@@ -147,6 +149,8 @@ function AdminLayout() {
 			<RootProvider account={account} organizations={organizations}>
 				<PostHogUserSync user={account ? { id: account.id, email: account.email, name: account.name } : null} />
 				<NavigationTracker />
+				<GlobalCommandRegistrar />
+				<GlobalCreateTaskDialog />
 				<AdminNavigation />
 				<Wrapper>
 					<div className="relative h-full max-h-full">
@@ -156,4 +160,10 @@ function AdminLayout() {
 			</RootProvider>
 		</div>
 	);
+}
+
+/** Registers global commands. Must be rendered inside RootProvider. */
+function GlobalCommandRegistrar() {
+	useGlobalCommands();
+	return null;
 }

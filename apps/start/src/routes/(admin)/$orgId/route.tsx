@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { RootProviderOrganization } from "@/contexts/ContextOrg";
+import { useOrgCommands } from "@/hooks/commands/useOrgCommands";
 import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
 import { createServerFn } from "@tanstack/react-start";
 import { getOrgPermissions, type schema } from "@repo/database";
@@ -106,7 +107,14 @@ function OrgLayout() {
 			issueTemplates={issueTemplates}
 			releases={releases}
 		>
+			<OrgCommandRegistrar />
 			<Outlet />
 		</RootProviderOrganization>
 	);
+}
+
+/** Registers org-specific commands. Must be rendered inside RootProviderOrganization. */
+function OrgCommandRegistrar() {
+	useOrgCommands();
+	return null;
 }
