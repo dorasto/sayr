@@ -9,6 +9,7 @@ import type { taskCommentType } from "./taskComment.schema";
 import type { taskTimelineType } from "./taskTimeline.schema";
 import type { issueTemplateType } from "./taskTemplate.schema";
 import type { labelType as LabelTypeImport } from "./label.schema";
+import type { notificationType } from "./notification.schema";
 
 export * from "./category.schema";
 export * from "./github_installation.schema";
@@ -29,6 +30,7 @@ export * from "./taskCommentReaction.schema";
 export * from "./taskTemplate.schema";
 export * from "./taskVote.schema";
 export * from "./apikey.schema";
+export * from "./notification.schema";
 export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
@@ -113,6 +115,29 @@ export type issueTemplateWithRelations = issueTemplateType & {
 export type ReleaseWithTasks = Omit<releaseType, "createdBy"> & {
 	tasks: TaskWithLabels[];
 	createdBy?: UserSummary | null;
+};
+
+export type NotificationWithDetails = notificationType & {
+	actor?: UserSummary | null;
+	task: {
+		id: string;
+		shortId: number | null;
+		title: string;
+		status: string;
+		priority: string;
+	};
+	organization: {
+		id: string;
+		name: string;
+		slug: string;
+		logo: string | null;
+	};
+	timelineEvent?: {
+		id: string;
+		eventType: string;
+		fromValue: unknown;
+		toValue: unknown;
+	} | null;
 };
 
 /* -------------------------------------------------------------------------- */

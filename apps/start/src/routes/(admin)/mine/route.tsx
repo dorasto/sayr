@@ -46,6 +46,9 @@ export const getMyTasks = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/(admin)/mine")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		tab: (search.tab === "inbox" ? "inbox" : undefined) as "inbox" | undefined,
+	}),
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/login" });
@@ -57,8 +60,16 @@ export const Route = createFileRoute("/(admin)/mine")({
 
 function MineLayout() {
 	const { tasks, labels, views, categories, releases } = Route.useLoaderData();
+	const { tab } = Route.useSearch();
 	return (
-		<RootProviderMyTasks tasks={tasks} labels={labels} views={views} categories={categories} releases={releases}>
+		<RootProviderMyTasks
+			tasks={tasks}
+			labels={labels}
+			views={views}
+			categories={categories}
+			releases={releases}
+			initialTab={tab === "inbox" ? "inbox" : "tasks"}
+		>
 			<Outlet />
 		</RootProviderMyTasks>
 	);

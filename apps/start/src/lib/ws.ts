@@ -296,6 +296,14 @@ export type WSMessage =
 	| (BaseMessage & {
 			type: "MEMBER_ACTIONS";
 			data: { action: "ADDED" | "REMOVED"; orgId: string; userId: string };
+	  })
+	| (BaseMessage & {
+			type: "NEW_NOTIFICATION";
+			data: schema.NotificationWithDetails;
+	  })
+	| (BaseMessage & {
+			type: "NOTIFICATION_READ";
+			data: { id?: string; all?: boolean; organizationId?: string };
 	  });
 
 export type FirehoseClient = {

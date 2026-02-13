@@ -258,15 +258,20 @@ export async function addLogEventTask(
 	actorId?: string,
 	content?: NodeJSON
 ) {
-	return await db.insert(taskTimeline).values({
-		taskId: task_id,
-		organizationId: org_id,
-		actorId: actorId ?? null,
-		eventType: type,
-		fromValue: fromValue ? JSON.stringify(fromValue) : null,
-		toValue: toValue ? JSON.stringify(toValue) : null,
-		content: content ?? null,
-	});
+	const [event] = await db
+		.insert(taskTimeline)
+		.values({
+			taskId: task_id,
+			organizationId: org_id,
+			actorId: actorId ?? null,
+			eventType: type,
+			fromValue: fromValue ? JSON.stringify(fromValue) : null,
+			toValue: toValue ? JSON.stringify(toValue) : null,
+			content: content ?? null,
+		})
+		.returning({ id: taskTimeline.id });
+
+	return event;
 }
 
 export async function createComment(
