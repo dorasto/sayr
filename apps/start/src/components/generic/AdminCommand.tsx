@@ -163,7 +163,10 @@ export default function AdminCommand() {
                     key={item.id}
                     onSelect={() => handleSelect(item)}
                     value={item.id}
-                    keywords={[item.label, ...(item.keywords ? [item.keywords] : [])]}
+                    keywords={[
+                      item.label,
+                      ...(item.keywords ? [item.keywords] : []),
+                    ]}
                   >
                     {item.icon}
                     <span className="truncate">{item.label}</span>
@@ -196,10 +199,13 @@ export default function AdminCommand() {
                     key={item.id}
                     onSelect={() => handleSelect(item)}
                     value={item.id}
-                    keywords={[item.label, ...(item.keywords ? [item.keywords] : [])]}
+                    keywords={[
+                      item.label,
+                      ...(item.keywords ? [item.keywords] : []),
+                    ]}
                   >
                     {item.icon}
-                    <span>{item.label}</span>
+                    <span className="truncate">{item.label}</span>
                     {item.metadata && (
                       <span className="ml-auto text-xs text-muted-foreground shrink-0">
                         {item.metadata}
