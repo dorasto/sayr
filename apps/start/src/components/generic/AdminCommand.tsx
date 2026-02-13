@@ -28,6 +28,7 @@ import type {
 
 export default function AdminCommand() {
   const open = useStore(commandStore, (state) => state.open);
+  const initialView = useStore(commandStore, (state) => state.initialView);
   const [viewStack, setViewStack] = React.useState<string[]>(["root"]);
   const [search, setSearch] = React.useState("");
   const commands = useCommandRegistry();
@@ -51,15 +52,41 @@ export default function AdminCommand() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  // Reset stack when closing
+  // Track initial view in a ref so the open effect doesn't depend on it
+  const initialViewRef = React.useRef(initialView);
+  initialViewRef.current = initialView;
+
+  const commandsRef = React.useRef(commands);
+  commandsRef.current = commands;
+
+  // When opening, auto-drill into the initial view if one is set
+  // When closing, reset the stack
   React.useEffect(() => {
-    if (!open) {
+    if (open) {
+      const iv = initialViewRef.current;
+      if (iv && commandsRef.current[iv.viewId]) {
+        setViewStack(["root", iv.viewId]);
+      } else {
+        setViewStack(["root"]);
+      }
+    } else {
       setTimeout(() => {
         setViewStack(["root"]);
         setSearch("");
       }, 200);
     }
   }, [open]);
+
+  // Derive the badge label for the current sub-view
+  // Only shows a badge when an initialView is explicitly set (e.g. task page),
+  // not for generic sub-views like "Switch organization"
+  const viewBadge = React.useMemo(() => {
+    if (viewStack.length <= 1) return null;
+    if (initialView && activeView === initialView.viewId) {
+      return initialView.label;
+    }
+    return null;
+  }, [viewStack.length, activeView, initialView]);
 
   const handleSelect = (item: CommandItemType) => {
     if (item.subId) {
@@ -105,6 +132,13 @@ export default function AdminCommand() {
                 className="mr-2 h-4 w-4 shrink-0 opacity-50 cursor-pointer hover:opacity-100"
                 onClick={() => setViewStack((prev) => prev.slice(0, -1))}
               />
+            ) : undefined
+          }
+          badge={
+            viewBadge ? (
+              <span className="mr-2 shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {viewBadge}
+              </span>
             ) : undefined
           }
         />

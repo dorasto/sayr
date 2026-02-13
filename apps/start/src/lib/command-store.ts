@@ -8,6 +8,11 @@ export interface CommandStoreState {
 		open: boolean;
 		orgId?: string;
 	};
+	/** When set, the command palette opens pre-drilled into this view */
+	initialView: {
+		viewId: string;
+		label: string;
+	} | null;
 }
 
 export const commandStore = new Store<CommandStoreState>({
@@ -16,6 +21,7 @@ export const commandStore = new Store<CommandStoreState>({
 	createTaskDialog: {
 		open: false,
 	},
+	initialView: null,
 });
 
 export const commandActions = {
@@ -63,6 +69,20 @@ export const commandActions = {
 		commandStore.setState((state) => ({
 			...state,
 			createTaskDialog: { open: false, orgId: undefined },
+		}));
+	},
+
+	setInitialView: (viewId: string, label: string) => {
+		commandStore.setState((state) => ({
+			...state,
+			initialView: { viewId, label },
+		}));
+	},
+
+	clearInitialView: () => {
+		commandStore.setState((state) => ({
+			...state,
+			initialView: null,
 		}));
 	},
 };
