@@ -2,8 +2,8 @@
 
 import type { schema } from "@repo/database";
 import {
+	IconAlertSquareFilled,
 	IconArrowLeft,
-	IconArrowRight,
 	IconCategory,
 	IconCheck,
 	IconCopy,
@@ -21,11 +21,10 @@ import StatusIcon from "@repo/ui/components/icons/status";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
-import { commandActions } from "@/lib/command-store";
 import {
 	updateAssigneesToTaskAction,
 	updateLabelToTaskAction,
@@ -61,7 +60,7 @@ const priorityConfig = {
 	high: { label: "High", icon: <PriorityIcon bars={3} className="h-4 w-4 text-red-500" /> },
 	urgent: {
 		label: "Urgent",
-		icon: <PriorityIcon bars={3} className="h-4 w-4 text-destructive" />,
+		icon: <IconAlertSquareFilled className="h-4 w-4 text-destructive" />,
 	},
 } as const;
 
@@ -80,11 +79,8 @@ const visibilityConfig = {
 
 /**
  * Registers single-task-specific commands when viewing a task.
- * Commands live in a sub-view (task-{taskId}) that the palette auto-drills into.
- * A root-level entry allows re-entering the sub-view after navigating back.
- *
- * Includes field-editing sub-views for status, priority, category, release,
- * visibility, assignees, and labels.
+ * Task edit fields appear directly in the root view at high priority,
+ * with each field drilling into its own sub-view for value selection.
  */
 export function useTaskCommands() {
 	const navigate = useNavigate();
@@ -93,17 +89,6 @@ export function useTaskCommands() {
 	const { tasks, setTasks } = useLayoutTasks();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast } = useToastAction();
-
-	const subViewId = `task-${task.id}`;
-	const badgeLabel = `${organization.slug}/#${task.shortId}`;
-
-	// Set the initial view so the command palette opens pre-drilled into this task
-	useEffect(() => {
-		commandActions.setInitialView(subViewId, badgeLabel);
-		return () => {
-			commandActions.clearInitialView();
-		};
-	}, [subViewId, badgeLabel]);
 
 	// --- Shared update helper ---
 	const handleFieldUpdate = useCallback(
@@ -488,23 +473,6 @@ export function useTaskCommands() {
 			root: [
 				{
 					heading: `Task #${task.shortId}`,
-					priority: 5,
-					items: [
-						{
-							id: `task-drill-${task.id}`,
-							label: `Task #${task.shortId}: ${task.title}`,
-							icon: (
-								<IconArrowRight size={16} className="opacity-60" aria-hidden="true" />
-							),
-							subId: subViewId,
-							keywords: "current open view",
-						},
-					],
-				},
-			],
-			[subViewId]: [
-				{
-					heading: "Edit fields",
 					priority: 1,
 					items: [
 						{
@@ -602,11 +570,6 @@ export function useTaskCommands() {
 							),
 							keywords: "labels change add remove tags",
 						},
-					],
-				},
-				{
-					priority: 10,
-					items: [
 						{
 							id: `task-copy-link-${task.id}`,
 							label: "Copy task link",
@@ -706,7 +669,6 @@ export function useTaskCommands() {
 		organization.members,
 		task,
 		tasks,
-		subViewId,
 		categories,
 		releases,
 		orgLabels,

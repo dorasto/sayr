@@ -191,8 +191,8 @@ export default function AdminCommand() {
           )}
 
           {/* Static + dynamic command groups */}
-          {activeGroups.map((group: CommandGroupType, groupIndex: number) => (
-            <React.Fragment key={group.heading}>
+			{activeGroups.map((group: CommandGroupType, groupIndex: number) => (
+						<React.Fragment key={`${group.heading}-${groupIndex}`}>
               <CommandGroup heading={group.heading}>
                 {group.items.map((item: CommandItemType) => (
                   <CommandItem
@@ -222,23 +222,6 @@ export default function AdminCommand() {
               {groupIndex < activeGroups.length - 1 && <CommandSeparator />}
             </React.Fragment>
           ))}
-          {viewStack.length > 1 && (
-            <>
-              {activeGroups.length > 0 && <CommandSeparator />}
-              <CommandGroup heading="Navigation">
-                <CommandItem
-                  value="Go back"
-                  onSelect={() => {
-                    setViewStack((prev) => prev.slice(0, -1));
-                    setSearch("");
-                  }}
-                >
-                  <IconArrowLeft className="opacity-60" />
-                  <span>Go back</span>
-                </CommandItem>
-              </CommandGroup>
-            </>
-          )}
         </CommandList>
         <div className="flex items-center justify-between border-t bg-accent/50 px-3 py-2">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">

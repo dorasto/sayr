@@ -1,35 +1,26 @@
 "use client";
 
-import { IconFilter, IconPlus } from "@tabler/icons-react";
+import { IconFilter } from "@tabler/icons-react";
 import { useMemo } from "react";
-import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { commandActions } from "@/lib/command-store";
 import type { CommandMap } from "@/types/command";
 import { useRegisterCommands } from "../useRegisterCommands";
 
 /**
  * Registers task-list-specific commands when on the tasks page:
- * - Create task (pre-selects current org)
  * - Filter tasks
+ *
+ * Note: "Create task" is not registered here because useOrgCommands already
+ * provides "Create task in [org]" which pre-selects the current org.
  */
 export function useTasksCommands() {
-	const { organization } = useLayoutOrganization();
-
 	const commands: CommandMap = useMemo(() => {
 		return {
 			root: [
 				{
 					heading: "Tasks",
-					priority: 10,
+					priority: 5,
 					items: [
-						{
-							id: "tasks-create",
-							label: "Create task",
-							icon: <IconPlus size={16} className="opacity-60" aria-hidden="true" />,
-							action: () => commandActions.openCreateTaskDialog(organization.id),
-							keywords: "new issue add",
-							shortcut: "C",
-						},
 						{
 							id: "tasks-filter",
 							label: "Filter tasks",
@@ -51,7 +42,7 @@ export function useTasksCommands() {
 				},
 			],
 		};
-	}, [organization.id]);
+	}, []);
 
 	useRegisterCommands("tasks-commands", commands);
 }

@@ -18,7 +18,7 @@ export function useCommandRegistry() {
 			root: [
 				{
 					heading: "Navigation",
-					priority: 50,
+					priority: 30,
 					items: [
 						{
 							id: "go-dashboard",
@@ -31,7 +31,7 @@ export function useCommandRegistry() {
 				},
 				{
 					heading: "Your account",
-					priority: 60,
+					priority: 40,
 					items: [
 						{
 							id: "account-general",
@@ -76,6 +76,28 @@ export function useCommandRegistry() {
 			}
 		}
 
+		// Merge groups with the same heading within each view into a single group.
+		// Uses the lowest priority (highest precedence) among the merged groups.
+		for (const viewId of Object.keys(merged)) {
+			const groups = merged[viewId];
+			if (groups) {
+				const headingMap = new Map<string, CommandGroup>();
+				const order: string[] = [];
+				for (const group of groups) {
+					const key = group.heading ?? "";
+					const existing = headingMap.get(key);
+					if (existing) {
+						existing.items = [...existing.items, ...group.items];
+						existing.priority = Math.min(existing.priority ?? 50, group.priority ?? 50);
+					} else {
+						headingMap.set(key, { ...group, items: [...group.items] });
+						order.push(key);
+					}
+				}
+				merged[viewId] = order.map((key) => headingMap.get(key) as CommandGroup);
+			}
+		}
+
 		// Filter out items where show === false
 		for (const viewId of Object.keys(merged)) {
 			const groups = merged[viewId];
@@ -84,6 +106,26 @@ export function useCommandRegistry() {
 					.map((group: CommandGroup) => ({
 						...group,
 						items: group.items.filter((item) => item.show !== false),
+					}))
+					.filter((group: CommandGroup) => group.items.length > 0);
+			}
+		}
+
+		// Deduplicate items by ID within each view.
+		// When multiple hooks register items with the same ID (e.g. "Create task"),
+		// keep only the first occurrence (highest priority group wins after sorting).
+		for (const viewId of Object.keys(merged)) {
+			const groups = merged[viewId];
+			if (groups) {
+				const seenIds = new Set<string>();
+				merged[viewId] = groups
+					.map((group: CommandGroup) => ({
+						...group,
+						items: group.items.filter((item) => {
+							if (seenIds.has(item.id)) return false;
+							seenIds.add(item.id);
+							return true;
+						}),
 					}))
 					.filter((group: CommandGroup) => group.items.length > 0);
 			}

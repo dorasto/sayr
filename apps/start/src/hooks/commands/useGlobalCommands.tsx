@@ -35,8 +35,8 @@ export function useGlobalCommands() {
 		return {
 			root: [
 				{
-					heading: "Quick actions",
-					priority: 10,
+					heading: "Navigation",
+					priority: 30,
 					items: [
 						{
 							id: "global-create-task",
@@ -44,7 +44,6 @@ export function useGlobalCommands() {
 							icon: <IconPlus size={16} className="opacity-60" aria-hidden="true" />,
 							action: () => commandActions.openCreateTaskDialog(),
 							keywords: "new issue add",
-							shortcut: "C",
 						},
 						{
 							id: "global-my-tasks",
