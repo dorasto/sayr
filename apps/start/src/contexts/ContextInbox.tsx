@@ -2,6 +2,7 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { getNotifications, getUnreadNotificationCount } from "@/lib/fetches/notification";
+import { notificationActions } from "@/lib/stores/notification-store";
 
 interface InboxContextType {
 	tasks: schema.TaskWithLabels[];
@@ -41,7 +42,13 @@ export function RootProviderInbox({
 
 	// Notification state
 	const [notifications, setNotifications] = useState<schema.NotificationWithDetails[]>([]);
-	const [unreadCount, setUnreadCount] = useState(0);
+	const [unreadCount, _setUnreadCount] = useState(0);
+
+	// Wrap setUnreadCount to sync with the global notification store
+	const setUnreadCount = useCallback((count: number) => {
+		_setUnreadCount(count);
+		notificationActions.setCount(count);
+	}, []);
 
 	const refreshNotifications = useCallback(async () => {
 		try {
@@ -53,7 +60,8 @@ export function RootProviderInbox({
 				setNotifications(notifResult.data);
 			}
 			if (countResult.success) {
-				setUnreadCount(countResult.data.count);
+				_setUnreadCount(countResult.data.count);
+				notificationActions.setCount(countResult.data.count);
 			}
 		} catch {
 			// Notification fetch failures are non-critical

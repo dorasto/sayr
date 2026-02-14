@@ -1,6 +1,7 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect } from "react";
+import { notificationActions } from "@/lib/stores/notification-store";
 import useWebSocket from "@/lib/ws";
 
 interface ContextType {
@@ -28,6 +29,38 @@ export function RootProvider({
 	// Sync props → state
 	useEffect(() => setAccount(account), [account, setAccount]);
 	useEffect(() => setOrganizations(organizations), [organizations, setOrganizations]);
+
+	// Fetch initial unread notification count
+	useEffect(() => {
+		notificationActions.refresh();
+	}, []);
+
+	// Global WS listener for notification count updates
+	const handleNotificationWS = useCallback((event: MessageEvent) => {
+		try {
+			const data = JSON.parse(event.data);
+			if (data.type === "NEW_NOTIFICATION") {
+				notificationActions.increment();
+			} else if (data.type === "NOTIFICATION_READ") {
+				if (data.data?.all) {
+					notificationActions.markAllRead();
+				} else if (data.data?.id) {
+					notificationActions.decrement();
+				}
+			}
+		} catch {
+			// Non-critical
+		}
+	}, []);
+
+	useEffect(() => {
+		if (!ws) return;
+		ws.addEventListener("message", handleNotificationWS);
+		return () => {
+			ws.removeEventListener("message", handleNotificationWS);
+		};
+	}, [ws, handleNotificationWS]);
+
 	return (
 		<RootContext.Provider
 			value={{ account: Newaccount, setAccount, ws, organizations: NewOrganizations, setOrganizations }}
