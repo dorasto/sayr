@@ -92,7 +92,7 @@ export default function UserMenu(props: {
                   image={user.image}
                 />
                 <span className="text-xs text-muted-foreground">
-                  @{user.name}
+                  {user.name}
                 </span>
               </div>
             </AutocompleteItem>
