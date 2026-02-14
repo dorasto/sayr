@@ -11,7 +11,8 @@ import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { MentionContext } from "@/hooks/useMentionUsers";
 import { TaskContentMobileContent, TaskContentSideContent } from "@/components/tasks/task/task-content";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
@@ -28,6 +29,14 @@ export default function OrganizationTaskIdPage() {
 	const { tasks, setTasks } = useLayoutTasks();
 	const { runWithToast } = useToastAction();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
+
+	// Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+	useEffect(() => {
+		if (organization?.id) {
+			setMentionContext({ orgId: organization.id });
+		}
+	}, [organization?.id, setMentionContext]);
 
 	const availableUsers = organization?.members.map((member) => member.user) || [];
 

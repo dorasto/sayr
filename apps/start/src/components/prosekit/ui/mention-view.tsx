@@ -10,7 +10,7 @@ import { TaskMention } from "./TaskMention";
 
 function MentionViewInner(
 	props: ReactNodeViewProps,
-	users: schema.userType[],
+	users: schema.UserSummary[],
 	categories: schema.categoryType[],
 	tasks: schema.TaskWithLabels[],
 	currentUserId?: string
@@ -61,7 +61,7 @@ export default function MentionView({
 	categories,
 	tasks,
 }: {
-	users: schema.userType[];
+	users: schema.UserSummary[];
 	categories: schema.categoryType[];
 	tasks: schema.TaskWithLabels[];
 }) {

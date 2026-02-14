@@ -704,7 +704,6 @@ export function TaskContentMain({
           tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
-          availableUsers={availableUsers}
           categories={categories}
           organization={organization}
         />
@@ -768,7 +767,6 @@ export function TaskContent({
                   tasks={tasks}
                   setTasks={setTasks}
                   setSelectedTask={setSelectedTask}
-                  availableUsers={availableUsers}
                   categories={categories}
                   organization={organization}
                 />

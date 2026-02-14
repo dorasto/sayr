@@ -45,6 +45,7 @@ import {
   useLayoutRelease,
 } from "@/contexts/ContextOrgRelease";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import type { MentionContext } from "@/hooks/useMentionUsers";
 import {
   useWSMessageHandler,
   type WSMessageHandler,
@@ -88,6 +89,7 @@ function ReleaseDetailPageContent() {
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
   const isChartsPanelOpen = useStore(
     releaseChartsStore,
     (state) => state.isOpen,
@@ -101,6 +103,13 @@ function ReleaseDetailPageContent() {
     () => organization?.members.map((member) => member.user) || [],
     [organization?.members],
   );
+
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  useEffect(() => {
+    if (organization?.id) {
+      setMentionContext({ orgId: organization.id });
+    }
+  }, [organization?.id, setMentionContext]);
 
   // Handle panel collapse/expand
   useEffect(() => {
@@ -627,7 +636,6 @@ function ReleaseDetailPageContent() {
                     defaultContent={release?.description || undefined}
                     onChange={setDescription}
                     placeholder="Add a description for this release..."
-                    users={availableUsers}
                     categories={categories}
                     tasks={tasks}
                     hideBlockHandle={true}

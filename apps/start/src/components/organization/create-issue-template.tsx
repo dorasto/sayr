@@ -18,6 +18,7 @@ import {
 	IconUserPlus,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
+import type { MentionContext } from "@/hooks/useMentionUsers";
 import {
 	createIssueTemplateAction,
 	deleteIssueTemplateAction,
@@ -61,6 +62,15 @@ export default function CreateIssueTemplate({
 	settingsUI = false,
 }: Props) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
+
+	// Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+	useEffect(() => {
+		if (orgId) {
+			setMentionContext({ orgId });
+		}
+	}, [orgId, setMentionContext]);
+
 	const [name, setName] = useState(template?.name || "");
 	const [titlePrefix, setTitlePrefix] = useState(template?.titlePrefix || "");
 	const [description, setDescription] = useState<NodeJSON | undefined>(
@@ -357,7 +367,6 @@ export default function CreateIssueTemplate({
 						key={template?.id || `new-${resetKey}`}
 						onChange={setDescription}
 						defaultContent={initialContent}
-						users={availableUsers}
 						categories={availableCategories}
 						tasks={[]}
 					/>

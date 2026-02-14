@@ -6,6 +6,7 @@ import {
 	getIssueTemplates,
 	getLabels,
 	getOrganizationMembers,
+	searchOrgMembers,
 	schema,
 	type TeamPermissions,
 } from "@repo/database";
@@ -2199,6 +2200,49 @@ apiRouteAdminOrganization.post(
 		return c.json({ success: true, data: adminTeam });
 	}
 );
+
+// Search organization members (for @mention autocomplete)
+apiRouteAdminOrganization.get("/:orgId/members/search", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+	const query = c.req.query("query");
+	const limitParam = c.req.query("limit");
+	const limit = limitParam ? Number.parseInt(limitParam, 10) : 20;
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Not authenticated" }, 401);
+	}
+
+	// Verify the requesting user is a member of this org
+	const isMember = await traceAsync(
+		"members.search.check_membership",
+		() =>
+			db.query.member.findFirst({
+				where: and(
+					eq(schema.member.organizationId, orgId),
+					eq(schema.member.userId, session.userId),
+				),
+			}),
+		{ description: "Checking membership for member search", data: { orgId, userId: session.userId } }
+	);
+
+	if (!isMember) {
+		return c.json({ success: false, error: "Not a member of this organization" }, 403);
+	}
+
+	const members = await traceAsync(
+		"members.search.query",
+		() => searchOrgMembers(orgId, { query: query || undefined, limit }),
+		{
+			description: "Searching organization members",
+			data: { orgId, query, limit },
+		}
+	);
+
+	return c.json({ success: true, data: members });
+});
 
 // Task routes
 apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);

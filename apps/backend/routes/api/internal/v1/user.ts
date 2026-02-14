@@ -1,4 +1,4 @@
-import { auth, db } from "@repo/database";
+import { auth, db, getUsersByIds } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
@@ -7,6 +7,49 @@ import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 
 export const apiRouteAdminUser = new Hono<AppEnv>();
+
+/**
+ * Resolve user IDs to UserSummary objects.
+ * Used by MentionView to render mention chips for any user by ID.
+ */
+apiRouteAdminUser.post("/resolve", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const body = await c.req.json().catch(() => null);
+	if (!body?.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
+		return c.json({ success: false, error: "ids array is required" }, 400);
+	}
+
+	// Cap at 50 to prevent abuse
+	const ids = body.ids.slice(0, 50) as string[];
+
+	try {
+		const users = await traceAsync(
+			"user.resolve",
+			() => getUsersByIds(ids),
+			{
+				description: "Resolving user IDs to summaries",
+				data: { count: ids.length },
+			},
+		);
+		return c.json({ success: true, data: users });
+	} catch (err) {
+		await recordWideError({
+			name: "user.resolve.failed",
+			error: err,
+			code: "USER_RESOLVE_FAILED",
+			message: "Failed to resolve user IDs",
+			contextData: { ids },
+		});
+		return c.json({ success: false, error: "Failed to resolve users" }, 500);
+	}
+});
 
 /**
  * Update user profile (currently supports displayName)

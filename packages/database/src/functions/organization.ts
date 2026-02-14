@@ -3,6 +3,7 @@ import { ensureCdnUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { db, schema } from "..";
 import { defaultTeamPermissions, type TeamPermissions } from "../../schema/member.schema";
+import { userSummaryColumns } from "./index";
 
 /**
  * Retrieves all organizations that a given user belongs to, including
@@ -331,4 +332,56 @@ export async function addMemberToAdminTeam(orgId: string, memberId: string): Pro
 			teamId: adminTeam.id,
 		});
 	}
+}
+
+/**
+ * Searches organization members by name/displayName with optional text query.
+ * Returns UserSummary objects (id, name, image, displayName) for use in mention autocomplete.
+ *
+ * @param orgId - The organization to search within.
+ * @param options - Optional search parameters.
+ * @param options.query - Text to match against user name or displayName (case-insensitive).
+ * @param options.limit - Max results to return (default 20).
+ * @returns Array of UserSummary objects matching the criteria.
+ *
+ * @example
+ * ```ts
+ * // Get first 20 members (no filter)
+ * const members = await searchOrgMembers("org_123");
+ *
+ * // Search by name
+ * const results = await searchOrgMembers("org_123", { query: "tom", limit: 10 });
+ * ```
+ */
+export async function searchOrgMembers(
+	orgId: string,
+	options?: { query?: string; limit?: number }
+): Promise<schema.UserSummary[]> {
+	const limit = options?.limit ?? 20;
+	const query = options?.query?.trim();
+
+	// Use relational query to get members with user data
+	const members = await db.query.member.findMany({
+		where: (member) => eq(member.organizationId, orgId),
+		with: {
+			user: {
+				columns: userSummaryColumns,
+			},
+		},
+	});
+
+	let users = members.map((m) => m.user);
+
+	// Filter by query if provided
+	if (query) {
+		const lowerQuery = query.toLowerCase();
+		users = users.filter((user) => {
+			const matchesName = user.name.toLowerCase().includes(lowerQuery);
+			const matchesDisplayName = user.displayName?.toLowerCase().includes(lowerQuery);
+			return matchesName || matchesDisplayName;
+		});
+	}
+
+	// Apply limit
+	return users.slice(0, limit);
 }

@@ -20,7 +20,6 @@ interface TaskEditableHeaderProps {
    tasks: schema.TaskWithLabels[];
    setTasks: (tasks: schema.TaskWithLabels[]) => void;
    setSelectedTask: (task: schema.TaskWithLabels | null) => void;
-   availableUsers: schema.userType[];
    categories: schema.categoryType[];
    organization?:
      | schema.OrganizationWithMembers
@@ -33,7 +32,6 @@ export function TaskEditableHeader({
   tasks,
   setTasks,
   setSelectedTask,
-  availableUsers,
   categories,
   organization,
   showContent = "both",
@@ -41,6 +39,14 @@ export function TaskEditableHeader({
   const { account } = useLayoutData();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
+
+  // Extract org member users for MentionView rendering (when organization has members)
+  const orgMemberUsers = useMemo(() => {
+    if (organization && "members" in organization) {
+      return organization.members.map((m) => m.user);
+    }
+    return undefined;
+  }, [organization]);
 
   // Task-specific mounted state for skeleton loading
   const { value: isMounted, setValue: setIsMounted } =
@@ -307,11 +313,11 @@ export function TaskEditableHeader({
             <Editor
               defaultContent={task.description}
               placeholder="No description"
-              users={availableUsers}
               categories={categories}
               tasks={tasks}
               hideBlockHandle={true}
               readonly={true}
+              mentionViewUsers={orgMemberUsers}
             />
           </div>
         ) : null}
@@ -349,10 +355,10 @@ export function TaskEditableHeader({
               onChange={setDescription}
               // placeholder="Add a description for this task..."
               firstLinePlaceholder="Task description"
-              users={availableUsers}
               categories={categories}
               tasks={tasks}
               hideBlockHandle={true}
+              mentionViewUsers={orgMemberUsers}
             />
             <div className="flex w-full">
               {hasUnsavedChanges && (

@@ -424,6 +424,7 @@ export function PublicTaskContent({
                   readonly={true}
                   defaultContent={task.description}
                   hideBlockHandle
+                  mentionViewUsers={organization.members.map((m) => m.user)}
                 />
               </Suspense>
             </div>

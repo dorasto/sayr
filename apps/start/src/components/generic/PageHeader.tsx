@@ -67,7 +67,7 @@ function Identity({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 h-11 px-3 w-full shrink-0 ",
+        "flex items-center gap-2 h-11 px-3 w-full shrink-0 border-b",
         className,
       )}
     >

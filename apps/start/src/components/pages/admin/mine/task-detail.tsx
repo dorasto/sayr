@@ -9,7 +9,9 @@ import {
 	IconLink,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
+import type { MentionContext } from "@/hooks/useMentionUsers";
 import { updateLabelToTaskAction, updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import GlobalTaskAssignees from "@/components/tasks/shared/assignee";
@@ -41,7 +43,15 @@ export function MyTaskDetail({
   releases = [],
 }: MyTaskDetailProps) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
   const { runWithToast } = useToastAction();
+
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  useEffect(() => {
+    if (task.organizationId) {
+      setMentionContext({ orgId: task.organizationId });
+    }
+  }, [task.organizationId, setMentionContext]);
 
   // Get labels and categories for this task's organization
   const orgLabels = labels.filter(
@@ -54,8 +64,8 @@ export function MyTaskDetail({
     (r) => r.organizationId === task.organizationId,
   );
 
-  // Use existing assignees as available users (since we don't have full org member data)
-  // Cast to userType - the components only use id, name, image anyway
+  // Use existing assignees as available users for non-mention components (assignee picker, etc.)
+  // The Editor now fetches full org members internally via useMentionUsers
   const availableUsers = (task.assignees || []) as unknown as schema.userType[];
 
   const debouncedUpdateLabels = useDebounceAsync(
@@ -296,7 +306,6 @@ export function MyTaskDetail({
           tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
-          availableUsers={availableUsers}
           categories={categories}
           organization={task.organization}
           showContent="both"

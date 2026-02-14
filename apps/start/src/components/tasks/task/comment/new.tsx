@@ -19,14 +19,12 @@ type CommentVisibility = "internal" | "public";
 
 interface TaskNewCommentContentProps {
   task: schema.TaskWithLabels;
-  availableUsers: schema.userType[];
   onFinish?: () => void;
   categories: schema.categoryType[];
   tasks: schema.TaskWithLabels[];
 }
 export function TaskNewCommentContent({
   task,
-  availableUsers,
   onFinish,
   categories,
   tasks,
@@ -96,7 +94,6 @@ export function TaskNewCommentContent({
     >
       <Editor
         key={editorKey}
-        users={availableUsers}
         onChange={setNewComment}
         categories={categories}
         tasks={tasks}

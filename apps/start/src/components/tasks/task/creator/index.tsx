@@ -51,8 +51,9 @@ import {
   ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import type { NodeJSON } from "prosekit/core";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
+import type { MentionContext } from "@/hooks/useMentionUsers";
 import RenderIcon from "@/components/generic/RenderIcon";
 import Editor from "@/components/prosekit/editor";
 import processUploads from "@/components/prosekit/upload";
@@ -127,11 +128,13 @@ export default function CreateIssueDialog({
 }: Props) {
   const navigate = useNavigate();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
   const { value: cachedCategories } = useStateManagement<schema.categoryType[]>(
     "categories",
     [],
     1,
   );
+
   const categories = categoriesProp ?? cachedCategories;
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = externalOpen !== undefined;
@@ -139,6 +142,13 @@ export default function CreateIssueDialog({
   const setOpen = isControlled
     ? (onOpenChange ?? setInternalOpen)
     : setInternalOpen;
+
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  useEffect(() => {
+    if (open && organization?.id) {
+      setMentionContext({ orgId: organization.id });
+    }
+  }, [open, organization?.id, setMentionContext]);
   const [expand, setExpand] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] =
     useState<string>("__none__");
@@ -607,7 +617,6 @@ export default function CreateIssueDialog({
                   >
                     <Editor
                       onChange={setDescription}
-                      users={availableUsers}
                       categories={categories}
                       tasks={tasks ?? []}
                       defaultContent={templateData}

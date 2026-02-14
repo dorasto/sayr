@@ -316,7 +316,6 @@ export default function GlobalTimeline({
 									queryKey: ["timeline", "comments", task.id, task.organizationId],
 								});
 							}}
-							availableUsers={availableUsers}
 							categories={categories}
 							tasks={tasks}
 						/>
