@@ -81,7 +81,7 @@ export function NotificationItem({
           <div className="flex items-center flex-1 gap-1">
             {notification.organization && (
               <InlineLabel
-                className="shrink ps-6"
+                className="shrink ps-6 truncate"
                 icon={
                   <Avatar className="h-4 w-4">
                     <AvatarImage

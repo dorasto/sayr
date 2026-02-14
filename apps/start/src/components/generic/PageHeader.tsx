@@ -4,6 +4,8 @@ import { SidebarTrigger } from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 
+// --- PageHeader ---
+
 interface PageHeaderProps {
 	children: React.ReactNode;
 	className?: string;
@@ -80,7 +82,7 @@ interface ToolbarProps {
 
 function Toolbar({ left, right, children, className }: ToolbarProps) {
 	return (
-		<div className={cn("flex items-center flex-wrap gap-1 px-2 pb-1 md:gap-2 md:px-3", className)}>
+		<div className={cn("flex items-center gap-1 px-2 h-11 shrink-0 border-b md:gap-2 md:px-3", className)}>
 			{children ?? (
 				<>
 					{left && <div className="flex items-center gap-1 min-w-0 flex-1">{left}</div>}

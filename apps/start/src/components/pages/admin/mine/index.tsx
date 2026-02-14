@@ -198,16 +198,24 @@ export default function MyTasksPage() {
 
 	return (
 		<div className="relative flex flex-col h-full max-h-full overflow-hidden">
-			<PageHeader>
-				<PageHeader.Identity icon={<IconUser className="size-4" />} title="My Tasks" />
-			</PageHeader>
 			{isMobile ? (
-				leftPanelContent
+				<>
+					<PageHeader>
+						<PageHeader.Identity icon={<IconUser className="size-4" />} title="My Tasks" />
+					</PageHeader>
+					{leftPanelContent}
+				</>
 			) : (
 				<ResizablePanelGroup direction="horizontal" className="h-full">
 					{/* Left panel - Task list */}
 					<ResizablePanel defaultSize={25} minSize={10} maxSize={30}>
-						{leftPanelContent}
+						<div className="flex flex-col h-full">
+							<div className="flex items-center gap-2 h-11 px-3 shrink-0 border-b">
+								<IconUser className="size-4 shrink-0" />
+								<span className="text-xs font-medium truncate">My Tasks</span>
+							</div>
+							{leftPanelContent}
+						</div>
 					</ResizablePanel>
 
 					<ResizableHandle />
