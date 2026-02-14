@@ -11,19 +11,27 @@ import { StaffSidebar } from "../admin/sidebars/staff";
 import { useAdminRoute } from "./useAdminRoute";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 
+/**
+ * Renders the correct sidebar based on the current route.
+ * Placed at the root layout level so it spans full viewport height.
+ */
+export function AdminSidebar() {
+	const { isSettingsPage, isStaffPage } = useAdminRoute();
+
+	return isSettingsPage ? <SettingsSidebar /> : isStaffPage ? <StaffSidebar /> : <PrimarySidebar />;
+}
+
 interface Props {
 	children: React.ReactNode;
 	className?: string;
 }
 export function Wrapper({ children, className }: Props) {
-	const { isTaskPage, isSettingsPage, isStaffPage } = useAdminRoute();
+	const { isTaskPage } = useAdminRoute();
 	const isMobile = useIsMobile();
 
 	return (
-		<div className="h-full w-full max-h-[calc(100dvh-var(--header-height))]!">
+		<div className="flex-1 min-h-0 w-full">
 			<div className={cn("flex flex-1 h-full w-full transition-all pb-2 pr-2", isMobile && "p-0")}>
-				{isSettingsPage ? <SettingsSidebar /> : isStaffPage ? <StaffSidebar /> : <PrimarySidebar />}
-
 				<div
 					className={cn(
 						"h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout",

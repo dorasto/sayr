@@ -105,6 +105,8 @@ export function PrimarySidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         ))}
+      </SidebarHeader>
+      <SidebarContent className="pt-0">
         {navigation.map((section) => (
           <SidebarGroup key={section.title}>
             {section.title === "Overview" ? null : (
@@ -137,8 +139,6 @@ export function PrimarySidebar() {
             </SidebarMenu>
           </SidebarGroup>
         ))}
-      </SidebarHeader>
-      <SidebarContent className="pt-0">
         <SidebarGroup>
           <SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>
             Organizations

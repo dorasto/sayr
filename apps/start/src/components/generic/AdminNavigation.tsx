@@ -1,33 +1,16 @@
 "use client";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { cn } from "@repo/ui/lib/utils";
-import { Link, useMatch } from "@tanstack/react-router";
-import { useStore } from "@tanstack/react-store";
+import { useMatch } from "@tanstack/react-router";
 
-// import { StatusBar } from "@/app/components/admin/global/status";
-
-import { Button } from "@repo/ui/components/button";
-import { Separator } from "@repo/ui/components/separator";
-import { IconArrowLeft } from "@tabler/icons-react";
-import { sidebarStore } from "@/lib/sidebar/sidebar-store";
-import SidebarSection from "../admin/sidebars/SidebarSection";
+import { SidebarTrigger } from "@repo/ui/components/doras-ui/sidebar";
 import AdminCommand from "./AdminCommand";
-// import AdminCommand from "../admin-command";
-// import MinePage from "./MinePage";
-// import OrganizationPage from "./OrganizationPage";
-// import SidebarSection from "./SidebarSection";
-// import TaskPage from "./TaskPage";
-// import TasksPage from "./TasksPage";
 import SettingsNavigationInfo from "./SettingsNavigationInfo";
 import { StatusBar } from "./status";
 import TaskNavigationInfo from "./TaskNavigationInfo";
-import TasksPageActions from "./TasksPageActions";
 import TasksPageNavigationInfo from "./TasksPageNavigationInfo";
 import ReleaseNavigationInfo from "../releases/ReleaseNavigationInfo";
 
 export default function AdminNavigation() {
-	const primarySidebar = useStore(sidebarStore, (state) => state.sidebars["primary-sidebar"]);
-	const isSidebarOpen = primarySidebar?.open ?? true;
 	const isMobile = useIsMobile();
 
 	// Use useMatch to determine which route we're on
@@ -55,13 +38,13 @@ export default function AdminNavigation() {
 	const isReleaseDetailPage = !!releaseDetailMatch;
 
 	return (
-		<header className="bg-sidebar h-(--header-height) sticky top-0 z-50 flex w-full items-center">
+		<header className="bg-sidebar h-(--header-height) shrink-0 z-50 flex w-full items-center">
 			<div className="flex w-full items-center gap-2 p-1 pr-4">
-				<div
-					className={cn("flex items-center gap-1 font-bold shrink-0", isSidebarOpen && !isMobile && "w-[16rem]")}
-				>
-					<SidebarSection sidebarIsOpen={isSidebarOpen} isMobile={isMobile} />
-				</div>
+				{isMobile && (
+					<div className="flex items-center px-1">
+						<SidebarTrigger sidebarId="primary-sidebar" className="w-10 h-10" />
+					</div>
+				)}
 
 				<div className="flex items-center w-full gap-2">
 					{isTasksListPage && (

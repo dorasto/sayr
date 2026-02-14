@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import AdminNavigation from "@/components/generic/AdminNavigation";
 import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
-import { Wrapper } from "@/components/generic/wrapper";
+import { Wrapper, AdminSidebar } from "@/components/generic/wrapper";
 import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
 import { seo } from "@/seo";
@@ -145,18 +145,21 @@ function AdminLayout() {
 	const { account, organizations } = Route.useLoaderData();
 
 	return (
-		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
+		<div className="flex h-dvh max-h-dvh flex-row bg-sidebar overflow-hidden">
 			<RootProvider account={account} organizations={organizations}>
 				<PostHogUserSync user={account ? { id: account.id, email: account.email, name: account.name } : null} />
 				<NavigationTracker />
 				<GlobalCommandRegistrar />
 				<GlobalCreateTaskDialog />
-				<AdminNavigation />
-				<Wrapper>
-					<div className="relative h-full max-h-full">
-						<Outlet />
-					</div>
-				</Wrapper>
+				<AdminSidebar />
+				<div className="flex flex-col flex-1 min-w-0 h-full">
+					<AdminNavigation />
+					<Wrapper>
+						<div className="relative h-full max-h-full">
+							<Outlet />
+						</div>
+					</Wrapper>
+				</div>
 			</RootProvider>
 		</div>
 	);
