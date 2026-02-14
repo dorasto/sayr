@@ -27,8 +27,8 @@ export const navigation = [
       {
         title: "Inbox",
         url: "/inbox",
-        icon: Icon.IconMailbox,
-        activeIcon: Icon.IconMailbox,
+        icon: Icon.IconNotification,
+        activeIcon: Icon.IconNotification,
       },
     ],
   },
