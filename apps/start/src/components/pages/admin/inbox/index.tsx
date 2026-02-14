@@ -1,26 +1,19 @@
 import type { schema } from "@repo/database";
-import {
-	ResizableHandle,
-	ResizablePanel,
-	ResizablePanelGroup,
-} from "@repo/ui/components/resizable";
-import { cn } from "@repo/ui/lib/utils";
-import { useEffect, useMemo, useState } from "react";
-import { useMyTasks } from "@/contexts/ContextMine";
-import { MyTasksList } from "./task-list";
-import { MyTaskDetail } from "./task-detail";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@repo/ui/components/resizable";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { useQueryClient } from "@tanstack/react-query";
-import { useLayoutData } from "@/components/generic/Context";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
-import {
-	useWSMessageHandler,
-	type WSMessageHandler,
-} from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { cn } from "@repo/ui/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLayoutData } from "@/components/generic/Context";
+import { useInbox } from "@/contexts/ContextInbox";
+import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import type { WSMessage } from "@/lib/ws";
+import { MyTaskDetail } from "../mine/task-detail";
+import { NotificationList } from "./notification-list";
 
-export default function MyTasksPage() {
+export default function InboxPage() {
 	const queryClient = useQueryClient();
 	queryClient.removeQueries({ queryKey: ["organization"] });
 	const { ws, account } = useLayoutData();
@@ -32,20 +25,37 @@ export default function MyTasksPage() {
 		categories,
 		setCategories,
 		releases,
-	} = useMyTasks();
+		notifications,
+		setNotifications,
+		unreadCount,
+		setUnreadCount,
+		refreshNotifications,
+	} = useInbox();
 	const [selectedTask, setSelectedTask] = useState<schema.TaskWithLabels | null>(null);
 	useWebSocketSubscription({ ws });
 
 	// Get unique organizations from tasks for filtering
 	const organizations = useMemo(() => {
 		return Array.from(
-			new Map(
-				tasks
-					.filter((t) => t.organization)
-					.map((t) => [t.organization!.id, t.organization!]),
-			).values(),
+			new Map(tasks.filter((t) => t.organization).map((t) => [t.organization!.id, t.organization!])).values()
 		);
 	}, [tasks]);
+
+	// Handle selecting a task from the notification list
+	const handleNotificationSelectTask = useCallback(
+		(taskId: string, _orgId: string) => {
+			// Toggle selection if clicking the same task
+			if (selectedTask?.id === taskId) {
+				setSelectedTask(null);
+				return;
+			}
+			const found = tasks.find((t) => t.id === taskId);
+			if (found) {
+				setSelectedTask(found);
+			}
+		},
+		[tasks, selectedTask]
+	);
 
 	const handlers: WSMessageHandler<WSMessage> = {
 		UPDATE_TASK: (msg) => {
@@ -89,7 +99,7 @@ export default function MyTasksPage() {
 					type: "timeline-update",
 					payload: updatedTask.id,
 				},
-				"*",
+				"*"
 			);
 		},
 		CREATE_TASK: (msg) => {
@@ -131,7 +141,7 @@ export default function MyTasksPage() {
 						type: "timeline-update-comment",
 						payload: msg.data.id,
 					},
-					"*",
+					"*"
 				);
 			}
 		},
@@ -144,7 +154,7 @@ export default function MyTasksPage() {
 								...task,
 								voteCount,
 							}
-						: task,
+						: task
 				);
 				setTasks(updatedTasks);
 				if (selectedTask?.id === id) {
@@ -159,14 +169,29 @@ export default function MyTasksPage() {
 						type: "update-votes",
 						payload: msg.meta?.orgId,
 					},
-					"*",
+					"*"
 				);
+			}
+		},
+		NEW_NOTIFICATION: (_msg) => {
+			// Refresh from server to get full notification details (actor, task, org relations)
+			refreshNotifications();
+		},
+		NOTIFICATION_READ: (msg) => {
+			if (msg.data.all) {
+				// Mark all as read
+				setNotifications(notifications.map((n) => ({ ...n, read: true })));
+				setUnreadCount(0);
+			} else if (msg.data.id) {
+				// Mark single as read
+				setNotifications(notifications.map((n) => (n.id === msg.data.id ? { ...n, read: true } : n)));
+				setUnreadCount(Math.max(0, unreadCount - 1));
 			}
 		},
 	};
 
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		// onUnhandled: (msg) => console.warn("[UNHANDLED MESSAGE MyTasksPage]", msg),
+		// onUnhandled: (msg) => console.warn("[UNHANDLED MESSAGE InboxPage]", msg),
 	});
 
 	useEffect(() => {
@@ -181,16 +206,7 @@ export default function MyTasksPage() {
 
 	const leftPanelContent = (
 		<div className="flex-1 overflow-hidden h-full min-h-0 flex flex-col">
-			<MyTasksList
-				tasks={tasks}
-				setTasks={setTasks}
-				selectedTask={selectedTask}
-				setSelectedTask={setSelectedTask}
-				organizations={organizations}
-				labels={labels}
-				categories={categories}
-				releases={releases}
-			/>
+			<NotificationList onSelectTask={handleNotificationSelectTask} selectedTaskId={selectedTask?.id ?? null} />
 		</div>
 	);
 
@@ -200,7 +216,7 @@ export default function MyTasksPage() {
 				leftPanelContent
 			) : (
 				<ResizablePanelGroup direction="horizontal" className="h-full">
-					{/* Left panel - Task list */}
+					{/* Left panel - Notification list */}
 					<ResizablePanel defaultSize={25} minSize={10} maxSize={30}>
 						{leftPanelContent}
 					</ResizablePanel>

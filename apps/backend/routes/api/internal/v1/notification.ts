@@ -5,6 +5,7 @@ import {
 	markAllNotificationsRead,
 	markNotificationRead,
 } from "@repo/database";
+import { ensureCdnUrl } from "@repo/util";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
@@ -36,7 +37,18 @@ apiRouteAdminNotification.get("/", async (c) => {
 		},
 	);
 
-	return c.json({ success: true, data: notifications });
+	// Transform organization logos to use CDN URLs
+	const transformedNotifications = notifications.map((n) => ({
+		...n,
+		organization: n.organization
+			? {
+					...n.organization,
+					logo: n.organization.logo ? ensureCdnUrl(n.organization.logo) : null,
+				}
+			: undefined,
+	}));
+
+	return c.json({ success: true, data: transformedNotifications });
 });
 
 // Get unread notification count

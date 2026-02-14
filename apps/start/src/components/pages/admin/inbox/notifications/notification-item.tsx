@@ -1,13 +1,9 @@
 import type { schema } from "@repo/database";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArchive, IconBell, IconCheck, IconUsers } from "@tabler/icons-react";
-import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
+import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { notificationTypeConfig } from "./notification-type-config";
 
 export interface NotificationItemProps {
@@ -18,33 +14,24 @@ export interface NotificationItemProps {
 	onArchive: () => void;
 }
 
-export function NotificationItem({
-	notification,
-	isSelected,
-	onClick,
-	onMarkRead,
-	onArchive,
-}: NotificationItemProps) {
+export function NotificationItem({ notification, isSelected, onClick, onMarkRead, onArchive }: NotificationItemProps) {
 	const config = notificationTypeConfig[notification.type] ?? {
 		label: "updated",
 		icon: (cls: string) => <IconBell className={cls} />,
 	};
-	const actorName =
-		notification.actor?.displayName || notification.actor?.name || "Someone";
-	const status =
-		statusConfig[notification.task.status as keyof typeof statusConfig];
-	const priority =
-		priorityConfig[notification.task.priority as keyof typeof priorityConfig];
+	const actorName = notification.actor?.displayName || notification.actor?.name || "Someone";
+	const status = statusConfig[notification.task.status as keyof typeof statusConfig];
+	const priority = priorityConfig[notification.task.priority as keyof typeof priorityConfig];
 
 	return (
 		<button
 			type="button"
 			onClick={onClick}
-		className={cn(
-			"flex flex-col gap-1.5 p-3 text-left hover:bg-accent transition-colors rounded-lg text-muted-foreground group relative",
-			isSelected && "bg-secondary hover:bg-secondary text-foreground",
-			!isSelected && !notification.read && "bg-primary/5 hover:bg-primary/10",
-		)}
+			className={cn(
+				"flex flex-col gap-1.5 p-3 text-left hover:bg-accent transition-colors rounded-lg text-muted-foreground group relative",
+				isSelected && "bg-secondary hover:bg-secondary text-foreground",
+				!isSelected && !notification.read && "bg-primary/5 hover:bg-primary/10"
+			)}
 		>
 			{/* Unread dot */}
 			{!notification.read && (
@@ -58,10 +45,7 @@ export function NotificationItem({
 						className="shrink"
 						icon={
 							<Avatar className="h-4 w-4">
-								<AvatarImage
-									src={notification.organization.logo || ""}
-									alt={notification.organization.name}
-								/>
+								<AvatarImage src={notification.organization.logo || ""} alt={notification.organization.name} />
 								<AvatarFallback className="rounded-md uppercase text-xs">
 									<IconUsers className="h-4 w-4" />
 								</AvatarFallback>
@@ -72,23 +56,15 @@ export function NotificationItem({
 				)}
 
 				{notification.task.shortId && (
-					<span className="text-xs text-muted-foreground">
-						#{notification.task.shortId}
-					</span>
+					<span className="text-xs text-muted-foreground">#{notification.task.shortId}</span>
 				)}
 
 				{/* Meta icons pushed right */}
 				<div className="flex items-center gap-2 text-xs ml-auto shrink-0">
 					{config.icon("size-3.5 text-muted-foreground/60")}
-					{status && (
-						<div className="flex items-center gap-1">
-							{status.icon(cn(status.className, "size-4"))}
-						</div>
-					)}
+					{status && <div className="flex items-center gap-1">{status.icon(cn(status.className, "size-4"))}</div>}
 					{priority && notification.task.priority === "urgent" && (
-						<div className="flex items-center gap-1">
-							{priority.icon(cn(priority.className, "size-4"))}
-						</div>
+						<div className="flex items-center gap-1">{priority.icon(cn(priority.className, "size-4"))}</div>
 					)}
 				</div>
 			</div>

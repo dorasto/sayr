@@ -1,16 +1,6 @@
-import {
-	IconBell,
-	IconMessage,
-	IconStatusChange,
-	IconUrgent,
-	IconUserMinus,
-	IconUserPlus,
-} from "@tabler/icons-react";
+import { IconBell, IconMessage, IconStatusChange, IconUrgent, IconUserMinus, IconUserPlus } from "@tabler/icons-react";
 
-export const notificationTypeConfig: Record<
-	string,
-	{ label: string; icon: (className: string) => React.ReactNode }
-> = {
+export const notificationTypeConfig: Record<string, { label: string; icon: (className: string) => React.ReactNode }> = {
 	mention: {
 		label: "mentioned you",
 		icon: (cls) => <IconBell className={cls} />,

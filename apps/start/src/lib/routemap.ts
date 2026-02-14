@@ -24,6 +24,12 @@ export const navigation = [
         icon: Icon.IconChecklist,
         activeIcon: Icon.IconChecklist,
       },
+      {
+        title: "Inbox",
+        url: "/inbox",
+        icon: Icon.IconMailbox,
+        activeIcon: Icon.IconMailbox,
+      },
     ],
   },
 ];

@@ -3,14 +3,14 @@ import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { IconChecks } from "@tabler/icons-react";
-import { useMyTasks } from "@/contexts/ContextMine";
+import { useInbox } from "@/contexts/ContextInbox";
 import {
 	archiveNotificationAction,
 	markAllNotificationsReadAction,
 	markNotificationReadAction,
 } from "@/lib/fetches/notification";
-import { NotificationItem } from "./notifications/notification-item";
 import { NotificationEmptyState } from "./notifications/notification-empty-state";
+import { NotificationItem } from "./notifications/notification-item";
 
 interface NotificationListProps {
 	onSelectTask: (taskId: string, orgId: string) => void;
@@ -18,21 +18,11 @@ interface NotificationListProps {
 }
 
 export function NotificationList({ onSelectTask, selectedTaskId }: NotificationListProps) {
-	const {
-		notifications,
-		setNotifications,
-		unreadCount,
-		setUnreadCount,
-		refreshNotifications,
-	} = useMyTasks();
+	const { notifications, setNotifications, unreadCount, setUnreadCount, refreshNotifications } = useInbox();
 
 	const handleMarkRead = async (notificationId: string) => {
 		// Optimistic update
-		setNotifications(
-			notifications.map((n) =>
-				n.id === notificationId ? { ...n, read: true } : n,
-			),
-		);
+		setNotifications(notifications.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
 		setUnreadCount(Math.max(0, unreadCount - 1));
 
 		const result = await markNotificationReadAction(notificationId);
@@ -78,10 +68,7 @@ export function NotificationList({ onSelectTask, selectedTaskId }: NotificationL
 			{/* Header */}
 			<div className="p-3 border-b bg-card">
 				<div className="flex items-center gap-3 justify-between">
-					<Label
-						variant="heading"
-						className="text-base flex items-center gap-2"
-					>
+					<Label variant="heading" className="text-base flex items-center gap-2">
 						Inbox
 						{unreadCount > 0 && (
 							<span className="text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 min-w-5 text-center">
@@ -90,12 +77,7 @@ export function NotificationList({ onSelectTask, selectedTaskId }: NotificationL
 						)}
 					</Label>
 					{unreadCount > 0 && (
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-7 text-xs gap-1"
-							onClick={handleMarkAllRead}
-						>
+						<Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleMarkAllRead}>
 							<IconChecks className="size-3.5" />
 							Mark all read
 						</Button>
@@ -110,14 +92,14 @@ export function NotificationList({ onSelectTask, selectedTaskId }: NotificationL
 						<NotificationEmptyState />
 					) : (
 						notifications.map((notification) => (
-						<NotificationItem
-							key={notification.id}
-							notification={notification}
-							isSelected={selectedTaskId === notification.task.id}
-							onClick={() => handleClick(notification)}
-							onMarkRead={() => handleMarkRead(notification.id)}
-							onArchive={() => handleArchive(notification.id)}
-						/>
+							<NotificationItem
+								key={notification.id}
+								notification={notification}
+								isSelected={selectedTaskId === notification.task.id}
+								onClick={() => handleClick(notification)}
+								onMarkRead={() => handleMarkRead(notification.id)}
+								onArchive={() => handleArchive(notification.id)}
+							/>
 						))
 					)}
 				</div>
