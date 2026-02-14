@@ -10,8 +10,10 @@ import { useMyTasks } from "@/contexts/ContextMine";
 import { MyTasksList } from "./task-list";
 import { MyTaskDetail } from "./task-detail";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
+import { IconUser } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLayoutData } from "@/components/generic/Context";
+import { PageHeader } from "@/components/generic/PageHeader";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import {
 	useWSMessageHandler,
@@ -196,6 +198,9 @@ export default function MyTasksPage() {
 
 	return (
 		<div className="relative flex flex-col h-full max-h-full overflow-hidden">
+			<PageHeader>
+				<PageHeader.Identity icon={<IconUser className="size-4" />} title="My Tasks" />
+			</PageHeader>
 			{isMobile ? (
 				leftPanelContent
 			) : (

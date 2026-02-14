@@ -1,7 +1,6 @@
-import { SubWrapper } from "@/components/generic/wrapper";
 import SettingsOrganizationViewDetailPage from "@/components/pages/admin/settings/orgId/view-detail";
 import { db, schema } from "@repo/database";
-import { IconStack2 } from "@tabler/icons-react";
+import { Label } from "@repo/ui/components/label";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
@@ -31,18 +30,15 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId/views/$viewId
 });
 
 function RouteComponent() {
-	const { orgId } = Route.useParams();
 	const { view } = Route.useLoaderData();
 
 	return (
-		<SubWrapper
-			title="Edit View"
-			description="Manage settings for this saved view."
-			style="compact"
-			backButton={`/settings/org/${orgId}/views`}
-			icon={<IconStack2 />}
-		>
+		<div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
+			<div className="flex flex-col">
+				<Label variant="heading" className="text-2xl text-foreground">Edit View</Label>
+				<Label variant="subheading" className="text-muted-foreground">Manage settings for this saved view.</Label>
+			</div>
 			<SettingsOrganizationViewDetailPage viewId={view?.id as string} initialView={view} />
-		</SubWrapper>
+		</div>
 	);
 }

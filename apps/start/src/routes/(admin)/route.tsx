@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
-import AdminNavigation from "@/components/generic/AdminNavigation";
+import AdminCommand from "@/components/generic/AdminCommand";
 import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper, AdminSidebar } from "@/components/generic/wrapper";
@@ -153,7 +153,7 @@ function AdminLayout() {
 				<GlobalCreateTaskDialog />
 				<AdminSidebar />
 				<div className="flex flex-col flex-1 min-w-0 h-full">
-					<AdminNavigation />
+					<AdminCommand />
 					<Wrapper>
 						<div className="relative h-full max-h-full">
 							<Outlet />

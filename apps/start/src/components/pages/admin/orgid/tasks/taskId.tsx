@@ -4,18 +4,22 @@ import {
 	ResizablePanelGroup,
 	type ResizablePanelHandle,
 } from "@repo/ui/components/resizable";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { ensureCdnUrl } from "@repo/util";
 import { Outlet, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { TaskContentMobileContent, TaskContentSideContent } from "@/components/tasks/task/task-content";
+import { PageHeader } from "@/components/generic/PageHeader";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { useToastAction } from "@/lib/util";
 import { Button } from "@repo/ui/components/button";
-import { IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
+import { IconLayoutSidebarRight, IconLayoutSidebarRightFilled, IconUsers } from "@tabler/icons-react";
 
 export default function OrganizationTaskIdPage() {
 	const useMobile = useIsMobile();
@@ -34,6 +38,30 @@ export default function OrganizationTaskIdPage() {
 
 	return (
 		<div className="relative flex flex-col h-full max-h-full">
+			<PageHeader>
+				<PageHeader.Identity>
+					<Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
+						<Button
+							variant={"primary"}
+							className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+							size={"sm"}
+						>
+							<Avatar className="h-4 w-4">
+								<AvatarImage
+									src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
+									alt={organization.name}
+								/>
+								<AvatarFallback className="rounded-md uppercase text-xs">
+									<IconUsers className="h-4 w-4" />
+								</AvatarFallback>
+							</Avatar>
+							<span>{organization.name}</span>
+						</Button>
+					</Link>
+					<span className="text-muted-foreground text-xs">/</span>
+					<span className="text-xs">#{task.shortId}</span>
+				</PageHeader.Identity>
+			</PageHeader>
 			{useMobile ? (
 				<div>
 					<div className="sticky top-0 p-1 bg-sidebar border-b z-[99999999999999999]">

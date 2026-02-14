@@ -1,5 +1,5 @@
+import { Label } from "@repo/ui/components/label";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { SubWrapper } from "@/components/generic/wrapper";
 import UserConnections from "@/components/pages/admin/settings/connections";
 import { auth, db, type schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
@@ -64,8 +64,11 @@ export const Route = createFileRoute("/(admin)/settings/connections/")({
 function RouteComponent() {
 	const { githubUser, dorasUser } = Route.useLoaderData();
 	return (
-		<SubWrapper title="Connections" style="compact">
+		<div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
+			<div className="flex flex-col">
+				<Label variant="heading" className="text-2xl text-foreground">Connections</Label>
+			</div>
 			<UserConnections githubUser={githubUser} dorasUser={dorasUser} />
-		</SubWrapper>
+		</div>
 	);
 }

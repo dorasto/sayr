@@ -3,7 +3,6 @@ import { Label } from "@repo/ui/components/label";
 import { IconPlus } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { SubWrapper } from "@/components/generic/wrapper";
 import { connections } from "@/components/pages/admin/settings/orgId/connections/connections-data";
 import SettingsOrganizationConnectionsGitHubPage, {
 	SettingsOrganizationConnectionsGitHubSync,
@@ -81,15 +80,12 @@ function RouteComponent() {
 	};
 
 	return (
-		<SubWrapper
-			title={connection.name}
-			description={connection.description}
-			icon={<connection.icon />}
-			style="compact"
-			backButton={`..`}
-			backButtonText="Connections"
-		>
+		<div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
+			<div className="flex flex-col">
+				<Label variant="heading" className="text-2xl text-foreground">{connection.name}</Label>
+				<Label variant="subheading" className="text-muted-foreground">{connection.description}</Label>
+			</div>
 			{renderContent()}
-		</SubWrapper>
+		</div>
 	);
 }

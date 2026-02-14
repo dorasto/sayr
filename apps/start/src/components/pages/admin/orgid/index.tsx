@@ -5,7 +5,6 @@ import { IconCategory, IconPlug, IconProgress, IconTag, IconUsers } from "@table
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import {
-	TaskStatusChart,
 	TaskPriorityBar,
 	TaskAssigneeChart,
 	TaskCategoryBar,
@@ -17,17 +16,14 @@ import {
 	TaskCreationVsCompletionChart,
 } from "@/components/charts";
 import { useLayoutData } from "@/components/generic/Context";
-import { SubWrapper } from "@/components/generic/wrapper";
+import { PageHeader } from "@/components/generic/PageHeader";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
-import { Route as OrgRoute } from "@/routes/(admin)/$orgId";
 import { Route as OrgIndexRoute } from "@/routes/(admin)/$orgId/index";
 export default function OrganizationHomePage() {
-	const { permissions } = OrgRoute.useRouteContext(); // 👈 from TanStack router context
 	const { tasks } = OrgIndexRoute.useLoaderData();
-	// console.log("🚀 ~ OrganizationHomePage ~ permissions:", permissions);
 	const { ws } = useLayoutData();
 	const { organization, setOrganization, setLabels, setViews, setCategories, categories } = useLayoutOrganization();
 
@@ -74,18 +70,18 @@ export default function OrganizationHomePage() {
 	}, [ws, handleMessage]);
 	// console.log("orghomepage organization:", organization);
 	return (
-		<SubWrapper
-			title={`${organization.name}`}
-			description={`${organization.slug}.sayr.io`}
-			icon={
-				<Avatar>
-					<AvatarImage src={organization.logo || ""} alt={organization.name} />
-					<AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
-				</Avatar>
-			}
-			// style="compact"
-			// className="max-w-4xl"
-		>
+		<div className="relative flex flex-col h-full">
+			<PageHeader>
+				<PageHeader.Identity>
+					<Avatar className="h-4 w-4">
+						<AvatarImage src={organization.logo || ""} alt={organization.name} />
+						<AvatarFallback className="rounded-md uppercase text-xs">{organization.name.charAt(0)}</AvatarFallback>
+					</Avatar>
+					<span className="text-xs font-medium truncate">{organization.name}</span>
+					<span className="text-xs text-muted-foreground">{organization.slug}.sayr.io</span>
+				</PageHeader.Identity>
+			</PageHeader>
+			<div className="flex flex-col gap-9 md:p-6 md:pt-3 p-3 overflow-y-auto">
 			<div className="grid grid-cols-1 md:grid-cols-12 gap-3">
 				<Link to={`/$orgId/tasks`} params={{ orgId: organization.id }} className="col-span-full w-full">
 					<Tile className="md:w-full hover:bg-accent">
@@ -255,32 +251,7 @@ export default function OrganizationHomePage() {
 					</div>
 				</Tile>
 			</div>
-		</SubWrapper>
-		// <div className="">
-		// 	<TabbedDialogExample />
-		// 	<h1>org detail {organization.name}</h1>
-		// 	{/** biome-ignore lint/performance/noImgElement: <will use> */}
-		// 	<img src={organization.logo || ""} alt={organization.name} />
-		// 	{/** biome-ignore lint/performance/noImgElement: <will use> */}
-		// 	<img src={organization.bannerImg || ""} alt={organization.name} />
-		// 	<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
-		// 	<div className="flex items-center gap-2">
-		// 		<span className="font-medium">WebSocket Status:</span>
-		// 		<span
-		// 			className={`px-2 py-1 rounded text-sm ${
-		// 				wsStatus === "Connected" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-		// 			}`}
-		// 		>
-		// 			{wsStatus}
-		// 		</span>
-		// 	</div>
-		// 	{wsSubscribedState ? (
-		// 		<div className="text-green-600 font-medium">
-		// 			✅ Subscribed to channel <code>{wsSubscribedState.channel}</code>
-		// 		</div>
-		// 	) : (
-		// 		<div className="text-yellow-600">⏳ Waiting for subscription...</div>
-		// 	)}
-		// </div>
+			</div>
+		</div>
 	);
 }

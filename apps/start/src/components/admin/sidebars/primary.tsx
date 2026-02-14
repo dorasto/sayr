@@ -1,28 +1,26 @@
 "use client";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarSubmenu,
-  SidebarSubmenuItem,
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarGroup,
+	SidebarGroupLabel,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+	SidebarMenuSub,
+	SidebarSubmenuItem,
 } from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import {
-  IconDots,
-  IconLayoutSidebar,
-  IconLayoutSidebarFilled,
-  IconPlus,
-  IconSearch,
-  IconSettings,
-  IconShield,
+	IconLayoutSidebar,
+	IconLayoutSidebarFilled,
+	IconPlus,
+	IconSearch,
+	IconSettings,
+	IconShield,
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
@@ -35,6 +33,7 @@ import { notificationStore } from "@/lib/stores/notification-store";
 import OrgSection from "./primary-org";
 import UserDropdown from "./user-dropdown";
 import { Kbd } from "@repo/ui/components/kbd";
+import { StatusBar } from "@/components/generic/status";
 export function PrimarySidebar() {
   const sidebarId = "primary-sidebar";
   const isMobile = useIsMobile();
@@ -185,6 +184,7 @@ export function PrimarySidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t-transparent">
+        <StatusBar />
         <SidebarMenu className="gap-0.5">
           <SidebarMenuItem className="min-h-auto" showWhenCollapsed>
             <SidebarMenuButton

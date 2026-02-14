@@ -3,9 +3,11 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@repo/ui/c
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { IconInbox } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
+import { PageHeader } from "@/components/generic/PageHeader";
 import { useInbox } from "@/contexts/ContextInbox";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
@@ -212,6 +214,9 @@ export default function InboxPage() {
 
 	return (
 		<div className="relative flex flex-col h-full max-h-full overflow-hidden">
+			<PageHeader>
+				<PageHeader.Identity icon={<IconInbox className="size-4" />} title="Inbox" />
+			</PageHeader>
 			{isMobile ? (
 				leftPanelContent
 			) : (

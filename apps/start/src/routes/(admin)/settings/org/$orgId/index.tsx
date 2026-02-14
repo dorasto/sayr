@@ -1,6 +1,5 @@
 import { Label } from "@repo/ui/components/label";
 import { createFileRoute } from "@tanstack/react-router";
-import { SubWrapper } from "@/components/generic/wrapper";
 import SettingsOrganizationPage from "@/components/pages/admin/settings/orgId";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/")({
@@ -9,12 +8,15 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId/")({
 
 function RouteComponent() {
 	return (
-		<SubWrapper title="Organization Settings" style="compact">
+		<div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
+			<div className="flex flex-col">
+				<Label variant="heading" className="text-2xl text-foreground">Organization Settings</Label>
+			</div>
 			<div className="flex flex-col gap-3">
 				<Label variant={"heading"}>General</Label>
 
 				<SettingsOrganizationPage />
 			</div>
-		</SubWrapper>
+		</div>
 	);
 }
