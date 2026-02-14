@@ -1,15 +1,6 @@
 import type { schema } from "@repo/database";
-import {
-	ResizableHandle,
-	ResizablePanel,
-	ResizablePanelGroup,
-} from "@repo/ui/components/resizable";
-import { cn } from "@repo/ui/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useMyTasks } from "@/contexts/ContextMine";
-import { MyTasksList } from "./task-list";
-import { MyTaskDetail } from "./task-detail";
-import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { IconUser } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLayoutData } from "@/components/generic/Context";
@@ -21,6 +12,9 @@ import {
 } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { Separator } from "@repo/ui/components/separator";
+import { TaskFilterDropdown } from "@/components/tasks/filter";
+import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
 
 export default function MyTasksPage() {
 	const queryClient = useQueryClient();
@@ -35,10 +29,10 @@ export default function MyTasksPage() {
 		setCategories,
 		releases,
 	} = useMyTasks();
-	const [selectedTask, setSelectedTask] = useState<schema.TaskWithLabels | null>(null);
+
 	useWebSocketSubscription({ ws });
 
-	// Get unique organizations from tasks for filtering
+	// Get unique organizations from tasks for WS handlers
 	const organizations = useMemo(() => {
 		return Array.from(
 			new Map(
@@ -48,6 +42,25 @@ export default function MyTasksPage() {
 			).values(),
 		);
 	}, [tasks]);
+
+	// Derive available users from task assignees (cross-org)
+	// UserSummary is a subset of userType; cast is safe since UnifiedTaskItem
+	// only uses id/name/image for display purposes
+	const availableUsers = useMemo(() => {
+		const userMap = new Map<string, schema.UserSummary>();
+		for (const task of tasks) {
+			if (task.assignees) {
+				for (const user of task.assignees) {
+					if (!userMap.has(user.id)) {
+						userMap.set(user.id, user);
+					}
+				}
+			}
+		}
+		return Array.from(userMap.values()) as unknown as schema.userType[];
+	}, [tasks]);
+
+	// --- WebSocket Handlers ---
 
 	const handlers: WSMessageHandler<WSMessage> = {
 		UPDATE_TASK: (msg) => {
@@ -65,7 +78,9 @@ export default function MyTasksPage() {
 				}),
 			};
 
-			const isUserInList = updatedTask.assignees?.some((user) => user.id === account.id);
+			const isUserInList = updatedTask.assignees?.some(
+				(user) => user.id === account.id,
+			);
 
 			const taskExists = tasks.some((task) => task.id === updatedTask.id);
 
@@ -73,18 +88,15 @@ export default function MyTasksPage() {
 
 			if (isUserInList) {
 				newTasks = taskExists
-					? tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+					? tasks.map((task) =>
+							task.id === updatedTask.id ? updatedTask : task,
+						)
 					: [...tasks, updatedTask];
 			} else {
 				newTasks = tasks.filter((task) => task.id !== updatedTask.id);
-				if (selectedTask?.id === updatedTask.id) setSelectedTask(null);
 			}
 
 			setTasks(newTasks);
-
-			if (selectedTask?.id === updatedTask.id) {
-				setSelectedTask(updatedTask);
-			}
 			sendWindowMessage(
 				window,
 				{
@@ -95,7 +107,11 @@ export default function MyTasksPage() {
 			);
 		},
 		CREATE_TASK: (msg) => {
-			if (msg.data.assignees.find((e: { id: string }) => e.id === account.id)) {
+			if (
+				msg.data.assignees.find(
+					(e: { id: string }) => e.id === account.id,
+				)
+			) {
 				setTasks([...tasks, msg.data]);
 			}
 		},
@@ -104,10 +120,13 @@ export default function MyTasksPage() {
 				const newLabels = msg.data;
 				if (!Array.isArray(newLabels)) return;
 
-				const orgId = msg.meta?.orgId || newLabels[0]?.organizationId;
+				const orgId =
+					msg.meta?.orgId || newLabels[0]?.organizationId;
 				if (!orgId) return;
 
-				const updatedList = labels.filter((label) => label.organizationId !== orgId);
+				const updatedList = labels.filter(
+					(label) => label.organizationId !== orgId,
+				);
 				const newList = [...updatedList, ...newLabels];
 				setLabels(newList);
 			}
@@ -117,16 +136,19 @@ export default function MyTasksPage() {
 				const newCategories = msg.data;
 				if (!Array.isArray(newCategories)) return;
 
-				const orgId = msg.meta?.orgId || newCategories[0]?.organizationId;
+				const orgId =
+					msg.meta?.orgId || newCategories[0]?.organizationId;
 				if (!orgId) return;
 
-				const updatedList = categories.filter((cat) => cat.organizationId !== orgId);
+				const updatedList = categories.filter(
+					(cat) => cat.organizationId !== orgId,
+				);
 				const newList = [...updatedList, ...newCategories];
 				setCategories(newList);
 			}
 		},
 		UPDATE_TASK_COMMENTS: async (msg) => {
-			if (msg.scope === "INDIVIDUAL" && msg.data.id === selectedTask?.id) {
+			if (msg.scope === "INDIVIDUAL") {
 				sendWindowMessage(
 					window,
 					{
@@ -142,19 +164,10 @@ export default function MyTasksPage() {
 				const { id, voteCount } = msg.data;
 				const updatedTasks = tasks.map((task) =>
 					task.id === id && task.organizationId === msg.meta?.orgId
-						? {
-								...task,
-								voteCount,
-							}
+						? { ...task, voteCount }
 						: task,
 				);
 				setTasks(updatedTasks);
-				if (selectedTask?.id === id) {
-					setSelectedTask({
-						...selectedTask,
-						voteCount,
-					});
-				}
 				sendWindowMessage(
 					window,
 					{
@@ -167,9 +180,7 @@ export default function MyTasksPage() {
 		},
 	};
 
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		// onUnhandled: (msg) => console.warn("[UNHANDLED MESSAGE MyTasksPage]", msg),
-	});
+	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {});
 
 	useEffect(() => {
 		if (!ws) return;
@@ -179,67 +190,40 @@ export default function MyTasksPage() {
 		};
 	}, [ws, handleMessage]);
 
-	const isMobile = useIsMobile();
-
-	const leftPanelContent = (
-		<div className="flex-1 overflow-hidden h-full min-h-0 flex flex-col">
-			<MyTasksList
-				tasks={tasks}
-				setTasks={setTasks}
-				selectedTask={selectedTask}
-				setSelectedTask={setSelectedTask}
-				organizations={organizations}
-				labels={labels}
-				categories={categories}
-				releases={releases}
-			/>
-		</div>
-	);
-
 	return (
 		<div className="relative flex flex-col h-full max-h-full overflow-hidden">
-			{isMobile ? (
-				<>
-					<PageHeader>
-						<PageHeader.Identity icon={<IconUser className="size-4" />} title="My Tasks" />
-					</PageHeader>
-					{leftPanelContent}
-				</>
-			) : (
-				<ResizablePanelGroup direction="horizontal" className="h-full">
-					{/* Left panel - Task list */}
-					<ResizablePanel defaultSize={25} minSize={10} maxSize={30}>
-						<div className="flex flex-col h-full">
-							<div className="flex items-center gap-2 h-11 px-3 shrink-0 border-b">
-								<IconUser className="size-4 shrink-0" />
-								<span className="text-xs font-medium truncate">My Tasks</span>
-							</div>
-							{leftPanelContent}
-						</div>
-					</ResizablePanel>
-
-					<ResizableHandle />
-
-					{/* Right panel - Task detail */}
-					<ResizablePanel defaultSize={75}>
-						<div className={cn("flex-1 overflow-y-auto h-full flex flex-col relative")}>
-							{selectedTask ? (
-								<MyTaskDetail
-									task={selectedTask}
-									tasks={tasks}
-									setTasks={setTasks}
-									setSelectedTask={setSelectedTask}
-									labels={labels}
-									categories={categories}
-									releases={releases}
-								/>
-							) : (
-								<div className="flex items-center justify-center h-full text-muted-foreground" />
-							)}
-						</div>
-					</ResizablePanel>
-				</ResizablePanelGroup>
-			)}
+			<PageHeader>
+				<PageHeader.Identity
+					icon={<IconUser className="size-4" />}
+					title="My Tasks"
+				/>
+				<PageHeader.Toolbar
+					left={
+						<TaskFilterDropdown
+							tasks={tasks}
+							labels={labels}
+							availableUsers={availableUsers}
+							categories={categories}
+							releases={releases}
+						/>
+					}
+					right={
+						<>
+							<Separator orientation="vertical" className="h-5" />
+							<TaskViewDropdown />
+						</>
+					}
+				/>
+			</PageHeader>
+			<UnifiedTaskView
+				tasks={tasks}
+				setTasks={setTasks}
+				ws={ws}
+				availableUsers={availableUsers}
+				categories={categories}
+				releases={releases}
+				personal
+			/>
 		</div>
 	);
 }

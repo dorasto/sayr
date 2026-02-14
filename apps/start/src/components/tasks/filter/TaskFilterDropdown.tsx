@@ -21,9 +21,9 @@ interface Props {
 	tasks: schema.TaskWithLabels[];
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
-	organizationId: string;
-	views: schema.savedViewType[];
-	setViews: (newValue: Props["views"]) => void;
+	organizationId?: string;
+	views?: schema.savedViewType[];
+	setViews?: (newValue: schema.savedViewType[]) => void;
 	categories: schema.categoryType[];
 	releases: schema.releaseType[];
 }
@@ -110,6 +110,8 @@ export function TaskFilterDropdown({
 	);
 
 	const showNewViewPopover = useMemo(() => {
+		// Don't show if no org context (cross-org mode) or no setViews
+		if (!organizationId || !setViews || !views) return false;
 		// Don't show if a view with these exact filters AND config already exists
 		const viewExists = views.some((view) => {
 			const filtersMatch = view.filterParams === currentFiltersString;
@@ -125,7 +127,7 @@ export function TaskFilterDropdown({
 			return filtersMatch && configMatch;
 		});
 		return !viewExists;
-	}, [views, currentFiltersString, currentViewConfig]);
+	}, [organizationId, setViews, views, currentFiltersString, currentViewConfig]);
 
 	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
 		hookAddFilter({
@@ -208,8 +210,8 @@ export function TaskFilterDropdown({
 			)}
 			{showNewViewPopover && (
 				<NewViewPopover
-					organizationId={organizationId}
-					setViews={setViews}
+					organizationId={organizationId!}
+					setViews={setViews!}
 					currentFilters={currentFiltersString}
 					viewConfig={currentViewConfig}
 				/>

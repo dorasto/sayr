@@ -178,6 +178,9 @@ const result = await traceAsync("operation.name", () => performOperation(), {
 });
 ```
 
+### PageHeader
+All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages integrate `UnifiedTaskView` which supports both single-org and cross-org modes. See `.claude/skills/page-header/SKILL.md` for full patterns and props reference.
+
 ## Database Schema
 
 **Core tables**: `user`, `session`, `organization`, `member`, `task`, `taskAssignee`, `taskComment`, `taskTimeline`, `label`, `category`, `githubRepository`, `githubIssue`
@@ -202,3 +205,4 @@ pnpm dlx shadcn@latest add <component-name>
 5. **Edits**: Use Edit tool, not sed/awk
 6. **Avoid**: Creating unnecessary files, especially .md files unless requested
 7. **ONLY** do type checks like pnpm tsc etc when requested, don't do it on your own accord.
+8. **Do not** a worry about running pnpm builds, lints, etc.

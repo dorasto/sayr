@@ -1,26 +1,26 @@
 "use client";
 import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarGroup,
-	SidebarGroupLabel,
-	SidebarHeader,
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
-	SidebarMenuSub,
-	SidebarSubmenuItem,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarSubmenuItem,
 } from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import {
-	IconLayoutSidebar,
-	IconLayoutSidebarFilled,
-	IconPlus,
-	IconSearch,
-	IconSettings,
-	IconShield,
+  IconLayoutSidebar,
+  IconLayoutSidebarFilled,
+  IconPlus,
+  IconSearch,
+  IconSettings,
+  IconShield,
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
@@ -52,7 +52,7 @@ export function PrimarySidebar() {
   };
   return (
     <Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
-      <SidebarHeader className="">
+      <SidebarHeader className="pt-3.5">
         {heading.map((section) => (
           <SidebarMenu
             key={section.title}

@@ -35,7 +35,6 @@ import {
 } from "../shared/nested-grouping";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
-import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import Loader from "@/components/Loader";
 
 interface UnifiedTaskViewProps {
@@ -43,11 +42,15 @@ interface UnifiedTaskViewProps {
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   ws: WebSocket | null;
   availableUsers: schema.userType[];
-  organization: schema.OrganizationWithMembers;
+  organization?: schema.OrganizationWithMembers;
   categories: schema.categoryType[];
   releases?: schema.releaseType[];
   compact?: boolean;
   forceShowCompleted?: boolean;
+  /** When true, shows org badges on each task row (cross-org mode) */
+  personal?: boolean;
+  /** Optional views to pass when no org context is available */
+  views?: schema.savedViewType[];
 }
 
 export function UnifiedTaskView({
@@ -60,6 +63,8 @@ export function UnifiedTaskView({
   releases = [],
   compact = false,
   forceShowCompleted = false,
+  personal = false,
+  views: viewsProp,
 }: UnifiedTaskViewProps) {
   // console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -68,13 +73,10 @@ export function UnifiedTaskView({
     setMounted(true);
   }, []);
 
-  // Get views from context for auto-loading saved views
-  const { views } = useLayoutOrganization();
-
   // Shared State
   // Consolidated task view state management - pass views to enable auto-loading
   const { filters, grouping, subGrouping, showCompletedTasks, viewMode } =
-    useTaskViewManager(views);
+    useTaskViewManager(viewsProp);
 
   // Override showCompletedTasks if forceShowCompleted is true
   const effectiveShowCompleted = forceShowCompleted || showCompletedTasks;
@@ -145,6 +147,13 @@ export function UnifiedTaskView({
     setCollapsedSections(newCollapsed);
   };
 
+  // Resolve orgId: use organization prop when available, otherwise fall back to per-task organizationId (cross-org mode)
+  const getOrgId = (taskId: string): string => {
+    if (organization) return organization.id;
+    const task = tasks.find((t) => t.id === taskId);
+    return task?.organizationId ?? "";
+  };
+
   const handleTaskUpdate = async (
     taskId: string,
     updates: Partial<schema.TaskWithLabels>,
@@ -153,6 +162,8 @@ export function UnifiedTaskView({
       t.id === taskId ? { ...t, ...updates } : t,
     );
     setTasks(updatedTasks);
+
+    const orgId = getOrgId(taskId);
 
     if (updates.status) {
       await runWithToast(
@@ -164,7 +175,7 @@ export function UnifiedTaskView({
         },
         () =>
           updateTaskAction(
-            organization.id,
+            orgId,
             taskId,
             { status: updates.status },
             wsClientId,
@@ -181,7 +192,7 @@ export function UnifiedTaskView({
         },
         () =>
           updateTaskAction(
-            organization.id,
+            orgId,
             taskId,
             { priority: updates.priority },
             wsClientId,
@@ -198,7 +209,7 @@ export function UnifiedTaskView({
         },
         () =>
           updateAssigneesToTaskAction(
-            organization.id,
+            orgId,
             taskId,
             updates.assignees?.map((u) => u.id) || [],
             wsClientId,
@@ -262,6 +273,7 @@ export function UnifiedTaskView({
       categories={categories}
       releases={releases}
       compact={compact}
+      personal={personal}
     />
   );
 
@@ -441,6 +453,8 @@ export function UnifiedTaskView({
       // Apply optimistic update
       updateLocal(updates);
 
+      const orgId = getOrgId(itemId);
+
       // Send updates to server
       if (updates.status) {
         await runWithToast(
@@ -452,7 +466,7 @@ export function UnifiedTaskView({
           },
           () =>
             updateTaskAction(
-              organization.id,
+              orgId,
               itemId,
               { status: updates.status },
               wsClientId,
@@ -470,7 +484,7 @@ export function UnifiedTaskView({
           },
           () =>
             updateTaskAction(
-              organization.id,
+              orgId,
               itemId,
               { priority: updates.priority },
               wsClientId,
@@ -488,7 +502,7 @@ export function UnifiedTaskView({
           },
           () =>
             updateAssigneesToTaskAction(
-              organization.id,
+              orgId,
               itemId,
               updates.assignees?.map((u) => u.id) || [],
               wsClientId,
@@ -506,7 +520,7 @@ export function UnifiedTaskView({
           },
           () =>
             updateTaskAction(
-              organization.id,
+              orgId,
               itemId,
               { category: updates.category },
               wsClientId,
@@ -529,6 +543,7 @@ export function UnifiedTaskView({
           categories={categories}
           releases={releases}
           compact={compact}
+          personal={personal}
         />
       </div>
     );

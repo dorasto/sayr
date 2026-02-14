@@ -396,6 +396,7 @@ export default function OrganizationTasksHomePage() {
 						organization={organization}
 						categories={categories}
 						releases={releases}
+						views={views}
 					/>
 					</div>
 				</ResizablePanel>
