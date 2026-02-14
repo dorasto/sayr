@@ -181,7 +181,10 @@ export default function ProjectSide() {
 
   return (
     <div className="flex flex-col gap-3 w-full relative">
-      <Tile className="bg-card md:w-full md:h-11">
+      <Tile
+        variant={"transparent"}
+        className="bg-transparent md:w-full md:h-11"
+      >
         <TileHeader>
           <TileIcon>
             <Avatar className="h-3 w-3">

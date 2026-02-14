@@ -9,7 +9,7 @@ import {
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconChecks, IconInbox } from "@tabler/icons-react";
+import { IconChecks, IconInbox, IconNotification } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
@@ -253,93 +253,93 @@ export default function InboxPage() {
 
   return (
     <div className="relative flex flex-col h-full max-h-full overflow-hidden">
-        {isMobile ? (
-          <>
-            <PageHeader>
-              <PageHeader.Identity
-                icon={<IconInbox className="size-4" />}
-                title="Inbox"
-                actions={
-                  <>
-                    {unreadCount > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </Badge>
-                    )}
-                    {unreadCount > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs gap-1"
-                        onClick={handleMarkAllRead}
-                      >
-                        <IconChecks className="size-3.5" />
-                        Mark all read
-                      </Button>
-                    )}
-                  </>
-                }
-              />
-            </PageHeader>
-            {leftPanelContent}
-          </>
-        ) : (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            {/* Left panel - Notification list */}
-            <ResizablePanel defaultSize={25} minSize={10} maxSize={30}>
-              <div className="flex flex-col h-full">
-                <div className="flex items-center gap-2 h-11 px-3 shrink-0 border-b">
-                  <IconInbox className="size-4 shrink-0" />
-                  <span className="text-xs font-medium truncate">Inbox</span>
+      {isMobile ? (
+        <>
+          <PageHeader>
+            <PageHeader.Identity
+              icon={<IconNotification className="size-4" />}
+              title="Inbox"
+              actions={
+                <>
                   {unreadCount > 0 && (
                     <Badge variant="outline" className="text-xs">
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </Badge>
                   )}
-                  <div className="flex items-center gap-1 shrink-0 ml-auto">
-                    {unreadCount > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs gap-1"
-                        onClick={handleMarkAllRead}
-                      >
-                        <IconChecks className="size-3.5" />
-                        Mark all read
-                      </Button>
-                    )}
-                  </div>
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={handleMarkAllRead}
+                    >
+                      <IconChecks className="size-3.5" />
+                      Mark all read
+                    </Button>
+                  )}
+                </>
+              }
+            />
+          </PageHeader>
+          {leftPanelContent}
+        </>
+      ) : (
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Left panel - Notification list */}
+          <ResizablePanel defaultSize={25} minSize={10} maxSize={30}>
+            <div className="flex flex-col h-full">
+              <div className="flex items-center gap-2 h-11 px-3 shrink-0 border-b">
+                <IconNotification className="size-4 shrink-0" />
+                <span className="text-xs font-medium truncate">Inbox</span>
+                {unreadCount > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Badge>
+                )}
+                <div className="flex items-center gap-1 shrink-0 ml-auto">
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={handleMarkAllRead}
+                    >
+                      <IconChecks className="size-3.5" />
+                      Mark all read
+                    </Button>
+                  )}
                 </div>
-                {leftPanelContent}
               </div>
-            </ResizablePanel>
+              {leftPanelContent}
+            </div>
+          </ResizablePanel>
 
-            <ResizableHandle />
+          <ResizableHandle />
 
-            {/* Right panel - Task detail */}
-            <ResizablePanel defaultSize={75}>
-              <div
-                className={cn(
-                  "flex-1 overflow-y-auto h-full flex flex-col relative",
-                )}
-              >
-                {selectedTask ? (
-                  <MyTaskDetail
-                    task={selectedTask}
-                    tasks={tasks}
-                    setTasks={setTasks}
-                    setSelectedTask={setSelectedTask}
-                    labels={labels}
-                    categories={categories}
-                    releases={releases}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground" />
-                )}
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        )}
+          {/* Right panel - Task detail */}
+          <ResizablePanel defaultSize={75}>
+            <div
+              className={cn(
+                "flex-1 overflow-y-auto h-full flex flex-col relative",
+              )}
+            >
+              {selectedTask ? (
+                <MyTaskDetail
+                  task={selectedTask}
+                  tasks={tasks}
+                  setTasks={setTasks}
+                  setSelectedTask={setSelectedTask}
+                  labels={labels}
+                  categories={categories}
+                  releases={releases}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground" />
+              )}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      )}
     </div>
   );
 }
