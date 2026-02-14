@@ -59,12 +59,17 @@ export default function MyTasksPage() {
 	// Handle selecting a task from the notification list
 	const handleNotificationSelectTask = useCallback(
 		(taskId: string, _orgId: string) => {
+			// Toggle selection if clicking the same task
+			if (selectedTask?.id === taskId) {
+				setSelectedTask(null);
+				return;
+			}
 			const found = tasks.find((t) => t.id === taskId);
 			if (found) {
 				setSelectedTask(found);
 			}
 		},
-		[tasks],
+		[tasks, selectedTask],
 	);
 
 	const handlers: WSMessageHandler<WSMessage> = {
@@ -264,7 +269,10 @@ export default function MyTasksPage() {
 					releases={releases}
 				/>
 			) : (
-				<NotificationList onSelectTask={handleNotificationSelectTask} />
+				<NotificationList
+					onSelectTask={handleNotificationSelectTask}
+					selectedTaskId={selectedTask?.id ?? null}
+				/>
 			)}
 		</div>
 	);
