@@ -21,6 +21,7 @@ import {
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import { markAllNotificationsReadAction } from "@/lib/fetches/notification";
+import { getTaskByIdForInbox } from "@/lib/serverFunctions/getTaskByIdForInbox";
 import type { WSMessage } from "@/lib/ws";
 import { MyTaskDetail } from "../mine/task-detail";
 import { NotificationList } from "./notification-list";
@@ -69,7 +70,7 @@ export default function InboxPage() {
 
   // Handle selecting a task from the notification list
   const handleNotificationSelectTask = useCallback(
-    (taskId: string, _orgId: string) => {
+    async (taskId: string, orgId: string) => {
       // Toggle selection if clicking the same task
       if (selectedTask?.id === taskId) {
         setSelectedTask(null);
@@ -78,9 +79,22 @@ export default function InboxPage() {
       const found = tasks.find((t) => t.id === taskId);
       if (found) {
         setSelectedTask(found);
+        return;
+      }
+      // Task not in local list (e.g. user was mentioned but not assigned)
+      // Fetch it from the server
+      try {
+        const result = await getTaskByIdForInbox({
+          data: { accountId: account.id, orgId, taskId },
+        });
+        if (result.task) {
+          setSelectedTask(result.task);
+        }
+      } catch {
+        // Task may have been deleted or user lost access
       }
     },
-    [tasks, selectedTask],
+    [tasks, selectedTask, account.id],
   );
 
   const handlers: WSMessageHandler<WSMessage> = {
@@ -115,11 +129,12 @@ export default function InboxPage() {
           : [...tasks, updatedTask];
       } else {
         newTasks = tasks.filter((task) => task.id !== updatedTask.id);
-        if (selectedTask?.id === updatedTask.id) setSelectedTask(null);
       }
 
       setTasks(newTasks);
 
+      // Update the selected task with latest data (even if not assigned,
+      // e.g. opened via a mention notification)
       if (selectedTask?.id === updatedTask.id) {
         setSelectedTask(updatedTask);
       }
