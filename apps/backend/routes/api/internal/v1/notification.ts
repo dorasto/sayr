@@ -1,9 +1,11 @@
 import {
 	archiveNotification,
+	deleteNotification,
 	getNotificationsForUser,
 	getUnreadNotificationCount,
 	markAllNotificationsRead,
 	markNotificationRead,
+	markNotificationUnread,
 } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { Hono } from "hono";
@@ -164,4 +166,65 @@ apiRouteAdminNotification.patch("/:id/archive", async (c) => {
 	}
 
 	return c.json({ success: true, data: updated });
+});
+
+// Mark a single notification as unread
+apiRouteAdminNotification.patch("/:id/unread", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const notificationId = c.req.param("id");
+
+	const updated = await traceAsync(
+		"notifications.mark_unread",
+		() => markNotificationUnread(notificationId, session.userId),
+		{
+			description: "Marking notification as unread",
+			data: { notificationId, userId: session.userId },
+		},
+	);
+
+	if (!updated) {
+		return c.json({ success: false, error: "Notification not found" }, 404);
+	}
+
+	// Broadcast to user's other tabs/sessions
+	broadcastByUserId(session.userId, "", "", {
+		type: "NOTIFICATION_UNREAD" as WSBaseMessage["type"],
+		data: { id: notificationId },
+		meta: { ts: Date.now() },
+	});
+
+	return c.json({ success: true, data: updated });
+});
+
+// Delete a notification permanently
+apiRouteAdminNotification.delete("/:id", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const notificationId = c.req.param("id");
+
+	const deleted = await traceAsync(
+		"notifications.delete",
+		() => deleteNotification(notificationId, session.userId),
+		{
+			description: "Deleting notification",
+			data: { notificationId, userId: session.userId },
+		},
+	);
+
+	if (!deleted) {
+		return c.json({ success: false, error: "Notification not found" }, 404);
+	}
+
+	return c.json({ success: true, data: deleted });
 });

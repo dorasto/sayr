@@ -98,3 +98,35 @@ export async function archiveNotificationAction(notificationId: string): Promise
 
 	return res.json();
 }
+
+/**
+ * Marks a single notification as unread.
+ */
+export async function markNotificationUnreadAction(notificationId: string): Promise<{
+	success: boolean;
+	data?: schema.notificationType;
+	error?: string;
+}> {
+	const res = await fetch(`${API_URL}/v1/admin/notification/${notificationId}/unread`, {
+		method: "PATCH",
+		credentials: "include",
+	});
+
+	return res.json();
+}
+
+/**
+ * Permanently deletes a notification.
+ */
+export async function deleteNotificationAction(notificationId: string): Promise<{
+	success: boolean;
+	data?: schema.notificationType;
+	error?: string;
+}> {
+	const res = await fetch(`${API_URL}/v1/admin/notification/${notificationId}`, {
+		method: "DELETE",
+		credentials: "include",
+	});
+
+	return res.json();
+}

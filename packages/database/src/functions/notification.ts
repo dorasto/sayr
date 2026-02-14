@@ -203,6 +203,31 @@ export async function archiveNotification(notificationId: string, userId: string
 }
 
 /**
+ * Marks a single notification as unread.
+ */
+export async function markNotificationUnread(notificationId: string, userId: string) {
+	const [updated] = await db
+		.update(notification)
+		.set({ read: false })
+		.where(and(eq(notification.id, notificationId), eq(notification.userId, userId)))
+		.returning();
+
+	return updated;
+}
+
+/**
+ * Permanently deletes a notification.
+ */
+export async function deleteNotification(notificationId: string, userId: string) {
+	const [deleted] = await db
+		.delete(notification)
+		.where(and(eq(notification.id, notificationId), eq(notification.userId, userId)))
+		.returning();
+
+	return deleted;
+}
+
+/**
  * Gets the assignee user IDs for a task.
  * Used internally to determine who should receive notifications.
  */
