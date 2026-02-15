@@ -10,6 +10,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "dev": "drizzle-kit studio",
     "db:studio": "drizzle-kit studio",
     "db:push": "drizzle-kit push",
     "lint": "biome check .",
