@@ -145,7 +145,7 @@ export function Navbar() {
           <a className="hidden items-center gap-2 md:flex" href="/login">
             <motion.button
               {...tapProps}
-              className="hidden rounded-full bg-primary px-8 py-2 text-sm font-bold text-primary-foreground md:block"
+              className="hidden rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground md:block"
             >
               Get started
             </motion.button>

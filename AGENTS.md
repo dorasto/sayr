@@ -206,3 +206,7 @@ pnpm dlx shadcn@latest add <component-name>
 6. **Avoid**: Creating unnecessary files, especially .md files unless requested
 7. **ONLY** do type checks like pnpm tsc etc when requested, don't do it on your own accord.
 8. **Do not** a worry about running pnpm builds, lints, etc.
+
+## Additional notices
+- If you are aware of any changes that may require an update to our /legal pages, please let this be known. This includes changes to OAuth providers, cookies, managing account information, subprocessors, or any other relevant changes.
+-

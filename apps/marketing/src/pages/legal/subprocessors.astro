@@ -1,0 +1,67 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import subprocessorsData from "../../data/subprocessors.json";
+
+const { lastUpdated, subprocessors } = subprocessorsData;
+---
+
+<Layout title="Subprocessors - Sayr" description="List of third-party subprocessors that process data on behalf of Sayr.">
+	<div class="mx-auto max-w-4xl px-6 py-16 sm:py-24">
+		<div class="mb-12">
+			<h1 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Subprocessors</h1>
+			<p class="mt-4 text-lg text-muted-foreground">
+				Sayr uses the following third-party subprocessors to deliver our services. Each subprocessor has been
+				selected with data protection in mind.
+			</p>
+			<p class="mt-2 text-sm text-muted-foreground">
+				Last updated: <time datetime={lastUpdated}>{new Date(lastUpdated).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</time>
+			</p>
+		</div>
+
+		<div class="overflow-x-auto rounded-lg border border-border">
+			<table class="w-full text-sm text-left">
+				<thead class="bg-muted/50 text-muted-foreground">
+					<tr>
+						<th class="px-4 py-3 font-medium">Subprocessor</th>
+						<th class="px-4 py-3 font-medium">Purpose</th>
+						<th class="px-4 py-3 font-medium">Data Processed</th>
+						<th class="px-4 py-3 font-medium">Location</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-border">
+					{subprocessors.map((sp) => (
+						<tr class="text-foreground">
+							<td class="px-4 py-3 font-medium">
+								<a href={sp.website} target="_blank" rel="noopener noreferrer" class="hover:underline">
+									{sp.name}
+								</a>
+								{sp.dpaUrl && (
+									<a
+										href={sp.dpaUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="block text-xs text-muted-foreground hover:underline mt-0.5"
+									>
+										DPA / Privacy
+									</a>
+								)}
+							</td>
+							<td class="px-4 py-3 text-muted-foreground">{sp.purpose}</td>
+							<td class="px-4 py-3 text-muted-foreground">{sp.dataProcessed}</td>
+							<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">{sp.location}</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+
+		<div class="mt-12 rounded-lg border border-border bg-muted/30 p-6">
+			<h2 class="text-lg font-semibold text-foreground">Changes to this list</h2>
+			<p class="mt-2 text-sm text-muted-foreground">
+				We may update this list from time to time as our infrastructure evolves. If you have questions about our
+				subprocessors, please contact us at{" "}
+				<a href="mailto:support@sayr.io" class="text-foreground hover:underline">support@sayr.io</a>.
+			</p>
+		</div>
+	</div>
+</Layout>
