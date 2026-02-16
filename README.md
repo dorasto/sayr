@@ -226,11 +226,6 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `test:` — Adding or updating tests
 - `chore:` — Maintenance tasks
 
----
-
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 

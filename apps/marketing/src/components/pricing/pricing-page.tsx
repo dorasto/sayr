@@ -1,0 +1,220 @@
+import { ArrowUpRight, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import pricingData from "@/data/pricing.json";
+
+type TierValue = boolean | string;
+
+function FeatureValue({
+  value,
+  featureName,
+}: {
+  value: TierValue;
+  featureName: string;
+}) {
+  if (value === false) {
+    return null;
+  }
+
+  const label = typeof value === "string" ? value : featureName;
+  const words = label.split(" ");
+  const firstWord = words[0];
+  const rest = words.slice(1).join(" ");
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="size-5 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+        <Check className="size-3 text-primary" />
+      </div>
+      <span className="text-sm text-muted-foreground">
+        <span className="text-foreground font-medium">{firstWord}</span> {rest}
+      </span>
+    </div>
+  );
+}
+
+export function PricingPage() {
+  const tiers = pricingData.tiers;
+
+  return (
+    <div className="w-full">
+      {/* Hero */}
+      <section className="py-16 sm:py-24 px-6">
+        <div className="mx-auto max-w-4xl text-center">
+          <Badge variant="secondary" className="rounded-full py-1 px-3 mb-4">
+            Pricing
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
+            Transparent pricing for a transparent tool
+          </h1>
+          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+            Start free with up to 5 members. Upgrade when your team grows.
+            Self-host for full control.
+          </p>
+        </div>
+      </section>
+
+      {/* Feature comparison - Linear style */}
+      <section className="px-6 pb-24">
+        <div className="mx-auto max-w-(--breakpoint-lg)">
+          {/* Tier headers */}
+          <div className="grid grid-cols-3 gap-0 sticky top-15 border-b">
+            {tiers.map((tier) => (
+              <div
+                key={tier.id}
+                className={cn(
+                  "px-3 bg-background",
+                  tier.highlighted && "bg-card rounded-t-lg",
+                )}
+              >
+                <div className="flex items-center justify-between h-full">
+                  <h2 className="text-xl! font-semibold ">{tier.name}</h2>
+                  <div className="mt-3 mb-3">
+                    {tier.price === null ? (
+                      <span className="text-3xl font-bold invisible">Free</span>
+                    ) : tier.price === 0 ? (
+                      <span className="text-3xl font-bold invisible">$0</span>
+                    ) : (
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl! font-bold">
+                          ${tier.price}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {tier.priceSuffix}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Feature rows */}
+          {pricingData.featureGroups.map((group) => (
+            <div key={group.name}>
+              {/* Group header */}
+              <div className="grid grid-cols-3 gap-0">
+                {tiers.map((tier, i) => (
+                  <div
+                    key={tier.id}
+                    className={cn(
+                      "px-6 py-3 bg-background",
+                      tier.highlighted && "bg-card",
+                    )}
+                  >
+                    {i === 0 && (
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {group.name}
+                      </h3>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Features */}
+              {group.features.map((feature) => (
+                <div key={feature.name} className="grid grid-cols-3 gap-0">
+                  {tiers.map((tier) => {
+                    const value =
+                      feature.tiers[tier.id as keyof typeof feature.tiers];
+                    return (
+                      <div
+                        key={tier.id}
+                        className={cn(
+                          "px-6 py-3 bg-background",
+                          tier.highlighted && "bg-card",
+                        )}
+                      >
+                        <FeatureValue
+                          value={value}
+                          featureName={feature.name}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          ))}
+
+          {/* Bottom border for highlighted column */}
+          <div className="grid grid-cols-3 gap-0">
+            {tiers.map((tier) => (
+              <div
+                key={tier.id}
+                className={cn(tier.highlighted && "rounded-b-lg h-4 bg-card")}
+              />
+            ))}
+          </div>
+
+          <p className="text-center mt-10 text-sm text-muted-foreground">
+            All prices are per organization. Only internal members count as
+            seats &mdash; public users who vote and comment are always free.
+          </p>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="px-6 pb-24">
+        <div className="mx-auto max-w-2xl">
+          <h2 className="text-2xl font-semibold tracking-tight mb-8 text-center">
+            Common questions
+          </h2>
+          <div className="space-y-6">
+            {[
+              {
+                q: "What counts as a seat?",
+                a: "Only members of your organization count as seats. External users who view your public portal, vote on tasks, or leave public comments are always free and unlimited.",
+              },
+              {
+                q: "What happens when I hit 5 members on Free?",
+                a: "You'll need to upgrade to Pro to invite additional members. Your existing tasks, views, and data are unaffected.",
+              },
+              {
+                q: "Can I switch between plans?",
+                a: "Yes, you can upgrade or downgrade at any time. When downgrading, you'll retain access to Pro features until the end of your billing period.",
+              },
+              {
+                q: "What is a release?",
+                a: "Releases let you group tasks into milestones or sprints, track progress toward a target date, and mark them as shipped. They're available on Pro and self-hosted.",
+              },
+            ].map((faq) => (
+              <div key={faq.q} className="border-b pb-6 last:border-b-0">
+                <h3 className="text-sm font-semibold mb-2">{faq.q}</h3>
+                <p className="text-sm text-muted-foreground">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="px-6 pb-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl font-semibold tracking-tight mb-4">
+            Ready to get started?
+          </h2>
+          <p className="text-muted-foreground mb-8">
+            Create your first organization in under a minute. No credit card
+            required.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Button
+              className="rounded-full shadow-lg shadow-primary/20"
+              asChild
+            >
+              <a href="https://admin.sayr.io">
+                Start Free <ArrowUpRight className="size-4" />
+              </a>
+            </Button>
+            <Button variant="outline" className="rounded-full" asChild>
+              <a href="/docs">Read the Docs</a>
+            </Button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

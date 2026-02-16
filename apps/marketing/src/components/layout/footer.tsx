@@ -28,7 +28,7 @@ export function Footer() {
 		},
 		{
 			title: "Pricing",
-			href: "#",
+			href: "/pricing",
 		},
 		{
 			title: "Blog",
