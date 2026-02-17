@@ -54,6 +54,7 @@ import { Route as adminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/
 import { Route as adminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/labels/index'
 import { Route as adminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/index'
 import { Route as adminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/categories/index'
+import { Route as adminSettingsOrgOrgIdBillingIndexRouteImport } from './routes/(admin)/settings/org/$orgId/billing/index'
 import { Route as adminSettingsOrgOrgIdTeamsNewRouteImport } from './routes/(admin)/settings/org/$orgId/teams/new'
 import { Route as adminSettingsOrgOrgIdViewsViewIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/$viewId/index'
 import { Route as adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/$teamId/index'
@@ -299,6 +300,12 @@ const adminSettingsOrgOrgIdCategoriesIndexRoute =
     path: '/categories/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
+const adminSettingsOrgOrgIdBillingIndexRoute =
+  adminSettingsOrgOrgIdBillingIndexRouteImport.update({
+    id: '/billing/',
+    path: '/billing/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
 const adminSettingsOrgOrgIdTeamsNewRoute =
   adminSettingsOrgOrgIdTeamsNewRouteImport.update({
     id: '/teams/new',
@@ -362,6 +369,7 @@ export interface FileRoutesByFullPath {
   '/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
   '/settings/org/$orgId/labels/': typeof adminSettingsOrgOrgIdLabelsIndexRoute
@@ -402,6 +410,7 @@ export interface FileRoutesByTo {
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/settings/org/$orgId/billing': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
   '/settings/org/$orgId/labels': typeof adminSettingsOrgOrgIdLabelsIndexRoute
@@ -454,6 +463,7 @@ export interface FileRoutesById {
   '/(admin)/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/(admin)/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/(admin)/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/(admin)/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/(admin)/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
   '/(admin)/settings/org/$orgId/labels/': typeof adminSettingsOrgOrgIdLabelsIndexRoute
@@ -506,6 +516,7 @@ export interface FileRouteTypes {
     | '/$orgId/tasks/$taskShortId/'
     | '/settings/org/$orgId/'
     | '/settings/org/$orgId/teams/new'
+    | '/settings/org/$orgId/billing/'
     | '/settings/org/$orgId/categories/'
     | '/settings/org/$orgId/connections/'
     | '/settings/org/$orgId/labels/'
@@ -546,6 +557,7 @@ export interface FileRouteTypes {
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
     | '/settings/org/$orgId/teams/new'
+    | '/settings/org/$orgId/billing'
     | '/settings/org/$orgId/categories'
     | '/settings/org/$orgId/connections'
     | '/settings/org/$orgId/labels'
@@ -597,6 +609,7 @@ export interface FileRouteTypes {
     | '/(admin)/$orgId/tasks/$taskShortId/'
     | '/(admin)/settings/org/$orgId/'
     | '/(admin)/settings/org/$orgId/teams/new'
+    | '/(admin)/settings/org/$orgId/billing/'
     | '/(admin)/settings/org/$orgId/categories/'
     | '/(admin)/settings/org/$orgId/connections/'
     | '/(admin)/settings/org/$orgId/labels/'
@@ -941,6 +954,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
+    '/(admin)/settings/org/$orgId/billing/': {
+      id: '/(admin)/settings/org/$orgId/billing/'
+      path: '/billing'
+      fullPath: '/settings/org/$orgId/billing/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdBillingIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
     '/(admin)/settings/org/$orgId/teams/new': {
       id: '/(admin)/settings/org/$orgId/teams/new'
       path: '/teams/new'
@@ -1073,6 +1093,7 @@ const adminSettingsConnectionsRouteRouteWithChildren =
 interface adminSettingsOrgOrgIdRouteRouteChildren {
   adminSettingsOrgOrgIdIndexRoute: typeof adminSettingsOrgOrgIdIndexRoute
   adminSettingsOrgOrgIdTeamsNewRoute: typeof adminSettingsOrgOrgIdTeamsNewRoute
+  adminSettingsOrgOrgIdBillingIndexRoute: typeof adminSettingsOrgOrgIdBillingIndexRoute
   adminSettingsOrgOrgIdCategoriesIndexRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   adminSettingsOrgOrgIdConnectionsIndexRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRoute
   adminSettingsOrgOrgIdLabelsIndexRoute: typeof adminSettingsOrgOrgIdLabelsIndexRoute
@@ -1090,6 +1111,8 @@ const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteCh
   {
     adminSettingsOrgOrgIdIndexRoute: adminSettingsOrgOrgIdIndexRoute,
     adminSettingsOrgOrgIdTeamsNewRoute: adminSettingsOrgOrgIdTeamsNewRoute,
+    adminSettingsOrgOrgIdBillingIndexRoute:
+      adminSettingsOrgOrgIdBillingIndexRoute,
     adminSettingsOrgOrgIdCategoriesIndexRoute:
       adminSettingsOrgOrgIdCategoriesIndexRoute,
     adminSettingsOrgOrgIdConnectionsIndexRoute:
