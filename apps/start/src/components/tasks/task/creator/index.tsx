@@ -343,7 +343,6 @@ export default function CreateIssueDialog({
             });
           },
         },
-        duration: Infinity,
       });
     }
   };
