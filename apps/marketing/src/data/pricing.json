@@ -27,7 +27,7 @@
     {
       "id": "pro",
       "name": "Pro",
-      "price": 2,
+      "price": 3,
       "priceSuffix": "/seat/mo",
       "description": "For growing teams that need releases, advanced views, and granular permissions.",
       "cta": {
@@ -67,14 +67,6 @@
         },
         {
           "name": "Priority levels",
-          "tiers": {
-            "free": true,
-            "pro": true,
-            "self-hosted": true
-          }
-        },
-        {
-          "name": "File uploads",
           "tiers": {
             "free": true,
             "pro": true,
@@ -185,8 +177,8 @@
           "name": "Releases",
           "tiers": {
             "free": false,
-            "pro": true,
-            "self-hosted": true
+            "pro": "Unlimited releases",
+            "self-hosted": "Unlimited releases"
           }
         },
         {

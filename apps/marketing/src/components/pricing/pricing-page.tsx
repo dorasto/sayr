@@ -1,4 +1,7 @@
-import { ArrowUpRight, Check } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { ArrowUpRight, Check, ChevronDown } from "lucide-react";
+import { IconX } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,7 +17,14 @@ function FeatureValue({
   featureName: string;
 }) {
   if (value === false) {
-    return null;
+    return (
+      <div className="flex items-center gap-2.5">
+        <div className="size-5 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
+          <IconX className="size-3 text-destructive" />
+        </div>
+        <span className="text-sm text-muted-foreground/50">{featureName}</span>
+      </div>
+    );
   }
 
   const label = typeof value === "string" ? value : featureName;
@@ -34,8 +44,28 @@ function FeatureValue({
   );
 }
 
+const pricingFaqs = [
+  {
+    q: "What counts as a seat?",
+    a: "Only members of your organization count as seats. External users who view your public portal, vote on tasks, or leave public comments are always free and unlimited.",
+  },
+  {
+    q: "What happens when I hit 5 members on Free?",
+    a: "You'll need to upgrade to Pro to invite additional members. Your existing tasks, views, and data are unaffected.",
+  },
+  {
+    q: "Can I switch between plans?",
+    a: "Yes, you can upgrade or downgrade at any time. When downgrading, you'll retain access to Pro features until the end of your billing period.",
+  },
+  {
+    q: "What is a release?",
+    a: "Releases let you group tasks into milestones or sprints, track progress toward a target date, and mark them as shipped. They're available on Pro and self-hosted.",
+  },
+];
+
 export function PricingPage() {
   const tiers = pricingData.tiers;
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <div className="w-full">
@@ -162,28 +192,37 @@ export function PricingPage() {
           <h2 className="text-2xl font-semibold tracking-tight mb-8 text-center">
             Common questions
           </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: "What counts as a seat?",
-                a: "Only members of your organization count as seats. External users who view your public portal, vote on tasks, or leave public comments are always free and unlimited.",
-              },
-              {
-                q: "What happens when I hit 5 members on Free?",
-                a: "You'll need to upgrade to Pro to invite additional members. Your existing tasks, views, and data are unaffected.",
-              },
-              {
-                q: "Can I switch between plans?",
-                a: "Yes, you can upgrade or downgrade at any time. When downgrading, you'll retain access to Pro features until the end of your billing period.",
-              },
-              {
-                q: "What is a release?",
-                a: "Releases let you group tasks into milestones or sprints, track progress toward a target date, and mark them as shipped. They're available on Pro and self-hosted.",
-              },
-            ].map((faq) => (
-              <div key={faq.q} className="border-b pb-6 last:border-b-0">
-                <h3 className="text-sm font-semibold mb-2">{faq.q}</h3>
-                <p className="text-sm text-muted-foreground">{faq.a}</p>
+          <div className="space-y-2">
+            {pricingFaqs.map((faq, i) => (
+              <div
+                key={faq.q}
+                className="rounded-xl border bg-card overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenIndex(openIndex === i ? null : i)}
+                  className="w-full flex items-center justify-between p-5 text-left"
+                >
+                  <span className="font-medium text-sm">{faq.q}</span>
+                  <ChevronDown
+                    className={`size-4 text-muted-foreground transition-transform shrink-0 ml-4 ${openIndex === i ? "rotate-180" : ""}`}
+                  />
+                </button>
+                <AnimatePresence>
+                  {openIndex === i && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: "auto" }}
+                      exit={{ height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">
+                        {faq.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ))}
           </div>
