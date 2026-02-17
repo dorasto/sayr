@@ -53,6 +53,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { Label } from "@repo/ui/components/label";
+import { extractTaskText } from "@repo/util";
 interface Props {
   organization: schema.OrganizationWithMembers;
   tasks?: schema.TaskWithLabels[];
@@ -111,7 +112,8 @@ export default function CreateIssueDialog({
 }: Props) {
   const navigate = useNavigate();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
+  const { setValue: setMentionContext } =
+    useStateManagement<MentionContext | null>("mentionContext", null);
   const { value: cachedCategories } = useStateManagement<schema.categoryType[]>(
     "categories",
     [],
@@ -306,6 +308,7 @@ export default function CreateIssueDialog({
         ),
     );
     if (data?.success && data.data) {
+      const createdTask = data.data;
       setOpen(false);
       setExpand(false);
       setSelectedTemplateId("__none__");
@@ -318,13 +321,29 @@ export default function CreateIssueDialog({
       setLabels([]);
       setAssignees([]);
       setVisible("public");
-      setTasks?.([...(tasks ?? []), data.data]);
-      navigate({
-        to: "/$orgId/tasks/$taskShortId",
-        params: {
-          orgId: organization.id,
-          taskShortId: data.data.shortId?.toString() || "0",
+      setTasks?.([...(tasks ?? []), createdTask]);
+
+      // Override the success toast with one that includes a navigation action
+      headlessToast.success({
+        id: "create-task",
+        title: createdTask.title || "Created task",
+
+        description:
+          extractTaskText(createdTask.description) ||
+          "The task has been successfully created.",
+        action: {
+          label: "View task",
+          onClick: () => {
+            navigate({
+              to: "/$orgId/tasks/$taskShortId",
+              params: {
+                orgId: organization.id,
+                taskShortId: createdTask.shortId?.toString() || "0",
+              },
+            });
+          },
         },
+        duration: Infinity,
       });
     }
   };
