@@ -30,8 +30,10 @@ import { Button } from "@repo/ui/components/button";
 import {
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
+  IconLink,
   IconUsers,
 } from "@tabler/icons-react";
+import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 
 export default function OrganizationTaskIdPage() {
   const useMobile = useIsMobile();
@@ -84,6 +86,33 @@ export default function OrganizationTaskIdPage() {
           </Link>
           <span className="text-muted-foreground text-xs">/</span>
           <span className="text-xs">#{task.shortId}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="primary"
+              className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
+              onClick={() => {
+                if (isPanelOpen) {
+                  ref.current?.collapse();
+                } else {
+                  ref.current?.expand();
+                }
+              }}
+            >
+              {isPanelOpen ? (
+                <IconLayoutSidebarRightFilled />
+              ) : (
+                <IconLayoutSidebarRight />
+              )}
+            </Button>
+            <SimpleClipboard
+              textToCopy={`https://${organization?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
+              variant={"primary"}
+              className="h-6 p-1 w-fit bg-transparent"
+              copyIcon={<IconLink />}
+              tooltipText="Copy task URL"
+              tooltipSide="bottom"
+            />
+          </div>
         </PageHeader.Identity>
       </PageHeader>
       {useMobile ? (
@@ -117,27 +146,7 @@ export default function OrganizationTaskIdPage() {
             </div>
           </ResizablePanel>
           <ResizableHandle className={cn(!isPanelOpen && "opacity-0")} />
-          {!isPanelOpen && (
-            <Button
-              variant="primary"
-              className={cn(
-                "gap-2 h-6 w-fit bg-accent border-transparent p-1 fixed right-2 top-2 z-50",
-              )}
-              onClick={() => {
-                if (isPanelOpen) {
-                  ref.current?.collapse();
-                } else {
-                  ref.current?.expand();
-                }
-              }}
-            >
-              {isPanelOpen ? (
-                <IconLayoutSidebarRightFilled />
-              ) : (
-                <IconLayoutSidebarRight />
-              )}
-            </Button>
-          )}
+
           <ResizablePanel
             defaultSize={20}
             minSize={10}

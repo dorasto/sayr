@@ -6,40 +6,40 @@ import { getAdminOrganizationTask } from "@/lib/serverFunctions/getAdminOrganiza
 import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
-	loader: async ({ params, context }) => {
-		if (!context.account) {
-			throw redirect({ to: "/login" });
-		}
-		return await getAdminOrganizationTask({
-			data: {
-				account: context.account,
-				orgId: params.orgId,
-				taskShortId: parseInt(params.taskShortId),
-			},
-		});
-	},
-	staleTime: 1000 * 60,
-	component: OrgTasksLayout,
-	head: ({ loaderData }) => ({
-		meta: seo({
-			title: `#${loaderData?.task.shortId} ${loaderData?.task.title}`,
-		}),
-	}),
+  loader: async ({ params, context }) => {
+    if (!context.account) {
+      throw redirect({ to: "/login" });
+    }
+    return await getAdminOrganizationTask({
+      data: {
+        account: context.account,
+        orgId: params.orgId,
+        taskShortId: parseInt(params.taskShortId),
+      },
+    });
+  },
+  staleTime: 1000 * 60,
+  component: OrgTasksLayout,
+  head: ({ loaderData }) => ({
+    meta: seo({
+      title: `${loaderData?.task.title}`,
+    }),
+  }),
 });
 
 function OrgTasksLayout() {
-	const { task } = Route.useLoaderData();
+  const { task } = Route.useLoaderData();
 
-	return (
-		<RootProviderOrganizationTask task={task}>
-			<TaskCommandRegistrar />
-			<OrganizationTaskIdPage />
-		</RootProviderOrganizationTask>
-	);
+  return (
+    <RootProviderOrganizationTask task={task}>
+      <TaskCommandRegistrar />
+      <OrganizationTaskIdPage />
+    </RootProviderOrganizationTask>
+  );
 }
 
 /** Registers single-task-specific commands. Must be rendered inside RootProviderOrganizationTask. */
 function TaskCommandRegistrar() {
-	useTaskCommands();
-	return null;
+  useTaskCommands();
+  return null;
 }

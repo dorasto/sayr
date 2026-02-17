@@ -13,7 +13,12 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { IconChevronRight, IconHome, IconListCheck } from "@tabler/icons-react";
+import {
+  IconChevronRight,
+  IconHome,
+  IconListCheck,
+  IconUser,
+} from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
@@ -21,6 +26,7 @@ import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { useMyTasks } from "@/contexts/ContextMine";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { SubWrapper } from "@/components/generic/wrapper";
 
 // Priority order for sorting tasks
 const priorityOrder: Record<string, number> = {
@@ -68,15 +74,23 @@ export default function AdminHomePage() {
       <PageHeader>
         <PageHeader.Identity
           icon={<IconHome className="size-4" />}
-          title={`Welcome, ${account.displayName?.split(" ")[0] || "there"}`}
+          title={`Dashboard`}
         />
       </PageHeader>
-      <div className="flex flex-col gap-9 max-w-prose mx-auto p-3 md:p-6 md:pt-3 overflow-y-auto">
-        {/* Subtitle */}
-        <p className="text-sm text-muted-foreground -mt-6">
-          {`You have ${openTasks.length} open task${openTasks.length !== 1 ? "s" : ""} across ${organizations.length} organization${organizations.length !== 1 ? "s" : ""}`}
-        </p>
-
+      <SubWrapper
+        title={`Hi ${account.displayName}`}
+        description={`You have ${openTasks.length} open task${openTasks.length !== 1 ? "s" : ""} across ${organizations.length} organization${organizations.length !== 1 ? "s" : ""}`}
+        icon={
+          <Avatar className="rounded-lg size-[52px]">
+            <AvatarImage src={account.image || ""} alt={account.name} />
+            <AvatarFallback className="">
+              <IconUser className="h-4 w-4" />
+            </AvatarFallback>
+          </Avatar>
+        }
+        iconClassName="p-0"
+        className="max-w-6xl mx-auto"
+      >
         {/* Quick Stats Row */}
         {openTasks.length > 0 && (
           <div className="flex gap-4 flex-wrap text-sm -mt-6">
@@ -178,7 +192,7 @@ export default function AdminHomePage() {
             </Tile>
           )}
         </section>
-      </div>
+      </SubWrapper>
     </div>
   );
 }

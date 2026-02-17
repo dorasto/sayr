@@ -129,45 +129,7 @@ export function TaskContentSideContent({
   const [GitHubIssueOrg, GitHubIssueRepo] = [urlParts?.[3], urlParts?.[4]];
   return (
     <div className="flex flex-col gap-3 w-full">
-      <div className="border-b">
-        <div className="flex items-center gap-2 px-2 pt-2 pb-3 w-full justify-end">
-          <SimpleClipboard
-            textToCopy={`https://${organization?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
-            variant={"primary"}
-            className="h-6 p-1 w-fit bg-transparent"
-            copyIcon={<IconLink />}
-            tooltipText="Copy task URL"
-            tooltipSide="bottom"
-          />
-          {task.githubIssue?.id && (
-            <Link to={task.githubIssue?.issueUrl} target="_blank">
-              <Button
-                variant="primary"
-                className={cn("gap-2 h-6 w-fit bg-transparent p-1")}
-                tooltipText="View linked GitHub issue"
-                tooltipSide="bottom"
-              >
-                <IconBrandGithub />
-              </Button>
-            </Link>
-          )}
-          {panelControls && (
-            <Button
-              variant="primary"
-              className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
-              onClick={panelControls.onToggle}
-            >
-              {panelControls.isPanelOpen ? (
-                <IconLayoutSidebarRightFilled />
-              ) : (
-                <IconLayoutSidebarRight />
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
+      <div className="p-1 pt-3 flex flex-col gap-2 max-w-full md:max-w-1/2">
         <TaskFieldToolbar
           task={task}
           variant="sidebar"
