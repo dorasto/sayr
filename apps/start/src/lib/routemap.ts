@@ -120,20 +120,13 @@ export const orgSettingsNavigation = [
     activeClass: "",
     matchType: "includes" as const,
   },
-	{
-		title: "Releases",
-		slug: "releases",
-		icon: Icon.IconRocket,
-		activeIcon: Icon.IconRocket,
-		activeClass: "",
-		matchType: "exact" as const,
-	},
-	{
-		title: "Billing",
-		slug: "billing",
-		icon: Icon.IconCreditCard,
-		activeIcon: Icon.IconCreditCardFilled,
-		activeClass: "",
-		matchType: "exact" as const,
-	},
+
+  {
+    title: "Billing",
+    slug: "billing",
+    icon: Icon.IconCreditCard,
+    activeIcon: Icon.IconCreditCardFilled,
+    activeClass: "",
+    matchType: "exact" as const,
+  },
 ];
