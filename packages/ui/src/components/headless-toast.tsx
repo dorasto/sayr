@@ -37,12 +37,12 @@ export type HeadlessToastVariant =
   | "loading";
 
 const variantClasses: Record<HeadlessToastVariant, string> = {
-  default: "border bg-background text-foreground",
-  success: "border bg-background text-foreground border-success/70",
-  error: "border bg-background text-foreground border-destructive/70",
-  warning: "border bg-background text-foreground border-amber-500",
-  info: "border bg-background text-foreground border-primary/70",
-  loading: "border bg-background text-foreground border-primary/70",
+  default: "border bg-card text-foreground",
+  success: "border bg-card text-foreground border-success/70",
+  error: "border bg-card text-foreground border-destructive/70",
+  warning: "border bg-card text-foreground border-amber-500",
+  info: "border bg-card text-foreground",
+  loading: "border bg-card text-foreground",
 };
 
 // Global default icons registry (module-scoped). Users can override via setHeadlessToastIcons.
@@ -87,7 +87,7 @@ export function HeadlessToast(
   return (
     <div
       className={cn(
-        "flex flex-col md:max-w-96 w-80 items-start gap-3 rounded-lg p-4 shadow-md transition-colors", // base
+        "flex flex-col md:max-w-96 w-80 items-start gap-3 rounded-lg p-3 shadow-md transition-colors", // base
         variantClasses[variant],
         className,
       )}
@@ -117,8 +117,9 @@ export function HeadlessToast(
             action.onClick?.();
             sonnerToast.dismiss(id);
           }}
-          className="shrink-0"
-          variant={"outline"}
+          className="shrink-0 py-1"
+          size={"sm"}
+          variant={"primary"}
         >
           {action.label}
         </Button>
