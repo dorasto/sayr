@@ -22,16 +22,10 @@ import { cn } from "@repo/ui/lib/utils";
 import {
   IconArrowsDiagonal,
   IconArrowsDiagonalMinimize2,
-  IconCategory,
   IconDeviceFloppy,
-  IconLabel,
-  IconLock,
-  IconLockOpen2,
   IconPlus,
-  IconRocket,
   IconTemplate,
   IconTrash,
-  IconUserPlus,
   IconX,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
@@ -42,19 +36,7 @@ import {
   deleteIssueTemplateAction,
   editIssueTemplateAction,
 } from "@/lib/fetches/organization";
-import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
-import GlobalTaskStatus from "@/components/tasks/shared/status";
-import GlobalTaskPriority from "@/components/tasks/shared/priority";
-import GlobalTaskLabels from "@/components/tasks/shared/label";
-import GlobalTaskCategory from "@/components/tasks/shared/category";
-import GlobalTaskAssignees from "@/components/tasks/shared/assignee";
-import GlobalTaskRelease from "@/components/tasks/shared/release";
-import RenderIcon from "@/components/generic/RenderIcon";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@repo/ui/components/avatar";
+import TaskFieldToolbar from "@/components/tasks/shared/task-field-toolbar";
 import { Label } from "@repo/ui/components/label";
 import {
   Tile,
@@ -215,19 +197,9 @@ export default function CreateIssueTemplate({
     [availableLabels, labelIds],
   );
 
-  const selectedCategory = useMemo(
-    () => availableCategories.find((c) => c.id === categoryId),
-    [availableCategories, categoryId],
-  );
-
   const selectedAssignees = useMemo(
     () => availableUsers.filter((user) => assigneeIds.includes(user.id)),
     [availableUsers, assigneeIds],
-  );
-
-  const selectedRelease = useMemo(
-    () => releases.find((r) => r.id === releaseId),
-    [releases, releaseId],
   );
 
   // Create a draft task-like object for the shared components
@@ -263,12 +235,6 @@ export default function CreateIssueTemplate({
     ],
   );
 
-  const resolvedStatus = status || "backlog";
-  const resolvedPriority = priority || "none";
-  const statusconfig =
-    statusConfig[resolvedStatus as keyof typeof statusConfig];
-  const priorityconfig =
-    priorityConfig[resolvedPriority as keyof typeof priorityConfig];
 
   const handleCreate = async () => {
     const data = await runWithToast(
@@ -569,239 +535,23 @@ export default function CreateIssueTemplate({
                     />
                   </div>
 
-                  <div className="flex items-center flex-wrap gap-1 w-full mt-auto shrink-0">
-                    <GlobalTaskStatus
+                  <div className="mt-auto shrink-0">
+                    <TaskFieldToolbar
                       task={draftTask}
-                      editable
-                      onChange={(value) => setStatus(value || undefined)}
-                      customTrigger={
-                        <Button
-                          variant={"primary"}
-                          className="w-fit text-xs h-7"
-                          size={"sm"}
-                        >
-                          {statusconfig?.icon(
-                            `h-3.5 w-3.5 ${statusconfig?.className || ""}`,
-                          )}
-                          {statusconfig?.label || "Status"}
-                        </Button>
-                      }
-                    />
-                    <GlobalTaskPriority
-                      task={draftTask}
-                      editable
-                      onChange={(value) => setPriority(value || undefined)}
-                      customTrigger={
-                        <Button
-                          variant={"primary"}
-                          className="w-fit text-xs h-7"
-                          size={"sm"}
-                        >
-                          {priorityconfig?.icon(
-                            `h-3.5 w-3.5 ${priorityconfig?.className || ""}`,
-                          )}
-                          {priorityconfig?.label || "Priority"}
-                        </Button>
-                      }
-                    />
-                    <GlobalTaskLabels
-                      task={draftTask}
-                      editable
+                      variant="creator"
                       availableLabels={availableLabels}
-                      onLabelsChange={setLabelIds}
-                      customChildren
-                      customTrigger={
-                        <Button
-                          variant={"primary"}
-                          className="w-fit text-xs h-7 line-clamp-1"
-                          size={"sm"}
-                        >
-                          {selectedLabels.length > 1 ? (
-                            <div className="flex items-center gap-2">
-                              <div className="flex -space-x-1">
-                                {selectedLabels.map((label) => (
-                                  <span
-                                    key={label.id}
-                                    className="h-2 w-2 shrink-0 rounded-full"
-                                    style={{
-                                      backgroundColor: label.color || "#cccccc",
-                                    }}
-                                  />
-                                ))}
-                              </div>
-                              <span>{selectedLabels.length} labels</span>
-                            </div>
-                          ) : selectedLabels.length === 1 ? (
-                            <div className="flex items-center">
-                              <span
-                                className="h-2 w-2 shrink-0 rounded-full mr-2"
-                                style={{
-                                  backgroundColor:
-                                    selectedLabels[0]?.color || "#cccccc",
-                                }}
-                              />
-                              <span>{selectedLabels[0]?.name}</span>
-                            </div>
-                          ) : (
-                            <span className="flex items-center gap-2">
-                              <IconLabel className="h-3.5 w-3.5 mr-1" />
-                              Labels
-                            </span>
-                          )}
-                        </Button>
-                      }
-                    />
-                    <GlobalTaskAssignees
-                      task={draftTask}
-                      editable
                       availableUsers={availableUsers}
-                      onChange={(value) => setAssigneeIds(value)}
-                      customTrigger={
-                        <Button
-                          variant={"primary"}
-                          className="w-fit text-xs h-7 line-clamp-1"
-                          size={"sm"}
-                        >
-                          {selectedAssignees.length > 1 ? (
-                            <div className="flex items-center gap-2">
-                              <div className="flex -space-x-1">
-                                {selectedAssignees.map((assignee) => (
-                                  <Avatar
-                                    key={assignee.id}
-                                    className="h-4 w-4 border border-background"
-                                  >
-                                    <AvatarImage
-                                      src={assignee.image || undefined}
-                                      alt={assignee.name}
-                                    />
-                                    <AvatarFallback className="text-[8px]">
-                                      {assignee.name
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")
-                                        .toUpperCase()
-                                        .slice(0, 2)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                ))}
-                              </div>
-                              <span>{selectedAssignees.length} assignees</span>
-                            </div>
-                          ) : selectedAssignees.length === 1 ? (
-                            <div className="flex items-center">
-                              <Avatar className="h-4 w-4 mr-2">
-                                <AvatarImage
-                                  src={selectedAssignees[0]?.image || undefined}
-                                  alt={selectedAssignees[0]?.name}
-                                />
-                                <AvatarFallback className="text-[8px]">
-                                  {selectedAssignees[0]?.name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .toUpperCase()
-                                    .slice(0, 2)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span>{selectedAssignees[0]?.name}</span>
-                            </div>
-                          ) : (
-                            <span className="flex items-center gap-2">
-                              <IconUserPlus className="h-3.5 w-3.5 mr-1" />
-                              Assignees
-                            </span>
-                          )}
-                        </Button>
-                      }
-                    />
-                    <GlobalTaskCategory
-                      task={draftTask}
-                      editable
                       categories={availableCategories}
-                      onChange={(value) => setCategoryId(value)}
-                      customTrigger={
-                        <Button
-                          variant={"primary"}
-                          className="w-fit text-xs h-7"
-                          size={"sm"}
-                        >
-                          {selectedCategory ? (
-                            <>
-                              <RenderIcon
-                                iconName={
-                                  selectedCategory.icon || "IconCircleFilled"
-                                }
-                                className="size-3.5! [&_svg]:size-3.5! mr-1"
-                                color={selectedCategory.color || undefined}
-                                button
-                              />
-                              {selectedCategory.name}
-                            </>
-                          ) : (
-                            <>
-                              <IconCategory className="h-3.5 w-3.5 mr-1" />
-                              Category
-                            </>
-                          )}
-                        </Button>
-                      }
-                    />
-                    <Button
-                      variant={"primary"}
-                      className={cn(
-                        "w-fit text-xs h-7",
-                        visible === "private" && "border-primary/50",
-                      )}
-                      size={"sm"}
-                      onClick={() =>
-                        setVisible(visible === "private" ? "public" : "private")
-                      }
-                    >
-                      {visible === "private" ? (
-                        <>
-                          <IconLock className="h-3.5 w-3.5 mr-1" />
-                          Private
-                        </>
-                      ) : (
-                        <>
-                          <IconLockOpen2 className="h-3.5 w-3.5 mr-1" />
-                          Public
-                        </>
-                      )}
-                    </Button>
-                    <GlobalTaskRelease
-                      task={draftTask}
-                      editable
                       releases={releases}
-                      onChange={(value) => setReleaseId(value)}
-                      customTrigger={
-                        <Button
-                          variant={"primary"}
-                          className="w-fit text-xs h-7"
-                          size={"sm"}
-                        >
-                          {selectedRelease ? (
-                            <>
-                              {selectedRelease.icon ? (
-                                <RenderIcon
-                                  iconName={selectedRelease.icon}
-                                  className="size-3.5! [&_svg]:size-3.5! mr-1"
-                                  color={selectedRelease.color || undefined}
-                                  button
-                                />
-                              ) : (
-                                <IconRocket className="h-3.5 w-3.5 mr-1" />
-                              )}
-                              {selectedRelease.name}
-                            </>
-                          ) : (
-                            <>
-                              <IconRocket className="h-3.5 w-3.5 mr-1" />
-                              Release
-                            </>
-                          )}
-                        </Button>
-                      }
+                      onChange={{
+                        status: (value) => setStatus(value || undefined),
+                        priority: (value) => setPriority(value || undefined),
+                        labels: setLabelIds,
+                        assignees: (value) => setAssigneeIds(value),
+                        category: (value) => setCategoryId(value),
+                        visibility: (value) => setVisible(value),
+                        release: (value) => setReleaseId(value),
+                      }}
                     />
                   </div>
                 </div>

@@ -29,15 +29,10 @@ export function PageHeader({ children, className }: PageHeaderProps) {
   return (
     <div
       className={cn(
-        "sticky top-0 z-30 bg-background shrink-0 flex flex-col w-full",
+        "sticky top-0 z-9999 bg-background shrink-0 flex flex-col w-full",
         className,
       )}
     >
-      {isMobile && (
-        <div className="flex items-center px-1 pt-1">
-          <SidebarTrigger sidebarId="primary-sidebar" className="w-10 h-10" />
-        </div>
-      )}
       {children}
     </div>
   );
@@ -64,6 +59,7 @@ function Identity({
   actions,
   className,
 }: IdentityProps) {
+  const isMobile = useIsMobile();
   return (
     <div
       className={cn(
@@ -72,6 +68,9 @@ function Identity({
       )}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
+        {isMobile && (
+          <SidebarTrigger sidebarId="primary-sidebar" className="w-10 h-10" />
+        )}
         {children ?? (
           <>
             {icon && <span className="shrink-0 flex items-center">{icon}</span>}

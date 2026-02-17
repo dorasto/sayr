@@ -2,7 +2,6 @@ import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import {
 	IconBrandGithub,
 	IconExternalLink,
@@ -10,18 +9,11 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useDebounceAsync } from "@/hooks/useDebounceAsync";
 import type { MentionContext } from "@/hooks/useMentionUsers";
-import { updateLabelToTaskAction, updateTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
-import GlobalTaskAssignees from "@/components/tasks/shared/assignee";
-import GlobalTaskCategory from "@/components/tasks/shared/category";
-import GlobalTaskLabels from "@/components/tasks/shared/label";
-import GlobalTaskPriority from "@/components/tasks/shared/priority";
-import GlobalTaskStatus from "@/components/tasks/shared/status";
-import GlobalTimeline from "@/components/tasks/task/timeline/root";
+import TaskFieldToolbar from "@/components/tasks/shared/task-field-toolbar";
 import { TaskVoting } from "@/components/tasks";
 import { TaskEditableHeader } from "@/components/tasks/task/editable-header";
+import GlobalTimeline from "@/components/tasks/task/timeline/root";
 
 interface MyTaskDetailProps {
   task: schema.TaskWithLabels;
@@ -44,7 +36,6 @@ export function MyTaskDetail({
 }: MyTaskDetailProps) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
-  const { runWithToast } = useToastAction();
 
   // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
   useEffect(() => {
@@ -68,189 +59,24 @@ export function MyTaskDetail({
   // The Editor now fetches full org members internally via useMentionUsers
   const availableUsers = (task.assignees || []) as unknown as schema.userType[];
 
-  const debouncedUpdateLabels = useDebounceAsync(
-    async (values: string[], wsClientId: string) => {
-      const data = await runWithToast(
-        "update-task-labels",
-        {
-          loading: {
-            title: "Updating task...",
-            description: "Updating your task... changes are already visible.",
-          },
-          success: {
-            title: "Task saved",
-            description: "Your changes have been saved successfully.",
-          },
-          error: {
-            title: "Save failed",
-            description:
-              "Your changes are showing, but we couldn't save them to the server. Please try again.",
-          },
-        },
-        () =>
-          updateLabelToTaskAction(
-            task.organizationId,
-            task.id,
-            values,
-            wsClientId,
-          ),
-      );
-      return data;
-    },
-    1500,
-  );
-
   const fullUrl = `/${task.organizationId}/tasks/${task.shortId}`;
 
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="flex items-center gap-1 px-3 h-11 shrink-0 border-b overflow-x-auto">
-        <GlobalTaskStatus
+        <TaskFieldToolbar
           task={task}
-          editable={true}
-          useInternalLogic={true}
-          tasks={tasks}
-          setTasks={setTasks}
-          setSelectedTask={setSelectedTask}
-          showLabel={false}
-          showChevron={false}
-          compact={true}
-          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
-        />
-        <GlobalTaskPriority
-          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
-          showLabel={false}
-          task={task}
-          editable={true}
-          showChevron={false}
-          compact={true}
-          onPriorityChange={async (value) => {
-            const updatedTasks = tasks.map((t) =>
-              t.id === task.id
-                ? {
-                    ...task,
-                    priority: value as schema.TaskWithLabels["priority"],
-                  }
-                : t,
-            );
-            setTasks(updatedTasks);
-            setSelectedTask({
-              ...task,
-              priority: value as schema.TaskWithLabels["priority"],
-            });
-            const data = await runWithToast(
-              "update-task-priority",
-              {
-                loading: {
-                  title: "Updating task...",
-                  description:
-                    "Updating your task... changes are already visible.",
-                },
-                success: {
-                  title: "Task saved",
-                  description: "Your changes have been saved successfully.",
-                },
-                error: {
-                  title: "Save failed",
-                  description:
-                    "Your changes are showing, but we couldn't save them to the server. Please try again.",
-                },
-              },
-              () =>
-                updateTaskAction(
-                  task.organizationId,
-                  task.id,
-                  { priority: value },
-                  wsClientId,
-                ),
-            );
-            if (data?.success && data.data) {
-              const finalTasks = tasks.map((t) =>
-                t.id === task.id && data.data ? data.data : t,
-              );
-              setTasks(finalTasks);
-              if (task.id === data.data.id) {
-                setSelectedTask(data.data);
-                sendWindowMessage(
-                  window,
-                  {
-                    type: "timeline-update",
-                    payload: data.data.id,
-                  },
-                  "*",
-                );
-              }
-            }
-          }}
-        />
-        <GlobalTaskCategory
-          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
-          showLabel={false}
-          task={task}
-          showChevron={false}
-          editable={true}
-          useInternalLogic={true}
+          variant="compact"
+          useInternalLogic
           tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
           categories={orgCategories}
-          compact={true}
-        />
-        <GlobalTaskAssignees
-          className="bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary"
-          task={task}
-          showChevron={false}
-          editable={true}
-          availableUsers={availableUsers}
-          useInternalLogic={true}
-          tasks={tasks}
-          setTasks={setTasks}
-          setSelectedTask={setSelectedTask}
-          showLabel={false}
-          compact={true}
-        />
-        <GlobalTaskLabels
-          showLabel={false}
-          task={task}
-          editable={true}
+          releases={orgReleases}
           availableLabels={orgLabels}
-          compact={true}
-          onLabelsChange={async (values) => {
-            const updatedTasks = tasks.map((t) =>
-              t.id === task.id
-                ? {
-                    ...task,
-                    labels: orgLabels.filter((label) =>
-                      values.includes(label.id),
-                    ),
-                  }
-                : t,
-            );
-            setTasks(updatedTasks);
-            setSelectedTask({
-              ...task,
-              labels: orgLabels.filter((label) => values.includes(label.id)),
-            });
-            const data = await debouncedUpdateLabels(values, wsClientId);
-            if (data?.success && data.data && !data.skipped) {
-              const finalTasks = tasks.map((t) =>
-                t.id === task.id && data.data ? data.data : t,
-              );
-              setTasks(finalTasks);
-              if (task.id === data.data.id) {
-                setSelectedTask(data.data);
-                sendWindowMessage(
-                  window,
-                  {
-                    type: "timeline-update",
-                    payload: data.data.id,
-                  },
-                  "*",
-                );
-              }
-            }
-          }}
+          availableUsers={availableUsers}
+          fields={{ release: false, visibility: false }}
         />
         <TaskVoting
           task={task}
