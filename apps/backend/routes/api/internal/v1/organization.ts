@@ -969,6 +969,8 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 		categoryId,
 		labelIds,
 		assigneeIds,
+		releaseId,
+		visible,
 	} = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
@@ -993,6 +995,8 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 					status: status || null,
 					priority: priority || null,
 					categoryId: categoryId || null,
+					releaseId: releaseId || null,
+					visible: visible || null,
 				})
 				.returning();
 			return template;
@@ -1091,6 +1095,8 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 		categoryId,
 		labelIds,
 		assigneeIds,
+		releaseId,
+		visible,
 	} = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
@@ -1111,6 +1117,8 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 					status: status || null,
 					priority: priority || null,
 					categoryId: categoryId || null,
+					releaseId: releaseId || null,
+					visible: visible || null,
 					updatedAt: new Date(),
 				})
 				.where(and(eq(schema.issueTemplate.id, id), eq(schema.issueTemplate.organizationId, orgId)))

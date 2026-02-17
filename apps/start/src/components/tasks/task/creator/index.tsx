@@ -237,6 +237,14 @@ export default function CreateIssueDialog({
       if (template.assignees && template.assignees.length > 0) {
         setAssignees(template.assignees.map((a) => a.id));
       }
+      // Apply visibility
+      if (template.visible) {
+        setVisible(template.visible as "public" | "private");
+      }
+      // Apply release
+      if (template.releaseId) {
+        setReleaseId(template.releaseId);
+      }
     }
   };
 
@@ -820,9 +828,12 @@ export default function CreateIssueDialog({
                           {selectedRelease ? (
                             <>
                               {selectedRelease.icon ? (
-                                <span className="text-sm mr-1">
-                                  {selectedRelease.icon}
-                                </span>
+                                <RenderIcon
+                                  iconName={selectedRelease.icon}
+                                  className="size-3.5! [&_svg]:size-3.5! mr-1"
+                                  color={selectedRelease.color || undefined}
+                                  button
+                                />
                               ) : (
                                 <IconRocket className="h-3.5 w-3.5 mr-1" />
                               )}

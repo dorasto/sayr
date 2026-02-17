@@ -914,6 +914,8 @@ export async function createIssueTemplateAction(
 		categoryId?: string;
 		labelIds?: string[];
 		assigneeIds?: string[];
+		releaseId?: string;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{
@@ -931,6 +933,8 @@ export async function createIssueTemplateAction(
 		categoryId: data.categoryId,
 		labelIds: data.labelIds,
 		assigneeIds: data.assigneeIds,
+		releaseId: data.releaseId,
+		visible: data.visible,
 		wsClientId,
 	};
 
@@ -971,6 +975,8 @@ export async function editIssueTemplateAction(
 		categoryId?: string;
 		labelIds?: string[];
 		assigneeIds?: string[];
+		releaseId?: string;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{
@@ -989,6 +995,8 @@ export async function editIssueTemplateAction(
 		categoryId: data.categoryId,
 		labelIds: data.labelIds,
 		assigneeIds: data.assigneeIds,
+		releaseId: data.releaseId,
+		visible: data.visible,
 		wsClientId,
 	};
 

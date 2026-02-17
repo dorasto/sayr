@@ -7,11 +7,10 @@ import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
 import { useEffect } from "react";
-import { Accordion } from "@repo/ui/components/accordion";
 
 export default function SettingsOrganizationTemplatesPage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, setIssueTemplates, issueTemplates, labels, categories } =
+	const { organization, setOrganization, setIssueTemplates, issueTemplates, labels, categories, releases } =
 		useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
@@ -41,30 +40,28 @@ export default function SettingsOrganizationTemplatesPage() {
 		return null;
 	}
 	return (
-		<div className="flex flex-col">
-			<Accordion type="single" collapsible className="space-y-3">
+		<div className="flex flex-col gap-2">
+			<CreateIssueTemplate
+				orgId={organization.id}
+				setIssueTemplates={setIssueTemplates}
+				availableLabels={labels}
+				availableCategories={categories}
+				availableUsers={organization.members.map((m) => m.user)}
+				releases={releases}
+			/>
+			{issueTemplates.map((template) => (
 				<CreateIssueTemplate
+					key={template.id}
 					orgId={organization.id}
 					setIssueTemplates={setIssueTemplates}
+					template={template}
 					availableLabels={labels}
 					availableCategories={categories}
 					availableUsers={organization.members.map((m) => m.user)}
-					settingsUI={true}
+					releases={releases}
+					mode="edit"
 				/>
-				{issueTemplates.map((template) => (
-					<CreateIssueTemplate
-						key={template.id}
-						orgId={organization.id}
-						setIssueTemplates={setIssueTemplates}
-						template={template}
-						availableLabels={labels}
-						availableCategories={categories}
-						availableUsers={organization.members.map((m) => m.user)}
-						mode="edit"
-						settingsUI={true}
-					/>
-				))}
-			</Accordion>
+			))}
 		</div>
 	);
 }
