@@ -60,7 +60,7 @@ Make sure `.gitignore` includes:
 From the database package:
 
 ```bash
-bun run db:migrate
+bun run migrate
 ```
 
 Or directly:
@@ -71,7 +71,7 @@ bunx drizzle-kit migrate
 
 ---
 
-# ✅ What This Does
+# ✅ What `migrate` Does
 
 When you run `migrate`, Drizzle will:
 
@@ -85,7 +85,43 @@ Your database will now match the project schema exactly.
 
 ---
 
-# 🧠 Daily Development Workflow
+# 🆕 When To Use `generate`
+
+You run `generate` **only when you change your schema files**.
+
+Examples of schema changes:
+
+- ✅ Add a new table
+- ✅ Add a new column
+- ✅ Remove a column
+- ✅ Change a column type
+- ✅ Add/remove indexes
+- ✅ Add enums or modify enums
+- ✅ Change constraints
+
+After modifying your schema TypeScript files:
+
+```bash
+bun run generate
+```
+
+This will:
+
+- Compare your current schema to the previous snapshot
+- Create a new SQL migration file inside `/drizzle`
+- Prepare the database change (but NOT apply it yet)
+
+Then you must run:
+
+```bash
+bun run migrate
+```
+
+to apply the new migration to the database.
+
+---
+
+# 🔁 Daily Development Workflow
 
 Whenever the schema changes:
 
@@ -102,7 +138,7 @@ Then commit the updated `drizzle/` folder.
 
 ---
 
-# ⚠️ About `db:push`
+# ⚠️ About `drizzle-kit push`
 
 `drizzle-kit push` directly syncs the schema to the database without
 creating migration files.
@@ -134,6 +170,9 @@ Drizzle will:
 - Apply only new migrations
 - Never re-run old ones
 - Keep the database safely in sync
+
+CI/production environments should NEVER run `generate`.
+They should only run `migrate`.
 
 ---
 
@@ -167,6 +206,9 @@ Never commit:
 Think of migrations as:
 
 > Git commits for your database
+
+- `generate` = create a new commit  
+- `migrate` = apply commits  
 
 When someone clones the repo and runs `migrate`, their database is rebuilt
 from the complete migration history.
