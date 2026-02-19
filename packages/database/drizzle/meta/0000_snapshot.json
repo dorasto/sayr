@@ -2138,6 +2138,12 @@
       "name": "task_assignee",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
         "task_id": {
           "name": "task_id",
           "type": "text",
