@@ -7,15 +7,24 @@ import { BillingCurrentPlan } from "./billing/billing-current-plan";
 import { BillingUsage } from "./billing/billing-usage";
 import { BillingUpgradePrompt } from "./billing/billing-upgrade-prompt";
 import { BillingPlanComparison } from "./billing/billing-plan-comparison";
+import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useLayoutData } from "@/components/generic/Context";
 
 export default function SettingsOrganizationBillingPage() {
-  const { organization } = useLayoutOrganizationSettings();
+  const { ws } = useLayoutData();
+  const { organization, setOrganization } = useLayoutOrganizationSettings();
   const memberCount = organization.members?.length ?? 0;
   const usage = {
     ...USAGE,
     members: { ...USAGE.members, current: memberCount },
   };
-
+  useWebSocketSubscription({
+    ws,
+    orgId: organization.id,
+    organization: organization,
+    channel: "admin",
+    setOrganization: setOrganization,
+  });
   return (
     <div className="flex flex-col gap-9">
       <BillingCurrentPlan memberCount={memberCount} />
