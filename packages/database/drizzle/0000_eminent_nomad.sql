@@ -243,6 +243,7 @@ CREATE TABLE "task" (
 );
 --> statement-breakpoint
 CREATE TABLE "task_assignee" (
+	"id" text PRIMARY KEY NOT NULL,
 	"task_id" text NOT NULL,
 	"organization_id" text NOT NULL,
 	"user_id" text NOT NULL
