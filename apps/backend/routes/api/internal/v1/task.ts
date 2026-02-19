@@ -13,7 +13,6 @@ import {
 	db,
 	getOrganizationMembers,
 	getTaskById,
-	getTaskByShortId,
 	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
@@ -241,7 +240,8 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const foundLink = await db.query.githubRepository.findFirst({
 				where: and(
 					eq(schema.githubRepository.organizationId, orgId),
-					eq(schema.githubRepository.categoryId, category)
+					eq(schema.githubRepository.categoryId, category),
+					eq(schema.githubRepository.enabled, true)
 				),
 			});
 
@@ -532,7 +532,7 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 		"task.github_link.repo_lookup",
 		() =>
 			db.query.githubRepository.findFirst({
-				where: (r) => and(eq(r.organizationId, orgId), eq(r.repoId, repoId)),
+				where: (r) => and(eq(r.organizationId, orgId), eq(r.repoId, repoId), eq(r.enabled, true)),
 			}),
 		{ description: "Finding repository", data: { orgId, repoId } }
 	);
@@ -966,7 +966,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 									meta: { ts: Date.now() },
 								});
 							}
-						}).catch(() => {});
+						}).catch(() => { });
 					}
 				}
 
@@ -998,7 +998,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 									meta: { ts: Date.now() },
 								});
 							}
-						}).catch(() => {});
+						}).catch(() => { });
 					}
 				}
 			},

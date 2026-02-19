@@ -124,8 +124,8 @@ export default function InboxPage() {
       if (isUserInList) {
         newTasks = taskExists
           ? tasks.map((task) =>
-              task.id === updatedTask.id ? updatedTask : task,
-            )
+            task.id === updatedTask.id ? updatedTask : task,
+          )
           : [...tasks, updatedTask];
       } else {
         newTasks = tasks.filter((task) => task.id !== updatedTask.id);
@@ -200,9 +200,9 @@ export default function InboxPage() {
         const updatedTasks = tasks.map((task) =>
           task.id === id && task.organizationId === msg.meta?.orgId
             ? {
-                ...task,
-                voteCount,
-              }
+              ...task,
+              voteCount,
+            }
             : task,
         );
         setTasks(updatedTasks);

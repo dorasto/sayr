@@ -173,7 +173,7 @@ apiRoute.get("/github/org-check", async (c) => {
 		"http://localhost:3000";
 
 	const redirectUrl = new URL(
-		`/admin/settings/org/${orgId}/connections/github`,
+		`/settings/org/${orgId}/connections/github`,
 		root
 	).toString();
 

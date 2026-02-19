@@ -4,9 +4,10 @@ import { IconPlus } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { connections } from "@/components/pages/admin/settings/orgId/connections/connections-data";
-import SettingsOrganizationConnectionsGitHubPage, {
-	SettingsOrganizationConnectionsGitHubSync,
-} from "@/components/pages/admin/settings/orgId/connections/github";
+import SettingsOrganizationConnectionsGitHubPage, { type githubConnections, type githubConnectionsRepositories } from "@/components/pages/admin/settings/orgId/connections/github";
+import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/connections/$connectionId/")({
 	component: RouteComponent,
@@ -19,11 +20,18 @@ function RouteComponent() {
 	const { data: githubData } = useQuery({
 		queryKey: ["organization", orgId, "connections", "github"],
 		queryFn: async () => {
+			const base =
+				import.meta.env.VITE_APP_ENV === "development"
+					? "/backend-api/internal"
+					: "/api/internal";
+
 			const res = await fetch(
-				`${import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal"}/v1/admin/organization/${orgId}/connections/github`,
+				`${base}/v1/admin/organization/${orgId}/connections/github`,
 				{ credentials: "include" }
 			);
+
 			if (!res.ok) throw new Error("Failed to fetch");
+
 			return res.json();
 		},
 		enabled: connectionId === "github",
@@ -33,8 +41,11 @@ function RouteComponent() {
 		return <div>Connection not found</div>;
 	}
 
-	const githubInfo = githubData?.data?.githubInfo;
-	const githubConnections = githubData?.data?.githubConnections || [];
+	// ✅ Now an array
+	const githubConnections: githubConnections =
+		githubData?.data?.githubConnections ?? [];
+	const githubConnectionsRepositories: githubConnectionsRepositories =
+		githubData?.data?.repositories ?? [];
 	const appName = import.meta.env.VITE_GITHUB_APP_NAME;
 
 	const renderContent = () => {
@@ -46,9 +57,13 @@ function RouteComponent() {
 						<div className="flex flex-col gap-3">
 							<div className="flex items-start justify-between">
 								<div className="flex flex-col">
-									<Label variant="heading">GitHub connections</Label>
+									<Label variant="heading">
+										GitHub connections
+									</Label>
 									<Label variant="description">
-										Link your GitHub organizations and repositories to your Sayr organization.
+										Link your GitHub organizations and
+										repositories to your Sayr
+										organization.
 									</Label>
 								</div>
 								<a
@@ -56,29 +71,35 @@ function RouteComponent() {
 									target="_blank"
 									rel="noopener noreferrer"
 								>
-									<Button variant="ghost" size="icon">
+									<Button
+										variant="ghost"
+										size="icon"
+									>
 										<IconPlus />
 									</Button>
 								</a>
 							</div>
-
-							<SettingsOrganizationConnectionsGitHubPage githubInfo={githubInfo} />
-						</div>
-
-						{/* Task Sync Section */}
-						<div className="flex flex-col gap-3">
-							<SettingsOrganizationConnectionsGitHubSync
-								githubInfo={githubInfo}
+							<SettingsOrganizationConnectionsGitHubPage
 								githubConnections={githubConnections}
+								repositories={githubConnectionsRepositories}
 							/>
 						</div>
 					</>
 				);
+
 			default:
 				return null;
 		}
 	};
-
+	const { ws } = useLayoutData();
+	const { organization, setOrganization } = useLayoutOrganizationSettings();
+	useWebSocketSubscription({
+		ws,
+		orgId: organization.id,
+		organization: organization,
+		channel: "admin",
+		setOrganization: setOrganization,
+	});
 	return (
 		<div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
 			<div className="flex flex-col">
