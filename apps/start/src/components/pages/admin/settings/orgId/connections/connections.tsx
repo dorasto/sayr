@@ -7,9 +7,13 @@ import { connections } from "./connections-data";
 
 export default function SettingsOrganizationConnectionsPage() {
 	const { ws } = useLayoutData();
-	const { organization } = useLayoutOrganizationSettings();
+	const { organization, setOrganization } = useLayoutOrganizationSettings();
 	useWebSocketSubscription({
 		ws,
+		orgId: organization.id,
+		organization: organization,
+		channel: "admin",
+		setOrganization: setOrganization,
 	});
 	if (!organization) {
 		return null;
@@ -18,8 +22,8 @@ export default function SettingsOrganizationConnectionsPage() {
 		<div className="bg-card rounded-lg flex flex-col">
 			{connections.map((connection) => (
 				<Link
-					to={`/settings/org/$orgId/connections/$connectionId`}
-					params={{ orgId: organization.id, connectionId: connection.id }}
+					to={`/settings/org/$orgId/connections/${connection.id}`}
+					params={{ orgId: organization.id }}
 					key={connection.id}
 				>
 					<Tile className="md:w-full" variant={"transparent"}>

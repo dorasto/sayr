@@ -19,7 +19,7 @@ import {
 	userSummaryColumns,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -237,13 +237,29 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	await traceAsync(
 		"task.create.github_sync",
 		async () => {
-			const foundLink = await db.query.githubRepository.findFirst({
-				where: and(
-					eq(schema.githubRepository.organizationId, orgId),
-					eq(schema.githubRepository.categoryId, category),
-					eq(schema.githubRepository.enabled, true)
-				),
-			});
+			let foundLink = null;
+
+			// 1️⃣ Try exact category match (if category provided)
+			if (category) {
+				foundLink = await db.query.githubRepository.findFirst({
+					where: and(
+						eq(schema.githubRepository.organizationId, orgId),
+						eq(schema.githubRepository.categoryId, category),
+						eq(schema.githubRepository.enabled, true)
+					),
+				});
+			}
+
+			// 2️⃣ Fallback to catch-all (categoryId IS NULL)
+			if (!foundLink) {
+				foundLink = await db.query.githubRepository.findFirst({
+					where: and(
+						eq(schema.githubRepository.organizationId, orgId),
+						isNull(schema.githubRepository.categoryId),
+						eq(schema.githubRepository.enabled, true)
+					),
+				});
+			}
 
 			if (!foundLink || !taskWithData) return;
 			const org = await db.query.organization.findFirst({

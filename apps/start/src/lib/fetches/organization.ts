@@ -671,7 +671,7 @@ export async function createGithubSyncConnectionAction(
 		installationId: number;
 		repoId: number;
 		repoName: string;
-		categoryId: string;
+		categoryId: string | null;
 	}
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
@@ -714,7 +714,7 @@ export async function updateGithubSyncConnectionAction(
 		installationId: number;
 		repoId: number;
 		repoName: string;
-		categoryId: string;
+		categoryId: string | null;
 	}
 ): Promise<{
 	success: boolean;

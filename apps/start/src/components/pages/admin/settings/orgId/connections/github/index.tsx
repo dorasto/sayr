@@ -54,6 +54,8 @@ import RenderIcon from "@/components/generic/RenderIcon";
 import { createGithubSyncConnectionAction, deleteGithubSyncConnectionAction, toggleGithubSyncConnectionAction, updateGithubSyncConnectionAction } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLayoutData } from "@/components/generic/Context";
+import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 
 export type githubConnections = Array<{
     installation: {
@@ -93,20 +95,32 @@ export type githubConnectionsRepositories = Array<{
 
 interface Props {
     githubConnections: githubConnections;
-    repositories: githubConnectionsRepositories
+    repositories: githubConnectionsRepositories;
+    isLoading?: boolean;
 }
 
 export default function SettingsOrganizationConnectionsGitHubPage({
-    githubConnections, repositories
+    githubConnections, repositories, isLoading
 }: Props) {
+    const { ws } = useLayoutData();
+    const { organization, setOrganization } = useLayoutOrganizationSettings();
+    useWebSocketSubscription({
+        ws,
+        orgId: organization.id,
+        organization: organization,
+        channel: "admin",
+        setOrganization: setOrganization,
+    });
     return (
         <div className="flex flex-col gap-6">
             <InstallationsSection
                 githubConnections={githubConnections}
+                isLoading={isLoading}
             />
             <TaskSyncSection
                 githubConnections={githubConnections}
                 repositories={repositories}
+                isLoading={isLoading}
             />
         </div>
     );
@@ -116,9 +130,41 @@ export default function SettingsOrganizationConnectionsGitHubPage({
 
 function InstallationsSection({
     githubConnections,
+    isLoading
 }: {
     githubConnections: githubConnections;
+    isLoading?: boolean;
 }) {
+    if (isLoading) {
+        return (
+            <div className="bg-card rounded-lg flex flex-col">
+                {Array.from({ length: 2 }).map((_, i) => (
+                    <div
+                        key={i}
+                        className="flex items-center justify-between p-4 animate-pulse"
+                    >
+                        {/* Left section */}
+                        <div className="flex items-center gap-4 flex-1">
+                            {/* Avatar */}
+                            <div className="h-10 w-10 rounded-md bg-muted-foreground/10" />
+
+                            {/* Text */}
+                            <div className="flex flex-col gap-2 flex-1">
+                                {/* Title */}
+                                <div className="h-4 w-32 bg-muted-foreground/10 rounded" />
+
+                                {/* Description */}
+                                <div className="h-3 w-56 bg-muted-foreground/10 rounded" />
+                            </div>
+                        </div>
+
+                        {/* Right action (dots) */}
+                        <div className="h-8 w-8 bg-muted-foreground/10 rounded-md" />
+                    </div>
+                ))}
+            </div>
+        );
+    }
     return (
         <div className="bg-card rounded-lg flex flex-col">
             {githubConnections.map((connection) => {
@@ -201,10 +247,12 @@ function InstallationsSection({
 
 function TaskSyncSection({
     githubConnections,
-    repositories
+    repositories,
+    isLoading
 }: {
     githubConnections: githubConnections;
     repositories: githubConnectionsRepositories
+    isLoading?: boolean;
 }) {
     const { categories, organization } =
         useLayoutOrganizationSettings();
@@ -223,7 +271,30 @@ function TaskSyncSection({
     const editingRepo = repositories.find(
         (r) => r.id === editingId
     );
+    if (isLoading) {
+        return (
+            <div className="bg-card rounded-lg flex flex-col">
+                {Array.from({ length: 2 }).map((_, i) => (
+                    <div
+                        key={i}
+                        className="flex items-center justify-between p-4 animate-pulse"
+                    >
+                        {/* Left */}
+                        <div className="flex flex-col gap-2 flex-1">
+                            {/* Repo name */}
+                            <div className="h-4 w-32 bg-muted-foreground/10 rounded" />
 
+                            {/* Category + date */}
+                            <div className="h-3 w-56 bg-muted-foreground/10 rounded" />
+                        </div>
+
+                        {/* Right status button */}
+                        <div className="h-8 w-24 bg-muted-foreground/10 rounded-md" />
+                    </div>
+                ))}
+            </div>
+        );
+    }
     return (
         <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between">
@@ -497,12 +568,13 @@ function SyncDialog({
             setSelectedRepo(
                 editingRepo.repoId?.toString() || null
             );
+
             setSelectedCategory(
-                editingRepo.categoryId || null
+                editingRepo.categoryId ?? "__none__"
             );
         } else {
             setSelectedRepo(null);
-            setSelectedCategory(null);
+            setSelectedCategory("__none__");
         }
     }, [editingRepo, open]);
 
@@ -527,17 +599,17 @@ function SyncDialog({
     );
 
     /* ================= BLOCK USED CATEGORIES ================= */
-
-    const usedCategoryIds = new Set(
-        allSyncedRepos
-            .filter((r) =>
-                isEditing
-                    ? r.id !== editingRepo?.id
-                    : true
-            )
-            .map((r) => r.categoryId)
+    const otherRepos = allSyncedRepos.filter((r) =>
+        isEditing ? r.id !== editingRepo?.id : true
     );
-
+    const usedCategoryIds = new Set(
+        otherRepos
+            .map((r) => r.categoryId)
+            .filter(Boolean) // remove null
+    );
+    const hasUnassignedAlready = otherRepos.some(
+        (r) => !r.categoryId
+    );
     const availableCategories = categories.filter(
         (c) =>
             !usedCategoryIds.has(c.id) ||
@@ -548,9 +620,23 @@ function SyncDialog({
     const selectedRepoName = allRepos.find(
         (r) => r.id.toString() === selectedRepo
     )?.full_name;
-    const selectedCategoryData = categories.find((c) => c.id === selectedCategory);
 
+    const selectedCategoryData =
+        selectedCategory === "__none__"
+            ? { name: "No category" }
+            : categories.find(
+                (c) => c.id === selectedCategory
+            );
 
+    const finalCategoryId =
+        selectedCategory === "__none__"
+            ? null
+            : selectedCategory;
+
+    const isUnchanged =
+        isEditing &&
+        selectedRepo === editingRepo?.repoId?.toString() &&
+        finalCategoryId === editingRepo?.categoryId;
     /* ================= UI ================= */
 
     return (
@@ -669,6 +755,9 @@ function SyncDialog({
                                     </ComboBoxEmpty>
 
                                     <ComboBoxGroup>
+                                        <ComboBoxItem searchValue={"No category"} value="__none__">
+                                            No category
+                                        </ComboBoxItem>
                                         {availableCategories.map(
                                             (
                                                 category
@@ -705,9 +794,21 @@ function SyncDialog({
                     </AdaptiveDialogClose>
 
                     <Button
-                        disabled={isFetching || !selectedRepo || !selectedCategory}
+                        disabled={
+                            isFetching ||
+                            !selectedRepo ||
+                            (selectedCategory === "__none__" &&
+                                hasUnassignedAlready) ||
+                            isUnchanged
+                        }
                         onClick={async () => {
-                            if (!selectedRepo || !selectedCategory) return;
+                            if (
+                                selectedCategory === "__none__" &&
+                                hasUnassignedAlready
+                            ) {
+                                return; // optionally show toast error
+                            }
+                            if (!selectedRepo) return;
 
                             /* ================= FIND REPO ================= */
 
@@ -741,7 +842,7 @@ function SyncDialog({
                                 if (
                                     repoId ===
                                     editingRepo.repoId &&
-                                    selectedCategory ===
+                                    finalCategoryId ===
                                     editingRepo.categoryId
                                 ) {
                                     onOpenChange(false);
@@ -779,7 +880,7 @@ function SyncDialog({
                                                     repoId,
                                                     repoName,
                                                     categoryId:
-                                                        selectedCategory,
+                                                        finalCategoryId,
                                                 }
                                             )
                                     );
