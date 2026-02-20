@@ -55,6 +55,7 @@ ENV APP_ENV="production"
 ENV IS_DOCKER=1
 
 # Build the application
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN cd apps/start && pnpm run build
 
 # Inject PostHog chunk IDs into source maps (required for source map uploads to work)
