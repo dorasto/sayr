@@ -1150,10 +1150,42 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		}
 	);
 
-	// Notify assignees about the new comment + notify mentioned users
+	// Notify assignees and mentioned users about the new comment.
+	// Users who are both assigned AND mentioned only receive one notification (the "comment" type).
 	const commentActorId = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
+	const assigneeIds = await getTaskAssigneeIds(taskId);
+	const mentionedUserIds = extractUserMentions(content);
+
+	// Send "comment" notifications to all assignees (filtered by actor inside createNotifications)
 	notifyAssignees({ taskId, orgId, actorId: commentActorId, type: "comment" });
-	notifyMentions({ taskId, orgId, actorId: commentActorId, content });
+
+	// Send "mention" notifications only to mentioned users who are NOT assignees.
+	// Assignees already receive a "comment" notification above, so skip them to avoid duplicates.
+	const assigneeSet = new Set(assigneeIds);
+	const mentionOnlyUserIds = [...new Set(mentionedUserIds)].filter((id) => !assigneeSet.has(id));
+	if (mentionOnlyUserIds.length > 0) {
+		for (const userId of mentionOnlyUserIds) {
+			try {
+				const notif = await createNotification({
+					organizationId: orgId,
+					userId,
+					actorId: commentActorId ?? null,
+					taskId,
+					timelineEventId: null,
+					type: "mention",
+				});
+				if (notif) {
+					broadcastByUserId(notif.userId, "", orgId, {
+						type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+						data: notif,
+						meta: { ts: Date.now() },
+					});
+				}
+			} catch {
+				// Notification failures should never break task operations
+			}
+		}
+	}
 
 	await traceAsync(
 		"task.comment.create.broadcast",

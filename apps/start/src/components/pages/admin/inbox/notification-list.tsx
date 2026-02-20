@@ -11,11 +11,11 @@ import { NotificationEmptyState } from "./notifications/notification-empty-state
 import { NotificationItem } from "./notifications/notification-item";
 
 interface NotificationListProps {
-	onSelectTask: (taskId: string, orgId: string) => void;
-	selectedTaskId: string | null;
+	onSelectTask: (taskId: string, orgId: string, notificationId: string) => void;
+	selectedNotificationId: string | null;
 }
 
-export function NotificationList({ onSelectTask, selectedTaskId }: NotificationListProps) {
+export function NotificationList({ onSelectTask, selectedNotificationId }: NotificationListProps) {
 	const { notifications, setNotifications, unreadCount, setUnreadCount, refreshNotifications } = useInbox();
 
 	const handleMarkRead = async (notificationId: string) => {
@@ -69,7 +69,7 @@ export function NotificationList({ onSelectTask, selectedTaskId }: NotificationL
 		if (!notification.read) {
 			handleMarkRead(notification.id);
 		}
-		onSelectTask(notification.task.id, notification.organizationId);
+		onSelectTask(notification.task.id, notification.organizationId, notification.id);
 	};
 
 	return (
@@ -83,7 +83,7 @@ export function NotificationList({ onSelectTask, selectedTaskId }: NotificationL
 							<NotificationItem
 								key={notification.id}
 								notification={notification}
-								isSelected={selectedTaskId === notification.task.id}
+								isSelected={selectedNotificationId === notification.id}
 								onClick={() => handleClick(notification)}
 								onMarkRead={() => handleMarkRead(notification.id)}
 								onMarkUnread={() => handleMarkUnread(notification.id)}

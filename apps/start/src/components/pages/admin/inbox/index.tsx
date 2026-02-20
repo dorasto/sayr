@@ -9,7 +9,7 @@ import {
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconChecks, IconInbox, IconNotification } from "@tabler/icons-react";
+import { IconChecks, IconNotification } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
@@ -55,6 +55,7 @@ export default function InboxPage() {
   };
   const [selectedTask, setSelectedTask] =
     useState<schema.TaskWithLabels | null>(null);
+  const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
   useWebSocketSubscription({ ws });
 
   // Get unique organizations from tasks for filtering
@@ -70,12 +71,14 @@ export default function InboxPage() {
 
   // Handle selecting a task from the notification list
   const handleNotificationSelectTask = useCallback(
-    async (taskId: string, orgId: string) => {
-      // Toggle selection if clicking the same task
-      if (selectedTask?.id === taskId) {
+    async (taskId: string, orgId: string, notificationId: string) => {
+      // Toggle selection if clicking the same notification
+      if (selectedNotificationId === notificationId) {
         setSelectedTask(null);
+        setSelectedNotificationId(null);
         return;
       }
+      setSelectedNotificationId(notificationId);
       const found = tasks.find((t) => t.id === taskId);
       if (found) {
         setSelectedTask(found);
@@ -94,7 +97,7 @@ export default function InboxPage() {
         // Task may have been deleted or user lost access
       }
     },
-    [tasks, selectedTask, account.id],
+    [tasks, selectedNotificationId, account.id],
   );
 
   const handlers: WSMessageHandler<WSMessage> = {
@@ -261,7 +264,7 @@ export default function InboxPage() {
     <div className="flex-1 overflow-hidden h-full min-h-0 flex flex-col">
       <NotificationList
         onSelectTask={handleNotificationSelectTask}
-        selectedTaskId={selectedTask?.id ?? null}
+        selectedNotificationId={selectedNotificationId}
       />
     </div>
   );
