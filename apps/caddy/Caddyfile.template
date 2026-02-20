@@ -30,6 +30,12 @@
 		# Keep connections alive to upstream for performance
 		keepalive 30s
 		keepalive_idle_conns 10
+		# CRITICAL: Disable Caddy's automatic Accept-Encoding: gzip to upstream.
+		# Without this, the upstream compresses the response, Caddy passes it through,
+		# then Cloudflare decompresses/re-compresses it — causing Content-Length mismatches
+		# and NS_ERROR_NET_PARTIAL_TRANSFER errors in the browser.
+		# Let Cloudflare handle all compression to the client.
+		compression off
 	}
 	# Stream responses immediately instead of buffering — prevents
 	# Cloudflare from timing out waiting for large JS bundles
@@ -42,6 +48,7 @@
 (ws_proxy) {
 	transport http {
 		keepalive 30s
+		compression off
 	}
 	flush_interval -1
 	header_up X-Real-IP {remote_host}
