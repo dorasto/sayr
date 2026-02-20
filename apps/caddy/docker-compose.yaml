@@ -13,7 +13,7 @@
 # Optional (defaults shown):
 #   START_PORT     - 3000  (frontend app port on Coolify server)
 #   BACKEND_PORT   - 5468  (backend API port on Coolify server)
-#   MARKETING_PORT - 8080  (marketing site port on Coolify server)
+#   MARKETING_PORT - 4321  (marketing site port on Coolify server)
 #
 # Usage:
 #   1. Copy this file and .env.example to your Caddy VPS
@@ -38,7 +38,7 @@ services:
       - UPSTREAM_HOST=${UPSTREAM_HOST}
       - START_PORT=${START_PORT:-3000}
       - BACKEND_PORT=${BACKEND_PORT:-5468}
-      - MARKETING_PORT=${MARKETING_PORT:-8080}
+      - MARKETING_PORT=${MARKETING_PORT:-4321}
       - ACME_EMAIL=${ACME_EMAIL}
       - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
 
