@@ -247,14 +247,34 @@ export default function OrganizationTasksHomePage() {
         <PageHeader>
           <PageHeader.Identity
             actions={
-              <CreateIssueDialog
-                organization={organization}
-                tasks={tasks}
-                setTasks={setTasks}
-                _labels={labels}
-                issueTemplates={issueTemplates}
-                releases={releases ?? []}
-              />
+              <div className="flex items-center gap-2">
+                <CreateIssueDialog
+                  organization={organization}
+                  tasks={tasks}
+                  setTasks={setTasks}
+                  _labels={labels}
+                  issueTemplates={issueTemplates}
+                  releases={releases ?? []}
+                />
+                <Button
+                  variant="accent"
+                  className={cn(
+                    "gap-2 h-6 w-fit bg-accent border-transparent p-1",
+                    !isProjectPanelOpen && "bg-transparent",
+                  )}
+                  onClick={() =>
+                    isProjectPanelOpen
+                      ? setProjectPanelOpen(false)
+                      : setProjectPanelOpen(true)
+                  }
+                >
+                  {isProjectPanelOpen ? (
+                    <IconLayoutSidebarRightFilled />
+                  ) : (
+                    <IconLayoutSidebarRight />
+                  )}
+                </Button>
+              </div>
             }
           >
             {!useMobile && (
@@ -385,24 +405,6 @@ export default function OrganizationTasksHomePage() {
               <>
                 <Separator orientation="vertical" className="h-5" />
                 <TaskViewDropdown />
-                <Button
-                  variant="accent"
-                  className={cn(
-                    "gap-2 h-6 w-fit bg-accent border-transparent p-1",
-                    !isProjectPanelOpen && "bg-transparent",
-                  )}
-                  onClick={() =>
-                    isProjectPanelOpen
-                      ? setProjectPanelOpen(false)
-                      : setProjectPanelOpen(true)
-                  }
-                >
-                  {isProjectPanelOpen ? (
-                    <IconLayoutSidebarRightFilled />
-                  ) : (
-                    <IconLayoutSidebarRight />
-                  )}
-                </Button>
               </>
             }
           />
