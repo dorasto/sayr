@@ -15,10 +15,6 @@ on:
         description: "Deploy worker"
         type: boolean
         default: true
-      traefik:
-        description: "Deploy traefik"
-        type: boolean
-        default: true
       marketing:
         description: "Deploy marketing"
         type: boolean
@@ -31,7 +27,7 @@ env:
 
 jobs:
   define-matrix:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       apps: ${{ steps.set-matrix.outputs.apps }}
     steps:
@@ -46,9 +42,6 @@ jobs:
           fi
           if [[ "${{ inputs.worker }}" == "true" ]]; then
             apps=$(echo $apps | jq '. + ["worker"]')
-          fi
-          if [[ "${{ inputs.traefik }}" == "true" ]]; then
-            apps=$(echo $apps | jq '. + ["traefik"]')
           fi
           if [[ "${{ inputs.marketing }}" == "true" ]]; then
             apps=$(echo $apps | jq '. + ["marketing"]')
@@ -86,9 +79,6 @@ jobs:
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
             echo "dockerfile=./apps/worker/Dockerfile" >> $GITHUB_OUTPUT
             echo "image_suffix=-worker" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
-            echo "dockerfile=./apps/traefik/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "marketing" ]]; then
             echo "dockerfile=./apps/marketing/Dockerfile" >> $GITHUB_OUTPUT
             echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
@@ -160,8 +150,6 @@ jobs:
             echo "image_suffix=-backend" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
             echo "image_suffix=-worker" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
-            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "marketing" ]]; then
             echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
           fi

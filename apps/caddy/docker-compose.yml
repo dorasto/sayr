@@ -1,0 +1,48 @@
+# =============================================================================
+# Caddy Proxy Manager - Deploy on a separate VPS
+# =============================================================================
+# This docker-compose is for the Caddy reverse proxy server ONLY.
+# It runs on a separate VPS from the main Sayr application stack.
+#
+# Required environment variables (set in .env or pass directly):
+#   ROOT_DOMAIN          - Your root domain (e.g., sayr.dev)
+#   UPSTREAM_HOST        - IP/hostname of the Coolify server running Sayr
+#   ACME_EMAIL           - Email for Let's Encrypt certificates
+#   CLOUDFLARE_API_TOKEN - Cloudflare API token (Zone:DNS:Edit permission)
+#
+# Optional (defaults shown):
+#   START_PORT     - 3000  (frontend app port on Coolify server)
+#   BACKEND_PORT   - 5468  (backend API port on Coolify server)
+#   MARKETING_PORT - 8080  (marketing site port on Coolify server)
+#
+# Usage:
+#   1. Copy this file and .env.example to your Caddy VPS
+#   2. Create .env with your values
+#   3. docker compose up -d
+# =============================================================================
+
+services:
+  caddy:
+    container_name: sayr-caddy
+    image: ghcr.io/dorasto/sayr-caddy:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - ROOT_DOMAIN=${ROOT_DOMAIN}
+      - UPSTREAM_HOST=${UPSTREAM_HOST}
+      - START_PORT=${START_PORT:-3000}
+      - BACKEND_PORT=${BACKEND_PORT:-5468}
+      - MARKETING_PORT=${MARKETING_PORT:-8080}
+      - ACME_EMAIL=${ACME_EMAIL}
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+
+volumes:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

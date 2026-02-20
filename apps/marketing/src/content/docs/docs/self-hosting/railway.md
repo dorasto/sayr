@@ -25,7 +25,7 @@ The following Docker images need to be deployed.
 -   `ghcr.io/dorasto/sayr-backend`: The core API server.
 -   `ghcr.io/dorasto/sayr-start`: The frontend application.
 -   `ghcr.io/dorasto/sayr-worker`: Handles background jobs (like GitHub sync).
--   `ghcr.io/dorasto/sayr-traefik`: Reverse proxy and SSL termination.
+-   `ghcr.io/dorasto/sayr-caddy`: Reverse proxy and SSL termination (deployed on a separate server, or as a sidecar).
 
 ## Environment Variables
 

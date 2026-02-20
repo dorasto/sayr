@@ -1,0 +1,110 @@
+# =============================================================================
+# Sayr Caddy Reverse Proxy Configuration
+# =============================================================================
+# Environment variables (set at runtime):
+#   ROOT_DOMAIN       - Base domain (e.g., sayr.dev)
+#   UPSTREAM_HOST     - Coolify server IP/hostname
+#   START_PORT        - Frontend app port (default: 3000)
+#   BACKEND_PORT      - Backend API port (default: 5468)
+#   MARKETING_PORT    - Marketing site port (default: 8080)
+#   ACME_EMAIL        - Email for Let's Encrypt
+#   CLOUDFLARE_API_TOKEN - Cloudflare API token for DNS challenge
+# =============================================================================
+
+# Global options
+{
+	email {$ACME_EMAIL}
+}
+
+# TLS policy with Cloudflare DNS challenge (for wildcard certs)
+(cloudflare_tls) {
+	tls {
+		dns cloudflare {$CLOUDFLARE_API_TOKEN}
+	}
+}
+
+# =============================================================================
+# ROOT DOMAIN: sayr.dev / www.sayr.dev -> marketing site
+# =============================================================================
+{$ROOT_DOMAIN}, www.{$ROOT_DOMAIN} {
+	import cloudflare_tls
+
+	# Redirect /admin* to admin subdomain
+	@adminPath path /admin*
+	redir @adminPath https://admin.{$ROOT_DOMAIN}{uri} 302
+
+	# Redirect /login to admin subdomain
+	@loginPath path /login
+	redir @loginPath https://admin.{$ROOT_DOMAIN}/login 302
+
+	# API routes -> backend
+	@apiPath path /api/*
+	reverse_proxy @apiPath {$UPSTREAM_HOST}:{$BACKEND_PORT}
+
+	# Everything else -> marketing site
+	reverse_proxy {$UPSTREAM_HOST}:{$MARKETING_PORT}
+}
+
+# =============================================================================
+# API SUBDOMAIN: api.sayr.dev -> backend with /api/public rewrite
+# =============================================================================
+api.{$ROOT_DOMAIN} {
+	import cloudflare_tls
+
+	# WebSocket passthrough (no rewrite)
+	@wsPath path /ws /ws/*
+	reverse_proxy @wsPath {$UPSTREAM_HOST}:{$BACKEND_PORT}
+
+	# Health check passthrough (no rewrite)
+	@healthPath path /api/health
+	reverse_proxy @healthPath {$UPSTREAM_HOST}:{$BACKEND_PORT}
+
+	# Root path -> rewrite to /api/public
+	@rootExact path /
+	rewrite @rootExact /api/public
+
+	# All other paths -> prepend /api/public
+	@needsRewrite {
+		not path /ws /ws/*
+		not path /api/*
+	}
+	uri @needsRewrite prefix /api/public
+
+	# Default upstream
+	reverse_proxy {$UPSTREAM_HOST}:{$BACKEND_PORT}
+}
+
+# =============================================================================
+# WILDCARD SUBDOMAINS: *.sayr.dev
+# Handles: admin.sayr.dev, orgname.sayr.dev, etc.
+# =============================================================================
+*.{$ROOT_DOMAIN} {
+	import cloudflare_tls
+
+	# ----- Routes to start app (frontend/SSR) -----
+
+	# Auth API -> start app (Better Auth handles cross-subdomain sessions)
+	@authApi path /api/auth /api/auth/*
+	reverse_proxy @authApi {$UPSTREAM_HOST}:{$START_PORT}
+
+	# Image preview -> start app
+	@imagePreview path /api/image-preview /api/image-preview/*
+	reverse_proxy @imagePreview {$UPSTREAM_HOST}:{$START_PORT}
+
+	# OpenTelemetry trace ingestion -> start app
+	@traces path /api/traces /api/traces/*
+	reverse_proxy @traces {$UPSTREAM_HOST}:{$START_PORT}
+
+	# ----- Routes to backend -----
+
+	# Other API routes -> backend
+	@apiRoutes path /api/*
+	reverse_proxy @apiRoutes {$UPSTREAM_HOST}:{$BACKEND_PORT}
+
+	# WebSocket -> backend
+	@wsRoutes path /ws /ws/*
+	reverse_proxy @wsRoutes {$UPSTREAM_HOST}:{$BACKEND_PORT}
+
+	# ----- Default: everything else -> start app -----
+	reverse_proxy {$UPSTREAM_HOST}:{$START_PORT}
+}

@@ -6,6 +6,8 @@ services:
     image: ghcr.io/dorasto/sayr-start:latest
     restart: always
     pull_policy: always
+    ports:
+      - "3000:3000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
@@ -48,6 +50,8 @@ services:
     image: ghcr.io/dorasto/sayr-backend:latest
     restart: always
     pull_policy: always
+    ports:
+      - "5468:5468"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
@@ -83,6 +87,8 @@ services:
     image: ghcr.io/dorasto/sayr-marketing:latest
     restart: always
     pull_policy: always
+    ports:
+      - "8080:8080"
     networks:
       - app_network
 
@@ -132,21 +138,9 @@ services:
     networks:
       - app_network
 
-  traefik:
-    container_name: sayr-traefik
-    image: ghcr.io/dorasto/sayr-traefik:latest
-    restart: always
-    pull_policy: always
-    ports:
-      - "3000:80"
-    environment:
-      - VITE_ROOT_DOMAIN=${VITE_ROOT_DOMAIN}
-    depends_on:
-      - start
-      - backend
-      - marketing
-    networks:
-      - app_network
+  # Reverse proxy is handled by an external Caddy server.
+  # See apps/caddy/ for the Caddy configuration and deployment files.
+  # The Traefik config in apps/traefik/ is preserved for reference.
 
 networks:
   app_network:

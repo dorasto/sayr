@@ -15,10 +15,6 @@ on:
         description: "Build Worker"
         type: boolean
         default: true
-      traefik:
-        description: "Build Traefik"
-        type: boolean
-        default: true
       marketing:
         description: "Build Marketing"
         type: boolean
@@ -45,9 +41,6 @@ jobs:
           fi
           if [[ "${{ inputs.worker }}" == "true" ]]; then
             apps=$(echo $apps | jq '. + ["worker"]')
-          fi
-          if [[ "${{ inputs.traefik }}" == "true" ]]; then
-            apps=$(echo $apps | jq '. + ["traefik"]')
           fi
           if [[ "${{ inputs.marketing }}" == "true" ]]; then
             apps=$(echo $apps | jq '. + ["marketing"]')
@@ -85,9 +78,6 @@ jobs:
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
             echo "dockerfile=./apps/worker/Dockerfile" >> $GITHUB_OUTPUT
             echo "image_suffix=-worker" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
-            echo "dockerfile=./apps/traefik/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "marketing" ]]; then
             echo "dockerfile=./apps/marketing/Dockerfile" >> $GITHUB_OUTPUT
             echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
@@ -158,9 +148,6 @@ jobs:
             echo "image_suffix=-backend" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
             echo "image_suffix=-worker" >> $GITHUB_OUTPUT
-
-          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
-            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "marketing" ]]; then
             echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
           fi
