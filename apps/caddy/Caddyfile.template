@@ -68,7 +68,7 @@ api.{$ROOT_DOMAIN} {
 		not path /ws /ws/*
 		not path /api/*
 	}
-	uri @needsRewrite prefix /api/public
+	rewrite @needsRewrite /api/public{uri}
 
 	# Default upstream
 	reverse_proxy {$UPSTREAM_HOST}:{$BACKEND_PORT}
