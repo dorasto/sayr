@@ -1,0 +1,168 @@
+# =============================================================================
+# Sayr Cloud Deployment - Application Stack
+# =============================================================================
+# Use this compose file when deploying Sayr on a cloud host (e.g., Coolify)
+# with an external Caddy reverse proxy on a separate VPS.
+#
+# Host-side ports are configurable via environment variables to avoid conflicts
+# with the host's existing services (e.g., Coolify's Traefik on 80/443/8080).
+#
+# The container-internal ports are fixed and should not be changed.
+#
+# Port defaults:
+#   START_PORT     = 3000  (frontend)
+#   BACKEND_PORT   = 5468  (API + WebSocket)
+#   MARKETING_PORT = 4321  (marketing site, avoids Coolify Traefik 8080 conflict)
+#
+# Setup:
+#   1. Copy .env.example to .env and fill in your values
+#   2. docker compose -f docker-compose.cloud.yml up -d
+#   3. Deploy Caddy on a separate VPS (see apps/caddy/)
+#   4. Point your Caddy UPSTREAM_HOST to this server's IP
+#   5. Ensure firewall allows inbound on START_PORT, BACKEND_PORT, MARKETING_PORT
+# =============================================================================
+
+services:
+  start:
+    container_name: sayr-start
+    image: ghcr.io/dorasto/sayr-start:latest
+    restart: always
+    pull_policy: always
+    ports:
+      - "${START_PORT:-3000}:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
+      - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
+      - VITE_URL_ROOT=${VITE_URL_ROOT}
+      - VITE_PROJECT_NAME=${VITE_PROJECT_NAME}
+      - VITE_ROOT_DOMAIN=${VITE_ROOT_DOMAIN}
+      - STORAGE_URL=${STORAGE_URL}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - FILE_SALT=${FILE_SALT}
+      - FILE_CDN=${FILE_CDN}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - STORAGE_PORT=${STORAGE_PORT}
+      - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
+      - DORAS_ORGANIZATION=${DORAS_ORGANIZATION}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - VITE_SAYR_FRONTEND_AXIOM_TOKEN=${VITE_SAYR_FRONTEND_AXIOM_TOKEN}
+      - VITE_SAYR_FRONTEND_AXIOM_DATASET=${VITE_SAYR_FRONTEND_AXIOM_DATASET}
+      - VITE_TENOR_API=${VITE_TENOR_API}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - VITE_GITHUB_APP_NAME=${VITE_GITHUB_APP_NAME}
+      - QUEUE_MODE=${QUEUE_MODE}
+      - SAYR_EMAIL=${SAYR_EMAIL}
+      - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
+      - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
+      - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
+      - SAYR_CLOUD=${SAYR_CLOUD}
+      - APP_ENV=${APP_ENV}
+    networks:
+      - app_network
+
+  backend:
+    container_name: sayr-backend
+    image: ghcr.io/dorasto/sayr-backend:latest
+    restart: always
+    pull_policy: always
+    ports:
+      - "${BACKEND_PORT:-5468}:5468"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
+      - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
+      - STORAGE_URL=${STORAGE_URL}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - FILE_SALT=${FILE_SALT}
+      - FILE_CDN=${FILE_CDN}
+      - SAYR_EMAIL=${SAYR_EMAIL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - STORAGE_PORT=${STORAGE_PORT}
+      - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
+      - DORAS_ORGANIZATION=${DORAS_ORGANIZATION}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - REDIS_URL=${REDIS_URL}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
+      - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
+      - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
+      - SAYR_CLOUD=${SAYR_CLOUD}
+      - APP_ENV=${APP_ENV}
+    networks:
+      - app_network
+
+  marketing:
+    container_name: sayr-marketing
+    image: ghcr.io/dorasto/sayr-marketing:latest
+    restart: always
+    pull_policy: always
+    ports:
+      - "${MARKETING_PORT:-4321}:8080"
+    networks:
+      - app_network
+
+  github-worker:
+    container_name: sayr-worker-github
+    image: ghcr.io/dorasto/sayr-worker:latest
+    restart: always
+    pull_policy: always
+    command: ["bun", "run", "dist/index.js", "github"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
+      - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
+      - STORAGE_URL=${STORAGE_URL}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - FILE_SALT=${FILE_SALT}
+      - FILE_CDN=${FILE_CDN}
+      - SAYR_EMAIL=${SAYR_EMAIL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - STORAGE_PORT=${STORAGE_PORT}
+      - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
+      - DORAS_ORGANIZATION=${DORAS_ORGANIZATION}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - REDIS_URL=${REDIS_URL}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
+      - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
+      - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
+      - SAYR_CLOUD=${SAYR_CLOUD}
+      - APP_ENV=${APP_ENV}
+    networks:
+      - app_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: sayr-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  redis_data:
