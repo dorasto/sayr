@@ -121,7 +121,6 @@ export function PrimarySidebar() {
                   isActive && item.activeIcon ? item.activeIcon : item.icon;
 
                 return (
-                  <>
                     <SidebarMenuItem
                       className="min-h-auto"
                       key={item.title}
@@ -144,7 +143,6 @@ export function PrimarySidebar() {
                         </SidebarMenuSub>
                       )}
                     </SidebarMenuItem>
-                  </>
                 );
               })}
             </SidebarMenu>
