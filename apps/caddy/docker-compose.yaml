@@ -24,7 +24,7 @@
 services:
   caddy:
     container_name: sayr-caddy
-    image: ghcr.io/dorasto/sayr-caddy:latest
+    image: ghcr.io/dorasto/sayr-caddy
     restart: always
     ports:
       - "80:80"
