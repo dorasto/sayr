@@ -24,7 +24,7 @@
 services:
   caddy:
     container_name: sayr-caddy
-    image: ghcr.io/dorasto/sayr-caddy
+    image: ghcr.io/dorasto/sayr-caddy:staging
     restart: always
     ports:
       - "80:80"
