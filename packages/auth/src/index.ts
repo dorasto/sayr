@@ -34,6 +34,12 @@ export const auth = betterAuth({
 			enabled: !isBarelocalhost,
 			domain: `.${rootUrl}`,
 		},
+		// Trust X-Forwarded-Host and X-Forwarded-Proto headers from reverse proxy (Caddy/Traefik/etc.)
+		// Required when running behind a reverse proxy so Better Auth derives the correct
+		// base URL (protocol + host) from the proxy headers instead of the internal request URL
+		trustedProxyHeaders: isProd,
+		// Ensure cookies are always Secure in production (behind TLS-terminating proxy)
+		useSecureCookies: isProd,
 	},
 	user: {
 		additionalFields: {

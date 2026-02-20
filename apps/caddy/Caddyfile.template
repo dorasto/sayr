@@ -23,6 +23,30 @@
 	}
 }
 
+# Common reverse proxy settings for reliability over multi-hop
+# (Browser → Cloudflare → Caddy → App VPS)
+(proxy_defaults) {
+	transport http {
+		# Keep connections alive to upstream for performance
+		keepalive 30s
+		keepalive_idle_conns 10
+	}
+	# Stream responses immediately instead of buffering — prevents
+	# Cloudflare from timing out waiting for large JS bundles
+	flush_interval -1
+	# Pass original headers (Caddy does this by default, but be explicit)
+	header_up X-Real-IP {remote_host}
+}
+
+# WebSocket reverse proxy settings
+(ws_proxy) {
+	transport http {
+		keepalive 30s
+	}
+	flush_interval -1
+	header_up X-Real-IP {remote_host}
+}
+
 # =============================================================================
 # ROOT DOMAIN: sayr.dev / www.sayr.dev -> marketing site
 # =============================================================================
@@ -39,10 +63,14 @@
 
 	# API routes -> backend
 	@apiPath path /api/*
-	reverse_proxy @apiPath {$UPSTREAM_HOST}:{$BACKEND_PORT}
+	reverse_proxy @apiPath {$UPSTREAM_HOST}:{$BACKEND_PORT} {
+		import proxy_defaults
+	}
 
 	# Everything else -> marketing site
-	reverse_proxy {$UPSTREAM_HOST}:{$MARKETING_PORT}
+	reverse_proxy {$UPSTREAM_HOST}:{$MARKETING_PORT} {
+		import proxy_defaults
+	}
 }
 
 # =============================================================================
@@ -53,25 +81,26 @@ api.{$ROOT_DOMAIN} {
 
 	# WebSocket passthrough (no rewrite)
 	@wsPath path /ws /ws/*
-	reverse_proxy @wsPath {$UPSTREAM_HOST}:{$BACKEND_PORT}
-
-	# Health check passthrough (no rewrite)
-	@healthPath path /api/health
-	reverse_proxy @healthPath {$UPSTREAM_HOST}:{$BACKEND_PORT}
+	reverse_proxy @wsPath {$UPSTREAM_HOST}:{$BACKEND_PORT} {
+		import ws_proxy
+	}
 
 	# Root path -> rewrite to /api/public
 	@rootExact path /
 	rewrite @rootExact /api/public
 
-	# All other paths -> prepend /api/public
+	# All other paths (except /ws) -> prepend /api/public
+	# Matches Traefik behavior: everything gets /api/public prefix, only /ws is excluded
 	@needsRewrite {
 		not path /ws /ws/*
-		not path /api/*
+		not path /
 	}
 	rewrite @needsRewrite /api/public{uri}
 
 	# Default upstream
-	reverse_proxy {$UPSTREAM_HOST}:{$BACKEND_PORT}
+	reverse_proxy {$UPSTREAM_HOST}:{$BACKEND_PORT} {
+		import proxy_defaults
+	}
 }
 
 # =============================================================================
@@ -85,26 +114,39 @@ api.{$ROOT_DOMAIN} {
 
 	# Auth API -> start app (Better Auth handles cross-subdomain sessions)
 	@authApi path /api/auth /api/auth/*
-	reverse_proxy @authApi {$UPSTREAM_HOST}:{$START_PORT}
+	reverse_proxy @authApi {$UPSTREAM_HOST}:{$START_PORT} {
+		import proxy_defaults
+	}
 
 	# Image preview -> start app
 	@imagePreview path /api/image-preview /api/image-preview/*
-	reverse_proxy @imagePreview {$UPSTREAM_HOST}:{$START_PORT}
+	reverse_proxy @imagePreview {$UPSTREAM_HOST}:{$START_PORT} {
+		import proxy_defaults
+	}
 
 	# OpenTelemetry trace ingestion -> start app
 	@traces path /api/traces /api/traces/*
-	reverse_proxy @traces {$UPSTREAM_HOST}:{$START_PORT}
+	reverse_proxy @traces {$UPSTREAM_HOST}:{$START_PORT} {
+		import proxy_defaults
+	}
 
 	# ----- Routes to backend -----
 
 	# Other API routes -> backend
 	@apiRoutes path /api/*
-	reverse_proxy @apiRoutes {$UPSTREAM_HOST}:{$BACKEND_PORT}
+	reverse_proxy @apiRoutes {$UPSTREAM_HOST}:{$BACKEND_PORT} {
+		import proxy_defaults
+	}
 
 	# WebSocket -> backend
 	@wsRoutes path /ws /ws/*
-	reverse_proxy @wsRoutes {$UPSTREAM_HOST}:{$BACKEND_PORT}
+	reverse_proxy @wsRoutes {$UPSTREAM_HOST}:{$BACKEND_PORT} {
+		import ws_proxy
+	}
 
 	# ----- Default: everything else -> start app -----
-	reverse_proxy {$UPSTREAM_HOST}:{$START_PORT}
+	# This handles HTML pages, JS/CSS assets (/_build/*, /assets/*), fonts, etc.
+	reverse_proxy {$UPSTREAM_HOST}:{$START_PORT} {
+		import proxy_defaults
+	}
 }
