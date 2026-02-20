@@ -1,15 +1,32 @@
 "use client";
 
 import { Button } from "@repo/ui/components/button";
+import { SidebarContext } from "@repo/ui/components/doras-ui/sidebar";
 import { Label } from "@repo/ui/components/label";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+  type ResizablePanelHandle,
+} from "@repo/ui/components/resizable";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@repo/ui/components/sheet";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
+import { usePanelRegistry } from "@/hooks/usePanelRegistry";
+import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { PrimarySidebar } from "../admin/sidebars/primary";
 import { SettingsSidebar } from "../admin/sidebars/settings";
 import { StaffSidebar } from "../admin/sidebars/staff";
 import { useAdminRoute } from "./useAdminRoute";
-import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 
 /**
  * Renders the correct sidebar based on the current route.
@@ -180,5 +197,169 @@ export function SubWrapper({
         {children}
       </div>{" "}
     </div>
+  );
+}
+
+// --- PanelWrapper ---
+
+interface PanelWrapperProps {
+  /** Main page content (rendered in the left/primary panel). */
+  children: React.ReactNode;
+  /** Whether the right panel is open. Typically from `useLayoutOrganization().isProjectPanelOpen`. */
+  isOpen: boolean;
+  /** Toggle callback. Typically `useLayoutOrganization().setProjectPanelOpen`. */
+  setOpen: (open: boolean) => void;
+  /** Default size of the right panel when open (percentage, default 30). */
+  panelDefaultSize?: number;
+  /** Minimum size of the right panel (percentage, default 20). */
+  panelMinSize?: number;
+  /** Class name applied to the ResizablePanelGroup root. */
+  className?: string;
+  /** Class name applied to the main (left) content panel. */
+  contentClassName?: string;
+}
+
+/**
+ * Layout wrapper that renders children alongside a collapsible right panel.
+ * The right panel content comes from the panel store (registered via `useRegisterPanel`).
+ *
+ * Use this in pages that want a store-driven right sidebar below their PageHeader.
+ * On mobile, the panel renders as a Sheet instead of a resizable column.
+ *
+ * Usage:
+ * ```tsx
+ * <PanelWrapper isOpen={isProjectPanelOpen} setOpen={setProjectPanelOpen}>
+ *   <UnifiedTaskView ... />
+ * </PanelWrapper>
+ * ```
+ */
+export function PanelWrapper({
+  children,
+  isOpen,
+  setOpen,
+  panelDefaultSize = 30,
+  panelMinSize = 20,
+  className,
+  contentClassName,
+}: PanelWrapperProps) {
+  const isMobile = useIsMobile();
+  const ref = useRef<ResizablePanelHandle>(null);
+  const registry = usePanelRegistry();
+  const hasRegistered = useRef(false);
+
+  // Register a lightweight sidebar entry so doras-ui SidebarMenu* components
+  // can read from the sidebar store without being inside a full <Sidebar>.
+  useEffect(() => {
+    if (hasRegistered.current) return;
+    sidebarActions.registerSidebar("panel-right", {
+      open: true,
+      side: "right",
+      variant: "default",
+    });
+    hasRegistered.current = true;
+  }, []);
+
+  // Sync imperative panel state with isOpen prop
+  useEffect(() => {
+    if (isMobile) return;
+    const panel = ref.current;
+    if (panel) {
+      if (isOpen) {
+        panel.expand();
+      } else {
+        panel.collapse();
+      }
+    }
+  }, [isOpen, isMobile]);
+
+  // Close panel on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setOpen(false);
+    }
+  }, [isMobile, setOpen]);
+
+  const hasPanel = registry && registry.sections.length > 0;
+
+  // No panel content registered — just render children directly
+  if (!hasPanel) {
+    return <>{children}</>;
+  }
+
+  const panelContent = (
+    <SidebarContext.Provider value={{ id: "panel-right", isCollapsed: false }}>
+      <div className="flex flex-col h-full">
+        {registry.header && (
+          <div className="flex items-center h-11 shrink-0 border-b px-3">
+            {registry.header}
+          </div>
+        )}
+        <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-2">
+          {registry.title && !registry.header && (
+            <div className="flex items-center gap-2 px-1 pt-1.5">
+              {registry.icon && (
+                <span className="[&>svg]:size-4 shrink-0">{registry.icon}</span>
+              )}
+              <span className="text-sm font-semibold truncate">
+                {registry.title}
+              </span>
+            </div>
+          )}
+          {registry.sections.map((section) => (
+            <div key={section.id} className="flex flex-col gap-1">
+              {section.title && (
+                <span className="text-xs font-medium text-muted-foreground px-2 pt-2">
+                  {section.title}
+                </span>
+              )}
+              {section.content}
+            </div>
+          ))}
+        </div>
+      </div>
+    </SidebarContext.Provider>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        {children}
+        <Sheet defaultOpen={false} open={isOpen} onOpenChange={setOpen}>
+          <SheetContent className="p-0" showClose={false}>
+            <SheetHeader className="sr-only">
+              <SheetTitle>Panel</SheetTitle>
+              <SheetDescription>Side panel content</SheetDescription>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto h-full flex flex-col relative p-3">
+              {panelContent}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+
+  return (
+    <ResizablePanelGroup direction="horizontal" className={cn(className)}>
+      <ResizablePanel
+        defaultSize={isMobile ? 100 : 100 - panelDefaultSize}
+        minSize={50}
+        className={cn(contentClassName)}
+      >
+        {children}
+      </ResizablePanel>
+      <ResizableHandle className={cn(!isOpen && "opacity-0")} />
+      <ResizablePanel
+        defaultSize={isOpen ? panelDefaultSize : 0}
+        minSize={panelMinSize}
+        collapsedSize={0}
+        collapsible
+        ref={ref}
+        onCollapse={() => setOpen(false)}
+        onExpand={() => setOpen(true)}
+      >
+        {panelContent}
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }

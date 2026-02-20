@@ -34,7 +34,7 @@ interface SidebarContextProps {
   isCollapsed?: boolean;
   isMobile?: boolean;
 }
-const SidebarContext = React.createContext<SidebarContextProps | null>(null);
+export const SidebarContext = React.createContext<SidebarContextProps | null>(null);
 
 // Hook to use sidebar
 export function useSidebar(id?: string) {

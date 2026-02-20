@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import OrganizationTaskIdPage from "@/components/pages/admin/orgid/tasks/taskId";
 import { RootProviderOrganizationTask } from "@/contexts/ContextOrgTask";
 import { useTaskCommands } from "@/hooks/commands/useTaskCommands";
+import { TaskPanelRegistrar } from "@/components/admin/panels/task";
 import { getAdminOrganizationTask } from "@/lib/serverFunctions/getAdminOrganizationTask";
 import { seo } from "@/seo";
 
@@ -33,6 +34,7 @@ function OrgTasksLayout() {
   return (
     <RootProviderOrganizationTask task={task}>
       <TaskCommandRegistrar />
+      <TaskPanelRegistrar />
       <OrganizationTaskIdPage />
     </RootProviderOrganizationTask>
   );
