@@ -21,7 +21,6 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { usePanelRegistry } from "@/hooks/usePanelRegistry";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { PrimarySidebar } from "../admin/sidebars/primary";
 import { SettingsSidebar } from "../admin/sidebars/settings";
@@ -209,9 +208,13 @@ interface PanelWrapperProps {
   isOpen: boolean;
   /** Toggle callback. Typically `useLayoutOrganization().setProjectPanelOpen`. */
   setOpen: (open: boolean) => void;
+  /** Fixed header rendered at the top of the panel (h-11, border-b). */
+  panelHeader?: React.ReactNode;
+  /** Body content rendered inside the scrollable panel area. */
+  panelBody?: React.ReactNode;
   /** Default size of the right panel when open (percentage, default 30). */
   panelDefaultSize?: number;
-  /** Minimum size of the right panel (percentage, default 20). */
+  /** Minimum size of the right panel (percentage, default 15). */
   panelMinSize?: number;
   /** Class name applied to the ResizablePanelGroup root. */
   className?: string;
@@ -221,14 +224,18 @@ interface PanelWrapperProps {
 
 /**
  * Layout wrapper that renders children alongside a collapsible right panel.
- * The right panel content comes from the panel store (registered via `useRegisterPanel`).
+ * Panel content is passed directly as props — each page owns its own panel content.
  *
- * Use this in pages that want a store-driven right sidebar below their PageHeader.
  * On mobile, the panel renders as a Sheet instead of a resizable column.
  *
  * Usage:
  * ```tsx
- * <PanelWrapper isOpen={isProjectPanelOpen} setOpen={setProjectPanelOpen}>
+ * <PanelWrapper
+ *   isOpen={isProjectPanelOpen}
+ *   setOpen={setProjectPanelOpen}
+ *   panelHeader={<MyPanelHeader />}
+ *   panelBody={<MyPanelContent />}
+ * >
  *   <UnifiedTaskView ... />
  * </PanelWrapper>
  * ```
@@ -237,14 +244,15 @@ export function PanelWrapper({
   children,
   isOpen,
   setOpen,
+  panelHeader,
+  panelBody,
   panelDefaultSize = 30,
-  panelMinSize = 20,
+  panelMinSize = 15,
   className,
   contentClassName,
 }: PanelWrapperProps) {
   const isMobile = useIsMobile();
   const ref = useRef<ResizablePanelHandle>(null);
-  const registry = usePanelRegistry();
   const hasRegistered = useRef(false);
 
   // Register a lightweight sidebar entry so doras-ui SidebarMenu* components
@@ -279,9 +287,9 @@ export function PanelWrapper({
     }
   }, [isMobile, setOpen]);
 
-  const hasPanel = registry && registry.sections.length > 0;
+  const hasPanel = panelHeader || panelBody;
 
-  // No panel content registered — just render children directly
+  // No panel content — just render children directly
   if (!hasPanel) {
     return <>{children}</>;
   }
@@ -289,32 +297,13 @@ export function PanelWrapper({
   const panelContent = (
     <SidebarContext.Provider value={{ id: "panel-right", isCollapsed: false }}>
       <div className="flex flex-col h-full">
-        {registry.header && (
+        {panelHeader && (
           <div className="flex items-center h-11 shrink-0 border-b px-3">
-            {registry.header}
+            {panelHeader}
           </div>
         )}
         <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-2">
-          {registry.title && !registry.header && (
-            <div className="flex items-center gap-2 px-1 pt-1.5">
-              {registry.icon && (
-                <span className="[&>svg]:size-4 shrink-0">{registry.icon}</span>
-              )}
-              <span className="text-sm font-semibold truncate">
-                {registry.title}
-              </span>
-            </div>
-          )}
-          {registry.sections.map((section) => (
-            <div key={section.id} className="flex flex-col gap-1">
-              {section.title && (
-                <span className="text-xs font-medium text-muted-foreground px-2 pt-2">
-                  {section.title}
-                </span>
-              )}
-              {section.content}
-            </div>
-          ))}
+          {panelBody}
         </div>
       </div>
     </SidebarContext.Provider>
@@ -340,7 +329,10 @@ export function PanelWrapper({
   }
 
   return (
-    <ResizablePanelGroup direction="horizontal" className={cn(className)}>
+    <ResizablePanelGroup
+      direction="horizontal"
+      className={cn("overflow-hidden", className)}
+    >
       <ResizablePanel
         defaultSize={isMobile ? 100 : 100 - panelDefaultSize}
         minSize={50}
@@ -348,7 +340,7 @@ export function PanelWrapper({
       >
         {children}
       </ResizablePanel>
-      <ResizableHandle className={cn(!isOpen && "opacity-0")} />
+      <ResizableHandle className={cn(!isOpen && "hidden")} />
       <ResizablePanel
         defaultSize={isOpen ? panelDefaultSize : 0}
         minSize={panelMinSize}
@@ -357,8 +349,9 @@ export function PanelWrapper({
         ref={ref}
         onCollapse={() => setOpen(false)}
         onExpand={() => setOpen(true)}
+        className="overflow-hidden"
       >
-        {panelContent}
+        {isOpen && panelContent}
       </ResizablePanel>
     </ResizablePanelGroup>
   );

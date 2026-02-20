@@ -35,6 +35,10 @@ import { PageHeader } from "@/components/generic/PageHeader";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { PanelWrapper } from "@/components/generic/wrapper";
 import {
+  TasksPanelHeader,
+  TasksPanelContent,
+} from "@/components/admin/panels/tasks";
+import {
   TaskFilterDropdown,
   serializeFilters,
 } from "@/components/tasks/filter";
@@ -236,6 +240,8 @@ export default function OrganizationTasksHomePage() {
     <PanelWrapper
       isOpen={isProjectPanelOpen}
       setOpen={setProjectPanelOpen}
+      panelHeader={<TasksPanelHeader />}
+      panelBody={<TasksPanelContent />}
     >
       <div className="relative flex flex-col h-full max-h-full">
         <PageHeader>
@@ -262,7 +268,9 @@ export default function OrganizationTasksHomePage() {
                     <Avatar className="h-4 w-4">
                       <AvatarImage
                         src={
-                          organization.logo ? ensureCdnUrl(organization.logo) : ""
+                          organization.logo
+                            ? ensureCdnUrl(organization.logo)
+                            : ""
                         }
                         alt={organization.name}
                       />
@@ -299,7 +307,9 @@ export default function OrganizationTasksHomePage() {
                 >
                   <IconUser className="size-4 text-muted-foreground" />
                   Your tasks
-                  {isMyAssignedActive && <IconCheck className="ml-auto size-4" />}
+                  {isMyAssignedActive && (
+                    <IconCheck className="ml-auto size-4" />
+                  )}
                 </DropdownMenuItem>
 
                 {stateCategories.length > 0 && (
@@ -379,6 +389,7 @@ export default function OrganizationTasksHomePage() {
                   variant="accent"
                   className={cn(
                     "gap-2 h-6 w-fit bg-accent border-transparent p-1",
+                    !isProjectPanelOpen && "bg-transparent",
                   )}
                   onClick={() =>
                     isProjectPanelOpen

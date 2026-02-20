@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { RootProviderOrganizationTasks } from "@/contexts/ContextOrgTasks";
 import { useTasksCommands } from "@/hooks/commands/useTasksCommands";
-import { TasksPanelRegistrar } from "@/components/admin/panels/tasks";
 import { getAdminOrganizationTasks } from "@/lib/serverFunctions/getAdminOrganizationTasks";
 
 export const Route = createFileRoute("/(admin)/$orgId/tasks")({
@@ -31,7 +30,6 @@ function OrgTasksLayout() {
 	return (
 		<RootProviderOrganizationTasks tasks={tasks}>
 			<TasksCommandRegistrar />
-			<TasksPanelRegistrar />
 			<Outlet />
 		</RootProviderOrganizationTasks>
 	);

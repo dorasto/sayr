@@ -43,7 +43,7 @@ import {
 	IconX,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import RenderIcon from "@/components/generic/RenderIcon";
 import SettingsOrganizationViewDetailPage from "@/components/pages/admin/settings/orgId/view-detail";
@@ -56,7 +56,6 @@ import {
 	useTaskViewManager,
 	type FilterState,
 } from "@/hooks/useTaskViewManager";
-import { useRegisterPanel } from "@/hooks/useRegisterPanel";
 
 // --- Filter helpers ---
 
@@ -677,35 +676,5 @@ function TasksPanelContent() {
 	);
 }
 
-// --- Panel registration ---
-
-/**
- * Hook that registers the interactive tasks panel content into the global panel store.
- * Must be called inside RootProviderOrganizationTasks context.
- */
-export function useTasksPanel() {
-	const registration = useMemo(
-		() => ({
-			header: <TasksPanelHeader />,
-			sections: [
-				{
-					id: "tasks-panel-content",
-					priority: 10,
-					content: <TasksPanelContent />,
-				},
-			],
-		}),
-		[],
-	);
-
-	useRegisterPanel("tasks-panel", registration);
-}
-
-/**
- * Null-rendering registrar component. Mount in the tasks route layout
- * to register right panel content for the tasks list page.
- */
-export function TasksPanelRegistrar() {
-	useTasksPanel();
-	return null;
-}
+// Export the panel components directly for use as PanelWrapper props
+export { TasksPanelHeader, TasksPanelContent };
