@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
-import AdminNavigation from "@/components/generic/AdminNavigation";
+import AdminCommand from "@/components/generic/AdminCommand";
 import { RootProvider } from "@/components/generic/Context";
 import { NavigationTracker } from "@/components/generic/NavigationTracker";
-import { Wrapper } from "@/components/generic/wrapper";
+import { Wrapper, AdminSidebar } from "@/components/generic/wrapper";
 import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
 import { seo } from "@/seo";
@@ -16,25 +16,25 @@ import { useGlobalCommands } from "@/hooks/commands/useGlobalCommands";
 
 // Base authentication fetcher
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
-	const { account, sessionId } = await getAccess();
-	return { account, sessionId };
+  const { account, sessionId } = await getAccess();
+  return { account, sessionId };
 });
 
 // Fetch organizations for the authenticated user
 export const getUserOrganizations = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType }) => data)
-	.handler(async ({ data }) => {
-		try {
-			const organizations = await getOrganizations(data.account.id);
-			return { account: data.account, organizations };
-		} catch (error) {
-			console.error("🚨 Error fetching organizations:", error);
-			if (error && typeof error === "object" && "redirect" in error) {
-				throw error;
-			}
-			throw redirect({ to: "/login" });
-		}
-	});
+  .inputValidator((data: { account: schema.userType }) => data)
+  .handler(async ({ data }) => {
+    try {
+      const organizations = await getOrganizations(data.account.id);
+      return { account: data.account, organizations };
+    } catch (error) {
+      console.error("🚨 Error fetching organizations:", error);
+      if (error && typeof error === "object" && "redirect" in error) {
+        throw error;
+      }
+      throw redirect({ to: "/login" });
+    }
+  });
 
 // --- CLIENT-SIDE AUTH CACHE ---
 
@@ -42,24 +42,29 @@ const AUTH_CACHE_TTL = 30000; // 30 seconds
 
 // Only define client-side caches (avoid SSR sharing)
 const authCacheMap =
-	typeof window !== "undefined" ? new Map<string, { account: schema.userType | null; timestamp: number }>() : null;
+  typeof window !== "undefined"
+    ? new Map<string, { account: schema.userType | null; timestamp: number }>()
+    : null;
 
 const authInFlightMap =
-	typeof window !== "undefined"
-		? new Map<string, Promise<{ account: schema.userType | null; sessionId?: string }>>()
-		: null;
+  typeof window !== "undefined"
+    ? new Map<
+        string,
+        Promise<{ account: schema.userType | null; sessionId?: string }>
+      >()
+    : null;
 
 /**
  * Clears the client-side auth cache.
  * Call this after updating user data to ensure fresh data on next navigation/refresh.
  */
 export function clearAuthCache(): void {
-	if (authCacheMap) {
-		authCacheMap.clear();
-	}
-	if (authInFlightMap) {
-		authInFlightMap.clear();
-	}
+  if (authCacheMap) {
+    authCacheMap.clear();
+  }
+  if (authInFlightMap) {
+    authInFlightMap.clear();
+  }
 }
 
 /**
@@ -69,101 +74,110 @@ export function clearAuthCache(): void {
  * - Disabled during SSR to prevent user leaks
  */
 async function getCachedAuth(): Promise<{
-	account: schema.userType | null;
-	sessionId?: string;
+  account: schema.userType | null;
+  sessionId?: string;
 }> {
-	// On the server, always get fresh data
-	if (typeof window === "undefined") return fetchAuth();
+  // On the server, always get fresh data
+  if (typeof window === "undefined") return fetchAuth();
 
-	const initial = await fetchAuth();
-	const sessionId = initial.sessionId || initial.account?.id || "anonymous";
+  const initial = await fetchAuth();
+  const sessionId = initial.sessionId || initial.account?.id || "anonymous";
 
-	const now = Date.now();
-	// biome-ignore lint/style/noNonNullAssertion: <dont care>
-	const cache = authCacheMap!;
-	// biome-ignore lint/style/noNonNullAssertion: <dont care>
-	const inFlight = authInFlightMap!;
-	const cached = cache.get(sessionId);
+  const now = Date.now();
+  // biome-ignore lint/style/noNonNullAssertion: <dont care>
+  const cache = authCacheMap!;
+  // biome-ignore lint/style/noNonNullAssertion: <dont care>
+  const inFlight = authInFlightMap!;
+  const cached = cache.get(sessionId);
 
-	// Return cached result if still valid
-	if (cached && now - cached.timestamp < AUTH_CACHE_TTL) {
-		return { account: cached.account, sessionId };
-	}
+  // Return cached result if still valid
+  if (cached && now - cached.timestamp < AUTH_CACHE_TTL) {
+    return { account: cached.account, sessionId };
+  }
 
-	// Deduplicate concurrent requests
-	const existingInFlight = inFlight.get(sessionId);
-	if (existingInFlight) return existingInFlight;
+  // Deduplicate concurrent requests
+  const existingInFlight = inFlight.get(sessionId);
+  if (existingInFlight) return existingInFlight;
 
-	// Fetch fresh data and update cache
-	const newReq = fetchAuth()
-		.then((result) => {
-			if (result.account) {
-				cache.set(sessionId, {
-					account: result.account,
-					timestamp: Date.now(),
-				});
-			} else {
-				cache.delete(sessionId);
-			}
-			return result;
-		})
-		.finally(() => {
-			inFlight.delete(sessionId);
-		});
+  // Fetch fresh data and update cache
+  const newReq = fetchAuth()
+    .then((result) => {
+      if (result.account) {
+        cache.set(sessionId, {
+          account: result.account,
+          timestamp: Date.now(),
+        });
+      } else {
+        cache.delete(sessionId);
+      }
+      return result;
+    })
+    .finally(() => {
+      inFlight.delete(sessionId);
+    });
 
-	inFlight.set(sessionId, newReq);
-	return newReq;
+  inFlight.set(sessionId, newReq);
+  return newReq;
 }
 
 // --- ROUTE CONFIGURATION ---
 
 export const Route = createFileRoute("/(admin)")({
-	head: () => ({
-		meta: seo({ title: "Admin" }),
-	}),
+  head: () => ({
+    meta: seo({ title: "Admin" }),
+  }),
 
-	beforeLoad: async () => {
-		const { account } = await getCachedAuth();
-		return { account };
-	},
+  beforeLoad: async () => {
+    const { account } = await getCachedAuth();
+    return { account };
+  },
 
-	loader: async ({ context }) => {
-		if (!context.account) {
-			throw redirect({ to: "/login" });
-		}
+  loader: async ({ context }) => {
+    if (!context.account) {
+      throw redirect({ to: "/login" });
+    }
 
-		return await getUserOrganizations({
-			data: { account: context.account },
-		});
-	},
-	component: AdminLayout,
+    return await getUserOrganizations({
+      data: { account: context.account },
+    });
+  },
+  component: AdminLayout,
 });
 
 // --- COMPONENT ---
 
 function AdminLayout() {
-	const { account, organizations } = Route.useLoaderData();
+  const { account, organizations } = Route.useLoaderData();
 
-	return (
-		<div className="flex h-dvh max-h-dvh flex-col bg-sidebar overflow-hidden">
-			<RootProvider account={account} organizations={organizations}>
-				<PostHogUserSync user={account ? { id: account.id, email: account.email, name: account.name } : null} />
-				<NavigationTracker />
-				<GlobalCommandRegistrar />
-				<GlobalCreateTaskDialog />
-				<AdminNavigation />
-				<Wrapper>
-					<div className="relative h-full max-h-full">
-						<Outlet />
-					</div>
-				</Wrapper>
-			</RootProvider>
-		</div>
-	);
+  return (
+    <div className="flex h-dvh max-h-dvh flex-row bg-sidebar overflow-hidden">
+      <RootProvider account={account} organizations={organizations}>
+        <PostHogUserSync
+          user={
+            account
+              ? { id: account.id, email: account.email, name: account.name }
+              : null
+          }
+        />
+        <NavigationTracker />
+        <GlobalCommandRegistrar />
+        <GlobalCreateTaskDialog />
+        <AdminSidebar />
+        <div className="flex flex-col flex-1 min-w-0 h-full">
+          <AdminCommand />
+          <Wrapper>
+            <div className="relative h-full max-h-full">
+              <Outlet />
+            </div>
+          </Wrapper>
+        </div>
+      </RootProvider>
+    </div>
+  );
 }
 
 /** Registers global commands. Must be rendered inside RootProvider. */
 function GlobalCommandRegistrar() {
-	useGlobalCommands();
-	return null;
+  useGlobalCommands();
+  return null;
 }

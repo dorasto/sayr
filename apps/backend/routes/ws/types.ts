@@ -33,7 +33,9 @@ export type WSBaseMessage = {
 		| "UPDATE_VIEWS"
 		| "UPDATE_CATEGORIES"
 		| "UPDATE_ISSUE_TEMPLATES"
-		| "MEMBER_ACTIONS";
+		| "MEMBER_ACTIONS"
+		| "NEW_NOTIFICATION"
+		| "NOTIFICATION_READ";
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	data?: any;
 	orgId?: string;

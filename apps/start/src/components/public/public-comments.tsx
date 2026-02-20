@@ -8,8 +8,9 @@ import {
 import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { authClient } from "@repo/auth/client";
+import type { MentionContext } from "@/hooks/useMentionUsers";
 import {
   CreateTaskCommentAction,
   CreateTaskReactionAction,
@@ -70,11 +71,19 @@ export function PublicComments({
   const { data: session } = authClient.useSession();
   const { organization, categories } = usePublicOrganizationLayout();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
   const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(
     undefined,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  useEffect(() => {
+    if (organizationId) {
+      setMentionContext({ orgId: organizationId });
+    }
+  }, [organizationId, setMentionContext]);
 
   const commentLimit = 20;
 
@@ -483,7 +492,6 @@ export function PublicComments({
               className="p-3 pb-0 bg-transparent"
               onChange={setCommentContent}
               submit={handleSubmitComment}
-              users={orgUsers}
               categories={categories}
               hideBlockHandle
             />

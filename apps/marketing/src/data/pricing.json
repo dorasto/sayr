@@ -1,0 +1,211 @@
+{
+  "tiers": [
+    {
+      "id": "self-hosted",
+      "name": "Self-Hosted",
+      "price": null,
+      "priceSuffix": "",
+      "description": "Deploy on your own infrastructure, self managed for your own needs.",
+      "cta": {
+        "label": "Deploy Guide",
+        "href": "/docs/self-hosting/railway"
+      },
+      "highlighted": false
+    },
+    {
+      "id": "free",
+      "name": "Free",
+      "price": 0,
+      "priceSuffix": "",
+      "description": "For small teams and open source projects getting started with project management.",
+      "cta": {
+        "label": "Get Started",
+        "href": "https://admin.sayr.io"
+      },
+      "highlighted": false
+    },
+    {
+      "id": "pro",
+      "name": "Pro",
+      "price": 3,
+      "priceSuffix": "/seat/mo",
+      "description": "For growing teams that need releases, advanced views, and granular permissions.",
+      "cta": {
+        "label": "Upgrade to Pro",
+        "href": "https://admin.sayr.io"
+      },
+      "highlighted": true
+    }
+  ],
+  "featureGroups": [
+    {
+      "name": "Core",
+      "features": [
+        {
+          "name": "Members",
+          "tiers": {
+            "free": "Up to 5 members",
+            "pro": "Unlimited members",
+            "self-hosted": "Unlimited members"
+          }
+        },
+        {
+          "name": "Tasks",
+          "tiers": {
+            "free": "Unlimited tasks",
+            "pro": "Unlimited tasks",
+            "self-hosted": "Unlimited tasks"
+          }
+        },
+        {
+          "name": "Labels & categories",
+          "tiers": {
+            "free": "Unlimited labels & categories",
+            "pro": "Unlimited labels & categories",
+            "self-hosted": "Unlimited labels & categories"
+          }
+        },
+        {
+          "name": "Priority levels",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public portal",
+      "features": [
+        {
+          "name": "Public task board",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        },
+        {
+          "name": "User voting",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        },
+        {
+          "name": "Public & internal comments",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        },
+        {
+          "name": "Visibility controls",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Collaboration",
+      "features": [
+        {
+          "name": "Real-time updates",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        },
+        {
+          "name": "Comment edit history",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        },
+        {
+          "name": "Notifications",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        },
+        {
+          "name": "Task timeline",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations",
+      "features": [
+        {
+          "name": "GitHub integration",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        },
+        {
+          "name": "API access",
+          "tiers": {
+            "free": true,
+            "pro": true,
+            "self-hosted": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Organization",
+      "features": [
+        {
+          "name": "Releases",
+          "tiers": {
+            "free": false,
+            "pro": "Unlimited releases",
+            "self-hosted": "Unlimited releases"
+          }
+        },
+        {
+          "name": "Saved views",
+          "tiers": {
+            "free": "3 saved views",
+            "pro": "Unlimited saved views",
+            "self-hosted": "Unlimited saved views"
+          }
+        },
+        {
+          "name": "Issue templates",
+          "tiers": {
+            "free": "3 issue templates",
+            "pro": "Unlimited issue templates",
+            "self-hosted": "Unlimited issue templates"
+          }
+        },
+        {
+          "name": "Teams & permissions",
+          "tiers": {
+            "free": "1 team",
+            "pro": "Unlimited teams",
+            "self-hosted": "Unlimited teams"
+          }
+        }
+      ]
+    }
+  ]
+}

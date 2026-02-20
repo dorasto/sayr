@@ -45,6 +45,7 @@ import { RenderLabel } from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
 import { RenderCategory, RenderRelease } from "../shared";
+import { InlineLabel } from "../shared/inlinelabel";
 
 interface UnifiedTaskItemProps {
   task: schema.TaskWithLabels;
@@ -517,33 +518,32 @@ export function UnifiedTaskItem({
                 </button>
               }
             />
-
+            {personal && task.organization && (
+              <Link to="/$orgId/tasks" params={{ orgId: task.organizationId }}>
+                <Badge
+                  data-no-propagate
+                  variant="secondary"
+                  className="flex items-center justify-center gap-1 bg-muted ps-0 text-xs h-5 border border-transparent rounded-2xl truncate cursor-pointer w-fit relative"
+                >
+                  <InlineLabel
+                    image={task.organization.logo}
+                    avatarClassName="bg-transparent"
+                    text={task.organization.slug}
+                  />
+                </Badge>
+              </Link>
+            )}
             {/* Title */}
             <p className="truncate cursor-pointer text-sm text-foreground w-fit">
               {task.title}{" "}
             </p>
-            {personal && task.organization && (
-              <a
-                href={`/${task.organization.id}/tasks`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Badge
-                  variant={"secondary"}
-                  className="flex items-center gap-1 shrink-0 text-muted-foreground hover:text-primary-foreground"
-                >
-                  <span className="text-xs truncate max-w-[150px]">
-                    {task.organization.name}
-                  </span>
-                  <span className="text-xs">/</span>
-                  <span className="text-xs truncate max-w-[150px]">Tasks</span>
-                </Badge>
-              </a>
-            )}
           </div>
         </div>
         {/* Right section with metadata and actions */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="relative flex flex-wrap grow shrink-0 items-center gap-2 whitespace-nowrap">
+            {/* Organization (personal/cross-org mode) */}
+
             {/* Category */}
             {task.category &&
               (() => {

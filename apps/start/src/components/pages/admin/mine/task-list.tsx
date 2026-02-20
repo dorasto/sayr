@@ -1,5 +1,4 @@
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Label } from "@repo/ui/components/label";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import {
@@ -9,18 +8,50 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { cn } from "@repo/ui/lib/utils";
-import { IconBuilding, IconCategory2, IconSortDescending, IconTag, IconUsers } from "@tabler/icons-react";
+import {
+	IconBuilding,
+	IconCategory2,
+	IconSortDescending,
+	IconTag,
+} from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { FilterMenu } from "@/components/tasks/filter/FilterMenu";
 import { FilterBadges } from "@/components/tasks/filter/FilterBadges";
-import type { FilterCondition, FilterField, FilterFieldConfig, FilterOperator } from "@/components/tasks/filter/types";
+import type {
+	FilterCondition,
+	FilterField,
+	FilterFieldConfig,
+	FilterOperator,
+} from "@/components/tasks/filter/types";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { applyFilters } from "@/components/tasks/filter/filter-config";
-import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
+import { TaskListItem } from "./tasks/task-item";
+import { TaskEmptyState } from "./tasks/task-empty-state";
+import {
+	type SortOption,
+	priorityOrder,
+	statusOrder,
+} from "./tasks/task-sort-config";
 
-type SortOption = "newest" | "oldest" | "priority" | "status";
+// Status options
+const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({
+	value,
+	label: config.label,
+	color: config.color,
+	icon: config.icon("w-3 h-3"),
+}));
+
+// Priority options
+const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(
+	([value, config]) => ({
+		value,
+		label: config.label,
+		color: config.color,
+		icon: config.icon("w-3 h-3"),
+	}),
+);
 
 interface MyTasksListProps {
 	tasks: schema.TaskWithLabels[];
@@ -35,39 +66,8 @@ interface MyTasksListProps {
 	}>;
 	labels: schema.labelType[];
 	categories: schema.categoryType[];
+	releases: schema.releaseType[];
 }
-
-const priorityOrder: Record<string, number> = {
-	urgent: 0,
-	high: 1,
-	medium: 2,
-	low: 3,
-	none: 4,
-};
-
-const statusOrder: Record<string, number> = {
-	"in-progress": 0,
-	todo: 1,
-	backlog: 2,
-	done: 3,
-	canceled: 4,
-};
-
-// Status options
-const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({
-	value,
-	label: config.label,
-	color: config.color,
-	icon: config.icon("w-3 h-3"),
-}));
-
-// Priority options
-const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(([value, config]) => ({
-	value,
-	label: config.label,
-	color: config.color,
-	icon: config.icon("w-3 h-3"),
-}));
 
 export function MyTasksList({
 	tasks,
@@ -76,12 +76,15 @@ export function MyTasksList({
 	organizations,
 	labels,
 	categories,
+	releases,
 }: MyTasksListProps) {
 	const navigate = useNavigate();
 	const isMobile = useIsMobile();
 	const [sortBy, setSortBy] = useState<SortOption>("newest");
 	const [mainSearch, setMainSearch] = useState("");
-	const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([]);
+	const [filterConditions, setFilterConditions] = useState<FilterCondition[]>(
+		[],
+	);
 
 	// Filter field configurations specific to My Tasks page
 	const MY_TASKS_FILTER_CONFIGS: FilterFieldConfig[] = useMemo(
@@ -147,11 +150,8 @@ export function MyTasksList({
 					})),
 			},
 		],
-		[labels, categories, organizations]
+		[labels, categories, organizations],
 	);
-
-	// Custom organization filter field - remove the duplicate from MY_TASKS_FILTER_CONFIGS
-	// and replace with organization-specific configuration
 
 	const filteredAndSortedTasks = useMemo(() => {
 		let filtered = [...tasks];
@@ -160,7 +160,9 @@ export function MyTasksList({
 		const statusCondition = filterConditions.find((c) => c.field === "status");
 		if (!statusCondition) {
 			// No status filter applied, so exclude done and cancelled
-			filtered = filtered.filter((t) => t.status !== "done" && t.status !== "canceled");
+			filtered = filtered.filter(
+				(t) => t.status !== "done" && t.status !== "canceled",
+			);
 		}
 
 		// Apply filter conditions using the filter system
@@ -168,15 +170,23 @@ export function MyTasksList({
 			// Handle organization filter separately
 			const orgCondition = filterConditions.find((c) => c.field === "assignee");
 			if (orgCondition) {
-				const orgValues = Array.isArray(orgCondition.value) ? orgCondition.value : [orgCondition.value];
-				filtered = filtered.filter((t) => orgValues.some((v) => v === t.organizationId));
+				const orgValues = Array.isArray(orgCondition.value)
+					? orgCondition.value
+					: [orgCondition.value];
+				filtered = filtered.filter((t) =>
+					orgValues.some((v) => v === t.organizationId),
+				);
 			}
 
 			// Apply other filters using standard filter logic
-			const otherConditions = filterConditions.filter((c) => c.field !== "assignee");
+			const otherConditions = filterConditions.filter(
+				(c) => c.field !== "assignee",
+			);
 			if (otherConditions.length > 0) {
 				filtered = applyFilters(filtered, {
-					groups: [{ id: "default", conditions: otherConditions, operator: "AND" }],
+					groups: [
+						{ id: "default", conditions: otherConditions, operator: "AND" },
+					],
 					operator: "AND",
 				});
 			}
@@ -185,19 +195,31 @@ export function MyTasksList({
 		// Sort
 		switch (sortBy) {
 			case "newest":
-				filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+				filtered.sort(
+					(a, b) =>
+						new Date(b.createdAt || 0).getTime() -
+						new Date(a.createdAt || 0).getTime(),
+				);
 				break;
 			case "oldest":
-				filtered.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+				filtered.sort(
+					(a, b) =>
+						new Date(a.createdAt || 0).getTime() -
+						new Date(b.createdAt || 0).getTime(),
+				);
 				break;
 			case "priority":
 				filtered.sort(
-					(a, b) => (priorityOrder[a.priority || "none"] ?? 4) - (priorityOrder[b.priority || "none"] ?? 4)
+					(a, b) =>
+						(priorityOrder[a.priority || "none"] ?? 4) -
+						(priorityOrder[b.priority || "none"] ?? 4),
 				);
 				break;
 			case "status":
 				filtered.sort(
-					(a, b) => (statusOrder[a.status || "backlog"] ?? 2) - (statusOrder[b.status || "backlog"] ?? 2)
+					(a, b) =>
+						(statusOrder[a.status || "backlog"] ?? 2) -
+						(statusOrder[b.status || "backlog"] ?? 2),
 				);
 				break;
 		}
@@ -207,8 +229,14 @@ export function MyTasksList({
 
 	const activeFiltersCount = filterConditions.length;
 
-	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
-		const existingCondition = filterConditions.find((c) => c.field === field && c.operator === operator);
+	const handleFilterAdd = (
+		field: string,
+		operator: FilterOperator,
+		value: string,
+	) => {
+		const existingCondition = filterConditions.find(
+			(c) => c.field === field && c.operator === operator,
+		);
 
 		if (existingCondition) {
 			// Add value to existing condition
@@ -221,8 +249,10 @@ export function MyTasksList({
 			if (!currentValues.includes(value)) {
 				setFilterConditions(
 					filterConditions.map((c) =>
-						c.id === existingCondition.id ? { ...c, value: [...currentValues, value] as string[] } : c
-					)
+						c.id === existingCondition.id
+							? { ...c, value: [...currentValues, value] as string[] }
+							: c,
+					),
 				);
 			}
 		} else {
@@ -244,7 +274,9 @@ export function MyTasksList({
 	};
 
 	const updateFilterOperator = (id: string, operator: FilterOperator) => {
-		setFilterConditions(filterConditions.map((c) => (c.id === id ? { ...c, operator } : c)));
+		setFilterConditions(
+			filterConditions.map((c) => (c.id === id ? { ...c, operator } : c)),
+		);
 	};
 
 	const toggleValue = (id: string, value: string) => {
@@ -256,9 +288,13 @@ export function MyTasksList({
 					: typeof c.value === "string"
 						? [c.value]
 						: [];
-				const newValues = values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
-				return newValues.length > 0 ? { ...c, value: newValues as string[] } : c;
-			})
+				const newValues = values.includes(value)
+					? values.filter((v) => v !== value)
+					: [...values, value];
+				return newValues.length > 0
+					? { ...c, value: newValues as string[] }
+					: c;
+			}),
 		);
 	};
 
@@ -270,7 +306,7 @@ export function MyTasksList({
 		const config = MY_TASKS_FILTER_CONFIGS.find((c) => c.field === field);
 		if (config && typeof config.getOptions === "function") {
 			// Pass empty array for users since we don't need user filtering on My Tasks page
-			return config.getOptions(tasks, labels, [], "", categories);
+			return config.getOptions(tasks, labels, [], "", categories, releases);
 		}
 		return [];
 	};
@@ -291,19 +327,21 @@ export function MyTasksList({
 	};
 
 	const renderFilterValue = (condition: FilterCondition) => {
-		if (typeof condition.value === "string") return <span>{condition.value}</span>;
-		if (Array.isArray(condition.value)) return <span>{condition.value.join(", ")}</span>;
+		if (typeof condition.value === "string")
+			return <span>{condition.value}</span>;
+		if (Array.isArray(condition.value))
+			return <span>{condition.value.join(", ")}</span>;
 		return <span>{String(condition.value ?? "")}</span>;
 	};
 
 	const filteredConfigs = MY_TASKS_FILTER_CONFIGS.filter(
 		(config) =>
 			config.label.toLowerCase().includes(mainSearch.toLowerCase()) ||
-			config.field.toLowerCase().includes(mainSearch.toLowerCase())
+			config.field.toLowerCase().includes(mainSearch.toLowerCase()),
 	);
 
 	return (
-		<div className="flex flex-col h-full">
+		<div className="flex flex-col h-full min-h-0">
 			{/* Header */}
 			<div className="p-3 border-b flex flex-col gap-2 bg-card">
 				<div className="flex items-center gap-3 justify-between">
@@ -351,7 +389,6 @@ export function MyTasksList({
 				</div>
 
 				{/* Filters Row */}
-
 				<div className="flex items-center gap-2 flex-wrap">
 					{activeFiltersCount > 0 && (
 						<FilterBadges
@@ -359,6 +396,7 @@ export function MyTasksList({
 							labels={labels}
 							availableUsers={[]}
 							categories={categories}
+							releases={releases}
 							removeFilter={removeFilter}
 							updateFilterOperator={updateFilterOperator}
 							toggleValue={toggleValue}
@@ -384,6 +422,7 @@ export function MyTasksList({
 						labels={labels}
 						availableUsers={[]}
 						categories={categories}
+						releases={releases}
 						renderFilterValue={renderFilterValue}
 					/>
 				</div>
@@ -393,10 +432,7 @@ export function MyTasksList({
 			<ScrollArea className="flex-1">
 				<div className="flex flex-col gap-1 p-1">
 					{filteredAndSortedTasks.length === 0 ? (
-						<div className="flex flex-col items-center justify-center text-muted-foreground">
-							<p className="text-sm">No tasks found</p>
-							{activeFiltersCount > 0 && <p className="text-xs mt-1">Try adjusting your filters</p>}
-						</div>
+						<TaskEmptyState hasFilters={activeFiltersCount > 0} />
 					) : (
 						filteredAndSortedTasks.map((task) => (
 							<TaskListItem
@@ -419,60 +455,5 @@ export function MyTasksList({
 				</div>
 			</ScrollArea>
 		</div>
-	);
-}
-
-interface TaskListItemProps {
-	task: schema.TaskWithLabels;
-	isSelected: boolean;
-	onClick: () => void;
-}
-
-function TaskListItem({ task, isSelected, onClick }: TaskListItemProps) {
-	const status = statusConfig[task.status as keyof typeof statusConfig];
-	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className={cn(
-				"flex flex-col gap-1.5 p-3 text-left hover:bg-accent transition-colors rounded-lg text-muted-foreground",
-				isSelected && "bg-secondary hover:bg-secondary text-foreground",
-				task.priority === "urgent" && "bg-destructive/10 hover:bg-destructive/20",
-				isSelected && task.priority === "urgent" && "bg-destructive/20 hover:bg-destructive/20"
-			)}
-		>
-			{/* Organization badge */}
-			{task.organization && (
-				<div className="flex items-center flex-1 gap-1">
-					<InlineLabel
-						className="shrink"
-						icon={
-							<Avatar className="h-4 w-4">
-								<AvatarImage src={task.organization.logo || ""} alt={task.organization.name} className="" />
-								<AvatarFallback className="rounded-md uppercase text-xs">
-									<IconUsers className="h-4 w-4" />
-								</AvatarFallback>
-							</Avatar>
-						}
-						text={task.organization.name}
-					/>
-
-					<span className="text-xs text-muted-foreground">#{task.shortId}</span>
-					{/* meta */}
-					<div className="flex items-center gap-2 text-xs ml-auto shrink-0">
-						{status && (
-							<div className="flex items-center gap-1">{status.icon(cn(status.className, "size-4"))}</div>
-						)}
-						{priority && task.priority !== "none" && (
-							<div className="flex items-center gap-1">{priority.icon(cn(priority.className, "size-4"))}</div>
-						)}
-					</div>
-				</div>
-			)}
-
-			{/* Title */}
-			<p className="text-sm font-medium line-clamp-1 ps-1.5">{task.title || "Untitled"}</p>
-		</button>
 	);
 }

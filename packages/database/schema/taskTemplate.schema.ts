@@ -6,6 +6,8 @@ import { user } from "./auth";
 import { category } from "./category.schema";
 import { label } from "./label.schema";
 import { organization } from "./organization.schema";
+import { release } from "./release.schema";
+import { visibleEnum } from "./task.schema";
 import { NodeJSON } from ".";
 
 export const issueTemplate = table("task_template", {
@@ -25,6 +27,8 @@ export const issueTemplate = table("task_template", {
 	status: v.text("status"),
 	priority: v.text("priority"),
 	categoryId: v.text("category_id").references(() => category.id, { onDelete: "set null" }),
+	releaseId: v.text("release_id").references(() => release.id, { onDelete: "set null" }),
+	visible: v.text("visible").$type<"public" | "private">(),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 });
@@ -77,6 +81,10 @@ export const taskTemplateRelations = relations(issueTemplate, ({ one, many }) =>
 	category: one(category, {
 		fields: [issueTemplate.categoryId],
 		references: [category.id],
+	}),
+	release: one(release, {
+		fields: [issueTemplate.releaseId],
+		references: [release.id],
 	}),
 	labels: many(issueTemplateLabel),
 	assignees: many(issueTemplateAssignee),

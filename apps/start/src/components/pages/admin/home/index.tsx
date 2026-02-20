@@ -13,14 +13,20 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { IconChevronRight, IconListCheck } from "@tabler/icons-react";
+import {
+  IconChevronRight,
+  IconHome,
+  IconListCheck,
+  IconUser,
+} from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useLayoutData } from "@/components/generic/Context";
-import { SubWrapper } from "@/components/generic/wrapper";
+import { PageHeader } from "@/components/generic/PageHeader";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { useMyTasks } from "@/contexts/ContextMine";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { SubWrapper } from "@/components/generic/wrapper";
 
 // Priority order for sorting tasks
 const priorityOrder: Record<string, number> = {
@@ -64,120 +70,130 @@ export default function AdminHomePage() {
   ).length;
 
   return (
-    <SubWrapper
-      title={`Welcome, ${account.name?.split(" ")[0] || "there"}`}
-      description={`You have ${openTasks.length} open task${openTasks.length !== 1 ? "s" : ""} across ${organizations.length} organization${organizations.length !== 1 ? "s" : ""}`}
-      icon={
-        <Avatar className="rounded-lg">
-          <AvatarImage src={account.image || ""} alt={account.name || ""} />
-          <AvatarFallback className="rounded-lg">
-            {account.name?.charAt(0) || "?"}
-          </AvatarFallback>
-        </Avatar>
-      }
-      iconClassName="bg-transparent"
-      style="compact"
-    >
-      {/* Quick Stats Row */}
-      {openTasks.length > 0 && (
-        <div className="flex gap-4 flex-wrap text-sm">
-          {urgentCount > 0 && (
-            <div className="flex items-center gap-2 text-destructive">
-              {priorityConfig.urgent.icon("size-4")}
-              <span>{urgentCount} urgent/high priority</span>
-            </div>
-          )}
-          {inProgressCount > 0 && (
-            <div className="flex items-center gap-2 text-primary">
-              {statusConfig["in-progress"].icon("size-4")}
-              <span>{inProgressCount} in progress</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Organizations Quick Access */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <Label variant="heading" className="text-base">
-            Your Organizations
-          </Label>
-        </div>
-        <div className="flex flex-wrap gap-3 w-full">
-          {organizations.map((org) => {
-            const orgTaskCount = tasks.filter(
-              (t) =>
-                t.organizationId === org.id &&
-                t.status !== "done" &&
-                t.status !== "canceled",
-            ).length;
-            return (
-              <Link
-                key={org.id}
-                to="/$orgId/tasks"
-                params={{ orgId: org.id }}
-                className="flex-[1_1_calc(33.333%-0.5rem)] min-w-[200px]"
-              >
-                <Tile className="hover:bg-accent md:w-full transition-colors h-full">
-                  <TileHeader className="w-full">
-                    <TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={org.logo || ""} alt={org.name} />
-                        <AvatarFallback className="text-xs">
-                          {org.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </TileIcon>
-                    <div className="flex-1 min-w-0">
-                      <TileTitle className="font-medium truncate">
-                        {org.name}
-                      </TileTitle>
-                      <TileDescription className="text-xs">
-                        {orgTaskCount} open task
-                        {orgTaskCount !== 1 ? "s" : ""}{" "}
-                      </TileDescription>
-                    </div>
-                  </TileHeader>
-                  <IconChevronRight className="size-4 text-muted-foreground shrink-0" />
-                </Tile>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Priority Tasks Section */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <Label variant="heading" className="text-base">
-            Priority Tasks
-          </Label>
-          <Link
-            to="/mine"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-          >
-            View all
-            <IconChevronRight className="size-4" />
-          </Link>
-        </div>
-
-        {priorityTasks.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            {priorityTasks.map((task) => (
-              <PriorityTaskItem key={task.id} task={task} />
-            ))}
+    <div className="relative flex flex-col h-full">
+      <PageHeader>
+        <PageHeader.Identity
+          icon={<IconHome className="size-4" />}
+          title={`Dashboard`}
+        />
+      </PageHeader>
+      <SubWrapper
+        title={`Hi ${account.displayName}`}
+        description={`You have ${openTasks.length} open task${openTasks.length !== 1 ? "s" : ""} across ${organizations.length} organization${organizations.length !== 1 ? "s" : ""}`}
+        icon={
+          <Avatar className="rounded-lg size-[52px]">
+            <AvatarImage src={account.image || ""} alt={account.name} />
+            <AvatarFallback className="">
+              <IconUser className="h-4 w-4" />
+            </AvatarFallback>
+          </Avatar>
+        }
+        iconClassName="p-0"
+        className="max-w-6xl mx-auto"
+      >
+        {/* Quick Stats Row */}
+        {openTasks.length > 0 && (
+          <div className="flex gap-4 flex-wrap text-sm -mt-6">
+            {urgentCount > 0 && (
+              <div className="flex items-center gap-2 text-destructive">
+                {priorityConfig.urgent.icon("size-4")}
+                <span>{urgentCount} urgent/high priority</span>
+              </div>
+            )}
+            {inProgressCount > 0 && (
+              <div className="flex items-center gap-2 text-primary">
+                {statusConfig["in-progress"].icon("size-4")}
+                <span>{inProgressCount} in progress</span>
+              </div>
+            )}
           </div>
-        ) : (
-          <Tile className="flex items-center justify-center py-8">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <IconListCheck className="size-8" />
-              <p className="text-sm">No open tasks assigned to you</p>
-              <p className="text-xs">Tasks assigned to you will appear here</p>
-            </div>
-          </Tile>
         )}
-      </section>
-    </SubWrapper>
+
+        {/* Organizations Quick Access */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <Label variant="heading" className="text-base">
+              Your Organizations
+            </Label>
+          </div>
+          <div className="flex flex-wrap gap-3 w-full">
+            {organizations.map((org) => {
+              const orgTaskCount = tasks.filter(
+                (t) =>
+                  t.organizationId === org.id &&
+                  t.status !== "done" &&
+                  t.status !== "canceled",
+              ).length;
+              return (
+                <Link
+                  key={org.id}
+                  to="/$orgId/tasks"
+                  params={{ orgId: org.id }}
+                  className="flex-[1_1_calc(33.333%-0.5rem)] min-w-[200px]"
+                >
+                  <Tile className="hover:bg-accent md:w-full transition-colors h-full">
+                    <TileHeader className="w-full">
+                      <TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={org.logo || ""} alt={org.name} />
+                          <AvatarFallback className="text-xs">
+                            {org.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </TileIcon>
+                      <div className="flex-1 min-w-0">
+                        <TileTitle className="font-medium truncate">
+                          {org.name}
+                        </TileTitle>
+                        <TileDescription className="text-xs">
+                          {orgTaskCount} open task
+                          {orgTaskCount !== 1 ? "s" : ""}{" "}
+                        </TileDescription>
+                      </div>
+                    </TileHeader>
+                    <IconChevronRight className="size-4 text-muted-foreground shrink-0" />
+                  </Tile>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Priority Tasks Section */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <Label variant="heading" className="text-base">
+              Priority Tasks
+            </Label>
+            <Link
+              to="/mine"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              View all
+              <IconChevronRight className="size-4" />
+            </Link>
+          </div>
+
+          {priorityTasks.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+              {priorityTasks.map((task) => (
+                <PriorityTaskItem key={task.id} task={task} />
+              ))}
+            </div>
+          ) : (
+            <Tile className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <IconListCheck className="size-8" />
+                <p className="text-sm">No open tasks assigned to you</p>
+                <p className="text-xs">
+                  Tasks assigned to you will appear here
+                </p>
+              </div>
+            </Tile>
+          )}
+        </section>
+      </SubWrapper>
+    </div>
   );
 }
 

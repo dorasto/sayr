@@ -24,6 +24,12 @@ export const navigation = [
         icon: Icon.IconChecklist,
         activeIcon: Icon.IconChecklist,
       },
+      {
+        title: "Inbox",
+        url: "/inbox",
+        icon: Icon.IconNotification,
+        activeIcon: Icon.IconNotification,
+      },
     ],
   },
 ];
@@ -114,11 +120,12 @@ export const orgSettingsNavigation = [
     activeClass: "",
     matchType: "includes" as const,
   },
+
   {
-    title: "Releases",
-    slug: "releases",
-    icon: Icon.IconRocket,
-    activeIcon: Icon.IconRocket,
+    title: "Billing",
+    slug: "billing",
+    icon: Icon.IconCreditCard,
+    activeIcon: Icon.IconCreditCardFilled,
     activeClass: "",
     matchType: "exact" as const,
   },

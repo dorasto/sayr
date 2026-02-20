@@ -1,12 +1,14 @@
 import "prosekit/basic/style.css";
 import "prosekit/basic/typography.css";
 
-import type { schema } from "@repo/database";
 import { createEditor, type NodeJSON } from "prosekit/core";
 import type { Uploader } from "prosekit/extensions/file";
 import { ProseKit, useDocChange } from "prosekit/react";
 import { useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { useMentionUsers } from "@/hooks/useMentionUsers";
+import { resolveUsersByIds } from "@/lib/fetches/mention";
 import { defineExtension } from "./extensions/index";
 import BlockHandle from "./ui/block-handle";
 import CodeBlockView from "./ui/code-block-view";
@@ -21,6 +23,22 @@ import UserMenu from "./ui/user-menu";
 import CategoryMenu from "./ui/category-menu";
 import TaskMenu from "./ui/task-menu";
 import SlashMenuTemplate from "./ui/slash-menu-template";
+import type { schema } from "@repo/database";
+
+/** Recursively extract user IDs from mention nodes in a ProseMirror document JSON. */
+function extractMentionUserIds(node: NodeJSON | undefined): string[] {
+  if (!node) return [];
+  const ids: string[] = [];
+  if (node.type === "mention" && node.attrs?.kind === "user" && node.attrs?.id) {
+    ids.push(String(node.attrs.id));
+  }
+  if (node.content) {
+    for (const child of node.content) {
+      ids.push(...extractMentionUserIds(child));
+    }
+  }
+  return ids;
+}
 
 export interface EditorProps {
   readonly?: boolean;
@@ -29,13 +47,14 @@ export interface EditorProps {
   defaultContent?: NodeJSON;
   uploader?: Uploader<string>;
   className?: string;
-  onChange?: (doc: NodeJSON) => void; // ✅ New prop
-  users?: schema.userType[];
+  onChange?: (doc: NodeJSON) => void;
   categories?: schema.categoryType[];
   tasks?: schema.TaskWithLabels[];
   submit?: () => void;
   hasTemplate?: boolean;
   hideBlockHandle?: boolean;
+  /** Users for MentionView chip rendering (readonly editors). Merged with search cache. */
+  mentionViewUsers?: schema.UserSummary[];
 }
 
 export default function Editor({
@@ -45,13 +64,61 @@ export default function Editor({
   defaultContent,
   className,
   onChange,
-  users = [],
   categories = [],
   tasks = [],
   submit,
   hasTemplate = false,
   hideBlockHandle = false,
+  mentionViewUsers,
 }: EditorProps) {
+  // Use the mention hook — it reads mentionContext from the global store,
+  // fetches org members from the backend, and supports async search.
+  // Falls back to empty when no mentionContext is set.
+  const mention = useMentionUsers();
+
+  // Determine which users to show
+  const mentionUsers = mention.users;
+  // Merge search-system users with any explicitly provided users (for readonly editors).
+  // Deduplicate by user ID so MentionView can always resolve mention chips.
+  const allUsersForView = useMemo(() => {
+    if (!mentionViewUsers?.length) return mention.allSeenUsers;
+    const merged = new Map<string, schema.UserSummary>();
+    for (const u of mention.allSeenUsers) merged.set(u.id, u);
+    for (const u of mentionViewUsers) {
+      if (!merged.has(u.id)) merged.set(u.id, u);
+    }
+    return Array.from(merged.values());
+  }, [mention.allSeenUsers, mentionViewUsers]);
+
+  // Extract mention user IDs from the document content and resolve any that are missing.
+  // This ensures MentionView can always render chips, regardless of context (inbox, org, etc.).
+  const mentionedUserIds = useMemo(() => extractMentionUserIds(defaultContent), [defaultContent]);
+
+  const missingUserIds = useMemo(() => {
+    if (!mentionedUserIds.length) return [];
+    const knownIds = new Set(allUsersForView.map((u) => u.id));
+    return mentionedUserIds.filter((id) => !knownIds.has(id));
+  }, [mentionedUserIds, allUsersForView]);
+
+  const { data: resolvedUsers } = useQuery<schema.UserSummary[]>({
+    queryKey: ["resolveUsers", missingUserIds],
+    queryFn: () => resolveUsersByIds(missingUserIds),
+    enabled: missingUserIds.length > 0,
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+  });
+
+  // Final user list: merge allUsersForView with any resolved users
+  const finalUsersForView = useMemo(() => {
+    if (!resolvedUsers?.length) return allUsersForView;
+    const merged = new Map<string, schema.UserSummary>();
+    for (const u of allUsersForView) merged.set(u.id, u);
+    for (const u of resolvedUsers) {
+      if (!merged.has(u.id)) merged.set(u.id, u);
+    }
+    return Array.from(merged.values());
+  }, [allUsersForView, resolvedUsers]);
+
   const editor = useMemo(() => {
     const extension = defineExtension({ readonly, placeholder, firstLinePlaceholder });
     return createEditor({ extension, defaultContent });
@@ -196,7 +263,11 @@ export default function Editor({
           <>
             <InlineMenu />
             {!hasTemplate ? <SlashMenu /> : <SlashMenuTemplate />}
-            <UserMenu users={users || []} />
+            <UserMenu
+              users={mentionUsers}
+              loading={mention.loading}
+              onQueryChange={mention.setSearchQuery}
+            />
             <CategoryMenu categories={categories || []} />
             <TaskMenu tasks={tasks || []} />
           </>
@@ -204,7 +275,7 @@ export default function Editor({
         <CodeBlockView />
         <ImageView />
         <MentionView
-          users={users || []}
+          users={finalUsersForView}
           categories={categories || []}
           tasks={tasks || []}
         />

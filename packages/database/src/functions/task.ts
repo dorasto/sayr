@@ -26,13 +26,16 @@ import { userSummaryColumns } from "./index";
  * });
  * ```
  */
-export async function getTasksByOrganizationId(orgId: string): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByOrganizationId(
+	orgId: string
+): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
-		where: (t) => and(eq(t.organizationId, orgId)),
+		where: (t) => eq(t.organizationId, orgId),
+
 		with: {
 			labels: {
 				with: {
-					label: true, // 👈 eager load the real label object
+					label: true,
 				},
 			},
 			createdBy: {
@@ -45,22 +48,22 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
 					},
 				},
 			},
-			comments: {
-				with: {
-					createdBy: {
-						columns: userSummaryColumns,
-					},
-				},
-			},
 			githubIssue: {},
+		},
+
+		extras: {
+			commentCount: sql<number>`(
+                select count(*)
+                from ${taskComment} tc
+                where tc.task_id = task.id
+            )`.as("comment_count"),
 		},
 	});
 
-	// 🧹 map join rows into clean labels array
 	return tasks.map((task) => ({
 		...task,
-		labels: task.labels.map((assignment) => assignment.label),
-		assignees: task.assignees.map((assignment) => assignment.user),
+		labels: task.labels.map((l) => l.label),
+		assignees: task.assignees.map((a) => a.user),
 	})) as schema.TaskWithLabels[];
 }
 
@@ -258,15 +261,20 @@ export async function addLogEventTask(
 	actorId?: string,
 	content?: NodeJSON
 ) {
-	return await db.insert(taskTimeline).values({
-		taskId: task_id,
-		organizationId: org_id,
-		actorId: actorId ?? null,
-		eventType: type,
-		fromValue: fromValue ? JSON.stringify(fromValue) : null,
-		toValue: toValue ? JSON.stringify(toValue) : null,
-		content: content ?? null,
-	});
+	const [event] = await db
+		.insert(taskTimeline)
+		.values({
+			taskId: task_id,
+			organizationId: org_id,
+			actorId: actorId ?? null,
+			eventType: type,
+			fromValue: fromValue ? JSON.stringify(fromValue) : null,
+			toValue: toValue ? JSON.stringify(toValue) : null,
+			content: content ?? null,
+		})
+		.returning({ id: taskTimeline.id });
+
+	return event;
 }
 
 export async function createComment(

@@ -207,11 +207,11 @@ export function PublicCommentItem({
               >
                 <Editor
                   defaultContent={comment.content}
-                  users={users}
                   categories={categories}
                   onChange={setEditedContent}
                   submit={handleSave}
                   hideBlockHandle
+                  mentionViewUsers={users}
                 />
               </Suspense>
               <div className="flex items-center gap-2 mt-2 justify-end">
@@ -247,8 +247,8 @@ export function PublicCommentItem({
                   <Editor
                     readonly={true}
                     defaultContent={comment.content}
-                    users={users}
                     hideBlockHandle
+                    mentionViewUsers={users}
                   />
                 </Suspense>
               </div>

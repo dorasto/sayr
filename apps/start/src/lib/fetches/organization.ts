@@ -671,7 +671,7 @@ export async function createGithubSyncConnectionAction(
 		installationId: number;
 		repoId: number;
 		repoName: string;
-		categoryId: string;
+		categoryId: string | null;
 	}
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
@@ -698,6 +698,148 @@ export async function createGithubSyncConnectionAction(
 	});
 
 	return result;
+}
+
+/**
+ * Updates an existing GitHub sync connection.
+ *
+ * @param organizationId - The unique ID of the organization.
+ * @param syncId - The ID of the sync connection to update.
+ * @param data - Updated repository sync details.
+ */
+export async function updateGithubSyncConnectionAction(
+	organizationId: string,
+	syncId: string,
+	data: {
+		installationId: number;
+		repoId: number;
+		repoName: string;
+		categoryId: string | null;
+	}
+): Promise<{
+	success: boolean;
+	data: schema.labelType[];
+	error?: string;
+}> {
+	const payload = {
+		org_id: organizationId,
+		sync_id: syncId,
+		installation_id: data.installationId,
+		repo_id: data.repoId,
+		repo_name: data.repoName,
+		category_id: data.categoryId,
+	};
+
+	const result = await fetch(
+		`${API_URL}/v1/admin/organization/connections/github/sync-repo`,
+		{
+			method: "PATCH",
+			body: JSON.stringify(payload),
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include",
+		}
+	).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) {
+			throw new Error(
+				json?.error ||
+				"Failed to update sync repo"
+			);
+		}
+		return json;
+	});
+
+	return result;
+}
+
+/**
+ * Deletes an existing GitHub sync connection.
+ *
+ * @param organizationId - The organization ID.
+ * @param syncId - The sync connection ID to delete.
+ */
+export async function deleteGithubSyncConnectionAction(
+	organizationId: string,
+	syncId: string
+): Promise<{
+	success: boolean;
+	data?: unknown;
+	error?: string;
+}> {
+	const payload = {
+		org_id: organizationId,
+		sync_id: syncId,
+	};
+
+	const result = await fetch(
+		`${API_URL}/v1/admin/organization/connections/github/sync-repo`,
+		{
+			method: "DELETE",
+			body: JSON.stringify(payload),
+			headers: {
+				"Content-Type":
+					"application/json",
+			},
+			credentials: "include",
+		}
+	).then(async (res) => {
+		const json =
+			await res.json();
+
+		if (!res.ok) {
+			throw new Error(
+				json?.error ||
+				"Failed to delete sync connection"
+			);
+		}
+
+		return json;
+	});
+
+	return result;
+}
+
+/**
+ * Enables or disables an existing GitHub sync connection.
+ *
+ * @param organizationId - The unique ID of the organization.
+ * @param syncId - The ID of the sync connection to toggle.
+ * @param enabled - Whether the sync should be enabled (true) or disabled (false).
+ *
+ * @returns A promise resolving to the API response.
+ */
+export async function toggleGithubSyncConnectionAction(
+	organizationId: string,
+	syncId: string,
+	enabled: boolean
+) {
+	return fetch(
+		`${API_URL}/v1/admin/organization/connections/github/sync-repo/toggle`,
+		{
+			method: "PATCH",
+			headers: {
+				"Content-Type":
+					"application/json",
+			},
+			credentials: "include",
+			body: JSON.stringify({
+				org_id: organizationId,
+				sync_id: syncId,
+				enabled,
+			}),
+		}
+	).then(async (res) => {
+		const json =
+			await res.json();
+		if (!res.ok)
+			throw new Error(
+				json?.error ||
+				"Failed to toggle sync"
+			);
+		return json;
+	});
 }
 
 /**
@@ -914,6 +1056,8 @@ export async function createIssueTemplateAction(
 		categoryId?: string;
 		labelIds?: string[];
 		assigneeIds?: string[];
+		releaseId?: string;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{
@@ -931,6 +1075,8 @@ export async function createIssueTemplateAction(
 		categoryId: data.categoryId,
 		labelIds: data.labelIds,
 		assigneeIds: data.assigneeIds,
+		releaseId: data.releaseId,
+		visible: data.visible,
 		wsClientId,
 	};
 
@@ -971,6 +1117,8 @@ export async function editIssueTemplateAction(
 		categoryId?: string;
 		labelIds?: string[];
 		assigneeIds?: string[];
+		releaseId?: string;
+		visible?: "public" | "private";
 	},
 	wsClientId: string
 ): Promise<{
@@ -989,6 +1137,8 @@ export async function editIssueTemplateAction(
 		categoryId: data.categoryId,
 		labelIds: data.labelIds,
 		assigneeIds: data.assigneeIds,
+		releaseId: data.releaseId,
+		visible: data.visible,
 		wsClientId,
 	};
 

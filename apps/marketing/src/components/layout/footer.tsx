@@ -13,36 +13,40 @@ import { ModeToggle } from "../ModeToggle";
 import { Button } from "../ui/button";
 
 export function Footer() {
-  const pages = [
-    {
-      title: "Products",
-      href: "#",
-    },
-    {
-      title: "Studio",
-      href: "#",
-    },
-    {
-      title: "Clients",
-      href: "#",
-    },
-    {
-      title: "Pricing",
-      href: "#",
-    },
-    {
-      title: "Blog",
-      href: "#",
-    },
-    {
-      title: "Privacy",
-      href: "#",
-    },
-    {
-      title: "Terms",
-      href: "#",
-    },
-  ];
+	const pages = [
+		{
+			title: "Products",
+			href: "#",
+		},
+		{
+			title: "Studio",
+			href: "#",
+		},
+		{
+			title: "Clients",
+			href: "#",
+		},
+		{
+			title: "Pricing",
+			href: "/pricing",
+		},
+		{
+			title: "Blog",
+			href: "#",
+		},
+		{
+			title: "Privacy",
+			href: "/legal/privacy",
+		},
+		{
+			title: "Terms",
+			href: "/legal/terms",
+		},
+		{
+			title: "Subprocessors",
+			href: "/legal/subprocessors",
+		},
+	];
 
   return (
     <div className="relative w-full overflow-hidden bg-background rounded-lg border border-b-0 shadow-2xl p-8">
@@ -53,16 +57,16 @@ export function Footer() {
           </div>
 
           <ul className="flex list-none flex-col gap-4 text-muted-foreground transition-colors sm:flex-row items-start">
-            {pages.map((page, idx) => (
-              <li key={"pages" + idx} className="list-none">
-                <a
-                  className="hover:text-foreground transition-colors"
-                  href="/products"
-                >
-                  {page.title}
-                </a>
-              </li>
-            ))}
+					{pages.map((page) => (
+							<li key={page.title} className="list-none">
+								<a
+									className="hover:text-foreground transition-colors"
+									href={page.href}
+								>
+									{page.title}
+								</a>
+							</li>
+						))}
           </ul>
         </div>
         <div className="mt-8 flex w-full flex-col items-center justify-between sm:flex-row">

@@ -6,6 +6,7 @@ import type { AppEnv } from "@/index";
 import { apiRouteAdminOrganization } from "./organization";
 import { apiRouteAdminRelease } from "./release";
 import { apiRouteAdminUser } from "./user";
+import { apiRouteAdminNotification } from "./notification";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 
 export const apiRouteAdmin = new Hono<AppEnv>();
@@ -184,3 +185,6 @@ apiRouteAdmin.route("/release", apiRouteAdminRelease);
 
 // User routes
 apiRouteAdmin.route("/user", apiRouteAdminUser);
+
+// Notification routes
+apiRouteAdmin.route("/notification", apiRouteAdminNotification);

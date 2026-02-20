@@ -1,14 +1,17 @@
 "use client";
 import { useLayoutData } from "@/components/generic/Context";
+import { PageHeader } from "@/components/generic/PageHeader";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { cn } from "@repo/ui/lib/utils";
-import { IconPlus, IconRocket, IconSettings } from "@tabler/icons-react";
+import { ensureCdnUrl } from "@repo/util";
+import { IconPlus, IconRocket, IconSettings, IconUsers } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { CreateReleaseDialog } from "./create-release-dialog";
@@ -121,45 +124,73 @@ export default function OrganizationReleasesPage() {
 	};
 
 	return (
-		<div className="flex flex-col gap-6">
-			{/* Header with Create Button */}
-			<div className="flex items-center justify-between">
-				<div>
-					<h2 className="text-lg font-semibold">Releases</h2>
-					<p className="text-sm text-muted-foreground">Track what ships in each version</p>
-				</div>
-				<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
-					<IconPlus className="size-4" />
-					New Release
-				</Button>
-			</div>
-
-			{/* Releases Lists */}
-			<div className="flex flex-col gap-6">
-				{renderReleasesList(plannedReleases, "Planned")}
-				{renderReleasesList(activeReleases, "In Progress")}
-				{renderReleasesList(releasedReleases, "Released")}
-				{renderReleasesList(archivedReleases, "Archived")}
-			</div>
-
-			{/* Empty State */}
-			{releases.length === 0 && (
-				<div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg border-dashed bg-muted/20">
-					<IconRocket className="size-12 text-muted-foreground mb-4" />
-					<h3 className="text-lg font-semibold mb-2">No releases yet</h3>
-					<p className="text-sm text-muted-foreground mb-4 max-w-md">
-						Create releases to track which tasks ship in each version. Releases help you organize work by
-						milestones and communicate what's coming.
-					</p>
-					<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
-						<IconPlus className="size-4" />
-						Create Your First Release
+		<>
+			<PageHeader>
+				<PageHeader.Identity
+					actions={
+						<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+							<IconPlus className="size-4" />
+							New Release
+						</Button>
+					}
+				>
+					<Link to="/$orgId" params={{ orgId: organization.id }}>
+						<Button
+							variant={"primary"}
+							className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+							size={"sm"}
+						>
+							<Avatar className="h-4 w-4">
+								<AvatarImage
+									src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
+									alt={organization.name}
+								/>
+								<AvatarFallback className="rounded-md uppercase text-xs">
+									<IconUsers className="h-4 w-4" />
+								</AvatarFallback>
+							</Avatar>
+							<span>{organization.name}</span>
+						</Button>
+					</Link>
+					<span className="text-muted-foreground text-xs">/</span>
+					<Button
+						variant={"primary"}
+						className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent gap-1"
+						size={"sm"}
+					>
+						<IconRocket className="size-3.5 text-muted-foreground" />
+						<span>Releases</span>
 					</Button>
+				</PageHeader.Identity>
+			</PageHeader>
+			<div className="flex flex-col gap-6 md:p-6 md:pt-3 p-3 overflow-y-auto">
+				{/* Releases Lists */}
+				<div className="flex flex-col gap-6">
+					{renderReleasesList(plannedReleases, "Planned")}
+					{renderReleasesList(activeReleases, "In Progress")}
+					{renderReleasesList(releasedReleases, "Released")}
+					{renderReleasesList(archivedReleases, "Archived")}
 				</div>
-			)}
 
-			{/* Create Dialog */}
-			<CreateReleaseDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
-		</div>
+				{/* Empty State */}
+				{releases.length === 0 && (
+					<div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg border-dashed bg-muted/20">
+						<IconRocket className="size-12 text-muted-foreground mb-4" />
+						<h3 className="text-lg font-semibold mb-2">No releases yet</h3>
+						<p className="text-sm text-muted-foreground mb-4 max-w-md">
+							Create releases to track which tasks ship in each version. Releases help you organize work by
+							milestones and communicate what's coming.
+						</p>
+						<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+							<IconPlus className="size-4" />
+							Create Your First Release
+						</Button>
+					</div>
+				)}
+
+				{/* Create Dialog */}
+				<CreateReleaseDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+			</div>
+		</>
 	);
 }

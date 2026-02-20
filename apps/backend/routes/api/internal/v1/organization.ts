@@ -6,13 +6,14 @@ import {
 	getIssueTemplates,
 	getLabels,
 	getOrganizationMembers,
+	searchOrgMembers,
 	schema,
 	type TeamPermissions,
 } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../../../ws";
@@ -968,6 +969,8 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 		categoryId,
 		labelIds,
 		assigneeIds,
+		releaseId,
+		visible,
 	} = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
@@ -992,6 +995,8 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 					status: status || null,
 					priority: priority || null,
 					categoryId: categoryId || null,
+					releaseId: releaseId || null,
+					visible: visible || null,
 				})
 				.returning();
 			return template;
@@ -1090,6 +1095,8 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 		categoryId,
 		labelIds,
 		assigneeIds,
+		releaseId,
+		visible,
 	} = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
@@ -1110,6 +1117,8 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 					status: status || null,
 					priority: priority || null,
 					categoryId: categoryId || null,
+					releaseId: releaseId || null,
+					visible: visible || null,
 					updatedAt: new Date(),
 				})
 				.where(and(eq(schema.issueTemplate.id, id), eq(schema.issueTemplate.organizationId, orgId)))
@@ -1592,6 +1601,271 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 		data: result,
 	});
 });
+apiRouteAdminOrganization.patch(
+	"/connections/github/sync-repo",
+	async (c) => {
+		const traceAsync = createTraceAsync();
+		const recordWideError =
+			c.get("recordWideError");
+		const session = c.get("session");
+
+		const {
+			org_id: orgId,
+			sync_id: syncId,
+			repo_id: repoId,
+			repo_name: repoName,
+			installation_id: installationId,
+			category_id: categoryId,
+		} = await c.req.json();
+
+		const isAuthorized =
+			await traceOrgPermissionCheck(
+				session?.userId || "",
+				orgId,
+				"admin.administrator"
+			);
+
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"You don't have permission to update sync repositories.",
+				},
+				401
+			);
+		}
+
+		/* ================= CHECK EXISTS ================= */
+
+		const existingSync =
+			await db.query.githubRepository.findFirst(
+				{
+					where: eq(
+						schema.githubRepository.id,
+						syncId
+					),
+				}
+			);
+
+		if (!existingSync) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"Sync connection not found.",
+				},
+				404
+			);
+		}
+
+		/* ================= PREVENT DUPLICATES ================= */
+
+		const duplicate =
+			await db.query.githubRepository.findFirst(
+				{
+					where: and(
+						eq(
+							schema.githubRepository
+								.organizationId,
+							orgId
+						),
+						eq(
+							schema.githubRepository
+								.installationId,
+							installationId
+						),
+						eq(
+							schema.githubRepository
+								.repoId,
+							repoId
+						),
+						eq(
+							schema.githubRepository
+								.categoryId,
+							categoryId
+						),
+						// not itself
+						ne(
+							schema.githubRepository.id,
+							syncId
+						)
+					),
+				}
+			);
+
+		if (duplicate) {
+			await recordWideError({
+				name:
+					"github.syncRepo.duplicate_update",
+				error: new Error(
+					"Duplicate sync update"
+				),
+				code: "SYNC_DUPLICATE",
+				message:
+					"Another sync with these values already exists",
+				contextData: {
+					orgId,
+					repoId,
+					installationId,
+					categoryId,
+				},
+			});
+
+			return c.json(
+				{
+					success: false,
+					error:
+						"A sync with these values already exists.",
+				},
+				400
+			);
+		}
+
+		/* ================= UPDATE ================= */
+
+		const result = await traceAsync(
+			"github.syncRepo.update",
+			() =>
+				db
+					.update(
+						schema.githubRepository
+					)
+					.set({
+						installationId,
+						repoId,
+						repoName,
+						categoryId,
+					})
+					.where(
+						eq(
+							schema.githubRepository.id,
+							syncId
+						)
+					),
+			{
+				description:
+					"Updating GitHub sync repository",
+				data: {
+					orgId,
+					syncId,
+				},
+			}
+		);
+
+		return c.json({
+			success: true,
+			data: result,
+		});
+	}
+);
+apiRouteAdminOrganization.patch(
+	"/connections/github/sync-repo/toggle",
+	async (c) => {
+		const traceAsync = createTraceAsync();
+		const session = c.get("session");
+
+		const {
+			org_id: orgId,
+			sync_id: syncId,
+			enabled,
+		} = await c.req.json();
+
+		/* ================= AUTH CHECK ================= */
+
+		const isAuthorized =
+			await traceOrgPermissionCheck(
+				session?.userId || "",
+				orgId,
+				"admin.administrator"
+			);
+
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"You don't have permission to modify sync repositories.",
+				},
+				401
+			);
+		}
+
+		/* ================= VALIDATE INPUT ================= */
+
+		if (typeof enabled !== "boolean") {
+			return c.json(
+				{
+					success: false,
+					error:
+						"`enabled` must be true or false.",
+				},
+				400
+			);
+		}
+
+		/* ================= CHECK EXISTS ================= */
+
+		const existing =
+			await db.query.githubRepository.findFirst(
+				{
+					where: eq(
+						schema.githubRepository.id,
+						syncId
+					),
+				}
+			);
+
+		if (!existing) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"Sync connection not found.",
+				},
+				404
+			);
+		}
+
+		/* ================= UPDATE ENABLE STATE ================= */
+
+		const result = await traceAsync(
+			"github.syncRepo.toggle_enabled",
+			() =>
+				db
+					.update(
+						schema.githubRepository
+					)
+					.set({
+						enabled,
+						updatedAt:
+							new Date(),
+					})
+					.where(
+						eq(
+							schema.githubRepository.id,
+							syncId
+						)
+					),
+			{
+				description:
+					enabled
+						? "Enabling GitHub sync repository"
+						: "Disabling GitHub sync repository",
+				data: {
+					orgId,
+					syncId,
+					enabled,
+				},
+			}
+		);
+
+		return c.json({
+			success: true,
+			data: result,
+		});
+	}
+);
 
 // team member routes
 
@@ -1734,82 +2008,167 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 });
 
 // Get GitHub connection details
-apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
-	const traceAsync = createTraceAsync();
-	const recordWideError = c.get("recordWideError");
-	const session = c.get("session");
-	const orgId = c.req.param("orgId");
+apiRouteAdminOrganization.get(
+	"/:orgId/connections/github",
+	async (c) => {
+		const session = c.get("session");
+		const orgId = c.req.param("orgId");
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+		const isAuthorized =
+			await traceOrgPermissionCheck(
+				session?.userId || "",
+				orgId,
+				"admin.administrator"
+			);
 
-	if (!isAuthorized) {
-		return c.json(
-			{
-				success: false,
-				error: "You don't have permission to fetch connections.",
-			},
-			401
-		);
-	}
-
-	const githubInstall = await traceAsync(
-		"github.connections.fetch.installation",
-		() =>
-			db.query.githubInstallation.findFirst({
-				where: eq(schema.githubInstallation.organizationId, orgId),
-				with: { user: true },
-			}),
-		{ description: "Fetching GitHub installation", data: { orgId } }
-	);
-
-	const githubInfo = await traceAsync(
-		"github.connections.fetch.details",
-		async () => {
-			if (githubInstall?.installationId) {
-				return getInstallationDetailsWithRepos(githubInstall);
-			}
-			return null;
-		},
-		{
-			description: "Fetching installation details with repos",
-			data: { orgId },
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"You don't have permission to fetch connections.",
+				},
+				401
+			);
 		}
-	);
 
-	const githubConnections = await traceAsync(
-		"github.connections.fetch.synced_repos",
-		async () => {
-			const repos = await db.query.githubRepository.findMany({
-				where: and(
-					eq(schema.githubRepository.organizationId, orgId),
-					eq(schema.githubRepository.installationId, githubInfo?.installationId ?? -1)
+		/* ================= INSTALLATIONS ================= */
+
+		const githubInstalls =
+			await db.query.githubInstallation.findMany({
+				where: eq(
+					schema.githubInstallation.organizationId,
+					orgId
 				),
+				with: { user: true },
 			});
 
-			return repos.map((conn) => ({
-				...conn,
-				repoName: githubInfo?.repositories.find((r) => r.id === conn.repoId)?.full_name || "Unknown repo",
-				avatarUrl: githubInfo?.account?.avatar_url,
-			}));
-		},
-		{
-			description: "Fetching synced repositories",
-			data: { orgId },
-			onSuccess: (result) => ({
-				description: "GitHub connections fetched successfully",
-				data: { connectionCount: result.length },
-			}),
-		}
-	);
+		/* ================= FETCH GITHUB DETAILS ================= */
 
-	return c.json({
-		success: true,
-		data: {
-			githubInfo,
-			githubConnections,
-		},
-	});
-});
+		const githubConnections =
+			await Promise.all(
+				githubInstalls.map(
+					async (install) => {
+						const githubInfo =
+							await getInstallationDetailsWithRepos(
+								install
+							);
+
+						return {
+							installation:
+								install,
+							githubInfo,
+						};
+					}
+				)
+			);
+
+		/* ================= ALL SYNCED REPOS ================= */
+
+		const repositories =
+			await db.query.githubRepository.findMany(
+				{
+					where: eq(
+						schema.githubRepository
+							.organizationId,
+						orgId
+					),
+				}
+			);
+
+		return c.json({
+			success: true,
+			data: {
+				githubConnections,
+				repositories,
+			},
+		});
+	}
+);
+
+apiRouteAdminOrganization.delete(
+	"/connections/github/sync-repo",
+	async (c) => {
+		const traceAsync = createTraceAsync();
+		const session = c.get("session");
+
+		const {
+			org_id: orgId,
+			sync_id: syncId,
+		} = await c.req.json();
+
+		const isAuthorized =
+			await traceOrgPermissionCheck(
+				session?.userId || "",
+				orgId,
+				"admin.administrator"
+			);
+
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"You don't have permission to delete sync repositories.",
+				},
+				401
+			);
+		}
+
+		/* ================= CHECK EXISTS ================= */
+
+		const existing =
+			await db.query.githubRepository.findFirst(
+				{
+					where: eq(
+						schema.githubRepository.id,
+						syncId
+					),
+				}
+			);
+
+		if (!existing) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"Sync connection not found.",
+				},
+				404
+			);
+		}
+
+		/* ================= DELETE ================= */
+
+		const result = await traceAsync(
+			"github.syncRepo.delete",
+			() =>
+				db
+					.delete(
+						schema.githubRepository
+					)
+					.where(
+						eq(
+							schema.githubRepository.id,
+							syncId
+						)
+					),
+			{
+				description:
+					"Deleting GitHub sync repository",
+				data: {
+					orgId,
+					syncId,
+				},
+			}
+		);
+
+		return c.json({
+			success: true,
+			data: result,
+		});
+	}
+);
 
 // Teams
 apiRouteAdminOrganization.post("/team", async (c) => {
@@ -2199,6 +2558,49 @@ apiRouteAdminOrganization.post(
 		return c.json({ success: true, data: adminTeam });
 	}
 );
+
+// Search organization members (for @mention autocomplete)
+apiRouteAdminOrganization.get("/:orgId/members/search", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+	const query = c.req.query("query");
+	const limitParam = c.req.query("limit");
+	const limit = limitParam ? Number.parseInt(limitParam, 10) : 20;
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Not authenticated" }, 401);
+	}
+
+	// Verify the requesting user is a member of this org
+	const isMember = await traceAsync(
+		"members.search.check_membership",
+		() =>
+			db.query.member.findFirst({
+				where: and(
+					eq(schema.member.organizationId, orgId),
+					eq(schema.member.userId, session.userId),
+				),
+			}),
+		{ description: "Checking membership for member search", data: { orgId, userId: session.userId } }
+	);
+
+	if (!isMember) {
+		return c.json({ success: false, error: "Not a member of this organization" }, 403);
+	}
+
+	const members = await traceAsync(
+		"members.search.query",
+		() => searchOrgMembers(orgId, { query: query || undefined, limit }),
+		{
+			description: "Searching organization members",
+			data: { orgId, query, limit },
+		}
+	);
+
+	return c.json({ success: true, data: members });
+});
 
 // Task routes
 apiRouteAdminOrganization.route("/task", apiRouteAdminProjectTask);

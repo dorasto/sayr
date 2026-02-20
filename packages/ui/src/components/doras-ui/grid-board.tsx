@@ -486,7 +486,7 @@ export function GridBoardRowHeader({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 py-2 px-2 bg-accent border-b sticky top-9 z-20",
+        "flex items-center gap-2 py-2 px-2 bg-accent sticky top-9 z-20",
         className,
       )}
       {...props}

@@ -10,12 +10,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarSubmenu,
+  SidebarSubmenuItem,
 } from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import {
-  IconDots,
   IconLayoutSidebar,
   IconLayoutSidebarFilled,
   IconPlus,
@@ -30,9 +29,11 @@ import CreateOrganizationDialog from "@/components/organization/CreateOrganizati
 import { heading, navigation } from "@/lib/routemap";
 import { commandActions } from "@/lib/command-store";
 import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
+import { notificationStore } from "@/lib/stores/notification-store";
 import OrgSection from "./primary-org";
 import UserDropdown from "./user-dropdown";
 import { Kbd } from "@repo/ui/components/kbd";
+import { StatusBar } from "@/components/generic/status";
 export function PrimarySidebar() {
   const sidebarId = "primary-sidebar";
   const isMobile = useIsMobile();
@@ -43,6 +44,7 @@ export function PrimarySidebar() {
   const { account, organizations } = useLayoutData();
   const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
   const isSidebarOpen = sidebar?.open ?? true;
+  const inboxCount = useStore(notificationStore, (state) => state.unreadCount);
   const closeMobileSidebar = () => {
     if (isMobile) {
       sidebarActions.setOpen(sidebarId, false, true);
@@ -50,7 +52,7 @@ export function PrimarySidebar() {
   };
   return (
     <Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
-      <SidebarHeader className="">
+      <SidebarHeader className="pt-3.5">
         {heading.map((section) => (
           <SidebarMenu
             key={section.title}
@@ -105,6 +107,8 @@ export function PrimarySidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         ))}
+      </SidebarHeader>
+      <SidebarContent className="pt-0">
         {navigation.map((section) => (
           <SidebarGroup key={section.title}>
             {section.title === "Overview" ? null : (
@@ -117,28 +121,33 @@ export function PrimarySidebar() {
                   isActive && item.activeIcon ? item.activeIcon : item.icon;
 
                 return (
-                  <SidebarMenuItem
-                    className="min-h-auto"
-                    key={item.title}
-                    isActive={isActive}
-                  >
-                    <Link to={item.url} className="w-full">
-                      <SidebarMenuButton
-                        size="small"
-                        icon={<IconComponent size={16} />}
-                        tooltip={item.title}
-                      >
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </Link>
-                  </SidebarMenuItem>
+                    <SidebarMenuItem
+                      className="min-h-auto"
+                      key={item.title}
+                      isActive={isActive}
+                    >
+                      <Link to={item.url} className="w-full">
+                        <SidebarMenuButton
+                          size="small"
+                          icon={<IconComponent size={16} />}
+                          tooltip={item.title}
+                        >
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </Link>
+                      {item.title === "Inbox" && inboxCount > 0 && (
+                        <SidebarMenuSub className="h-3 max-h-3">
+                          <SidebarSubmenuItem className="h-3 max-h-3">
+                            {inboxCount > 99 ? "99+" : inboxCount}
+                          </SidebarSubmenuItem>
+                        </SidebarMenuSub>
+                      )}
+                    </SidebarMenuItem>
                 );
               })}
             </SidebarMenu>
           </SidebarGroup>
         ))}
-      </SidebarHeader>
-      <SidebarContent className="pt-0">
         <SidebarGroup>
           <SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>
             Organizations
@@ -173,6 +182,7 @@ export function PrimarySidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t-transparent">
+        <StatusBar />
         <SidebarMenu className="gap-0.5">
           <SidebarMenuItem className="min-h-auto" showWhenCollapsed>
             <SidebarMenuButton

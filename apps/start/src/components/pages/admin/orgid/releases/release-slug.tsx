@@ -1,6 +1,7 @@
 "use client";
 
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import {
   ResizableHandle,
@@ -17,10 +18,21 @@ import {
 } from "@repo/ui/components/sheet";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { cn } from "@repo/ui/lib/utils";
+import { ensureCdnUrl, extractHslValues } from "@repo/util";
+import {
+  IconLayoutSidebarRight,
+  IconLayoutSidebarRightFilled,
+  IconRocket,
+  IconUsers,
+} from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import type { NodeJSON } from "prosekit/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
+import { PageHeader } from "@/components/generic/PageHeader";
+import RenderIcon from "@/components/generic/RenderIcon";
 import Editor from "@/components/prosekit/editor";
 import processUploads from "@/components/prosekit/upload";
 import { ReleaseInfo } from "@/components/releases/ReleaseInfo";
@@ -33,6 +45,7 @@ import {
   useLayoutRelease,
 } from "@/contexts/ContextOrgRelease";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import type { MentionContext } from "@/hooks/useMentionUsers";
 import {
   useWSMessageHandler,
   type WSMessageHandler,
@@ -76,6 +89,7 @@ function ReleaseDetailPageContent() {
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
   const isChartsPanelOpen = useStore(
     releaseChartsStore,
     (state) => state.isOpen,
@@ -89,6 +103,13 @@ function ReleaseDetailPageContent() {
     () => organization?.members.map((member) => member.user) || [],
     [organization?.members],
   );
+
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  useEffect(() => {
+    if (organization?.id) {
+      setMentionContext({ orgId: organization.id });
+    }
+  }, [organization?.id, setMentionContext]);
 
   // Handle panel collapse/expand
   useEffect(() => {
@@ -525,6 +546,76 @@ function ReleaseDetailPageContent() {
 
   return (
     <div className="relative flex flex-col h-full max-h-full">
+      <PageHeader>
+        <PageHeader.Identity
+          actions={
+            <Button
+              variant="accent"
+              className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
+              onClick={() => releaseChartsActions.toggle()}
+            >
+              {isChartsPanelOpen ? (
+                <IconLayoutSidebarRightFilled className="w-3 h-3" />
+              ) : (
+                <IconLayoutSidebarRight className="w-3 h-3" />
+              )}
+            </Button>
+          }
+        >
+          {!useMobile && (
+            <>
+              <Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
+                <Button
+                  variant={"primary"}
+                  className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+                  size={"sm"}
+                >
+                  <Avatar className="h-4 w-4">
+                    <AvatarImage
+                      src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
+                      alt={organization.name}
+                    />
+                    <AvatarFallback className="rounded-md uppercase text-xs">
+                      <IconUsers className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{organization.name}</span>
+                </Button>
+              </Link>
+              <span className="text-muted-foreground text-xs">/</span>
+              <Link to="/$orgId/releases" params={{ orgId: organization.id }}>
+                <Button
+                  variant={"ghost"}
+                  className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+                  size={"sm"}
+                >
+                  <IconRocket className="size-3.5 text-muted-foreground" />
+                  <span>Releases</span>
+                </Button>
+              </Link>
+              <span className="text-muted-foreground text-xs">/</span>
+            </>
+          )}
+          <div className="flex items-center gap-2">
+            <div
+              className="p-1 rounded-lg shrink-0"
+              style={{
+                background: release.color ? `hsla(${extractHslValues(release.color)}, 0.2)` : undefined,
+              }}
+            >
+              <RenderIcon
+                iconName={release.icon || "IconRocket"}
+                size={8}
+                color={release.color || undefined}
+                raw
+              />
+            </div>
+            <span className="font-semibold text-xs truncate">
+              {release.name} <span className="text-muted-foreground font-mono">({release.slug})</span>
+            </span>
+          </div>
+        </PageHeader.Identity>
+      </PageHeader>
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel defaultSize={useMobile ? 100 : 70} minSize={50}>
           <div className="h-full overflow-y-auto flex flex-col gap-3">
@@ -545,7 +636,6 @@ function ReleaseDetailPageContent() {
                     defaultContent={release?.description || undefined}
                     onChange={setDescription}
                     placeholder="Add a description for this release..."
-                    users={availableUsers}
                     categories={categories}
                     tasks={tasks}
                     hideBlockHandle={true}

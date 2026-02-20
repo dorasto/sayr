@@ -125,7 +125,7 @@ export function Navbar() {
               </AnimatePresence>
             </div>
             <motion.a
-              href="#pricing"
+              href="/pricing"
               className="hover:bg-muted rounded-md px-3 py-2 text-sm"
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
@@ -145,7 +145,7 @@ export function Navbar() {
           <a className="hidden items-center gap-2 md:flex" href="/login">
             <motion.button
               {...tapProps}
-              className="hidden rounded-full bg-primary px-8 py-2 text-sm font-bold text-primary-foreground md:block"
+              className="hidden rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground md:block"
             >
               Get started
             </motion.button>
@@ -221,7 +221,7 @@ export function Navbar() {
                 </div>
               </details>
               <motion.a
-                href="#"
+                href="/pricing"
                 className="hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm"
                 whileHover={{ x: 2 }}
                 whileTap={{ scale: 0.98 }}

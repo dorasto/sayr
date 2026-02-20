@@ -228,11 +228,11 @@ export function TimelineItemWrapper({
               <>
                 <Editor
                   defaultContent={item.content as NodeJSON}
-                  users={availableUsers}
                   categories={categories}
                   tasks={tasks}
                   onChange={onContentChange}
                   submit={onSave}
+                  mentionViewUsers={availableUsers}
                 />
                 <div className="flex items-center gap-2 mt-2 justify-end">
                   <Button
@@ -260,9 +260,9 @@ export function TimelineItemWrapper({
               <Editor
                 readonly
                 defaultContent={item.content}
-                users={availableUsers}
                 categories={categories}
                 tasks={tasks}
+                mentionViewUsers={availableUsers}
               />
             )}
             {/* Reactions display */}

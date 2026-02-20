@@ -4,9 +4,14 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
+import { randomUUID } from "node:crypto";
 
 // A join table to assign multiple users to a single task
 export const taskAssignee = table("task_assignee", {
+	id: v
+		.text("id")
+		.primaryKey()
+		.$defaultFn(() => randomUUID()),
 	taskId: v
 		.text("task_id")
 		.notNull()

@@ -17,7 +17,6 @@ import { processUploadsAndDeletions } from "@/components/prosekit/upload";
 interface TaskEditCommentContentProps {
 	task: schema.TaskWithLabels;
 	comment: schema.taskCommentType; // existing comment to edit
-	availableUsers: schema.userType[];
 	categories: schema.categoryType[];
 	tasks: schema.TaskWithLabels[];
 	onFinish?: () => void; // called on successful update
@@ -27,7 +26,6 @@ interface TaskEditCommentContentProps {
 export function TaskEditCommentContent({
 	task,
 	comment,
-	availableUsers,
 	categories,
 	tasks,
 	onFinish,
@@ -93,7 +91,6 @@ export function TaskEditCommentContent({
 		>
 			<Editor
 				key={editorKey}
-				users={availableUsers}
 				onChange={setUpdatedContent}
 				defaultContent={comment.content as NodeJSON}
 				categories={categories}

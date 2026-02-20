@@ -58,7 +58,13 @@ export const Route = createFileRoute("/(admin)/mine")({
 function MineLayout() {
 	const { tasks, labels, views, categories, releases } = Route.useLoaderData();
 	return (
-		<RootProviderMyTasks tasks={tasks} labels={labels} views={views} categories={categories} releases={releases}>
+		<RootProviderMyTasks
+			tasks={tasks}
+			labels={labels}
+			views={views}
+			categories={categories}
+			releases={releases}
+		>
 			<Outlet />
 		</RootProviderMyTasks>
 	);

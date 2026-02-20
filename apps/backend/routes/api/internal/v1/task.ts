@@ -6,23 +6,27 @@ import {
 	createOrToggleCommentReaction,
 	createOrToggleTaskVote,
 	createTask,
+	createNotifications,
+	createNotification,
+	extractUserMentions,
+	getTaskAssigneeIds,
 	db,
 	getOrganizationMembers,
 	getTaskById,
-	getTaskByShortId,
 	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
 	userSummaryColumns,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
 // import { enqueueJob } from "@/queue";
 import {
 	broadcast,
+	broadcastByUserId,
 	broadcastIndividual,
 	broadcastPublic,
 	broadcastToRoom,
@@ -34,6 +38,85 @@ import { getAnonHash, getClientIP, traceOrgPermissionCheck } from "@/util";
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
+
+/**
+ * Creates notifications for task assignees and broadcasts them via WebSocket.
+ * Runs async (fire-and-forget) to avoid blocking the response.
+ */
+async function notifyAssignees(params: {
+	taskId: string;
+	orgId: string;
+	actorId: string | undefined;
+	type: (typeof schema.notificationTypeEnum.enumValues)[number];
+	timelineEventId?: string;
+}) {
+	try {
+		const assigneeIds = await getTaskAssigneeIds(params.taskId);
+		if (assigneeIds.length === 0) return;
+
+		const notifications = await createNotifications({
+			organizationId: params.orgId,
+			userIds: assigneeIds,
+			actorId: params.actorId ?? null,
+			taskId: params.taskId,
+			timelineEventId: params.timelineEventId ?? null,
+			type: params.type,
+		});
+
+		// Broadcast to each recipient via WebSocket
+		for (const notif of notifications) {
+			broadcastByUserId(notif.userId, "", params.orgId, {
+				type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+				data: notif,
+				meta: { ts: Date.now() },
+			});
+		}
+	} catch {
+		// Notification failures should never break task operations
+	}
+}
+
+/**
+ * Creates mention notifications by extracting @mentions from content.
+ * Unlike other notification types, mentions do NOT filter out the actor —
+ * if you explicitly @mention yourself, you should still receive the notification.
+ */
+async function notifyMentions(params: {
+	taskId: string;
+	orgId: string;
+	actorId: string | undefined;
+	content: schema.NodeJSON | null | undefined;
+	timelineEventId?: string;
+}) {
+	try {
+		const mentionedUserIds = extractUserMentions(params.content);
+		if (mentionedUserIds.length === 0) return;
+
+		// Use individual createNotification (not bulk) to avoid actor filtering.
+		// Mentions are explicit — the user typed @someone — so self-mentions are intentional.
+		const dedupedIds = [...new Set(mentionedUserIds)];
+		for (const userId of dedupedIds) {
+			const notif = await createNotification({
+				organizationId: params.orgId,
+				userId,
+				actorId: params.actorId ?? null,
+				taskId: params.taskId,
+				timelineEventId: params.timelineEventId ?? null,
+				type: "mention",
+			});
+
+			if (notif) {
+				broadcastByUserId(notif.userId, "", params.orgId, {
+					type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+					data: notif,
+					meta: { ts: Date.now() },
+				});
+			}
+		}
+	} catch {
+		// Notification failures should never break task operations
+	}
+}
 
 // Create a new task
 apiRouteAdminProjectTask.post("/create", async (c) => {
@@ -154,12 +237,29 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	await traceAsync(
 		"task.create.github_sync",
 		async () => {
-			const foundLink = await db.query.githubRepository.findFirst({
-				where: and(
-					eq(schema.githubRepository.organizationId, orgId),
-					eq(schema.githubRepository.categoryId, category)
-				),
-			});
+			let foundLink = null;
+
+			// 1️⃣ Try exact category match (if category provided)
+			if (category) {
+				foundLink = await db.query.githubRepository.findFirst({
+					where: and(
+						eq(schema.githubRepository.organizationId, orgId),
+						eq(schema.githubRepository.categoryId, category),
+						eq(schema.githubRepository.enabled, true)
+					),
+				});
+			}
+
+			// 2️⃣ Fallback to catch-all (categoryId IS NULL)
+			if (!foundLink) {
+				foundLink = await db.query.githubRepository.findFirst({
+					where: and(
+						eq(schema.githubRepository.organizationId, orgId),
+						isNull(schema.githubRepository.categoryId),
+						eq(schema.githubRepository.enabled, true)
+					),
+				});
+			}
 
 			if (!foundLink || !taskWithData) return;
 			const org = await db.query.organization.findFirst({
@@ -278,10 +378,11 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				);
 			}
 			if (updates.status && updates.status !== existingTask.status) {
-				await addLogEventTask(taskId, orgId, "status_change", existingTask.status, updates.status, session?.userId);
+				const event = await addLogEventTask(taskId, orgId, "status_change", existingTask.status, updates.status, session?.userId);
+				notifyAssignees({ taskId, orgId, actorId: session?.userId, type: "status_change", timelineEventId: event?.id });
 			}
 			if (updates.priority && updates.priority !== existingTask.priority) {
-				await addLogEventTask(
+				const event = await addLogEventTask(
 					taskId,
 					orgId,
 					"priority_change",
@@ -289,6 +390,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					updates.priority,
 					session?.userId
 				);
+				notifyAssignees({ taskId, orgId, actorId: session?.userId, type: "priority_change", timelineEventId: event?.id });
 			}
 			if (updates.title && updates.title !== existingTask.title) {
 				await addLogEventTask(
@@ -301,7 +403,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				);
 			}
 			if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
-				await addLogEventTask(
+				const event = await addLogEventTask(
 					taskId,
 					orgId,
 					"updated",
@@ -310,6 +412,8 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					session?.userId,
 					updates.description
 				);
+				// Check for new @mentions in the updated description
+				notifyMentions({ taskId, orgId, actorId: session?.userId, content: updates.description, timelineEventId: event?.id });
 			}
 			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
 				await addLogEventTask(
@@ -444,7 +548,7 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 		"task.github_link.repo_lookup",
 		() =>
 			db.query.githubRepository.findFirst({
-				where: (r) => and(eq(r.organizationId, orgId), eq(r.repoId, repoId)),
+				where: (r) => and(eq(r.organizationId, orgId), eq(r.repoId, repoId), eq(r.enabled, true)),
 			}),
 		{ description: "Finding repository", data: { orgId, repoId } }
 	);
@@ -861,7 +965,24 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 							.insert(schema.taskAssignee)
 							.values({ taskId, organizationId: orgId, userId })
 							.onConflictDoNothing();
-						await addLogEventTask(taskId, orgId, "assignee_added", null, userId, session?.userId);
+						const event = await addLogEventTask(taskId, orgId, "assignee_added", null, userId, session?.userId);
+						// Notify the newly assigned user
+						createNotification({
+							organizationId: orgId,
+							userId,
+							actorId: session?.userId,
+							taskId,
+							timelineEventId: event?.id,
+							type: "assignee_added",
+						}).then((notif) => {
+							if (notif && notif.userId !== session?.userId) {
+								broadcastByUserId(notif.userId, "", orgId, {
+									type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+									data: notif,
+									meta: { ts: Date.now() },
+								});
+							}
+						}).catch(() => { });
 					}
 				}
 
@@ -876,7 +997,24 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 									eq(schema.taskAssignee.userId, userId)
 								)
 							);
-						await addLogEventTask(taskId, orgId, "assignee_removed", null, userId, session?.userId);
+						const event = await addLogEventTask(taskId, orgId, "assignee_removed", null, userId, session?.userId);
+						// Notify the removed user
+						createNotification({
+							organizationId: orgId,
+							userId,
+							actorId: session?.userId,
+							taskId,
+							timelineEventId: event?.id,
+							type: "assignee_removed",
+						}).then((notif) => {
+							if (notif && notif.userId !== session?.userId) {
+								broadcastByUserId(notif.userId, "", orgId, {
+									type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+									data: notif,
+									meta: { ts: Date.now() },
+								});
+							}
+						}).catch(() => { });
 					}
 				}
 			},
@@ -1011,6 +1149,43 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			}),
 		}
 	);
+
+	// Notify assignees and mentioned users about the new comment.
+	// Users who are both assigned AND mentioned only receive one notification (the "comment" type).
+	const commentActorId = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
+	const assigneeIds = await getTaskAssigneeIds(taskId);
+	const mentionedUserIds = extractUserMentions(content);
+
+	// Send "comment" notifications to all assignees (filtered by actor inside createNotifications)
+	notifyAssignees({ taskId, orgId, actorId: commentActorId, type: "comment" });
+
+	// Send "mention" notifications only to mentioned users who are NOT assignees.
+	// Assignees already receive a "comment" notification above, so skip them to avoid duplicates.
+	const assigneeSet = new Set(assigneeIds);
+	const mentionOnlyUserIds = [...new Set(mentionedUserIds)].filter((id) => !assigneeSet.has(id));
+	if (mentionOnlyUserIds.length > 0) {
+		for (const userId of mentionOnlyUserIds) {
+			try {
+				const notif = await createNotification({
+					organizationId: orgId,
+					userId,
+					actorId: commentActorId ?? null,
+					taskId,
+					timelineEventId: null,
+					type: "mention",
+				});
+				if (notif) {
+					broadcastByUserId(notif.userId, "", orgId, {
+						type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+						data: notif,
+						meta: { ts: Date.now() },
+					});
+				}
+			} catch {
+				// Notification failures should never break task operations
+			}
+		}
+	}
 
 	await traceAsync(
 		"task.comment.create.broadcast",

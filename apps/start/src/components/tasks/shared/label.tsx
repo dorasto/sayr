@@ -83,7 +83,7 @@ export default function GlobalTaskLabels({
   };
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div className={cn("flex flex-col gap-3", !compact && className)}>
       {!customTrigger && showLabel && (
         <Label variant={"subheading"}>Labels</Label>
       )}
@@ -99,8 +99,7 @@ export default function GlobalTaskLabels({
                 disabled={!editable}
                 className={cn(
                   "h-auto p-1 bg-transparent border-transparent",
-                  compact &&
-                    "bg-accent p-1 w-fit shrink-0 rounded-lg h-[26px]  border-transparent hover:bg-secondary",
+                  className,
                 )}
               >
                 {task.labels?.length > 0 ? (

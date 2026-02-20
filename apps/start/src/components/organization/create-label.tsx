@@ -160,31 +160,7 @@ export default function CreateLabel({
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <InputGroupAddon align="inline-end" className="px-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto p-1"
-                onClick={() =>
-                  setVisible(visible === "public" ? "private" : "public")
-                }
-              >
-                {visible === "public" ? (
-                  <IconEye className="size-4 text-muted-foreground" />
-                ) : (
-                  <IconEyeOff className="size-4 text-muted-foreground" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {visible === "public"
-                ? "Visible to public"
-                : "Hidden from public"}
-            </TooltipContent>
-          </Tooltip>
-        </InputGroupAddon>
+
         {isEditMode ? (
           <InputGroupAddon align="inline-end">
             <InputGroupButton
@@ -269,7 +245,9 @@ export default function CreateLabel({
             {change ? (
               <InputGroupButton
                 variant="ghost"
-                className={cn("h-full")}
+                className={cn(
+                  "h-full bg-success/30 hover:bg-success/50 rounded-lg",
+                )}
                 onClick={async () => {
                   const data = await runWithToast(
                     "edit-label",
@@ -315,7 +293,7 @@ export default function CreateLabel({
                 }}
                 disabled={isFetching}
               >
-                <IconDeviceFloppy />
+                <IconDeviceFloppy className="text-foreground" />
               </InputGroupButton>
             ) : (
               <Popover

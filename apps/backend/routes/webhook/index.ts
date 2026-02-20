@@ -109,7 +109,8 @@ async function handleContentEvents(
 			db.query.githubRepository.findFirst({
 				where: and(
 					eq(schema.githubRepository.installationId, installationId),
-					eq(schema.githubRepository.repoId, repoId)
+					eq(schema.githubRepository.repoId, repoId),
+					eq(schema.githubRepository.enabled, true)
 				),
 			}),
 		{

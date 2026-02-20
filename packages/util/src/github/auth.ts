@@ -30,21 +30,21 @@ export async function getInstallationDetailsWithRepos(github: {
 	organizationId: string | null;
 	installationId: number;
 	user:
-		| {
-				id: string;
-				name: string;
-				email: string;
-				emailVerified: boolean;
-				image: string | null;
-				createdAt: Date;
-				updatedAt: Date;
-				role: string | null;
-				banned: boolean | null;
-				banReason: string | null;
-				banExpires: Date | null;
-		  }
-		| undefined
-		| null;
+	| {
+		id: string;
+		name: string;
+		email: string;
+		emailVerified: boolean;
+		image: string | null;
+		createdAt: Date;
+		updatedAt: Date;
+		role: string | null;
+		banned: boolean | null;
+		banReason: string | null;
+		banExpires: Date | null;
+	}
+	| undefined
+	| null;
 }) {
 	// App‑level auth to fetch metadata
 	const appOctokit = new Octokit({ auth: createAppJWT() });
