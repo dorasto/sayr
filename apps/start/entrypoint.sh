@@ -25,15 +25,6 @@ replace_env "VITE_SAYR_FRONTEND_AXIOM_TOKEN" "___VITE_SAYR_FRONTEND_AXIOM_TOKEN_
 replace_env "VITE_TENOR_API" "___VITE_TENOR_API___"
 replace_env "VITE_SAYR_CLOUD" "___VITE_SAYR_CLOUD___"
 
-# Fix for NS_ERROR_NET_PARTIAL_TRANSFER: Delete stale Nitro asset manifest and
-# pre-compressed files. The manifest was generated at build time with placeholder
-# sizes; after sed replacement, the actual file sizes differ, causing the browser
-# to receive fewer bytes than Content-Length promised.
-echo "Cleaning up stale build artifacts..."
-find /app/.output -type f \( -name "*.gz" -o -name "*.br" \) -delete
-rm -f /app/.output/public/_nitro/manifest.json 2>/dev/null || true
-rm -f /app/.output/server/assets.json 2>/dev/null || true
-
 # Upload source maps to PostHog (only on first startup, only if credentials are provided)
 # This enables readable stack traces in PostHog error tracking
 SOURCEMAP_MARKER="/tmp/.posthog_sourcemaps_uploaded"
