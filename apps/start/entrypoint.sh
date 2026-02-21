@@ -31,27 +31,22 @@ replace_env "VITE_SAYR_CLOUD" "___VITE_SAYR_CLOUD___"
 # Patch Nitro's asset manifest in index.mjs to reflect post-sed file sizes.
 # Without this, Nitro sends stale Content-Length headers -> NS_ERROR_NET_PARTIAL_TRANSFER.
 #
-# The manifest format in index.mjs is pretty-printed:
-#   "/assets/main-D8Zd5yVA.js": {
-#       "type": "text/javascript; charset=utf-8",
-#       "etag": "\"209b5b-IuTVMl8NnqcsPG5d+jdlJdiPbts\"",
-#       "mtime": "...",
-#       "size": 2136923,
-#       "path": "../public/assets/main-D8Zd5yVA.js"
-#   }
+# Strategy: build a sed script that scopes each replacement to lines following
+# the specific asset filename, avoiding cross-contamination between entries
+# that share the same size value.
 echo "Patching Nitro asset manifest sizes..."
 patched=0
+sed_script=""
+
 for file in /app/.output/public/assets/*.js /app/.output/public/assets/*.css; do
     [ -f "$file" ] || continue
     filename=$(basename "$file")
     actual_size=$(wc -c < "$file")
 
-    # Get the first "size": N value that appears within 10 lines after the filename.
-    # Manifest keys are "/assets/main-D8Zd5yVA.js" so search for bare filename (no wrapping quotes).
+    # Get the build-time size from the manifest
     size_line=$(grep -A 10 "$filename" "$MANIFEST" 2>/dev/null | grep '"size"' | head -1)
     [ -z "$size_line" ] && continue
 
-    # Extract just the number from e.g. '      "size": 2136923,'
     old_size=$(echo "$size_line" | sed 's/[^0-9]//g')
     [ -z "$old_size" ] && continue
     [ "$old_size" -eq "$actual_size" ] 2>/dev/null && continue
@@ -59,9 +54,19 @@ for file in /app/.output/public/assets/*.js /app/.output/public/assets/*.css; do
     actual_hex=$(printf '%x' "$actual_size")
     old_hex=$(printf '%x' "$old_size")
     echo "  ${filename}: size ${old_size} -> ${actual_size} (0x${old_hex} -> 0x${actual_hex})"
-    sed -i "s/\"size\": *${old_size}/\"size\": ${actual_size}/g; s/\"${old_hex}-/\"${actual_hex}-/g" "$MANIFEST"
     patched=$((patched + 1))
+
+    # Build scoped sed commands: when we see the filename, enter a range and
+    # replace only the FIRST occurrence of size/etag within the next few lines.
+    # The /filename/,/^  }/ range scopes to just that manifest block.
+    sed_script="${sed_script}/${filename}/,/^[[:space:]]*}/ { s/\"size\": *${old_size}/\"size\": ${actual_size}/; s/\"${old_hex}-/\"${actual_hex}-/; }
+"
 done
+
+if [ "$patched" -gt 0 ] && [ -n "$sed_script" ]; then
+    # Apply all patches in a single sed pass (no cascading, scoped per block)
+    printf '%s' "$sed_script" | sed -i -f /dev/stdin "$MANIFEST"
+fi
 echo "Asset manifest patched ($patched files updated)."
 
 # Upload source maps to PostHog (first startup only)
