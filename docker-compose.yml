@@ -58,6 +58,7 @@ services:
       - traefik.http.services.start.loadbalancer.server.port=8080
     networks:
       - app_network
+      - coolify
 
   backend:
     container_name: sayr-backend
@@ -96,6 +97,7 @@ services:
       - traefik.http.services.backend.loadbalancer.server.port=5468
     networks:
       - app_network
+      - coolify
 
   marketing:
     container_name: sayr-marketing
@@ -119,6 +121,7 @@ services:
       - traefik.http.services.marketing.loadbalancer.server.port=8080
     networks:
       - app_network
+      - coolify
 
   github-worker:
     container_name: sayr-worker-github
@@ -145,6 +148,8 @@ services:
 networks:
   app_network:
     driver: bridge
+  coolify:
+    external: true
 
 volumes:
   redis_data:
