@@ -27,7 +27,7 @@
 # (Browser → Cloudflare → Caddy → App VPS)
 (proxy_defaults) {
 	transport http {
-		versions h1
+		versions 1.1
 		# Keep connections alive to upstream for performance
 		keepalive 30s
 		keepalive_idle_conns 10
@@ -47,7 +47,7 @@
 # WebSocket reverse proxy settings
 (ws_proxy) {
 	transport http {
-		versions h1
+		versions 1.1
 		keepalive 30s
 		compression off
 	}
