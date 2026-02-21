@@ -2,8 +2,8 @@ FROM nginx:alpine
 
 RUN apk add --no-cache gettext
 
-COPY nginx.conf.template /etc/nginx/nginx.conf.template
-# COPY proxy.conf /etc/nginx/proxy.conf
+COPY apps/nginx/nginx.conf.template /etc/nginx/nginx.conf.template
+COPY apps/nginx/proxy.conf /etc/nginx/proxy.conf
 
 EXPOSE 80
 
