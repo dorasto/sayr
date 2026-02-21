@@ -27,6 +27,7 @@
 # (Browser → Cloudflare → Caddy → App VPS)
 (proxy_defaults) {
 	transport http {
+		versions h1
 		# Keep connections alive to upstream for performance
 		keepalive 30s
 		keepalive_idle_conns 10
@@ -39,7 +40,6 @@
 	}
 	# Stream responses immediately instead of buffering — prevents
 	# Cloudflare from timing out waiting for large JS bundles
-	flush_interval -1
 	# Pass original headers (Caddy does this by default, but be explicit)
 	header_up X-Real-IP {remote_host}
 }
@@ -47,10 +47,10 @@
 # WebSocket reverse proxy settings
 (ws_proxy) {
 	transport http {
+		versions h1
 		keepalive 30s
 		compression off
 	}
-	flush_interval -1
 	header_up X-Real-IP {remote_host}
 }
 
