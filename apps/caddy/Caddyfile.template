@@ -27,7 +27,6 @@
 # (Browser → Cloudflare → Caddy → App VPS)
 (proxy_defaults) {
 	transport http {
-		versions 1.1
 		# Keep connections alive to upstream for performance
 		keepalive 30s
 		keepalive_idle_conns 10
@@ -40,6 +39,7 @@
 	}
 	# Stream responses immediately instead of buffering — prevents
 	# Cloudflare from timing out waiting for large JS bundles
+	flush_interval -1
 	# Pass original headers (Caddy does this by default, but be explicit)
 	header_up X-Real-IP {remote_host}
 }
@@ -47,10 +47,10 @@
 # WebSocket reverse proxy settings
 (ws_proxy) {
 	transport http {
-		versions 1.1
 		keepalive 30s
 		compression off
 	}
+	flush_interval -1
 	header_up X-Real-IP {remote_host}
 }
 
@@ -72,13 +72,11 @@
 	@apiPath path /api/*
 	reverse_proxy @apiPath {$UPSTREAM_HOST}:{$BACKEND_PORT} {
 		import proxy_defaults
-		header_down -Content-Length
 	}
 
 	# Everything else -> marketing site
 	reverse_proxy {$UPSTREAM_HOST}:{$MARKETING_PORT} {
 		import proxy_defaults
-		header_down -Content-Length
 	}
 }
 
@@ -109,7 +107,6 @@ api.{$ROOT_DOMAIN} {
 	# Default upstream
 	reverse_proxy {$UPSTREAM_HOST}:{$BACKEND_PORT} {
 		import proxy_defaults
-		header_down -Content-Length
 	}
 }
 
@@ -126,21 +123,18 @@ api.{$ROOT_DOMAIN} {
 	@authApi path /api/auth /api/auth/*
 	reverse_proxy @authApi {$UPSTREAM_HOST}:{$START_PORT} {
 		import proxy_defaults
-		header_down -Content-Length
 	}
 
 	# Image preview -> start app
 	@imagePreview path /api/image-preview /api/image-preview/*
 	reverse_proxy @imagePreview {$UPSTREAM_HOST}:{$START_PORT} {
 		import proxy_defaults
-		header_down -Content-Length
 	}
 
 	# OpenTelemetry trace ingestion -> start app
 	@traces path /api/traces /api/traces/*
 	reverse_proxy @traces {$UPSTREAM_HOST}:{$START_PORT} {
 		import proxy_defaults
-		header_down -Content-Length
 	}
 
 	# ----- Routes to backend -----
@@ -149,7 +143,6 @@ api.{$ROOT_DOMAIN} {
 	@apiRoutes path /api/*
 	reverse_proxy @apiRoutes {$UPSTREAM_HOST}:{$BACKEND_PORT} {
 		import proxy_defaults
-		header_down -Content-Length
 	}
 
 	# WebSocket -> backend
@@ -162,6 +155,5 @@ api.{$ROOT_DOMAIN} {
 	# This handles HTML pages, JS/CSS assets (/_build/*, /assets/*), fonts, etc.
 	reverse_proxy {$UPSTREAM_HOST}:{$START_PORT} {
 		import proxy_defaults
-		header_down -Content-Length
 	}
 }
