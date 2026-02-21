@@ -38,12 +38,12 @@ http {
 
         # Redirect /admin -> admin subdomain
         location ^~ /admin {
-            return 302 //admin.${VITE_ROOT_DOMAIN}$request_uri;
+            return 302 https://admin.${VITE_ROOT_DOMAIN}$request_uri;
         }
 
         # Redirect /login -> admin subdomain
         location = /login {
-            return 302 //admin.${VITE_ROOT_DOMAIN}/login;
+            return 302 https://admin.${VITE_ROOT_DOMAIN}/login;
         }
 
         # Root API -> backend

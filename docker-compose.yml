@@ -130,26 +130,18 @@ services:
     build:
       context: .
       dockerfile: ./apps/nginx/Dockerfile
-    restart: always
     expose:
       - "80"
-    environment:
-      - VITE_ROOT_DOMAIN=${VITE_ROOT_DOMAIN}
     labels:
       - traefik.enable=true
-
-      # Root
       - traefik.http.routers.root.rule=Host(`sayr.dev`) || Host(`www.sayr.dev`)
       - traefik.http.routers.root.service=nginx
       - traefik.http.services.nginx.loadbalancer.server.port=80
-
-      # API subdomain
       - traefik.http.routers.api.rule=Host(`api.sayr.dev`)
       - traefik.http.routers.api.service=nginx
-
-      # Wildcard subdomains
+      - traefik.http.routers.admin.rule=Host(`admin.sayr.dev`)
+      - traefik.http.routers.admin.service=nginx
       - traefik.http.routers.wildcard.rule=HostRegexp(`{subdomain:.+}.sayr.dev`)
       - traefik.http.routers.wildcard.service=nginx
-
 volumes:
   redis_data:
