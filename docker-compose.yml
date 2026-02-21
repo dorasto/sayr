@@ -56,9 +56,7 @@ services:
       - traefik.http.routers.sub-auth.service=start
 
       - traefik.http.services.start.loadbalancer.server.port=8080
-    networks:
-      - app_network
-      - coolify
+
 
   backend:
     container_name: sayr-backend
@@ -95,9 +93,7 @@ services:
       - traefik.http.middlewares.api-public-rewrite.replacepathregex.replacement=/api/public$$1
 
       - traefik.http.services.backend.loadbalancer.server.port=5468
-    networks:
-      - app_network
-      - coolify
+
 
   marketing:
     container_name: sayr-marketing
@@ -119,9 +115,7 @@ services:
       - traefik.http.routers.root-default-www.service=marketing
 
       - traefik.http.services.marketing.loadbalancer.server.port=8080
-    networks:
-      - app_network
-      - coolify
+
 
   github-worker:
     container_name: sayr-worker-github
@@ -132,8 +126,6 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-    networks:
-      - app_network
 
   redis:
     image: redis:7-alpine
@@ -144,12 +136,6 @@ services:
       - redis_data:/data
     networks:
       - app_network
-
-networks:
-  app_network:
-    driver: bridge
-  coolify:
-    external: true
 
 volumes:
   redis_data:
