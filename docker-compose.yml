@@ -138,7 +138,8 @@ services:
     restart: always
     pull_policy: always
     ports:
-      - "3000:80"
+      - "80:80"
+      - "443:443"
     environment:
       - VITE_ROOT_DOMAIN=${VITE_ROOT_DOMAIN}
     depends_on:
