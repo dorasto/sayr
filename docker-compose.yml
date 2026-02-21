@@ -132,6 +132,8 @@ services:
       dockerfile: ./apps/nginx/Dockerfile
     expose:
       - "80"
+      - "3000:80"
+      - "3001:80"
     labels:
       - traefik.enable=true
   
@@ -154,8 +156,7 @@ services:
       - traefik.http.routers.wildcard.rule=HostRegexp(`{subdomain:.+}.${VITE_ROOT_DOMAIN}`)
       - traefik.http.routers.wildcard.entrypoints=https
       - traefik.http.routers.wildcard.tls=true
-      - traefik.http.routers.ip.rule=HostRegexp(`{any:.+}`)
-      - traefik.http.routers.ip.entrypoints=http
+  
       - traefik.http.services.nginx.loadbalancer.server.port=80
 volumes:
   redis_data:
