@@ -45,12 +45,12 @@ services:
       - traefik.enable=true
 
       # Wildcard subdomains → start
-      - traefik.http.routers.sub-default.rule=HostRegexp(`{subdomain:.+}.${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.sub-default.rule=HostRegexp(`{subdomain:.+}.sayr.dev`)
       - traefik.http.routers.sub-default.priority=10
       - traefik.http.routers.sub-default.service=start
 
       # Auth API
-      - traefik.http.routers.sub-auth.rule=HostRegexp(`{subdomain:.+}.${VITE_ROOT_DOMAIN}`) && PathPrefix(`/api/auth`)
+      - traefik.http.routers.sub-auth.rule=HostRegexp(`{subdomain:.+}.sayr.dev`) && PathPrefix(`/api/auth`)
       - traefik.http.routers.sub-auth.priority=200
       - traefik.http.routers.sub-auth.service=start
 
@@ -73,16 +73,16 @@ services:
       - traefik.enable=true
 
       # Root domain API
-      - traefik.http.routers.root-api.rule=Host(`${VITE_ROOT_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.root-api.rule=Host(`sayr.dev`) && PathPrefix(`/api`)
       - traefik.http.routers.root-api.priority=50
       - traefik.http.routers.root-api.service=backend
 
-      - traefik.http.routers.root-api-www.rule=Host(`www.${VITE_ROOT_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.root-api-www.rule=Host(`www.sayr.dev`) && PathPrefix(`/api`)
       - traefik.http.routers.root-api-www.priority=50
       - traefik.http.routers.root-api-www.service=backend
 
       # API subdomain
-      - traefik.http.routers.api-sub.rule=Host(`api.${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.api-sub.rule=Host(`api.sayr.dev`)
       - traefik.http.routers.api-sub.priority=300
       - traefik.http.routers.api-sub.middlewares=api-public-rewrite
       - traefik.http.routers.api-sub.service=backend
@@ -104,11 +104,11 @@ services:
       - traefik.enable=true
 
       # Root domain default
-      - traefik.http.routers.root-default.rule=Host(`${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.root-default.rule=Host(`sayr.dev`)
       - traefik.http.routers.root-default.priority=1
       - traefik.http.routers.root-default.service=marketing
 
-      - traefik.http.routers.root-default-www.rule=Host(`www.${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.root-default-www.rule=Host(`www.sayr.dev`)
       - traefik.http.routers.root-default-www.priority=1
       - traefik.http.routers.root-default-www.service=marketing
 
