@@ -1,15 +1,21 @@
 #!/bin/sh
 set -e
 
-# Replace build-time placeholders with runtime env var values
+MANIFEST="/app/.output/server/index.mjs"
+
+# Replace build-time placeholders with runtime env var values.
+# Uses grep -rl to find only files containing the placeholder (fast),
+# then runs sed only on those files instead of scanning all of .output.
 replace_env() {
-    local var_name=$1
-    local placeholder=$2
-    local value=$(eval echo \$$var_name)
+    var_name=$1
+    placeholder=$2
+    value=$(eval echo \$$var_name)
 
     if [ -n "$value" ]; then
-        echo "Replacing $placeholder with $value in .output folder..."
-        find /app/.output -type f \( -name "*.js" -o -name "*.mjs" -o -name "*.html" -o -name "*.json" \) -exec sed -i "s|$placeholder|$value|g" {} +
+        echo "Replacing $placeholder -> $value"
+        grep -rl "$placeholder" /app/.output/ 2>/dev/null | while read -r file; do
+            sed -i "s|$placeholder|$value|g" "$file"
+        done
     fi
 }
 
@@ -23,23 +29,40 @@ replace_env "VITE_TENOR_API" "___VITE_TENOR_API___"
 replace_env "VITE_SAYR_CLOUD" "___VITE_SAYR_CLOUD___"
 
 # Patch Nitro's asset manifest in index.mjs to reflect post-sed file sizes.
-# Without this, Nitro sends stale Content-Length headers causing NS_ERROR_NET_PARTIAL_TRANSFER.
+# Without this, Nitro sends stale Content-Length headers -> NS_ERROR_NET_PARTIAL_TRANSFER.
+#
+# The manifest format in index.mjs is pretty-printed:
+#   "/assets/main-D8Zd5yVA.js": {
+#       "type": "text/javascript; charset=utf-8",
+#       "etag": "\"209b5b-IuTVMl8NnqcsPG5d+jdlJdiPbts\"",
+#       "mtime": "...",
+#       "size": 2136923,
+#       "path": "../public/assets/main-D8Zd5yVA.js"
+#   }
 echo "Patching Nitro asset manifest sizes..."
+patched=0
 for file in /app/.output/public/assets/*.js /app/.output/public/assets/*.css; do
     [ -f "$file" ] || continue
     filename=$(basename "$file")
     actual_size=$(wc -c < "$file")
-    actual_hex=$(printf '%x' "$actual_size")
-    # Extract the build-time size from the manifest entry
-    old_size=$(sed -n "/${filename}/{n;n;n;n;s/.*\"size\": *//;s/,.*//;p;}" /app/.output/server/index.mjs)
+
+    # Get the first "size": N value that appears within 10 lines after the filename.
+    # grep -A10 gets context lines; second grep isolates the "size" line; head -1 takes first match.
+    size_line=$(grep -A 10 "\"$filename\"" "$MANIFEST" 2>/dev/null | grep '"size"' | head -1)
+    [ -z "$size_line" ] && continue
+
+    # Extract just the number from e.g. '      "size": 2136923,'
+    old_size=$(echo "$size_line" | sed 's/[^0-9]//g')
     [ -z "$old_size" ] && continue
     [ "$old_size" -eq "$actual_size" ] 2>/dev/null && continue
+
+    actual_hex=$(printf '%x' "$actual_size")
     old_hex=$(printf '%x' "$old_size")
     echo "  ${filename}: size ${old_size} -> ${actual_size} (0x${old_hex} -> 0x${actual_hex})"
-    # Patch the decimal "size" and hex prefix in "etag"
-    sed -i "s/\"size\": *${old_size}/\"size\": ${actual_size}/g; s/\"${old_hex}-/\"${actual_hex}-/g" /app/.output/server/index.mjs
+    sed -i "s/\"size\": *${old_size}/\"size\": ${actual_size}/g; s/\"${old_hex}-/\"${actual_hex}-/g" "$MANIFEST"
+    patched=$((patched + 1))
 done
-echo "Asset manifest patched."
+echo "Asset manifest patched ($patched files updated)."
 
 # Upload source maps to PostHog (first startup only)
 SOURCEMAP_MARKER="/tmp/.posthog_sourcemaps_uploaded"
