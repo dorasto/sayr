@@ -2,12 +2,11 @@ version: "3.8"
 
 services:
   start:
-    container_name: sayr-start
     image: ghcr.io/dorasto/sayr-start:latest
     restart: always
     pull_policy: always
     expose:
-      - "8080"
+      - "3000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
@@ -55,11 +54,10 @@ services:
       - traefik.http.routers.sub-auth.priority=200
       - traefik.http.routers.sub-auth.service=start
 
-      - traefik.http.services.start.loadbalancer.server.port=8080
+      - traefik.http.services.start.loadbalancer.server.port=3000
 
 
   backend:
-    container_name: sayr-backend
     image: ghcr.io/dorasto/sayr-backend:latest
     restart: always
     pull_policy: always
@@ -97,7 +95,6 @@ services:
 
 
   marketing:
-    container_name: sayr-marketing
     image: ghcr.io/dorasto/sayr-marketing:latest
     restart: always
     pull_policy: always
@@ -119,7 +116,6 @@ services:
 
 
   github-worker:
-    container_name: sayr-worker-github
     image: ghcr.io/dorasto/sayr-worker:latest
     restart: always
     pull_policy: always
