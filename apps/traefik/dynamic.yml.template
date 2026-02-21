@@ -132,16 +132,11 @@ http:
   # MIDDLEWARES
   # ===============================
   middlewares:
-    admin-redirect:
-      redirectRegex:
-        regex: "^https?://[^/]+(/admin.*)"
-        replacement: "http://admin.${VITE_ROOT_DOMAIN}${1}"
-        permanent: false
-
+  
     login-redirect:
       redirectRegex:
         regex: ".*"
-        replacement: "http://admin.${VITE_ROOT_DOMAIN}/login"
+        replacement: "https://admin.${VITE_ROOT_DOMAIN}/login"
         permanent: false
 
     # Root-only rewrite (no trailing slash)
