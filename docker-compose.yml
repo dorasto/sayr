@@ -66,6 +66,7 @@ services:
     expose:
       - "5468"
     environment:
+      - HOST=0.0.0.0
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - INTERNAL_SECRET=${INTERNAL_SECRET}
@@ -134,6 +135,6 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
-      
+
 volumes:
   redis_data:
