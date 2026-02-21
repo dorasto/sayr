@@ -47,8 +47,8 @@ for file in /app/.output/public/assets/*.js /app/.output/public/assets/*.css; do
     actual_size=$(wc -c < "$file")
 
     # Get the first "size": N value that appears within 10 lines after the filename.
-    # grep -A10 gets context lines; second grep isolates the "size" line; head -1 takes first match.
-    size_line=$(grep -A 10 "\"$filename\"" "$MANIFEST" 2>/dev/null | grep '"size"' | head -1)
+    # Manifest keys are "/assets/main-D8Zd5yVA.js" so search for bare filename (no wrapping quotes).
+    size_line=$(grep -A 10 "$filename" "$MANIFEST" 2>/dev/null | grep '"size"' | head -1)
     [ -z "$size_line" ] && continue
 
     # Extract just the number from e.g. '      "size": 2136923,'
