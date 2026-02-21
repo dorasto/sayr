@@ -6,6 +6,8 @@ services:
     image: ghcr.io/dorasto/sayr-start:latest
     restart: always
     pull_policy: always
+    expose:
+      - "8080"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
@@ -40,6 +42,20 @@ services:
       - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
       - SAYR_CLOUD=${SAYR_CLOUD}
       - APP_ENV=${APP_ENV}
+    labels:
+      - traefik.enable=true
+
+      # Wildcard subdomains → start
+      - traefik.http.routers.sub-default.rule=HostRegexp(`{subdomain:.+}.${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.sub-default.priority=10
+      - traefik.http.routers.sub-default.service=start
+
+      # Auth API
+      - traefik.http.routers.sub-auth.rule=HostRegexp(`{subdomain:.+}.${VITE_ROOT_DOMAIN}`) && PathPrefix(`/api/auth`)
+      - traefik.http.routers.sub-auth.priority=200
+      - traefik.http.routers.sub-auth.service=start
+
+      - traefik.http.services.start.loadbalancer.server.port=8080
     networks:
       - app_network
 
@@ -48,33 +64,36 @@ services:
     image: ghcr.io/dorasto/sayr-backend:latest
     restart: always
     pull_policy: always
+    expose:
+      - "5468"
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
-      - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
-      - STORAGE_URL=${STORAGE_URL}
-      - STORAGE_BUCKET=${STORAGE_BUCKET}
-      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
-      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
-      - FILE_SALT=${FILE_SALT}
-      - FILE_CDN=${FILE_CDN}
-      - SAYR_EMAIL=${SAYR_EMAIL}
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - GITHUB_APP_ID=${GITHUB_APP_ID}
-      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
-      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
-      - STORAGE_PORT=${STORAGE_PORT}
-      - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
-      - DORAS_ORGANIZATION=${DORAS_ORGANIZATION}
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - REDIS_URL=${REDIS_URL}
       - INTERNAL_SECRET=${INTERNAL_SECRET}
-      - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
-      - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
-      - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
-      - SAYR_CLOUD=${SAYR_CLOUD}
       - APP_ENV=${APP_ENV}
+    labels:
+      - traefik.enable=true
+
+      # Root domain API
+      - traefik.http.routers.root-api.rule=Host(`${VITE_ROOT_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.root-api.priority=50
+      - traefik.http.routers.root-api.service=backend
+
+      - traefik.http.routers.root-api-www.rule=Host(`www.${VITE_ROOT_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.root-api-www.priority=50
+      - traefik.http.routers.root-api-www.service=backend
+
+      # API subdomain
+      - traefik.http.routers.api-sub.rule=Host(`api.${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.api-sub.priority=300
+      - traefik.http.routers.api-sub.middlewares=api-public-rewrite
+      - traefik.http.routers.api-sub.service=backend
+
+      # Rewrite middleware
+      - traefik.http.middlewares.api-public-rewrite.replacepathregex.regex=^(.*)
+      - traefik.http.middlewares.api-public-rewrite.replacepathregex.replacement=/api/public$$1
+
+      - traefik.http.services.backend.loadbalancer.server.port=5468
     networks:
       - app_network
 
@@ -83,6 +102,21 @@ services:
     image: ghcr.io/dorasto/sayr-marketing:latest
     restart: always
     pull_policy: always
+    expose:
+      - "8080"
+    labels:
+      - traefik.enable=true
+
+      # Root domain default
+      - traefik.http.routers.root-default.rule=Host(`${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.root-default.priority=1
+      - traefik.http.routers.root-default.service=marketing
+
+      - traefik.http.routers.root-default-www.rule=Host(`www.${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.root-default-www.priority=1
+      - traefik.http.routers.root-default-www.service=marketing
+
+      - traefik.http.services.marketing.loadbalancer.server.port=8080
     networks:
       - app_network
 
@@ -94,31 +128,7 @@ services:
     command: ["bun", "run", "dist/index.js", "github"]
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
-      - DORAS_CLIENT_SECRET=${DORAS_CLIENT_SECRET}
-      - STORAGE_URL=${STORAGE_URL}
-      - STORAGE_BUCKET=${STORAGE_BUCKET}
-      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
-      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
-      - FILE_SALT=${FILE_SALT}
-      - FILE_CDN=${FILE_CDN}
-      - SAYR_EMAIL=${SAYR_EMAIL}
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - GITHUB_APP_ID=${GITHUB_APP_ID}
-      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
-      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
-      - STORAGE_PORT=${STORAGE_PORT}
-      - FILE_NAME_HASH_LENGTH=${FILE_NAME_HASH_LENGTH}
-      - DORAS_ORGANIZATION=${DORAS_ORGANIZATION}
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - REDIS_URL=${REDIS_URL}
-      - INTERNAL_SECRET=${INTERNAL_SECRET}
-      - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
-      - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
-      - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
-      - SAYR_CLOUD=${SAYR_CLOUD}
-      - APP_ENV=${APP_ENV}
     networks:
       - app_network
 
@@ -129,23 +139,6 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
-    networks:
-      - app_network
-
-  traefik:
-    container_name: sayr-traefik
-    image: ghcr.io/dorasto/sayr-traefik:latest
-    restart: always
-    pull_policy: always
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      - VITE_ROOT_DOMAIN=${VITE_ROOT_DOMAIN}
-    depends_on:
-      - start
-      - backend
-      - marketing
     networks:
       - app_network
 
