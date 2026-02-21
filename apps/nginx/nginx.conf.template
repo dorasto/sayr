@@ -48,6 +48,12 @@ http {
         listen 80;
         server_name ${VITE_ROOT_DOMAIN} www.${VITE_ROOT_DOMAIN};
 
+        # Auth routes -> start app (Better Auth runs on TanStack Start, not backend)
+        location ^~ /api/auth/ {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
         # API -> backend
         location ^~ /api/ {
             proxy_pass http://backend_upstream;
@@ -97,6 +103,12 @@ http {
     server {
         listen 80;
         server_name admin.${VITE_ROOT_DOMAIN};
+
+        # Auth routes -> start app (Better Auth runs on TanStack Start, not backend)
+        location ^~ /api/auth/ {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
 
         # Admin APIs handled by backend
         location ^~ /api/ {
