@@ -134,8 +134,6 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
-    networks:
-      - app_network
-
+      
 volumes:
   redis_data:
