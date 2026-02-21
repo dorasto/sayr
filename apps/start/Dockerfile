@@ -54,8 +54,10 @@ ENV APP_ENV="production"
 
 ENV IS_DOCKER=1
 
-# Build the application
+# Build the application (increased heap for ARM/QEMU builds)
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN cd apps/start && pnpm run build
+ENV NODE_OPTIONS=""
 
 # Inject PostHog chunk IDs into source maps (required for source map uploads to work)
 # This only adds metadata - actual upload happens at runtime if PostHog env vars are set
