@@ -72,11 +72,13 @@
 	@apiPath path /api/*
 	reverse_proxy @apiPath {$UPSTREAM_HOST}:{$BACKEND_PORT} {
 		import proxy_defaults
+		header_down -Content-Length
 	}
 
 	# Everything else -> marketing site
 	reverse_proxy {$UPSTREAM_HOST}:{$MARKETING_PORT} {
 		import proxy_defaults
+		header_down -Content-Length
 	}
 }
 
@@ -107,6 +109,7 @@ api.{$ROOT_DOMAIN} {
 	# Default upstream
 	reverse_proxy {$UPSTREAM_HOST}:{$BACKEND_PORT} {
 		import proxy_defaults
+		header_down -Content-Length
 	}
 }
 
@@ -146,6 +149,7 @@ api.{$ROOT_DOMAIN} {
 	@apiRoutes path /api/*
 	reverse_proxy @apiRoutes {$UPSTREAM_HOST}:{$BACKEND_PORT} {
 		import proxy_defaults
+		header_down -Content-Length
 	}
 
 	# WebSocket -> backend
