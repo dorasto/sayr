@@ -132,8 +132,10 @@ services:
       dockerfile: ./apps/nginx/Dockerfile
     expose:
       - "80"
+    ports:
       - "3000:80"
       - "3001:80"
+    
     labels:
       - traefik.enable=true
   
