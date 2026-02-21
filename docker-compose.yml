@@ -136,26 +136,26 @@ services:
       - traefik.enable=true
   
       # Root
-      - traefik.http.routers.root.rule=Host(`sayr.dev`) || Host(`www.sayr.dev`)
+      - traefik.http.routers.root.rule=Host(`${VITE_ROOT_DOMAIN}`) || Host(`www.${VITE_ROOT_DOMAIN}`)
       - traefik.http.routers.root.entrypoints=https
       - traefik.http.routers.root.tls=true
   
       # API
-      - traefik.http.routers.api.rule=Host(`api.sayr.dev`)
+      - traefik.http.routers.api.rule=Host(`api.${VITE_ROOT_DOMAIN}`)
       - traefik.http.routers.api.entrypoints=https
       - traefik.http.routers.api.tls=true
   
       # Admin
-      - traefik.http.routers.admin.rule=Host(`admin.sayr.dev`)
+      - traefik.http.routers.admin.rule=Host(`admin.${VITE_ROOT_DOMAIN}`)
       - traefik.http.routers.admin.entrypoints=https
       - traefik.http.routers.admin.tls=true
   
-      # ✅ Wildcard
-      - traefik.http.routers.wildcard.rule=HostRegexp(`{subdomain:.+}.sayr.dev`)
+      # Wildcard
+      - traefik.http.routers.wildcard.rule=HostRegexp(`{subdomain:.+}.${VITE_ROOT_DOMAIN}`)
       - traefik.http.routers.wildcard.entrypoints=https
       - traefik.http.routers.wildcard.tls=true
-  
-      # Service
+      - traefik.http.routers.ip.rule=HostRegexp(`{any:.+}`)
+      - traefik.http.routers.ip.entrypoints=http
       - traefik.http.services.nginx.loadbalancer.server.port=80
 volumes:
   redis_data:
