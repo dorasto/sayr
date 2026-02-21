@@ -25,6 +25,25 @@ replace_env "VITE_SAYR_FRONTEND_AXIOM_TOKEN" "___VITE_SAYR_FRONTEND_AXIOM_TOKEN_
 replace_env "VITE_TENOR_API" "___VITE_TENOR_API___"
 replace_env "VITE_SAYR_CLOUD" "___VITE_SAYR_CLOUD___"
 
+# Fix Nitro's embedded asset manifest after sed changes file sizes.
+# Nitro bakes file sizes into the server bundle at build time. After sed
+# replacement, the actual file sizes differ, causing Content-Length mismatches
+# that result in NS_ERROR_NET_PARTIAL_TRANSFER / upstream prematurely closed.
+# This patches the "size":N values in the server bundle to match actual sizes.
+#
+# Nitro's manifest format (keys have leading slash):
+#   "/assets/main-abc123.js":{"type":"text/javascript; charset=utf-8","etag":"...","mtime":"...","size":12345,"path":"..."}
+echo "Patching Nitro asset manifest sizes..."
+for file in /app/.output/public/assets/*.js /app/.output/public/assets/*.css; do
+    [ -f "$file" ] || continue
+    filename=$(basename "$file")
+    actual_size=$(wc -c < "$file")
+    # Match the manifest key with leading slash: "/assets/filename":{ ... "size":NNNN
+    find /app/.output/server -type f -name "*.mjs" -exec \
+        sed -i "s|\"/assets/${filename}\":\({[^}]*\"size\":\)[0-9]*|\"/assets/${filename}\":\1${actual_size}|g" {} +
+done
+echo "Asset manifest patched."
+
 # Upload source maps to PostHog (only on first startup, only if credentials are provided)
 # This enables readable stack traces in PostHog error tracking
 SOURCEMAP_MARKER="/tmp/.posthog_sourcemaps_uploaded"
