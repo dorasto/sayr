@@ -40,8 +40,6 @@ services:
       - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
       - SAYR_CLOUD=${SAYR_CLOUD}
       - APP_ENV=${APP_ENV}
-    networks:
-      - app_network
 
   backend:
     container_name: sayr-backend
