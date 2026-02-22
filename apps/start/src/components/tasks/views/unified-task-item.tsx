@@ -51,6 +51,7 @@ import GlobalTaskStatus from "../shared/status";
 import { RenderCategory, RenderRelease } from "../shared";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../shared/inlinelabel";
+import { Input } from "@repo/ui/components/input";
 
 interface UnifiedTaskItemProps {
   task: schema.TaskWithLabels;
@@ -115,6 +116,10 @@ export function UnifiedTaskItem({
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
   const [priorityPopoverOpen, setPriorityPopoverOpen] = useState(false);
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
+  const [labelSearch, setLabelSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [releaseSearch, setReleaseSearch] = useState("");
   const preventClickRef = useRef(false);
 
   // Consolidated task view state management
@@ -941,47 +946,62 @@ export function UnifiedTaskItem({
           <IconUser className="size-3.5" />
           Assigned
         </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-52">
-          <ContextMenuLabel>Assign to</ContextMenuLabel>
-          <ContextMenuSeparator />
+        <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
+          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+            <Input
+              variant={"ghost"}
+              className="w-full p-3 border-b rounded-none"
+              placeholder="Search users..."
+              value={assigneeSearch}
+              onChange={(e) => setAssigneeSearch(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+          </div>
           {availableUsers.length > 0 ? (
-            availableUsers.map((user) => {
-              const isAssigned =
-                task.assignees?.some((assignee) => assignee.id === user.id) ||
-                false;
-              return (
-                <ContextMenuCheckboxItem
-                  key={user.id}
-                  checked={isAssigned}
-                  onCheckedChange={(checked) => {
-                    const currentAssigneeIds =
-                      task.assignees?.map((a) => a.id) || [];
-                    const newAssigneeIds = checked
-                      ? [...currentAssigneeIds, user.id]
-                      : currentAssigneeIds.filter((id) => id !== user.id);
-                    handleAssigneeChange(newAssigneeIds);
-                  }}
-                >
-                  <div className="flex items-center gap-2" key={`index + ${1}`}>
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage
-                        src={user.image || undefined}
-                        alt={user.name}
-                      />
-                      <AvatarFallback className="text-xs">
-                        {user.name
-                          .split(" ")
-                          .map((n: string) => n[0])
-                          .join("")
-                          .toUpperCase()
-                          .slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{user.name}</span>
-                  </div>
-                </ContextMenuCheckboxItem>
-              );
-            })
+            availableUsers
+              .filter((user) =>
+                user.name.toLowerCase().includes(assigneeSearch.toLowerCase()),
+              )
+              .map((user) => {
+                const isAssigned =
+                  task.assignees?.some((assignee) => assignee.id === user.id) ||
+                  false;
+                return (
+                  <ContextMenuCheckboxItem
+                    key={user.id}
+                    checked={isAssigned}
+                    onCheckedChange={(checked) => {
+                      const currentAssigneeIds =
+                        task.assignees?.map((a) => a.id) || [];
+                      const newAssigneeIds = checked
+                        ? [...currentAssigneeIds, user.id]
+                        : currentAssigneeIds.filter((id) => id !== user.id);
+                      handleAssigneeChange(newAssigneeIds);
+                    }}
+                  >
+                    <div
+                      className="flex items-center gap-2"
+                      key={`index + ${1}`}
+                    >
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage
+                          src={user.image || undefined}
+                          alt={user.name}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {user.name
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{user.name}</span>
+                    </div>
+                  </ContextMenuCheckboxItem>
+                );
+              })
           ) : (
             <ContextMenuItem disabled>No users available</ContextMenuItem>
           )}
@@ -992,38 +1012,51 @@ export function UnifiedTaskItem({
           <IconTag className="size-3.5" />
           Labels
         </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-52">
-          <ContextMenuLabel>Apply Labels</ContextMenuLabel>
-          <ContextMenuSeparator />
+        <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
+          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+            <Input
+              variant={"ghost"}
+              className="w-full p-3 border-b rounded-none"
+              placeholder="Search labels..."
+              value={labelSearch}
+              onChange={(e) => setLabelSearch(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+          </div>
           {availableLabels.length > 0 ? (
-            availableLabels.map((label) => {
-              const isApplied =
-                task.labels?.some((l) => l.id === label.id) || false;
-              return (
-                <ContextMenuCheckboxItem
-                  key={label.id}
-                  checked={isApplied}
-                  onCheckedChange={(checked) => {
-                    const currentLabelIds = task.labels?.map((l) => l.id) || [];
-                    const newLabelIds = checked
-                      ? [...currentLabelIds, label.id]
-                      : currentLabelIds.filter((id) => id !== label.id);
-                    const newLabels = availableLabels.filter((l) =>
-                      newLabelIds.includes(l.id),
-                    );
-                    onTaskUpdate?.(task.id, { labels: newLabels });
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <IconCircleFilled
-                      className="h-3 w-3 shrink-0"
-                      style={{ color: label.color || "var(--foreground)" }}
-                    />
-                    <span className="text-sm truncate">{label.name}</span>
-                  </div>
-                </ContextMenuCheckboxItem>
-              );
-            })
+            availableLabels
+              .filter((label) =>
+                label.name.toLowerCase().includes(labelSearch.toLowerCase()),
+              )
+              .map((label) => {
+                const isApplied =
+                  task.labels?.some((l) => l.id === label.id) || false;
+                return (
+                  <ContextMenuCheckboxItem
+                    key={label.id}
+                    checked={isApplied}
+                    onCheckedChange={(checked) => {
+                      const currentLabelIds =
+                        task.labels?.map((l) => l.id) || [];
+                      const newLabelIds = checked
+                        ? [...currentLabelIds, label.id]
+                        : currentLabelIds.filter((id) => id !== label.id);
+                      const newLabels = availableLabels.filter((l) =>
+                        newLabelIds.includes(l.id),
+                      );
+                      onTaskUpdate?.(task.id, { labels: newLabels });
+                    }}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <IconCircleFilled
+                        className="h-3 w-3 shrink-0"
+                        style={{ color: label.color || "var(--foreground)" }}
+                      />
+                      <span className="text-sm truncate">{label.name}</span>
+                    </div>
+                  </ContextMenuCheckboxItem>
+                );
+              })
           ) : (
             <ContextMenuItem disabled>No labels available</ContextMenuItem>
           )}
@@ -1035,32 +1068,46 @@ export function UnifiedTaskItem({
             <IconCategory className="size-3.5" />
             Category
           </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-52">
-            <ContextMenuLabel>Set Category</ContextMenuLabel>
-            <ContextMenuSeparator />
+          <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
+            <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+              <Input
+                variant={"ghost"}
+                className="w-full p-3 border-b rounded-none"
+                placeholder="Search categories..."
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
             <ContextMenuRadioGroup
               value={task.category || ""}
               onValueChange={(value) =>
                 onTaskUpdate?.(task.id, { category: value || null })
               }
             >
-              {categories.map((category) => (
-                <ContextMenuRadioItem
-                  key={category.id}
-                  value={category.id}
-                  showDot={false}
-                >
-                  <div className="flex items-center gap-2">
-                    <RenderIcon
-                      iconName={category.icon || "IconCategory"}
-                      size={14}
-                      color={category.color || undefined}
-                      raw
-                    />
-                    <span>{category.name}</span>
-                  </div>
-                </ContextMenuRadioItem>
-              ))}
+              {categories
+                .filter((category) =>
+                  category.name
+                    .toLowerCase()
+                    .includes(categorySearch.toLowerCase()),
+                )
+                .map((category) => (
+                  <ContextMenuRadioItem
+                    key={category.id}
+                    value={category.id}
+                    showDot={false}
+                  >
+                    <div className="flex items-center gap-2">
+                      <RenderIcon
+                        iconName={category.icon || "IconCategory"}
+                        size={14}
+                        color={category.color || undefined}
+                        raw
+                      />
+                      <span>{category.name}</span>
+                    </div>
+                  </ContextMenuRadioItem>
+                ))}
             </ContextMenuRadioGroup>
           </ContextMenuSubContent>
         </ContextMenuSub>
@@ -1071,39 +1118,55 @@ export function UnifiedTaskItem({
             <IconRocket className="size-3.5" />
             Release
           </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-52">
-            <ContextMenuLabel>Set Release</ContextMenuLabel>
-            <ContextMenuSeparator />
+          <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
+            <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+              <Input
+                variant={"ghost"}
+                className="w-full p-3 border-b rounded-none"
+                placeholder="Search releases..."
+                value={releaseSearch}
+                onChange={(e) => setReleaseSearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
             <ContextMenuRadioGroup
               value={task.releaseId || ""}
               onValueChange={(value) =>
                 onTaskUpdate?.(task.id, { releaseId: value || null })
               }
             >
-              {releases.map((release) => (
-                <ContextMenuRadioItem
-                  key={release.id}
-                  value={release.id}
-                  showDot={false}
-                >
-                  <div className="flex items-center gap-2">
-                    {release.icon ? (
-                      <RenderIcon
-                        iconName={release.icon}
-                        size={14}
-                        color={release.color || undefined}
-                        raw
-                      />
-                    ) : (
-                      <div
-                        className="h-3.5 w-3.5 rounded-full shrink-0"
-                        style={{ backgroundColor: release.color || "#cccccc" }}
-                      />
-                    )}
-                    <span>{release.name}</span>
-                  </div>
-                </ContextMenuRadioItem>
-              ))}
+              {releases
+                .filter((release) =>
+                  release.name
+                    .toLowerCase()
+                    .includes(releaseSearch.toLowerCase()),
+                )
+                .map((release) => (
+                  <ContextMenuRadioItem
+                    key={release.id}
+                    value={release.id}
+                    showDot={false}
+                  >
+                    <div className="flex items-center gap-2">
+                      {release.icon ? (
+                        <RenderIcon
+                          iconName={release.icon}
+                          size={14}
+                          color={release.color || undefined}
+                          raw
+                        />
+                      ) : (
+                        <div
+                          className="h-3.5 w-3.5 rounded-full shrink-0"
+                          style={{
+                            backgroundColor: release.color || "#cccccc",
+                          }}
+                        />
+                      )}
+                      <span>{release.name}</span>
+                    </div>
+                  </ContextMenuRadioItem>
+                ))}
             </ContextMenuRadioGroup>
           </ContextMenuSubContent>
         </ContextMenuSub>
