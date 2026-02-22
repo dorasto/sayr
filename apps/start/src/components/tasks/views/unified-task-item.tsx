@@ -28,8 +28,12 @@ import { cn } from "@repo/ui/lib/utils";
 import { formatDateCompact } from "@repo/util";
 import {
   IconAppWindow,
+  IconCategory,
   IconChevronUp,
   IconCircleFilled,
+  IconRocket,
+  IconTag,
+  IconUser,
   IconUserOff,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -45,6 +49,7 @@ import { RenderLabel } from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
 import { RenderCategory, RenderRelease } from "../shared";
+import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../shared/inlinelabel";
 
 interface UnifiedTaskItemProps {
@@ -55,6 +60,7 @@ interface UnifiedTaskItemProps {
   tasks: schema.TaskWithLabels[];
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   availableUsers: schema.userType[];
+  availableLabels?: schema.labelType[];
   categories?: schema.categoryType[];
   releases?: schema.releaseType[];
 
@@ -82,6 +88,7 @@ export function UnifiedTaskItem({
   tasks,
   setTasks,
   availableUsers,
+  availableLabels = [],
   categories = [],
   releases = [],
   onTaskUpdate,
@@ -931,6 +938,7 @@ export function UnifiedTaskItem({
       </ContextMenuSub>
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
+          <IconUser className="size-3.5" />
           Assigned
         </ContextMenuSubTrigger>
         <ContextMenuSubContent className="w-52">
@@ -981,40 +989,125 @@ export function UnifiedTaskItem({
       </ContextMenuSub>
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
+          <IconTag className="size-3.5" />
           Labels
         </ContextMenuSubTrigger>
         <ContextMenuSubContent className="w-52">
           <ContextMenuLabel>Apply Labels</ContextMenuLabel>
           <ContextMenuSeparator />
-          {task.labels && task.labels.length > 0 ? (
-            task.labels.map((label) => (
-              <ContextMenuCheckboxItem
-                key={label.id}
-                checked={true}
-                onCheckedChange={(checked) => {
-                  if (!checked) {
-                    const updatedLabels =
-                      task.labels?.filter((l) => l.id !== label.id) || [];
-                    onTaskUpdate?.(task.id, { labels: updatedLabels });
-                  }
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <IconCircleFilled
-                    className="h-3 w-3"
-                    style={{
-                      color: label.color || "var(--foreground)",
-                    }}
-                  />
-                  <span className="text-sm">{label.name}</span>
-                </div>
-              </ContextMenuCheckboxItem>
-            ))
+          {availableLabels.length > 0 ? (
+            availableLabels.map((label) => {
+              const isApplied =
+                task.labels?.some((l) => l.id === label.id) || false;
+              return (
+                <ContextMenuCheckboxItem
+                  key={label.id}
+                  checked={isApplied}
+                  onCheckedChange={(checked) => {
+                    const currentLabelIds = task.labels?.map((l) => l.id) || [];
+                    const newLabelIds = checked
+                      ? [...currentLabelIds, label.id]
+                      : currentLabelIds.filter((id) => id !== label.id);
+                    const newLabels = availableLabels.filter((l) =>
+                      newLabelIds.includes(l.id),
+                    );
+                    onTaskUpdate?.(task.id, { labels: newLabels });
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <IconCircleFilled
+                      className="h-3 w-3 shrink-0"
+                      style={{ color: label.color || "var(--foreground)" }}
+                    />
+                    <span className="text-sm truncate">{label.name}</span>
+                  </div>
+                </ContextMenuCheckboxItem>
+              );
+            })
           ) : (
-            <ContextMenuItem disabled>No labels applied</ContextMenuItem>
+            <ContextMenuItem disabled>No labels available</ContextMenuItem>
           )}
         </ContextMenuSubContent>
       </ContextMenuSub>
+      {categories.length > 0 && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconCategory className="size-3.5" />
+            Category
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-52">
+            <ContextMenuLabel>Set Category</ContextMenuLabel>
+            <ContextMenuSeparator />
+            <ContextMenuRadioGroup
+              value={task.category || ""}
+              onValueChange={(value) =>
+                onTaskUpdate?.(task.id, { category: value || null })
+              }
+            >
+              {categories.map((category) => (
+                <ContextMenuRadioItem
+                  key={category.id}
+                  value={category.id}
+                  showDot={false}
+                >
+                  <div className="flex items-center gap-2">
+                    <RenderIcon
+                      iconName={category.icon || "IconCategory"}
+                      size={14}
+                      color={category.color || undefined}
+                      raw
+                    />
+                    <span>{category.name}</span>
+                  </div>
+                </ContextMenuRadioItem>
+              ))}
+            </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      )}
+      {releases.length > 0 && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconRocket className="size-3.5" />
+            Release
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-52">
+            <ContextMenuLabel>Set Release</ContextMenuLabel>
+            <ContextMenuSeparator />
+            <ContextMenuRadioGroup
+              value={task.releaseId || ""}
+              onValueChange={(value) =>
+                onTaskUpdate?.(task.id, { releaseId: value || null })
+              }
+            >
+              {releases.map((release) => (
+                <ContextMenuRadioItem
+                  key={release.id}
+                  value={release.id}
+                  showDot={false}
+                >
+                  <div className="flex items-center gap-2">
+                    {release.icon ? (
+                      <RenderIcon
+                        iconName={release.icon}
+                        size={14}
+                        color={release.color || undefined}
+                        raw
+                      />
+                    ) : (
+                      <div
+                        className="h-3.5 w-3.5 rounded-full shrink-0"
+                        style={{ backgroundColor: release.color || "#cccccc" }}
+                      />
+                    )}
+                    <span>{release.name}</span>
+                  </div>
+                </ContextMenuRadioItem>
+              ))}
+            </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      )}
     </ContextMenuContent>
   );
 

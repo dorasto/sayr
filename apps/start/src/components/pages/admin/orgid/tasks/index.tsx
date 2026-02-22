@@ -420,6 +420,7 @@ export default function OrganizationTasksHomePage() {
             setTasks={setTasks}
             ws={ws}
             availableUsers={availableUsers}
+            availableLabels={labels}
             organization={organization}
             categories={categories}
             releases={releases}
