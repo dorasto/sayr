@@ -15,6 +15,10 @@ export interface CommentData {
 		total: number;
 		reactions: Record<string, { count: number; users: string[] }>;
 	};
+	parentId?: string | null;
+	replyCount?: number;
+	latestReplyAuthor?: { id: string; name: string; image: string | null; displayName?: string | null } | null;
+	replyAuthors?: { id: string; name: string; image: string | null; displayName?: string | null }[];
 }
 
 export interface CommentsPage {
@@ -36,4 +40,10 @@ export interface PublicCommentItemProps {
 	onEdit: (commentId: string, content: NodeJSON) => Promise<boolean>;
 	onDelete: (commentId: string) => Promise<boolean>;
 	categories: schema.categoryType[];
+	/** Footer slot for rendering thread trigger + body inside the card */
+	footer?: React.ReactNode;
+	/** Whether this comment is a reply (adjusts styling) */
+	isReply?: boolean;
+	/** Callback when "Reply" action is clicked */
+	onReply?: () => void;
 }

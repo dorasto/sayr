@@ -291,7 +291,7 @@ export default function GlobalTimeline({
 
 		const isComment = item.eventType === "comment";
 		const replyCount = isComment ? (item.replyCount ?? 0) : 0;
-		const latestReplyAuthor = isComment ? (item.latestReplyAuthor ?? null) : null;
+		const replyAuthors = isComment ? (item.replyAuthors ?? []) : [];
 		const isThreadExpanded = isComment && expandedThreads.has(item.id);
 
 		return (
@@ -313,7 +313,7 @@ export default function GlobalTimeline({
 									<>
 										<CommentThreadTrigger
 											replyCount={replyCount}
-											latestReplyAuthor={latestReplyAuthor}
+											replyAuthors={replyAuthors}
 											expanded={isThreadExpanded}
 											onToggle={() => toggleThread(item.id)}
 										/>

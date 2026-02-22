@@ -1880,6 +1880,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 				...comment,
 				replyCount: data?.replyCount ?? 0,
 				latestReplyAuthor: data?.latestReplyAuthor ?? null,
+				replyAuthors: data?.replyAuthors ?? [],
 			};
 		});
 

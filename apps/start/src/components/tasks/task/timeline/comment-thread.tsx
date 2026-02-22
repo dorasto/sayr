@@ -1,4 +1,9 @@
 import type { schema } from "@repo/database";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/avatar";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import {
@@ -10,7 +15,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { FetchCommentRepliesAction } from "@/lib/fetches/task";
 import { getDisplayName } from "@repo/util";
-import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineComment } from "./timeline-comment";
 import { CommentReplyInput } from "@/components/tasks/task/comment/reply";
 import type { TimelineItemProps } from "./types";
@@ -20,6 +24,7 @@ interface CommentThreadProps {
   parentComment: schema.taskTimelineWithActor;
   replyCount: number;
   latestReplyAuthor?: schema.UserSummary | null;
+  replyAuthors?: schema.UserSummary[];
   availableUsers?: schema.userType[];
   categories?: schema.categoryType[];
   tasks?: schema.TaskWithLabels[];
@@ -30,20 +35,25 @@ interface CommentThreadProps {
 
 /**
  * Collapsed thread trigger — rendered inside the parent comment card footer.
- * Shows "N replies" with the latest reply author avatar.
+ * Shows "N replies" with overlapping avatars of unique reply authors.
  */
+const MAX_VISIBLE_AVATARS = 3;
+
 export function CommentThreadTrigger({
   replyCount,
-  latestReplyAuthor,
+  replyAuthors,
   expanded,
   onToggle,
 }: {
   replyCount: number;
-  latestReplyAuthor?: schema.UserSummary | null;
+  replyAuthors?: schema.UserSummary[];
   expanded: boolean;
   onToggle: () => void;
 }) {
   if (replyCount === 0 && !expanded) return null;
+
+  const visibleAuthors = (replyAuthors ?? []).slice(0, MAX_VISIBLE_AVATARS);
+  const overflowCount = (replyAuthors ?? []).length - MAX_VISIBLE_AVATARS;
 
   return (
     <button
@@ -55,16 +65,27 @@ export function CommentThreadTrigger({
       )}
     >
       {expanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+      {!expanded && visibleAuthors.length > 0 && (
+        <div className="flex items-center -space-x-1.5">
+          {visibleAuthors.map((author) => (
+            <Avatar key={author.id} className="size-5 border-2 border-background rounded-full">
+              <AvatarImage src={author.image || ""} alt={getDisplayName(author)} />
+              <AvatarFallback className="text-[8px] rounded-full">
+                {getDisplayName(author).slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          ))}
+          {overflowCount > 0 && (
+            <div className="size-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[9px] font-medium text-muted-foreground">
+              +{overflowCount}
+            </div>
+          )}
+        </div>
+      )}
       <span>
         {expanded ? "Hide" : replyCount}{" "}
         {replyCount === 1 ? "reply" : "replies"}
       </span>
-      {!expanded && latestReplyAuthor && (
-        <InlineLabel
-          text={getDisplayName(latestReplyAuthor)}
-          image={latestReplyAuthor.image || ""}
-        />
-      )}
     </button>
   );
 }

@@ -110,6 +110,7 @@ export type taskTimelineWithActor = taskTimelineType & {
 	parentId?: string | null;
 	replyCount?: number;
 	latestReplyAuthor?: UserSummary | null;
+	replyAuthors?: UserSummary[];
 };
 
 export type issueTemplateWithRelations = issueTemplateType & {

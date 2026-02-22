@@ -389,6 +389,7 @@ export async function getTaskComments(
 			parentId: comment.parentId ?? null,
 			replyCount: data?.replyCount ?? 0,
 			latestReplyAuthor: data?.latestReplyAuthor ?? null,
+			replyAuthors: data?.replyAuthors ?? [],
 		};
 	});
 
@@ -440,8 +441,8 @@ export async function getCommentReplies(
 export async function getCommentReplyCountBatch(
 	orgId: string,
 	commentIds: string[]
-): Promise<Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null }>> {
-	const result = new Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null }>();
+): Promise<Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null; replyAuthors: schema.UserSummary[] }>> {
+	const result = new Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null; replyAuthors: schema.UserSummary[] }>();
 
 	if (commentIds.length === 0) return result;
 
@@ -455,7 +456,7 @@ export async function getCommentReplyCountBatch(
 		.where(and(eq(taskComment.organizationId, orgId), inArray(taskComment.parentId, commentIds)))
 		.groupBy(taskComment.parentId);
 
-	// For parents that have replies, get the latest reply to extract the author
+	// For parents that have replies, get the latest reply and unique authors
 	const parentIdsWithReplies = replyCounts
 		.filter((r) => r.replyCount > 0 && r.parentId !== null)
 		.map((r) => r.parentId as string);
@@ -465,22 +466,38 @@ export async function getCommentReplyCountBatch(
 		createdBy: schema.UserSummary | null;
 	}> = [];
 
+	// Map of parentId -> unique reply authors (deduplicated, max 5)
+	const replyAuthorsMap = new Map<string, schema.UserSummary[]>();
+
 	if (parentIdsWithReplies.length > 0) {
-		// For each parent, get the latest reply with its author
-		// Using a simple approach: fetch latest reply per parent
 		for (const parentId of parentIdsWithReplies) {
-			const latestReply = await db.query.taskComment.findFirst({
+			// Fetch recent replies with authors to extract unique participants
+			const replies = await db.query.taskComment.findMany({
 				where: (t) => and(eq(t.organizationId, orgId), eq(t.parentId, parentId)),
 				with: {
 					createdBy: { columns: userSummaryColumns },
 				},
 				orderBy: (c, { desc }) => [desc(c.createdAt)],
 			});
-			if (latestReply) {
+
+			if (replies.length > 0) {
+				const latestReply = replies[0]!;
 				latestReplies.push({
 					parentId: latestReply.parentId,
 					createdBy: latestReply.createdBy,
 				});
+
+				// Deduplicate authors by id, preserve most-recent-first order
+				const seen = new Set<string>();
+				const uniqueAuthors: schema.UserSummary[] = [];
+				for (const reply of replies) {
+					if (reply.createdBy && !seen.has(reply.createdBy.id)) {
+						seen.add(reply.createdBy.id);
+						uniqueAuthors.push(reply.createdBy);
+						if (uniqueAuthors.length >= 5) break;
+					}
+				}
+				replyAuthorsMap.set(parentId, uniqueAuthors);
 			}
 		}
 	}
@@ -492,6 +509,7 @@ export async function getCommentReplyCountBatch(
 		result.set(rc.parentId, {
 			replyCount: rc.replyCount,
 			latestReplyAuthor: latestReply?.createdBy ?? null,
+			replyAuthors: replyAuthorsMap.get(rc.parentId) ?? [],
 		});
 	}
 
