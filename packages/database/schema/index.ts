@@ -81,6 +81,8 @@ export type CommentsWithAuthor = Array<
 	Omit<taskCommentType, "createdBy"> & {
 		createdBy: UserSummary | null;
 		content: NodeJSON;
+		parentId?: string | null;
+		replyCount?: number;
 	}
 >;
 
@@ -100,10 +102,15 @@ export type taskTimelineWithActor = taskTimelineType & {
 	};
 	source: "sayr" | "github";
 	externalAuthorLogin: string | null;
-	externalAuthorUrl: string | null
-	externalCommentId: string | null
-	externalCommentUrl: string | null
-	externalIssueNumber: number | null
+	externalAuthorUrl: string | null;
+	externalCommentId: string | null;
+	externalCommentUrl: string | null;
+	externalIssueNumber: number | null;
+	// Threading fields
+	parentId?: string | null;
+	replyCount?: number;
+	latestReplyAuthor?: UserSummary | null;
+	replyAuthors?: UserSummary[];
 };
 
 export type issueTemplateWithRelations = issueTemplateType & {

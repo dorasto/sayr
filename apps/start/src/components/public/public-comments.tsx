@@ -1,6 +1,5 @@
 import type { schema, TeamPermissions } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { Label } from "@repo/ui/components/label";
 import {
   useStateManagement,
   useStateManagementInfiniteFetch,
@@ -22,6 +21,10 @@ import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import type { CommentData, CommentsPage } from "./public-comments-types";
 import { PublicCommentItem } from "./public-comment-item";
+import {
+  PublicCommentThreadTrigger,
+  PublicCommentThreadBody,
+} from "./public-comment-thread";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -77,6 +80,19 @@ export function PublicComments({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+
+  const toggleThread = useCallback((commentId: string) => {
+    setExpandedThreads((prev) => {
+      const next = new Set(prev);
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+      return next;
+    });
+  }, []);
 
   // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
   useEffect(() => {
@@ -340,6 +356,17 @@ export function PublicComments({
           queryClient.invalidateQueries({
             queryKey: ["public-comments", taskId, organizationId],
           });
+          // Also remove cached replies for this comment (cascade delete)
+          queryClient.removeQueries({
+            queryKey: ["comment-replies", commentId, organizationId],
+          });
+          // Collapse the thread if it was expanded
+          setExpandedThreads((prev) => {
+            if (!prev.has(commentId)) return prev;
+            const next = new Set(prev);
+            next.delete(commentId);
+            return next;
+          });
           return true;
         }
         headlessToast.error({
@@ -416,25 +443,58 @@ export function PublicComments({
       ) : (
         <div className="flex flex-col gap-3">
           {/* Top (oldest) comments */}
-          {topComments.map((comment) => (
-            <PublicCommentItem
-              key={comment.id}
-              comment={comment}
-              memberTeamName={
-                comment.createdBy
-                  ? (memberHighestTeam.get(comment.createdBy.id) ?? null)
-                  : null
-              }
-               onToggleReaction={
-                session?.user ? handleToggleReaction : undefined
-              }
-              users={orgUsers}
-              currentUserId={session?.user?.id}
-              onEdit={handleEditComment}
-              onDelete={handleDeleteComment}
-              categories={categories}
-            />
-          ))}
+          {topComments.map((comment) => {
+            const replyCount = comment.replyCount ?? 0;
+            const isExpanded = expandedThreads.has(comment.id);
+
+            const threadFooter = (replyCount > 0 || isExpanded) ? (
+              <>
+                <PublicCommentThreadTrigger
+                  replyCount={replyCount}
+                  replyAuthors={comment.replyAuthors}
+                  expanded={isExpanded}
+                  onToggle={() => toggleThread(comment.id)}
+                />
+                {isExpanded && (
+                  <PublicCommentThreadBody
+                    parentComment={comment}
+                    memberHighestTeam={memberHighestTeam}
+                    users={orgUsers}
+                    currentUserId={session?.user?.id}
+                    onEdit={handleEditComment}
+                    onDelete={handleDeleteComment}
+                    categories={categories}
+                  />
+                )}
+              </>
+            ) : undefined;
+
+            return (
+              <PublicCommentItem
+                key={comment.id}
+                comment={comment}
+                memberTeamName={
+                  comment.createdBy
+                    ? (memberHighestTeam.get(comment.createdBy.id) ?? null)
+                    : null
+                }
+                onToggleReaction={
+                  session?.user ? handleToggleReaction : undefined
+                }
+                users={orgUsers}
+                currentUserId={session?.user?.id}
+                onEdit={handleEditComment}
+                onDelete={handleDeleteComment}
+                categories={categories}
+                footer={threadFooter}
+                onReply={session?.user ? () => {
+                  if (!expandedThreads.has(comment.id)) {
+                    toggleThread(comment.id);
+                  }
+                } : undefined}
+              />
+            );
+          })}
 
           {/* Load more in the middle */}
           {hasNextPage && (
@@ -458,25 +518,58 @@ export function PublicComments({
           )}
 
           {/* Bottom (newest) comments */}
-          {bottomComments.map((comment) => (
-            <PublicCommentItem
-              key={comment.id}
-              comment={comment}
-              memberTeamName={
-                comment.createdBy
-                  ? (memberHighestTeam.get(comment.createdBy.id) ?? null)
-                  : null
-              }
-              onToggleReaction={
-                session?.user ? handleToggleReaction : undefined
-              }
-              users={orgUsers}
-              currentUserId={session?.user?.id}
-              onEdit={handleEditComment}
-              onDelete={handleDeleteComment}
-              categories={categories}
-            />
-          ))}
+          {bottomComments.map((comment) => {
+            const replyCount = comment.replyCount ?? 0;
+            const isExpanded = expandedThreads.has(comment.id);
+
+            const threadFooter = (replyCount > 0 || isExpanded) ? (
+              <>
+                <PublicCommentThreadTrigger
+                  replyCount={replyCount}
+                  replyAuthors={comment.replyAuthors}
+                  expanded={isExpanded}
+                  onToggle={() => toggleThread(comment.id)}
+                />
+                {isExpanded && (
+                  <PublicCommentThreadBody
+                    parentComment={comment}
+                    memberHighestTeam={memberHighestTeam}
+                    users={orgUsers}
+                    currentUserId={session?.user?.id}
+                    onEdit={handleEditComment}
+                    onDelete={handleDeleteComment}
+                    categories={categories}
+                  />
+                )}
+              </>
+            ) : undefined;
+
+            return (
+              <PublicCommentItem
+                key={comment.id}
+                comment={comment}
+                memberTeamName={
+                  comment.createdBy
+                    ? (memberHighestTeam.get(comment.createdBy.id) ?? null)
+                    : null
+                }
+                onToggleReaction={
+                  session?.user ? handleToggleReaction : undefined
+                }
+                users={orgUsers}
+                currentUserId={session?.user?.id}
+                onEdit={handleEditComment}
+                onDelete={handleDeleteComment}
+                categories={categories}
+                footer={threadFooter}
+                onReply={session?.user ? () => {
+                  if (!expandedThreads.has(comment.id)) {
+                    toggleThread(comment.id);
+                  }
+                } : undefined}
+              />
+            );
+          })}
         </div>
       )}
 

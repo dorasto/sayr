@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useWSMessageHandler";
 import {
   updateAssigneesToTaskAction,
+  updateLabelToTaskAction,
   updateTaskAction,
 } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
@@ -42,6 +43,7 @@ interface UnifiedTaskViewProps {
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   ws: WebSocket | null;
   availableUsers: schema.userType[];
+  availableLabels?: schema.labelType[];
   organization?: schema.OrganizationWithMembers;
   categories: schema.categoryType[];
   releases?: schema.releaseType[];
@@ -58,6 +60,7 @@ export function UnifiedTaskView({
   setTasks,
   ws,
   availableUsers = [],
+  availableLabels = [],
   organization,
   categories,
   releases = [],
@@ -216,6 +219,57 @@ export function UnifiedTaskView({
           ),
       );
     }
+    if (updates.labels) {
+      await runWithToast(
+        "update-labels",
+        {
+          loading: { title: "Updating labels..." },
+          success: { title: "Labels updated" },
+          error: { title: "Failed to update labels" },
+        },
+        () =>
+          updateLabelToTaskAction(
+            orgId,
+            taskId,
+            updates.labels?.map((l) => l.id) || [],
+            wsClientId,
+          ),
+      );
+    }
+    if (updates.category !== undefined) {
+      await runWithToast(
+        "update-category",
+        {
+          loading: { title: "Updating category..." },
+          success: { title: "Category updated" },
+          error: { title: "Failed to update category" },
+        },
+        () =>
+          updateTaskAction(
+            orgId,
+            taskId,
+            { category: updates.category },
+            wsClientId,
+          ),
+      );
+    }
+    if (updates.releaseId !== undefined) {
+      await runWithToast(
+        "update-release",
+        {
+          loading: { title: "Updating release..." },
+          success: { title: "Release updated" },
+          error: { title: "Failed to update release" },
+        },
+        () =>
+          updateTaskAction(
+            orgId,
+            taskId,
+            { releaseId: updates.releaseId },
+            wsClientId,
+          ),
+      );
+    }
   };
 
   // Grouping Logic with nested sub-grouping support
@@ -269,6 +323,7 @@ export function UnifiedTaskView({
       tasks={tasks}
       setTasks={setTasks}
       availableUsers={availableUsers}
+      availableLabels={availableLabels}
       onTaskUpdate={handleTaskUpdate}
       categories={categories}
       releases={releases}
@@ -539,6 +594,7 @@ export function UnifiedTaskView({
           tasks={tasks}
           setTasks={setTasks}
           availableUsers={availableUsers}
+          availableLabels={availableLabels}
           onTaskUpdate={handleTaskUpdate}
           categories={categories}
           releases={releases}

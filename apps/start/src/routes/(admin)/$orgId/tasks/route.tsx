@@ -17,18 +17,19 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks")({
 	},
 	// staleTime prevents refetching for this duration
 	// Path params (orgId) automatically determine cache identity
-	staleTime: 1000 * 60 * 5, // 5 minutes
+	// staleTime: 1000 * 60 * 5, // 5 minutes
 	// Prevent loader from re-running when only search params change (e.g., ?task=4, ?view=xyz, ?filters=...)
 	// The task list doesn't depend on search params - filtering is done client-side
-	shouldReload: false,
+	shouldReload: true,
 	component: OrgTasksLayout,
 });
 
 function OrgTasksLayout() {
 	const { tasks } = Route.useLoaderData();
+	const { orgId } = Route.useParams();
 
 	return (
-		<RootProviderOrganizationTasks tasks={tasks}>
+		<RootProviderOrganizationTasks tasks={tasks} organizationId={orgId}>
 			<TasksCommandRegistrar />
 			<Outlet />
 		</RootProviderOrganizationTasks>

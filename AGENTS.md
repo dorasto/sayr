@@ -26,7 +26,8 @@ pnpm check-types                  # TypeScript type checking (turbo check-types)
 
 ### Database (packages/database)
 ```bash
-pnpm -F @repo/database db:push    # Apply schema to PostgreSQL
+pnpm -F @repo/database generate   # Generate schema
+pnpm -F @repo/database migrate    # Apply schema to PostgreSQL
 pnpm -F @repo/database db:studio  # Open Drizzle Studio
 ```
 

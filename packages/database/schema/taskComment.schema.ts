@@ -35,6 +35,11 @@ export const taskComment = table(
 			.notNull()
 			.default("sayr"),
 
+		// ✅ Threading: nullable parent comment ID for replies (single-level only)
+		// When null, this is a top-level comment. When set, this is a reply to that parent.
+		// Cascade delete: removing a parent removes all its replies.
+		parentId: v.text("parent_id"),
+
 		// ✅ External author metadata (GitHub, etc.)
 		externalAuthorLogin: v.text("external_author_login"),
 		externalAuthorUrl: v.text("external_author_url"),
@@ -51,6 +56,12 @@ export const taskComment = table(
 		v.index("idx_task_comment_external_author").on(
 			t.externalAuthorLogin
 		),
+		v.index("idx_task_comment_parent").on(t.parentId),
+		v.foreignKey({
+			columns: [t.parentId],
+			foreignColumns: [t.id],
+			name: "task_comment_parent_fk",
+		}).onDelete("cascade"),
 	]
 );
 
@@ -69,5 +80,14 @@ export const taskCommentRelations = relations(taskComment, ({ one, many }) => ({
 		fields: [taskComment.createdBy],
 		references: [user.id],
 	}),
-	reactions: many(taskCommentReaction), // 👈 all reactions for this comment
+	reactions: many(taskCommentReaction),
+	// Threading relations
+	parent: one(taskComment, {
+		fields: [taskComment.parentId],
+		references: [taskComment.id],
+		relationName: "commentThread",
+	}),
+	replies: many(taskComment, {
+		relationName: "commentThread",
+	}),
 }));

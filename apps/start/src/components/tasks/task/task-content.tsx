@@ -29,11 +29,13 @@ import {
   IconLink,
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useMatch } from "@tanstack/react-router";
 import { useState } from "react";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
 import { updateLabelToTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import GlobalTaskAssignees from "../shared/assignee";
 import { statusConfig } from "../shared/config";
 import GlobalTaskLabels from "../shared/label";
@@ -61,39 +63,43 @@ interface TaskContentProps {
 }
 
 interface TaskContentSideContentProps {
-  task: schema.TaskWithLabels;
-  labels: schema.labelType[];
-  tasks: schema.TaskWithLabels[];
-  setTasks: (newValue: schema.TaskWithLabels[]) => void;
-  setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
-  availableUsers?: schema.userType[];
-  wsClientId: string;
-  runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-    ? T
-    : never;
-  categories: schema.categoryType[];
-  releases: schema.releaseType[];
-  organization: schema.OrganizationWithMembers;
-  panelControls?: {
-    isPanelOpen: boolean;
-    onToggle: () => void;
-  };
+	task: schema.TaskWithLabels;
+	labels: schema.labelType[];
+	tasks: schema.TaskWithLabels[];
+	setTasks: (newValue: schema.TaskWithLabels[]) => void;
+	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
+	availableUsers?: schema.userType[];
+	wsClientId: string;
+	runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
+		? T
+		: never;
+	categories: schema.categoryType[];
+	releases: schema.releaseType[];
+	organization: schema.OrganizationWithMembers;
+	panelControls?: {
+		isPanelOpen: boolean;
+		onToggle: () => void;
+	};
+	/** If true, shows an inline "Create label" form when no labels match search */
+	canCreateLabel?: boolean;
 }
 
 export function TaskContentSideContent({
-  task,
-  labels,
-  tasks,
-  setTasks,
-  setSelectedTask,
-  availableUsers = [],
-  wsClientId,
-  runWithToast,
-  categories,
-  releases = [],
-  organization,
-  panelControls,
+	task,
+	labels,
+	tasks,
+	setTasks,
+	setSelectedTask,
+	availableUsers = [],
+	wsClientId,
+	runWithToast,
+	categories,
+	releases = [],
+	organization,
+	panelControls,
+	canCreateLabel = false,
 }: TaskContentSideContentProps) {
+	const { setLabels } = useLayoutOrganization();
   const debouncedUpdateLabels = useDebounceAsync(
     async (values: string[], wsClientId: string) => {
       const data = await runWithToast(
@@ -185,12 +191,16 @@ export function TaskContentSideContent({
             </TileTitle>
           </TileHeader>
           <TileAction>
-            <GlobalTaskLabels
-              showLabel={false}
-              task={task}
-              editable={true}
-              availableLabels={labels}
-              onLabelsChange={async (values) => {
+					<GlobalTaskLabels
+										showLabel={false}
+										task={task}
+										editable={true}
+										availableLabels={labels}
+										canCreateLabel={canCreateLabel}
+										onLabelCreated={(newLabels) => {
+											setLabels(newLabels);
+										}}
+										onLabelsChange={async (values) => {
                 const updatedTasks = tasks.map((t) =>
                   t.id === task.id
                     ? {
@@ -398,6 +408,11 @@ export function TaskContent({
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
   const pathname =
     rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
+  const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
+  const permissions = orgMatch?.context?.permissions;
+  const canCreateLabel =
+    permissions?.admin?.administrator === true ||
+    permissions?.content?.manageLabels === true;
   return (
     // FULL PAGE EXPERIENCE
     <div className="flex flex-col h-full max-h-full min-h-full relative">
@@ -480,6 +495,7 @@ export function TaskContent({
             categories={categories}
             releases={releases}
             organization={organization}
+            canCreateLabel={canCreateLabel}
           />
         </div>
       </div>

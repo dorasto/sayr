@@ -10,6 +10,8 @@ import {
 	createNotification,
 	extractUserMentions,
 	getTaskAssigneeIds,
+	getCommentReplies,
+	getCommentReplyCountBatch,
 	db,
 	getOrganizationMembers,
 	getTaskById,
@@ -1088,7 +1090,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, createdBy: bodyCreatedBy } = await c.req.json();
+	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, createdBy: bodyCreatedBy, parentId } = await c.req.json();
 	const session = c.get("session");
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -1132,13 +1134,30 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		}
 	}
 
+	// Validate parentId if provided: must be a top-level comment in the same task
+	let resolvedVisibility = visibility;
+	if (parentId) {
+		const parentComment = await db.query.taskComment.findFirst({
+			where: (t) => and(eq(t.id, parentId), eq(t.organizationId, orgId), eq(t.taskId, taskId)),
+			columns: { id: true, parentId: true, visibility: true },
+		});
+		if (!parentComment) {
+			return c.json({ success: false, error: "Parent comment not found." }, 404);
+		}
+		if (parentComment.parentId !== null) {
+			return c.json({ success: false, error: "Cannot reply to a reply. Only top-level comments can have replies." }, 400);
+		}
+		// Replies inherit parent visibility
+		resolvedVisibility = parentComment.visibility;
+	}
+
 	await traceAsync(
 		"task.comment.create.insert",
 		() => {
 			// For GitHub-sourced comments, only set createdBy if explicitly provided (linked Sayr user).
 			// Otherwise leave it null so unlinked GitHub users show their GitHub identity, not the system account.
 			const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
-			return createComment(orgId, taskId, content, visibility, effectiveCreatedBy, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl);
+			return createComment(orgId, taskId, content, resolvedVisibility, effectiveCreatedBy, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, parentId ?? null);
 		},
 		{
 			description: "Creating task comment",
@@ -1771,6 +1790,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 		const base = and(
 			eq(schema.taskComment.organizationId, orgId),
 			eq(schema.taskComment.taskId, taskId),
+			isNull(schema.taskComment.parentId),
 			isPublic ? eq(schema.taskComment.visibility, "public") : undefined
 		);
 
@@ -1851,9 +1871,22 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 			}
 		);
 
+		// Enrich top-level comments with reply counts and latest reply author
+		const commentIds = comments.map((c) => c.id);
+		const replyData = commentIds.length > 0 ? await getCommentReplyCountBatch(orgId, commentIds) : new Map();
+		const enrichedComments = comments.map((comment) => {
+			const data = replyData.get(comment.id);
+			return {
+				...comment,
+				replyCount: data?.replyCount ?? 0,
+				latestReplyAuthor: data?.latestReplyAuthor ?? null,
+				replyAuthors: data?.replyAuthors ?? [],
+			};
+		});
+
 		return c.json({
 			success: true,
-			data: comments,
+			data: enrichedComments,
 			pagination: {
 				page,
 				limit,
@@ -1903,7 +1936,8 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 					SELECT count(*)::int AS count
 					FROM task_comment
 					WHERE organization_id = ${orgId}
-					  AND task_id = ${taskId};
+					  AND task_id = ${taskId}
+					  AND parent_id IS NULL;
 				`
 			);
 			const total = Number(result[0]?.count ?? 0);
@@ -1926,6 +1960,96 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 		success: true,
 		pagination: { totalItems, totalPages, limit: perPage },
 	});
+});
+
+apiRouteAdminProjectTask.get("/timeline/comments/replies", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	try {
+		const q = c.req.query();
+		const orgId = q.org_id;
+		const commentId = q.comment_id;
+
+		if (!orgId || !commentId) {
+			return c.json({ success: false, error: "org_id and comment_id are required" }, 400);
+		}
+
+		const session = c.get("session");
+		const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
+
+		const page = Math.max(Number(q.page) || 1, 1);
+		const limit = Math.min(Number(q.limit) || 50, 100);
+		const offset = (page - 1) * limit;
+
+		const replies = await traceAsync(
+			"task.comments.replies.fetch",
+			async () => {
+				const baseConditions = [
+					eq(schema.taskComment.organizationId, orgId),
+					eq(schema.taskComment.parentId, commentId),
+				];
+				if (isPublic) {
+					baseConditions.push(eq(schema.taskComment.visibility, "public"));
+				}
+
+				const rows = await db.query.taskComment.findMany({
+					where: () => and(...baseConditions),
+					orderBy: (t, { asc }) => asc(t.createdAt),
+					limit,
+					offset,
+					with: {
+						createdBy: {
+							columns: userSummaryColumns,
+						},
+						reactions: {
+							columns: { emoji: true, userId: true },
+						},
+					},
+				});
+
+				// Aggregate reactions (same pattern as parent comments)
+				return rows.map((comment) => {
+					const grouped: Record<string, { count: number; users: string[] }> = {};
+					for (const reaction of comment.reactions ?? []) {
+						if (!grouped[reaction.emoji]) {
+							grouped[reaction.emoji] = { count: 0, users: [] };
+						}
+						const reactionGroup = grouped[reaction.emoji];
+						if (reactionGroup) {
+							reactionGroup.count++;
+							reactionGroup.users.push(reaction.userId);
+						}
+					}
+					const total = Object.values(grouped).reduce((sum, r) => sum + r.count, 0);
+
+					return {
+						...comment,
+						reactions: { total, reactions: grouped },
+						eventType: "comment" as const,
+						actor: comment.createdBy,
+					};
+				});
+			},
+			{
+				description: "Fetching comment replies",
+				data: { orgId, commentId, page, limit, isPublic },
+			}
+		);
+
+		return c.json({
+			success: true,
+			data: replies,
+		});
+	} catch (err) {
+		await recordWideError({
+			name: "task.timeline.comments.replies.error",
+			error: err,
+			message: "Failed to fetch comment replies",
+			contextData: { path: c.req.path, query: c.req.query() },
+		});
+		return c.json({ success: false, message: (err as Error)?.message }, 500);
+	}
 });
 
 apiRouteAdminProjectTask.post("/create-vote", async (c) => {

@@ -323,20 +323,24 @@ export async function CreateTaskCommentAction(
 	taskId: string,
 	content: NodeJSON | undefined,
 	visibility: schema.taskCommentType["visibility"],
-	wsClientId: string
+	wsClientId: string,
+	parentId?: string | null
 ): Promise<{
 	success: boolean;
 	data: { id: string };
 	skipped: boolean;
 	error?: string;
 }> {
-	const payload = {
+	const payload: Record<string, unknown> = {
 		org_id: organizationId,
 		wsClientId,
 		task_id: taskId,
 		visibility: visibility,
 		content: content,
 	};
+	if (parentId) {
+		payload.parentId = parentId;
+	}
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/task/create-comment`, {
 		method: "POST",
@@ -376,6 +380,45 @@ export async function UpdateTaskCommentAction(
 		}),
 	});
 	return res.json();
+}
+
+/**
+ * Fetches replies for a given parent comment from the API.
+ *
+ * @param organizationId - The organization ID.
+ * @param commentId - The parent comment ID.
+ * @param page - Page number (defaults to 1).
+ * @param limit - Number of replies per page (defaults to 50).
+ * @returns The replies array with reactions and metadata.
+ */
+export async function FetchCommentRepliesAction(
+	organizationId: string,
+	commentId: string,
+	page = 1,
+	limit = 50
+): Promise<{
+	success: boolean;
+	data: schema.taskTimelineWithActor[];
+	error?: string;
+}> {
+	const params = new URLSearchParams({
+		org_id: organizationId,
+		comment_id: commentId,
+		page: String(page),
+		limit: String(limit),
+	});
+
+	const result = await fetch(`${API_URL}/v1/admin/organization/task/timeline/comments/replies?${params}`, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+	}).then(async (e) => await e.json());
+
+	return result as {
+		success: boolean;
+		data: schema.taskTimelineWithActor[];
+		error?: string;
+	};
 }
 
 /**

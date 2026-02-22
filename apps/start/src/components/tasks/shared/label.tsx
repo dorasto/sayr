@@ -2,6 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import {
   ComboBox,
@@ -14,8 +15,37 @@ import {
   ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
-import { IconCircleFilled, IconPlus, IconTag } from "@tabler/icons-react";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@repo/ui/components/input-group";
+import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
+import {
+  IconCircleFilled,
+  IconDeviceFloppy,
+  IconEye,
+  IconEyeOff,
+  IconPlus,
+  IconTag,
+} from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
+import { useState } from "react";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useToastAction } from "@/lib/util";
+import { createLabelAction } from "@/lib/fetches/organization";
+import RenderIcon from "@/components/generic/RenderIcon";
 
 interface GlobalTaskLabelsProps {
   task: schema.TaskWithLabels;
@@ -30,6 +60,150 @@ interface GlobalTaskLabelsProps {
   /** Maximum dots to show in compact mode before showing count (default: 3) */
   maxCompactDots?: number;
   className?: string;
+  /** If true, shows an inline "Create label" form inside the combobox empty state */
+  canCreateLabel?: boolean;
+  /** Called with the full updated labels list after a new label is created */
+  onLabelCreated?: (newLabels: schema.labelType[]) => void;
+}
+
+/** Compact inline create-label form rendered inside the ComboBoxEmpty slot */
+function InlineCreateLabelForm({
+  orgId,
+  searchValue,
+  onCreated,
+}: {
+  orgId: string;
+  searchValue: string;
+  onCreated: (newLabels: schema.labelType[]) => void;
+}) {
+  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { runWithToast, isFetching } = useToastAction();
+
+  const [name, setName] = useState(searchValue);
+  const [color, setColor] = useState({ hsla: "#F59E0B", hex: "#F59E0B" });
+  const [visible, setVisible] = useState<"public" | "private">("public");
+
+  // Keep name in sync with external searchValue changes (when the user keeps typing)
+  // but only if the user hasn't manually edited the field
+  const [userEdited, setUserEdited] = useState(false);
+  const effectiveName = userEdited ? name : searchValue;
+
+  const handleCreate = async () => {
+    const data = await runWithToast(
+      "create-label-inline",
+      {
+        loading: {
+          title: "Creating label...",
+          description: "Please wait while we create the label.",
+        },
+        success: {
+          title: "Label created",
+          description: "The label has been successfully created.",
+        },
+        error: {
+          title: "Failed to create label",
+          description: "An error occurred while creating the label.",
+        },
+      },
+      () =>
+        createLabelAction(
+          orgId,
+          {
+            name: effectiveName,
+            color: color.hsla,
+            visible,
+          },
+          wsClientId,
+        ),
+    );
+
+    if (data?.success && data.data) {
+      onCreated(data.data);
+      // Reset form state
+      setName("");
+      setUserEdited(false);
+      setColor({ hsla: "#F59E0B", hex: "#F59E0B" });
+      setVisible("public");
+    }
+  };
+
+  return (
+    <InputGroup className="h-auto bg-transparent border-transparent p-0">
+      <InputGroupAddon align="inline-start" className="h-full">
+        <InputGroupButton asChild>
+          <Popover modal>
+            <PopoverTrigger asChild>
+              <Button
+                variant="accent"
+                className="h-8 w-8 p-0 border-transparent rounded-lg overflow-hidden [&_svg]:size-4!"
+              >
+                <RenderIcon
+                  iconName="IconCircleFilled"
+                  color={color.hsla}
+                  button
+                />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-64" side="bottom" align="center">
+              <div className="p-3">
+                <ColorPickerCustom
+                  onChange={setColor}
+                  defaultValue={color.hex}
+                  height={100}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+        </InputGroupButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <InputGroupButton
+              size="sm"
+              className={cn(
+                "h-8 aspect-square border",
+                visible === "public"
+                  ? "border-transparent"
+                  : "bg-primary/10 border-primary/50",
+              )}
+              variant="ghost"
+              onClick={() =>
+                setVisible(visible === "public" ? "private" : "public")
+              }
+            >
+              {visible === "public" ? <IconEye /> : <IconEyeOff />}
+            </InputGroupButton>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {visible === "public" ? "Visible to public" : "Hidden from public"}
+          </TooltipContent>
+        </Tooltip>
+      </InputGroupAddon>
+      <InputGroupInput
+        placeholder="Create new label"
+        value={effectiveName}
+        onChange={(e) => {
+          setName(e.target.value);
+          setUserEdited(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && effectiveName.length > 0 && !isFetching) {
+            e.preventDefault();
+            handleCreate();
+          }
+        }}
+      />
+      <InputGroupAddon align="inline-end">
+        <InputGroupButton
+          variant="primary"
+          className="h-full rounded-lg"
+          onClick={handleCreate}
+          disabled={effectiveName.length === 0 || isFetching}
+        >
+          <IconPlus />
+        </InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
+  );
 }
 
 export default function GlobalTaskLabels({
@@ -43,14 +217,34 @@ export default function GlobalTaskLabels({
   compact = false,
   maxCompactDots = 3,
   className,
+  canCreateLabel = false,
+  onLabelCreated,
 }: GlobalTaskLabelsProps) {
   // Get current selected label IDs
   const currentLabelIds = task.labels?.map((label) => label.id) || [];
+  const [searchValue, setSearchValue] = useState("");
+
   const handleLabelsChange = (values: string[]) => {
     if (onLabelsChange) {
       onLabelsChange(values);
     }
   };
+
+  // Whether the empty state (no matching labels) should show the create form
+  const showCreateForm = canCreateLabel && searchValue.trim().length > 0;
+
+  const emptyContent = showCreateForm ? (
+    <InlineCreateLabelForm
+      orgId={task.organizationId}
+      searchValue={searchValue.trim()}
+      onCreated={(newLabels) => {
+        setSearchValue("");
+        onLabelCreated?.(newLabels);
+      }}
+    />
+  ) : (
+    "No labels found."
+  );
 
   // Compact view: show colored dots with count (stacked like avatars)
   const renderCompactLabels = () => {
@@ -109,9 +303,12 @@ export default function GlobalTaskLabels({
                 )}
               </ComboBoxTrigger>
               <ComboBoxContent className="">
-                <ComboBoxSearch placeholder="Search labels..." />
+                <ComboBoxSearch
+                  placeholder="Search labels..."
+                  onValueChange={setSearchValue}
+                />
                 <ComboBoxList>
-                  <ComboBoxEmpty>No labels found.</ComboBoxEmpty>
+                  <ComboBoxEmpty>{emptyContent}</ComboBoxEmpty>
                   <ComboBoxGroup>
                     {availableLabels.map((label) => (
                       <ComboBoxItem
@@ -120,7 +317,7 @@ export default function GlobalTaskLabels({
                         searchValue={label.name}
                       >
                         <span
-                          className="h-2 w-2 flex-shrink-0 rounded-full mr-2"
+                          className="h-2 w-2 shrink-0 rounded-full mr-2"
                           style={{ backgroundColor: label.color || "#cccccc" }}
                         />
                         <span className="flex-1">{label.name}</span>
@@ -163,9 +360,14 @@ export default function GlobalTaskLabels({
                   </ComboBoxTrigger>
                 )}
                 <ComboBoxContent className="">
-                  <ComboBoxSearch placeholder="Search labels..." />
+                  <ComboBoxSearch
+                    placeholder="Search labels..."
+                    onValueChange={setSearchValue}
+                  />
                   <ComboBoxList>
-                    <ComboBoxEmpty>No labels found.</ComboBoxEmpty>
+                    <ComboBoxEmpty className="p-0">
+                      {emptyContent}
+                    </ComboBoxEmpty>
                     <ComboBoxGroup>
                       {availableLabels.map((label) => (
                         <ComboBoxItem

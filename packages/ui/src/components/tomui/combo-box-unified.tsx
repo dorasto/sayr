@@ -179,7 +179,7 @@ function ComboBoxContent({
   if (!isMobile) {
     return (
       <PopoverContent
-        className={cn("w-full p-0", className)}
+        className={cn("w-full p-0 w-72", className)}
         align={align}
         side={side}
         // onOpenAutoFocus={(e) => e.preventDefault()}
@@ -245,15 +245,23 @@ interface ComboBoxSearchProps {
   placeholder?: string;
   className?: string;
   icon?: React.ReactNode;
+  /** Called with the current search string on every keystroke */
+  onValueChange?: (value: string) => void;
 }
 
 function ComboBoxSearch({
   placeholder = "Search...",
   className,
   icon,
+  onValueChange,
 }: ComboBoxSearchProps) {
   return (
-    <CommandInput icon={icon} placeholder={placeholder} className={className} />
+    <CommandInput
+      icon={icon}
+      placeholder={placeholder}
+      className={className}
+      onValueChange={onValueChange}
+    />
   );
 }
 
