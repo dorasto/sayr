@@ -6,9 +6,11 @@ sidebar:
 ---
 
 import ApiEndpointGroup from "../../../../components/ApiEndpointGroup.astro";
-import { fetchOpenAPISpec, parseEndpoints, groupEndpointsByTag } from "../../../../lib/openapi";
+import openapiSpec from "@/data/openapi-public.json";
+import { parseEndpoints, groupEndpointsByTag } from "../../../../lib/openapi";
 
-export const spec = await fetchOpenAPISpec("https://sayr.io/api/public/v1/openapi.json");
+export const spec = openapiSpec;
+
 export const endpoints = parseEndpoints(spec);
 export const groupedEndpoints = groupEndpointsByTag(endpoints);
 export const serverUrl = spec.servers?.[0]?.url || "https://sayr.io/api";

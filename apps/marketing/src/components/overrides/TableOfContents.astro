@@ -4,7 +4,9 @@
  * - Uses dynamically generated TOC from OpenAPI spec for API reference page
  * - Falls back to default Starlight TOC for all other pages
  */
-import { fetchOpenAPISpec, parseEndpoints, groupEndpointsByTag } from "../../lib/openapi";
+import { parseEndpoints, groupEndpointsByTag } from "../../lib/openapi";
+import openapiSpec from "@/data/openapi-public.json";
+const spec:any = openapiSpec;
 
 interface TocItem {
 	depth: number;
@@ -23,8 +25,8 @@ let tocItems: TocItem[] = toc?.items ?? [];
 
 if (isApiReferencePage) {
 	try {
-		const spec = await fetchOpenAPISpec("https://sayr.io/api/public/openapi.json");
-		const endpoints = parseEndpoints(spec);
+
+        const endpoints = parseEndpoints(spec);
 		const groupedEndpoints = groupEndpointsByTag(endpoints);
 
 		// Build TOC items from OpenAPI spec
