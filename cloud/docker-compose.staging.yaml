@@ -77,7 +77,7 @@ services:
 
   marketing:
     container_name: sayr-marketing
-    image: ghcr.io/dorasto/sayr-marketing:latest
+    image: ghcr.io/dorasto/sayr-marketing:staging
     restart: always
     pull_policy: always
 

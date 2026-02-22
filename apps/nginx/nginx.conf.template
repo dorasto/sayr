@@ -7,6 +7,10 @@ events {
 http {
     resolver 127.0.0.11 valid=10s;
 
+    # ===============================
+    # GZIP
+    # ===============================
+
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
@@ -24,8 +28,12 @@ http {
 
     map $http_upgrade $connection_upgrade {
         default upgrade;
-        '' close;
+        ''      close;
     }
+
+    # ===============================
+    # UPSTREAMS
+    # ===============================
 
     upstream start_upstream {
         server start:3000;
@@ -36,134 +44,172 @@ http {
     }
 
     # ==========================================================
-    # ROOT DOMAIN (example.com)
-    # Fakes MAIN_ORG.example.com
+    # ROOT DOMAIN  (example.com)
+    # Fakes: MAIN_ORG.example.com internally
     # ==========================================================
 
     server {
         listen 80;
         server_name ${VITE_ROOT_DOMAIN} www.${VITE_ROOT_DOMAIN};
-
-        # ---- START APP (FAKE HOST) ----
-
+    
+        # ✅ Override host globally for this server
+        proxy_set_header Host ${MAIN_ORG}.${VITE_ROOT_DOMAIN};
+    
         location ^~ /api/auth {
-            proxy_set_header Host ${MAIN_ORG}.${VITE_ROOT_DOMAIN};
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
-
+    
         location ^~ /api/image-preview {
-            proxy_set_header Host ${MAIN_ORG}.${VITE_ROOT_DOMAIN};
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
-
+    
         location ^~ /api/traces {
-            proxy_set_header Host ${MAIN_ORG}.${VITE_ROOT_DOMAIN};
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
-        }
-
-        location / {
-            proxy_set_header Host ${MAIN_ORG}.${VITE_ROOT_DOMAIN};
             include /etc/nginx/proxy.conf;
-            proxy_pass http://start_upstream;
         }
-
-        # ---- BACKEND ----
-
+    
         location ^~ /api/ {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
         }
-
+    
         location ^~ /ws {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
+        }
+    
+        location / {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
     }
 
     # ==========================================================
-    # ADMIN SUBDOMAIN
+    # API SUBDOMAIN  (api.example.com)
+    # ==========================================================
+
+    server {
+        listen 80;
+        server_name api.${VITE_ROOT_DOMAIN};
+
+        # WebSocket
+        location ^~ /ws {
+            proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+        }
+
+        # Root -> /api/public
+        location = / {
+            proxy_pass http://backend_upstream/api/public;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Everything else -> rewrite to /api/public/*
+        location / {
+            rewrite ^/(.*)$ /api/public/$1 break;
+            proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+    }
+
+    # ==========================================================
+    # ADMIN SUBDOMAIN  (admin.example.com)
     # ==========================================================
 
     server {
         listen 80;
         server_name admin.${VITE_ROOT_DOMAIN};
 
+        # Auth
+        # Auth API -> start
         location ^~ /api/auth {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
 
+        # Image preview -> start
         location ^~ /api/image-preview {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
 
+        # Traces -> start
         location ^~ /api/traces {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
 
+        # Admin API -> backend
         location ^~ /api/ {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
         }
 
+        # Admin WebSocket -> backend
         location ^~ /ws {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
         }
 
+        # Admin UI
         location / {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
     }
 
-    # ==========================================================
-    # WILDCARD SUBDOMAINS (*.example.com)
-    # ==========================================================
+    # ===============================
+    # WILDCARD SUBDOMAINS (*.domain)
+    # ===============================
 
     server {
         listen 80;
         server_name ~^(?<sub>.+)\.${VITE_ROOT_DOMAIN}$;
 
+        # Auth API -> start
         location ^~ /api/auth {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
 
+        # Image preview -> start
         location ^~ /api/image-preview {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
 
+        # Traces -> start
         location ^~ /api/traces {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
 
+        # Other API -> backend
         location ^~ /api/ {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
         }
 
+        # WebSocket -> backend
         location ^~ /ws {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
         }
 
+        # Everything else -> start
         location / {
-            include /etc/nginx/proxy.conf;
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
         }
     }
 }
