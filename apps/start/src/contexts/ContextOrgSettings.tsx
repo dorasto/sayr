@@ -44,19 +44,6 @@ export function SettingsProviderOrganization({
 	issueTemplates: ContextType["issueTemplates"];
 	releases: ContextType["releases"];
 }) {
-	const queryClient = useQueryClient();
-
-	// Seed cache synchronously BEFORE useStateManagement hooks run
-	// This ensures the first render uses fresh props data, not stale cache
-	queryClient.setQueryData(["organization"], initialOrganization);
-	queryClient.setQueryData(["labels"], initialLabels);
-	queryClient.setQueryData(["views"], initialViews);
-	queryClient.setQueryData(["categories"], initialCategories);
-	queryClient.setQueryData(["tasks"], initialTasks);
-	queryClient.setQueryData(["issueTemplates"], initialIssueTemplates);
-	queryClient.setQueryData(["releases"], initialReleases);
-
-	// Use useStateManagement - cache is already seeded above, so it will find the data
 	const { value: organization, setValue: setOrganization } = useStateManagement("organization", initialOrganization, 30000);
 	const { value: labels, setValue: setLabels } = useStateManagement("labels", initialLabels, 30000);
 	const { value: views, setValue: setViews } = useStateManagement("views", initialViews, 30000);

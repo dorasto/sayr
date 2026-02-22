@@ -1,6 +1,6 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 
 interface ContextType {
 	tasks: schema.TaskWithLabels[];
@@ -37,13 +37,6 @@ export function RootProviderMyTasks({
 	const { value: NewViews, setValue: setViews } = useStateManagement("my-views", views, 30000);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("my-categories", categories, 30000);
 	const { value: NewReleases, setValue: setReleases } = useStateManagement("my-releases", releases, 30000);
-
-	// Sync props -> state
-	useEffect(() => setTasks(tasks), [tasks, setTasks]);
-	useEffect(() => setLabels(labels), [labels, setLabels]);
-	useEffect(() => setViews(views), [views, setViews]);
-	useEffect(() => setCategories(categories), [categories, setCategories]);
-	useEffect(() => setReleases(releases), [releases, setReleases]);
 
 	return (
 		<MyTasksContext.Provider

@@ -12,6 +12,7 @@ import { useEffect } from "react";
 export default function SettingsOrganizationLabelsPage() {
 	const { ws } = useLayoutData();
 	const { organization, setOrganization, setCategories, setLabels, tasks, labels } = useLayoutOrganizationSettings();
+	console.log("🚀 ~ SettingsOrganizationLabelsPage ~ labels:", labels)
 	useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
