@@ -142,7 +142,7 @@ export function CommentReplyInput({
   return (
     <div
       className={cn(
-        "text-foreground transition-all flex gap-2 items-start px-3 py-0.5",
+        "text-foreground transition-all flex gap-2 items-start px-3 py-2",
         // multiline ? "px-3 py-2" : "px-3 py-0.5",
       )}
     >
@@ -170,9 +170,7 @@ export function CommentReplyInput({
           />
         </div>
         {multiline ? (
-          <div className="flex items-center justify-end -mt-1 pb-0.5">
-            {replyButton}
-          </div>
+          <div className="flex items-center justify-end">{replyButton}</div>
         ) : (
           replyButton
         )}
