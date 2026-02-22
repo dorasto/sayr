@@ -52,6 +52,7 @@ import { RenderCategory, RenderRelease } from "../shared";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../shared/inlinelabel";
 import { Input } from "@repo/ui/components/input";
+import { releaseStatusConfig } from "@/components/releases/config";
 
 interface UnifiedTaskItemProps {
   task: schema.TaskWithLabels;
@@ -896,7 +897,6 @@ export function UnifiedTaskItem({
           Open
         </ContextMenuItem>
       </Link>
-      <ContextMenuSeparator />
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           {priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)} Priority
@@ -962,6 +962,15 @@ export function UnifiedTaskItem({
               .filter((user) =>
                 user.name.toLowerCase().includes(assigneeSearch.toLowerCase()),
               )
+              .sort((a, b) => {
+                const aAssigned =
+                  task.assignees?.some((assignee) => assignee.id === a.id) ??
+                  false;
+                const bAssigned =
+                  task.assignees?.some((assignee) => assignee.id === b.id) ??
+                  false;
+                return Number(bAssigned) - Number(aAssigned);
+              })
               .map((user) => {
                 const isAssigned =
                   task.assignees?.some((assignee) => assignee.id === user.id) ||
@@ -970,19 +979,18 @@ export function UnifiedTaskItem({
                   <ContextMenuCheckboxItem
                     key={user.id}
                     checked={isAssigned}
-                    onCheckedChange={(checked) => {
+                    side="right"
+                    onSelect={(e) => {
+                      e.preventDefault();
                       const currentAssigneeIds =
                         task.assignees?.map((a) => a.id) || [];
-                      const newAssigneeIds = checked
-                        ? [...currentAssigneeIds, user.id]
-                        : currentAssigneeIds.filter((id) => id !== user.id);
+                      const newAssigneeIds = isAssigned
+                        ? currentAssigneeIds.filter((id) => id !== user.id)
+                        : [...currentAssigneeIds, user.id];
                       handleAssigneeChange(newAssigneeIds);
                     }}
                   >
-                    <div
-                      className="flex items-center gap-2"
-                      key={`index + ${1}`}
-                    >
+                    <div className="flex items-center gap-2">
                       <Avatar className="h-5 w-5">
                         <AvatarImage
                           src={user.image || undefined}
@@ -1028,6 +1036,13 @@ export function UnifiedTaskItem({
               .filter((label) =>
                 label.name.toLowerCase().includes(labelSearch.toLowerCase()),
               )
+              .sort((a, b) => {
+                const aApplied =
+                  task.labels?.some((l) => l.id === a.id) ?? false;
+                const bApplied =
+                  task.labels?.some((l) => l.id === b.id) ?? false;
+                return Number(bApplied) - Number(aApplied);
+              })
               .map((label) => {
                 const isApplied =
                   task.labels?.some((l) => l.id === label.id) || false;
@@ -1035,12 +1050,14 @@ export function UnifiedTaskItem({
                   <ContextMenuCheckboxItem
                     key={label.id}
                     checked={isApplied}
-                    onCheckedChange={(checked) => {
+                    side="right"
+                    onSelect={(e) => {
+                      e.preventDefault();
                       const currentLabelIds =
                         task.labels?.map((l) => l.id) || [];
-                      const newLabelIds = checked
-                        ? [...currentLabelIds, label.id]
-                        : currentLabelIds.filter((id) => id !== label.id);
+                      const newLabelIds = isApplied
+                        ? currentLabelIds.filter((id) => id !== label.id)
+                        : [...currentLabelIds, label.id];
                       const newLabels = availableLabels.filter((l) =>
                         newLabelIds.includes(l.id),
                       );
@@ -1091,11 +1108,17 @@ export function UnifiedTaskItem({
                     .toLowerCase()
                     .includes(categorySearch.toLowerCase()),
                 )
+                .sort((a, b) => {
+                  const aSelected = task.category === a.id;
+                  const bSelected = task.category === b.id;
+                  return Number(bSelected) - Number(aSelected);
+                })
                 .map((category) => (
                   <ContextMenuRadioItem
                     key={category.id}
                     value={category.id}
                     showDot={false}
+                    onSelect={(e) => e.preventDefault()}
                   >
                     <div className="flex items-center gap-2">
                       <RenderIcon
@@ -1118,7 +1141,7 @@ export function UnifiedTaskItem({
             <IconRocket className="size-3.5" />
             Release
           </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
+          <ContextMenuSubContent className="w-72 max-h-60 overflow-y-auto pt-0">
             <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
               <Input
                 variant={"ghost"}
@@ -1141,20 +1164,28 @@ export function UnifiedTaskItem({
                     .toLowerCase()
                     .includes(releaseSearch.toLowerCase()),
                 )
+                .sort((a, b) => {
+                  const aSelected = task.releaseId === a.id;
+                  const bSelected = task.releaseId === b.id;
+                  return Number(bSelected) - Number(aSelected);
+                })
                 .map((release) => (
                   <ContextMenuRadioItem
                     key={release.id}
                     value={release.id}
                     showDot={false}
+                    onSelect={(e) => e.preventDefault()}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full truncate">
                       {release.icon ? (
-                        <RenderIcon
-                          iconName={release.icon}
-                          size={14}
-                          color={release.color || undefined}
-                          raw
-                        />
+                        <div className="shrink-0">
+                          <RenderIcon
+                            iconName={release.icon}
+                            size={14}
+                            color={release.color || undefined}
+                            raw
+                          />
+                        </div>
                       ) : (
                         <div
                           className="h-3.5 w-3.5 rounded-full shrink-0"
@@ -1163,7 +1194,21 @@ export function UnifiedTaskItem({
                           }}
                         />
                       )}
-                      <span>{release.name}</span>
+                      <span className="truncate">{release.name}</span>
+                      <div className="flex items-center gap-1 ml-auto">
+                        <Badge className="rounded-lg text-xs cursor-pointer gap-1.5 truncate max-w-20 bg-secondary pointer-events-none">
+                          {release.slug}
+                        </Badge>
+                        <Badge
+                          className={cn(
+                            "border rounded-lg text-xs cursor-pointer gap-1.5 shrink-0",
+                            releaseStatusConfig[release.status].badgeClassName,
+                          )}
+                        >
+                          {releaseStatusConfig[release.status].icon("w-3 h-3")}
+                          {releaseStatusConfig[release.status].label}
+                        </Badge>
+                      </div>
                     </div>
                   </ContextMenuRadioItem>
                 ))}
