@@ -7,7 +7,10 @@ events {
 http {
     resolver 127.0.0.11 valid=10s;
 
-    # Gzip
+    # ===============================
+    # GZIP
+    # ===============================
+
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
@@ -40,21 +43,161 @@ http {
         server backend:5468;
     }
 
-    # ===============================
-    # ROOT DOMAIN (example.com)
-    # ===============================
+    # ==========================================================
+    # ROOT DOMAIN  (example.com)
+    # Fakes: DEFAULT_ORG.example.com internally
+    # ==========================================================
 
     server {
         listen 80;
         server_name ${VITE_ROOT_DOMAIN} www.${VITE_ROOT_DOMAIN};
 
-        # Auth routes -> start app (Better Auth runs on TanStack Start, not backend)
-        location ^~ /api/auth/ {
+        # Auth API -> start
+        location ^~ /api/auth {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;
         }
 
-        # API -> backend
+        # Image preview -> start
+        location ^~ /api/image-preview {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Traces -> start
+        location ^~ /api/traces {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Admin API -> backend
+        location ^~ /api/ {
+            proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Admin WebSocket -> backend
+        location ^~ /ws {
+            proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+        }
+
+        # Everything else → Start app
+        # ✅ FAKE SUBDOMAIN HERE
+        location / {
+            proxy_set_header Host ${MAIN_ORG}.${VITE_ROOT_DOMAIN};
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+    }
+
+    # ==========================================================
+    # API SUBDOMAIN  (api.example.com)
+    # ==========================================================
+
+    server {
+        listen 80;
+        server_name api.${VITE_ROOT_DOMAIN};
+
+        # WebSocket
+        location ^~ /ws {
+            proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+        }
+
+        # Root -> /api/public
+        location = / {
+            proxy_pass http://backend_upstream/api/public;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Everything else -> rewrite to /api/public/*
+        location / {
+            rewrite ^/(.*)$ /api/public/$1 break;
+            proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+    }
+
+    # ==========================================================
+    # ADMIN SUBDOMAIN  (admin.example.com)
+    # ==========================================================
+
+    server {
+        listen 80;
+        server_name admin.${VITE_ROOT_DOMAIN};
+
+        # Auth
+        # Auth API -> start
+        location ^~ /api/auth {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Image preview -> start
+        location ^~ /api/image-preview {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Traces -> start
+        location ^~ /api/traces {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Admin API -> backend
+        location ^~ /api/ {
+            proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Admin WebSocket -> backend
+        location ^~ /ws {
+            proxy_pass http://backend_upstream;
+            include /etc/nginx/proxy.conf;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+        }
+
+        # Admin UI
+        location / {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+    }
+
+    # ===============================
+    # WILDCARD SUBDOMAINS (*.domain)
+    # ===============================
+
+    server {
+        listen 80;
+        server_name ~^(?<sub>.+)\.${VITE_ROOT_DOMAIN}$;
+
+        # Auth API -> start
+        location ^~ /api/auth {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Image preview -> start
+        location ^~ /api/image-preview {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Traces -> start
+        location ^~ /api/traces {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # Other API -> backend
         location ^~ /api/ {
             proxy_pass http://backend_upstream;
             include /etc/nginx/proxy.conf;
@@ -68,62 +211,7 @@ http {
             proxy_set_header Connection $connection_upgrade;
         }
 
-        # Everything else -> start app
-        location / {
-            proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
-        }
-    }
-
-    # ===============================
-    # API SUBDOMAIN (api.example.com)
-    # ===============================
-
-    server {
-        listen 80;
-        server_name api.${VITE_ROOT_DOMAIN};
-
-        location ^~ /ws {
-            proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection $connection_upgrade;
-        }
-
-        location / {
-            proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
-        }
-    }
-
-    # ===============================
-    # ADMIN SUBDOMAIN (admin.example.com)
-    # ===============================
-
-    server {
-        listen 80;
-        server_name admin.${VITE_ROOT_DOMAIN};
-
-        # Auth routes -> start app (Better Auth runs on TanStack Start, not backend)
-        location ^~ /api/auth/ {
-            proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
-        }
-
-        # Admin APIs handled by backend
-        location ^~ /api/ {
-            proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
-        }
-
-        location ^~ /ws {
-            proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection $connection_upgrade;
-        }
-
-        # Admin UI
+        # Everything else -> start
         location / {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;

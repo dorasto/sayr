@@ -3,7 +3,7 @@ version: "3.8"
 services:
   start:
     container_name: sayr-start
-    image: ghcr.io/dorasto/sayr-start:latest
+    image: ghcr.io/dorasto/sayr-start:staging
     restart: always
     pull_policy: always
     environment:
@@ -43,7 +43,7 @@ services:
 
   backend:
     container_name: sayr-backend
-    image: ghcr.io/dorasto/sayr-backend:latest
+    image: ghcr.io/dorasto/sayr-backend:staging
     restart: always
     pull_policy: always
     environment:
@@ -75,9 +75,15 @@ services:
       - SAYR_CLOUD=${SAYR_CLOUD}
       - APP_ENV=${APP_ENV}
 
+  marketing:
+    container_name: sayr-marketing
+    image: ghcr.io/dorasto/sayr-marketing:latest
+    restart: always
+    pull_policy: always
+
   github-worker:
     container_name: sayr-worker-github
-    image: ghcr.io/dorasto/sayr-worker:latest
+    image: ghcr.io/dorasto/sayr-worker:staging
     restart: always
     pull_policy: always
     command: ["bun", "run", "dist/index.js", "github"]
@@ -123,12 +129,12 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: ./apps/nginx/Dockerfile
+      dockerfile: ./cloud/nginx/Dockerfile
     expose:
       - "80"
     ports:
       - "3000:80"
-
+    
     labels:
       - traefik.enable=true
   
@@ -146,7 +152,7 @@ services:
       - traefik.http.routers.admin.rule=Host(`admin.${VITE_ROOT_DOMAIN}`)
       - traefik.http.routers.admin.entrypoints=https
       - traefik.http.routers.admin.tls=true
-      
+  
       # Wildcard
       - traefik.http.routers.wildcard.rule=HostRegexp(`{subdomain:.+}.${VITE_ROOT_DOMAIN}`)
       - traefik.http.routers.wildcard.entrypoints=https

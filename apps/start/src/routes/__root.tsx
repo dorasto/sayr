@@ -31,7 +31,7 @@ import { initPostHog } from "@/components/PostHogProvider";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { HydrationProvider } from "@/contexts/HydrationContext";
 
-const isSayrCloud = import.meta.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
+const isSayrCloud = process.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
 if (typeof window !== "undefined") {
   // Initialize PostHog for analytics, session recordings, and web vitals
   initPostHog();

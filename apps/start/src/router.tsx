@@ -13,8 +13,6 @@ export const getRouter = () => {
 	// Get origin - on client use window.origin, on server it will be set by TanStack Start from the request
 	const clientOrigin =
 		typeof window !== "undefined" && window.origin && window.origin !== "null" ? window.origin : undefined;
-	const IS_CLOUD = import.meta.env.VITE_SAYR_CLOUD === "true";
-	const DEFAULT_ORG = import.meta.env.VITE_ORG;
 	const router = createRouter({
 		routeTree,
 		context: { queryClient },
@@ -50,15 +48,16 @@ export const getRouter = () => {
 					}
 
 					// Never rewrite admin or api subdomains
-					if (hostname.startsWith("admin.")) {
-						return;
-					}
-
-					// SELF-HOST MODE
-					if (!IS_CLOUD && DEFAULT_ORG) {
-						const path = url.pathname === "/" ? "" : url.pathname;
-						url.pathname = `/orgs/${DEFAULT_ORG}${path}`;
-						return url;
+					// Admin host → admin is root
+					// Handles: admin.sayr.io, admin.app.localhost, localhost, admin.127.0.0.1.sslip.io
+					if (
+						hostname.startsWith("admin.") ||
+						hostname === "localhost" ||
+						hostname.startsWith("localhost:") ||
+						hostname === "app.localhost" ||
+						hostname.startsWith("app.localhost:")
+					) {
+						return
 					}
 
 					const parts = hostname.split(".");
@@ -96,12 +95,6 @@ export const getRouter = () => {
 					const orgSlug = match[1];
 					const restOfPath = match[2] || "/";
 
-					// SELF-HOST MODE
-					if (!IS_CLOUD) {
-						url.pathname = restOfPath;
-						return url;
-					}
-					// CLOUD MODE
 					// Transform the URL to use subdomain
 					// e.g., /orgs/test/tasks → test.app.localhost/tasks
 					url.pathname = restOfPath;
