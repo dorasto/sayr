@@ -13,7 +13,6 @@ export const getRouter = () => {
 	// Get origin - on client use window.origin, on server it will be set by TanStack Start from the request
 	const clientOrigin =
 		typeof window !== "undefined" && window.origin && window.origin !== "null" ? window.origin : undefined;
-
 	const router = createRouter({
 		routeTree,
 		context: { queryClient },
@@ -48,6 +47,7 @@ export const getRouter = () => {
 						return;
 					}
 
+					// Never rewrite admin or api subdomains
 					// Admin host → admin is root
 					// Handles: admin.sayr.io, admin.app.localhost, localhost, admin.127.0.0.1.sslip.io
 					if (
@@ -57,7 +57,7 @@ export const getRouter = () => {
 						hostname === "app.localhost" ||
 						hostname.startsWith("app.localhost:")
 					) {
-						return;
+						return
 					}
 
 					const parts = hostname.split(".");

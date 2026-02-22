@@ -23,6 +23,14 @@ on:
         description: "Deploy marketing"
         type: boolean
         default: true
+      platform_amd64:
+        description: "Build linux/amd64"
+        type: boolean
+        default: true
+      platform_arm64:
+        description: "Build linux/arm64"
+        type: boolean
+        default: true
 
 env:
   REGISTRY: ghcr.io
@@ -34,6 +42,7 @@ jobs:
     runs-on: blacksmith-2vcpu-ubuntu-2404
     outputs:
       apps: ${{ steps.set-matrix.outputs.apps }}
+      platforms: ${{ steps.set-matrix.outputs.platforms }}
     steps:
       - id: set-matrix
         run: |
@@ -55,9 +64,18 @@ jobs:
           fi
           echo "apps=$(echo $apps | jq -c .)" >> $GITHUB_OUTPUT
 
+          platforms="[]"
+          if [[ "${{ inputs.platform_amd64 }}" == "true" ]]; then
+            platforms=$(echo $platforms | jq '. + ["linux/amd64"]')
+          fi
+          if [[ "${{ inputs.platform_arm64 }}" == "true" ]]; then
+            platforms=$(echo $platforms | jq '. + ["linux/arm64"]')
+          fi
+          echo "platforms=$(echo $platforms | jq -c .)" >> $GITHUB_OUTPUT
+
   build-image:
     needs: define-matrix
-    if: needs.define-matrix.outputs.apps != '[]'
+    if: needs.define-matrix.outputs.apps != '[]' && needs.define-matrix.outputs.platforms != '[]'
     name: Build and Push
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'blacksmith-4vcpu-ubuntu-2404-arm' || 'blacksmith-4vcpu-ubuntu-2404' }}
     permissions:
@@ -67,9 +85,7 @@ jobs:
       fail-fast: false
       matrix:
         app: ${{ fromJson(needs.define-matrix.outputs.apps) }}
-        platform:
-          - linux/amd64
-          - linux/arm64
+        platform: ${{ fromJson(needs.define-matrix.outputs.platforms) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -141,7 +157,7 @@ jobs:
 
   merge-manifest:
     needs: [define-matrix, build-image]
-    if: needs.define-matrix.outputs.apps != '[]'
+    if: needs.define-matrix.outputs.apps != '[]' && needs.define-matrix.outputs.platforms != '[]'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -201,39 +217,3 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:${{ env.TAG }}
-
-  deploy:
-    needs: [define-matrix, merge-manifest]
-    if: needs.define-matrix.outputs.apps != '[]'
-    runs-on: ubuntu-latest
-    container: ghcr.io/railwayapp/cli:latest
-    env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
-    steps:
-      - name: Redeploy traefik
-        if: inputs.traefik == true
-        run: railway redeploy -y --service traefik
-
-      - name: Redeploy backend
-        if: inputs.backend == true
-        run: railway redeploy -y --service backend
-
-      - name: Redeploy worker
-        if: inputs.worker == true
-        run: railway redeploy -y --service worker
-
-      - name: Redeploy start
-        if: inputs.start == true
-        run: railway redeploy -y --service start
-
-      - name: Redeploy marketing
-        if: inputs.marketing == true
-        run: railway redeploy -y --service marketing
-
-      - name: Deployment Summary
-        run: |
-          echo "✅ Staging deployment completed!"
-          echo ""
-          echo "Branch: ${{ github.ref }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Images tagged with: staging, staging-${{ github.sha }}"

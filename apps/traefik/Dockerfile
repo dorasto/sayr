@@ -15,6 +15,7 @@ ENV VITE_ROOT_DOMAIN=$VITE_ROOT_DOMAIN
 
 # Expose port
 EXPOSE 80
+EXPOSE 443
 
 # Render template with env vars and start Traefik
 CMD sh -c " \
