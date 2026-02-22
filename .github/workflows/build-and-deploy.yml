@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [start, backend, worker, traefik, marketing]
+        app: [start, backend, worker, marketing]
         platform:
           - linux/amd64
           - linux/arm64
@@ -43,9 +43,6 @@ jobs:
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
             echo "dockerfile=./apps/worker/Dockerfile" >> $GITHUB_OUTPUT
             echo "image_suffix=-worker" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
-            echo "dockerfile=./apps/traefik/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "marketing" ]]; then
             echo "dockerfile=./apps/marketing/Dockerfile" >> $GITHUB_OUTPUT
             echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
@@ -108,7 +105,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [start, backend, worker, traefik, marketing]
+        app: [start, backend, worker, marketing]
     steps:
       - name: Determine Docker Config
         id: config
@@ -119,8 +116,6 @@ jobs:
             echo "image_suffix=-backend" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
             echo "image_suffix=-worker" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.app }}" == "traefik" ]]; then
-            echo "image_suffix=-traefik" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "marketing" ]]; then
             echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
           fi
