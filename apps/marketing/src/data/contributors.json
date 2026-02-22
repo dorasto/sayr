@@ -98,6 +98,28 @@
     },
     "contributors": []
   },
+  "src/content/docs/docs/guides/public-pages.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/contributing/schema-types.mdx": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
   "src/content/docs/docs/contributing/local-development.mdx": {
     "author": {
       "name": "Tommy Lundy",
@@ -113,7 +135,7 @@
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
-      "commits": 3,
+      "commits": 4,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
@@ -160,7 +182,16 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
     },
-    "contributors": []
+    "contributors": [
+      {
+        "name": "Trent",
+        "email": "64388078+trent-001@users.noreply.github.com",
+        "commits": 1,
+        "github": "trent-001",
+        "avatar_url": "https://avatars.githubusercontent.com/u/64388078?v=4",
+        "profile_url": "https://github.com/trent-001"
+      }
+    ]
   },
   "src/content/docs/docs/contributing/Guidelines/testing.md": {
     "author": {
@@ -193,7 +224,16 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
     },
-    "contributors": []
+    "contributors": [
+      {
+        "name": "Trent",
+        "email": "64388078+trent-001@users.noreply.github.com",
+        "commits": 1,
+        "github": "trent-001",
+        "avatar_url": "https://avatars.githubusercontent.com/u/64388078?v=4",
+        "profile_url": "https://github.com/trent-001"
+      }
+    ]
   },
   "src/content/docs/docs/api/sdk.mdx": {
     "author": {
@@ -228,7 +268,7 @@
       {
         "name": "trent-001",
         "email": "trent@doras.to",
-        "commits": 2,
+        "commits": 3,
         "github": "trent-001",
         "avatar_url": "https://avatars.githubusercontent.com/u/64388078?v=4",
         "profile_url": "https://github.com/trent-001"

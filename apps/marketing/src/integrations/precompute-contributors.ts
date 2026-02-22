@@ -1,11 +1,15 @@
 /**
  * Astro integration that pre-computes Git contributor data at build time
  * and makes it available to the application without requiring .git at runtime.
+ *
+ * The core generation logic is exported as `generateContributorData()` so it can
+ * also be called from a standalone script (see scripts/generate-contributors.ts).
  */
 import type { AstroIntegration } from "astro";
 import { execSync } from "node:child_process";
 import { resolve } from "node:path";
-import { existsSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { existsSync, writeFileSync, mkdirSync, copyFileSync, readFileSync } from "node:fs";
 import { glob } from "glob";
 
 /**
@@ -37,6 +41,15 @@ export interface ContributorData {
 }
 
 /**
+ * Simple logger interface so the generation logic can work both inside
+ * Astro (with AstroIntegrationLogger) and standalone (with console).
+ */
+export interface ContributorLogger {
+	info(msg: string): void;
+	warn(msg: string): void;
+}
+
+/**
  * Extract GitHub username from email if it's a GitHub noreply email or in the manual mapping
  */
 function extractGitHubFromEmail(email: string): string | undefined {
@@ -51,7 +64,7 @@ function extractGitHubFromEmail(email: string): string | undefined {
 	if (noreplyMatch) {
 		return noreplyMatch[1];
 	}
-	
+
 	return undefined;
 }
 
@@ -128,82 +141,82 @@ async function getFileContributors(filePath: string, cwd: string): Promise<PageC
 			return { contributors: [] };
 		}
 
-	// The last line is the oldest commit (original author)
-	const originalAuthorLine = lines[lines.length - 1];
-	const [originalName, originalEmail] = originalAuthorLine.split("\t");
-	const originalAuthorGithub = extractGitHubFromEmail(originalEmail);
+		// The last line is the oldest commit (original author)
+		const originalAuthorLine = lines[lines.length - 1];
+		const [originalName, originalEmail] = originalAuthorLine.split("\t");
+		const originalAuthorGithub = extractGitHubFromEmail(originalEmail);
 
-	// Count commits per author for contributors (excluding original author)
-	// Group by GitHub username if available, otherwise by email
-	const authorCommits = new Map<
-		string,
-		{ name: string; email: string; commits: number; github?: string }
-	>();
+		// Count commits per author for contributors (excluding original author)
+		// Group by GitHub username if available, otherwise by email
+		const authorCommits = new Map<
+			string,
+			{ name: string; email: string; commits: number; github?: string }
+		>();
 
-	for (const line of lines) {
-		const [name, email] = line.split("\t");
-		if (!name || !email) continue;
+		for (const line of lines) {
+			const [name, email] = line.split("\t");
+			if (!name || !email) continue;
 
-		const github = extractGitHubFromEmail(email);
-		const emailLower = email.toLowerCase();
+			const github = extractGitHubFromEmail(email);
+			const emailLower = email.toLowerCase();
 
-		// Skip the original author - they go in the "author" field
-		// Check both email and GitHub username to handle different commit methods
-		if (
-			emailLower === originalEmail.toLowerCase() ||
-			(github && originalAuthorGithub && github === originalAuthorGithub)
-		) {
-			continue;
-		}
-
-		// Use GitHub username as key if available, otherwise use email
-		// This deduplicates contributors who commit with different emails but same GitHub account
-		const key = github || emailLower;
-
-		const existing = authorCommits.get(key);
-
-		if (existing) {
-			existing.commits++;
-			// Prefer the most recent name (first occurrence in reverse chronological order)
-			// and prefer GitHub noreply email if we have it
-			if (!existing.github && github) {
-				existing.github = github;
-				existing.email = email;
-				existing.name = name;
+			// Skip the original author - they go in the "author" field
+			// Check both email and GitHub username to handle different commit methods
+			if (
+				emailLower === originalEmail.toLowerCase() ||
+				(github && originalAuthorGithub && github === originalAuthorGithub)
+			) {
+				continue;
 			}
-		} else {
-			authorCommits.set(key, { name, email, commits: 1, github });
-		}
-	}
 
-	// Convert to array and sort by commits (most commits first)
-	// Fetch GitHub data for contributors
-	const contributorsWithGitHub = await Promise.all(
-		Array.from(authorCommits.values())
-			.sort((a, b) => b.commits - a.commits)
-			.map(async (author) => {
-				const { github } = author;
-				let avatar_url: string | undefined;
-				let profile_url: string | undefined;
+			// Use GitHub username as key if available, otherwise use email
+			// This deduplicates contributors who commit with different emails but same GitHub account
+			const key = github || emailLower;
 
-				if (github) {
-					const githubData = await fetchGitHubUserData(github);
-					if (githubData) {
-						avatar_url = githubData.avatar_url;
-						profile_url = githubData.profile_url;
-					}
+			const existing = authorCommits.get(key);
+
+			if (existing) {
+				existing.commits++;
+				// Prefer the most recent name (first occurrence in reverse chronological order)
+				// and prefer GitHub noreply email if we have it
+				if (!existing.github && github) {
+					existing.github = github;
+					existing.email = email;
+					existing.name = name;
 				}
+			} else {
+				authorCommits.set(key, { name, email, commits: 1, github });
+			}
+		}
 
-				return {
-					name: author.name,
-					email: author.email,
-					commits: author.commits,
-					github,
-					avatar_url,
-					profile_url,
-				};
-			}),
-	);
+		// Convert to array and sort by commits (most commits first)
+		// Fetch GitHub data for contributors
+		const contributorsWithGitHub = await Promise.all(
+			Array.from(authorCommits.values())
+				.sort((a, b) => b.commits - a.commits)
+				.map(async (author) => {
+					const { github } = author;
+					let avatar_url: string | undefined;
+					let profile_url: string | undefined;
+
+					if (github) {
+						const githubData = await fetchGitHubUserData(github);
+						if (githubData) {
+							avatar_url = githubData.avatar_url;
+							profile_url = githubData.profile_url;
+						}
+					}
+
+					return {
+						name: author.name,
+						email: author.email,
+						commits: author.commits,
+						github,
+						avatar_url,
+						profile_url,
+					};
+				}),
+		);
 
 		// Original author (first commit) is the primary author
 		const authorGithub = extractGitHubFromEmail(originalEmail);
@@ -237,91 +250,115 @@ async function getFileContributors(filePath: string, cwd: string): Promise<PageC
 	}
 }
 
-export function precomputeContributors(): AstroIntegration {
-	let contributorData: ContributorData = {};
+/**
+ * Generate contributor data for all doc pages and write to src/data/contributors.json.
+ *
+ * This is the core logic used by both the Astro integration hooks and the
+ * standalone `scripts/generate-contributors.ts` script.
+ *
+ * @param cwd - The marketing app root directory (where src/content/docs lives)
+ * @param logger - Logger instance (Astro logger or console wrapper)
+ * @returns The generated contributor data, or null if generation was skipped
+ */
+export async function generateContributorData(
+	cwd: string,
+	logger: ContributorLogger,
+): Promise<ContributorData | null> {
+	const dataDir = resolve(cwd, "src/data");
+	const outputPath = resolve(dataDir, "contributors.json");
 
-	return {
-		name: "precompute-contributors",
-		hooks: {
-			"astro:config:setup": ({ injectRoute }) => {
-				// Inject a virtual module that provides the contributor data
-				// This makes it available at runtime without file system access
-			},
-		"astro:build:start": async ({ logger }) => {
-			logger.info("Pre-computing Git contributor data...");
+	// Check if we're in a git repository
+	let hasGit = false;
+	try {
+		execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
+		hasGit = true;
+	} catch {
+		logger.warn("Not in a git repository");
+	}
 
-			const cwd = process.cwd();
-			const dataDir = resolve(cwd, "src/data");
-			const outputPath = resolve(dataDir, "contributors.json");
-			contributorData = {};
-
-			// Check if we're in a git repository
-			let hasGit = false;
-			try {
-				execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
-				hasGit = true;
-			} catch {
-				logger.warn("Not in a git repository");
-			}
-
-			// If no Git, check if we have a committed contributors.json
-			if (!hasGit) {
-				if (existsSync(outputPath)) {
-					logger.info("Using existing contributors.json (no Git repository available)");
-					return; // Don't overwrite existing file
-				} else {
-					logger.warn("No Git repository and no existing contributors.json found");
-					logger.warn("Creating empty contributors.json");
-					// Create empty contributors.json file
-					if (!existsSync(dataDir)) {
-						mkdirSync(dataDir, { recursive: true });
-					}
-					writeFileSync(outputPath, JSON.stringify({}, null, 2));
-					return;
-				}
-			}
-
-			// Git is available, generate fresh contributor data
-			logger.info("Git repository detected, generating contributor data...");
-
-			// Find all markdown/mdx files in content/docs
-			const contentDir = resolve(cwd, "src/content/docs");
-			const files = glob.sync("**/*.{md,mdx}", {
-				cwd: contentDir,
-				absolute: false,
-			});
-
-		logger.info(`Found ${files.length} documentation files`);
-
-		for (const file of files) {
-			const relativePath = `src/content/docs/${file}`;
-			const contributors = await getFileContributors(relativePath, cwd);
-
-			if (contributors.author || contributors.contributors.length > 0) {
-				contributorData[relativePath] = contributors;
-				logger.info(
-					`  ${file}: ${contributors.author?.name || "no author"}, ${contributors.contributors.length} contributors`,
-				);
-			}
-		}
-
-			// Write the pre-computed data to a JSON file in src/data
-			// Ensure the directory exists
+	// If no Git, check if we have a committed contributors.json
+	if (!hasGit) {
+		if (existsSync(outputPath)) {
+			logger.info("Using existing contributors.json (no Git repository available)");
+			return null; // Don't overwrite existing file
+		} else {
+			logger.warn("No Git repository and no existing contributors.json found");
+			logger.warn("Creating empty contributors.json");
 			if (!existsSync(dataDir)) {
 				mkdirSync(dataDir, { recursive: true });
 			}
-			
-			writeFileSync(outputPath, JSON.stringify(contributorData, null, 2));
+			writeFileSync(outputPath, JSON.stringify({}, null, 2));
+			return {};
+		}
+	}
 
-			logger.info(`Wrote contributor data to ${outputPath}`);
-		},
+	// Git is available, generate fresh contributor data
+	logger.info("Git repository detected, generating contributor data...");
+
+	const contributorData: ContributorData = {};
+
+	// Find all markdown/mdx files in content/docs
+	const contentDir = resolve(cwd, "src/content/docs");
+	const files = glob.sync("**/*.{md,mdx}", {
+		cwd: contentDir,
+		absolute: false,
+	});
+
+	logger.info(`Found ${files.length} documentation files`);
+
+	for (const file of files) {
+		const relativePath = `src/content/docs/${file}`;
+		const contributors = await getFileContributors(relativePath, cwd);
+
+		if (contributors.author || contributors.contributors.length > 0) {
+			contributorData[relativePath] = contributors;
+			logger.info(
+				`  ${file}: ${contributors.author?.name || "no author"}, ${contributors.contributors.length} contributors`,
+			);
+		}
+	}
+
+	// Write the pre-computed data to a JSON file in src/data
+	if (!existsSync(dataDir)) {
+		mkdirSync(dataDir, { recursive: true });
+	}
+
+	writeFileSync(outputPath, JSON.stringify(contributorData, null, 2));
+
+	logger.info(`Wrote contributor data to ${outputPath}`);
+	return contributorData;
+}
+
+export function precomputeContributors(): AstroIntegration {
+	return {
+		name: "precompute-contributors",
+		hooks: {
+			"astro:config:setup": () => {
+				// Inject a virtual module that provides the contributor data
+				// This makes it available at runtime without file system access
+			},
+			"astro:server:setup": async ({ logger }) => {
+				// Regenerate contributor data when the dev server starts so it's
+				// always up-to-date during development.
+				logger.info("Generating contributor data for dev server...");
+				await generateContributorData(process.cwd(), logger);
+			},
+			"astro:build:start": async ({ logger }) => {
+				logger.info("Pre-computing Git contributor data...");
+				await generateContributorData(process.cwd(), logger);
+			},
 			"astro:build:done": async ({ dir, logger }) => {
-				// Copy the contributors.json to the dist folder for runtime access
+				// Copy the contributors.json to the dist folder for runtime access (SSR fallback)
 				const srcPath = resolve(process.cwd(), "src/data/contributors.json");
-				
-				// dir.pathname points to dist/client, but we need to go up to dist
-				const distRoot = resolve(dir.pathname, "..");
-				
+
+				if (!existsSync(srcPath)) {
+					logger.warn("No contributors.json found to copy to dist");
+					return;
+				}
+
+				// Use fileURLToPath for correct filesystem path resolution
+				const distRoot = resolve(fileURLToPath(dir), "..");
+
 				// Copy to both client and server dist folders
 				const clientDestPath = resolve(distRoot, "client/data/contributors.json");
 				const serverDestPath = resolve(distRoot, "server/data/contributors.json");
@@ -329,7 +366,7 @@ export function precomputeContributors(): AstroIntegration {
 				// Create the data directories
 				const clientDestDir = resolve(distRoot, "client/data");
 				const serverDestDir = resolve(distRoot, "server/data");
-				
+
 				if (!existsSync(clientDestDir)) {
 					mkdirSync(clientDestDir, { recursive: true });
 				}
