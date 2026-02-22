@@ -1,4 +1,4 @@
-import { and, eq, sql, or } from "drizzle-orm";
+import { and, eq, sql, or, isNull, inArray, count, desc } from "drizzle-orm";
 import { type NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
@@ -288,7 +288,8 @@ export async function createComment(
 	externalAuthorUrl?: string,
 	externalIssueNumber?: string,
 	externalCommentId?: string,
-	externalCommentUrl?: string
+	externalCommentUrl?: string,
+	parentId?: string | null
 ) {
 	const [newComment] = await db
 		.insert(taskComment)
@@ -303,7 +304,8 @@ export async function createComment(
 			externalAuthorUrl,
 			externalIssueNumber,
 			externalCommentId,
-			externalCommentUrl
+			externalCommentUrl,
+			parentId: parentId ?? null,
 		})
 		.returning();
 
@@ -356,9 +358,9 @@ export async function getTaskComments(
 	taskId: string,
 	{ offset = 0, limit = 10 }: { offset?: number; limit?: number } = {}
 ) {
-	// Step 1: Paginated comments
+	// Step 1: Paginated TOP-LEVEL comments only (parentId IS NULL)
 	const comments = await db.query.taskComment.findMany({
-		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId)),
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.taskId, taskId), isNull(t.parentId)),
 		with: {
 			createdBy: { columns: userSummaryColumns },
 		},
@@ -367,16 +369,133 @@ export async function getTaskComments(
 		offset,
 	});
 
-	// Step 2: Count total comments (for pagination UI)
+	// Step 2: Count total top-level comments (for pagination UI)
 	const totalCommentsResult = await db.query.taskComment.findMany({
-		where: (c) => and(eq(c.organizationId, orgId), eq(c.taskId, taskId)),
+		where: (c) => and(eq(c.organizationId, orgId), eq(c.taskId, taskId), isNull(c.parentId)),
 		columns: { id: true },
 	});
 	const totalComments = totalCommentsResult.length;
 
 	if (comments.length === 0) return null;
 
-	return { comments, totalComments };
+	// Step 3: Batch-fetch reply counts and latest reply authors for these comments
+	const commentIds = comments.map((c) => c.id);
+	const replyData = await getCommentReplyCountBatch(orgId, commentIds);
+
+	const commentsWithReplies = comments.map((comment) => {
+		const data = replyData.get(comment.id);
+		return {
+			...comment,
+			parentId: comment.parentId ?? null,
+			replyCount: data?.replyCount ?? 0,
+			latestReplyAuthor: data?.latestReplyAuthor ?? null,
+		};
+	});
+
+	return { comments: commentsWithReplies, totalComments };
+}
+
+/**
+ * Fetches paginated replies for a given parent comment.
+ *
+ * @param orgId - The organization ID.
+ * @param commentId - The parent comment ID to fetch replies for.
+ * @param options - Pagination settings (`offset`, `limit`).
+ * @returns An object containing replies and total reply count, or `null` if no replies exist.
+ */
+export async function getCommentReplies(
+	orgId: string,
+	commentId: string,
+	{ offset = 0, limit = 50 }: { offset?: number; limit?: number } = {}
+) {
+	const replies = await db.query.taskComment.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.parentId, commentId)),
+		with: {
+			createdBy: { columns: userSummaryColumns },
+		},
+		orderBy: (c, { asc }) => [asc(c.createdAt)],
+		limit,
+		offset,
+	});
+
+	const totalRepliesResult = await db.query.taskComment.findMany({
+		where: (c) => and(eq(c.organizationId, orgId), eq(c.parentId, commentId)),
+		columns: { id: true },
+	});
+	const totalReplies = totalRepliesResult.length;
+
+	if (replies.length === 0) return null;
+
+	return { replies, totalReplies };
+}
+
+/**
+ * Batch-fetches reply counts and latest reply author for multiple parent comment IDs.
+ * Used by getTaskComments() to enrich top-level comments with thread metadata.
+ *
+ * @param orgId - The organization ID.
+ * @param commentIds - Array of parent comment IDs.
+ * @returns A Map of commentId -> { replyCount, latestReplyAuthor }.
+ */
+export async function getCommentReplyCountBatch(
+	orgId: string,
+	commentIds: string[]
+): Promise<Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null }>> {
+	const result = new Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null }>();
+
+	if (commentIds.length === 0) return result;
+
+	// Get reply counts per parent
+	const replyCounts = await db
+		.select({
+			parentId: taskComment.parentId,
+			replyCount: count(taskComment.id),
+		})
+		.from(taskComment)
+		.where(and(eq(taskComment.organizationId, orgId), inArray(taskComment.parentId, commentIds)))
+		.groupBy(taskComment.parentId);
+
+	// For parents that have replies, get the latest reply to extract the author
+	const parentIdsWithReplies = replyCounts
+		.filter((r) => r.replyCount > 0 && r.parentId !== null)
+		.map((r) => r.parentId as string);
+
+	const latestReplies: Array<{
+		parentId: string | null;
+		createdBy: schema.UserSummary | null;
+	}> = [];
+
+	if (parentIdsWithReplies.length > 0) {
+		// For each parent, get the latest reply with its author
+		// Using a simple approach: fetch latest reply per parent
+		for (const parentId of parentIdsWithReplies) {
+			const latestReply = await db.query.taskComment.findFirst({
+				where: (t) => and(eq(t.organizationId, orgId), eq(t.parentId, parentId)),
+				with: {
+					createdBy: { columns: userSummaryColumns },
+				},
+				orderBy: (c, { desc }) => [desc(c.createdAt)],
+			});
+			if (latestReply) {
+				latestReplies.push({
+					parentId: latestReply.parentId,
+					createdBy: latestReply.createdBy,
+				});
+			}
+		}
+	}
+
+	// Build the result map
+	for (const rc of replyCounts) {
+		if (rc.parentId === null) continue;
+		const latestReply = latestReplies.find((r) => r.parentId === rc.parentId);
+		result.set(rc.parentId, {
+			replyCount: rc.replyCount,
+			latestReplyAuthor: latestReply?.createdBy ?? null,
+		});
+	}
+
+	return result;
 }
 
 export async function getTaskTimeline(orgId: string, taskId: string) {
@@ -394,6 +513,7 @@ export async function getMergedTaskActivity(orgId: string, taskId: string, isPub
 	const commentConditions = [
 		eq(schema.taskComment.organizationId, orgId),
 		eq(schema.taskComment.taskId, taskId),
+		isNull(schema.taskComment.parentId),
 		...(isPublic ? [eq(schema.taskComment.visibility, "public")] : []),
 	];
 	// Fetch both datasets in parallel for efficiency

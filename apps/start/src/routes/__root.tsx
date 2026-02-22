@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{
         //@ts-expect-error
         href: ctx.params?.orgSlug
           ? //@ts-expect-error
-          `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
+            `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
           : "/manifest.webmanifest",
       },
     ],
@@ -124,7 +124,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             }}
             toastOptions={{
               unstyled: true,
-              duration: 10000,
+              duration: 5000, // lasts for 5 seconds
             }}
           />
         </HydrationProvider>

@@ -5,8 +5,9 @@ import { useStateManagementFetch, useStateManagementInfiniteFetch } from "@repo/
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { IconLoader2 } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TaskNewCommentContent } from "../comment/new";
+import { CommentThreadTrigger, CommentThreadBody } from "./comment-thread";
 import { TimelineCategoryChange } from "./category-change";
 import { TimelineReleaseChange } from "./release-change";
 import {
@@ -36,6 +37,20 @@ export default function GlobalTimeline({
 }: GlobalTimelineProps) {
 	const queryClient = useQueryClient();
 	const commentLimit = 20;
+	const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+
+	const toggleThread = useCallback((commentId: string) => {
+		setExpandedThreads((prev) => {
+			const next = new Set(prev);
+			if (next.has(commentId)) {
+				next.delete(commentId);
+			} else {
+				next.add(commentId);
+			}
+			return next;
+		});
+	}, []);
+
 	const timelineComponents = {
 		created: TimelineCreated,
 		status_change: TimelineStatusChange,
@@ -263,18 +278,49 @@ export default function GlobalTimeline({
 		const TimelineComponent = timelineComponents[item.eventType as keyof typeof timelineComponents];
 		if (!TimelineComponent) return null;
 
+		const isComment = item.eventType === "comment";
+		const replyCount = isComment ? (item.replyCount ?? 0) : 0;
+		const latestReplyAuthor = isComment ? (item.latestReplyAuthor ?? null) : null;
+		const isThreadExpanded = isComment && expandedThreads.has(item.id);
+
 		return (
-			<TimelineComponent
-				key={item.id}
-				item={item}
-				labels={labels}
-				availableUsers={availableUsers}
-				categories={categories}
-				tasks={tasks}
-				releases={releases}
-				showSeparator={showSeparator}
-				organization={organization}
-			/>
+			<div key={item.id}>
+				<TimelineComponent
+					item={item}
+					labels={labels}
+					availableUsers={availableUsers}
+					categories={categories}
+					tasks={tasks}
+					releases={releases}
+					showSeparator={showSeparator}
+					organization={organization}
+					{...(isComment
+						? {
+								onReply: () => toggleThread(item.id),
+								footer:
+									replyCount > 0 || isThreadExpanded ? (
+										<>
+											<CommentThreadTrigger
+												replyCount={replyCount}
+												latestReplyAuthor={latestReplyAuthor}
+												expanded={isThreadExpanded}
+												onToggle={() => toggleThread(item.id)}
+											/>
+											{isThreadExpanded && (
+												<CommentThreadBody
+													parentComment={item}
+													availableUsers={availableUsers}
+													categories={categories}
+													tasks={tasks}
+													organization={organization}
+												/>
+											)}
+										</>
+									) : undefined,
+							}
+						: {})}
+				/>
+			</div>
 		);
 	};
 

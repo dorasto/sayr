@@ -56,8 +56,12 @@ export function TimelineItemWrapper({
   variant = "activity",
   showSeparator = true,
   onReactionToggle,
+  footer,
+  isReply,
 }: TimelineItemWrapperProps & {
   onReactionToggle?: (emoji: ReactionEmoji) => void;
+  footer?: React.ReactNode;
+  isReply?: boolean;
 }) {
   const isDescription = variant === "description";
   const isComment = variant === "comment";
@@ -74,6 +78,7 @@ export function TimelineItemWrapper({
         showIndicator && "group-data-[orientation=vertical]/timeline:ms-10",
         isDescription && "ms-0!",
         isComment && "ms-0!",
+        isReply && "pb-0! ms-0!",
       )}
     >
       {/* Activity items show the timeline header with indicator */}
@@ -119,12 +124,18 @@ export function TimelineItemWrapper({
       {showContent ? (
         <TimelineContent
           className={cn(
-            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden p-3 group/timeline-item",
+            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden p-3",
             item.visibility === "internal" && "border-primary/30 bg-primary/5",
             isDescription && "border-0 bg-transparent p-0",
+            isReply && "border-0 bg-transparent rounded-none p-0 py-2",
           )}
         >
-          <div className="flex flex-col gap-1">
+          <div
+            className={cn(
+              "flex flex-col gap-1",
+              isReply ? "group/reply-item" : "group/timeline-item",
+            )}
+          >
             <div className="flex items-center gap-3">
               {!isDescription && (
                 <InlineLabel
@@ -193,7 +204,14 @@ export function TimelineItemWrapper({
 
               <div className="flex items-center gap-1 ml-auto">
                 {actionButtons && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover/timeline-item:opacity-100 has-data-[state=open]:opacity-100 transition-all">
+                  <div
+                    className={cn(
+                      "flex items-center gap-1 opacity-0 has-data-[state=open]:opacity-100 transition-all",
+                      isReply
+                        ? "group-hover/reply-item:opacity-100"
+                        : "group-hover/timeline-item:opacity-100",
+                    )}
+                  >
                     {actionButtons}
                   </div>
                 )}
@@ -277,6 +295,7 @@ export function TimelineItemWrapper({
                 />
               )}
           </div>
+          {footer}
         </TimelineContent>
       ) : null}
     </TimelineItem>

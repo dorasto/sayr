@@ -15,6 +15,7 @@ export { TimelineCreated } from "./timeline-created";
 export { TimelineStatusChange } from "./timeline-status-change";
 export { TimelinePriorityChange } from "./timeline-priority-change";
 export { TimelineComment } from "./timeline-comment";
+export { CommentThread, CommentThreadTrigger, CommentThreadBody } from "./comment-thread";
 export { TimelineLabelAdded, TimelineLabelRemoved } from "./timeline-label";
 export {
 	TimelineAssigneeAdded,

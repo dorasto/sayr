@@ -32,6 +32,7 @@ import {
   IconHistory,
   IconLock,
   IconLockOpen2,
+  IconMessage,
   IconMessageDots,
   IconPencil,
   IconTrash,
@@ -320,13 +321,16 @@ function CommentActionsMenu({
 }
 
 export function TimelineComment({
-  item,
-  availableUsers,
-  categories,
-  tasks,
-  showSeparator = true,
-  organization,
-}: TimelineItemProps & { showSeparator?: boolean }) {
+	item,
+	availableUsers,
+	categories,
+	tasks,
+	showSeparator = true,
+	organization,
+	onReply,
+	isReply,
+	footer,
+}: TimelineItemProps & { showSeparator?: boolean; onReply?: () => void; isReply?: boolean; footer?: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
@@ -628,9 +632,26 @@ export function TimelineComment({
         isSaving={isFetching}
         canSave={canSave}
         onReactionToggle={(e) => handleToggleReaction(item.id, e)}
+        footer={footer}
+        isReply={isReply}
         actionButtons={
           !isEditing ? (
             <>
+              {!isReply && onReply && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="p-1 h-auto w-auto aspect-square"
+                      onClick={onReply}
+                    >
+                      <IconMessage size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Reply</TooltipContent>
+                </Tooltip>
+              )}
               <ReactionPicker
                 onSelect={(e) => handleToggleReaction(item.id, e)}
                 existingReactions={
