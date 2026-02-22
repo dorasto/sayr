@@ -180,6 +180,12 @@ export default function GlobalTimeline({
 				queryClient.invalidateQueries({
 					queryKey: ["timeline", "comments", task.id, task.organizationId],
 				});
+				// Also invalidate any expanded reply threads so other users' replies/reactions show in real time
+				queryClient.invalidateQueries({
+					predicate: (query) =>
+						query.queryKey[0] === "comment-replies" &&
+						query.queryKey[2] === task.organizationId,
+				});
 			}
 		});
 		return unsubscribe;
@@ -192,6 +198,11 @@ export default function GlobalTimeline({
 				activity.refetch();
 				queryClient.invalidateQueries({
 					queryKey: ["timeline", "comments", task.id, task.organizationId],
+				});
+				queryClient.invalidateQueries({
+					predicate: (query) =>
+						query.queryKey[0] === "comment-replies" &&
+						query.queryKey[2] === task.organizationId,
 				});
 			}
 		});

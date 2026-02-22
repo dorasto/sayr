@@ -14,6 +14,7 @@ import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineComment } from "./timeline-comment";
 import { CommentReplyInput } from "@/components/tasks/task/comment/reply";
 import type { TimelineItemProps } from "./types";
+import { cn } from "@/lib/utils";
 
 interface CommentThreadProps {
   parentComment: schema.taskTimelineWithActor;
@@ -48,7 +49,10 @@ export function CommentThreadTrigger({
     <button
       type="button"
       onClick={onToggle}
-      className="flex items-center gap-2 pt-1.5 mt-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer border-t border-border/50 w-full"
+      className={cn(
+        "flex items-center gap-2 pt-2  text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer border-t border-border/50 w-full",
+        replyCount === 0 && "pb-2",
+      )}
     >
       {expanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
       <span>

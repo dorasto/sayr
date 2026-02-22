@@ -124,7 +124,7 @@ export function TimelineItemWrapper({
       {showContent ? (
         <TimelineContent
           className={cn(
-            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden p-3",
+            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden p-2",
             item.visibility === "internal" && "border-primary/30 bg-primary/5",
             isDescription && "border-0 bg-transparent p-0",
             isReply && "border-0 bg-transparent rounded-none p-0 py-2",
@@ -132,7 +132,7 @@ export function TimelineItemWrapper({
         >
           <div
             className={cn(
-              "flex flex-col gap-1",
+              "flex flex-col",
               isReply ? "group/reply-item" : "group/timeline-item",
             )}
           >
@@ -155,8 +155,9 @@ export function TimelineItemWrapper({
                       ? `https://github.com/${item.externalAuthorLogin}.png?size=64`
                       : item.actor?.image || ""
                   }
+                  avatarClassName="size-5!"
                   textNode={
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 pl-2">
                       <Label
                         className="text-xs text-foreground"
                         variant={"description"}
@@ -281,6 +282,7 @@ export function TimelineItemWrapper({
                 categories={categories}
                 tasks={tasks}
                 mentionViewUsers={availableUsers}
+                className="pl-1"
               />
             )}
             {/* Reactions display */}

@@ -526,92 +526,134 @@ export function TimelineComment({
     async (commentId: string, emoji: ReactionEmoji) => {
       if (!account?.id) return;
 
-      const queryKey = [
-        "timeline",
-        "comments",
-        item.taskId,
-        item.organizationId,
-      ];
       const userId = account.id;
 
-      const previousData =
-        queryClient.getQueryData<InfiniteData<CommentsPageData>>(queryKey);
+      /** Compute the updated comment with the toggled reaction */
+      const applyReactionToggle = (comment: schema.taskTimelineWithActor): schema.taskTimelineWithActor => {
+        if (comment.id !== commentId) return comment;
 
-      queryClient.setQueryData<InfiniteData<CommentsPageData>>(
-        queryKey,
-        (old) => {
-          if (!old) return old;
+        const currentReactions = comment.reactions?.reactions ?? {};
+        const emojiData = currentReactions[emoji] ?? {
+          count: 0,
+          users: [],
+        };
+        const hasReacted = emojiData.users.includes(userId);
 
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              data: page.data.map((comment) => {
-                if (comment.id !== commentId) return comment;
-
-                const currentReactions = comment.reactions?.reactions ?? {};
-                const emojiData = currentReactions[emoji] ?? {
-                  count: 0,
-                  users: [],
-                };
-                const hasReacted = emojiData.users.includes(userId);
-
-                let updatedEmojiData: { count: number; users: string[] };
-                if (hasReacted) {
-                  updatedEmojiData = {
-                    count: Math.max(0, emojiData.count - 1),
-                    users: emojiData.users.filter((id) => id !== userId),
-                  };
-                } else {
-                  updatedEmojiData = {
-                    count: emojiData.count + 1,
-                    users: [...emojiData.users, userId],
-                  };
-                }
-
-                const newReactions = { ...currentReactions };
-                if (updatedEmojiData.count === 0) {
-                  delete newReactions[emoji];
-                } else {
-                  newReactions[emoji] = updatedEmojiData;
-                }
-
-                const total = Object.values(newReactions).reduce(
-                  (sum, r) => sum + r.count,
-                  0,
-                );
-
-                return {
-                  ...comment,
-                  reactions:
-                    total > 0
-                      ? { commentId, total, reactions: newReactions }
-                      : undefined,
-                };
-              }),
-            })),
+        let updatedEmojiData: { count: number; users: string[] };
+        if (hasReacted) {
+          updatedEmojiData = {
+            count: Math.max(0, emojiData.count - 1),
+            users: emojiData.users.filter((id) => id !== userId),
           };
-        },
-      );
+        } else {
+          updatedEmojiData = {
+            count: emojiData.count + 1,
+            users: [...emojiData.users, userId],
+          };
+        }
 
-      try {
-        await CreateTaskReactionAction(
-          item.organizationId,
-          item.taskId,
-          commentId,
-          emoji,
-          wsClientId,
+        const newReactions = { ...currentReactions };
+        if (updatedEmojiData.count === 0) {
+          delete newReactions[emoji];
+        } else {
+          newReactions[emoji] = updatedEmojiData;
+        }
+
+        const total = Object.values(newReactions).reduce(
+          (sum, r) => sum + r.count,
+          0,
         );
-      } catch {
-        queryClient.setQueryData(queryKey, previousData);
-        headlessToast.error({
-          title: "Reaction failed",
-          description: "Could not update your reaction. Please try again.",
-          id: "reaction-error",
-        });
+
+        return {
+          ...comment,
+          reactions:
+            total > 0
+              ? { total, reactions: newReactions }
+              : undefined,
+        };
+      };
+
+      // Determine which query to optimistically update
+      // biome-ignore lint/suspicious/noExplicitAny: snapshot type varies between infinite and flat query data
+      let previousData: any;
+
+      if (isReply && item.parentId) {
+        // Reply — flat array in ["comment-replies", parentId, orgId]
+        const replyQueryKey = [
+          "comment-replies",
+          item.parentId,
+          item.organizationId,
+        ];
+        previousData = queryClient.getQueryData<schema.taskTimelineWithActor[]>(replyQueryKey);
+
+        queryClient.setQueryData<schema.taskTimelineWithActor[]>(
+          replyQueryKey,
+          (old) => {
+            if (!old) return old;
+            return old.map(applyReactionToggle);
+          },
+        );
+
+        try {
+          await CreateTaskReactionAction(
+            item.organizationId,
+            item.taskId,
+            commentId,
+            emoji,
+            wsClientId,
+          );
+        } catch {
+          queryClient.setQueryData(replyQueryKey, previousData);
+          headlessToast.error({
+            title: "Reaction failed",
+            description: "Could not update your reaction. Please try again.",
+            id: "reaction-error",
+          });
+        }
+      } else {
+        // Top-level comment — paginated infinite data in ["timeline", "comments", taskId, orgId]
+        const queryKey = [
+          "timeline",
+          "comments",
+          item.taskId,
+          item.organizationId,
+        ];
+        previousData = queryClient.getQueryData<InfiniteData<CommentsPageData>>(queryKey);
+
+        queryClient.setQueryData<InfiniteData<CommentsPageData>>(
+          queryKey,
+          (old) => {
+            if (!old) return old;
+
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                data: page.data.map(applyReactionToggle),
+              })),
+            };
+          },
+        );
+
+        try {
+          await CreateTaskReactionAction(
+            item.organizationId,
+            item.taskId,
+            commentId,
+            emoji,
+            wsClientId,
+          );
+        } catch {
+          queryClient.setQueryData(queryKey, previousData);
+          headlessToast.error({
+            title: "Reaction failed",
+            description: "Could not update your reaction. Please try again.",
+            id: "reaction-error",
+          });
+        }
       }
     },
-    [account?.id, item.taskId, item.organizationId, queryClient, wsClientId],
+    [account?.id, item.taskId, item.organizationId, item.parentId, isReply, queryClient, wsClientId],
   );
 
   return (
