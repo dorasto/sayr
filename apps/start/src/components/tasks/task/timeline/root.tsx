@@ -284,43 +284,42 @@ export default function GlobalTimeline({
 		const isThreadExpanded = isComment && expandedThreads.has(item.id);
 
 		return (
-			<div key={item.id}>
-				<TimelineComponent
-					item={item}
-					labels={labels}
-					availableUsers={availableUsers}
-					categories={categories}
-					tasks={tasks}
-					releases={releases}
-					showSeparator={showSeparator}
-					organization={organization}
-					{...(isComment
-						? {
-								onReply: () => toggleThread(item.id),
-								footer:
-									replyCount > 0 || isThreadExpanded ? (
-										<>
-											<CommentThreadTrigger
-												replyCount={replyCount}
-												latestReplyAuthor={latestReplyAuthor}
-												expanded={isThreadExpanded}
-												onToggle={() => toggleThread(item.id)}
+			<TimelineComponent
+				key={item.id}
+				item={item}
+				labels={labels}
+				availableUsers={availableUsers}
+				categories={categories}
+				tasks={tasks}
+				releases={releases}
+				showSeparator={showSeparator}
+				organization={organization}
+				{...(isComment
+					? {
+							onReply: () => toggleThread(item.id),
+							footer:
+								replyCount > 0 || isThreadExpanded ? (
+									<>
+										<CommentThreadTrigger
+											replyCount={replyCount}
+											latestReplyAuthor={latestReplyAuthor}
+											expanded={isThreadExpanded}
+											onToggle={() => toggleThread(item.id)}
+										/>
+										{isThreadExpanded && (
+											<CommentThreadBody
+												parentComment={item}
+												availableUsers={availableUsers}
+												categories={categories}
+												tasks={tasks}
+												organization={organization}
 											/>
-											{isThreadExpanded && (
-												<CommentThreadBody
-													parentComment={item}
-													availableUsers={availableUsers}
-													categories={categories}
-													tasks={tasks}
-													organization={organization}
-												/>
-											)}
-										</>
-									) : undefined,
-							}
-						: {})}
-				/>
-			</div>
+										)}
+									</>
+								) : undefined,
+						}
+					: {})}
+			/>
 		);
 	};
 
