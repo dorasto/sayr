@@ -1,6 +1,5 @@
 import { defineRouteMiddleware } from "@astrojs/starlight/route-data";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 
 export interface GitContributor {
@@ -21,34 +20,30 @@ interface ContributorData {
 	[filePath: string]: PageContributors;
 }
 
-// Load pre-computed contributor data at module initialization
+// Load pre-computed contributor data at module initialization.
+// This middleware runs at build time during prerendering (pages are static HTML),
+// so we read from src/data/contributors.json which is written by the
+// precomputeContributors integration in the astro:build:start hook
+// (before pages are prerendered).
+// We use process.cwd() because during both dev and build, Astro sets
+// the cwd to the marketing app root.
+//
+// Keys are normalised to lowercase because Starlight's entry.id uses
+// github-slugger which lowercases path segments, while the JSON keys
+// preserve the original filesystem casing.
 let contributorData: ContributorData = {};
 
 try {
-	const __dirname = dirname(fileURLToPath(import.meta.url));
-	
-	// In development: load from src/data
-	// In production: load from dist/server/data (same level as chunks folder)
-	let dataPath: string;
-	
-	if (import.meta.env.DEV) {
-		const marketingRoot = resolve(__dirname, "../..");
-		dataPath = resolve(marketingRoot, "src/data/contributors.json");
-	} else {
-		// In production, this middleware is in dist/server/chunks/routeData or similar
-		// The data file is in dist/server/data/contributors.json
-		// Walk up until we find the server folder, then go to data
-		let currentDir = __dirname;
-		while (currentDir && !currentDir.endsWith("/server") && currentDir !== "/") {
-			currentDir = resolve(currentDir, "..");
-		}
-		dataPath = resolve(currentDir, "data/contributors.json");
-	}
+	const dataPath = resolve(process.cwd(), "src/data/contributors.json");
 
 	if (existsSync(dataPath)) {
 		const rawData = readFileSync(dataPath, "utf-8");
-		contributorData = JSON.parse(rawData);
-		console.log(`[contributors] Loaded ${Object.keys(contributorData).length} entries from ${import.meta.env.DEV ? 'src/data' : 'dist/server/data'}`);
+		const raw: ContributorData = JSON.parse(rawData);
+		// Normalise keys to lowercase for case-insensitive lookup
+		for (const [key, value] of Object.entries(raw)) {
+			contributorData[key.toLowerCase()] = value;
+		}
+		console.log(`[contributors] Loaded ${Object.keys(contributorData).length} entries from ${dataPath}`);
 	} else {
 		console.warn("[contributors] No pre-computed contributor data found at", dataPath);
 	}
@@ -69,20 +64,30 @@ export const onRequest = defineRouteMiddleware((context) => {
 		return;
 	}
 
-	// The entry.id is the path relative to the content directory WITHOUT extension
-	const baseContentPath = `src/content/docs/${entry.id}`;
+	// The entry.id is the slug relative to the content directory WITHOUT extension.
+	// Starlight uses github-slugger which lowercases path segments, so the lookup
+	// must also be lowercase to match our normalised keys.
+	const baseContentPath = `src/content/docs/${entry.id}`.toLowerCase();
 
-	// Try common extensions to find the matching pre-computed data
+	// Try common extensions to find the matching pre-computed data.
+	// Starlight strips trailing "/index" from slugs (e.g. docs/knowledge-base/index.md
+	// becomes entry.id "docs/knowledge-base"), so we also check for index files.
 	const extensions = [".md", ".mdx"];
+	const candidates = [baseContentPath];
+	// Also try as a directory with an index file
+	candidates.push(`${baseContentPath}/index`);
+
 	let pageContributors: PageContributors | undefined;
 
-	for (const ext of extensions) {
-		const testPath = baseContentPath + ext;
-
-		if (contributorData[testPath]) {
-			pageContributors = contributorData[testPath];
-			break;
+	for (const candidate of candidates) {
+		for (const ext of extensions) {
+			const testPath = candidate + ext;
+			if (contributorData[testPath]) {
+				pageContributors = contributorData[testPath];
+				break;
+			}
 		}
+		if (pageContributors) break;
 	}
 
 	if (!pageContributors) {

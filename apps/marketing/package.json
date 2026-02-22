@@ -10,6 +10,7 @@
     "internal:build": "op run --env-file .env -- pnpm run build",
     "preview": "astro preview --port 3001",
     "astro": "astro",
+    "contributors": "node --experimental-strip-types --experimental-transform-types scripts/generate-contributors.ts",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "format": "biome format --write ."

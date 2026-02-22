@@ -55,8 +55,11 @@ jobs:
         env:
           BUMP_TYPE: ${{ steps.release-type.outputs.bump }}
         run: |
-          # Get the latest tag or default to v0.0.0
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          # Get the latest tag by version number (not by reachability from HEAD).
+          # git describe only finds tags reachable from the current commit, which
+          # can miss tags if they were created on a different branch/commit.
+          LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+          LATEST_TAG=${LATEST_TAG:-v0.0.0}
           echo "Latest tag: $LATEST_TAG"
 
           # Strip the 'v' prefix

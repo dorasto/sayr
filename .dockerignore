@@ -39,5 +39,5 @@
 Dockerfile
 .dockerignore
 
-# Documentation
-*.md
+# Documentation (root-level only — don't exclude content .md files in subdirectories)
+/*.md
