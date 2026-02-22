@@ -1,5 +1,6 @@
 "use client";
 
+import type { SecurityRequirement } from "@/lib/openapi";
 import { useState, useCallback } from "react";
 
 interface Parameter {
@@ -19,6 +20,7 @@ interface RequestTesterProps {
 	path: string;
 	baseUrl: string;
 	parameters: Parameter[];
+	security?: SecurityRequirement[];
 }
 
 const methodConfig: Record<string, { bg: string; text: string }> = {
@@ -44,7 +46,7 @@ const methodConfig: Record<string, { bg: string; text: string }> = {
 	},
 };
 
-export function RequestTester({ method, path, baseUrl, parameters }: RequestTesterProps) {
+export function RequestTester({ method, path, baseUrl, parameters, security }: RequestTesterProps) {
 	const [paramValues, setParamValues] = useState<Record<string, string>>(() => {
 		const initial: Record<string, string> = {};
 		for (const param of parameters) {
@@ -66,27 +68,38 @@ export function RequestTester({ method, path, baseUrl, parameters }: RequestTest
 	const [error, setError] = useState<string | null>(null);
 	const [authOpen, setAuthOpen] = useState(false);
 	const [varsOpen, setVarsOpen] = useState(true);
-
+	const [authValues, setAuthValues] = useState<Record<string, string>>({});
 	const pathParams = parameters.filter((p) => p.in === "path");
 	const queryParams = parameters.filter((p) => p.in === "query");
+
+
+	// ✅ Just extract scheme names (strings)
+	const activeSchemes: string[] =
+		security?.flatMap((req) => Object.keys(req)) ?? [];
 
 	const buildUrl = useCallback(() => {
 		let url = path;
 
-		// Replace path parameters
 		for (const param of pathParams) {
 			const value = paramValues[param.name];
 			if (value) {
-				url = url.replace(`{${param.name}}`, encodeURIComponent(value));
+				url = url.replace(
+					`{${param.name}}`,
+					encodeURIComponent(value)
+				);
 			}
 		}
 
-		// Add query parameters
 		const queryParts: string[] = [];
+
 		for (const param of queryParams) {
 			const value = paramValues[param.name];
 			if (value) {
-				queryParts.push(`${encodeURIComponent(param.name)}=${encodeURIComponent(value)}`);
+				queryParts.push(
+					`${encodeURIComponent(
+						param.name
+					)}=${encodeURIComponent(value)}`
+				);
 			}
 		}
 
@@ -95,7 +108,13 @@ export function RequestTester({ method, path, baseUrl, parameters }: RequestTest
 		}
 
 		return baseUrl + url;
-	}, [path, baseUrl, pathParams, queryParams, paramValues]);
+	}, [
+		path,
+		baseUrl,
+		pathParams,
+		queryParams,
+		paramValues,
+	]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -103,15 +122,25 @@ export function RequestTester({ method, path, baseUrl, parameters }: RequestTest
 		setError(null);
 		setResponse(null);
 
+		const headers: Record<string, string> = {
+			Accept: "application/json",
+		};
+
+		// ✅ Minimal auth support: bearerAuth only
+		if (activeSchemes.includes("bearerAuth")) {
+			const token = authValues["bearerAuth"];
+			if (token) {
+				headers.Authorization = `Bearer ${token}`;
+			}
+		}
+
 		const url = buildUrl();
 		const startTime = performance.now();
 
 		try {
 			const res = await fetch(url, {
-				method: method,
-				headers: {
-					Accept: "application/json",
-				},
+				method,
+				headers,
 			});
 
 			const endTime = performance.now();
@@ -124,7 +153,11 @@ export function RequestTester({ method, path, baseUrl, parameters }: RequestTest
 				time: Math.round(endTime - startTime),
 			});
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Request failed");
+			setError(
+				err instanceof Error
+					? err.message
+					: "Request failed"
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -156,35 +189,64 @@ export function RequestTester({ method, path, baseUrl, parameters }: RequestTest
 
 			<form onSubmit={handleSubmit} className="divide-y divide-border">
 				{/* Authorization Section */}
-				<div>
-					<button
-						type="button"
-						onClick={() => setAuthOpen(!authOpen)}
-						className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-secondary bg-accent transition-colors"
-					>
-						<svg
-							className={`w-3 h-3 text-foreground transition-transform ${authOpen ? "rotate-90" : ""}`}
-							fill="currentColor"
-							viewBox="0 0 20 20"
-							aria-hidden="true"
+				{activeSchemes.includes("bearerAuth") && (
+					<div>
+						<button
+							type="button"
+							onClick={() => setAuthOpen(!authOpen)}
+							className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-secondary bg-accent transition-colors"
 						>
-							<path
-								fillRule="evenodd"
-								d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-								clipRule="evenodd"
-							/>
-						</svg>
-						<span className="text-sm font-medium text-foreground">Authorization</span>
-					</button>
-					{authOpen && (
-						<div className="px-4 pb-4 space-y-2">
-							<p className="text-xs text-foreground">bearerAuth</p>
-							<p className="text-xs text-foreground">
-								Type: <span className="text-foreground">HTTP (bearer)</span>
-							</p>
-						</div>
-					)}
-				</div>
+							<svg
+								className={`w-3 h-3 text-foreground transition-transform ${authOpen ? "rotate-90" : ""
+									}`}
+								fill="currentColor"
+								viewBox="0 0 20 20"
+								aria-hidden="true"
+							>
+								<path
+									fillRule="evenodd"
+									d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+									clipRule="evenodd"
+								/>
+							</svg>
+
+							<span className="text-sm font-medium text-foreground">
+								Authorization
+							</span>
+						</button>
+
+						{authOpen && (
+							<div className="px-4 pb-4 space-y-3">
+								{/* Scheme name */}
+								<p className="text-xs text-foreground">
+									Bearer Token
+								</p>
+
+								{/* Scheme type */}
+								<p className="text-xs text-muted-foreground">
+									Type:{" "}
+									<span className="text-foreground">
+										HTTP (bearer)
+									</span>
+								</p>
+
+								{/* Token input */}
+								<input
+									type="text"
+									placeholder="Enter bearer token"
+									value={authValues["bearerAuth"] || ""}
+									onChange={(e) =>
+										setAuthValues((prev) => ({
+											...prev,
+											bearerAuth: e.target.value,
+										}))
+									}
+									className="w-full px-2 py-1.5 bg-background border border-border rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+								/>
+							</div>
+						)}
+					</div>
+				)}
 
 				{/* Variables Section */}
 				{parameters.length > 0 && (

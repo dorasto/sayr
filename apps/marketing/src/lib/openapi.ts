@@ -23,12 +23,16 @@ export interface PathItem {
 	delete?: Operation;
 	parameters?: Parameter[];
 }
-
+export type SecuritySchemeName = "bearerAuth"
+export type SecurityRequirement =
+	Partial<Record<SecuritySchemeName, string[]>> &
+	Record<string, string[]>;
 export interface Operation {
 	operationId?: string;
 	summary?: string;
 	description?: string;
 	tags?: string[];
+	security?: SecurityRequirement[];
 	parameters?: Parameter[];
 	requestBody?: RequestBody;
 	responses: Record<string, Response>;
