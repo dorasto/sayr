@@ -1,7 +1,7 @@
 "use client";
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 
 interface ContextType {
 	task: schema.TaskWithLabels;
@@ -21,7 +21,6 @@ export function RootProviderOrganizationTask({
 	organization?: ContextType["organization"];
 }) {
 	const { value: newTask, setValue: setTask } = useStateManagement("_task_", task, 1);
-	useEffect(() => setTask(task), [task, setTask]);
 	return <RootContext.Provider value={{ task: newTask, setTask, organization }}>{children}</RootContext.Provider>;
 }
 
