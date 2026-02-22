@@ -8,6 +8,7 @@ import {
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { ensureCdnUrl } from "@repo/util";
 import { IconLink, IconUsers } from "@tabler/icons-react";
+import { useMatch } from "@tanstack/react-router";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
@@ -56,29 +57,35 @@ export function TaskPanelHeader() {
  * Pulls all required data from context hooks so it stays in sync.
  */
 export function TaskPanelContent() {
-  const { task, setTask } = useLayoutTask();
-  const { organization, labels, categories, releases } =
-    useLayoutOrganization();
-  const { tasks, setTasks } = useLayoutTasks();
-  const { runWithToast } = useToastAction();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { task, setTask } = useLayoutTask();
+	const { organization, labels, categories, releases } =
+		useLayoutOrganization();
+	const { tasks, setTasks } = useLayoutTasks();
+	const { runWithToast } = useToastAction();
+	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
+	const permissions = orgMatch?.context?.permissions;
+	const canCreateLabel =
+		permissions?.admin?.administrator === true ||
+		permissions?.content?.manageLabels === true;
 
-  const availableUsers =
-    organization?.members.map((member) => member.user) || [];
+	const availableUsers =
+		organization?.members.map((member) => member.user) || [];
 
-  return (
-    <TaskContentSideContent
-      task={task}
-      labels={labels}
-      tasks={tasks}
-      setTasks={setTasks}
-      setSelectedTask={(t) => t && setTask(t)}
-      availableUsers={availableUsers}
-      wsClientId={wsClientId}
-      runWithToast={runWithToast}
-      categories={categories}
-      releases={releases}
-      organization={organization}
-    />
-  );
+	return (
+		<TaskContentSideContent
+			task={task}
+			labels={labels}
+			tasks={tasks}
+			setTasks={setTasks}
+			setSelectedTask={(t) => t && setTask(t)}
+			availableUsers={availableUsers}
+			wsClientId={wsClientId}
+			runWithToast={runWithToast}
+			categories={categories}
+			releases={releases}
+			organization={organization}
+			canCreateLabel={canCreateLabel}
+		/>
+	);
 }

@@ -62,6 +62,12 @@ export interface TaskFieldToolbarProps {
 		release?: (id: string) => void;
 	};
 
+	// --- Label creation ---
+	/** If true, shows an inline "Create label" form when no labels match search */
+	canCreateLabel?: boolean;
+	/** Called with the full updated labels list after a new label is created */
+	onLabelCreated?: (newLabels: schema.labelType[]) => void;
+
 	// --- Detail mode: internal optimistic updates ---
 	useInternalLogic?: boolean;
 	tasks?: schema.TaskWithLabels[];
@@ -117,6 +123,8 @@ export default function TaskFieldToolbar({
 	categories = [],
 	releases = [],
 	onChange,
+	canCreateLabel = false,
+	onLabelCreated,
 	useInternalLogic = false,
 	tasks = [],
 	setTasks,
@@ -466,16 +474,18 @@ export default function TaskFieldToolbar({
 				/>
 			)}
 
-			{fields.labels && (
-				<GlobalTaskLabels
-					{...sharedProps}
-					availableLabels={availableLabels}
-					{...(useInternalLogic && handleLabelsChange
-						? { onLabelsChange: handleLabelsChange }
-						: { onLabelsChange: onChange?.labels })}
-					{...(style.useCustomTrigger ? { customTrigger: creatorLabelsTrigger, customChildren: true } : {})}
-				/>
-			)}
+		{fields.labels && (
+			<GlobalTaskLabels
+				{...sharedProps}
+				availableLabels={availableLabels}
+				canCreateLabel={canCreateLabel}
+				onLabelCreated={onLabelCreated}
+				{...(useInternalLogic && handleLabelsChange
+					? { onLabelsChange: handleLabelsChange }
+					: { onLabelsChange: onChange?.labels })}
+				{...(style.useCustomTrigger ? { customTrigger: creatorLabelsTrigger, customChildren: true } : {})}
+			/>
+		)}
 
 			{fields.assignees && (
 				<GlobalTaskAssignees
