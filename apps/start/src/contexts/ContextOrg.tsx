@@ -1,7 +1,7 @@
 "use client";
 import type { schema } from "@repo/database";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useStateManagement, useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useContext, useEffect } from "react";
 import { useHydration } from "./HydrationContext";
 
@@ -47,12 +47,12 @@ export function RootProviderOrganization({
 	const { isHydrated } = useHydration();
 
 	// Use useStateManagement - cache is already seeded above, so it will find the data
-	const { value: organization, setValue: setOrganization } = useStateManagement("organization", initialOrganization, 30000);
-	const { value: labels, setValue: setLabels } = useStateManagement("labels", initialLabels, 30000);
-	const { value: views, setValue: setViews } = useStateManagement("views", initialViews, 30000);
-	const { value: categories, setValue: setCategories } = useStateManagement("categories", initialCategories, 30000);
-	const { value: issueTemplates, setValue: setIssueTemplates } = useStateManagement("issueTemplates", initialIssueTemplates, 30000);
-	const { value: releases, setValue: setReleases } = useStateManagement("releases", initialReleases, 30000);
+	const { value: organization, setValue: setOrganization } = useStateManagementKey(["organization", initialOrganization.id], initialOrganization, 30000);
+	const { value: labels, setValue: setLabels } = useStateManagementKey(["labels", initialOrganization.id], initialLabels, 30000);
+	const { value: views, setValue: setViews } = useStateManagementKey(["views", initialOrganization.id], initialViews, 30000);
+	const { value: categories, setValue: setCategories } = useStateManagementKey(["categories", initialOrganization.id], initialCategories, 30000);
+	const { value: issueTemplates, setValue: setIssueTemplates } = useStateManagementKey(["issueTemplates", initialOrganization.id], initialIssueTemplates, 30000);
+	const { value: releases, setValue: setReleases } = useStateManagementKey(["releases", initialOrganization.id], initialReleases, 30000);
 	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement("isProjectPanelOpen", true, 30000);
 
 	// After hydration, sync panel state with mobile detection (only once)

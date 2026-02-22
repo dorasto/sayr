@@ -16,7 +16,7 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useStateManagement, useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
 import {
@@ -85,8 +85,8 @@ export default function OrganizationTasksHomePage() {
   const useMobile = useIsMobile();
 
   // Get categories and views from state management (for breadcrumb view switcher)
-  const { value: stateCategories } = useStateManagement<schema.categoryType[]>(
-    "categories",
+  const { value: stateCategories } = useStateManagementKey<schema.categoryType[]>(
+    ["categories", organization.id],
     [],
     1,
   );

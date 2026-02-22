@@ -26,9 +26,10 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks")({
 
 function OrgTasksLayout() {
 	const { tasks } = Route.useLoaderData();
+	const { orgId } = Route.useParams();
 
 	return (
-		<RootProviderOrganizationTasks tasks={tasks}>
+		<RootProviderOrganizationTasks tasks={tasks} organizationId={orgId}>
 			<TasksCommandRegistrar />
 			<Outlet />
 		</RootProviderOrganizationTasks>
