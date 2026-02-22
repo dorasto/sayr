@@ -274,7 +274,7 @@ export function RequestTester({ method, path, baseUrl, parameters, security }: R
 							<div className="px-4 pb-4">
 								<div className="space-y-3">
 									{/* Table header */}
-									<div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground uppercase tracking-wide">
+									<div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground uppercase tracking-wide mt-1">
 										<span>Key</span>
 										<span>Value</span>
 									</div>
