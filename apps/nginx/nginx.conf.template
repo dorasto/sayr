@@ -45,7 +45,7 @@ http {
 
     # ==========================================================
     # ROOT DOMAIN  (example.com)
-    # Fakes: DEFAULT_ORG.example.com internally
+    # Fakes: MAIN_ORG.example.com internally
     # ==========================================================
 
     server {
