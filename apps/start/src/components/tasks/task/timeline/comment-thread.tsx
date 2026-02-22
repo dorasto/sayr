@@ -50,7 +50,7 @@ export function CommentThreadTrigger({
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex items-center gap-2 pt-2  text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer border-t border-border/50 w-full",
+        "flex items-center gap-2 pt-2 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer border-t border-border/50 w-full",
         replyCount === 0 && "pb-2",
       )}
     >
