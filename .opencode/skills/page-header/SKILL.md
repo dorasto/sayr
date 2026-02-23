@@ -1,8 +1,6 @@
 ---
 name: page-header
 description: Add or modify PageHeader layouts on admin pages, including task view integration and cross-org patterns
-license: MIT
-compatibility: opencode
 metadata:
   audience: developers
   workflow: feature-development

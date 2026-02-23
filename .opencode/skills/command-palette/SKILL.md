@@ -1,8 +1,6 @@
 ---
 name: command-palette
 description: Add, remove, or modify commands and sub-views in the Cmd+K command palette
-license: MIT
-compatibility: opencode
 metadata:
   audience: developers
   workflow: feature-development

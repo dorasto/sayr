@@ -61,6 +61,9 @@ interface Tab {
 	title?: string; // Custom title for this tab (side layout only)
 	description?: string; // Custom description for this tab (side layout only)
 	footer?: ReactNode; // Per-tab footer content
+	href?: string; // Render as a link instead of a tab switcher
+	onClick?: () => void; // Fire callback instead of switching tabs
+	variant?: "default" | "destructive"; // Visual variant for action items
 }
 
 interface TabGroup {
@@ -131,12 +134,11 @@ export function TabbedDialog({
 		});
 	}, []);
 
-	// Flatten groupedTabs to a tabs array for compatibility
+	// Flatten groupedTabs to a tabs array for compatibility (excludes action items)
 	const allTabs = useMemo(() => {
-		if (groupedTabsProp && groupedTabsProp.length > 0) {
-			return groupedTabsProp.flatMap((group) => group.items);
-		}
-		return tabs;
+		const flatTabs =
+			groupedTabsProp && groupedTabsProp.length > 0 ? groupedTabsProp.flatMap((group) => group.items) : tabs;
+		return flatTabs.filter((tab) => !tab.href && !tab.onClick);
 	}, [groupedTabsProp, tabs]);
 
 	// Get the footer for the current active tab
@@ -279,6 +281,68 @@ export function TabbedDialog({
 		</DialogHeader>
 	);
 
+	const renderSideTabItem = (tab: Tab) => {
+		const baseClasses = cn(
+			"w-full flex items-center gap-2 px-2 py-2.5 text-sm font-medium rounded-lg transition-all text-left overflow-hidden",
+			"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+		);
+
+		const variantClasses =
+			tab.variant === "destructive"
+				? "text-destructive hover:bg-destructive/10 hover:text-destructive"
+				: "hover:bg-accent hover:text-foreground";
+
+		const content = (
+			<>
+				<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">{tab.icon}</div>
+				<span className="truncate min-w-0 flex-1">{tab.label}</span>
+			</>
+		);
+
+		// Action item: render as link
+		if (tab.href) {
+			return (
+				<a
+					key={tab.id}
+					href={tab.href}
+					className={cn(baseClasses, variantClasses, "text-muted-foreground")}
+				>
+					{content}
+				</a>
+			);
+		}
+
+		// Action item: render as button with custom onClick
+		if (tab.onClick) {
+			return (
+				<button
+					key={tab.id}
+					type="button"
+					onClick={tab.onClick}
+					className={cn(baseClasses, variantClasses, "text-muted-foreground")}
+				>
+					{content}
+				</button>
+			);
+		}
+
+		// Regular tab: switch active tab
+		return (
+			<button
+				key={tab.id}
+				type="button"
+				onClick={() => setActiveTab(tab.id)}
+				className={cn(
+					baseClasses,
+					variantClasses,
+					activeTab === tab.id ? "bg-accent text-foreground shadow-sm" : "text-muted-foreground",
+				)}
+			>
+				{content}
+			</button>
+		);
+	};
+
 	const renderSideTabs = () => {
 		const groups = tabGroupsData;
 
@@ -296,48 +360,58 @@ export function TabbedDialog({
 											</div>
 										)}
 										<div className="space-y-1">
-											{group.tabs.map((tab) => (
-												<button
-													key={tab.id}
-													type="button"
-													onClick={() => setActiveTab(tab.id)}
-													className={cn(
-														"w-full flex items-center gap-2 px-2 py-2.5 text-sm font-medium rounded-lg transition-all text-left overflow-hidden",
-														"hover:bg-accent hover:text-foreground",
-														"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-														activeTab === tab.id
-															? "bg-accent text-foreground shadow-sm"
-															: "text-muted-foreground"
-													)}
-												>
-													<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-														{tab.icon}
-													</div>
-													<span className="truncate min-w-0 flex-1">{tab.label}</span>
-												</button>
-											))}
+											{group.tabs.map((tab) => renderSideTabItem(tab))}
 										</div>
 									</div>
 								))
-							: allTabs.map((tab) => (
-									<button
-										key={tab.id}
-										type="button"
-										onClick={() => setActiveTab(tab.id)}
-										className={cn(
-											"w-full flex items-center gap-2 px-2 py-2.5 text-sm font-medium rounded-lg transition-all text-left overflow-hidden",
-											"hover:bg-accent hover:text-foreground",
-											"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-											activeTab === tab.id ? "bg-accent text-foreground shadow-sm" : "text-muted-foreground"
-										)}
-									>
-										<div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">{tab.icon}</div>
-										<span className="truncate min-w-0 flex-1">{tab.label}</span>
-									</button>
-								))}
+							: allTabs.map((tab) => renderSideTabItem(tab))}
 					</div>
 				</div>
 			</div>
+		);
+	};
+
+	const renderMobileDropdownItem = (tab: Tab) => {
+		const variantClasses = tab.variant === "destructive" ? "text-destructive focus:text-destructive" : "";
+
+		const content = (
+			<>
+				{tab.icon && <div className="w-4 h-4 flex items-center justify-center">{tab.icon}</div>}
+				<span>{tab.label}</span>
+			</>
+		);
+
+		// Action item: link
+		if (tab.href) {
+			return (
+				<DropdownMenuItem key={tab.id} asChild className={cn("flex items-center gap-2", variantClasses)}>
+					<a href={tab.href}>{content}</a>
+				</DropdownMenuItem>
+			);
+		}
+
+		// Action item: custom onClick
+		if (tab.onClick) {
+			return (
+				<DropdownMenuItem
+					key={tab.id}
+					onClick={tab.onClick}
+					className={cn("flex items-center gap-2", variantClasses)}
+				>
+					{content}
+				</DropdownMenuItem>
+			);
+		}
+
+		// Regular tab
+		return (
+			<DropdownMenuItem
+				key={tab.id}
+				onClick={() => setActiveTab(tab.id)}
+				className={cn("flex items-center gap-2", activeTab === tab.id && "bg-accent")}
+			>
+				{content}
+			</DropdownMenuItem>
 		);
 	};
 
@@ -377,41 +451,14 @@ export function TabbedDialog({
 													</DropdownMenuLabel>
 												)}
 												<DropdownMenuGroup>
-													{group.tabs.map((tab) => (
-														<DropdownMenuItem
-															key={tab.id}
-															onClick={() => setActiveTab(tab.id)}
-															className={cn(
-																"flex items-center gap-2",
-																activeTab === tab.id && "bg-accent"
-															)}
-														>
-															{tab.icon && (
-																<div className="w-4 h-4 flex items-center justify-center">
-																	{tab.icon}
-																</div>
-															)}
-															<span>{tab.label}</span>
-														</DropdownMenuItem>
-													))}
+													{group.tabs.map((tab) => renderMobileDropdownItem(tab))}
 												</DropdownMenuGroup>
 												{groupIndex < groups.length - 1 && <DropdownMenuSeparator />}
 											</div>
 										))
 									) : (
 										<DropdownMenuGroup>
-											{allTabs.map((tab) => (
-												<DropdownMenuItem
-													key={tab.id}
-													onClick={() => setActiveTab(tab.id)}
-													className={cn("flex items-center gap-2", activeTab === tab.id && "bg-accent")}
-												>
-													{tab.icon && (
-														<div className="w-4 h-4 flex items-center justify-center">{tab.icon}</div>
-													)}
-													<span>{tab.label}</span>
-												</DropdownMenuItem>
-											))}
+											{allTabs.map((tab) => renderMobileDropdownItem(tab))}
 										</DropdownMenuGroup>
 									)}
 								</DropdownMenuContent>

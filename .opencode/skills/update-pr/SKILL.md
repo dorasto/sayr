@@ -1,8 +1,6 @@
 ---
 name: update-pr
 description: Update GitHub pull request title and description with comprehensive summary
-license: MIT
-compatibility: opencode
 metadata:
   audience: developers
   workflow: github
@@ -53,11 +51,6 @@ Examples:
 The PR description is structured to serve as release notes. Write in past tense and focus on user impact.
 
 ```markdown
-## Summary
-Brief, user-focused overview of what this release accomplishes. Write as if announcing the release to users or stakeholders.
-
-Example: "Fixed critical authentication issues and improved dashboard performance by 40%."
-
 ## Release Notes
 
 ### New Features
@@ -85,22 +78,17 @@ Example: "Fixed critical authentication issues and improved dashboard performanc
 - API changes that break compatibility
 - Configuration changes
 
+## Summary
+Brief, user-focused overview of what this release accomplishes. Write as if announcing the release to users or stakeholders.
+
+Example: "Fixed critical authentication issues and improved dashboard performance by 40%."
+
 ## Technical Details
 Provide implementation details for developers:
 - Key architectural decisions
 - File paths and line references
 - Code examples where helpful
 - Performance metrics or benchmarks
-
-## Files Changed
-**New Files:**
-- List new files with brief description of purpose
-
-**Modified Files:**
-- List modified files with description of changes
-
-**Removed Files:**
-- List removed files with reason for removal
 ```
 
 ## What I need from you

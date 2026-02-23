@@ -18,7 +18,7 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
       },
     });
   },
-  staleTime: 1000 * 60,
+  shouldReload: true,
   component: OrgTasksLayout,
   head: ({ loaderData }) => ({
     meta: seo({
@@ -31,7 +31,7 @@ function OrgTasksLayout() {
   const { task } = Route.useLoaderData();
 
   return (
-    <RootProviderOrganizationTask task={task}>
+    <RootProviderOrganizationTask task={task} organizationId={task.organizationId}>
       <TaskCommandRegistrar />
       <OrganizationTaskIdPage />
     </RootProviderOrganizationTask>
