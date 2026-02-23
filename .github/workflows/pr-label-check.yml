@@ -3,27 +3,68 @@ name: PR Label Enforcement
 on:
   pull_request:
     types: [opened, labeled, unlabeled, synchronize]
+    branches:
+      - main
 
 jobs:
   check-release-label:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-    
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check for release label
         id: check-label
         env:
           PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
           echo "Labels: $PR_LABELS"
-          
+
           HAS_RELEASE_LABEL=false
-          if echo "$PR_LABELS" | grep -qE '"release:(major|minor|patch|skip)"'; then
+          BUMP_TYPE=""
+          NEXT_VERSION=""
+
+          if echo "$PR_LABELS" | grep -qE '"release:major"'; then
             HAS_RELEASE_LABEL=true
+            BUMP_TYPE="major"
+          elif echo "$PR_LABELS" | grep -qE '"release:minor"'; then
+            HAS_RELEASE_LABEL=true
+            BUMP_TYPE="minor"
+          elif echo "$PR_LABELS" | grep -qE '"release:patch"'; then
+            HAS_RELEASE_LABEL=true
+            BUMP_TYPE="patch"
+          elif echo "$PR_LABELS" | grep -qE '"release:skip"'; then
+            HAS_RELEASE_LABEL=true
+            BUMP_TYPE="skip"
           fi
-          
+
           echo "has_label=$HAS_RELEASE_LABEL" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+
+          if [ "$HAS_RELEASE_LABEL" = "true" ] && [ "$BUMP_TYPE" != "skip" ] && [ -n "$BUMP_TYPE" ]; then
+            LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+            LATEST_TAG=${LATEST_TAG:-v0.0.0}
+            CURRENT_VERSION=${LATEST_TAG#v}
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+            if [ "$BUMP_TYPE" = "major" ]; then
+              NEXT_VERSION="$((MAJOR + 1)).0.0"
+            elif [ "$BUMP_TYPE" = "minor" ]; then
+              NEXT_VERSION="${MAJOR}.$((MINOR + 1)).0"
+            elif [ "$BUMP_TYPE" = "patch" ]; then
+              NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            fi
+
+            echo "next_version=v${NEXT_VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "next_version=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Comment on PR - Missing Label
         if: steps.check-label.outputs.has_label == 'false'
@@ -35,23 +76,23 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('⚠️ Release Label Required')
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Release Label Required')
             );
-            
-            const body = `## ⚠️ Release Label Required
+
+            const body = `## Release Label Required
             
             This PR needs a release label to indicate the type of change:
             
-            - 🔴 \`release:major\` - Breaking changes (bumps major version, e.g., 1.0.0 → 2.0.0)
-            - 🟡 \`release:minor\` - New features (bumps minor version, e.g., 1.0.0 → 1.1.0)
-            - 🟢 \`release:patch\` - Bug fixes (bumps patch version, e.g., 1.0.0 → 1.0.1)
-            - ⚪ \`release:skip\` - No release needed (docs, tests, CI changes)
+            - \`release:major\` - Breaking changes (bumps major version, e.g., 1.0.0 -> 2.0.0)
+            - \`release:minor\` - New features (bumps minor version, e.g., 1.0.0 -> 1.1.0)
+            - \`release:patch\` - Bug fixes (bumps patch version, e.g., 1.0.0 -> 1.0.1)
+            - \`release:skip\` - No release needed (docs, tests, CI changes)
             
             Please add **exactly one** release label before merging.`;
-            
+
             if (botComment) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
@@ -78,17 +119,30 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('⚠️ Release Label Required')
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Release Label Required')
             );
-            
+
+            const bumpType = '${{ steps.check-label.outputs.bump_type }}';
+            const nextVersion = '${{ steps.check-label.outputs.next_version }}';
+
+            let body = '';
+            if (bumpType === 'skip') {
+              body = '## Release Label Added\n\nYou added `release:skip` - no version bump will occur when this PR is merged.';
+            } else if (nextVersion) {
+              body = `## Release Label Added\n\nYou added \`release:${bumpType}\`. The next version once merged will be **${nextVersion}**.`;
+            } else {
+              body = '## Release Label Added\n\nYou added a release label.';
+            }
+
             if (botComment) {
-              await github.rest.issues.deleteComment({
+              await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: botComment.id
+                comment_id: botComment.id,
+                body: body
               });
             }
 
