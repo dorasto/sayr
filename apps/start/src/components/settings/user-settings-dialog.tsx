@@ -1,23 +1,19 @@
 import { authClient } from "@repo/auth/client";
-import { Button } from "@repo/ui/components/button";
 import {
   TabbedDialog,
   TabPanel,
 } from "@repo/ui/components/tomui/tabbed-dialog";
-import { IconLogout, IconPalette, IconUser } from "@tabler/icons-react";
+import {
+  IconHome,
+  IconLogout,
+  IconPalette,
+  IconUser,
+} from "@tabler/icons-react";
 import { useCallback } from "react";
 import {
   UserSettingsContent,
   UserPreferences,
 } from "@/components/pages/admin/settings/user-settings-content";
-import {
-  Tile,
-  TileAction,
-  TileDescription,
-  TileHeader,
-  TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
-import { Separator } from "@repo/ui/components/separator";
 
 interface UserSettingsDialogProps {
   isOpen: boolean;
@@ -71,19 +67,21 @@ export function UserSettingsDialog({
               icon: <IconPalette className="size-4" />,
               title: "Preferences",
             },
+            {
+              id: "dashboard",
+              label: "Dashboard",
+              icon: <IconHome className="size-4" />,
+              href: `${import.meta.env.VITE_URL_ROOT}`,
+            },
+            {
+              id: "sign-out",
+              label: "Log out",
+              icon: <IconLogout className="size-4" />,
+              onClick: handleSignOut,
+            },
           ],
         },
       ]}
-      // footer={
-      // 	<Button
-      // 		variant="ghost"
-      // 		className="text-destructive hover:text-destructive hover:bg-destructive/10"
-      // 		onClick={handleSignOut}
-      // 	>
-      // 		<IconLogout className="size-4" />
-      // 		Sign out
-      // 	</Button>
-      // }
     >
       <TabPanel tabId="general">
         <UserSettingsContent
@@ -95,10 +93,6 @@ export function UserSettingsDialog({
           }}
           onAccountUpdated={handleAccountUpdated}
         />
-        <Separator className="mb-3" />
-        <Button variant={"primary"} onClick={handleSignOut}>
-          <IconLogout className="" /> Log out
-        </Button>
       </TabPanel>
       <TabPanel tabId="preferences">
         <UserPreferences />
