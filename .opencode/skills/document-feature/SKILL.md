@@ -1,8 +1,6 @@
 ---
 name: document-feature
 description: Create or update user-facing documentation for Sayr features in apps/marketing
-license: MIT
-compatibility: opencode
 metadata:
   audience: developers
   workflow: documentation

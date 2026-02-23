@@ -1,8 +1,6 @@
 ---
 name: right-panel
 description: Add, modify, or troubleshoot the right sidebar panel on admin pages
-license: MIT
-compatibility: opencode
 metadata:
   audience: developers
   workflow: feature-development
