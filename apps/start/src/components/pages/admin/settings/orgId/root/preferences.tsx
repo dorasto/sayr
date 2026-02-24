@@ -69,7 +69,7 @@ export default function Preferences() {
             </TileHeader>
             <TileAction>
               Will contain a sheet with a list of blocked users and options to
-              add or remove users from the list.
+              add or remove users from the listz.
             </TileAction>
           </Tile>
         </div>

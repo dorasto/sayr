@@ -115,6 +115,7 @@ export function SettingsSidebar() {
           <SidebarMenu className="gap-0.5">
             {settingsNavigation.map((item) => {
               const isActive = pathname === item.url;
+              const Icon = isActive ? item.activeIcon : item.icon;
               return (
                 <SidebarMenuItem
                   key={item.title}
@@ -124,7 +125,12 @@ export function SettingsSidebar() {
                   <Link to={item.url} className="w-full">
                     <SidebarMenuButton
                       size="small"
-                      icon={<item.icon size={16} />}
+                      icon={
+                        <Icon
+                          size={16}
+                          className={cn(isActive && item.activeClass)}
+                        />
+                      }
                       tooltip={item.title}
                     >
                       <span>{item.title}</span>

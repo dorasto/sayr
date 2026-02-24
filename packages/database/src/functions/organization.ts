@@ -83,7 +83,12 @@ export async function getOrganization(orgId: string, userId: string): Promise<sc
 		where: (org) => eq(org.id, orgId),
 		with: {
 			members: {
-				with: { user: true },
+				with: {
+					user: true,
+					teams: {
+						with: { team: true },
+					},
+				},
 			},
 		},
 	});
