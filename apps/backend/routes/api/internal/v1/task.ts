@@ -1134,6 +1134,25 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			);
 		}
 	}
+	// Determine the actor attempting to create the comment
+	const commentActorIdCheck =
+		source === "github"
+			? bodyCreatedBy
+			: bodyCreatedBy ?? session?.userId;
+
+	// Blocked users cannot post at all
+	if (commentActorIdCheck) {
+		const blockedIds = await getBlockedUserIds(orgId);
+		if (blockedIds.includes(commentActorIdCheck)) {
+			return c.json(
+				{
+					success: false,
+					error: "You do not have permission to perform this action.",
+				},
+				403
+			);
+		}
+	}
 
 	// Validate parentId if provided: must be a top-level comment in the same task
 	let resolvedVisibility = visibility;
@@ -1593,16 +1612,6 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	if (!isOrgMember) {
-		if (!session?.userId) {
-			return c.json(
-				{
-					success: false,
-					error: "You must be signed in to react.",
-				},
-				401
-			);
-		}
-
 		// Verify the task exists and is publicly visible
 		const task = await db.query.task.findFirst({
 			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
@@ -1619,7 +1628,18 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 			);
 		}
 	}
-
+	if (session?.userId) {
+		const blockedIds = await getBlockedUserIds(orgId);
+		if (blockedIds.includes(session?.userId || "")) {
+			return c.json(
+				{
+					success: false,
+					error: "You do not have permission to perform this action.",
+				},
+				403
+			);
+		}
+	}
 	// 2️⃣ Insert or toggle reaction
 	await traceAsync(
 		"task.comment.reaction",
@@ -2072,6 +2092,18 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 	const userAgent = c.req.header("user-agent") ?? "unknown";
 	const anonHash = getAnonHash(ip, userAgent);
 	const userId = session?.userId ?? null;
+	if (userId) {
+		const blockedIds = await getBlockedUserIds(orgId);
+		if (blockedIds.includes(userId)) {
+			return c.json(
+				{
+					success: false,
+					error: "You do not have permission to perform this action.",
+				},
+				403
+			);
+		}
+	}
 	// 3️⃣ Insert or toggle vote
 	const result = await traceAsync(
 		"task.vote.toggle",
