@@ -19,7 +19,10 @@ export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
 	"updated",
 	"category_change",
 	"release_change",
-	"github_commit_ref"
+	"github_commit_ref",
+	"github_pr_linked",
+	"github_pr_commit",
+	"github_pr_merged"
 ]);
 
 export const taskTimeline = table(

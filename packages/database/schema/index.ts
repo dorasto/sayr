@@ -31,6 +31,7 @@ export * from "./taskTemplate.schema";
 export * from "./taskVote.schema";
 export * from "./apikey.schema";
 export * from "./notification.schema";
+export * from "./github_pull_request.schema";
 export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>

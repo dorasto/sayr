@@ -250,6 +250,7 @@ async function handleContentEvents(
 					payload: {
 						owner: repository.owner.login,
 						repo: repository.name,
+						repoId: repository.id,
 						repo_private: repository.private,
 						organizationId: linked.organizationId,
 						number: issueNum,
@@ -261,6 +262,117 @@ async function handleContentEvents(
 				});
 			}
 			break;
+		case "pull_request": {
+			const action = payload.action;
+			const pr = payload.pull_request;
+
+			const prNumber = pr.number;
+			const prTitle = pr.title ?? "";
+			const prBody = pr.body ?? "";
+			const merged = pr.merged ?? false;
+
+			// Only care about lifecycle + new commits
+			if (!["opened", "reopened", "synchronize", "closed"].includes(action)) {
+				return;
+			}
+
+			// Ignore bot PRs
+			const author = pr.user?.login ?? "";
+			if (author.endsWith("[bot]")) return;
+
+			// Extract keywords from title + body
+			const keywordMatches = extractSayrKeywords(
+				`${prTitle}\n${prBody}`
+			);
+
+			// ----------------------------------------
+			// 1️⃣ PR OPENED / REOPENED
+			// ----------------------------------------
+			if (action === "opened" || action === "reopened") {
+				await enqueue("github", {
+					type: "pull_request_link",
+					traceContext,
+					payload: {
+						linkedId: linked.id,
+						organizationId: linked.organizationId,
+
+						owner: repository.owner.login,
+						repo: repository.name,
+						repoId: repository.id,
+						repo_private: repository.private,
+
+						number: prNumber,
+						title: prTitle,
+						body: prBody,
+
+						headSha: pr.head.sha,
+						baseRef: pr.base.ref,
+						headRef: pr.head.ref,
+						headBranch: pr.head.ref,
+						baseBranch: pr.base.ref,
+
+						author,
+						matches: keywordMatches,
+					},
+				});
+
+				return;
+			}
+
+			// ----------------------------------------
+			// 2️⃣ NEW COMMITS PUSHED TO PR
+			// ----------------------------------------
+			if (action === "synchronize") {
+				await enqueue("github", {
+					type: "pull_request_sync",
+					traceContext,
+					payload: {
+						linkedId: linked.id,
+						organizationId: linked.organizationId,
+						owner: repository.owner.login,
+						repo: repository.name,
+						repoId: repository.id,
+						repo_private: repository.private,
+
+						number: prNumber,
+						headSha: pr.head.sha,
+						before: payload.before,
+						after: payload.after,
+
+						headBranch: pr.head.ref,
+					},
+				});
+
+				return;
+			}
+
+			// ----------------------------------------
+			// 3️⃣ PR CLOSED (Merged detection)
+			// ----------------------------------------
+			if (action === "closed") {
+				await enqueue("github", {
+					type: "pull_request_closed",
+					traceContext,
+					payload: {
+						linkedId: linked.id,
+						organizationId: linked.organizationId,
+						owner: repository.owner.login,
+						repo: repository.name,
+						repoId: repository.id,
+						repo_private: repository.private,
+
+						number: prNumber,
+						merged,
+						mergedAt: pr.merged_at,
+						mergeCommitSha: pr.merge_commit_sha,
+					},
+				});
+
+				return;
+			}
+
+			break;
+		}
 		default:
 			break;
 	}

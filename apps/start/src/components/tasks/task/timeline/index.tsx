@@ -23,6 +23,9 @@ export {
 } from "./timeline-assignee";
 export { TimelineUpdated } from "./timeline-updated";
 export { TimelineGithubCommit } from "./timeline-github-commit";
+export { TimelineGithubPRLinked } from "./timeline-github-pr-linked";
+export { TimelineGithubPRCommit } from "./timeline-github-pr-commit";
+export { TimelineGithubPRClosed } from "./timeline-github-pr-closed";
 export { TimelineCategoryChange } from "./category-change";
 export { TimelineReleaseChange } from "./release-change";
 

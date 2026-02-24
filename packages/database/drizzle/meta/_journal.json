@@ -15,6 +15,20 @@
       "when": 1771774275164,
       "tag": "0001_productive_christian_walker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771903718011,
+      "tag": "0002_public_ghost_rider",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771904004344,
+      "tag": "0003_numerous_bruce_banner",
+      "breakpoints": true
     }
   ]
 }
