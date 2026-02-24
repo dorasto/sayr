@@ -172,7 +172,7 @@ async function handleContentEvents(
 						commitSha: commit.id,
 						commitUrl: commit.url,
 						commitMessage: message,
-						userId: commit?.user?.id,
+						userId: payload?.sender?.id,
 						authorLogin: commit.author?.username ?? null,
 						authorEmail: commit.author?.email ?? null,
 
