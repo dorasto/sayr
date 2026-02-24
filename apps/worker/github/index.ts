@@ -147,7 +147,6 @@ export async function handleComment(
 	// --------------------
 	// Sanitize content (no uploads)
 	// --------------------
-	console.log("🚀 ~ handleComment ~ commentBody:", commentBody)
 	const sanitizedBody = commentBody.replace(
 		/<(img|video|iframe|object|embed)[^>]*>/gi,
 		""
@@ -178,6 +177,52 @@ export async function handleComment(
 	);
 
 	if (!githubIssue?.task) {
+		const githubPullRequest = await traceAsync(
+			"github.pull_request.lookup",
+			() =>
+				db.query.githubPullRequest.findFirst({
+					where: (gi) =>
+						and(
+							eq(gi.organizationId, organizationId || ""),
+							eq(gi.prNumber, number)
+						),
+					with: { task: true },
+				}),
+			{
+				description: "Looking up linked Sayr task for GitHub pull request",
+				data: { owner, organizationId, number },
+			}
+		);
+		if (!githubPullRequest?.task) {
+			return;
+		}
+		await traceAsync(
+			"sayr.comment.sync",
+			() =>
+				postSayrComment(
+					{
+						taskKey: githubPullRequest?.task?.shortId || 0,
+						orgId: githubPullRequest?.task?.organizationId || "",
+						owner,
+						repo,
+						number,
+						authorLogin: user,
+						authorGithubId: userId,
+						repo_private,
+						externalCommentId: commentId,
+						pull_request: true,
+					},
+					sanitizedBody
+				),
+			{
+				description: "Posting GitHub comment to Sayr (PR)",
+				data: {
+					taskKey: githubPullRequest.task.shortId,
+					commentId,
+					user,
+				},
+			}
+		);
 		return;
 	}
 

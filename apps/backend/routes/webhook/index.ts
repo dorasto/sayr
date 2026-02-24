@@ -277,6 +277,7 @@ async function handleContentEvents(
 						commentBody: payload.comment.body ?? "",
 						user: commenter,
 						userId: commenterId,
+						pull_request: repository.has_pull_requests
 					},
 				});
 			}

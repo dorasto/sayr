@@ -37,6 +37,7 @@ export type GithubIssueCommentPayload = GithubRepoContext & {
 	commentBody: string;
 	user: string;
 	userId?: number;
+	pull_request?: boolean;
 };
 
 /* ============================================================

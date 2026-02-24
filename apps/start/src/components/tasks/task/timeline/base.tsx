@@ -35,8 +35,7 @@ import type { NodeJSON } from "prosekit/core";
 import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { ReactionDisplay, type ReactionEmoji } from "./reactions";
-import type { TimelineItemWrapperProps, TimelineItemVariant } from "./types";
-import { Separator } from "@repo/ui/components/separator";
+import type { TimelineItemWrapperProps } from "./types";
 
 export function TimelineItemWrapper({
   item,
@@ -141,8 +140,8 @@ export function TimelineItemWrapper({
                 <InlineLabel
                   text={
                     item.source === "github" &&
-                    !item.actor &&
-                    item.externalAuthorLogin
+                      !item.actor &&
+                      item.externalAuthorLogin
                       ? item.externalAuthorLogin
                       : item.actor
                         ? getDisplayName(item.actor)
@@ -150,8 +149,8 @@ export function TimelineItemWrapper({
                   }
                   image={
                     item.source === "github" &&
-                    !item.actor &&
-                    item.externalAuthorLogin
+                      !item.actor &&
+                      item.externalAuthorLogin
                       ? `https://github.com/${item.externalAuthorLogin}.png?size=64`
                       : item.actor?.image || ""
                   }
@@ -163,8 +162,8 @@ export function TimelineItemWrapper({
                         variant={"description"}
                       >
                         {item.source === "github" &&
-                        !item.actor &&
-                        item.externalAuthorLogin
+                          !item.actor &&
+                          item.externalAuthorLogin
                           ? item.externalAuthorLogin
                           : item.actor
                             ? getDisplayName(item.actor)
@@ -176,7 +175,7 @@ export function TimelineItemWrapper({
                             rel="noopener noreferrer"
                           >
                             <InlineLabel
-                              text="via GitHub"
+                              text={item.externalCommentUrl?.includes("/pull/") ? "via GitHub (PR)" : "via GitHub"}
                               icon={<IconBrandGithub size={12} />}
                               className="bg-secondary border rounded-lg pe-1"
                             />
@@ -278,7 +277,7 @@ export function TimelineItemWrapper({
             ) : (
               <Editor
                 readonly
-                defaultContent={item.content}
+                defaultContent={item.content as any}
                 categories={categories}
                 tasks={tasks}
                 mentionViewUsers={availableUsers}
