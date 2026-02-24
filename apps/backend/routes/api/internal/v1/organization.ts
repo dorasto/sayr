@@ -7,6 +7,11 @@ import {
 	getLabels,
 	getOrganizationMembers,
 	searchOrgMembers,
+	searchOrgInteractors,
+	getBlockedUsers,
+	getBlockedUserIds,
+	blockUser,
+	unblockUser,
 	schema,
 	type TeamPermissions,
 } from "@repo/database";
@@ -2600,6 +2605,230 @@ apiRouteAdminOrganization.get("/:orgId/members/search", async (c) => {
 	);
 
 	return c.json({ success: true, data: members });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BLOCKED USERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// List all blocked users for an organization
+apiRouteAdminOrganization.get("/:orgId/blocked-users", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Not authenticated" }, 401);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		const blocked = await traceAsync(
+			"blockedUsers.list",
+			() => getBlockedUsers(orgId),
+			{ description: "Listing blocked users", data: { orgId } },
+		);
+
+		return c.json({ success: true, data: blocked });
+	} catch (err) {
+		await recordWideError({
+			name: "blockedUsers.list.failed",
+			error: err,
+			code: "BLOCKED_USERS_LIST_FAILED",
+			message: "Failed to list blocked users",
+			contextData: { orgId },
+		});
+		return c.json({ success: false, error: "Failed to list blocked users" }, 500);
+	}
+});
+
+// Search for users who've interacted with the org (non-members) to block
+apiRouteAdminOrganization.get("/:orgId/blocked-users/search", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+	const query = c.req.query("query");
+	const limitParam = c.req.query("limit");
+	const limit = limitParam ? Number.parseInt(limitParam, 10) : 20;
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Not authenticated" }, 401);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		const users = await traceAsync(
+			"blockedUsers.search",
+			() => searchOrgInteractors(orgId, { query: query || undefined, limit }),
+			{ description: "Searching org interactors for block", data: { orgId, query, limit } },
+		);
+
+		return c.json({ success: true, data: users });
+	} catch (err) {
+		await recordWideError({
+			name: "blockedUsers.search.failed",
+			error: err,
+			code: "BLOCKED_USERS_SEARCH_FAILED",
+			message: "Failed to search interactors",
+			contextData: { orgId, query },
+		});
+		return c.json({ success: false, error: "Failed to search users" }, 500);
+	}
+});
+
+// Block a user from an organization
+apiRouteAdminOrganization.post("/:orgId/blocked-users", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Not authenticated" }, 401);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	const { userId, reason } = await c.req.json();
+
+	if (!userId) {
+		return c.json({ success: false, error: "userId is required" }, 400);
+	}
+
+	// Prevent blocking org members
+	const isMember = await traceAsync(
+		"blockedUsers.block.checkMembership",
+		() =>
+			db.query.member.findFirst({
+				where: and(
+					eq(schema.member.organizationId, orgId),
+					eq(schema.member.userId, userId),
+				),
+			}),
+		{ description: "Checking if target user is an org member", data: { orgId, userId } },
+	);
+
+	if (isMember) {
+		return c.json({ success: false, error: "Cannot block an organization member" }, 400);
+	}
+
+	try {
+		const blocked = await traceAsync(
+			"blockedUsers.block",
+			() => blockUser(orgId, userId, session.userId, reason),
+			{ description: "Blocking user from org", data: { orgId, userId, blockedBy: session.userId } },
+		);
+
+		if (!blocked) {
+			return c.json({ success: false, error: "User is already blocked" }, 409);
+		}
+
+		return c.json({ success: true, data: blocked });
+	} catch (err) {
+		await recordWideError({
+			name: "blockedUsers.block.failed",
+			error: err,
+			code: "BLOCK_USER_FAILED",
+			message: "Failed to block user",
+			contextData: { orgId, userId },
+		});
+		return c.json({ success: false, error: "Failed to block user" }, 500);
+	}
+});
+
+// Unblock a user from an organization
+apiRouteAdminOrganization.delete("/:orgId/blocked-users", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Not authenticated" }, 401);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	const { userId } = await c.req.json();
+
+	if (!userId) {
+		return c.json({ success: false, error: "userId is required" }, 400);
+	}
+
+	try {
+		const removed = await traceAsync(
+			"blockedUsers.unblock",
+			() => unblockUser(orgId, userId),
+			{ description: "Unblocking user from org", data: { orgId, userId } },
+		);
+
+		if (!removed) {
+			return c.json({ success: false, error: "User was not blocked" }, 404);
+		}
+
+		return c.json({ success: true, data: { userId, orgId } });
+	} catch (err) {
+		await recordWideError({
+			name: "blockedUsers.unblock.failed",
+			error: err,
+			code: "UNBLOCK_USER_FAILED",
+			message: "Failed to unblock user",
+			contextData: { orgId, userId },
+		});
+		return c.json({ success: false, error: "Failed to unblock user" }, 500);
+	}
+});
+
+// Get blocked user IDs for an organization (member-level access for comment filtering)
+apiRouteAdminOrganization.get("/:orgId/blocked-user-ids", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Not authenticated" }, 401);
+	}
+
+	const isMember = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isMember) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		const blockedIds = await traceAsync(
+			"blockedUsers.listIds",
+			() => getBlockedUserIds(orgId),
+			{ description: "Listing blocked user IDs for comment filtering", data: { orgId } },
+		);
+
+		return c.json({ success: true, data: blockedIds });
+	} catch (err) {
+		await recordWideError({
+			name: "blockedUsers.listIds.failed",
+			error: err,
+			code: "BLOCKED_USER_IDS_LIST_FAILED",
+			message: "Failed to list blocked user IDs",
+			contextData: { orgId },
+		});
+		return c.json({ success: false, error: "Failed to list blocked user IDs" }, 500);
+	}
 });
 
 // Task routes

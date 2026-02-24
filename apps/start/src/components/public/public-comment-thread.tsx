@@ -100,6 +100,8 @@ export function PublicCommentThreadBody({
 	onEdit,
 	onDelete,
 	categories,
+	blockedUserIds,
+	isOrgMember,
 }: {
 	parentComment: CommentData;
 	memberHighestTeam: Map<string, string | null>;
@@ -108,6 +110,8 @@ export function PublicCommentThreadBody({
 	onEdit: (commentId: string, content: NodeJSON) => Promise<boolean>;
 	onDelete: (commentId: string) => Promise<boolean>;
 	categories: schema.categoryType[];
+	blockedUserIds?: Set<string>;
+	isOrgMember?: boolean;
 }) {
 	const { data: session } = authClient.useSession();
 	const queryClient = useQueryClient();
@@ -245,6 +249,8 @@ export function PublicCommentThreadBody({
 								onDelete={onDelete}
 								categories={categories}
 								isReply
+								blockedUserIds={blockedUserIds}
+								isOrgMember={isOrgMember}
 							/>
 						</div>
 					))}

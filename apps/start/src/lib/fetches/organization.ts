@@ -801,6 +801,133 @@ export async function deleteGithubSyncConnectionAction(
 	return result;
 }
 
+// ────────────────────────────────────
+//  Blocked Users
+// ────────────────────────────────────
+
+/**
+ * Fetches the list of blocked users for an organization.
+ *
+ * @param organizationId - The ID of the organization.
+ * @returns Array of blocked user records with user + blockedBy summaries.
+ */
+export async function getBlockedUsersAction(
+	organizationId: string,
+): Promise<schema.BlockedUserWithDetails[]> {
+	const res = await fetch(`${API_URL}/v1/admin/organization/${organizationId}/blocked-users`, {
+		credentials: "include",
+	});
+
+	if (!res.ok) {
+		throw new Error(`Failed to fetch blocked users: ${res.statusText}`);
+	}
+
+	const json = await res.json();
+	return json.data ?? [];
+}
+
+/**
+ * Fetches just the user IDs of blocked users for an organization.
+ * Lightweight endpoint accessible to any org member — used for comment filtering.
+ *
+ * @param organizationId - The ID of the organization.
+ * @returns Array of blocked user ID strings.
+ */
+export async function getBlockedUserIdsAction(organizationId: string): Promise<string[]> {
+	const res = await fetch(`${API_URL}/v1/admin/organization/${organizationId}/blocked-user-ids`, {
+		credentials: "include",
+	});
+
+	if (!res.ok) {
+		// Non-members or unauthenticated users get 401 — return empty gracefully
+		return [];
+	}
+
+	const json = await res.json();
+	return json.data ?? [];
+}
+
+/**
+ * Searches for non-member users who have interacted with the organization.
+ * Used for the "block user" search UI.
+ *
+ * @param organizationId - The ID of the organization.
+ * @param query - Optional search text to filter by name/displayName.
+ * @param limit - Max results (default 20).
+ * @returns Array of UserSummary objects.
+ */
+export async function searchOrgInteractorsAction(
+	organizationId: string,
+	query?: string,
+	limit?: number,
+): Promise<schema.UserSummary[]> {
+	const params = new URLSearchParams();
+	if (query) params.set("query", query);
+	if (limit) params.set("limit", String(limit));
+
+	const qs = params.toString();
+	const url = `${API_URL}/v1/admin/organization/${organizationId}/blocked-users/search${qs ? `?${qs}` : ""}`;
+
+	const res = await fetch(url, {
+		credentials: "include",
+	});
+
+	if (!res.ok) {
+		throw new Error(`Failed to search interactors: ${res.statusText}`);
+	}
+
+	const json = await res.json();
+	return json.data ?? [];
+}
+
+/**
+ * Blocks a user from interacting with an organization.
+ *
+ * @param organizationId - The ID of the organization.
+ * @param userId - The ID of the user to block.
+ * @param reason - Optional reason for blocking.
+ * @returns The created blocked user record with details.
+ */
+export async function blockUserAction(
+	organizationId: string,
+	userId: string,
+	reason?: string,
+): Promise<{ success: boolean; data?: schema.BlockedUserWithDetails; error?: string }> {
+	const result = await fetch(`${API_URL}/v1/admin/organization/${organizationId}/blocked-users`, {
+		method: "POST",
+		body: JSON.stringify({ userId, reason }),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (e) => await e.json());
+
+	return result;
+}
+
+/**
+ * Unblocks a user from an organization.
+ *
+ * @param organizationId - The ID of the organization.
+ * @param userId - The ID of the user to unblock.
+ * @returns Success/error response.
+ */
+export async function unblockUserAction(
+	organizationId: string,
+	userId: string,
+): Promise<{ success: boolean; error?: string }> {
+	const result = await fetch(`${API_URL}/v1/admin/organization/${organizationId}/blocked-users`, {
+		method: "DELETE",
+		body: JSON.stringify({ userId }),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (e) => await e.json());
+
+	return result;
+}
+
 /**
  * Enables or disables an existing GitHub sync connection.
  *

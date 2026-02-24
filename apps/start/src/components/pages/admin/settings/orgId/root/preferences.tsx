@@ -5,9 +5,11 @@ import {
   TileAction,
   TileDescription,
 } from "@repo/ui/components/doras-ui/tile";
+import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { Switch } from "@repo/ui/components/switch";
-import { Toggle } from "@repo/ui/components/toggle";
+import { IconBan } from "@tabler/icons-react";
+import { BlockedUsersSheet } from "./blocked-users";
 
 export default function Preferences() {
   return (
@@ -68,8 +70,12 @@ export default function Preferences() {
               </TileDescription>
             </TileHeader>
             <TileAction>
-              Will contain a sheet with a list of blocked users and options to
-              add or remove users from the listz.
+              <BlockedUsersSheet>
+                <Button variant="primary" size={"sm"}>
+                  <IconBan />
+                  Manage
+                </Button>
+              </BlockedUsersSheet>
             </TileAction>
           </Tile>
         </div>

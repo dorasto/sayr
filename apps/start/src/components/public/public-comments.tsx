@@ -5,7 +5,7 @@ import {
   useStateManagementInfiniteFetch,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
-import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { authClient } from "@repo/auth/client";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/fetches/task";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import type { CommentData, CommentsPage } from "./public-comments-types";
 import { PublicCommentItem } from "./public-comment-item";
@@ -130,6 +131,25 @@ export function PublicComments({
   const orgUsers = useMemo(
     () => organization.members.map((m) => m.user) as schema.userType[],
     [organization.members],
+  );
+
+  // Check if the current viewer is an org member
+  const isOrgMember = useMemo(
+    () => !!session?.user?.id && organization.members.some((m) => m.user.id === session.user.id),
+    [session?.user?.id, organization.members],
+  );
+
+  // Fetch blocked user IDs (only for org members — endpoint returns 401 for non-members, action handles gracefully)
+  const { data: blockedUserIdsArray } = useQuery({
+    queryKey: ["blocked-user-ids", organizationId],
+    queryFn: () => getBlockedUserIdsAction(organizationId),
+    enabled: isOrgMember,
+    staleTime: 60_000,
+  });
+
+  const blockedUserIds = useMemo(
+    () => new Set(blockedUserIdsArray ?? []),
+    [blockedUserIdsArray],
   );
 
   const {
@@ -464,6 +484,8 @@ export function PublicComments({
                     onEdit={handleEditComment}
                     onDelete={handleDeleteComment}
                     categories={categories}
+                    blockedUserIds={blockedUserIds}
+                    isOrgMember={isOrgMember}
                   />
                 )}
               </>
@@ -492,6 +514,8 @@ export function PublicComments({
                     toggleThread(comment.id);
                   }
                 } : undefined}
+                blockedUserIds={blockedUserIds}
+                isOrgMember={isOrgMember}
               />
             );
           })}
@@ -539,6 +563,8 @@ export function PublicComments({
                     onEdit={handleEditComment}
                     onDelete={handleDeleteComment}
                     categories={categories}
+                    blockedUserIds={blockedUserIds}
+                    isOrgMember={isOrgMember}
                   />
                 )}
               </>
@@ -567,6 +593,8 @@ export function PublicComments({
                     toggleThread(comment.id);
                   }
                 } : undefined}
+                blockedUserIds={blockedUserIds}
+                isOrgMember={isOrgMember}
               />
             );
           })}

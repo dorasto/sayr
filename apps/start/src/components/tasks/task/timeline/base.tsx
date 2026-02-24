@@ -26,6 +26,7 @@ import {
   getDisplayName,
 } from "@repo/util";
 import {
+  IconBan,
   IconBrandGithub,
   IconCheck,
   IconLock,
@@ -57,6 +58,7 @@ export function TimelineItemWrapper({
   onReactionToggle,
   footer,
   isReply,
+  blockedUserIds,
 }: TimelineItemWrapperProps & {
   onReactionToggle?: (emoji: ReactionEmoji) => void;
   footer?: React.ReactNode;
@@ -66,6 +68,7 @@ export function TimelineItemWrapper({
   const isComment = variant === "comment";
   const isActivity = variant === "activity";
   const showIndicator = isActivity;
+  const isBlocked = isComment && !!item.actor?.id && !!blockedUserIds?.has(item.actor.id);
   // Activities show header only (no content card), comments/description show content card
   const showContent = (isComment || isDescription) && item.content;
   return (
@@ -182,6 +185,13 @@ export function TimelineItemWrapper({
                           </a>
                         )}
                       </Label>
+
+                      {isBlocked && (
+                        <Badge variant="destructive" className="gap-1 text-xs py-0 px-1.5">
+                          <IconBan size={12} />
+                          Blocked user
+                        </Badge>
+                      )}
 
                       <Tooltip delayDuration={500}>
                         <TooltipTrigger asChild>

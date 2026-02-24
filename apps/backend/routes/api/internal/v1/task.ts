@@ -12,6 +12,7 @@ import {
 	getTaskAssigneeIds,
 	getCommentReplies,
 	getCommentReplyCountBatch,
+	getBlockedUserIds,
 	db,
 	getOrganizationMembers,
 	getTaskById,
@@ -21,7 +22,7 @@ import {
 	userSummaryColumns,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -1783,6 +1784,9 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 		// 🧩 Permission check
 		const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
 
+		// Fetch blocked user IDs for public viewers so their comments are excluded server-side
+		const blockedIds = isPublic ? await getBlockedUserIds(orgId) : [];
+
 		const page = Math.max(Number(q.page) || 1, 1);
 		const limit = Math.min(Number(q.limit) || 20, 50);
 		const offset = (page - 1) * limit;
@@ -1791,7 +1795,8 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 			eq(schema.taskComment.organizationId, orgId),
 			eq(schema.taskComment.taskId, taskId),
 			isNull(schema.taskComment.parentId),
-			isPublic ? eq(schema.taskComment.visibility, "public") : undefined
+			isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
+			blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
 		);
 
 		// 🧮 Count total
@@ -1926,21 +1931,24 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 		return c.json({ success: false, error: "MISSING_PARAMETERS" }, 400);
 	}
 
+	const session = c.get("session");
+	const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
+	const blockedIds = isPublic ? await getBlockedUserIds(orgId) : [];
+
 	const perPage = Math.min(Number(limit) || 9, 50);
 
 	const { totalItems, totalPages } = await traceAsync(
 		"task.comments.count",
 		async () => {
-			const result = await db.execute(
-				sql<{ count: number }>`
-					SELECT count(*)::int AS count
-					FROM task_comment
-					WHERE organization_id = ${orgId}
-					  AND task_id = ${taskId}
-					  AND parent_id IS NULL;
-				`
+			const conditions = and(
+				eq(schema.taskComment.organizationId, orgId),
+				eq(schema.taskComment.taskId, taskId),
+				isNull(schema.taskComment.parentId),
+				isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
+				blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
 			);
-			const total = Number(result[0]?.count ?? 0);
+			const [result] = await db.select({ count: sql<number>`count(*)` }).from(schema.taskComment).where(conditions);
+			const total = Number(result?.count ?? 0);
 			return {
 				totalItems: total,
 				totalPages: Math.max(Math.ceil(total / perPage), 1),
@@ -1982,19 +1990,20 @@ apiRouteAdminProjectTask.get("/timeline/comments/replies", async (c) => {
 		const limit = Math.min(Number(q.limit) || 50, 100);
 		const offset = (page - 1) * limit;
 
+		const blockedIds = isPublic ? await getBlockedUserIds(orgId) : [];
+
 		const replies = await traceAsync(
 			"task.comments.replies.fetch",
 			async () => {
-				const baseConditions = [
+				const base = and(
 					eq(schema.taskComment.organizationId, orgId),
 					eq(schema.taskComment.parentId, commentId),
-				];
-				if (isPublic) {
-					baseConditions.push(eq(schema.taskComment.visibility, "public"));
-				}
+					isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
+					blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
+				);
 
 				const rows = await db.query.taskComment.findMany({
-					where: () => and(...baseConditions),
+					where: () => base,
 					orderBy: (t, { asc }) => asc(t.createdAt),
 					limit,
 					offset,

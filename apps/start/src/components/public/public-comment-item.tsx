@@ -31,6 +31,7 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTimeFromNow, getDisplayName } from "@repo/util";
 import {
+  IconBan,
   IconCheck,
   IconDots,
   IconLoader2,
@@ -63,7 +64,11 @@ export function PublicCommentItem({
   footer,
   isReply,
   onReply,
+  blockedUserIds,
+  isOrgMember,
 }: PublicCommentItemProps) {
+  const isBlocked = !!comment.createdBy && !!blockedUserIds?.has(comment.createdBy.id);
+
   const authorName = comment.createdBy
     ? getDisplayName(comment.createdBy)
     : "Anonymous";
@@ -107,6 +112,11 @@ export function PublicCommentItem({
     }
   }, [onDelete, comment.id]);
 
+  // Non-members should not see blocked users' comments at all
+  if (isBlocked && !isOrgMember) {
+    return null;
+  }
+
   return (
     <>
       <div
@@ -149,6 +159,24 @@ export function PublicCommentItem({
                   <TooltipContent side="top">
                     <span className="text-xs">
                       This user is a member of {memberTeamName}.
+                    </span>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {isBlocked && isOrgMember && (
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="gap-1 text-xs py-0 h-5 bg-destructive/10 border-destructive/20 text-destructive"
+                    >
+                      <IconBan className="size-3" />
+                      Blocked user
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <span className="text-xs">
+                      This user has been blocked by an administrator.
                     </span>
                   </TooltipContent>
                 </Tooltip>

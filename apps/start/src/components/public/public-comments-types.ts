@@ -46,4 +46,8 @@ export interface PublicCommentItemProps {
 	isReply?: boolean;
 	/** Callback when "Reply" action is clicked */
 	onReply?: () => void;
+	/** Set of blocked user IDs for this organization */
+	blockedUserIds?: Set<string>;
+	/** Whether the current viewer is an org member */
+	isOrgMember?: boolean;
 }

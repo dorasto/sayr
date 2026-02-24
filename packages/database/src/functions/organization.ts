@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
 import { ensureCdnUrl } from "@repo/util";
-import { eq } from "drizzle-orm";
-import { db, schema } from "..";
+import { and, eq, ilike, inArray, ne, notInArray, or, sql } from "drizzle-orm";
+import { db, schema, auth } from "..";
 import { defaultTeamPermissions, type TeamPermissions } from "../../schema/member.schema";
-import { userSummaryColumns } from "./index";
+import { userSummaryColumns, userSummarySelect } from "./index";
 
 /**
  * Retrieves all organizations that a given user belongs to, including
@@ -389,4 +389,193 @@ export async function searchOrgMembers(
 
 	// Apply limit
 	return users.slice(0, limit);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/*                          BLOCKED USERS                                     */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Searches for users who have interacted with an organization's tasks
+ * (via comments, votes, or reactions) but are NOT org members.
+ * Used for the "block user" search UI.
+ *
+ * Uses a SQL UNION across interaction tables to find distinct user IDs,
+ * then joins to the user table for name/avatar data.
+ * Excludes org members and optionally filters by name/displayName via ILIKE.
+ *
+ * @param orgId - The organization to search within.
+ * @param options - Optional search parameters.
+ * @param options.query - Text to fuzzy match against user name or displayName.
+ * @param options.limit - Max results to return (default 20).
+ * @returns Array of UserSummary objects for non-member interactors.
+ */
+export async function searchOrgInteractors(
+	orgId: string,
+	options?: { query?: string; limit?: number },
+): Promise<schema.UserSummary[]> {
+	const limit = options?.limit ?? 20;
+	const query = options?.query?.trim();
+
+	// Get member user IDs to exclude
+	const memberRows = await db.query.member.findMany({
+		where: (m) => eq(m.organizationId, orgId),
+		columns: { userId: true },
+	});
+	const memberUserIds = memberRows.map((m) => m.userId);
+
+	// Use raw SQL to UNION distinct user IDs across interaction tables.
+	// This is far more efficient than loading all interactions into JS.
+	const interactorQuery = sql`
+		SELECT DISTINCT user_id FROM (
+			SELECT created_by AS user_id FROM task_comment
+			WHERE organization_id = ${orgId} AND created_by IS NOT NULL
+			UNION
+			SELECT user_id FROM task_vote
+			WHERE organization_id = ${orgId} AND user_id IS NOT NULL
+			UNION
+			SELECT user_id FROM task_comment_reaction
+			WHERE organization_id = ${orgId}
+		) AS interactors
+		WHERE user_id IS NOT NULL
+	`;
+
+	const interactorRows = await db.execute(interactorQuery);
+	const allInteractorIds = (interactorRows as unknown as Array<{ user_id: string }>).map((r) => r.user_id);
+
+	// Filter out org members
+	const nonMemberIds = allInteractorIds.filter((id) => !memberUserIds.includes(id));
+
+	if (nonMemberIds.length === 0) return [];
+
+	// Fetch user summaries
+	const users = await db
+		.select(userSummarySelect)
+		.from(auth.user)
+		.where(inArray(auth.user.id, nonMemberIds));
+
+	// Apply text filter if provided
+	let filtered = users;
+	if (query) {
+		const lowerQuery = query.toLowerCase();
+		filtered = users.filter((u) => {
+			const matchesName = u.name.toLowerCase().includes(lowerQuery);
+			const matchesDisplayName = u.displayName?.toLowerCase().includes(lowerQuery);
+			return matchesName || matchesDisplayName;
+		});
+	}
+
+	return filtered.slice(0, limit);
+}
+
+/**
+ * Returns all blocked users for an organization, with user summary data
+ * for both the blocked user and the admin who performed the block.
+ *
+ * @param orgId - The organization to get blocked users for.
+ * @returns Array of BlockedUserWithDetails objects.
+ */
+export async function getBlockedUsers(orgId: string): Promise<schema.BlockedUserWithDetails[]> {
+	const blocked = await db.query.blockedUser.findMany({
+		where: (bu) => eq(bu.organizationId, orgId),
+		with: {
+			user: { columns: userSummaryColumns },
+			blockedByUser: { columns: userSummaryColumns },
+		},
+		orderBy: (bu, { desc }) => [desc(bu.createdAt)],
+	});
+
+	return blocked as schema.BlockedUserWithDetails[];
+}
+
+/**
+ * Blocks a user from interacting with an organization.
+ *
+ * @param orgId - The organization ID.
+ * @param userId - The user ID to block.
+ * @param blockedBy - The admin user ID who is performing the block.
+ * @param reason - Optional reason for the block.
+ * @returns The created blocked user record with details, or null if already blocked.
+ */
+export async function blockUser(
+	orgId: string,
+	userId: string,
+	blockedBy: string,
+	reason?: string,
+): Promise<schema.BlockedUserWithDetails | null> {
+	// Check if already blocked
+	const existing = await db.query.blockedUser.findFirst({
+		where: (bu) => and(eq(bu.organizationId, orgId), eq(bu.userId, userId)),
+	});
+
+	if (existing) return null;
+
+	const [inserted] = await db
+		.insert(schema.blockedUser)
+		.values({
+			organizationId: orgId,
+			userId,
+			blockedBy,
+			reason: reason || null,
+		})
+		.returning();
+
+	if (!inserted) return null;
+
+	// Fetch full details for the response
+	const full = await db.query.blockedUser.findFirst({
+		where: (bu) => eq(bu.id, inserted.id),
+		with: {
+			user: { columns: userSummaryColumns },
+			blockedByUser: { columns: userSummaryColumns },
+		},
+	});
+
+	return (full as schema.BlockedUserWithDetails) || null;
+}
+
+/**
+ * Removes a user from an organization's block list.
+ *
+ * @param orgId - The organization ID.
+ * @param userId - The user ID to unblock.
+ * @returns True if a record was deleted, false if user was not blocked.
+ */
+export async function unblockUser(orgId: string, userId: string): Promise<boolean> {
+	const result = await db
+		.delete(schema.blockedUser)
+		.where(and(eq(schema.blockedUser.organizationId, orgId), eq(schema.blockedUser.userId, userId)))
+		.returning({ id: schema.blockedUser.id });
+
+	return result.length > 0;
+}
+
+/**
+ * Returns just the user IDs of all blocked users for an organization.
+ * Lightweight version for comment filtering — no user details needed.
+ *
+ * @param orgId - The organization ID.
+ * @returns Array of blocked user IDs.
+ */
+export async function getBlockedUserIds(orgId: string): Promise<string[]> {
+	const blocked = await db.query.blockedUser.findMany({
+		where: (bu) => eq(bu.organizationId, orgId),
+		columns: { userId: true },
+	});
+	return blocked.map((b) => b.userId);
+}
+
+/**
+ * Checks if a specific user is blocked in an organization.
+ *
+ * @param orgId - The organization ID.
+ * @param userId - The user ID to check.
+ * @returns True if the user is blocked.
+ */
+export async function isUserBlocked(orgId: string, userId: string): Promise<boolean> {
+	const blocked = await db.query.blockedUser.findFirst({
+		where: (bu) => and(eq(bu.organizationId, orgId), eq(bu.userId, userId)),
+		columns: { id: true },
+	});
+	return !!blocked;
 }
