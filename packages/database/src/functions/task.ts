@@ -119,6 +119,7 @@ export async function getTaskByShortId(
 				with: { user: { columns: userSummaryColumns } },
 			},
 			githubIssue: {},
+			githubPullRequest: {},
 		},
 	});
 

@@ -10,6 +10,7 @@ import type { taskTimelineType } from "./taskTimeline.schema";
 import type { issueTemplateType } from "./taskTemplate.schema";
 import type { labelType as LabelTypeImport } from "./label.schema";
 import type { notificationType } from "./notification.schema";
+import { githubPullRequestType } from "./github_pull_request.schema";
 
 export * from "./category.schema";
 export * from "./github_installation.schema";
@@ -75,6 +76,7 @@ export type TaskWithLabels = Omit<taskType, "createdBy"> & {
 	organization?: { id: string; name: string; slug: string; logo: string | null };
 	comments?: CommentsWithAuthor;
 	githubIssue?: githubIssueType;
+	githubPullRequest?: githubPullRequestType;
 	description: NodeJSON;
 };
 

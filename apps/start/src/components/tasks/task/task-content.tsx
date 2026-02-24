@@ -63,43 +63,43 @@ interface TaskContentProps {
 }
 
 interface TaskContentSideContentProps {
-	task: schema.TaskWithLabels;
-	labels: schema.labelType[];
-	tasks: schema.TaskWithLabels[];
-	setTasks: (newValue: schema.TaskWithLabels[]) => void;
-	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
-	availableUsers?: schema.userType[];
-	wsClientId: string;
-	runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-		? T
-		: never;
-	categories: schema.categoryType[];
-	releases: schema.releaseType[];
-	organization: schema.OrganizationWithMembers;
-	panelControls?: {
-		isPanelOpen: boolean;
-		onToggle: () => void;
-	};
-	/** If true, shows an inline "Create label" form when no labels match search */
-	canCreateLabel?: boolean;
+  task: schema.TaskWithLabels;
+  labels: schema.labelType[];
+  tasks: schema.TaskWithLabels[];
+  setTasks: (newValue: schema.TaskWithLabels[]) => void;
+  setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
+  availableUsers?: schema.userType[];
+  wsClientId: string;
+  runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
+  ? T
+  : never;
+  categories: schema.categoryType[];
+  releases: schema.releaseType[];
+  organization: schema.OrganizationWithMembers;
+  panelControls?: {
+    isPanelOpen: boolean;
+    onToggle: () => void;
+  };
+  /** If true, shows an inline "Create label" form when no labels match search */
+  canCreateLabel?: boolean;
 }
 
 export function TaskContentSideContent({
-	task,
-	labels,
-	tasks,
-	setTasks,
-	setSelectedTask,
-	availableUsers = [],
-	wsClientId,
-	runWithToast,
-	categories,
-	releases = [],
-	organization,
-	panelControls,
-	canCreateLabel = false,
+  task,
+  labels,
+  tasks,
+  setTasks,
+  setSelectedTask,
+  availableUsers = [],
+  wsClientId,
+  runWithToast,
+  categories,
+  releases = [],
+  organization,
+  panelControls,
+  canCreateLabel = false,
 }: TaskContentSideContentProps) {
-	const { setLabels } = useLayoutOrganization();
+  const { setLabels } = useLayoutOrganization();
   const debouncedUpdateLabels = useDebounceAsync(
     async (values: string[], wsClientId: string) => {
       const data = await runWithToast(
@@ -131,8 +131,10 @@ export function TaskContentSideContent({
     },
     1500, // debounce delay
   );
-  const urlParts = task.githubIssue?.issueUrl?.split("/");
+  const urlParts = task.githubIssue?.issueUrl?.split("/")
+  const urlPartsPr = task.githubPullRequest?.prUrl?.split("/");
   const [GitHubIssueOrg, GitHubIssueRepo] = [urlParts?.[3], urlParts?.[4]];
+  const [GitHubPrOrg, GitHubPrRepo] = [urlPartsPr?.[3], urlPartsPr?.[4]];
   return (
     <div className="flex flex-col gap-3 w-full">
       <div className="p-1 pt-3 flex flex-col gap-2 max-w-full md:max-w-1/2">
@@ -191,24 +193,24 @@ export function TaskContentSideContent({
             </TileTitle>
           </TileHeader>
           <TileAction>
-					<GlobalTaskLabels
-										showLabel={false}
-										task={task}
-										editable={true}
-										availableLabels={labels}
-										canCreateLabel={canCreateLabel}
-										onLabelCreated={(newLabels) => {
-											setLabels(newLabels);
-										}}
-										onLabelsChange={async (values) => {
+            <GlobalTaskLabels
+              showLabel={false}
+              task={task}
+              editable={true}
+              availableLabels={labels}
+              canCreateLabel={canCreateLabel}
+              onLabelCreated={(newLabels) => {
+                setLabels(newLabels);
+              }}
+              onLabelsChange={async (values) => {
                 const updatedTasks = tasks.map((t) =>
                   t.id === task.id
                     ? {
-                        ...task,
-                        labels: labels.filter((label) =>
-                          values.includes(label.id),
-                        ),
-                      }
+                      ...task,
+                      labels: labels.filter((label) =>
+                        values.includes(label.id),
+                      ),
+                    }
                     : t,
                 );
                 setTasks(updatedTasks);
@@ -265,6 +267,39 @@ export function TaskContentSideContent({
                   </div>
                 }
               />
+            </Badge>
+          </Link>
+        )}
+        {task.githubPullRequest?.prUrl && (
+          <Link to={task.githubPullRequest.prUrl} target="_blank">
+            <Badge
+              variant="secondary"
+              className={cn(
+                "flex items-center gap-2 text-xs rounded-lg bg-transparent p-1 h-auto group/link"
+              )}
+            >
+              <IconBrandGithub className="size-3" />
+
+              <span className="truncate">
+                PR #{GitHubPrOrg}/{GitHubPrRepo}/{task.githubPullRequest.prNumber}
+              </span>
+
+              {/* Status Indicator */}
+              {task.githubPullRequest.merged ? (
+                <span className="text-emerald-600 text-[10px] font-medium">
+                  merged
+                </span>
+              ) : task.githubPullRequest.state === "closed" ? (
+                <span className="text-muted-foreground text-[10px] font-medium">
+                  closed
+                </span>
+              ) : (
+                <span className="text-blue-600 text-[10px] font-medium">
+                  open
+                </span>
+              )}
+
+              <IconExternalLink className="size-3 opacity-0 group-hover/link:opacity-100 transition-all" />
             </Badge>
           </Link>
         )}
