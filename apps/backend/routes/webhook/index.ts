@@ -125,6 +125,25 @@ async function handleContentEvents(
 
 	switch (event) {
 		case "push": {
+			const branch = payload.ref?.replace("refs/heads/", "");
+			if (!branch) return;
+
+			// ✅ Check if this branch belongs to an open PR
+			const existingPr = await db.query.githubPullRequest.findFirst({
+				where: (t) =>
+					and(
+						eq(t.repositoryId, linked.id), // githubRepository.id
+						eq(t.headBranch, branch),
+						eq(t.state, "open")
+					),
+			});
+
+			// 🚫 If branch tied to open PR → skip (sync handler will handle it)
+			if (existingPr) {
+				break;
+			}
+
+			// ✅ Normal push flow (non-PR branches)
 			const commits =
 				Array.isArray(payload.commits) && payload.commits.length > 0
 					? payload.commits

@@ -1,7 +1,8 @@
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@repo/database";
-import { JobGroups } from "@repo/queue";
+import { enqueue, JobGroups } from "@repo/queue";
+import { getInstallationToken } from "@repo/util/github/auth";
 
 const API_URL =
     process.env.APP_ENV === "development"
@@ -176,6 +177,7 @@ export async function handleGithubPullRequestSync(
     } = job.payload;
 
     if (!organizationId) return;
+    if (!before || !after) return;
 
     await traceAsync(
         "github.pull_request.sync.process",
@@ -191,7 +193,7 @@ export async function handleGithubPullRequestSync(
 
             if (!repository) return;
 
-            // 2️⃣ Find PR using (repositoryId, prNumber)
+            // 2️⃣ Find PR
             const existingPr =
                 await db.query.githubPullRequest.findFirst({
                     where: (t) =>
@@ -203,7 +205,7 @@ export async function handleGithubPullRequestSync(
 
             if (!existingPr) return;
 
-            // 3️⃣ Update headSha
+            // 3️⃣ Update PR head
             await db
                 .update(schema.githubPullRequest)
                 .set({
@@ -224,61 +226,68 @@ export async function handleGithubPullRequestSync(
                     )
                 );
 
-            // 4️⃣ If linked to task → post commit activity
+            // 4️⃣ If no task linked → stop
             if (!existingPr.taskId) return;
 
-            const res = await fetch(
-                `${API_URL}/v1/admin/organization/task/activity`,
+            // 5️⃣ Get installation token
+            const token = await getInstallationToken(
+                repository.installationId
+            );
+
+            // 6️⃣ Fetch commits via Compare API
+            const compareRes = await fetch(
+                `https://api.github.com/repos/${owner}/${repo}/compare/${before}...${after}`,
                 {
-                    method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
-                        cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
-                        "user-agent": "Sayr-Worker/1.0",
-                        "x-internal-secret":
-                            process.env.INTERNAL_SECRET!,
-                        "x-internal-service":
-                            "sayr-worker",
-                        "x-internal-timestamp":
-                            new Date().toISOString(),
+                        Authorization: `Bearer ${token}`,
+                        Accept: "application/vnd.github+json",
                     },
-                    body: JSON.stringify({
-                        org_id: organizationId,
-                        task_id: existingPr.taskId,
-                        type: "github_pr_commit",
-                        visibility: repo_private
-                            ? "internal"
-                            : "public",
-                        data: {
-                            provider: "github",
-                            repository: {
-                                name: repo,
-                                owner,
-                            },
-                            pullRequest: {
-                                number,
-                                url: `https://github.com/${owner}/${repo}/pull/${number}`,
-                                headBranch,
-                            },
-                            commit: {
-                                sha: headSha,
-                                before,
-                                after,
-                            },
-                        },
-                    }),
                 }
             );
 
-            if (!res.ok) {
-                console.error(
-                    `❌ Failed to add PR sync timeline for PR #${number}: ${res.statusText}`
-                );
+            if (!compareRes.ok) {
+                console.error("❌ Failed to fetch PR commits");
+                return;
+            }
+
+            const compareData = await compareRes.json();
+            const commits = compareData.commits ?? [];
+
+            // 7️⃣ Process commits like normal push
+            for (const commit of commits) {
+                const message = commit.commit?.message?.trim();
+                if (!message) continue;
+                await enqueue("github", {
+                    type: "github_commit_ref",
+                    traceContext: job.traceContext,
+                    payload: {
+                        organizationId,
+                        repoOwner: owner,
+                        repoName: repo,
+                        repoPrivate: repo_private,
+
+                        commitSha: commit.sha,
+                        commitUrl: commit.html_url,
+                        commitMessage: message,
+
+                        authorLogin:
+                            commit.author?.login ?? null,
+                        authorEmail:
+                            commit.commit?.author?.email ??
+                            null,
+
+                        matches: [{
+                            keyword: "pr_commit",
+                            taskKey: existingPr.prNumber,
+                            taskID: existingPr.taskId,
+                        }],
+                    },
+                });
             }
         },
         {
             description:
-                "Updating GitHub PR head SHA and posting commit activity",
+                "Syncing PR commits and processing like push events",
             data: {
                 prNumber: number,
                 headSha,
