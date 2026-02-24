@@ -17,6 +17,9 @@ import {
 	TimelineComment,
 	TimelineCreated,
 	TimelineGithubCommit,
+	TimelineGithubPRClosed,
+	TimelineGithubPRCommit,
+	TimelineGithubPRLinked,
 	TimelineLabelAdded,
 	TimelineLabelRemoved,
 	TimelinePriorityChange,
@@ -27,13 +30,13 @@ import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 export default function GlobalTimeline({
-  task,
-  labels,
-  availableUsers,
-  categories,
-  tasks,
-  releases,
-  organization,
+	task,
+	labels,
+	availableUsers,
+	categories,
+	tasks,
+	releases,
+	organization,
 }: GlobalTimelineProps) {
 	const queryClient = useQueryClient();
 	const commentLimit = 20;
@@ -64,6 +67,9 @@ export default function GlobalTimeline({
 		category_change: TimelineCategoryChange,
 		release_change: TimelineReleaseChange,
 		github_commit_ref: TimelineGithubCommit,
+		github_pr_linked: TimelineGithubPRLinked,
+		github_pr_commit: TimelineGithubPRCommit,
+		github_pr_merged: TimelineGithubPRClosed,
 	};
 
 	// --- ACTIVITY FETCH ---
@@ -100,9 +106,8 @@ export default function GlobalTimeline({
 	>({
 		key: ["timeline", "comments", task.id, task.organizationId],
 		fetch: {
-			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${
-				task.organizationId
-			}&task_id=${task.id}&limit=${commentLimit / 2}`,
+			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${task.organizationId
+				}&task_id=${task.id}&limit=${commentLimit / 2}`,
 			custom: async (url, pageParam) => {
 				// pageParam manages current outer pages
 				const { fromStart = 1, fromEnd } = pageParam ?? {};
@@ -307,28 +312,28 @@ export default function GlobalTimeline({
 				organization={organization}
 				{...(isComment
 					? {
-							onReply: () => toggleThread(item.id),
-							footer:
-								replyCount > 0 || isThreadExpanded ? (
-									<>
-										<CommentThreadTrigger
-											replyCount={replyCount}
-											replyAuthors={replyAuthors}
-											expanded={isThreadExpanded}
-											onToggle={() => toggleThread(item.id)}
+						onReply: () => toggleThread(item.id),
+						footer:
+							replyCount > 0 || isThreadExpanded ? (
+								<>
+									<CommentThreadTrigger
+										replyCount={replyCount}
+										replyAuthors={replyAuthors}
+										expanded={isThreadExpanded}
+										onToggle={() => toggleThread(item.id)}
+									/>
+									{isThreadExpanded && (
+										<CommentThreadBody
+											parentComment={item}
+											availableUsers={availableUsers}
+											categories={categories}
+											tasks={tasks}
+											organization={organization}
 										/>
-										{isThreadExpanded && (
-											<CommentThreadBody
-												parentComment={item}
-												availableUsers={availableUsers}
-												categories={categories}
-												tasks={tasks}
-												organization={organization}
-											/>
-										)}
-									</>
-								) : undefined,
-						}
+									)}
+								</>
+							) : undefined,
+					}
 					: {})}
 			/>
 		);

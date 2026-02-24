@@ -25,6 +25,7 @@ export type PostSayrCommentContext = {
 
     // External IDs
     externalCommentId?: number;
+    pull_request?: boolean;
 };
 
 /**
@@ -75,7 +76,7 @@ export async function postSayrComment(
             const linkedUserId = await findLinkedSayrUser(ctx.authorGithubId);
 
             const prosekitContent = markdownToProsekitJSON(body);
-            const issueUrl = `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`;
+            const issueUrl = ctx.pull_request ? `https://github.com/${ctx.owner}/${ctx.repo}/pull/${ctx.number}` : `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`;
             const commentUrl =
                 ctx.externalCommentId
                     ? `${issueUrl}#issuecomment-${ctx.externalCommentId}`
@@ -109,6 +110,7 @@ export async function postSayrComment(
                         externalCommentId:
                             ctx.externalCommentId,
                         externalCommentUrl: commentUrl,
+                        pullRequest: ctx.pull_request || false,
                     }),
                 }
             );

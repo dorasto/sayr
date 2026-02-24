@@ -5,6 +5,7 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { category } from "./category.schema";
 import { githubIssue } from "./github_issue.schema";
+import { githubPullRequest } from "./github_pull_request.schema";
 import { taskLabelAssignment } from "./label.schema";
 import { organization } from "./organization.schema";
 import { release } from "./release.schema";
@@ -76,5 +77,9 @@ export const taskRelations = relations(task, ({ one, many }) => ({
 	githubIssue: one(githubIssue, {
 		fields: [task.id],
 		references: [githubIssue.taskId],
+	}),
+	githubPullRequest: one(githubPullRequest, {
+		fields: [task.id],
+		references: [githubPullRequest.taskId],
 	}),
 }));
