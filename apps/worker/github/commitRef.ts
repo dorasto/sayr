@@ -1,5 +1,5 @@
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { db } from "@repo/database";
 import { JobGroups } from "@repo/queue";
 
@@ -32,7 +32,14 @@ export async function handleGithubCommitRef(
                     where: (t) =>
                         and(
                             eq(t.organizationId, organizationId),
-                            eq(t.shortId, match.taskKey)
+                            or(
+                                match.taskKey
+                                    ? eq(t.shortId, match.taskKey)
+                                    : undefined,
+                                match.taskID
+                                    ? eq(t.id, match.taskID)
+                                    : undefined
+                            )
                         ),
                 });
 
