@@ -358,7 +358,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			allowed[field] = updates[field];
 		}
 	});
-
+	const userId = updates.createdBy || session?.userId;
 	await traceAsync(
 		"task.update.save",
 		async () => {
@@ -381,8 +381,8 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				);
 			}
 			if (updates.status && updates.status !== existingTask.status) {
-				const event = await addLogEventTask(taskId, orgId, "status_change", existingTask.status, updates.status, session?.userId);
-				notifyAssignees({ taskId, orgId, actorId: session?.userId, type: "status_change", timelineEventId: event?.id });
+				const event = await addLogEventTask(taskId, orgId, "status_change", existingTask.status, updates.status, userId);
+				notifyAssignees({ taskId, orgId, actorId: userId, type: "status_change", timelineEventId: event?.id });
 			}
 			if (updates.priority && updates.priority !== existingTask.priority) {
 				const event = await addLogEventTask(
@@ -391,9 +391,9 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"priority_change",
 					existingTask.priority,
 					updates.priority,
-					session?.userId
+					userId
 				);
-				notifyAssignees({ taskId, orgId, actorId: session?.userId, type: "priority_change", timelineEventId: event?.id });
+				notifyAssignees({ taskId, orgId, actorId: userId, type: "priority_change", timelineEventId: event?.id });
 			}
 			if (updates.title && updates.title !== existingTask.title) {
 				await addLogEventTask(
@@ -402,7 +402,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"updated",
 					{ field: "title", value: existingTask.title },
 					{ field: "title", value: updates.title },
-					session?.userId
+					userId
 				);
 			}
 			if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
@@ -412,11 +412,11 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"updated",
 					{ field: "description", value: existingTask.description },
 					{ field: "description", value: updates.description },
-					session?.userId,
+					userId,
 					updates.description
 				);
 				// Check for new @mentions in the updated description
-				notifyMentions({ taskId, orgId, actorId: session?.userId, content: updates.description, timelineEventId: event?.id });
+				notifyMentions({ taskId, orgId, actorId: userId, content: updates.description, timelineEventId: event?.id });
 			}
 			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
 				await addLogEventTask(
@@ -425,7 +425,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"release_change",
 					existingTask.releaseId,
 					updates.releaseId,
-					session?.userId
+					userId
 				);
 			}
 			if (updates.visible !== undefined && updates.visible !== existingTask.visible) {
@@ -435,7 +435,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"updated",
 					{ field: "visible", value: existingTask.visible },
 					{ field: "visible", value: updates.visible },
-					session?.userId
+					userId
 				);
 			}
 		},

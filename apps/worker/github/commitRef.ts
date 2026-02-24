@@ -7,7 +7,24 @@ const API_URL =
     process.env.APP_ENV === "development"
         ? "http://localhost:5468/api/internal"
         : "http://backend:5468/api/internal";
+/**
+ * Attempts to find a Sayr user linked to the given GitHub numeric ID.
+ * Returns the Sayr user ID if found, otherwise undefined.
+ */
+async function findLinkedSayrUser(githubId?: number): Promise<string | undefined> {
+    if (!githubId) return undefined;
 
+    const linked = await db.query.account.findFirst({
+        where: (a) =>
+            and(
+                eq(a.providerId, "github"),
+                eq(a.accountId, String(githubId))
+            ),
+        columns: { userId: true },
+    });
+
+    return linked?.userId;
+}
 export async function handleGithubCommitRef(
     job: JobGroups["github"] & { type: "github_commit_ref" }
 ) {
@@ -21,10 +38,13 @@ export async function handleGithubCommitRef(
         commitUrl,
         commitMessage,
         authorLogin,
+        userId,
         matches,
     } = job.payload;
 
+    const linkedUserId = await findLinkedSayrUser(userId || 0);
     for (const match of matches) {
+
         await traceAsync(
             "github.commit_ref.process",
             async () => {
@@ -67,6 +87,7 @@ export async function handleGithubCommitRef(
                             visibility: repoPrivate
                                 ? "internal"
                                 : "public",
+                            ...(linkedUserId && { createdBy: linkedUserId }),
                             data: {
                                 repo: `${repoOwner}/${repoName}`,
                                 commitSha,

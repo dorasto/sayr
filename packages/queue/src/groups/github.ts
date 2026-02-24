@@ -69,6 +69,7 @@ export type GithubCommitRefPayload = {
 	commitUrl: string;
 	commitMessage: string;
 
+	userId?: number;
 	authorLogin?: string | null;
 	authorEmail?: string | null;
 
@@ -96,6 +97,7 @@ export type GithubPullRequestLinkPayload = GithubRepoContext & {
 	headBranch: string;
 	baseBranch: string;
 
+	userId?: number;
 	author: string;
 
 	matches: {
@@ -114,6 +116,7 @@ export type GithubPullRequestSyncPayload = GithubRepoContext & {
 
 	before?: string;
 	after?: string;
+	userId?: number;
 };
 
 export type GithubPullRequestClosedPayload = GithubRepoContext & {
@@ -123,6 +126,7 @@ export type GithubPullRequestClosedPayload = GithubRepoContext & {
 	merged: boolean;
 	mergedAt?: string | null;
 	mergeCommitSha?: string | null;
+	userId?: number;
 };
 
 /* ============================================================
