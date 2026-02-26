@@ -14,6 +14,7 @@ import { githubPullRequestType } from "./github_pull_request.schema";
 
 export * from "./category.schema";
 export * from "./github_installation.schema";
+export * from "./github_installation_org.schema";
 export * from "./github_issue.schema";
 export * from "./github_repository.schema";
 export * from "./invite.schema";

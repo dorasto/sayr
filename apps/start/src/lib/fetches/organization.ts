@@ -843,6 +843,41 @@ export async function toggleGithubSyncConnectionAction(
 }
 
 /**
+ * Unlinks a GitHub installation from an organization
+ * and removes all linked repositories.
+ *
+ * @param organizationId - The organization ID
+ * @param installationId - The GitHub installation ID
+ */
+export async function unlinkGithubInstallationAction(
+	organizationId: string,
+	installationId: number
+) {
+	return fetch(
+		`${API_URL}/v1/admin/organization/${organizationId}/github/unlink`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include",
+			body: JSON.stringify({
+				installationId,
+			}),
+		}
+	).then(async (res) => {
+		const json = await res.json();
+
+		if (!res.ok)
+			throw new Error(
+				json?.error || "Failed to unlink GitHub installation"
+			);
+
+		return json;
+	});
+}
+
+/**
  * Creates a new team within an organization.
  * @param organizationId - The ID of the organization to which the team will belong.
  * @param data - The team properties (name, description, permissions).
