@@ -1583,7 +1583,7 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 				repoId: repoId,
 				repoName: repoName,
 				organizationId: orgId,
-				categoryId: categoryId,
+				categoryId: categoryId === "__none__" ? null : categoryId,
 				userId: session?.userId || "",
 			}),
 		{
@@ -2014,12 +2014,11 @@ apiRouteAdminOrganization.get(
 		const session = c.get("session");
 		const orgId = c.req.param("orgId");
 
-		const isAuthorized =
-			await traceOrgPermissionCheck(
-				session?.userId || "",
-				orgId,
-				"admin.administrator"
-			);
+		const isAuthorized = await traceOrgPermissionCheck(
+			session?.userId || "",
+			orgId,
+			"admin.administrator"
+		);
 
 		if (!isAuthorized) {
 			return c.json(
@@ -2049,24 +2048,29 @@ apiRouteAdminOrganization.get(
 
 		/* ================= FETCH GITHUB DETAILS ================= */
 
-		const githubConnections =
-			await Promise.all(
-				installationLinks.map(
-					async (link) => {
-						const githubInfo =
-							await getInstallationDetailsWithRepos(
-								link.installation
-							);
+		const githubConnections = await Promise.all(
+			installationLinks.map(async (link) => {
+				// ✅ Fetch repos ONLY for this install
+				const syncedRepos =
+					await db.query.githubRepository.findMany({
+						where: eq(
+							schema.githubRepository.installationId,
+							link.installationId
+						),
+					});
 
-						return {
-							installation:
-								link.installation,
-							githubInfo,
-						};
-					}
-				)
-			);
+				const githubInfo =
+					await getInstallationDetailsWithRepos(
+						link.installation,
+						syncedRepos
+					);
 
+				return {
+					installation: link.installation,
+					githubInfo,
+				};
+			})
+		);
 		/* ================= ALL SYNCED REPOS ================= */
 
 		const repositories =
@@ -2079,16 +2083,16 @@ apiRouteAdminOrganization.get(
 					),
 				}
 			);
-
 		return c.json({
 			success: true,
 			data: {
 				githubConnections,
-				repositories,
+				repositories
 			},
 		});
 	}
 );
+
 
 apiRouteAdminOrganization.delete(
 	"/connections/github/sync-repo",

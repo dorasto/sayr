@@ -45,7 +45,7 @@ export async function getInstallationDetailsWithRepos(github: {
 	}
 	| undefined
 	| null;
-}) {
+}, repositories: any[]) {
 	// App‑level auth to fetch metadata
 	const appOctokit = new Octokit({ auth: createAppJWT() });
 	// biome-ignore lint/suspicious/noExplicitAny: <will fix later>
@@ -57,7 +57,12 @@ export async function getInstallationDetailsWithRepos(github: {
 	// Installation‑level auth to fetch repositories
 	const token = await getInstallationToken(github.installationId);
 	const instOctokit = new Octokit({ auth: token });
-
+	// Build a set of existing repo IDs (DB)
+	const existingRepoIds = new Set(
+		repositories
+			.filter((repo) => repo.installationId === install.id)
+			.map((repo) => repo.repoId)
+	);
 	// biome-ignore lint/suspicious/noExplicitAny: <will fix later>
 	const allRepos: any[] = [];
 	let page = 1;
@@ -71,7 +76,10 @@ export async function getInstallationDetailsWithRepos(github: {
 		if (data.repositories.length < 100) break;
 		page++;
 	}
-
+	// Remove repos that already exist in DB
+	const filteredRepos = allRepos.filter(
+		(r) => !existingRepoIds.has(r.id)
+	);
 	return {
 		installationId: install.id,
 		installDate: install.created_at,
@@ -88,7 +96,7 @@ export async function getInstallationDetailsWithRepos(github: {
 		target_type: install.target_type,
 		app_id: install.app_id,
 		permissions: install.permissions,
-		repositories: allRepos.map((r) => ({
+		repositories: filteredRepos.map((r) => ({
 			id: r.id,
 			name: r.name,
 			full_name: r.full_name,
