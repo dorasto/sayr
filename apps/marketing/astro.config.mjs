@@ -86,16 +86,24 @@ export default defineConfig({
                 ],
               },
               {
+                label: "Organizations",
+                autogenerate: { directory: "/docs/organizations" },
+                collapsed: true,
+              },
+              {
                 label: "Guides",
                 autogenerate: { directory: "/docs/guides" },
+                collapsed: true,
               },
               {
                 label: "Self Hosting",
                 autogenerate: { directory: "/docs/self-hosting" },
+                collapsed: true,
               },
               {
                 label: "Contributing",
                 autogenerate: { directory: "/docs/contributing" },
+                collapsed: true,
               },
             ],
           },
