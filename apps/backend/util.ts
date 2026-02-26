@@ -2,6 +2,7 @@ import { db, hasOrgPermission, schema } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
+import { account } from "../../packages/database/schema/auth";
 export async function getOrganization(orgId: string, userId: string): Promise<{ id: string } | null> {
 	// Check if the user is a member of this org
 	const membership = await db.query.member.findFirst({
@@ -122,4 +123,70 @@ export async function traceOrgPermissionCheck(
 			}),
 		}
 	);
+}
+export async function refreshGitHubTokenIfNeeded(githubAccount: schema.accountType) {
+	if (!githubAccount.refreshToken) return githubAccount;
+
+	const now = new Date();
+
+	// still valid → no refresh
+	if (
+		githubAccount.accessToken &&
+		githubAccount.accessTokenExpiresAt &&
+		githubAccount.accessTokenExpiresAt > now
+	) {
+		return githubAccount;
+	}
+
+	try {
+		const res = await fetch("https://github.com/login/oauth/access_token", {
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				client_id: process.env.GITHUB_CLIENT_ID,
+				client_secret: process.env.GITHUB_CLIENT_SECRET,
+				grant_type: "refresh_token",
+				refresh_token: githubAccount.refreshToken,
+			}),
+		});
+
+		const data = await res.json();
+
+		if (!data.access_token) {
+			throw new Error("Failed refresh GitHub token");
+		}
+
+		const expiresAt = data.expires_in
+			? new Date(Date.now() + data.expires_in * 1000)
+			: null;
+
+		const refreshExpiresAt = data.refresh_token_expires_in
+			? new Date(Date.now() + data.refresh_token_expires_in * 1000)
+			: null;
+
+		await db
+			.update(account)
+			.set({
+				accessToken: data.access_token,
+				refreshToken: data.refresh_token ?? githubAccount.refreshToken,
+				accessTokenExpiresAt: expiresAt,
+				refreshTokenExpiresAt: refreshExpiresAt,
+				updatedAt: new Date(),
+			})
+			.where(eq(account.id, githubAccount.id));
+
+		return {
+			...githubAccount,
+			accessToken: data.access_token,
+			refreshToken: data.refresh_token ?? githubAccount.refreshToken,
+			accessTokenExpiresAt: expiresAt,
+			refreshTokenExpiresAt: refreshExpiresAt,
+		};
+	} catch (e) {
+		console.error("GitHub token refresh failed", e);
+		return githubAccount;
+	}
 }
