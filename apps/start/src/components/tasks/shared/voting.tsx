@@ -5,6 +5,7 @@ import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronUp } from "@tabler/icons-react";
 import { CreateTaskVoteAction } from "@/lib/fetches/task";
+import { formatCount } from "@repo/util";
 import { useToastAction } from "@/lib/util";
 import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import {
@@ -154,7 +155,7 @@ export function TaskVoting({
     >
       <IconChevronUp />
       <span className="text-xs font-normal">
-        {task.voteCount?.toString() || "0"} Votes
+        {formatCount(task.voteCount ?? 0)} Votes
       </span>
     </Button>
   );

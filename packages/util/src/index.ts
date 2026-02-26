@@ -377,6 +377,39 @@ export function parseChannel(channel: string): Record<string, string> {
  * // "Hello World"
  * ```
  */
+/**
+ * Formats a number into a compact, human-readable string with suffix.
+ *
+ * - Under 1,000: returns the exact number (e.g. "50", "999")
+ * - 1,000–999,999: returns with "k" suffix (e.g. "1.4k", "10k")
+ * - 1,000,000+: returns with "M" suffix (e.g. "1.2M", "5M")
+ *
+ * Trailing ".0" is stripped for cleaner output (e.g. "1k" instead of "1.0k").
+ *
+ * @param count - The number to format.
+ * @returns A compact string representation of the number.
+ *
+ * @example
+ * ```ts
+ * formatCount(0);        // "0"
+ * formatCount(50);       // "50"
+ * formatCount(999);      // "999"
+ * formatCount(1000);     // "1k"
+ * formatCount(1400);     // "1.4k"
+ * formatCount(10000);    // "10k"
+ * formatCount(1500000);  // "1.5M"
+ * ```
+ */
+export function formatCount(count: number): string {
+	if (count < 1000) return count.toString();
+	if (count < 1_000_000) {
+		const val = (count / 1000).toFixed(1);
+		return `${val.replace(/\.0$/, "")}k`;
+	}
+	const val = (count / 1_000_000).toFixed(1);
+	return `${val.replace(/\.0$/, "")}M`;
+}
+
 export function extractTaskText(description: unknown): string {
 	if (!description || typeof description !== "object") return "";
 
