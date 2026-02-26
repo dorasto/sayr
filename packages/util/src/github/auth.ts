@@ -28,6 +28,7 @@ export async function getInstallationDetailsWithRepos(github: {
 	createdAt: Date;
 	updatedAt: Date;
 	installationId: number;
+
 	user:
 	| {
 		id: string;
@@ -45,7 +46,7 @@ export async function getInstallationDetailsWithRepos(github: {
 	}
 	| undefined
 	| null;
-}, repositories: any[]) {
+}, orgId: string, repositories: any[]) {
 	// App‑level auth to fetch metadata
 	const appOctokit = new Octokit({ auth: createAppJWT() });
 	// biome-ignore lint/suspicious/noExplicitAny: <will fix later>
@@ -57,10 +58,14 @@ export async function getInstallationDetailsWithRepos(github: {
 	// Installation‑level auth to fetch repositories
 	const token = await getInstallationToken(github.installationId);
 	const instOctokit = new Octokit({ auth: token });
-	// Build a set of existing repo IDs (DB)
+	// Build a set of existing repo IDs (DB), ignoring same org
 	const existingRepoIds = new Set(
 		repositories
-			.filter((repo) => repo.installationId === install.id)
+			.filter(
+				(repo) =>
+					repo.installationId === install.id &&
+					repo.organizationId !== orgId
+			)
 			.map((repo) => repo.repoId)
 	);
 	// biome-ignore lint/suspicious/noExplicitAny: <will fix later>

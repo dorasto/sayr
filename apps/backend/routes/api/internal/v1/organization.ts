@@ -2064,6 +2064,7 @@ apiRouteAdminOrganization.get(
 				const githubInfo =
 					await getInstallationDetailsWithRepos(
 						link.installation,
+						link.organizationId,
 						syncedRepos
 					);
 
