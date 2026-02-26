@@ -86,6 +86,7 @@ interface SubProps {
   icon?: React.ReactNode;
   backButton?: string;
   backButtonText?: string;
+  backButtonClassName?: string;
   blur?: boolean;
   top?: boolean;
   topContent?: React.ReactNode;
@@ -101,6 +102,7 @@ export function SubWrapper({
   descriptionRender,
   icon,
   backButton,
+  backButtonClassName,
   topContent,
   backButtonText = "Back",
   blur = true,
@@ -121,7 +123,10 @@ export function SubWrapper({
             <Link to={backButton} className="">
               <Button
                 variant={"ghost"}
-                className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg"
+                className={cn(
+                  "w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg",
+                  backButtonClassName,
+                )}
                 size={"sm"}
               >
                 <IconArrowLeft className="size-3!" />
