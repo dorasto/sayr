@@ -4,6 +4,7 @@ import type { OrganizationSettings } from "@repo/database";
 const defaultOrganizationSettings: OrganizationSettings = {
 	allowActionsOnClosedTasks: true,
 	publicActions: true,
+	enablePublicPage: true,
 };
 import {
 	Tile,
@@ -126,7 +127,10 @@ export default function Preferences() {
 							</TileDescription>
 						</TileHeader>
 						<TileAction>
-							<Switch defaultChecked />
+							<Switch
+								checked={settings.enablePublicPage}
+								onCheckedChange={(checked) => handleToggle("enablePublicPage", checked)}
+							/>
 						</TileAction>
 					</Tile>
 					<Tile className="md:w-full" variant={"transparent"}>

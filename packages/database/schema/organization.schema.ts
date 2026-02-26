@@ -13,12 +13,15 @@ export interface OrganizationSettings {
 	allowActionsOnClosedTasks: boolean;
 	/** When false, external users cannot comment on or create tasks (voting remains open). */
 	publicActions: boolean;
+	/** When false, the organization's public page is disabled entirely. */
+	enablePublicPage: boolean;
 }
 
 /** Sensible defaults — everything enabled so nothing breaks for existing orgs. */
 export const defaultOrganizationSettings: OrganizationSettings = {
 	allowActionsOnClosedTasks: true,
 	publicActions: true,
+	enablePublicPage: true,
 };
 
 export const organization = table("organization", {
