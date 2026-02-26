@@ -8,8 +8,9 @@ import {
 	getOrganizationMembers,
 	searchOrgMembers,
 	schema,
-	type TeamPermissions,
+	type TeamPermissions, auth
 } from "@repo/database";
+
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
@@ -20,7 +21,8 @@ import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from 
 import type { WSBaseMessage } from "../../../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { traceOrgPermissionCheck } from "@/util";
+import { refreshGitHubTokenIfNeeded, traceOrgPermissionCheck } from "@/util";
+import { Octokit } from "@octokit/rest";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 // Create a new organization
@@ -2175,6 +2177,368 @@ apiRouteAdminOrganization.delete(
 			success: true,
 			data: result,
 		});
+	}
+);
+apiRouteAdminOrganization.get(
+	"/:orgId/github/installations",
+	async (c) => {
+		const session = c.get("session");
+		const orgId = c.req.param("orgId");
+
+		if (!session?.userId) {
+			return c.json(
+				{ success: false, error: "Unauthorized." },
+				401
+			);
+		}
+
+		const isAuthorized =
+			await traceOrgPermissionCheck(
+				session.userId,
+				orgId,
+				"admin.administrator"
+			);
+
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"You don't have permission to view installations.",
+				},
+				401
+			);
+		}
+
+		/* ================= GET GITHUB ACCOUNT ================= */
+
+
+		let githubAccount = await db.query.account.findFirst({
+			where: and(
+				eq(auth.account.userId, session.userId),
+				eq(auth.account.providerId, "github")
+			),
+		});
+
+		if (!githubAccount?.accessToken) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"GitHub account not connected. Please sign in with GitHub.",
+				},
+				400
+			);
+		}
+
+		/* ================= REFRESH TOKEN IF NEEDED ================= */
+
+		githubAccount = await refreshGitHubTokenIfNeeded(githubAccount);
+
+		/* ================= CALL GITHUB API ================= */
+
+		try {
+			const octokit = new Octokit({
+				auth: githubAccount.accessToken!,
+			});
+
+			const response = await octokit.request("GET /user/installations");
+
+			const appId = Number(process.env.GITHUB_APP_ID);
+
+			const filteredInstallations =
+				response.data.installations.filter(
+					(install) => install.app_id === appId
+				);
+
+			return c.json({
+				success: true,
+				data: filteredInstallations,
+			});
+		} catch (error: any) {
+			/* ⭐ Important fallback:
+			   If GitHub says token invalid → force refresh once */
+			if (error?.status === 401 && githubAccount.refreshToken) {
+				const refreshed = await refreshGitHubTokenIfNeeded({
+					...githubAccount,
+					accessTokenExpiresAt: new Date(0),
+				});
+
+				const octokit = new Octokit({
+					auth: refreshed.accessToken!,
+				});
+
+				const response = await octokit.request("GET /user/installations");
+
+				const appId = Number(process.env.GITHUB_APP_ID);
+
+				const filteredInstallations =
+					response.data.installations.filter(
+						(install) => install.app_id === appId
+					);
+
+				return c.json({
+					success: true,
+					data: filteredInstallations,
+				});
+			}
+
+			console.error("Failed to fetch GitHub installations:", error);
+
+			return c.json(
+				{
+					success: false,
+					error: "Failed to fetch GitHub installations.",
+				},
+				500
+			);
+		}
+	}
+);
+
+apiRouteAdminOrganization.post(
+	"/:orgId/github/link",
+	async (c) => {
+		const session = c.get("session");
+		const orgId = c.req.param("orgId");
+
+		if (!session?.userId) {
+			return c.json(
+				{ success: false, error: "Unauthorized." },
+				401
+			);
+		}
+
+		const isAuthorized = await traceOrgPermissionCheck(
+			session.userId,
+			orgId,
+			"admin.administrator"
+		);
+
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error: "You don't have permission to link installations.",
+				},
+				401
+			);
+		}
+
+		/* ================= VALIDATE BODY ================= */
+
+		const body = await c.req.json().catch(() => null);
+
+		const installationId = Number(body?.installationId);
+
+		if (!installationId || Number.isNaN(installationId)) {
+			return c.json(
+				{
+					success: false,
+					error: "Invalid installationId.",
+				},
+				400
+			);
+		}
+
+		/* ================= GET GITHUB ACCOUNT ================= */
+
+		let githubAccount = await db.query.account.findFirst({
+			where: and(
+				eq(auth.account.userId, session.userId),
+				eq(auth.account.providerId, "github")
+			),
+		});
+
+		if (!githubAccount?.accessToken) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"GitHub account not connected. Please sign in with GitHub.",
+				},
+				400
+			);
+		}
+
+		/* ================= REFRESH TOKEN IF NEEDED ================= */
+
+		githubAccount = await refreshGitHubTokenIfNeeded(githubAccount);
+
+		/* ================= VERIFY INSTALLATION WITH GITHUB ================= */
+
+		try {
+			const octokit = new Octokit({
+				auth: githubAccount.accessToken!,
+			});
+
+			// Fetch specific installation
+			const installation = await octokit.request(
+				"GET /user/installations"
+			);
+
+			const appId = Number(process.env.GITHUB_APP_ID);
+
+			const validInstallation =
+				installation.data.installations.find(
+					(i) =>
+						i.id === installationId &&
+						i.app_id === appId
+				);
+
+			if (!validInstallation) {
+				return c.json(
+					{
+						success: false,
+						error:
+							"Installation not found or does not belong to this app.",
+					},
+					400
+				);
+			}
+
+			/* ================= PREVENT DUPLICATE LINK ================= */
+
+			const existing =
+				await db.query.githubInstallationOrg.findFirst({
+					where: and(
+						eq(
+							schema.githubInstallationOrg.installationId,
+							installationId
+						),
+						eq(
+							schema.githubInstallationOrg.organizationId,
+							orgId
+						)
+					),
+				});
+
+			if (existing) {
+				return c.json({
+					success: true,
+					message: "Installation already linked.",
+				});
+			}
+
+			/* ================= INSERT JUNCTION ROW ================= */
+
+			await db.insert(schema.githubInstallationOrg).values({
+				id: crypto.randomUUID(),
+				installationId,
+				organizationId: orgId,
+				userId: session.userId,
+				createdAt: new Date(),
+			});
+
+			return c.json({
+				success: true,
+			});
+		} catch (error: any) {
+			console.error("Failed to link GitHub installation:", error);
+
+			if (error?.status === 401) {
+				return c.json(
+					{
+						success: false,
+						error:
+							"GitHub authentication expired. Please reconnect your account.",
+					},
+					401
+				);
+			}
+
+			return c.json(
+				{
+					success: false,
+					error: "Failed to link installation.",
+				},
+				500
+			);
+		}
+	}
+);
+apiRouteAdminOrganization.post(
+	"/:orgId/github/unlink",
+	async (c) => {
+		const session = c.get("session");
+		const orgId = c.req.param("orgId");
+
+		if (!session?.userId) {
+			return c.json(
+				{ success: false, error: "Unauthorized." },
+				401
+			);
+		}
+
+		const isAuthorized = await traceOrgPermissionCheck(
+			session.userId,
+			orgId,
+			"admin.administrator"
+		);
+
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error: "You don't have permission to unlink installations.",
+				},
+				401
+			);
+		}
+
+		/* ================= VALIDATE BODY ================= */
+
+		const body = await c.req.json().catch(() => null);
+		const installationId = Number(body?.installationId);
+
+		if (!installationId || Number.isNaN(installationId)) {
+			return c.json(
+				{ success: false, error: "Invalid installationId." },
+				400
+			);
+		}
+
+		try {
+			/* ================= DELETE REPOSITORIES ================= */
+			await db
+				.delete(schema.githubRepository)
+				.where(
+					and(
+						eq(schema.githubRepository.installationId, installationId),
+						eq(schema.githubRepository.organizationId, orgId)
+					)
+				);
+
+			/* ================= DELETE JUNCTION ================= */
+			await db
+				.delete(schema.githubInstallationOrg)
+				.where(
+					and(
+						eq(
+							schema.githubInstallationOrg.installationId,
+							installationId
+						),
+						eq(
+							schema.githubInstallationOrg.organizationId,
+							orgId
+						)
+					)
+				);
+
+			return c.json({
+				success: true,
+			});
+		} catch (error) {
+			console.error("Failed to unlink installation:", error);
+
+			return c.json(
+				{
+					success: false,
+					error: "Failed to unlink installation.",
+				},
+				500
+			);
+		}
 	}
 );
 

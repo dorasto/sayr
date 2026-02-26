@@ -51,7 +51,7 @@ import {
 } from "@tabler/icons-react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { createGithubSyncConnectionAction, deleteGithubSyncConnectionAction, toggleGithubSyncConnectionAction, updateGithubSyncConnectionAction } from "@/lib/fetches/organization";
+import { createGithubSyncConnectionAction, deleteGithubSyncConnectionAction, toggleGithubSyncConnectionAction, unlinkGithubInstallationAction, updateGithubSyncConnectionAction } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLayoutData } from "@/components/generic/Context";
@@ -114,6 +114,7 @@ export default function SettingsOrganizationConnectionsGitHubPage({
         <div className="flex flex-col gap-6">
             <InstallationsSection
                 githubConnections={githubConnections}
+                organizationId={organization.id}
                 isLoading={isLoading}
             />
             <TaskSyncSection
@@ -129,11 +130,16 @@ export default function SettingsOrganizationConnectionsGitHubPage({
 
 function InstallationsSection({
     githubConnections,
+    organizationId,
     isLoading
 }: {
     githubConnections: githubConnections;
+    organizationId: string;
     isLoading?: boolean;
 }) {
+    const { runWithToast } = useToastAction();
+    const queryClient = useQueryClient();
+
     if (isLoading) {
         return (
             <div className="bg-card rounded-lg flex flex-col">
@@ -164,6 +170,7 @@ function InstallationsSection({
             </div>
         );
     }
+
     return (
         <div className="bg-card rounded-lg flex flex-col">
             {githubConnections.map((connection) => {
@@ -233,6 +240,40 @@ function InstallationsSection({
                                 >
                                     <IconExternalLink /> Configure
                                 </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <div onClick={async () => {
+                                    const ok = window.confirm(
+                                        `Remove "${info.account.login}" from this organization?\n\nThis removes all linked repositories in Sayr.\n\nTo uninstall the GitHub App completely, use GitHub settings or click Configure.`
+                                    );
+
+                                    if (!ok) return;
+
+                                    await runWithToast(
+                                        "unlink-github-installation",
+                                        {
+                                            loading: { title: "Removing installation..." },
+                                            success: { title: "Installation removed" },
+                                            error: { title: "Failed to remove installation" },
+                                        },
+                                        () =>
+                                            unlinkGithubInstallationAction(
+                                                organizationId,
+                                                connection.installation.installationId
+                                            )
+                                    );
+
+                                    queryClient.invalidateQueries({
+                                        queryKey: [
+                                            "organization",
+                                            organizationId,
+                                            "connections",
+                                            "github",
+                                        ],
+                                    });
+                                }}>
+                                    <IconX /> Remove
+                                </div>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
