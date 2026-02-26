@@ -89,7 +89,7 @@ export function PublicCommentItem({
   const canSave = !!editedContent && editedContent !== comment.content;
 
   const handleSave = useCallback(async () => {
-    if (!editedContent || !canSave) return;
+    if (!editedContent || !canSave || !onEdit) return;
     setIsSaving(true);
     const success = await onEdit(comment.id, editedContent);
     setIsSaving(false);
@@ -104,6 +104,7 @@ export function PublicCommentItem({
   }, [comment.content]);
 
   const handleDelete = useCallback(async () => {
+    if (!onDelete) return;
     setIsDeleting(true);
     const success = await onDelete(comment.id);
     setIsDeleting(false);
@@ -224,7 +225,7 @@ export function PublicCommentItem({
                       <IconMessage size={16} />
                     </Button>
                   )}
-                  {isOwnComment && (
+                  {isOwnComment && (onEdit || onDelete) && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -236,18 +237,22 @@ export function PublicCommentItem({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => setIsEditing(true)}>
-                          <IconPencil size={16} />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onSelect={() => setDeleteDialogOpen(true)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <IconTrash size={16} />
-                          Delete
-                        </DropdownMenuItem>
+                        {onEdit && (
+                          <DropdownMenuItem onSelect={() => setIsEditing(true)}>
+                            <IconPencil size={16} />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        {onEdit && onDelete && <DropdownMenuSeparator />}
+                        {onDelete && (
+                          <DropdownMenuItem
+                            onSelect={() => setDeleteDialogOpen(true)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <IconTrash size={16} />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}

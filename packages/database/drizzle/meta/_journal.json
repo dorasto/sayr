@@ -36,6 +36,13 @@
       "when": 1772121457892,
       "tag": "20260226155737_chemical_cloak",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772144422699,
+      "tag": "20260226222022_ancient_maginty",
+      "breakpoints": true
     }
   ]
 }

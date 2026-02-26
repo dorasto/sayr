@@ -1,0 +1,1 @@
+ALTER TABLE "organization" ADD COLUMN "settings" json DEFAULT '{"allowActionsOnClosedTasks":true,"publicActions":true}'::json NOT NULL;

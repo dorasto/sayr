@@ -1,4 +1,4 @@
-import type { schema, TeamPermissions } from "@repo/database";
+import type { schema, TeamPermissions, OrganizationSettings } from "@repo/database";
 
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
@@ -14,6 +14,7 @@ export interface UpdateOrganizationData {
 	logo?: string;
 	bannerImg?: string;
 	description?: string;
+	settings?: OrganizationSettings;
 }
 
 /**

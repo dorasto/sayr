@@ -2,7 +2,7 @@ import type { account, session, user, verification } from "./auth";
 import type { githubIssueType } from "./github_issue.schema";
 import type { labelType } from "./label.schema";
 import type { OrganizationMemberType, TeamPermissions } from "./member.schema";
-import type { organizationType } from "./organization.schema";
+import type { OrganizationSettings, organizationType } from "./organization.schema";
 import type { releaseType } from "./release.schema";
 import type { taskType } from "./task.schema";
 import type { taskCommentType } from "./taskComment.schema";
