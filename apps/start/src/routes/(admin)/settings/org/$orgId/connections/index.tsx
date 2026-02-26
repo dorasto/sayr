@@ -46,7 +46,7 @@ function RouteComponent() {
     <SubWrapper
       title="Connections"
       description="Manage integrations and connections with third-party services."
-      style="medium"
+      style="compact"
     >
       <div className="flex flex-col gap-3">
         <SettingsOrganizationConnectionsPage
