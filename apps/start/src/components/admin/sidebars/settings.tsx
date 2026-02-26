@@ -259,7 +259,7 @@ export function SettingsSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-t-transparent">
         <SidebarMenu className="gap-0.5">
-          <SidebarMenuItem className="">
+          <SidebarMenuItem className="min-h-auto">
             <SidebarMenuButton
               size="small"
               onClick={() =>

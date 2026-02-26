@@ -61,7 +61,7 @@ export function Wrapper({ children, className }: Props) {
       >
         <div
           className={cn(
-            "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout",
+            "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent",
             isTaskPage && "pt-0 pr-0",
             isMobile && "p-0",
             className,
