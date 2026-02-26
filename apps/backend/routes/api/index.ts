@@ -4,7 +4,7 @@ import { apiPublicRouteV1 } from "./public/v1";
 import { internalApiV1 } from "./internal/v1";
 import { safeGetSession } from "@/getSession";
 import { db, schema } from "@repo/database";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createTraceAsync, maskEmail } from "@repo/opentelemetry/trace";
 import { Scalar } from "@scalar/hono-api-reference";
 import { traceOrgPermissionCheck } from "@/util";
@@ -151,22 +151,13 @@ apiRoute.get("/github/org-check", async (c) => {
 		return c.text("❌ Installation not found", 404);
 	}
 
-	if (found.organizationId) {
-		return c.text("❌ Installation already linked", 400);
-	}
-
-	await db
-		.update(schema.githubInstallation)
-		.set({
-			organizationId: orgId,
-			userId: session.userId,
-		})
-		.where(
-			eq(
-				schema.githubInstallation.installationId,
-				installationId
-			)
-		);
+	// Check if this org is already linked to this installation
+	const existingLink = await db.query.githubInstallationOrg.findFirst({
+		where: and(
+			eq(schema.githubInstallationOrg.installationId, installationId),
+			eq(schema.githubInstallationOrg.organizationId, orgId),
+		),
+	});
 
 	const root =
 		process.env.VITE_URL_ROOT ??
@@ -176,6 +167,19 @@ apiRoute.get("/github/org-check", async (c) => {
 		`/settings/org/${orgId}/connections/github`,
 		root
 	).toString();
+
+	if (existingLink) {
+		// Already linked to this org — just redirect, don't error
+		return c.redirect(redirectUrl, 302);
+	}
+
+	// Create the junction row linking this installation to the org
+	await db.insert(schema.githubInstallationOrg).values({
+		id: crypto.randomUUID(),
+		installationId,
+		organizationId: orgId,
+		userId: session.userId,
+	});
 
 	return c.redirect(redirectUrl, 302);
 });

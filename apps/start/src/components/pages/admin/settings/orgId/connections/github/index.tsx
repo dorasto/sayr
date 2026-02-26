@@ -60,7 +60,6 @@ import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 export type githubConnections = Array<{
     installation: {
         id: string;
-        organizationId: string;
         installationId: number;
         userId: string;
         createdAt: string;

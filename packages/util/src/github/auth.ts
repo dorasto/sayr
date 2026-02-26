@@ -27,7 +27,6 @@ export async function getInstallationDetailsWithRepos(github: {
 	id: string;
 	createdAt: Date;
 	updatedAt: Date;
-	organizationId: string | null;
 	installationId: number;
 	user:
 	| {
@@ -42,6 +41,7 @@ export async function getInstallationDetailsWithRepos(github: {
 		banned: boolean | null;
 		banReason: string | null;
 		banExpires: Date | null;
+		displayName?: string | null;
 	}
 	| undefined
 	| null;

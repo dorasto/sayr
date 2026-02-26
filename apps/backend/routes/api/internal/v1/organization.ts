@@ -2034,29 +2034,33 @@ apiRouteAdminOrganization.get(
 
 		/* ================= INSTALLATIONS ================= */
 
-		const githubInstalls =
-			await db.query.githubInstallation.findMany({
+		const installationLinks =
+			await db.query.githubInstallationOrg.findMany({
 				where: eq(
-					schema.githubInstallation.organizationId,
+					schema.githubInstallationOrg.organizationId,
 					orgId
 				),
-				with: { user: true },
+				with: {
+					installation: {
+						with: { user: true },
+					},
+				},
 			});
 
 		/* ================= FETCH GITHUB DETAILS ================= */
 
 		const githubConnections =
 			await Promise.all(
-				githubInstalls.map(
-					async (install) => {
+				installationLinks.map(
+					async (link) => {
 						const githubInfo =
 							await getInstallationDetailsWithRepos(
-								install
+								link.installation
 							);
 
 						return {
 							installation:
-								install,
+								link.installation,
 							githubInfo,
 						};
 					}
