@@ -1,4 +1,12 @@
 import { useState } from "react";
+import {
+  AdaptiveDialog,
+  AdaptiveDialogContent,
+  AdaptiveDialogHeader,
+  AdaptiveDialogTitle,
+  AdaptiveDialogBody,
+  AdaptiveDialogFooter,
+} from "@repo/ui/components/adaptive-dialog";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { IconPlus } from "@tabler/icons-react";
@@ -18,7 +26,7 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const { orgId } = Route.useParams();
   const queryClient = useQueryClient();
-  const [showModal, setShowModal] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const base =
     import.meta.env.VITE_APP_ENV === "development"
@@ -81,7 +89,7 @@ function RouteComponent() {
       return res.json();
     },
     onSuccess: () => {
-      setShowModal(false);
+      setOpen(false);
       queryClient.invalidateQueries({
         queryKey: ["organization", orgId, "connections", "github"],
       });
@@ -123,7 +131,7 @@ function RouteComponent() {
             variant="ghost"
             size="icon"
             onClick={async () => {
-              setShowModal(true);
+              setOpen(true);
               await refetchInstallations();
             }}
           >
@@ -140,14 +148,16 @@ function RouteComponent() {
 
       {/* ================= INSTALL MODAL ================= */}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-background rounded-xl p-6 w-full max-w-md flex flex-col gap-4">
-            <Label variant="heading">Connect GitHub Installation</Label>
+      <AdaptiveDialog open={open} onOpenChange={setOpen}>
+        <AdaptiveDialogContent size="small">
+          <AdaptiveDialogHeader>
+            <AdaptiveDialogTitle>Connect GitHub Installation</AdaptiveDialogTitle>
+          </AdaptiveDialogHeader>
 
+          <AdaptiveDialogBody>
             {/* ================= BLOCKED: ACCOUNT NOT CONNECTED ================= */}
             {githubAccountNotConnected ? (
-              <>
+              <div className="flex flex-col gap-4">
                 <p className="text-sm text-muted-foreground">
                   Please connect your GitHub account first.
                 </p>
@@ -155,16 +165,9 @@ function RouteComponent() {
                 <a href="/settings/connections">
                   <Button className="w-full">Connect GitHub</Button>
                 </a>
-
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </Button>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex flex-col gap-4">
                 {/* ================= LOADING ================= */}
                 {installationsLoading && (
                   <p className="text-sm text-muted-foreground">
@@ -191,6 +194,7 @@ function RouteComponent() {
                           <div className="flex items-center gap-3">
                             <img
                               src={install.account.avatar_url}
+                              alt={install.account.login}
                               className="w-8 h-8 rounded-full"
                             />
                             <div>
@@ -230,18 +234,20 @@ function RouteComponent() {
                     Install to another GitHub account
                   </Button>
                 </a>
-
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </Button>
-              </>
+              </div>
             )}
-          </div>
-        </div>
-      )}
+          </AdaptiveDialogBody>
+
+          <AdaptiveDialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+          </AdaptiveDialogFooter>
+        </AdaptiveDialogContent>
+      </AdaptiveDialog>
     </div>
   );
 }
