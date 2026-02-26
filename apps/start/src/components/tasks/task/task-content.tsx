@@ -149,7 +149,7 @@ export function TaskContentSideContent({
           releases={releases}
           availableLabels={labels}
           availableUsers={availableUsers}
-          fields={{ labels: false, assignees: false }}
+          fields={{ labels: false, assignees: false, vote: true }}
         />
       </div>
       <div className="p-1 flex flex-col gap-2 max-w-full">
@@ -336,6 +336,7 @@ export function TaskContentMobileContent({
           releases={releases}
           availableLabels={labels}
           availableUsers={availableUsers}
+          fields={{ vote: true }}
         />
         <Separator orientation="vertical" className="h-[26px]" />
         <SimpleClipboard
