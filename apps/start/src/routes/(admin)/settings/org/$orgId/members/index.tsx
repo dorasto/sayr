@@ -1,8 +1,8 @@
 import { db } from "@repo/database";
-import { Label } from "@repo/ui/components/label";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import SettingsOrganizationPageTeam from "@/components/pages/admin/settings/orgId/members";
+import { SubWrapper } from "@/components/generic/wrapper";
 
 const fetchMembersData = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgId: string }) => data)
@@ -36,13 +36,10 @@ function RouteComponent() {
 	const { invites, teams } = Route.useLoaderData();
 
 	return (
-		<div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
-			<div className="flex flex-col">
-				<Label variant="heading" className="text-2xl text-foreground">Team members</Label>
-			</div>
+		<SubWrapper title="Team members" style="compact">
 			<div className="flex flex-col gap-3">
 				<SettingsOrganizationPageTeam invites={invites} teams={teams} />
 			</div>
-		</div>
+		</SubWrapper>
 	);
 }

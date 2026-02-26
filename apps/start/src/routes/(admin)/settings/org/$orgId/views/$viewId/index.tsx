@@ -1,6 +1,6 @@
 import SettingsOrganizationViewDetailPage from "@/components/pages/admin/settings/orgId/view-detail";
+import { SubWrapper } from "@/components/generic/wrapper";
 import { db, schema } from "@repo/database";
-import { Label } from "@repo/ui/components/label";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
@@ -33,12 +33,8 @@ function RouteComponent() {
 	const { view } = Route.useLoaderData();
 
 	return (
-		<div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
-			<div className="flex flex-col">
-				<Label variant="heading" className="text-2xl text-foreground">Edit View</Label>
-				<Label variant="subheading" className="text-muted-foreground">Manage settings for this saved view.</Label>
-			</div>
+		<SubWrapper title="Edit View" description="Manage settings for this saved view." style="compact">
 			<SettingsOrganizationViewDetailPage viewId={view?.id as string} initialView={view} />
-		</div>
+		</SubWrapper>
 	);
 }

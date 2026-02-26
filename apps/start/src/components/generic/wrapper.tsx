@@ -78,7 +78,7 @@ interface SubProps {
   children: React.ReactNode;
   className?: string;
   rootClassName?: string;
-  style?: "default" | "compact";
+  style?: "default" | "compact" | "medium";
   iconClassName?: string;
   title?: string;
   description?: string;
@@ -149,6 +149,7 @@ export function SubWrapper({
         className={cn(
           "flex flex-col gap-9 md:p-6 md:pt-0",
           style === "compact" && "max-w-prose mx-auto p-3 md:pt-0",
+          style === "medium" && "max-w-6xl mx-auto p-3 md:pt-0",
           className,
         )}
       >
