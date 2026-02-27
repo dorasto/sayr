@@ -37,7 +37,7 @@ import {
 	findClientsByUserId,
 } from "../../../ws";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { getAnonHash, getClientIP, traceOrgPermissionCheck } from "@/util";
+import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
@@ -1113,6 +1113,17 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				{
 					success: false,
 					error: "You can only post public comments.",
+				},
+				403
+			);
+		}
+
+		const isPublicAccess = await tracePublicOrgAccessCheck(orgId);
+		if (!isPublicAccess) {
+			return c.json(
+				{
+					success: false,
+					error: "You don't have permission to comment on this task.",
 				},
 				403
 			);

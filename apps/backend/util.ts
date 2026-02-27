@@ -1,4 +1,4 @@
-import { db, hasOrgPermission, schema } from "@repo/database";
+import { canPublicAccessOrg, db, hasOrgPermission, schema } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
@@ -124,6 +124,33 @@ export async function traceOrgPermissionCheck(
 		}
 	);
 }
+
+export async function tracePublicOrgAccessCheck(
+	organizationId: string
+): Promise<boolean> {
+	const traceAsync = createTraceAsync();
+
+	if (!organizationId) {
+		return false;
+	}
+
+	return traceAsync(
+		"canPublicAccessOrg",
+		() => canPublicAccessOrg(organizationId),
+		{
+			description: "Checking public organization access",
+			data: {
+				organization: { id: organizationId },
+			},
+			onSuccess: (result) => ({
+				outcome: result
+					? "Public access allowed"
+					: "Public access denied",
+			}),
+		}
+	);
+}
+
 export async function refreshGitHubTokenIfNeeded(githubAccount: schema.accountType) {
 	if (!githubAccount.refreshToken) return githubAccount;
 

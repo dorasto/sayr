@@ -10,7 +10,7 @@ export { type TeamPermissions, defaultTeamPermissions } from "../schema/member.s
 export { type OrganizationSettings, defaultOrganizationSettings } from "../schema/organization.schema";
 
 import { and, eq, inArray } from "drizzle-orm";
-import { member, memberTeam, team, defaultTeamPermissions as defaultPerms, type TeamPermissions } from "../schema";
+import { member, memberTeam, team, defaultTeamPermissions as defaultPerms, type TeamPermissions, organization, OrganizationSettings, defaultOrganizationSettings, } from "../schema";
 import { user } from "../schema/auth";
 import { db } from "./database";
 
@@ -113,6 +113,27 @@ export async function hasOrgPermission(userId: string, orgId: string, permPath: 
 	});
 
 	return allowed;
+}
+
+export async function canPublicAccessOrg(
+	orgId: string
+): Promise<boolean> {
+	const result = await db
+		.select({
+			settings: organization.settings,
+		})
+		.from(organization)
+		.where(eq(organization.id, orgId))
+		.limit(1);
+
+	if (!result.length) return false;
+
+	const {
+		enablePublicPage,
+		publicActions,
+	} = result[0]?.settings || defaultOrganizationSettings;
+
+	return enablePublicPage && publicActions;
 }
 
 /**
