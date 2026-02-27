@@ -33,7 +33,11 @@ import { HydrationProvider } from "@/contexts/HydrationContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getThemeServerFn } from "@/lib/theme";
 
-const isSayrCloud = process.env.VITE_SAYR_CLOUD?.toLowerCase() === "true";
+const isSayrCloud = typeof window !== "undefined" && (
+  window.location.hostname === "sayr.io" ||
+  window.location.hostname.endsWith(".sayr.io")
+);
+
 if (typeof window !== "undefined") {
   // Initialize PostHog for analytics, session recordings, and web vitals
   initPostHog();
@@ -86,7 +90,7 @@ export const Route = createRootRouteWithContext<{
         //@ts-expect-error
         href: ctx.params?.orgSlug
           ? //@ts-expect-error
-            `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
+          `/manifest.webmanifest?org=${encodeURIComponent(ctx.params.orgSlug)}`
           : "/manifest.webmanifest",
       },
     ],
