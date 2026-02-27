@@ -23,7 +23,7 @@ import { Separator } from "@repo/ui/components/separator";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCheck, IconPhoto } from "@tabler/icons-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useFileUpload } from "@/hooks/use-file-upload";
@@ -88,6 +88,12 @@ export default function SettingsOrganizationPage() {
     channel: "admin",
     setOrganization: setOrganization,
   });
+  useEffect(() => {
+    setName(organization.name);
+    setSlug(organization.slug);
+    setDescription(organization.description || "");
+
+  }, [organization.id])
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
