@@ -29,6 +29,10 @@ COPY --from=builder /app/out/full/ .
 
 RUN pnpm install
 
+# Astro inlines PUBLIC_* env vars at build time, so they must be available here
+ARG PUBLIC_CAP_API_ENDPOINT
+ENV PUBLIC_CAP_API_ENDPOINT=${PUBLIC_CAP_API_ENDPOINT}
+
 # Build the application
 RUN cd apps/marketing && pnpm run build
 
@@ -42,6 +46,7 @@ RUN adduser --system --uid 1001 astro
 ENV HOST=0.0.0.0
 ENV PORT=8080
 ENV NODE_ENV=production
+ENV BACKEND_URL=http://sayr-backend:5468
 
 # Copy the entire workspace structure to preserve pnpm symlinks
 COPY --from=installer --chown=astro:nodejs /app/node_modules ./node_modules

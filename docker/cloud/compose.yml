@@ -74,12 +74,19 @@ services:
       - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
       - SAYR_CLOUD=${SAYR_CLOUD}
       - APP_ENV=${APP_ENV}
+      - CAP_API_ENDPOINT=${CAP_API_ENDPOINT}
+      - CAP_SECRET_KEY=${CAP_SECRET_KEY}
+      - SAYR_WAITLIST_BOOK_ID=${SAYR_WAITLIST_BOOK_ID}
+      - SAYR_WAITLIST_TEMPLATE_ID=${SAYR_WAITLIST_TEMPLATE_ID}
+      - SAYR_FROM_EMAIL=${SAYR_FROM_EMAIL}
 
   marketing:
     container_name: sayr-marketing
     image: ghcr.io/dorasto/sayr-marketing:latest
     restart: always
     pull_policy: always
+    environment:
+      - BACKEND_URL=http://sayr-backend:5468
 
   github-worker:
     container_name: sayr-worker-github
