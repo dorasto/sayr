@@ -8,17 +8,37 @@ import {
   AdaptiveDialogFooter,
 } from "@repo/ui/components/adaptive-dialog";
 import { Button } from "@repo/ui/components/button";
-import { Label } from "@repo/ui/components/label";
-import { IconPlus } from "@tabler/icons-react";
+import {
+  IconBrandGithub,
+  IconPlus,
+  IconQuestionMark,
+} from "@tabler/icons-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import SettingsOrganizationConnectionsGitHubPage, {
   type githubConnections,
   type githubConnectionsRepositories,
 } from "@/components/pages/admin/settings/orgId/connections/github";
+import { SubWrapper } from "@/components/generic/wrapper";
+import { Label } from "@repo/ui/components/label";
+import { MarkdownContent } from "@/components/generic/MarkdownContent";
+import githubSummaryMd from "@/components/pages/admin/settings/orgId/connections/md/github.md?raw";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@repo/ui/components/sheet";
 
 export const Route = createFileRoute(
-  "/(admin)/settings/org/$orgId/connections/github/"
+  "/(admin)/settings/org/$orgId/connections/github/",
 )({
   component: RouteComponent,
 });
@@ -40,7 +60,7 @@ function RouteComponent() {
     queryFn: async () => {
       const res = await fetch(
         `${base}/v1/admin/organization/${orgId}/connections/github`,
-        { credentials: "include" }
+        { credentials: "include" },
       );
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -64,7 +84,7 @@ function RouteComponent() {
     queryFn: async () => {
       const res = await fetch(
         `${base}/v1/admin/organization/${orgId}/github/installations`,
-        { credentials: "include" }
+        { credentials: "include" },
       );
       // if (!res.ok) throw new Error("Failed to fetch installs");
       return res.json();
@@ -83,7 +103,7 @@ function RouteComponent() {
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ installationId }),
-        }
+        },
       );
       if (!res.ok) throw new Error("Failed to link");
       return res.json();
@@ -102,28 +122,37 @@ function RouteComponent() {
     (!installationsData?.data || installationsData.data.length === 0);
 
   return (
-    <div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
-      <div className="flex flex-col">
-        <Label variant="heading" className="text-2xl text-foreground">
-          GitHub
-        </Label>
-        <Label
-          variant="subheading"
-          className="text-muted-foreground"
-        >
-          Connect your organization to GitHub repositories
-        </Label>
-      </div>
+    <SubWrapper
+      title="GitHub"
+      description="Connect your organization to GitHub repositories"
+      style="compact"
+      icon={<IconBrandGithub />}
+      topContent={
+        <Sheet>
+          <SheetTrigger>
+            <Button variant={"primary"} size={"icon"}>
+              <IconQuestionMark />
+            </Button>
+          </SheetTrigger>
+          <SheetContent className="h-full overflow-auto">
+            <SheetHeader className="pb-4">
+              <SheetTitle asChild>
+                <Label variant={"heading"}>Overview</Label>
+              </SheetTitle>
+            </SheetHeader>
 
+            <MarkdownContent content={githubSummaryMd} />
+          </SheetContent>
+        </Sheet>
+      }
+    >
       <div className="flex flex-col gap-3">
         <div className="flex items-start justify-between">
           <div className="flex flex-col">
-            <Label variant="heading">
-              GitHub connections
-            </Label>
+            <Label variant="heading">GitHub connections</Label>
             <Label variant="description">
-              Link your GitHub organizations and repositories
-              to your Sayr organization.
+              Link your GitHub organizations and repositories to your Sayr
+              organization.
             </Label>
           </div>
 
@@ -151,7 +180,9 @@ function RouteComponent() {
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
         <AdaptiveDialogContent size="small">
           <AdaptiveDialogHeader>
-            <AdaptiveDialogTitle>Connect GitHub Installation</AdaptiveDialogTitle>
+            <AdaptiveDialogTitle>
+              Connect GitHub Installation
+            </AdaptiveDialogTitle>
           </AdaptiveDialogHeader>
 
           <AdaptiveDialogBody>
@@ -181,9 +212,7 @@ function RouteComponent() {
                     {installationsData.data.map((install: any) => {
                       const isConnected =
                         typeof githubConnections.find(
-                          (e) =>
-                            e.installation.installationId ===
-                            install.id
+                          (e) => e.installation.installationId === install.id,
                         ) === "object";
 
                       return (
@@ -209,12 +238,8 @@ function RouteComponent() {
 
                           <Button
                             size="sm"
-                            onClick={() =>
-                              linkMutation.mutate(install.id)
-                            }
-                            disabled={
-                              linkMutation.isPending || isConnected
-                            }
+                            onClick={() => linkMutation.mutate(install.id)}
+                            disabled={linkMutation.isPending || isConnected}
                           >
                             {isConnected ? "Connected" : "Connect"}
                           </Button>
@@ -239,15 +264,12 @@ function RouteComponent() {
           </AdaptiveDialogBody>
 
           <AdaptiveDialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setOpen(false)}
-            >
+            <Button variant="ghost" onClick={() => setOpen(false)}>
               Cancel
             </Button>
           </AdaptiveDialogFooter>
         </AdaptiveDialogContent>
       </AdaptiveDialog>
-    </div>
+    </SubWrapper>
   );
 }

@@ -2,7 +2,7 @@ import type { account, session, user, verification } from "./auth";
 import type { githubIssueType } from "./github_issue.schema";
 import type { labelType } from "./label.schema";
 import type { OrganizationMemberType, TeamPermissions } from "./member.schema";
-import type { organizationType } from "./organization.schema";
+import type { OrganizationSettings, organizationType } from "./organization.schema";
 import type { releaseType } from "./release.schema";
 import type { taskType } from "./task.schema";
 import type { taskCommentType } from "./taskComment.schema";
@@ -11,6 +11,7 @@ import type { issueTemplateType } from "./taskTemplate.schema";
 import type { labelType as LabelTypeImport } from "./label.schema";
 import type { notificationType } from "./notification.schema";
 import { githubPullRequestType } from "./github_pull_request.schema";
+import type { blockedUserType } from "./blockedUser.schema";
 
 export * from "./category.schema";
 export * from "./github_installation.schema";
@@ -34,6 +35,7 @@ export * from "./taskVote.schema";
 export * from "./apikey.schema";
 export * from "./notification.schema";
 export * from "./github_pull_request.schema";
+export * from "./blockedUser.schema";
 export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
@@ -159,3 +161,8 @@ export type userType = typeof user.$inferSelect;
 export type sessionType = typeof session.$inferSelect;
 export type accountType = typeof account.$inferSelect;
 export type verificationType = typeof verification.$inferSelect;
+
+export type BlockedUserWithDetails = blockedUserType & {
+	user: UserSummary;
+	blockedByUser: UserSummary;
+};

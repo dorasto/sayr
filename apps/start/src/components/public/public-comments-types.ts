@@ -37,8 +37,8 @@ export interface PublicCommentItemProps {
 	onToggleReaction?: (commentId: string, emoji: ReactionEmoji) => void;
 	users: schema.userType[];
 	currentUserId?: string;
-	onEdit: (commentId: string, content: NodeJSON) => Promise<boolean>;
-	onDelete: (commentId: string) => Promise<boolean>;
+	onEdit?: (commentId: string, content: NodeJSON) => Promise<boolean>;
+	onDelete?: (commentId: string) => Promise<boolean>;
 	categories: schema.categoryType[];
 	/** Footer slot for rendering thread trigger + body inside the card */
 	footer?: React.ReactNode;
@@ -46,4 +46,8 @@ export interface PublicCommentItemProps {
 	isReply?: boolean;
 	/** Callback when "Reply" action is clicked */
 	onReply?: () => void;
+	/** Set of blocked user IDs for this organization */
+	blockedUserIds?: Set<string>;
+	/** Whether the current viewer is an org member */
+	isOrgMember?: boolean;
 }

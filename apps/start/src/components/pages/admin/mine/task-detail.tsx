@@ -11,7 +11,6 @@ import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import TaskFieldToolbar from "@/components/tasks/shared/task-field-toolbar";
-import { TaskVoting } from "@/components/tasks";
 import { TaskEditableHeader } from "@/components/tasks/task/editable-header";
 import GlobalTimeline from "@/components/tasks/task/timeline/root";
 
@@ -34,8 +33,7 @@ export function MyTaskDetail({
   categories,
   releases = [],
 }: MyTaskDetailProps) {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
+   const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
 
   // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
   useEffect(() => {
@@ -76,16 +74,7 @@ export function MyTaskDetail({
           releases={orgReleases}
           availableLabels={orgLabels}
           availableUsers={availableUsers}
-          fields={{ release: false, visibility: false }}
-        />
-        <TaskVoting
-          task={task}
-          editable={true}
-          organizationId={task.organizationId}
-          wsClientId={wsClientId}
-          tasks={tasks}
-          setTasks={setTasks}
-          setSelectedTask={setSelectedTask}
+          fields={{ release: false, visibility: false, vote: true }}
         />
         {task.organization && (
           <Link to={fullUrl} className="inline-block ml-auto">

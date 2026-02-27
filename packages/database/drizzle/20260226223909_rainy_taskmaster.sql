@@ -1,0 +1,1 @@
+ALTER TABLE "organization" ALTER COLUMN "settings" SET DEFAULT '{"allowActionsOnClosedTasks":true,"publicActions":true,"enablePublicPage":true}'::json;

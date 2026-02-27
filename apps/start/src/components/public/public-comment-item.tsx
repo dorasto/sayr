@@ -31,6 +31,7 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { formatDateTimeFromNow, getDisplayName } from "@repo/util";
 import {
+  IconBan,
   IconCheck,
   IconDots,
   IconLoader2,
@@ -63,7 +64,11 @@ export function PublicCommentItem({
   footer,
   isReply,
   onReply,
+  blockedUserIds,
+  isOrgMember,
 }: PublicCommentItemProps) {
+  const isBlocked = !!comment.createdBy && !!blockedUserIds?.has(comment.createdBy.id);
+
   const authorName = comment.createdBy
     ? getDisplayName(comment.createdBy)
     : "Anonymous";
@@ -84,7 +89,7 @@ export function PublicCommentItem({
   const canSave = !!editedContent && editedContent !== comment.content;
 
   const handleSave = useCallback(async () => {
-    if (!editedContent || !canSave) return;
+    if (!editedContent || !canSave || !onEdit) return;
     setIsSaving(true);
     const success = await onEdit(comment.id, editedContent);
     setIsSaving(false);
@@ -99,6 +104,7 @@ export function PublicCommentItem({
   }, [comment.content]);
 
   const handleDelete = useCallback(async () => {
+    if (!onDelete) return;
     setIsDeleting(true);
     const success = await onDelete(comment.id);
     setIsDeleting(false);
@@ -106,6 +112,11 @@ export function PublicCommentItem({
       setDeleteDialogOpen(false);
     }
   }, [onDelete, comment.id]);
+
+  // Non-members should not see blocked users' comments at all
+  if (isBlocked && !isOrgMember) {
+    return null;
+  }
 
   return (
     <>
@@ -153,6 +164,24 @@ export function PublicCommentItem({
                   </TooltipContent>
                 </Tooltip>
               )}
+              {isBlocked && isOrgMember && (
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="gap-1 text-xs py-0 h-5 bg-destructive/10 border-destructive/20 text-destructive"
+                    >
+                      <IconBan className="size-3" />
+                      Blocked user
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <span className="text-xs">
+                      This user has been blocked by an administrator.
+                    </span>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               <span className="text-xs text-muted-foreground">
                 {formatDateTimeFromNow(comment.createdAt)}
               </span>
@@ -196,7 +225,7 @@ export function PublicCommentItem({
                       <IconMessage size={16} />
                     </Button>
                   )}
-                  {isOwnComment && (
+                  {isOwnComment && (onEdit || onDelete) && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -208,18 +237,22 @@ export function PublicCommentItem({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => setIsEditing(true)}>
-                          <IconPencil size={16} />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onSelect={() => setDeleteDialogOpen(true)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <IconTrash size={16} />
-                          Delete
-                        </DropdownMenuItem>
+                        {onEdit && (
+                          <DropdownMenuItem onSelect={() => setIsEditing(true)}>
+                            <IconPencil size={16} />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        {onEdit && onDelete && <DropdownMenuSeparator />}
+                        {onDelete && (
+                          <DropdownMenuItem
+                            onSelect={() => setDeleteDialogOpen(true)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <IconTrash size={16} />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}

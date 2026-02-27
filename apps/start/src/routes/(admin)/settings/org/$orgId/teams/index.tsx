@@ -1,8 +1,8 @@
 import { db } from "@repo/database";
-import { Label } from "@repo/ui/components/label";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import SettingsOrganizationPageTeams from "@/components/pages/admin/settings/orgId/teams";
+import { SubWrapper } from "@/components/generic/wrapper";
 
 /**
  * Fetch all teams (and optional member summaries)
@@ -38,14 +38,10 @@ function RouteComponent() {
 	const { teams } = Route.useLoaderData();
 
 	return (
-		<div className="max-w-prose mx-auto p-3 md:p-6 w-full flex flex-col gap-9">
-			<div className="flex flex-col">
-				<Label variant="heading" className="text-2xl text-foreground">Teams</Label>
-				<Label variant="subheading" className="text-muted-foreground">Group organization members into teams for permissions</Label>
-			</div>
+		<SubWrapper title="Teams" description="Group organization members into teams for permissions" style="compact">
 			<div className="flex flex-col gap-3">
 				<SettingsOrganizationPageTeams teams={teams} />
 			</div>
-		</div>
+		</SubWrapper>
 	);
 }

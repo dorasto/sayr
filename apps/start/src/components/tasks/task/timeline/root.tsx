@@ -4,8 +4,9 @@ import { Timeline } from "@repo/ui/components/tomui/timeline";
 import { useStateManagementFetch, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { IconLoader2 } from "@tabler/icons-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
 import { TaskNewCommentContent } from "../comment/new";
 import { CommentThreadTrigger, CommentThreadBody } from "./comment-thread";
 import { TimelineCategoryChange } from "./category-change";
@@ -53,6 +54,16 @@ export default function GlobalTimeline({
 			return next;
 		});
 	}, []);
+
+	// Fetch blocked user IDs for displaying badge on blocked user comments
+	const { data: blockedUserIds } = useQuery({
+		queryKey: ["blocked-user-ids", task.organizationId],
+		queryFn: async () => {
+			const ids = await getBlockedUserIdsAction(task.organizationId);
+			return new Set(ids);
+		},
+		staleTime: 60_000,
+	});
 
 	const timelineComponents = {
 		created: TimelineCreated,
@@ -310,6 +321,7 @@ export default function GlobalTimeline({
 				releases={releases}
 				showSeparator={showSeparator}
 				organization={organization}
+				blockedUserIds={blockedUserIds}
 				{...(isComment
 					? {
 						onReply: () => toggleThread(item.id),
@@ -329,6 +341,7 @@ export default function GlobalTimeline({
 											categories={categories}
 											tasks={tasks}
 											organization={organization}
+											blockedUserIds={blockedUserIds}
 										/>
 									)}
 								</>

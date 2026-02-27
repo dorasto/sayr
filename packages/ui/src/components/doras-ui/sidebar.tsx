@@ -382,9 +382,9 @@ export function SidebarMenuItem({
         "relative duration-150 flex w-full items-center gap-1 shrink-0 px-1 min-h-10",
         "flex w-full items-center gap-3 transition-all justify-start text-left flex-1 group/item rounded-lg text-sm",
 
-        "hover:bg-accent hover:text-accent-foreground",
+        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        isActive && "bg-accent font-medium text-accent-foreground",
+        isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
         (isCollapsed || sidebarCollapsed) && "justify-center aspect-square",
 
         className,
@@ -444,7 +444,7 @@ export function SidebarMenuButton({
         "focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent",
         size === "large" && "font-semibold py-3",
         size === "small" && "text-sm min-h-auto p-1",
-        isActive && "bg-accent font-medium text-accent-foreground",
+        isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
         isCollapsed && "justify-center aspect-square ",
         className,
       )}
@@ -504,11 +504,11 @@ export function SidebarSubmenu({
       onClick={() => !isCollapsed && !forcePopup && setIsOpen(!isOpen)}
       className={cn(
         "flex w-full min-w-full items-center gap-3 text-inherit duration-150 transition-all justify-start text-left flex-1 rounded-lg p-2",
-        "hover:bg-accent hover:font-medium hover:text-accent-foreground",
+        "hover:bg-sidebar-accent hover:font-medium hover:text-sidebar-accent-foreground",
         "focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent",
         !isCollapsed &&
           isOpen &&
-          "bg-accent font-medium text-accent-foreground",
+          "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
       )}
     >
       {icon && <span className={cn("shrink-0", "[&>svg]:size-4")}>{icon}</span>}
@@ -580,9 +580,9 @@ export function SidebarSubmenuItem({
       data-active={isActive}
       className={cn(
         "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
-        "hover:bg-accent hover:text-accent-foreground",
+        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent",
-        isActive && "bg-accent font-medium text-accent-foreground",
+        isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
         className,
       )}
       {...props}

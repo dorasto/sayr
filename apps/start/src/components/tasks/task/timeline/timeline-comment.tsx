@@ -330,6 +330,7 @@ export function TimelineComment({
 	onReply,
 	isReply,
 	footer,
+	blockedUserIds,
 }: TimelineItemProps & { showSeparator?: boolean; onReply?: () => void; isReply?: boolean; footer?: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
@@ -676,6 +677,7 @@ export function TimelineComment({
         onReactionToggle={(e) => handleToggleReaction(item.id, e)}
         footer={footer}
         isReply={isReply}
+        blockedUserIds={blockedUserIds}
         actionButtons={
           !isEditing ? (
             <>

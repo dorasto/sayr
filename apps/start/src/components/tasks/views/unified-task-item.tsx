@@ -25,7 +25,7 @@ import {
 import { KanbanCard } from "@repo/ui/components/kibo-ui/kanban/index";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDateCompact } from "@repo/util";
+import { formatCount, formatDateCompact } from "@repo/util";
 import {
   IconAppWindow,
   IconCategory,
@@ -702,7 +702,7 @@ export function UnifiedTaskItem({
             <div className="flex items-center text-muted-foreground">
               <IconChevronUp className="h-3 w-3 shrink-0" />
               <span className="text-xs truncate">
-                {task.voteCount.toString()}
+                {formatCount(task.voteCount)}
               </span>
             </div>
           </div>

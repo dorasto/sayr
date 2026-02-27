@@ -93,18 +93,20 @@ export function PrimarySidebar() {
                 </SidebarMenuItem>
               );
             })}
-            <SidebarMenuItem
-              className="min-w-0 min-h-auto max-w-fit size-7! aspect-square!"
-              hideWhenCollapsed
-            >
-              <SidebarMenuButton
-                size="small"
-                tooltip={"Search"}
-                icon={<IconSearch className="size-4!" />}
-                onClick={() => commandActions.open()}
-                className="h-7! w-7! flex items-center justify-center"
-              />
-            </SidebarMenuItem>
+            {!isMobile && (
+              <SidebarMenuItem
+                className="min-w-0 min-h-auto max-w-fit size-7! aspect-square!"
+                hideWhenCollapsed
+              >
+                <SidebarMenuButton
+                  size="small"
+                  tooltip={"Search"}
+                  icon={<IconSearch className="size-4!" />}
+                  onClick={() => commandActions.open()}
+                  className="h-7! w-7! flex items-center justify-center"
+                />
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         ))}
       </SidebarHeader>
@@ -121,28 +123,28 @@ export function PrimarySidebar() {
                   isActive && item.activeIcon ? item.activeIcon : item.icon;
 
                 return (
-                    <SidebarMenuItem
-                      className="min-h-auto"
-                      key={item.title}
-                      isActive={isActive}
-                    >
-                      <Link to={item.url} className="w-full">
-                        <SidebarMenuButton
-                          size="small"
-                          icon={<IconComponent size={16} />}
-                          tooltip={item.title}
-                        >
-                          <span>{item.title}</span>
-                        </SidebarMenuButton>
-                      </Link>
-                      {item.title === "Inbox" && inboxCount > 0 && (
-                        <SidebarMenuSub className="h-3 max-h-3">
-                          <SidebarSubmenuItem className="h-3 max-h-3">
-                            {inboxCount > 99 ? "99+" : inboxCount}
-                          </SidebarSubmenuItem>
-                        </SidebarMenuSub>
-                      )}
-                    </SidebarMenuItem>
+                  <SidebarMenuItem
+                    className="min-h-auto"
+                    key={item.title}
+                    isActive={isActive}
+                  >
+                    <Link to={item.url} className="w-full">
+                      <SidebarMenuButton
+                        size="small"
+                        icon={<IconComponent size={16} />}
+                        tooltip={item.title}
+                      >
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </Link>
+                    {item.title === "Inbox" && inboxCount > 0 && (
+                      <SidebarMenuSub className="h-3 max-h-3">
+                        <SidebarSubmenuItem className="h-3 max-h-3">
+                          {inboxCount > 99 ? "99+" : inboxCount}
+                        </SidebarSubmenuItem>
+                      </SidebarMenuSub>
+                    )}
+                  </SidebarMenuItem>
                 );
               })}
             </SidebarMenu>
@@ -198,7 +200,23 @@ export function PrimarySidebar() {
               <Kbd>⌘K</Kbd>
             </SidebarMenuSub>
           </SidebarMenuItem>
-          <SidebarMenuItem className="min-h-auto" hideWhenCollapsed>
+          {isMobile && (
+            <SidebarMenuItem className="min-h-auto">
+              <SidebarMenuButton
+                size="small"
+                tooltip={"Search"}
+                icon={<IconSearch />}
+                onClick={() => commandActions.open()}
+              >
+                {" "}
+                Search
+              </SidebarMenuButton>
+              <SidebarMenuSub className="">
+                <Kbd>⌘K</Kbd>
+              </SidebarMenuSub>
+            </SidebarMenuItem>
+          )}
+          <SidebarMenuItem className={cn("min-h-auto", isMobile && "hidden")}>
             <SidebarMenuButton
               size="small"
               tooltip={isSidebarOpen ? "Collapse" : "Expand"}

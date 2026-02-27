@@ -61,7 +61,7 @@ export function Wrapper({ children, className }: Props) {
       >
         <div
           className={cn(
-            "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout",
+            "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent",
             isTaskPage && "pt-0 pr-0",
             isMobile && "p-0",
             className,
@@ -78,7 +78,7 @@ interface SubProps {
   children: React.ReactNode;
   className?: string;
   rootClassName?: string;
-  style?: "default" | "compact";
+  style?: "default" | "compact" | "medium";
   iconClassName?: string;
   title?: string;
   description?: string;
@@ -86,6 +86,7 @@ interface SubProps {
   icon?: React.ReactNode;
   backButton?: string;
   backButtonText?: string;
+  backButtonClassName?: string;
   blur?: boolean;
   top?: boolean;
   topContent?: React.ReactNode;
@@ -101,6 +102,7 @@ export function SubWrapper({
   descriptionRender,
   icon,
   backButton,
+  backButtonClassName,
   topContent,
   backButtonText = "Back",
   blur = true,
@@ -121,7 +123,10 @@ export function SubWrapper({
             <Link to={backButton} className="">
               <Button
                 variant={"ghost"}
-                className="w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg"
+                className={cn(
+                  "w-fit text-xs p-1 h-auto bg-accent md:bg-transparent rounded-lg",
+                  backButtonClassName,
+                )}
                 size={"sm"}
               >
                 <IconArrowLeft className="size-3!" />
@@ -144,6 +149,7 @@ export function SubWrapper({
         className={cn(
           "flex flex-col gap-9 md:p-6 md:pt-0",
           style === "compact" && "max-w-prose mx-auto p-3 md:pt-0",
+          style === "medium" && "max-w-6xl mx-auto p-3 md:pt-0",
           className,
         )}
       >

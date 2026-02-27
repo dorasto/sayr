@@ -8,7 +8,24 @@ const API_URL =
     process.env.APP_ENV === "development"
         ? "http://localhost:5468/api/internal"
         : "http://backend:5468/api/internal";
+/**
+ * Attempts to find a Sayr user linked to the given GitHub numeric ID.
+ * Returns the Sayr user ID if found, otherwise undefined.
+ */
+async function findLinkedSayrUser(githubId?: number): Promise<string | undefined> {
+    if (!githubId) return undefined;
 
+    const linked = await db.query.account.findFirst({
+        where: (a) =>
+            and(
+                eq(a.providerId, "github"),
+                eq(a.accountId, String(githubId))
+            ),
+        columns: { userId: true },
+    });
+
+    return linked?.userId;
+}
 export async function handleGithubPullRequestLink(
     job: JobGroups["github"] & { type: "pull_request_link" }
 ) {
@@ -27,6 +44,7 @@ export async function handleGithubPullRequestLink(
         headBranch,
         baseBranch,
         author,
+        userId,
         matches,
     } = job.payload;
 
@@ -98,6 +116,7 @@ export async function handleGithubPullRequestLink(
 
             // 4️⃣ If linked to task → send timeline activity
             if (!task) return;
+            const linkedUserId = await findLinkedSayrUser(userId || 0);
 
             const res = await fetch(
                 `${API_URL}/v1/admin/organization/task/activity`,
@@ -121,6 +140,7 @@ export async function handleGithubPullRequestLink(
                         visibility: repo_private
                             ? "internal"
                             : "public",
+                        ...(linkedUserId && { createdBy: linkedUserId }),
                         data: {
                             provider: "github",
                             repository: {
@@ -174,6 +194,7 @@ export async function handleGithubPullRequestSync(
         headBranch,
         before,
         after,
+        userId
     } = job.payload;
 
     if (!organizationId) return;
@@ -269,7 +290,7 @@ export async function handleGithubPullRequestSync(
                         commitSha: commit.sha,
                         commitUrl: commit.html_url,
                         commitMessage: message,
-
+                        userId: userId,
                         authorLogin:
                             commit.author?.login ?? null,
                         authorEmail:
@@ -310,7 +331,7 @@ export async function handleGithubPullRequestClosed(
         number,
         merged,
         mergedAt,
-        mergeCommitSha,
+        mergeCommitSha, userId
     } = job.payload;
 
     if (!organizationId) return;
@@ -374,6 +395,7 @@ export async function handleGithubPullRequestClosed(
             const eventType = merged
                 ? "github_pr_merged"
                 : "github_pr_closed";
+            const linkedUserId = await findLinkedSayrUser(userId || 0);
 
             const activityRes = await fetch(
                 `${API_URL}/v1/admin/organization/task/activity`,
@@ -397,6 +419,7 @@ export async function handleGithubPullRequestClosed(
                         visibility: repo_private
                             ? "internal"
                             : "public",
+                        ...(linkedUserId && { createdBy: linkedUserId }),
                         data: {
                             provider: "github",
                             repository: {
@@ -442,6 +465,7 @@ export async function handleGithubPullRequestClosed(
                             org_id: organizationId,
                             task_id: existingPr.taskId,
                             status: "done",
+                            ...(linkedUserId && { createdBy: linkedUserId }),
                         }),
                     }
                 );

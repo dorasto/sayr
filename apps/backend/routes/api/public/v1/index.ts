@@ -1,5 +1,6 @@
 import {
 	db,
+	getBlockedUserIds,
 	getLabels,
 	getOrganizationPublic,
 	getTaskByShortId,
@@ -8,7 +9,7 @@ import {
 	getOrganizations,
 	userSummaryColumns,
 } from "@repo/database";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -133,6 +134,10 @@ apiPublicRouteV1.get(
 					: { description: "No organization found" },
 		});
 
+		if (!organization?.settings?.enablePublicPage) {
+			return c.json(errorResponse("No organization found"), 404);
+		}
+
 		if (!organization) {
 			await recordWideError({
 				name: "organization.public.notfound",
@@ -184,6 +189,10 @@ apiPublicRouteV1.get(
 			description: "Finding organization by slug",
 			data: { orgSlug },
 		});
+
+		if (!organization?.settings?.enablePublicPage) {
+			return c.json(errorResponse("No organization found"), 404);
+		}
 
 		if (!organization) {
 			await recordWideError({
@@ -253,6 +262,10 @@ apiPublicRouteV1.get(
 			() => getOrganizationPublic(orgSlug),
 			{ description: "Finding organization by slug", data: { orgSlug } }
 		);
+
+		if (!organization?.settings?.enablePublicPage) {
+			return c.json(errorResponse("No organization found"), 404);
+		}
 
 		if (!organization) {
 			await recordWideError({
@@ -338,6 +351,10 @@ apiPublicRouteV1.get(
 				description: "Finding organization by slug",
 				data: { orgSlug },
 			});
+
+			if (!organization?.settings?.enablePublicPage) {
+				return c.json(errorResponse("No organization found"), 404);
+			}
 
 			if (!organization) {
 				await recordWideError({
@@ -492,6 +509,10 @@ apiPublicRouteV1.get(
 			data: { orgSlug },
 		});
 
+		if (!organization?.settings?.enablePublicPage) {
+			return c.json(errorResponse("No organization found"), 404);
+		}
+
 		if (!organization) {
 			await recordWideError({
 				name: "task.byshortid.org_notfound",
@@ -627,6 +648,10 @@ apiPublicRouteV1.get(
 				data: { orgSlug },
 			});
 
+			if (!org?.settings?.enablePublicPage) {
+				return c.json(errorResponse("No organization found"), 404);
+			}
+
 			if (!org) {
 				await recordWideError({
 					name: "task.comments.org_notfound",
@@ -676,19 +701,22 @@ apiPublicRouteV1.get(
 				);
 			}
 
+			const blockedIds = await getBlockedUserIds(org.id);
+
+			const baseConditions = and(
+				eq(schema.taskComment.taskId, task.id),
+				eq(schema.taskComment.organizationId, org.id),
+				eq(schema.taskComment.visibility, "public"),
+				blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
+			);
+
 			const totalItems = await traceAsync(
 				"task.comments.count",
 				async () => {
 					const [result] = await db
 						.select({ count: sql<number>`count(*)` })
 						.from(schema.taskComment)
-						.where(
-							and(
-								eq(schema.taskComment.taskId, task.id),
-								eq(schema.taskComment.organizationId, org.id),
-								eq(schema.taskComment.visibility, "public")
-							)
-						);
+						.where(baseConditions);
 					return Number(result?.count ?? 0);
 				},
 				{
@@ -714,12 +742,7 @@ apiPublicRouteV1.get(
 				"task.comments.fetch",
 				async () => {
 					const rows = await db.query.taskComment.findMany({
-						where: (tC) =>
-							and(
-								eq(tC.taskId, task.id),
-								eq(tC.organizationId, org.id),
-								eq(schema.taskComment.visibility, "public")
-							),
+						where: () => baseConditions,
 						orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
 						limit,
 						offset,

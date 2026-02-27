@@ -12,6 +12,7 @@ import {
 	getTaskAssigneeIds,
 	getCommentReplies,
 	getCommentReplyCountBatch,
+	getBlockedUserIds,
 	db,
 	getOrganizationMembers,
 	getTaskById,
@@ -21,7 +22,7 @@ import {
 	userSummaryColumns,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import type { WSBaseMessage } from "@/routes/ws/types";
@@ -36,7 +37,7 @@ import {
 	findClientsByUserId,
 } from "../../../ws";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { getAnonHash, getClientIP, traceOrgPermissionCheck } from "@/util";
+import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
@@ -124,6 +125,7 @@ async function notifyMentions(params: {
 apiRouteAdminProjectTask.post("/create", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
+	const body = await c.req.json();
 
 	const {
 		org_id: orgId,
@@ -136,8 +138,10 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		assignees,
 		category,
 		releaseId,
-		visible,
-	} = await c.req.json();
+	} = body;
+	let { visible } = body as {
+		visible?: "public" | "private";
+	};
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.create");
@@ -145,7 +149,18 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create tasks." }, 401);
 	}
+	const isPublicAccess = await tracePublicOrgAccessCheck(
+		orgId,
+		"enablePublicPage"
+	);
 
+	// If public page is OFF → force private
+	if (!isPublicAccess) {
+		visible = "private";
+	} else {
+		// If public is allowed, respect request (default to private if undefined)
+		visible = visible === "public" ? "public" : "private";
+	}
 	const task = await traceAsync(
 		"task.create.insert",
 		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible }, session?.userId),
@@ -357,7 +372,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 			allowed[field] = updates[field];
 		}
 	});
-
+	const userId = updates.createdBy || session?.userId;
 	await traceAsync(
 		"task.update.save",
 		async () => {
@@ -380,8 +395,8 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				);
 			}
 			if (updates.status && updates.status !== existingTask.status) {
-				const event = await addLogEventTask(taskId, orgId, "status_change", existingTask.status, updates.status, session?.userId);
-				notifyAssignees({ taskId, orgId, actorId: session?.userId, type: "status_change", timelineEventId: event?.id });
+				const event = await addLogEventTask(taskId, orgId, "status_change", existingTask.status, updates.status, userId);
+				notifyAssignees({ taskId, orgId, actorId: userId, type: "status_change", timelineEventId: event?.id });
 			}
 			if (updates.priority && updates.priority !== existingTask.priority) {
 				const event = await addLogEventTask(
@@ -390,9 +405,9 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"priority_change",
 					existingTask.priority,
 					updates.priority,
-					session?.userId
+					userId
 				);
-				notifyAssignees({ taskId, orgId, actorId: session?.userId, type: "priority_change", timelineEventId: event?.id });
+				notifyAssignees({ taskId, orgId, actorId: userId, type: "priority_change", timelineEventId: event?.id });
 			}
 			if (updates.title && updates.title !== existingTask.title) {
 				await addLogEventTask(
@@ -401,7 +416,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"updated",
 					{ field: "title", value: existingTask.title },
 					{ field: "title", value: updates.title },
-					session?.userId
+					userId
 				);
 			}
 			if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
@@ -411,11 +426,11 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"updated",
 					{ field: "description", value: existingTask.description },
 					{ field: "description", value: updates.description },
-					session?.userId,
+					userId,
 					updates.description
 				);
 				// Check for new @mentions in the updated description
-				notifyMentions({ taskId, orgId, actorId: session?.userId, content: updates.description, timelineEventId: event?.id });
+				notifyMentions({ taskId, orgId, actorId: userId, content: updates.description, timelineEventId: event?.id });
 			}
 			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
 				await addLogEventTask(
@@ -424,7 +439,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"release_change",
 					existingTask.releaseId,
 					updates.releaseId,
-					session?.userId
+					userId
 				);
 			}
 			if (updates.visible !== undefined && updates.visible !== existingTask.visible) {
@@ -434,7 +449,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					"updated",
 					{ field: "visible", value: existingTask.visible },
 					{ field: "visible", value: updates.visible },
-					session?.userId
+					userId
 				);
 			}
 		},
@@ -1117,6 +1132,17 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			);
 		}
 
+		const isPublicAccess = await tracePublicOrgAccessCheck(orgId);
+		if (!isPublicAccess) {
+			return c.json(
+				{
+					success: false,
+					error: "You don't have permission to comment on this task.",
+				},
+				403
+			);
+		}
+
 		// Verify the task exists and is publicly visible
 		const task = await db.query.task.findFirst({
 			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
@@ -1130,6 +1156,25 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 					error: "Task not found or is not public.",
 				},
 				404
+			);
+		}
+	}
+	// Determine the actor attempting to create the comment
+	const commentActorIdCheck =
+		source === "github"
+			? bodyCreatedBy
+			: bodyCreatedBy ?? session?.userId;
+
+	// Blocked users cannot post at all
+	if (commentActorIdCheck) {
+		const blockedIds = await getBlockedUserIds(orgId);
+		if (blockedIds.includes(commentActorIdCheck)) {
+			return c.json(
+				{
+					success: false,
+					error: "You do not have permission to perform this action.",
+				},
+				403
 			);
 		}
 	}
@@ -1592,16 +1637,6 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
 	if (!isOrgMember) {
-		if (!session?.userId) {
-			return c.json(
-				{
-					success: false,
-					error: "You must be signed in to react.",
-				},
-				401
-			);
-		}
-
 		// Verify the task exists and is publicly visible
 		const task = await db.query.task.findFirst({
 			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
@@ -1618,7 +1653,18 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 			);
 		}
 	}
-
+	if (session?.userId) {
+		const blockedIds = await getBlockedUserIds(orgId);
+		if (blockedIds.includes(session?.userId || "")) {
+			return c.json(
+				{
+					success: false,
+					error: "You do not have permission to perform this action.",
+				},
+				403
+			);
+		}
+	}
 	// 2️⃣ Insert or toggle reaction
 	await traceAsync(
 		"task.comment.reaction",
@@ -1783,6 +1829,9 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 		// 🧩 Permission check
 		const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
 
+		// Fetch blocked user IDs for public viewers so their comments are excluded server-side
+		const blockedIds = isPublic ? await getBlockedUserIds(orgId) : [];
+
 		const page = Math.max(Number(q.page) || 1, 1);
 		const limit = Math.min(Number(q.limit) || 20, 50);
 		const offset = (page - 1) * limit;
@@ -1791,7 +1840,8 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 			eq(schema.taskComment.organizationId, orgId),
 			eq(schema.taskComment.taskId, taskId),
 			isNull(schema.taskComment.parentId),
-			isPublic ? eq(schema.taskComment.visibility, "public") : undefined
+			isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
+			blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
 		);
 
 		// 🧮 Count total
@@ -1926,21 +1976,24 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 		return c.json({ success: false, error: "MISSING_PARAMETERS" }, 400);
 	}
 
+	const session = c.get("session");
+	const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
+	const blockedIds = isPublic ? await getBlockedUserIds(orgId) : [];
+
 	const perPage = Math.min(Number(limit) || 9, 50);
 
 	const { totalItems, totalPages } = await traceAsync(
 		"task.comments.count",
 		async () => {
-			const result = await db.execute(
-				sql<{ count: number }>`
-					SELECT count(*)::int AS count
-					FROM task_comment
-					WHERE organization_id = ${orgId}
-					  AND task_id = ${taskId}
-					  AND parent_id IS NULL;
-				`
+			const conditions = and(
+				eq(schema.taskComment.organizationId, orgId),
+				eq(schema.taskComment.taskId, taskId),
+				isNull(schema.taskComment.parentId),
+				isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
+				blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
 			);
-			const total = Number(result[0]?.count ?? 0);
+			const [result] = await db.select({ count: sql<number>`count(*)` }).from(schema.taskComment).where(conditions);
+			const total = Number(result?.count ?? 0);
 			return {
 				totalItems: total,
 				totalPages: Math.max(Math.ceil(total / perPage), 1),
@@ -1982,19 +2035,20 @@ apiRouteAdminProjectTask.get("/timeline/comments/replies", async (c) => {
 		const limit = Math.min(Number(q.limit) || 50, 100);
 		const offset = (page - 1) * limit;
 
+		const blockedIds = isPublic ? await getBlockedUserIds(orgId) : [];
+
 		const replies = await traceAsync(
 			"task.comments.replies.fetch",
 			async () => {
-				const baseConditions = [
+				const base = and(
 					eq(schema.taskComment.organizationId, orgId),
 					eq(schema.taskComment.parentId, commentId),
-				];
-				if (isPublic) {
-					baseConditions.push(eq(schema.taskComment.visibility, "public"));
-				}
+					isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
+					blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
+				);
 
 				const rows = await db.query.taskComment.findMany({
-					where: () => and(...baseConditions),
+					where: () => base,
 					orderBy: (t, { asc }) => asc(t.createdAt),
 					limit,
 					offset,
@@ -2063,6 +2117,18 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 	const userAgent = c.req.header("user-agent") ?? "unknown";
 	const anonHash = getAnonHash(ip, userAgent);
 	const userId = session?.userId ?? null;
+	if (userId) {
+		const blockedIds = await getBlockedUserIds(orgId);
+		if (blockedIds.includes(userId)) {
+			return c.json(
+				{
+					success: false,
+					error: "You do not have permission to perform this action.",
+				},
+				403
+			);
+		}
+	}
 	// 3️⃣ Insert or toggle vote
 	const result = await traceAsync(
 		"task.vote.toggle",

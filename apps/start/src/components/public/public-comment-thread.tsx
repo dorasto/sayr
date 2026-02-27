@@ -100,14 +100,21 @@ export function PublicCommentThreadBody({
 	onEdit,
 	onDelete,
 	categories,
+	blockedUserIds,
+	isOrgMember,
+	canAct,
 }: {
 	parentComment: CommentData;
 	memberHighestTeam: Map<string, string | null>;
 	users: schema.userType[];
 	currentUserId?: string;
-	onEdit: (commentId: string, content: NodeJSON) => Promise<boolean>;
-	onDelete: (commentId: string) => Promise<boolean>;
+	onEdit?: (commentId: string, content: NodeJSON) => Promise<boolean>;
+	onDelete?: (commentId: string) => Promise<boolean>;
 	categories: schema.categoryType[];
+	blockedUserIds?: Set<string>;
+	isOrgMember?: boolean;
+	/** Whether the current user can perform write actions (comment, react, reply). */
+	canAct?: boolean;
 }) {
 	const { data: session } = authClient.useSession();
 	const queryClient = useQueryClient();
@@ -238,13 +245,15 @@ export function PublicCommentThreadBody({
 								memberTeamName={
 									reply.createdBy ? (memberHighestTeam.get(reply.createdBy.id) ?? null) : null
 								}
-								onToggleReaction={session?.user ? handleReplyReaction : undefined}
+								onToggleReaction={canAct ? handleReplyReaction : undefined}
 								users={users}
 								currentUserId={currentUserId}
 								onEdit={onEdit}
 								onDelete={onDelete}
 								categories={categories}
 								isReply
+								blockedUserIds={blockedUserIds}
+								isOrgMember={isOrgMember}
 							/>
 						</div>
 					))}
@@ -252,7 +261,7 @@ export function PublicCommentThreadBody({
 			)}
 
 			{/* Reply input */}
-			{session?.user && (
+			{canAct && session?.user && (
 				<div className="-mb-3 -mx-3 overflow-hidden border-t">
 					<PublicReplyInput
 						parentComment={parentComment}

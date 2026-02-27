@@ -37,6 +37,9 @@ import { useCallback, useState } from "react";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { updateUserAction, uploadUserProfilePicture } from "@/lib/fetches/user";
 import { handleFileValidation } from "@/lib/utils/file-validation";
+import { useTheme } from "@/components/theme-provider";
+import { DarkModeToggle } from "@/components/dark-mode-toggle";
+import { Switch } from "@repo/ui/components/switch";
 
 /**
  * Props for the standalone UserSettingsContent component.
@@ -313,14 +316,20 @@ export function UserSettingsContent({
 }
 
 export function UserPreferences() {
+  const { theme, setTheme } = useTheme();
   return (
     <div className="bg-card rounded-lg flex flex-col">
-      {/*<Tile className="md:w-full">
+      <Tile className="md:w-full">
         <TileHeader>
           <TileTitle>Theme</TileTitle>
         </TileHeader>
-        <TileAction></TileAction>
-      </Tile>*/}
+        <TileAction>
+          <DarkModeToggle
+            theme={theme}
+            onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
+          />
+        </TileAction>
+      </Tile>
     </div>
   );
 }

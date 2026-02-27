@@ -1,11 +1,11 @@
-import type { schema, TeamPermissions } from "@repo/database";
+import type { schema, TeamPermissions, OrganizationSettings } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import {
   useStateManagement,
   useStateManagementInfiniteFetch,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
-import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { authClient } from "@repo/auth/client";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/fetches/task";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import type { CommentData, CommentsPage } from "./public-comments-types";
 import { PublicCommentItem } from "./public-comment-item";
@@ -64,11 +65,13 @@ function scorePermissions(permissions: TeamPermissions): number {
 interface PublicCommentsProps {
   taskId: string;
   organizationId: string;
+  taskStatus: string;
 }
 
 export function PublicComments({
   taskId,
   organizationId,
+  taskStatus,
 }: PublicCommentsProps) {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
@@ -130,6 +133,40 @@ export function PublicComments({
   const orgUsers = useMemo(
     () => organization.members.map((m) => m.user) as schema.userType[],
     [organization.members],
+  );
+
+  // Check if the current viewer is an org member
+  const isOrgMember = useMemo(
+    () => !!session?.user?.id && organization.members.some((m) => m.user.id === session.user.id),
+    [session?.user?.id, organization.members],
+  );
+
+  /**
+   * Whether the current user can perform write actions (comment, react, reply, edit, delete).
+   * Org members always can. External users can only when publicActions is enabled
+   * and the task is not closed (unless allowActionsOnClosedTasks is enabled).
+   */
+  const canAct = useMemo(() => {
+    if (!session?.user) return false;
+    if (isOrgMember) return true;
+    const settings = organization.settings as OrganizationSettings | null;
+    if (settings?.publicActions === false) return false;
+    const isClosed = taskStatus === "done" || taskStatus === "canceled";
+    if (isClosed && settings?.allowActionsOnClosedTasks === false) return false;
+    return true;
+  }, [session?.user, isOrgMember, organization.settings, taskStatus]);
+
+  // Fetch blocked user IDs (only for org members — endpoint returns 401 for non-members, action handles gracefully)
+  const { data: blockedUserIdsArray } = useQuery({
+    queryKey: ["blocked-user-ids", organizationId],
+    queryFn: () => getBlockedUserIdsAction(organizationId),
+    enabled: isOrgMember,
+    staleTime: 60_000,
+  });
+
+  const blockedUserIds = useMemo(
+    () => new Set(blockedUserIdsArray ?? []),
+    [blockedUserIdsArray],
   );
 
   const {
@@ -461,9 +498,12 @@ export function PublicComments({
                     memberHighestTeam={memberHighestTeam}
                     users={orgUsers}
                     currentUserId={session?.user?.id}
-                    onEdit={handleEditComment}
-                    onDelete={handleDeleteComment}
+                    onEdit={canAct ? handleEditComment : undefined}
+                    onDelete={session?.user ? handleDeleteComment : undefined}
                     categories={categories}
+                    blockedUserIds={blockedUserIds}
+                    isOrgMember={isOrgMember}
+                    canAct={canAct}
                   />
                 )}
               </>
@@ -479,19 +519,21 @@ export function PublicComments({
                     : null
                 }
                 onToggleReaction={
-                  session?.user ? handleToggleReaction : undefined
+                  canAct ? handleToggleReaction : undefined
                 }
                 users={orgUsers}
                 currentUserId={session?.user?.id}
-                onEdit={handleEditComment}
-                onDelete={handleDeleteComment}
+                onEdit={canAct ? handleEditComment : undefined}
+                onDelete={session?.user ? handleDeleteComment : undefined}
                 categories={categories}
                 footer={threadFooter}
-                onReply={session?.user ? () => {
+                onReply={canAct ? () => {
                   if (!expandedThreads.has(comment.id)) {
                     toggleThread(comment.id);
                   }
                 } : undefined}
+                blockedUserIds={blockedUserIds}
+                isOrgMember={isOrgMember}
               />
             );
           })}
@@ -536,9 +578,12 @@ export function PublicComments({
                     memberHighestTeam={memberHighestTeam}
                     users={orgUsers}
                     currentUserId={session?.user?.id}
-                    onEdit={handleEditComment}
-                    onDelete={handleDeleteComment}
+                    onEdit={canAct ? handleEditComment : undefined}
+                    onDelete={session?.user ? handleDeleteComment : undefined}
                     categories={categories}
+                    blockedUserIds={blockedUserIds}
+                    isOrgMember={isOrgMember}
+                    canAct={canAct}
                   />
                 )}
               </>
@@ -554,19 +599,21 @@ export function PublicComments({
                     : null
                 }
                 onToggleReaction={
-                  session?.user ? handleToggleReaction : undefined
+                  canAct ? handleToggleReaction : undefined
                 }
                 users={orgUsers}
                 currentUserId={session?.user?.id}
-                onEdit={handleEditComment}
-                onDelete={handleDeleteComment}
+                onEdit={canAct ? handleEditComment : undefined}
+                onDelete={session?.user ? handleDeleteComment : undefined}
                 categories={categories}
                 footer={threadFooter}
-                onReply={session?.user ? () => {
+                onReply={canAct ? () => {
                   if (!expandedThreads.has(comment.id)) {
                     toggleThread(comment.id);
                   }
                 } : undefined}
+                blockedUserIds={blockedUserIds}
+                isOrgMember={isOrgMember}
               />
             );
           })}
@@ -574,7 +621,7 @@ export function PublicComments({
       )}
 
       {/* Comment input */}
-      {session?.user ? (
+      {canAct ? (
         <div className="border rounded-lg bg-card overflow-hidden">
           <Suspense
             fallback={<div className="h-20 animate-pulse bg-muted rounded" />}
@@ -607,7 +654,11 @@ export function PublicComments({
       ) : (
         <div className="border rounded-lg p-6 bg-card/50 border-dashed text-center">
           <p className="text-muted-foreground text-sm">
-            Sign in to leave a comment.
+            {!session?.user
+              ? "Sign in to leave a comment."
+              : (taskStatus === "done" || taskStatus === "canceled")
+                ? "This task is closed. Comments are disabled."
+                : "This organization has disabled public actions."}
           </p>
         </div>
       )}

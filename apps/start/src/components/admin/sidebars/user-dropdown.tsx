@@ -20,14 +20,16 @@ import {
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { IconUserCog } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { Bell, ChevronsUpDown, CreditCard, LogOut } from "lucide-react";
+import { Bell, ChevronsUpDown, CreditCard, LogOut, Moon, Sun } from "lucide-react";
 import { useLayoutData } from "@/components/generic/Context";
 import { getDisplayName } from "@repo/util";
+import { useTheme } from "@/components/theme-provider";
 // import { UserUpdate } from "@/app/components/admin/user/update"; // TODO: Port this component
 
 export default function UserDropdown() {
   const { account } = useLayoutData();
   const isMobile = useIsMobile();
+  const { theme, setTheme } = useTheme();
   // const [isUserUpdateOpen, setIsUserUpdateOpen] = useState(false);
   return (
     <>
@@ -99,6 +101,13 @@ export default function UserDropdown() {
                 </DropdownMenuItem>
               </Link>
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? <Sun /> : <Moon />}
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={async () => {

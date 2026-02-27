@@ -31,6 +31,8 @@ interface CommentThreadProps {
   organization?: TimelineItemProps["organization"];
   /** When true, auto-expand the thread (e.g. when Reply button is clicked) */
   forceExpanded?: boolean;
+  /** Set of blocked user IDs for displaying badge on blocked user comments */
+  blockedUserIds?: Set<string>;
 }
 
 /**
@@ -100,6 +102,7 @@ export function CommentThreadBody({
   categories,
   tasks,
   organization,
+  blockedUserIds,
 }: Omit<
   CommentThreadProps,
   "replyCount" | "latestReplyAuthor" | "forceExpanded"
@@ -147,6 +150,7 @@ export function CommentThreadBody({
                 showSeparator={false}
                 organization={organization}
                 isReply
+                blockedUserIds={blockedUserIds}
               />
             </div>
           ))}
@@ -179,6 +183,7 @@ export function CommentThread({
   tasks,
   organization,
   forceExpanded,
+  blockedUserIds,
 }: CommentThreadProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -198,6 +203,7 @@ export function CommentThread({
       categories={categories}
       tasks={tasks}
       organization={organization}
+      blockedUserIds={blockedUserIds}
     />
   ) : null;
 }

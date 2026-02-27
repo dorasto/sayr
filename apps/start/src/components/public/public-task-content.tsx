@@ -431,7 +431,7 @@ export function PublicTaskContent({
           </>
         )}
         {/* Comments */}
-        <PublicComments taskId={task.id} organizationId={task.organizationId} />
+        <PublicComments taskId={task.id} organizationId={task.organizationId} taskStatus={task.status} />
       </div>
     </div>
   );

@@ -46,6 +46,8 @@ export interface TimelineItemWrapperProps {
 	 * @default true
 	 */
 	showSeparator?: boolean;
+	/** Set of blocked user IDs for displaying badge on blocked user comments */
+	blockedUserIds?: Set<string>;
 }
 
 export interface GlobalTimelineProps {
@@ -66,6 +68,8 @@ export interface TimelineItemProps {
   tasks?: schema.TaskWithLabels[];
   releases?: schema.releaseType[];
   organization?: schema.OrganizationWithMembers | MinimalOrganization;
+  /** Set of blocked user IDs for displaying badge on blocked user comments */
+  blockedUserIds?: Set<string>;
 }
 
 export interface ConsolidatedTimelineItemProps {

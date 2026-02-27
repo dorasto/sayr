@@ -95,12 +95,10 @@ CREATE TABLE "category" (
 --> statement-breakpoint
 CREATE TABLE "github_installation" (
 	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text,
 	"installation_id" integer NOT NULL,
 	"user_id" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "github_installation_installation_id_unique" UNIQUE("installation_id")
 );
 --> statement-breakpoint
 CREATE TABLE "github_issue" (

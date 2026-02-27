@@ -2,7 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { cn } from "@repo/ui/lib/utils";
-import { extractHslValues, extractTaskText, formatDateCompact } from "@repo/util";
+import { extractHslValues, extractTaskText, formatCount, formatDateCompact } from "@repo/util";
 import {
 	IconCalendar,
 	IconChevronUp,
@@ -168,7 +168,7 @@ export function PublicTaskItem({ task, categories = [], voted, onVote }: PublicT
 						)}
 					>
 						<IconChevronUp />
-						{task.voteCount}
+						{formatCount(task.voteCount)}
 					</Button>
 				</TileAction>
 			</div>

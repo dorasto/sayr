@@ -172,7 +172,7 @@ async function handleContentEvents(
 						commitSha: commit.id,
 						commitUrl: commit.url,
 						commitMessage: message,
-
+						userId: payload?.sender?.id,
 						authorLogin: commit.author?.username ?? null,
 						authorEmail: commit.author?.email ?? null,
 
@@ -331,6 +331,7 @@ async function handleContentEvents(
 						headBranch: pr.head.ref,
 						baseBranch: pr.base.ref,
 
+						userId: pr.user?.id,
 						author,
 						matches: keywordMatches,
 					},
@@ -358,6 +359,7 @@ async function handleContentEvents(
 						headSha: pr.head.sha,
 						before: payload.before,
 						after: payload.after,
+						userId: pr.user?.id,
 
 						headBranch: pr.head.ref,
 					},
@@ -380,6 +382,7 @@ async function handleContentEvents(
 						repo: repository.name,
 						repoId: repository.id,
 						repo_private: repository.private,
+						userId: pr.user?.id,
 
 						number: prNumber,
 						merged,
