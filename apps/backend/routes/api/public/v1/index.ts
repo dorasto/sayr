@@ -134,6 +134,10 @@ apiPublicRouteV1.get(
 					: { description: "No organization found" },
 		});
 
+		if (!organization?.settings?.enablePublicPage) {
+			return c.json(errorResponse("No organization found"), 404);
+		}
+
 		if (!organization) {
 			await recordWideError({
 				name: "organization.public.notfound",
@@ -185,6 +189,10 @@ apiPublicRouteV1.get(
 			description: "Finding organization by slug",
 			data: { orgSlug },
 		});
+
+		if (!organization?.settings?.enablePublicPage) {
+			return c.json(errorResponse("No organization found"), 404);
+		}
 
 		if (!organization) {
 			await recordWideError({
@@ -254,6 +262,10 @@ apiPublicRouteV1.get(
 			() => getOrganizationPublic(orgSlug),
 			{ description: "Finding organization by slug", data: { orgSlug } }
 		);
+
+		if (!organization?.settings?.enablePublicPage) {
+			return c.json(errorResponse("No organization found"), 404);
+		}
 
 		if (!organization) {
 			await recordWideError({
@@ -339,6 +351,10 @@ apiPublicRouteV1.get(
 				description: "Finding organization by slug",
 				data: { orgSlug },
 			});
+
+			if (!organization?.settings?.enablePublicPage) {
+				return c.json(errorResponse("No organization found"), 404);
+			}
 
 			if (!organization) {
 				await recordWideError({
@@ -493,6 +509,10 @@ apiPublicRouteV1.get(
 			data: { orgSlug },
 		});
 
+		if (!organization?.settings?.enablePublicPage) {
+			return c.json(errorResponse("No organization found"), 404);
+		}
+
 		if (!organization) {
 			await recordWideError({
 				name: "task.byshortid.org_notfound",
@@ -627,6 +647,10 @@ apiPublicRouteV1.get(
 				description: "Finding organization by slug",
 				data: { orgSlug },
 			});
+
+			if (!org?.settings?.enablePublicPage) {
+				return c.json(errorResponse("No organization found"), 404);
+			}
 
 			if (!org) {
 				await recordWideError({

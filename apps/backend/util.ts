@@ -125,8 +125,14 @@ export async function traceOrgPermissionCheck(
 	);
 }
 
+type PublicAccessCheck =
+	| "enablePublicPage"
+	| "publicActions"
+	| "both";
+
 export async function tracePublicOrgAccessCheck(
-	organizationId: string
+	organizationId: string,
+	check: PublicAccessCheck = "both"
 ): Promise<boolean> {
 	const traceAsync = createTraceAsync();
 
@@ -136,11 +142,12 @@ export async function tracePublicOrgAccessCheck(
 
 	return traceAsync(
 		"canPublicAccessOrg",
-		() => canPublicAccessOrg(organizationId),
+		() => canPublicAccessOrg(organizationId, check),
 		{
 			description: "Checking public organization access",
 			data: {
 				organization: { id: organizationId },
+				check,
 			},
 			onSuccess: (result) => ({
 				outcome: result

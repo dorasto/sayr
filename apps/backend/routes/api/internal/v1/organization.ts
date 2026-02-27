@@ -26,7 +26,7 @@ import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from 
 import type { WSBaseMessage } from "../../../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { refreshGitHubTokenIfNeeded, traceOrgPermissionCheck } from "@/util";
+import { refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { Octokit } from "@octokit/rest";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
@@ -492,13 +492,26 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
-
-	const { org_id: orgId, wsClientId, name, color, visible } = await c.req.json();
-
+	const body = await c.req.json();
+	const { org_id: orgId, wsClientId, name, color } = body;
+	let { visible } = body as {
+		visible?: "public" | "private";
+	};
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+	const isPublicAccess = await tracePublicOrgAccessCheck(
+		orgId,
+		"enablePublicPage"
+	);
+	// If public page is OFF → force private
+	if (!isPublicAccess) {
+		visible = "private";
+	} else {
+		// If public is allowed, respect request (default to private if undefined)
+		visible = visible === "public" ? "public" : "private";
 	}
 
 	const created = await traceAsync(

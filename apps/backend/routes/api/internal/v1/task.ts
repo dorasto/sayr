@@ -125,6 +125,7 @@ async function notifyMentions(params: {
 apiRouteAdminProjectTask.post("/create", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
+	const body = await c.req.json();
 
 	const {
 		org_id: orgId,
@@ -137,8 +138,10 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		assignees,
 		category,
 		releaseId,
-		visible,
-	} = await c.req.json();
+	} = body;
+	let { visible } = body as {
+		visible?: "public" | "private";
+	};
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.create");
@@ -146,7 +149,18 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create tasks." }, 401);
 	}
+	const isPublicAccess = await tracePublicOrgAccessCheck(
+		orgId,
+		"enablePublicPage"
+	);
 
+	// If public page is OFF → force private
+	if (!isPublicAccess) {
+		visible = "private";
+	} else {
+		// If public is allowed, respect request (default to private if undefined)
+		visible = visible === "public" ? "public" : "private";
+	}
 	const task = await traceAsync(
 		"task.create.insert",
 		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible }, session?.userId),

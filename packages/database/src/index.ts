@@ -115,8 +115,14 @@ export async function hasOrgPermission(userId: string, orgId: string, permPath: 
 	return allowed;
 }
 
+type PublicAccessCheck =
+	| "enablePublicPage"
+	| "publicActions"
+	| "both";
+
 export async function canPublicAccessOrg(
-	orgId: string
+	orgId: string,
+	check: PublicAccessCheck = "both"
 ): Promise<boolean> {
 	const result = await db
 		.select({
@@ -133,7 +139,17 @@ export async function canPublicAccessOrg(
 		publicActions,
 	} = result[0]?.settings || defaultOrganizationSettings;
 
-	return enablePublicPage && publicActions;
+	switch (check) {
+		case "enablePublicPage":
+			return !!enablePublicPage;
+
+		case "publicActions":
+			return !!publicActions;
+
+		case "both":
+		default:
+			return !!enablePublicPage && !!publicActions;
+	}
 }
 
 /**
