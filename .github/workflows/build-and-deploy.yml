@@ -80,6 +80,8 @@ jobs:
           file: ${{ steps.config.outputs.dockerfile }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ${{ matrix.app == 'marketing' && format('PUBLIC_CAP_API_ENDPOINT={0}', secrets.PUBLIC_CAP_API_ENDPOINT) || '' }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
