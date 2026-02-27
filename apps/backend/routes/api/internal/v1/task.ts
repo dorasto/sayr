@@ -671,6 +671,7 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 		org_id: orgId,
 		task_id: taskId,
 		type,
+		createdBy,
 		data, // ✅ this becomes fromValue
 	} = await c.req.json();
 
@@ -739,7 +740,7 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 				type,
 				null,
 				data ?? null, // ✅ commit metadata lives here
-				undefined
+				createdBy || undefined
 			),
 		{
 			description: "Creating task timeline activity",
