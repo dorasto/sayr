@@ -26,6 +26,7 @@ import { Route as adminHomeRouteRouteImport } from './routes/(admin)/home/route'
 import { Route as adminOrgIdRouteRouteImport } from './routes/(admin)/$orgId/route'
 import { Route as OrgsOrgSlugIndexRouteImport } from './routes/orgs/$orgSlug/index'
 import { Route as InviteOrgIdIndexRouteImport } from './routes/invite/$orgId/index'
+import { Route as InternalLoginIndexRouteImport } from './routes/internal/login/index'
 import { Route as adminSettingsIndexRouteImport } from './routes/(admin)/settings/index'
 import { Route as adminMineIndexRouteImport } from './routes/(admin)/mine/index'
 import { Route as adminInboxIndexRouteImport } from './routes/(admin)/inbox/index'
@@ -142,6 +143,11 @@ const OrgsOrgSlugIndexRoute = OrgsOrgSlugIndexRouteImport.update({
 const InviteOrgIdIndexRoute = InviteOrgIdIndexRouteImport.update({
   id: '/invite/$orgId/',
   path: '/invite/$orgId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InternalLoginIndexRoute = InternalLoginIndexRouteImport.update({
+  id: '/internal/login/',
+  path: '/internal/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminSettingsIndexRoute = adminSettingsIndexRouteImport.update({
@@ -354,6 +360,7 @@ export interface FileRoutesByFullPath {
   '/inbox/': typeof adminInboxIndexRoute
   '/mine/': typeof adminMineIndexRoute
   '/settings/': typeof adminSettingsIndexRoute
+  '/internal/login/': typeof InternalLoginIndexRoute
   '/invite/$orgId/': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
@@ -397,6 +404,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof adminInboxIndexRoute
   '/mine': typeof adminMineIndexRoute
   '/settings': typeof adminSettingsIndexRoute
+  '/internal/login': typeof InternalLoginIndexRoute
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug': typeof OrgsOrgSlugIndexRoute
   '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
@@ -448,6 +456,7 @@ export interface FileRoutesById {
   '/(admin)/inbox/': typeof adminInboxIndexRoute
   '/(admin)/mine/': typeof adminMineIndexRoute
   '/(admin)/settings/': typeof adminSettingsIndexRoute
+  '/internal/login/': typeof InternalLoginIndexRoute
   '/invite/$orgId/': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
   '/(admin)/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
@@ -501,6 +510,7 @@ export interface FileRouteTypes {
     | '/inbox/'
     | '/mine/'
     | '/settings/'
+    | '/internal/login/'
     | '/invite/$orgId/'
     | '/orgs/$orgSlug/'
     | '/$orgId/tasks/$taskShortId'
@@ -544,6 +554,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/mine'
     | '/settings'
+    | '/internal/login'
     | '/invite/$orgId'
     | '/orgs/$orgSlug'
     | '/$orgId/releases/$releaseSlug'
@@ -594,6 +605,7 @@ export interface FileRouteTypes {
     | '/(admin)/inbox/'
     | '/(admin)/mine/'
     | '/(admin)/settings/'
+    | '/internal/login/'
     | '/invite/$orgId/'
     | '/orgs/$orgSlug/'
     | '/(admin)/$orgId/tasks/$taskShortId'
@@ -633,6 +645,7 @@ export interface RootRouteChildren {
   LoginAuthCheckRoute: typeof LoginAuthCheckRoute
   LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  InternalLoginIndexRoute: typeof InternalLoginIndexRoute
   InviteOrgIdIndexRoute: typeof InviteOrgIdIndexRoute
 }
 
@@ -755,6 +768,13 @@ declare module '@tanstack/react-router' {
       path: '/invite/$orgId'
       fullPath: '/invite/$orgId/'
       preLoaderRoute: typeof InviteOrgIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/internal/login/': {
+      id: '/internal/login/'
+      path: '/internal/login'
+      fullPath: '/internal/login/'
+      preLoaderRoute: typeof InternalLoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)/settings/': {
@@ -1204,6 +1224,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginAuthCheckRoute: LoginAuthCheckRoute,
   LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  InternalLoginIndexRoute: InternalLoginIndexRoute,
   InviteOrgIdIndexRoute: InviteOrgIdIndexRoute,
 }
 export const routeTree = rootRouteImport

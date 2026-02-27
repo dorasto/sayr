@@ -8,7 +8,7 @@ const checkAuth = createServerFn({ method: "GET" }).handler(async () => {
 	return { account };
 });
 
-export const Route = createFileRoute("/login/")({
+export const Route = createFileRoute("/internal/login/")({
 	component: RouteComponent,
 	beforeLoad: async () => {
 		const { account } = await checkAuth();
@@ -23,5 +23,5 @@ function RouteComponent() {
 		<div>
 			<LoginComponent />
 		</div>
-	);
+	)
 }
