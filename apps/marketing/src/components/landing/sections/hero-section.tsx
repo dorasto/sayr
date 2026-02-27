@@ -23,6 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import TasqIcon from "@repo/ui/components/brand-icon";
+import Waitlist from "./waitlist";
 
 /* ── Status Config ── */
 
@@ -780,7 +781,8 @@ export function HeroSection() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mt-10 flex items-center justify-center gap-4"
         >
-          <Button
+          <Waitlist />
+          {/*<Button
             size="lg"
             className="rounded-full text-base px-8 shadow-lg shadow-primary/20"
             asChild
@@ -802,7 +804,7 @@ export function HeroSection() {
             >
               <Github className="size-4" /> View Source
             </a>
-          </Button>
+          </Button>*/}
         </motion.div>
       </div>
 
