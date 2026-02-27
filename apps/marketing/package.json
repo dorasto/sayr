@@ -20,6 +20,7 @@
     "@astrojs/react": "^4.4.2",
     "@astrojs/starlight": "^0.37.2",
     "@astrojs/starlight-tailwind": "^4.0.2",
+    "@cap.js/widget": "^0.1.35",
     "@radix-ui/react-dropdown-menu": "^2.1.15",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-toggle": "^1.1.10",

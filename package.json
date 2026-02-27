@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev --filter=!@sayrio/public",
-    "dev:op": "op inject --force -i apps/backend/.env -o apps/backend/.env.local && op inject --force -i apps/start/.env -o apps/start/.env.local && op inject --force -i apps/worker/.env -o apps/worker/.env.local && turbo dev --filter=!@sayrio/public",
+    "dev:op": "op inject --force -i apps/backend/.env -o apps/backend/.env.local && op inject --force -i apps/start/.env -o apps/start/.env.local && op inject --force -i apps/worker/.env -o apps/worker/.env.local && op inject --force -i apps/marketing/.env -o apps/marketing/.env.local && turbo dev --filter=!@sayrio/public",
     "build": "turbo build",
     "start": "turbo start",
     "clean": "turbo run clean && rm -rf node_modules",
@@ -14,8 +14,8 @@
     "check-types": "turbo check-types",
     "docker": "docker-compose down --remove-orphans --volumes && docker container prune -f && docker-compose up --build -d",
     "docker:build": "docker-compose -f docker-compose.yml build",
-    "env:all": "bash -c 'failed=0; bash ./gen.sh Sayr sayr-dev-local ./apps/worker/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/backend/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/start/.env || failed=1; exit $failed'",
-    "env:ps:all": "powershell -Command \"./gen.ps1 Sayr sayr-dev-local ./apps/worker/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/backend/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/start/.env\""
+    "env:all": "bash -c 'failed=0; bash ./gen.sh Sayr sayr-dev-local ./apps/worker/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/backend/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/start/.env || failed=1; bash ./gen.sh Sayr sayr-marketing-dev ./apps/marketing/.env || failed=1; exit $failed'",
+    "env:ps:all": "powershell -Command \"./gen.ps1 Sayr sayr-dev-local ./apps/worker/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/backend/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/start/.env; ./gen.ps1 Sayr sayr-marketing-dev ./apps/marketing/.env\""
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
