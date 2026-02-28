@@ -20,7 +20,14 @@ import {
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { IconUserCog } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { Bell, ChevronsUpDown, CreditCard, LogOut, Moon, Sun } from "lucide-react";
+import {
+  Bell,
+  ChevronsUpDown,
+  CreditCard,
+  LogOut,
+  Moon,
+  Sun,
+} from "lucide-react";
 import { useLayoutData } from "@/components/generic/Context";
 import { getDisplayName } from "@repo/util";
 import { useTheme } from "@/components/theme-provider";
@@ -119,6 +126,10 @@ export default function UserDropdown() {
               <LogOut />
               Log out
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+              Sayr {import.meta.env.VITE_APP_VERSION ?? "localhost"}
+            </DropdownMenuLabel>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
