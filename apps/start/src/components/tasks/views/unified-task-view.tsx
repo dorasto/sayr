@@ -53,6 +53,8 @@ interface UnifiedTaskViewProps {
   personal?: boolean;
   /** Optional views to pass when no org context is available */
   views?: schema.savedViewType[];
+  /** Optional className override for the outermost wrapper div */
+  className?: string;
 }
 
 export function UnifiedTaskView({
@@ -68,6 +70,7 @@ export function UnifiedTaskView({
   forceShowCompleted = false,
   personal = false,
   views: viewsProp,
+  className: classNameProp,
 }: UnifiedTaskViewProps) {
   // console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -740,7 +743,7 @@ export function UnifiedTaskView({
   }
 
   return (
-    <div className="h-full overflow-auto rounded">
+    <div className={cn("h-full overflow-auto rounded", classNameProp)}>
       {renderMainContent()}
     </div>
   );
