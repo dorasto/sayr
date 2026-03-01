@@ -7,7 +7,7 @@ import {
   AvatarImage,
 } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
-import { Checkbox } from "@repo/ui/components/checkbox";
+import { TriStateCheckbox } from "@repo/ui/components/doras-ui/tri-state-checkbox";
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -465,15 +465,14 @@ export function UnifiedTaskItem({
               {/* Checkbox */}
               <div className="shrink-0 grid place-items-center">
                 <div className="relative shrink-0 flex">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={(checked) => {
-                      onSelect?.(checked as boolean);
-                    }}
+                  <TriStateCheckbox
+                    state={isSelected ? "all" : "none"}
+                    onClick={() => onSelect?.(!isSelected)}
                     data-no-propagate
                     className={cn(
-                      "opacity-0 pointer-events-none group-hover/list-block:opacity-100 group-hover/list-block:pointer-events-auto transition-opacity shrink-0",
-                      isSelected && "opacity-100",
+                      "opacity-0 pointer-events-none group-hover/list-block:opacity-100 group-hover/list-block:pointer-events-auto transition-opacity shrink-0 border-primary/30",
+                      isSelected &&
+                        "opacity-100 bg-primary/20 border-primary pointer-events-auto",
                       "group-active/context:opacity-100",
                     )}
                   />

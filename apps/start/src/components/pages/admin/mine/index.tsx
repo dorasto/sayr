@@ -198,15 +198,17 @@ export default function MyTasksPage() {
 					title="My Tasks"
 				/>
 				<PageHeader.Toolbar
-					left={
-						<TaskFilterDropdown
+			left={
+				<>
+					<TaskFilterDropdown
 							tasks={tasks}
 							labels={labels}
 							availableUsers={availableUsers}
 							categories={categories}
 							releases={releases}
 						/>
-					}
+					</>
+				}
 					right={
 						<>
 							<Separator orientation="vertical" className="h-5" />

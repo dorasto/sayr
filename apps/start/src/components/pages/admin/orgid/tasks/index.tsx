@@ -16,7 +16,10 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { useStateManagement, useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
+import {
+  useStateManagement,
+  useStateManagementKey,
+} from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
 import {
@@ -81,15 +84,13 @@ export default function OrganizationTasksHomePage() {
     clearView,
     applyFilter,
   } = useTaskViewManager(views);
-  const { tasks, setTasks } = useLayoutTasks();
-  const useMobile = useIsMobile();
+	const { tasks, setTasks } = useLayoutTasks();
+	const useMobile = useIsMobile();
 
-  // Get categories and views from state management (for breadcrumb view switcher)
-  const { value: stateCategories } = useStateManagementKey<schema.categoryType[]>(
-    ["categories", organization.id],
-    [],
-    1,
-  );
+	// Get categories and views from state management (for breadcrumb view switcher)
+  const { value: stateCategories } = useStateManagementKey<
+    schema.categoryType[]
+  >(["categories", organization.id], [], 1);
 
   // "My Assigned" filter for current user
   const myAssignedFilterState: FilterState = {
@@ -388,18 +389,20 @@ export default function OrganizationTasksHomePage() {
               </DropdownMenuContent>
             </DropdownMenu>
           </PageHeader.Identity>
-          <PageHeader.Toolbar
-            left={
-              <TaskFilterDropdown
-                tasks={tasks}
-                labels={labels}
-                availableUsers={availableUsers}
-                organizationId={organization.id}
-                views={views}
-                setViews={setViews}
-                categories={categories}
-                releases={releases}
-              />
+			<PageHeader.Toolbar
+				left={
+					<>
+						<TaskFilterDropdown
+                  tasks={tasks}
+                  labels={labels}
+                  availableUsers={availableUsers}
+                  organizationId={organization.id}
+                  views={views}
+                  setViews={setViews}
+                  categories={categories}
+                  releases={releases}
+                />
+              </>
             }
             right={
               <>

@@ -15,7 +15,8 @@ import {
 } from "@repo/ui/components/doras-ui/grid-board";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { useTaskViewManager } from "@/hooks/useTaskViewManager";
 import {
   useWSMessageHandler,
@@ -36,6 +37,7 @@ import {
 } from "../shared/nested-grouping";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
+import { BulkActionBar, type BulkUpdateAddRemove } from "./bulk-action-bar";
 import Loader from "@/components/Loader";
 
 interface UnifiedTaskViewProps {
@@ -91,7 +93,30 @@ export function UnifiedTaskView({
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
   // List View Specific State
-  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  // Apply filters to tasks (used by both grouping and selection)
+  const filteredTasks = useMemo(() => {
+    return applyFilters(tasks, filters);
+  }, [tasks, filters]);
+
+  const filteredTaskIds = useMemo(() => {
+    return filteredTasks.map((t) => t.id);
+  }, [filteredTasks]);
+
+  const {
+    selectedSet: selectedTasks,
+    selectedCount,
+    toggleTask,
+    selectAll,
+    deselectAll,
+    isAllSelected,
+    isIndeterminate,
+  } = useTaskSelection(filteredTaskIds);
+
+  // Resolve selected task objects for the bulk action bar
+  const selectedTaskData = useMemo(() => {
+    return tasks.filter((t) => selectedTasks.has(t.id));
+  }, [tasks, selectedTasks]);
+
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     new Set(),
   );
@@ -101,11 +126,6 @@ export function UnifiedTaskView({
     setCollapsedSections(new Set());
     void grouping;
   }, [grouping]);
-
-  // Apply filters to tasks
-  const filteredTasks = useMemo(() => {
-    return applyFilters(tasks, filters);
-  }, [tasks, filters]);
 
   // WebSocket Handlers
   const handlers: WSMessageHandler<WSMessage> = {
@@ -133,15 +153,19 @@ export function UnifiedTaskView({
   }, [ws, handleMessage]);
 
   // Handlers
-  const handleTaskSelect = (taskId: string, selected: boolean) => {
-    const newSelected = new Set(selectedTasks);
-    if (selected) {
-      newSelected.add(taskId);
-    } else {
-      newSelected.delete(taskId);
-    }
-    setSelectedTasks(newSelected);
-  };
+  const handleTaskSelect = useCallback(
+    (taskId: string, selected: boolean) => {
+      toggleTask(taskId, selected);
+    },
+    [toggleTask],
+  );
+
+  // Clear selection on unmount
+  useEffect(() => {
+    return () => {
+      deselectAll();
+    };
+  }, [deselectAll]);
 
   const handleToggleSection = (groupId: string) => {
     const newCollapsed = new Set(collapsedSections);
@@ -273,6 +297,75 @@ export function UnifiedTaskView({
           ),
       );
     }
+  };
+
+  // Bulk update handler - iterates over selected tasks in parallel
+  const handleBulkUpdate = async (field: string, value: unknown) => {
+    const selectedIds = Array.from(selectedTasks);
+    if (selectedIds.length === 0) return;
+
+    // Build updates based on field
+    const getUpdatesForTask = (
+      taskId: string,
+    ): Partial<schema.TaskWithLabels> => {
+      const task = tasks.find((t) => t.id === taskId);
+      switch (field) {
+        case "status":
+          return { status: value as schema.TaskWithLabels["status"] };
+        case "priority":
+          return { priority: value as schema.TaskWithLabels["priority"] };
+        case "assignees": {
+          const { add, remove } = value as BulkUpdateAddRemove;
+          const existing = task?.assignees ?? [];
+          const existingIds = new Set(existing.map((a) => a.id));
+          // Add new assignees, remove unwanted ones
+          const finalIds = new Set(existingIds);
+          for (const id of add) finalIds.add(id);
+          for (const id of remove) finalIds.delete(id);
+          const users = availableUsers.filter((u) => finalIds.has(u.id));
+          return { assignees: users };
+        }
+        case "labels": {
+          const { add, remove } = value as BulkUpdateAddRemove;
+          const existing = task?.labels ?? [];
+          const existingIds = new Set(existing.map((l) => l.id));
+          // Add new labels, remove unwanted ones
+          const finalIds = new Set(existingIds);
+          for (const id of add) finalIds.add(id);
+          for (const id of remove) finalIds.delete(id);
+          const labels = availableLabels.filter((l) => finalIds.has(l.id));
+          return { labels };
+        }
+        case "category":
+          return { category: value as string };
+        case "release":
+          return { releaseId: value as string };
+        default:
+          return {};
+      }
+    };
+
+    // Optimistic update for all selected tasks
+    const updatedTasks = tasks.map((t) => {
+      if (!selectedTasks.has(t.id)) return t;
+      return { ...t, ...getUpdatesForTask(t.id) };
+    });
+    setTasks(updatedTasks);
+
+    // Fire API calls in parallel
+    const results = await Promise.allSettled(
+      selectedIds.map((taskId) =>
+        handleTaskUpdate(taskId, getUpdatesForTask(taskId)),
+      ),
+    );
+
+    const failures = results.filter((r) => r.status === "rejected");
+    if (failures.length > 0) {
+      console.error(`Failed to update ${failures.length} task(s)`, failures);
+    }
+
+    // Clear selection after bulk action
+    deselectAll();
   };
 
   // Grouping Logic with nested sub-grouping support
@@ -741,10 +834,27 @@ export function UnifiedTaskView({
   if (!mounted) {
     return renderLoading();
   }
-
+  const smallViewport = window.innerWidth < 1000;
   return (
     <div className={cn("h-full overflow-auto rounded", classNameProp)}>
       {renderMainContent()}
+      {!compact && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          selectedTasks={selectedTaskData}
+          visible={selectedCount > 0 && viewMode === "list"}
+          onDeselectAll={deselectAll}
+          onSelectAll={() => selectAll(filteredTaskIds)}
+          isAllSelected={isAllSelected}
+          isIndeterminate={isIndeterminate}
+          onBulkUpdate={handleBulkUpdate}
+          availableUsers={availableUsers}
+          availableLabels={availableLabels}
+          categories={categories}
+          releases={releases}
+          compact={smallViewport}
+        />
+      )}
     </div>
   );
 }
