@@ -60,6 +60,8 @@ interface UnifiedTaskViewProps {
   views?: schema.savedViewType[];
   /** Optional className override for the outermost wrapper div */
   className?: string;
+  /** Called when the dialog opens/closes a task, so the parent can switch WS channels */
+  onActiveDialogTaskChange?: (taskId: string | null) => void;
 }
 
 export function UnifiedTaskView({
@@ -76,6 +78,7 @@ export function UnifiedTaskView({
   personal = false,
   views: viewsProp,
   className: classNameProp,
+  onActiveDialogTaskChange,
 }: UnifiedTaskViewProps) {
   // console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -112,6 +115,11 @@ export function UnifiedTaskView({
     },
     [],
   );
+
+  // Notify parent when the active dialog task changes (for WS channel switching)
+  useEffect(() => {
+    onActiveDialogTaskChange?.(dialogTask?.id ?? null);
+  }, [dialogTask?.id, onActiveDialogTaskChange]);
 
   // Keep dialogTask in sync with the tasks array (real-time updates)
   useEffect(() => {
@@ -167,7 +175,6 @@ export function UnifiedTaskView({
       );
       setTasks(updatedTasks);
     },
-    UPDATE_TASK_COMMENTS: async (_msg) => {},
   };
 
   const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
@@ -899,6 +906,7 @@ export function UnifiedTaskView({
         labels={availableLabels}
         categories={categories}
         releases={releases}
+        organization={organization}
       />
     </div>
   );

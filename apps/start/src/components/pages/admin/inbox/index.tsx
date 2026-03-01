@@ -23,7 +23,7 @@ import {
 import { markAllNotificationsReadAction } from "@/lib/fetches/notification";
 import { getTaskByIdForInbox } from "@/lib/serverFunctions/getTaskByIdForInbox";
 import type { WSMessage } from "@/lib/ws";
-import { MyTaskDetail } from "../mine/task-detail";
+import { TaskDetailCompact } from "@/components/tasks/task/task-detail-compact";
 import { NotificationList } from "./notification-list";
 
 export default function InboxPage() {
@@ -350,7 +350,7 @@ export default function InboxPage() {
               )}
             >
               {selectedTask ? (
-                <MyTaskDetail
+                <TaskDetailCompact
                   task={selectedTask}
                   tasks={tasks}
                   setTasks={setTasks}

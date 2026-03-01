@@ -49,6 +49,7 @@ export async function getTasksByOrganizationId(
 				},
 			},
 			githubIssue: {},
+			githubPullRequest: {},
 		},
 
 		extras: {
@@ -171,6 +172,7 @@ export async function getTaskById(orgId: string, Id: string) {
 				with: { user: { columns: userSummaryColumns } },
 			},
 			githubIssue: {},
+			githubPullRequest: {},
 		},
 	});
 	if (!task) return null;
@@ -623,6 +625,8 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 					logo: true,
 				},
 			},
+			githubIssue: {},
+			githubPullRequest: {},
 		},
 		orderBy: (t, { desc }) => [desc(t.createdAt)],
 	});

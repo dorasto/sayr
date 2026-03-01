@@ -12,6 +12,7 @@ import processUploads from "@/components/prosekit/upload";
 import { useLayoutData } from "@/components/generic/Context";
 import { updateTaskAction } from "@/lib/fetches/task";
 import { extractTextContent, useToastAction } from "@/lib/util";
+import { hasMembers, type TaskDetailOrganization } from "../types";
 
 type ContentVisibility = "title" | "description" | "both";
 
@@ -21,9 +22,7 @@ interface TaskEditableHeaderProps {
    setTasks: (tasks: schema.TaskWithLabels[]) => void;
    setSelectedTask: (task: schema.TaskWithLabels | null) => void;
    categories: schema.categoryType[];
-   organization?:
-     | schema.OrganizationWithMembers
-     | { id: string; name: string; slug: string; logo: string | null };
+   organization?: TaskDetailOrganization;
    showContent?: ContentVisibility;
 }
 
@@ -42,7 +41,7 @@ export function TaskEditableHeader({
 
   // Extract org member users for MentionView rendering (when organization has members)
   const orgMemberUsers = useMemo(() => {
-    if (organization && "members" in organization) {
+    if (organization && hasMembers(organization)) {
       return organization.members.map((m) => m.user);
     }
     return undefined;
@@ -92,8 +91,7 @@ export function TaskEditableHeader({
 
     // Check if user is an organization admin
     // Find the user's member record and their teams to check permissions
-    const hasMembers = organization && "members" in organization;
-    const member = hasMembers
+    const member = organization && hasMembers(organization)
       ? organization.members.find((m) => m.user?.id === account.id)
       : undefined;
     if (!member) return false;

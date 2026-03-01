@@ -217,15 +217,16 @@ export default function MyTasksPage() {
 					}
 				/>
 			</PageHeader>
-			<UnifiedTaskView
-				tasks={tasks}
-				setTasks={setTasks}
-				ws={ws}
-				availableUsers={availableUsers}
-				categories={categories}
-				releases={releases}
-				personal
-			/>
+		<UnifiedTaskView
+			tasks={tasks}
+			setTasks={setTasks}
+			ws={ws}
+			availableUsers={availableUsers}
+			availableLabels={labels}
+			categories={categories}
+			releases={releases}
+			personal
+		/>
 		</div>
 	);
 }

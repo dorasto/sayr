@@ -6,13 +6,18 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
+  IconBrandGithub,
   IconCategory,
+  IconExternalLink,
+  IconGitMerge,
   IconLabel,
   IconLock,
   IconLockOpen2,
   IconRocket,
   IconUserPlus,
+  IconUsers,
 } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
   Avatar,
@@ -23,6 +28,7 @@ import RenderIcon from "@/components/generic/RenderIcon";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
 import { updateLabelToTaskAction, updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
+import type { TaskDetailOrganization } from "../types";
 import GlobalTaskAssignees from "./assignee";
 import GlobalTaskCategory from "./category";
 import { priorityConfig, statusConfig } from "./config";
@@ -32,12 +38,14 @@ import GlobalTaskRelease from "./release";
 import GlobalTaskStatus from "./status";
 import GlobalTaskVisibility from "./visibility";
 import { TaskVoting } from "./voting";
+import { ensureCdnUrl } from "@repo/util";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
 // ────────────────────────────────────────────────────────────────────────────
 
 type FieldKey =
+  | "identifier"
   | "status"
   | "priority"
   | "labels"
@@ -45,7 +53,9 @@ type FieldKey =
   | "category"
   | "visibility"
   | "release"
-  | "vote";
+  | "vote"
+  | "githubIssue"
+  | "githubPr";
 
 export interface TaskFieldToolbarProps {
   task: schema.TaskWithLabels;
@@ -59,6 +69,9 @@ export interface TaskFieldToolbarProps {
   availableUsers?: schema.userType[];
   categories?: schema.categoryType[];
   releases?: schema.releaseType[];
+
+  /** Organization used by the `identifier` field for slug display & clipboard URL */
+  organization?: TaskDetailOrganization;
 
   // --- Creator mode: simple onChange callbacks ---
   onChange?: {
@@ -132,6 +145,7 @@ export default function TaskFieldToolbar({
   availableUsers = [],
   categories = [],
   releases = [],
+  organization,
   onChange,
   canCreateLabel = false,
   onLabelCreated,
@@ -147,6 +161,7 @@ export default function TaskFieldToolbar({
 
   // Default all fields to true
   const fields: Record<FieldKey, boolean> = {
+    identifier: fieldsProp?.identifier ?? false,
     status: fieldsProp?.status ?? true,
     priority: fieldsProp?.priority ?? true,
     labels: fieldsProp?.labels ?? true,
@@ -155,6 +170,8 @@ export default function TaskFieldToolbar({
     visibility: fieldsProp?.visibility ?? true,
     release: fieldsProp?.release ?? true,
     vote: fieldsProp?.vote ?? false,
+    githubIssue: fieldsProp?.githubIssue ?? false,
+    githubPr: fieldsProp?.githubPr ?? false,
   };
 
   // ── Derived state for creator variant triggers ──────────────────────
@@ -621,6 +638,61 @@ export default function TaskFieldToolbar({
             "bg-accent!",
           )}
         />
+      )}
+
+      {fields.identifier && organization && (
+        <Link to={`/${task.organizationId}/tasks/${task.shortId}`} className="">
+          <Button
+            variant="ghost"
+            className="border-transparent h-[26px] text-xs"
+            size="sm"
+          >
+            <Avatar className="h-4 w-4 shrink-0">
+              <AvatarImage
+                src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
+                alt={organization.name}
+              />
+              <AvatarFallback className="rounded-md uppercase text-[10px]">
+                <IconUsers className="h-3 w-3" />
+              </AvatarFallback>
+            </Avatar>
+            {organization.slug}/#{task.shortId}
+          </Button>
+        </Link>
+      )}
+      {fields.githubIssue && task.githubIssue?.issueUrl && (
+        <Link
+          to={task.githubIssue.issueUrl}
+          target="_blank"
+          className="shrink-0"
+        >
+          <Button
+            variant="primary"
+            className="h-[26px] p-1 w-fit bg-accent text-xs"
+            tooltipText="View linked GitHub issue"
+            tooltipSide="bottom"
+          >
+            <IconBrandGithub className="size-4" /> Issue
+          </Button>
+        </Link>
+      )}
+
+      {fields.githubPr && task.githubPullRequest?.prUrl && (
+        <Link
+          to={task.githubPullRequest.prUrl}
+          target="_blank"
+          className="shrink-0"
+        >
+          <Button
+            variant="primary"
+            className="h-[26px] p-1 w-fit bg-accent text-xs"
+            tooltipText="View linked GitHub PR"
+            tooltipSide="bottom"
+          >
+            <IconGitMerge className="size-4" /> #
+            {task.githubPullRequest.prNumber}
+          </Button>
+        </Link>
       )}
     </div>
   );

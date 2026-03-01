@@ -150,15 +150,6 @@ export default function GlobalTimeline({
 				const nextEnd = endPage - 1;
 				const hasMore = nextStart <= nextEnd;
 
-				console.log("🟩 Outside‑in batch", {
-					fromStart,
-					fromEnd: endPage,
-					nextStart,
-					nextEnd,
-					hasMore,
-					merged: unique.length,
-				});
-
 				return {
 					data: unique,
 					pagination: {
