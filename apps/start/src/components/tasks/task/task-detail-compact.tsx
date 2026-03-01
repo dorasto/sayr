@@ -102,12 +102,16 @@ export function TaskDetailCompact({
               key: "status",
               iconOnly: true,
             },
+            {
+              key: "visibility",
+              compact: true,
+            },
             "priority",
             { key: "labels", compact: true },
             { key: "assignees", compact: true },
             "category",
             "release",
-            "visibility",
+
             "vote",
             { key: "githubIssue", iconOnly: true },
             { key: "githubPr", iconOnly: true },

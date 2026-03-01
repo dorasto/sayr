@@ -18,25 +18,31 @@ const baseApiUrl =
     ? "/backend-api/internal"
     : "/api/internal";
 interface TaskVotingProps {
-  task: schema.TaskWithLabels;
-  editable?: boolean;
-  className?: string;
-  organizationId: string;
-  wsClientId: string;
-  tasks: schema.TaskWithLabels[];
-  setTasks: (tasks: schema.TaskWithLabels[]) => void;
-  setSelectedTask: (task: schema.TaskWithLabels | null) => void;
+	task: schema.TaskWithLabels;
+	editable?: boolean;
+	className?: string;
+	organizationId: string;
+	wsClientId: string;
+	tasks: schema.TaskWithLabels[];
+	setTasks: (tasks: schema.TaskWithLabels[]) => void;
+	setSelectedTask: (task: schema.TaskWithLabels | null) => void;
+	/** Compact mode hides the "Votes" text, showing only the count. */
+	compact?: boolean;
+	/** Show only the chevron icon, hide count and text. */
+	iconOnly?: boolean;
 }
 
 export function TaskVoting({
-  task,
-  editable = false,
-  className,
-  organizationId,
-  wsClientId,
-  tasks,
-  setTasks,
-  setSelectedTask,
+	task,
+	editable = false,
+	className,
+	organizationId,
+	wsClientId,
+	tasks,
+	setTasks,
+	setSelectedTask,
+	compact = false,
+	iconOnly = false,
 }: TaskVotingProps) {
   const { runWithToast } = useToastAction();
   const {
@@ -141,24 +147,26 @@ export function TaskVoting({
     }
   };
 
-  return (
-    <Button
-      variant="primary"
-      size={"sm"}
-      onClick={handleVote}
-      disabled={!editable}
-      className={cn(
-        "h-auto! bg-muted! hover:border-transparent! hover:bg-secondary!",
-        hasVoted && "border-primary bg-primary/10! hover:border-transparent!",
-        className,
-      )}
-    >
-      <IconChevronUp />
-      <span className="text-xs font-normal">
-        {formatCount(task.voteCount ?? 0)} Votes
-      </span>
-    </Button>
-  );
+	return (
+		<Button
+			variant="primary"
+			size={"sm"}
+			onClick={handleVote}
+			disabled={!editable}
+			className={cn(
+				"h-auto! bg-muted! hover:border-transparent! hover:bg-secondary!",
+				hasVoted && "border-primary bg-primary/10! hover:border-transparent!",
+				className,
+			)}
+		>
+			<IconChevronUp />
+			{!iconOnly && (
+				<span className="text-xs font-normal">
+					{formatCount(task.voteCount ?? 0)}{!compact && " Votes"}
+				</span>
+			)}
+		</Button>
+	);
 }
 
 export default TaskVoting;

@@ -6,22 +6,18 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
-  IconBrandGithub,
-  IconCategory,
-  IconGitMerge,
-  IconLabel,
-  IconLock,
-  IconLockOpen2,
-  IconRocket,
-  IconUserPlus,
-  IconUsers,
+	IconCategory,
+	IconLabel,
+	IconLock,
+	IconLockOpen2,
+	IconRocket,
+	IconUserPlus,
 } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
 } from "@repo/ui/components/avatar";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
@@ -31,13 +27,15 @@ import type { TaskDetailOrganization } from "../types";
 import GlobalTaskAssignees from "./assignee";
 import GlobalTaskCategory from "./category";
 import { priorityConfig, statusConfig } from "./config";
+import GlobalTaskGithubIssue from "./github-issue";
+import GlobalTaskGithubPr from "./github-pr";
+import GlobalTaskIdentifier from "./identifier";
 import GlobalTaskLabels from "./label";
 import GlobalTaskPriority from "./priority";
 import GlobalTaskRelease from "./release";
 import GlobalTaskStatus from "./status";
 import GlobalTaskVisibility from "./visibility";
 import { TaskVoting } from "./voting";
-import { ensureCdnUrl } from "@repo/util";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -707,100 +705,69 @@ export default function TaskFieldToolbar({
       />
     ),
 
-    vote: (cfg) => (
-      <TaskVoting
-        task={task}
-        editable={editable}
-        organizationId={task.organizationId}
-        wsClientId={wsClientId}
-        tasks={tasks}
-        setTasks={setTasks ?? (() => {})}
-        setSelectedTask={setSelectedTask ?? (() => {})}
-        className={cn(
-          style.useCustomTrigger ? "w-fit text-xs" : style.className,
-          "bg-accent!",
-          cfg.className,
-        )}
-      />
-    ),
+    vote: (cfg) => {
+      const isIconOnly = cfg.iconOnly ?? false;
+      const fieldCompact = isIconOnly || (cfg.compact ?? style.compact);
+      return (
+        <TaskVoting
+          task={task}
+          editable={editable}
+          organizationId={task.organizationId}
+          wsClientId={wsClientId}
+          tasks={tasks}
+          setTasks={setTasks ?? (() => {})}
+          setSelectedTask={setSelectedTask ?? (() => {})}
+          compact={fieldCompact}
+          iconOnly={isIconOnly}
+          className={cn(
+            style.useCustomTrigger ? "w-fit text-xs" : style.className,
+            "bg-accent!",
+            cfg.className,
+          )}
+        />
+      );
+    },
 
-    identifier: (cfg) =>
-      organization ? (
-        <Link to={`/${task.organizationId}/tasks/${task.shortId}`} className="">
-          <Button
-            variant="primary"
-            className={cn(
-              "h-[26px] p-1 w-fit bg-accent text-xs",
-              cfg.className,
-            )}
-            size="sm"
-            tooltipText="Open task"
-            tooltipSide="bottom"
-          >
-            <Avatar className="h-4 w-4 shrink-0">
-              <AvatarImage
-                src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
-                alt={organization.name}
-              />
-              <AvatarFallback className="rounded-md uppercase text-[10px]">
-                <IconUsers className="h-3 w-3" />
-              </AvatarFallback>
-            </Avatar>
-            {!cfg.iconOnly &&
-              (cfg.compact ? (
-                <>#{task.shortId}</>
-              ) : (
-                <>
-                  {organization.slug}/#{task.shortId}
-                </>
-              ))}
-          </Button>
-        </Link>
-      ) : null,
+    identifier: (cfg) => {
+      if (!organization) return null;
+      const isIconOnly = cfg.iconOnly ?? false;
+      const fieldCompact = isIconOnly || (cfg.compact ?? style.compact);
+      return (
+        <GlobalTaskIdentifier
+          task={task}
+          organization={organization}
+          compact={fieldCompact}
+          iconOnly={isIconOnly}
+          className={cfg.className}
+        />
+      );
+    },
 
-    githubIssue: (cfg) =>
-      task.githubIssue?.issueUrl ? (
-        <Link
-          to={task.githubIssue.issueUrl}
-          target="_blank"
-          className="shrink-0"
-        >
-          <Button
-            variant="primary"
-            className={cn(
-              "h-[26px] p-1 w-fit bg-accent text-xs",
-              cfg.className,
-            )}
-            tooltipText="View linked GitHub issue"
-            tooltipSide="bottom"
-          >
-            <IconBrandGithub className="size-4" />
-            {!cfg.iconOnly && " Issue"}
-          </Button>
-        </Link>
-      ) : null,
+    githubIssue: (cfg) => {
+      const isIconOnly = cfg.iconOnly ?? false;
+      const fieldCompact = isIconOnly || (cfg.compact ?? style.compact);
+      return (
+        <GlobalTaskGithubIssue
+          task={task}
+          compact={fieldCompact}
+          iconOnly={isIconOnly}
+          className={cfg.className}
+        />
+      );
+    },
 
-    githubPr: (cfg) =>
-      task.githubPullRequest?.prUrl ? (
-        <Link
-          to={task.githubPullRequest.prUrl}
-          target="_blank"
-          className="shrink-0"
-        >
-          <Button
-            variant="primary"
-            className={cn(
-              "h-[26px] p-1 w-fit bg-accent text-xs",
-              cfg.className,
-            )}
-            tooltipText="View linked GitHub PR"
-            tooltipSide="bottom"
-          >
-            <IconGitMerge className="size-4" />
-            {!cfg.iconOnly && <> #{task.githubPullRequest.prNumber}</>}
-          </Button>
-        </Link>
-      ) : null,
+    githubPr: (cfg) => {
+      const isIconOnly = cfg.iconOnly ?? false;
+      const fieldCompact = isIconOnly || (cfg.compact ?? style.compact);
+      return (
+        <GlobalTaskGithubPr
+          task={task}
+          compact={fieldCompact}
+          iconOnly={isIconOnly}
+          className={cfg.className}
+        />
+      );
+    },
   };
 
   // ── Render ──────────────────────────────────────────────────────────
