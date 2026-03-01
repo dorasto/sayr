@@ -44,6 +44,11 @@ export function RootProvider({
 			} else if (data.type === "NOTIFICATION_READ") {
 				if (data.data?.all) {
 					notificationActions.markAllRead();
+				} else if (data.data?.taskId && data.data?.count) {
+					// Notifications marked read by viewing a task directly
+					for (let i = 0; i < data.data.count; i++) {
+						notificationActions.decrement();
+					}
 				} else if (data.data?.id) {
 					notificationActions.decrement();
 				}

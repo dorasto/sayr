@@ -82,6 +82,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             ${{ matrix.app == 'marketing' && format('PUBLIC_CAP_API_ENDPOINT={0}', secrets.PUBLIC_CAP_API_ENDPOINT) || '' }}
+            ${{ matrix.app == 'start' && format('VITE_APP_VERSION={0}', inputs.version) || '' }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest

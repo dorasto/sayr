@@ -12,4 +12,7 @@ export * from "./release";
 
 // Import/export default exports
 export { default as GlobalTaskRelease } from "./release";
+export { default as GlobalTaskIdentifier } from "./identifier";
+export { default as GlobalTaskGithubIssue } from "./github-issue";
+export { default as GlobalTaskGithubPr } from "./github-pr";
 

@@ -1,21 +1,12 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-  type ResizablePanelHandle,
-} from "@repo/ui/components/resizable";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@repo/ui/components/sheet";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
@@ -32,6 +23,7 @@ import type { NodeJSON } from "prosekit/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
+import { PanelWrapper } from "@/components/generic/wrapper";
 import RenderIcon from "@/components/generic/RenderIcon";
 import Editor from "@/components/prosekit/editor";
 import processUploads from "@/components/prosekit/upload";
@@ -69,13 +61,8 @@ interface ReleaseDetailPageProps {
 
 function ReleaseDetailPageContent() {
   const { ws } = useLayoutData();
-   const {
-     organization,
-     setOrganization,
-     categories,
-     releases,
-     setReleases,
-   } = useLayoutOrganization();
+  const { organization, setOrganization, categories, releases, setReleases } =
+    useLayoutOrganization();
   const { release, setRelease } = useLayoutRelease();
 
   const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
@@ -89,12 +76,12 @@ function ReleaseDetailPageContent() {
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
+  const { setValue: setMentionContext } =
+    useStateManagement<MentionContext | null>("mentionContext", null);
   const isChartsPanelOpen = useStore(
     releaseChartsStore,
     (state) => state.isOpen,
   );
-  const chartsPanelRef = useRef<ResizablePanelHandle>(null);
   const useMobile = useIsMobile();
   const loadedReleaseIdRef = useRef<string | null>(null);
 
@@ -110,19 +97,6 @@ function ReleaseDetailPageContent() {
       setMentionContext({ orgId: organization.id });
     }
   }, [organization?.id, setMentionContext]);
-
-  // Handle panel collapse/expand
-  useEffect(() => {
-    if (useMobile) return;
-    const panel = chartsPanelRef.current;
-    if (panel) {
-      if (isChartsPanelOpen) {
-        panel.expand();
-      } else {
-        panel.collapse();
-      }
-    }
-  }, [isChartsPanelOpen, useMobile]);
 
   useWebSocketSubscription({
     ws,
@@ -540,228 +514,179 @@ function ReleaseDetailPageContent() {
     return diff;
   }, [release?.targetDate]);
 
+  const setChartsPanelOpen = useCallback((open: boolean) => {
+    if (open) {
+      releaseChartsActions.open();
+    } else {
+      releaseChartsActions.close();
+    }
+  }, []);
+
   if (loading || !release) {
     return <Loader />;
   }
 
   return (
-    <div className="relative flex flex-col h-full max-h-full">
-      <PageHeader>
-        <PageHeader.Identity
-          actions={
-            <Button
-              variant="accent"
-              className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}
-              onClick={() => releaseChartsActions.toggle()}
-            >
-              {isChartsPanelOpen ? (
-                <IconLayoutSidebarRightFilled className="w-3 h-3" />
-              ) : (
-                <IconLayoutSidebarRight className="w-3 h-3" />
-              )}
-            </Button>
-          }
-        >
-          {!useMobile && (
-            <>
-              <Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
-                <Button
-                  variant={"primary"}
-                  className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-                  size={"sm"}
-                >
-                  <Avatar className="h-4 w-4">
-                    <AvatarImage
-                      src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
-                      alt={organization.name}
-                    />
-                    <AvatarFallback className="rounded-md uppercase text-xs">
-                      <IconUsers className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>{organization.name}</span>
-                </Button>
-              </Link>
-              <span className="text-muted-foreground text-xs">/</span>
-              <Link to="/$orgId/releases" params={{ orgId: organization.id }}>
-                <Button
-                  variant={"ghost"}
-                  className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-                  size={"sm"}
-                >
-                  <IconRocket className="size-3.5 text-muted-foreground" />
-                  <span>Releases</span>
-                </Button>
-              </Link>
-              <span className="text-muted-foreground text-xs">/</span>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <div
-              className="p-1 rounded-lg shrink-0"
-              style={{
-                background: release.color ? `hsla(${extractHslValues(release.color)}, 0.2)` : undefined,
-              }}
-            >
-              <RenderIcon
-                iconName={release.icon || "IconRocket"}
-                size={8}
-                color={release.color || undefined}
-                raw
-              />
+    <PanelWrapper
+      isOpen={isChartsPanelOpen}
+      setOpen={setChartsPanelOpen}
+      panelHeader={<Label>Information</Label>}
+      panelBody={
+        <div className="flex flex-col gap-3">
+          <ReleaseInfo
+            release={release}
+            onUpdate={handleHeaderUpdate}
+            onStatusUpdate={handleStatusUpdate}
+            onTargetDateUpdate={handleTargetDateUpdate}
+          />
+          <Label>Status</Label>
+          <ReleaseSidebar
+            tasks={tasks}
+            taskStats={taskStats}
+            daysUntilTarget={daysUntilTarget}
+            organizationId={organization.id}
+            releaseId={release.id}
+          />
+        </div>
+      }
+    >
+      <div className="relative flex flex-col h-full max-h-full">
+        <PageHeader>
+          <PageHeader.Identity
+            actions={
+              <Button
+                variant="accent"
+                className={cn(
+                  "gap-2 h-6 w-fit bg-accent border-transparent p-1",
+                  !isChartsPanelOpen && "bg-transparent",
+                )}
+                onClick={() => releaseChartsActions.toggle()}
+              >
+                {isChartsPanelOpen ? (
+                  <IconLayoutSidebarRightFilled className="w-3 h-3" />
+                ) : (
+                  <IconLayoutSidebarRight className="w-3 h-3" />
+                )}
+              </Button>
+            }
+          >
+            {!useMobile && (
+              <>
+                <Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
+                  <Button
+                    variant={"primary"}
+                    className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+                    size={"sm"}
+                  >
+                    <Avatar className="h-4 w-4">
+                      <AvatarImage
+                        src={
+                          organization.logo
+                            ? ensureCdnUrl(organization.logo)
+                            : ""
+                        }
+                        alt={organization.name}
+                      />
+                      <AvatarFallback className="rounded-md uppercase text-xs">
+                        <IconUsers className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{organization.name}</span>
+                  </Button>
+                </Link>
+                <span className="text-muted-foreground text-xs">/</span>
+                <Link to="/$orgId/releases" params={{ orgId: organization.id }}>
+                  <Button
+                    variant={"ghost"}
+                    className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+                    size={"sm"}
+                  >
+                    <IconRocket className="size-3.5 text-muted-foreground" />
+                    <span>Releases</span>
+                  </Button>
+                </Link>
+                <span className="text-muted-foreground text-xs">/</span>
+              </>
+            )}
+            <div className="flex items-center gap-2">
+              <div
+                className="p-1 rounded-lg shrink-0"
+                style={{
+                  background: release.color
+                    ? `hsla(${extractHslValues(release.color)}, 0.2)`
+                    : undefined,
+                }}
+              >
+                <RenderIcon
+                  iconName={release.icon || "IconRocket"}
+                  size={8}
+                  color={release.color || undefined}
+                  raw
+                />
+              </div>
+              <span className="font-semibold text-xs truncate">
+                {release.name}{" "}
+                <span className="text-muted-foreground font-mono">
+                  ({release.slug})
+                </span>
+              </span>
             </div>
-            <span className="font-semibold text-xs truncate">
-              {release.name} <span className="text-muted-foreground font-mono">({release.slug})</span>
-            </span>
-          </div>
-        </PageHeader.Identity>
-      </PageHeader>
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={useMobile ? 100 : 70} minSize={50}>
-          <div className="h-full overflow-y-auto flex flex-col gap-3">
-            {/* Header Section */}
-            <div className="flex flex-col gap-3 p-3">
-              <ReleaseHeader
-                release={release}
-                onStatusUpdate={handleStatusUpdate}
-                onTargetDateUpdate={handleTargetDateUpdate}
-                onReleasedAtUpdate={handleReleasedAtUpdate}
-                onUpdate={handleNameSlugUpdate}
-              />
+          </PageHeader.Identity>
+        </PageHeader>
+        <div className="flex-1 overflow-y-auto h-full flex flex-col relative">
+          {/* Header Section */}
+          <div className="flex flex-col gap-3 p-3">
+            <ReleaseHeader
+              release={release}
+              onStatusUpdate={handleStatusUpdate}
+              onTargetDateUpdate={handleTargetDateUpdate}
+              onReleasedAtUpdate={handleReleasedAtUpdate}
+              onUpdate={handleNameSlugUpdate}
+            />
 
-              {/* Description Section */}
-              <div className="flex flex-col gap-3">
-                <div className="w-full min-w-full">
-                  <Editor
-                    defaultContent={release?.description || undefined}
-                    onChange={setDescription}
-                    placeholder="Add a description for this release..."
-                    categories={categories}
-                    tasks={tasks}
-                    hideBlockHandle={true}
-                  />
-                  <div className="flex w-full">
-                    {hasUnsavedChanges && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="text-xs py-1 h-auto ml-auto"
-                        onClick={() => handleDescriptionSave(description)}
-                        disabled={isSavingDescription}
-                      >
-                        {isSavingDescription ? "Saving..." : "Update"}
-                      </Button>
-                    )}
-                  </div>
+            {/* Description Section */}
+            <div className="flex flex-col gap-3">
+              <div className="w-full min-w-full">
+                <Editor
+                  defaultContent={release?.description || undefined}
+                  onChange={setDescription}
+                  placeholder="Add a description for this release..."
+                  categories={categories}
+                  tasks={tasks}
+                  hideBlockHandle={true}
+                />
+                <div className="flex w-full">
+                  {hasUnsavedChanges && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="text-xs py-1 h-auto ml-auto"
+                      onClick={() => handleDescriptionSave(description)}
+                      disabled={isSavingDescription}
+                    >
+                      {isSavingDescription ? "Saving..." : "Update"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
-            {/* Tasks Section */}
-            <UnifiedTaskView
-              tasks={tasks}
-              setTasks={setTasks}
-              ws={ws}
-              availableUsers={availableUsers}
-              organization={organization}
-              categories={categories}
-              releases={releases}
-              compact={true}
-              forceShowCompleted={true}
-            />
-            {/*<div className="bg-card rounded-lg p-3 flex flex-col gap-3">
-              <Label variant={"heading"}>Tasks</Label>
-              <div className="flex-1 overflow-hidden bg-card rounded-lg p-1">
-                {tasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                    <IconRocket className="w-12 h-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No tasks yet</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Tasks assigned to this release will appear here.
-                    </p>
-                  </div>
-                ) : (
-                  <UnifiedTaskView
-                    tasks={tasks}
-                    setTasks={setTasks}
-                    ws={ws}
-                    labels={labels}
-                    availableUsers={availableUsers}
-                    organization={organization}
-                    categories={categories}
-                    releases={releases}
-                    compact={true}
-                    forceShowCompleted={true}
-                  />
-                )}
-              </div>
-            </div>*/}
           </div>
-        </ResizablePanel>
-
-        {useMobile ? (
-          <Sheet
-            defaultOpen={false}
-            open={isChartsPanelOpen}
-            onOpenChange={releaseChartsActions.close}
-          >
-            <SheetContent className="p-0" showClose={false}>
-              <SheetHeader className="sr-only">
-                <SheetTitle>Charts and Statistics</SheetTitle>
-                <SheetDescription>
-                  View charts and statistics for this release
-                </SheetDescription>
-              </SheetHeader>
-              <div className="h-full overflow-y-auto flex flex-col gap-3 p-3">
-                <ReleaseInfo
-                  release={release}
-                  onUpdate={handleHeaderUpdate}
-                  onStatusUpdate={handleStatusUpdate}
-                  onTargetDateUpdate={handleTargetDateUpdate}
-                />
-                <ReleaseSidebar
-                  tasks={tasks}
-                  taskStats={taskStats}
-                  daysUntilTarget={daysUntilTarget}
-                  organizationId={organization.id}
-                  releaseId={release.id}
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
-        ) : (
-          <>
-            <ResizableHandle />
-            <ResizablePanel
-              defaultSize={isChartsPanelOpen ? 30 : 0}
-              minSize={20}
-              collapsedSize={0}
-              collapsible={true}
-              ref={chartsPanelRef}
-              onCollapse={() => releaseChartsActions.close()}
-              onExpand={() => releaseChartsActions.open()}
-            >
-              <div className="h-full overflow-y-auto flex flex-col gap-3 p-3">
-                <Label>Information</Label>
-                <ReleaseInfo
-                  release={release}
-                  onUpdate={handleHeaderUpdate}
-                  onStatusUpdate={handleStatusUpdate}
-                  onTargetDateUpdate={handleTargetDateUpdate}
-                />
-                <Label>Status</Label>
-                <ReleaseSidebar
-                  tasks={tasks}
-                  taskStats={taskStats}
-                  daysUntilTarget={daysUntilTarget}
-                  organizationId={organization.id}
-                  releaseId={release.id}
-                />
-              </div>
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
-    </div>
+          {/* Tasks Section */}
+          <UnifiedTaskView
+            tasks={tasks}
+            setTasks={setTasks}
+            ws={ws}
+            availableUsers={availableUsers}
+            organization={organization}
+            categories={categories}
+            releases={releases}
+            compact={true}
+            forceShowCompleted={true}
+            className="h-auto overflow-visible"
+          />
+        </div>
+      </div>
+    </PanelWrapper>
   );
 }
 

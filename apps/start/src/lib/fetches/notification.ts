@@ -130,3 +130,20 @@ export async function deleteNotificationAction(notificationId: string): Promise<
 
 	return res.json();
 }
+
+/**
+ * Marks all unread notifications for a specific task as read.
+ * Used when a user views a task directly (outside the inbox).
+ */
+export async function markNotificationsReadByTaskAction(taskId: string): Promise<{
+	success: boolean;
+	data?: { markedCount: number };
+	error?: string;
+}> {
+	const res = await fetch(`${API_URL}/v1/admin/notification/read-by-task/${taskId}`, {
+		method: "PATCH",
+		credentials: "include",
+	});
+
+	return res.json();
+}

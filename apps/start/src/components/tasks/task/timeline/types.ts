@@ -1,7 +1,6 @@
 import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
-
-type MinimalOrganization = { id: string; name: string; slug: string; logo: string | null };
+import type { TaskDetailOrganization } from "../../types";
 
 export type ConsolidatedTimelineItem = {
 	id: string;
@@ -57,7 +56,7 @@ export interface GlobalTimelineProps {
   categories: schema.categoryType[];
   tasks: schema.TaskWithLabels[];
   releases: schema.releaseType[];
-  organization?: schema.OrganizationWithMembers | MinimalOrganization;
+  organization?: TaskDetailOrganization;
 }
 
 export interface TimelineItemProps {
@@ -67,7 +66,7 @@ export interface TimelineItemProps {
   categories?: schema.categoryType[];
   tasks?: schema.TaskWithLabels[];
   releases?: schema.releaseType[];
-  organization?: schema.OrganizationWithMembers | MinimalOrganization;
+  organization?: TaskDetailOrganization;
   /** Set of blocked user IDs for displaying badge on blocked user comments */
   blockedUserIds?: Set<string>;
 }
@@ -77,5 +76,5 @@ export interface ConsolidatedTimelineItemProps {
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
 	showSeparator?: boolean;
-	organization?: schema.OrganizationWithMembers | MinimalOrganization;
+	organization?: TaskDetailOrganization;
 }

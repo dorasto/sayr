@@ -37,6 +37,8 @@ import {
   IconDeviceFloppy,
   IconEye,
   IconEyeOff,
+  IconLock,
+  IconLockFilled,
   IconPlus,
   IconTag,
 } from "@tabler/icons-react";
@@ -50,7 +52,12 @@ import RenderIcon from "@/components/generic/RenderIcon";
 interface GlobalTaskLabelsProps {
   task: schema.TaskWithLabels;
   editable?: boolean;
-  availableLabels?: Array<{ id: string; name: string; color?: string | null }>;
+  availableLabels?: Array<{
+    id: string;
+    name: string;
+    color?: string | null;
+    visible?: "public" | "private";
+  }>;
   onLabelsChange?: (labelIds: string[]) => void;
   customTrigger?: React.ReactNode;
   customChildren?: React.ReactNode;
@@ -258,7 +265,7 @@ export default function GlobalTaskLabels({
 
     return (
       <div className={cn("flex items-center")}>
-        <div className="flex -space-x-2">
+        <div className="flex -space-x-2 p-0.5">
           {visibleLabels.map((label) => (
             <div
               key={label.id}
@@ -397,7 +404,12 @@ export default function GlobalTaskLabels({
 }
 
 interface RenderLabelProps {
-  label: { id: string; name: string; color?: string | null };
+  label: {
+    id: string;
+    name: string;
+    color?: string | null;
+    visible?: "public" | "private";
+  };
   showRemove?: boolean;
   onRemove?: (labelId: string) => void;
   onClick?: (e: React.MouseEvent, labelId: string) => void;
@@ -427,12 +439,26 @@ export function RenderLabel({
       onClick={onClick ? (e) => onClick(e, label.id) : undefined}
     >
       <div className="shrink-0 absolute inset-y-0 flex items-center justify-center start-0 ps-1">
-        <IconCircleFilled
-          size={12}
-          style={{
-            color: label.color || "var(--foreground)",
-          }}
-        />
+        {label.visible === "public" ? (
+          <IconCircleFilled
+            size={12}
+            style={{
+              color: label.color || "var(--foreground)",
+            }}
+          />
+        ) : (
+          <IconLockFilled
+            size={12}
+            style={{
+              color: label.color || "var(--foreground)",
+            }}
+          />
+        )}
+
+        {/*private here*/}
+        {/*{label.visible === "private" && (
+          <IconLock size={10} className="text-muted-foreground shrink-0" />
+        )}*/}
       </div>
       <span className="truncate">{label.name}</span>
       {showRemove && onRemove && (

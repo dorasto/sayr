@@ -17,6 +17,9 @@ const config = defineConfig({
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
       process.env.APP_ENV ?? "development",
     ),
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(
+      process.env.VITE_APP_VERSION ?? "localhost",
+    ),
   },
   // Use Vite's built-in proxy in development (avoids nitro caching/hydration issues)
   // See: https://github.com/TanStack/router/issues/6556

@@ -48,7 +48,7 @@ interface Props {
   className?: string;
 }
 export function Wrapper({ children, className }: Props) {
-  const { isTaskPage } = useAdminRoute();
+	const { isTaskPage, isReleasePage } = useAdminRoute();
   const isMobile = useIsMobile();
 
   return (
@@ -62,7 +62,7 @@ export function Wrapper({ children, className }: Props) {
         <div
           className={cn(
             "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent",
-            isTaskPage && "pt-0 pr-0",
+						(isTaskPage || isReleasePage) && "pt-0 pr-0",
             isMobile && "p-0",
             className,
           )}

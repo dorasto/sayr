@@ -8,7 +8,7 @@ import { Toggle } from "@repo/ui/components/toggle";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconLock, IconLockOpen2 } from "@tabler/icons-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CreateTaskCommentAction } from "@/lib/fetches/task";
 import { extractTextContent, useToastAction } from "@/lib/util";
 import Editor from "@/components/prosekit/editor";
@@ -16,6 +16,17 @@ import type { NodeJSON } from "prosekit/core";
 import processUploads from "@/components/prosekit/upload";
 
 type CommentVisibility = "internal" | "public";
+
+/** Check if ProseMirror doc JSON has more than one block-level content node */
+function isMultiline(doc: NodeJSON | undefined): boolean {
+	if (!doc?.content) return false;
+	if (doc.content.length > 1) return true;
+	const first = doc.content[0];
+	if (first?.content) {
+		return first.content.some((node) => node.type === "hardBreak");
+	}
+	return false;
+}
 
 interface TaskNewCommentContentProps {
   task: schema.TaskWithLabels;
@@ -30,12 +41,13 @@ export function TaskNewCommentContent({
   tasks,
 }: TaskNewCommentContentProps) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-  const { runWithToast, isFetching } = useToastAction();
-  const [newComment, setNewComment] = useState<undefined | NodeJSON>(undefined);
-  const [editorKey, setEditorKey] = useState(0);
-  const [visibility, setVisibility] = useState<CommentVisibility>("public");
-  const commentText = extractTextContent(newComment);
-  const disabled = isFetching || commentText.length === 0;
+   const { runWithToast, isFetching } = useToastAction();
+   const [newComment, setNewComment] = useState<undefined | NodeJSON>(undefined);
+   const [editorKey, setEditorKey] = useState(0);
+   const [visibility, setVisibility] = useState<CommentVisibility>("public");
+   const commentText = extractTextContent(newComment);
+   const disabled = isFetching || commentText.length === 0;
+   const multiline = useMemo(() => isMultiline(newComment), [newComment]);
   const handleSubmit = async () => {
     if (!newComment || isFetching || commentText.length === 0) {
       console.log(newComment);
@@ -85,24 +97,9 @@ export function TaskNewCommentContent({
       onFinish?.();
     }
   };
-  return (
-    <div
-      className={cn(
-        "text-foreground mt-2 rounded-lg border px-4 py-3 bg-accent/50 flex flex-col",
-        visibility === "internal" && "border-primary/30 bg-primary/5",
-      )}
-    >
-      <Editor
-        key={editorKey}
-        onChange={setNewComment}
-        categories={categories}
-        tasks={tasks}
-        submit={handleSubmit}
-        hideBlockHandle={true}
-      />
-      <div className="flex items-center gap-2 ml-auto">
-        <ButtonGroup>
-          <Button
+   const actionButtons = (
+      <ButtonGroup>
+         <Button
             variant={"primary"}
             size={"sm"}
             disabled={disabled}
@@ -110,32 +107,54 @@ export function TaskNewCommentContent({
             data-track="post-comment"
             data-track-data={JSON.stringify({ taskId: task.id })}
             className={cn(
-              "border-0",
-              visibility === "internal" && "bg-primary/10 hover:bg-primary/20",
+               "border-0",
+               visibility === "internal" && "bg-primary/10 hover:bg-primary/20",
             )}
-          >
+         >
             Post
             <IconArrowBack />
-          </Button>
-          <Toggle
+         </Button>
+         <Toggle
             aria-label="Toggle visibility"
             size="sm"
             className={cn(
-              "border-0 bg-accent hover:bg-secondary",
-              visibility === "internal" &&
-                "bg-primary/10! hover:bg-primary/20!",
+               "border-0 bg-accent hover:bg-secondary",
+               visibility === "internal" && "bg-primary/10! hover:bg-primary/20!",
             )}
             variant={"primary"}
             pressed={visibility === "internal"}
-            onPressedChange={(pressed) =>
-              setVisibility(pressed ? "internal" : "public")
-            }
+            onPressedChange={(pressed) => setVisibility(pressed ? "internal" : "public")}
             defaultPressed={true}
-          >
+         >
             {visibility === "internal" ? <IconLock /> : <IconLockOpen2 />}
-          </Toggle>
-        </ButtonGroup>
+         </Toggle>
+      </ButtonGroup>
+   );
+
+   return (
+      <div
+         className={cn(
+            "text-foreground mt-2 rounded-lg border px-4 py-2 bg-accent/50 transition-all",
+            visibility === "internal" && "border-primary/30 bg-primary/5",
+            !multiline && "flex items-center gap-2",
+         )}
+      >
+         <div className={cn(!multiline && "flex-1 min-w-0")}>
+            <Editor
+               key={editorKey}
+               onChange={setNewComment}
+               categories={categories}
+               tasks={tasks}
+               submit={handleSubmit}
+               hideBlockHandle={true}
+               firstLinePlaceholder="Write a comment..."
+            />
+         </div>
+         {multiline ? (
+            <div className="flex items-center justify-end">{actionButtons}</div>
+         ) : (
+            actionButtons
+         )}
       </div>
-    </div>
-  );
+   );
 }

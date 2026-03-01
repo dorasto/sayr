@@ -16,7 +16,10 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { useStateManagement, useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
+import {
+  useStateManagement,
+  useStateManagementKey,
+} from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
 import {
@@ -29,7 +32,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -56,6 +59,7 @@ import {
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
 export default function OrganizationTasksHomePage() {
   const { ws, account } = useLayoutData();
@@ -81,15 +85,23 @@ export default function OrganizationTasksHomePage() {
     clearView,
     applyFilter,
   } = useTaskViewManager(views);
-  const { tasks, setTasks } = useLayoutTasks();
-  const useMobile = useIsMobile();
+	const { tasks, setTasks } = useLayoutTasks();
+	const useMobile = useIsMobile();
 
-  // Get categories and views from state management (for breadcrumb view switcher)
-  const { value: stateCategories } = useStateManagementKey<schema.categoryType[]>(
-    ["categories", organization.id],
-    [],
-    1,
-  );
+	// Track which task is open in the dialog (for WS channel switching)
+	const [activeDialogTaskId, setActiveDialogTaskId] = useState<string | null>(null);
+	const handleActiveDialogTaskChange = useCallback((taskId: string | null) => {
+		setActiveDialogTaskId(taskId);
+	}, []);
+
+	// When a task dialog is open, subscribe to task-specific channel so we
+	// receive UPDATE_TASK_COMMENTS. When closed, fall back to the tasks list channel.
+	const wsChannel = activeDialogTaskId ? `task:${activeDialogTaskId}` : "tasks";
+
+	// Get categories and views from state management (for breadcrumb view switcher)
+  const { value: stateCategories } = useStateManagementKey<
+    schema.categoryType[]
+  >(["categories", organization.id], [], 1);
 
   // "My Assigned" filter for current user
   const myAssignedFilterState: FilterState = {
@@ -198,12 +210,37 @@ export default function OrganizationTasksHomePage() {
     ws,
     orgId: organization.id,
     organization: organization,
-    channel: `tasks`,
+    channel: wsChannel,
     setOrganization: setOrganization,
   });
   const handlers: WSMessageHandler<WSMessage> = {
     CREATE_TASK: (msg) => {
       setTasks([...tasks, msg.data]);
+    },
+    UPDATE_TASK: (msg) => {
+      const updatedTask = msg.data;
+      const updatedTasks = tasks.map((task) =>
+        task.id === updatedTask.id ? updatedTask : task,
+      );
+      setTasks(updatedTasks);
+      // When a task dialog is open, forward timeline updates via window message
+      // so GlobalTimeline inside the dialog can refetch
+      if (activeDialogTaskId && updatedTask.id === activeDialogTaskId) {
+        sendWindowMessage(
+          window,
+          { type: "timeline-update", payload: updatedTask.id },
+          "*",
+        );
+      }
+    },
+    UPDATE_TASK_COMMENTS: async (msg) => {
+      if (activeDialogTaskId && msg.data.id === activeDialogTaskId) {
+        sendWindowMessage(
+          window,
+          { type: "timeline-update-comment", payload: msg.data.id },
+          "*",
+        );
+      }
     },
     UPDATE_LABELS: (msg) => {
       if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
@@ -388,18 +425,20 @@ export default function OrganizationTasksHomePage() {
               </DropdownMenuContent>
             </DropdownMenu>
           </PageHeader.Identity>
-          <PageHeader.Toolbar
-            left={
-              <TaskFilterDropdown
-                tasks={tasks}
-                labels={labels}
-                availableUsers={availableUsers}
-                organizationId={organization.id}
-                views={views}
-                setViews={setViews}
-                categories={categories}
-                releases={releases}
-              />
+			<PageHeader.Toolbar
+				left={
+					<>
+						<TaskFilterDropdown
+                  tasks={tasks}
+                  labels={labels}
+                  availableUsers={availableUsers}
+                  organizationId={organization.id}
+                  views={views}
+                  setViews={setViews}
+                  categories={categories}
+                  releases={releases}
+                />
+              </>
             }
             right={
               <>
@@ -425,6 +464,7 @@ export default function OrganizationTasksHomePage() {
             categories={categories}
             releases={releases}
             views={views}
+            onActiveDialogTaskChange={handleActiveDialogTaskChange}
           />
         </div>
       </div>

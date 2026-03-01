@@ -9,6 +9,7 @@ import type { WSMessage } from "@/lib/ws";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect } from "react";
+import { markNotificationsReadByTaskAction } from "@/lib/fetches/notification";
 
 export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId/")({
 	component: RouteComponent,
@@ -29,6 +30,14 @@ function RouteComponent() {
 		channel: `task:${task.id}`,
 		setOrganization: setOrganization,
 	});
+
+	// Mark any unread notifications for this task as read when the user views it directly
+	useEffect(() => {
+		if (task.id) {
+			markNotificationsReadByTaskAction(task.id);
+		}
+	}, [task.id]);
+
 	const handlers: WSMessageHandler<WSMessage> = {
 		CREATE_TASK: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {

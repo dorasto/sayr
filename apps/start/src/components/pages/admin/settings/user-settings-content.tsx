@@ -40,6 +40,11 @@ import { handleFileValidation } from "@/lib/utils/file-validation";
 import { useTheme } from "@/components/theme-provider";
 import { DarkModeToggle } from "@/components/dark-mode-toggle";
 import { Switch } from "@repo/ui/components/switch";
+import { useStore } from "@tanstack/react-store";
+import {
+  userPreferencesStore,
+  userPreferencesActions,
+} from "@/lib/stores/user-preferences-store";
 
 /**
  * Props for the standalone UserSettingsContent component.
@@ -317,6 +322,8 @@ export function UserSettingsContent({
 
 export function UserPreferences() {
   const { theme, setTheme } = useTheme();
+  const taskOpenMode = useStore(userPreferencesStore, (s) => s.taskOpenMode);
+
   return (
     <div className="bg-card rounded-lg flex flex-col">
       <Tile className="md:w-full">
@@ -328,6 +335,29 @@ export function UserPreferences() {
             theme={theme}
             onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
           />
+        </TileAction>
+      </Tile>
+      <Tile className="md:w-full">
+        <TileHeader>
+          <TileTitle>Task open behavior</TileTitle>
+          <TileDescription className="text-xs">
+            Choose how tasks open when clicked from lists
+          </TileDescription>
+        </TileHeader>
+        <TileAction>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={taskOpenMode === "dialog"}
+              onCheckedChange={(checked) =>
+                userPreferencesActions.setTaskOpenMode(
+                  checked ? "dialog" : "page",
+                )
+              }
+            />
+            <span className="text-sm text-muted-foreground">
+              {taskOpenMode === "dialog" ? "Dialog" : "Page"}
+            </span>
+          </div>
         </TileAction>
       </Tile>
     </div>

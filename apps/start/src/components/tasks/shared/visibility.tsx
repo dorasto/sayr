@@ -148,10 +148,10 @@ export default function GlobalTaskVisibility({
 						<ComboBoxTrigger disabled={!editable} className={className}>
 							<ComboBoxValue placeholder="Visibility">
 								{currentVisibility && config && (
-									<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>
-										{config.icon(cn(config.className, "h-4 w-4"))}
-										<span className="truncate">{config.label}</span>
-									</div>
+								<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>
+									{config.icon(cn(config.className, "h-4 w-4"))}
+									{!compact && <span className="truncate">{config.label}</span>}
+								</div>
 								)}
 							</ComboBoxValue>
 							{showChevron && <ComboBoxIcon />}
