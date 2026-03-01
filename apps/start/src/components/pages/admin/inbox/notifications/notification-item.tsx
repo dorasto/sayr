@@ -8,9 +8,11 @@ import { cn } from "@repo/ui/lib/utils";
 import {
   IconArchive,
   IconBell,
+  IconBellFilled,
   IconBellRinging,
   IconCheck,
   IconCircle,
+  IconCircleFilled,
   IconExternalLink,
   IconTrash,
   IconUsers,
@@ -69,7 +71,7 @@ export function NotificationItem({
             isSelected && "bg-secondary hover:bg-secondary text-foreground",
             !isSelected &&
               !notification.read &&
-              "bg-primary/5 hover:bg-primary/10",
+              "bg-primary/5 hover:bg-primary/10 text-foreground",
           )}
         >
           {/* Unread dot */}
@@ -81,7 +83,7 @@ export function NotificationItem({
           <div className="flex items-center flex-1 gap-1">
             {notification.organization && (
               <InlineLabel
-                className="shrink ps-6 truncate"
+                className="shrink ps-6 truncate text-inherit"
                 icon={
                   <Avatar className="h-4 w-4">
                     <AvatarImage
@@ -115,6 +117,9 @@ export function NotificationItem({
                 <div className="flex items-center gap-1">
                   {priority.icon(cn(priority.className, "size-4"))}
                 </div>
+              )}
+              {!notification.read && (
+                <IconBellFilled className="size-4 text-primary" />
               )}
             </div>
           </div>

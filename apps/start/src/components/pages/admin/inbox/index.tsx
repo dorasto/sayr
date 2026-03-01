@@ -55,7 +55,9 @@ export default function InboxPage() {
   };
   const [selectedTask, setSelectedTask] =
     useState<schema.TaskWithLabels | null>(null);
-  const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
+  const [selectedNotificationId, setSelectedNotificationId] = useState<
+    string | null
+  >(null);
   useWebSocketSubscription({ ws });
 
   // Get unique organizations from tasks for filtering
@@ -127,8 +129,8 @@ export default function InboxPage() {
       if (isUserInList) {
         newTasks = taskExists
           ? tasks.map((task) =>
-            task.id === updatedTask.id ? updatedTask : task,
-          )
+              task.id === updatedTask.id ? updatedTask : task,
+            )
           : [...tasks, updatedTask];
       } else {
         newTasks = tasks.filter((task) => task.id !== updatedTask.id);
@@ -203,9 +205,9 @@ export default function InboxPage() {
         const updatedTasks = tasks.map((task) =>
           task.id === id && task.organizationId === msg.meta?.orgId
             ? {
-              ...task,
-              voteCount,
-            }
+                ...task,
+                voteCount,
+              }
             : task,
         );
         setTasks(updatedTasks);
@@ -280,11 +282,6 @@ export default function InboxPage() {
               actions={
                 <>
                   {unreadCount > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </Badge>
-                  )}
-                  {unreadCount > 0 && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -309,11 +306,7 @@ export default function InboxPage() {
               <div className="flex items-center gap-2 h-11 px-3 shrink-0 border-b">
                 <IconNotification className="size-4 shrink-0" />
                 <span className="text-xs font-medium truncate">Inbox</span>
-                {unreadCount > 0 && (
-                  <Badge variant="outline" className="text-xs">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </Badge>
-                )}
+
                 <div className="flex items-center gap-1 shrink-0 ml-auto">
                   {unreadCount > 0 && (
                     <Button
