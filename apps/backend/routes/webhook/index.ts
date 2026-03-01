@@ -331,7 +331,7 @@ async function handleContentEvents(
 						headBranch: pr.head.ref,
 						baseBranch: pr.base.ref,
 
-						userId: pr.user?.id,
+						userId: payload.sender?.id,
 						author,
 						matches: keywordMatches,
 					},
@@ -359,7 +359,7 @@ async function handleContentEvents(
 						headSha: pr.head.sha,
 						before: payload.before,
 						after: payload.after,
-						userId: pr.user?.id,
+						userId: payload.sender?.id,
 
 						headBranch: pr.head.ref,
 					},
@@ -382,7 +382,7 @@ async function handleContentEvents(
 						repo: repository.name,
 						repoId: repository.id,
 						repo_private: repository.private,
-						userId: pr.user?.id,
+						userId: payload.sender?.id,
 
 						number: prNumber,
 						merged,
