@@ -94,17 +94,23 @@ export function TaskDetailCompact({
           availableUsers={availableUsers}
           organization={resolvedOrg}
           fields={[
-            "identifier",
-            "status",
+            {
+              key: "identifier",
+              compact: true,
+            },
+            {
+              key: "status",
+              iconOnly: true,
+            },
             "priority",
-            "labels",
-            "assignees",
+            { key: "labels", compact: true },
+            { key: "assignees", compact: true },
             "category",
             "release",
-            "vote",
-            "githubIssue",
-            "githubPr",
             "visibility",
+            "vote",
+            { key: "githubIssue", iconOnly: true },
+            { key: "githubPr", iconOnly: true },
           ]}
         />
         <SimpleClipboard

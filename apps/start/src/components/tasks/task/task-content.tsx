@@ -301,7 +301,16 @@ export function TaskContentMobileContent({
           releases={releases}
           availableLabels={labels}
           availableUsers={availableUsers}
-          fields={["status", "priority", "labels", "assignees", "category", "visibility", "release", "vote"]}
+          fields={[
+            "status",
+            "priority",
+            { key: "labels", compact: true },
+            { key: "assignees", compact: true },
+            "category",
+            "visibility",
+            "release",
+            "vote",
+          ]}
         />
         <Separator orientation="vertical" className="h-[26px]" />
         <SimpleClipboard

@@ -56,8 +56,26 @@ export type FieldKey =
   | "githubIssue"
   | "githubPr";
 
+/** Per-field presentation overrides. */
+export interface FieldConfig {
+  key: FieldKey;
+  /** Show only the icon, hide the text label. Overrides `compact` and `showLabel`. */
+  iconOnly?: boolean;
+  /** Compact display mode (behavior varies per field). */
+  compact?: boolean;
+  /** Show a text label beside the trigger. */
+  showLabel?: boolean;
+  /** Show a chevron/caret on the dropdown trigger. */
+  showChevron?: boolean;
+  /** Extra className merged onto the field trigger. */
+  className?: string;
+}
+
+/** A field entry is either a plain key (uses variant defaults) or an object with overrides. */
+export type FieldEntry = FieldKey | FieldConfig;
+
 /** Default field order when no `fields` prop is provided. */
-const DEFAULT_FIELDS: FieldKey[] = [
+const DEFAULT_FIELDS: FieldEntry[] = [
   "status",
   "priority",
   "labels",
@@ -67,17 +85,25 @@ const DEFAULT_FIELDS: FieldKey[] = [
   "release",
 ];
 
+/** Normalize a FieldEntry into a resolved config. */
+function resolveFieldEntry(entry: FieldEntry): FieldConfig {
+  if (typeof entry === "string") return { key: entry };
+  return entry;
+}
+
 export interface TaskFieldToolbarProps {
   task: schema.TaskWithLabels;
   editable?: boolean;
 
   /**
    * Ordered array of fields to render.
+   * - Each entry is a `FieldKey` string (variant defaults) or a `FieldConfig`
+   *   object with per-field presentation overrides.
    * - Presence in the array = visible; absence = hidden.
    * - Array order = render order.
    * - When omitted, defaults to `DEFAULT_FIELDS`.
    */
-  fields?: FieldKey[];
+  fields?: FieldEntry[];
 
   // Data for pickers
   availableLabels?: schema.labelType[];
@@ -174,8 +200,8 @@ export default function TaskFieldToolbar({
   const { runWithToast } = useToastAction();
   const style = VARIANT_STYLES[variant];
 
-  // Resolve the ordered field list
-  const fields = fieldsProp ?? DEFAULT_FIELDS;
+  // Resolve the ordered field list into normalized configs
+  const resolvedFields = (fieldsProp ?? DEFAULT_FIELDS).map(resolveFieldEntry);
 
   // ── Derived state for creator variant triggers ──────────────────────
   const resolvedStatus = (task.status ?? "backlog") || "backlog";
@@ -336,25 +362,34 @@ export default function TaskFieldToolbar({
     : undefined;
 
   // ── Creator-variant custom triggers ─────────────────────────────────
+  // Each trigger is a function of FieldConfig so `iconOnly` can suppress text.
 
-  const creatorStatusTrigger = (
-    <Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
-      {statusCfg?.icon(`h-3.5 w-3.5 ${statusCfg?.className || ""}`)}
-      {statusCfg?.label || "Status"}
-    </Button>
-  );
-
-  const creatorPriorityTrigger = (
-    <Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
-      {priorityCfg?.icon(`h-3.5 w-3.5 ${priorityCfg?.className || ""}`)}
-      {priorityCfg?.label || "Priority"}
-    </Button>
-  );
-
-  const creatorLabelsTrigger = (
+  const creatorStatusTrigger = (cfg: FieldConfig) => (
     <Button
       variant={"primary"}
-      className="w-fit text-xs h-7 line-clamp-1"
+      className={cn("w-fit text-xs h-7", cfg.className)}
+      size={"sm"}
+    >
+      {statusCfg?.icon(`h-3.5 w-3.5 ${statusCfg?.className || ""}`)}
+      {!cfg.iconOnly && (statusCfg?.label || "Status")}
+    </Button>
+  );
+
+  const creatorPriorityTrigger = (cfg: FieldConfig) => (
+    <Button
+      variant={"primary"}
+      className={cn("w-fit text-xs h-7", cfg.className)}
+      size={"sm"}
+    >
+      {priorityCfg?.icon(`h-3.5 w-3.5 ${priorityCfg?.className || ""}`)}
+      {!cfg.iconOnly && (priorityCfg?.label || "Priority")}
+    </Button>
+  );
+
+  const creatorLabelsTrigger = (cfg: FieldConfig) => (
+    <Button
+      variant={"primary"}
+      className={cn("w-fit text-xs h-7 line-clamp-1", cfg.className)}
       size={"sm"}
     >
       {selectedLabels.length > 1 ? (
@@ -368,29 +403,32 @@ export default function TaskFieldToolbar({
               />
             ))}
           </div>
-          <span>{selectedLabels.length} labels</span>
+          {!cfg.iconOnly && <span>{selectedLabels.length} labels</span>}
         </div>
       ) : selectedLabels.length === 1 ? (
         <div className="flex items-center">
           <span
-            className="h-2 w-2 shrink-0 rounded-full mr-2"
+            className={cn(
+              "h-2 w-2 shrink-0 rounded-full",
+              !cfg.iconOnly && "mr-2",
+            )}
             style={{ backgroundColor: selectedLabels[0]?.color || "#cccccc" }}
           />
-          <span>{selectedLabels[0]?.name}</span>
+          {!cfg.iconOnly && <span>{selectedLabels[0]?.name}</span>}
         </div>
       ) : (
         <span className="flex items-center gap-2">
-          <IconLabel className="h-3.5 w-3.5 mr-1" />
-          Labels
+          <IconLabel className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")} />
+          {!cfg.iconOnly && "Labels"}
         </span>
       )}
     </Button>
   );
 
-  const creatorAssigneesTrigger = (
+  const creatorAssigneesTrigger = (cfg: FieldConfig) => (
     <Button
       variant={"primary"}
-      className="w-fit text-xs h-7 line-clamp-1"
+      className={cn("w-fit text-xs h-7 line-clamp-1", cfg.className)}
       size={"sm"}
     >
       {selectedAssignees.length > 1 ? (
@@ -416,11 +454,11 @@ export default function TaskFieldToolbar({
               </Avatar>
             ))}
           </div>
-          <span>{selectedAssignees.length} assignees</span>
+          {!cfg.iconOnly && <span>{selectedAssignees.length} assignees</span>}
         </div>
       ) : selectedAssignees.length === 1 ? (
         <div className="flex items-center">
-          <Avatar className="h-4 w-4 mr-2">
+          <Avatar className={cn("h-4 w-4", !cfg.iconOnly && "mr-2")}>
             <AvatarImage
               src={selectedAssignees[0]?.image || undefined}
               alt={selectedAssignees[0]?.name}
@@ -434,44 +472,56 @@ export default function TaskFieldToolbar({
                 .slice(0, 2)}
             </AvatarFallback>
           </Avatar>
-          <span>{selectedAssignees[0]?.name}</span>
+          {!cfg.iconOnly && <span>{selectedAssignees[0]?.name}</span>}
         </div>
       ) : (
         <span className="flex items-center gap-2">
-          <IconUserPlus className="h-3.5 w-3.5 mr-1" />
-          Assignees
+          <IconUserPlus
+            className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
+          />
+          {!cfg.iconOnly && "Assignees"}
         </span>
       )}
     </Button>
   );
 
-  const creatorCategoryTrigger = (
-    <Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
+  const creatorCategoryTrigger = (cfg: FieldConfig) => (
+    <Button
+      variant={"primary"}
+      className={cn("w-fit text-xs h-7", cfg.className)}
+      size={"sm"}
+    >
       {selectedCategory ? (
         <>
           <RenderIcon
             iconName={selectedCategory.icon || "IconCircleFilled"}
-            className="size-3.5! [&_svg]:size-3.5! mr-1"
+            className={cn(
+              "size-3.5! [&_svg]:size-3.5!",
+              !cfg.iconOnly && "mr-1",
+            )}
             color={selectedCategory.color || undefined}
             button
           />
-          {selectedCategory.name}
+          {!cfg.iconOnly && selectedCategory.name}
         </>
       ) : (
         <>
-          <IconCategory className="h-3.5 w-3.5 mr-1" />
-          Category
+          <IconCategory
+            className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
+          />
+          {!cfg.iconOnly && "Category"}
         </>
       )}
     </Button>
   );
 
-  const creatorVisibilityTrigger = (
+  const creatorVisibilityTrigger = (cfg: FieldConfig) => (
     <Button
       variant={"primary"}
       className={cn(
         "w-fit text-xs h-7",
         task.visible === "private" && "border-primary/50",
+        cfg.className,
       )}
       size={"sm"}
       onClick={() =>
@@ -482,38 +532,49 @@ export default function TaskFieldToolbar({
     >
       {task.visible === "private" ? (
         <>
-          <IconLock className="h-3.5 w-3.5 mr-1" />
-          Private
+          <IconLock className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")} />
+          {!cfg.iconOnly && "Private"}
         </>
       ) : (
         <>
-          <IconLockOpen2 className="h-3.5 w-3.5 mr-1" />
-          Public
+          <IconLockOpen2
+            className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
+          />
+          {!cfg.iconOnly && "Public"}
         </>
       )}
     </Button>
   );
 
-  const creatorReleaseTrigger = (
-    <Button variant={"primary"} className="w-fit text-xs h-7" size={"sm"}>
+  const creatorReleaseTrigger = (cfg: FieldConfig) => (
+    <Button
+      variant={"primary"}
+      className={cn("w-fit text-xs h-7", cfg.className)}
+      size={"sm"}
+    >
       {selectedRelease ? (
         <>
           {selectedRelease.icon ? (
             <RenderIcon
               iconName={selectedRelease.icon}
-              className="size-3.5! [&_svg]:size-3.5! mr-1"
+              className={cn(
+                "size-3.5! [&_svg]:size-3.5!",
+                !cfg.iconOnly && "mr-1",
+              )}
               color={selectedRelease.color || undefined}
               button
             />
           ) : (
-            <IconRocket className="h-3.5 w-3.5 mr-1" />
+            <IconRocket
+              className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
+            />
           )}
-          {selectedRelease.name}
+          {!cfg.iconOnly && selectedRelease.name}
         </>
       ) : (
         <>
-          <IconRocket className="h-3.5 w-3.5 mr-1" />
-          Release
+          <IconRocket className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")} />
+          {!cfg.iconOnly && "Release"}
         </>
       )}
     </Button>
@@ -521,55 +582,75 @@ export default function TaskFieldToolbar({
 
   // ── Shared props helpers ────────────────────────────────────────────
 
-  const sharedProps = {
-    task,
-    editable,
-    ...(style.useCustomTrigger
-      ? {}
-      : {
-          showLabel: style.showLabel,
-          showChevron: style.showChevron,
-          compact: style.compact,
-          className: style.className,
-        }),
-    ...(useInternalLogic
-      ? {
-          useInternalLogic: true as const,
-          tasks,
-          setTasks,
-          setSelectedTask,
-        }
-      : {}),
+  /** Build shared props for a specific field, merging variant defaults with per-field overrides. */
+  const buildSharedProps = (cfg: FieldConfig) => {
+    // iconOnly implies compact=true, showLabel=false, showChevron=false
+    const isIconOnly = cfg.iconOnly ?? false;
+    const fieldCompact = isIconOnly || (cfg.compact ?? style.compact);
+    const fieldShowLabel = isIconOnly
+      ? false
+      : (cfg.showLabel ?? style.showLabel);
+    const fieldShowChevron = isIconOnly
+      ? false
+      : (cfg.showChevron ?? style.showChevron);
+    const fieldClassName = cn(
+      style.useCustomTrigger ? "" : style.className,
+      cfg.className,
+    );
+
+    return {
+      task,
+      editable,
+      ...(style.useCustomTrigger
+        ? {}
+        : {
+            showLabel: fieldShowLabel,
+            showChevron: fieldShowChevron,
+            compact: fieldCompact,
+            className: fieldClassName || undefined,
+          }),
+      ...(useInternalLogic
+        ? {
+            useInternalLogic: true as const,
+            tasks,
+            setTasks,
+            setSelectedTask,
+          }
+        : {}),
+    };
   };
 
   // ── Field renderers map ─────────────────────────────────────────────
 
-  const FIELD_RENDERERS: Record<FieldKey, () => React.ReactNode> = {
-    status: () => (
+  const FIELD_RENDERERS: Record<
+    FieldKey,
+    (cfg: FieldConfig) => React.ReactNode
+  > = {
+    status: (cfg) => (
       <GlobalTaskStatus
-        {...sharedProps}
+        {...buildSharedProps(cfg)}
         onChange={onChange?.status}
         {...(style.useCustomTrigger
-          ? { customTrigger: creatorStatusTrigger }
+          ? { customTrigger: creatorStatusTrigger(cfg) }
           : {})}
       />
     ),
 
-    priority: () => (
+    priority: (cfg) => (
       <GlobalTaskPriority
-        {...sharedProps}
+        {...buildSharedProps(cfg)}
         {...(useInternalLogic && handlePriorityChange
           ? { onPriorityChange: handlePriorityChange }
           : { onChange: onChange?.priority })}
         {...(style.useCustomTrigger
-          ? { customTrigger: creatorPriorityTrigger }
+          ? { customTrigger: creatorPriorityTrigger(cfg) }
           : {})}
       />
     ),
 
-    labels: () => (
+    labels: (cfg) => (
       <GlobalTaskLabels
-        {...sharedProps}
+        {...buildSharedProps(cfg)}
         availableLabels={availableLabels}
         canCreateLabel={canCreateLabel}
         onLabelCreated={onLabelCreated}
@@ -577,56 +658,56 @@ export default function TaskFieldToolbar({
           ? { onLabelsChange: handleLabelsChange }
           : { onLabelsChange: onChange?.labels })}
         {...(style.useCustomTrigger
-          ? { customTrigger: creatorLabelsTrigger, customChildren: true }
+          ? { customTrigger: creatorLabelsTrigger(cfg), customChildren: true }
           : {})}
       />
     ),
 
-    assignees: () => (
+    assignees: (cfg) => (
       <GlobalTaskAssignees
-        {...sharedProps}
+        {...buildSharedProps(cfg)}
         availableUsers={availableUsers}
         onChange={onChange?.assignees}
         {...(style.useCustomTrigger
-          ? { customTrigger: creatorAssigneesTrigger }
+          ? { customTrigger: creatorAssigneesTrigger(cfg) }
           : {})}
       />
     ),
 
-    category: () => (
+    category: (cfg) => (
       <GlobalTaskCategory
-        {...sharedProps}
+        {...buildSharedProps(cfg)}
         categories={categories}
         onChange={onChange?.category}
         {...(style.useCustomTrigger
-          ? { customTrigger: creatorCategoryTrigger }
+          ? { customTrigger: creatorCategoryTrigger(cfg) }
           : {})}
       />
     ),
 
-    visibility: () =>
+    visibility: (cfg) =>
       style.useCustomTrigger ? (
         // Creator variant: simple toggle button (not a ComboBox)
-        creatorVisibilityTrigger
+        creatorVisibilityTrigger(cfg)
       ) : (
         <GlobalTaskVisibility
-          {...sharedProps}
+          {...buildSharedProps(cfg)}
           onChange={onChange?.visibility}
         />
       ),
 
-    release: () => (
+    release: (cfg) => (
       <GlobalTaskRelease
-        {...sharedProps}
+        {...buildSharedProps(cfg)}
         releases={releases}
         onChange={onChange?.release}
         {...(style.useCustomTrigger
-          ? { customTrigger: creatorReleaseTrigger }
+          ? { customTrigger: creatorReleaseTrigger(cfg) }
           : {})}
       />
     ),
 
-    vote: () => (
+    vote: (cfg) => (
       <TaskVoting
         task={task}
         editable={editable}
@@ -638,17 +719,23 @@ export default function TaskFieldToolbar({
         className={cn(
           style.useCustomTrigger ? "w-fit text-xs" : style.className,
           "bg-accent!",
+          cfg.className,
         )}
       />
     ),
 
-    identifier: () =>
+    identifier: (cfg) =>
       organization ? (
         <Link to={`/${task.organizationId}/tasks/${task.shortId}`} className="">
           <Button
             variant="primary"
-            className="h-[26px] p-1 w-fit bg-accent text-xs"
+            className={cn(
+              "h-[26px] p-1 w-fit bg-accent text-xs",
+              cfg.className,
+            )}
             size="sm"
+            tooltipText="Open task"
+            tooltipSide="bottom"
           >
             <Avatar className="h-4 w-4 shrink-0">
               <AvatarImage
@@ -659,12 +746,19 @@ export default function TaskFieldToolbar({
                 <IconUsers className="h-3 w-3" />
               </AvatarFallback>
             </Avatar>
-            {organization.slug}/#{task.shortId}
+            {!cfg.iconOnly &&
+              (cfg.compact ? (
+                <>#{task.shortId}</>
+              ) : (
+                <>
+                  {organization.slug}/#{task.shortId}
+                </>
+              ))}
           </Button>
         </Link>
       ) : null,
 
-    githubIssue: () =>
+    githubIssue: (cfg) =>
       task.githubIssue?.issueUrl ? (
         <Link
           to={task.githubIssue.issueUrl}
@@ -673,16 +767,20 @@ export default function TaskFieldToolbar({
         >
           <Button
             variant="primary"
-            className="h-[26px] p-1 w-fit bg-accent text-xs"
+            className={cn(
+              "h-[26px] p-1 w-fit bg-accent text-xs",
+              cfg.className,
+            )}
             tooltipText="View linked GitHub issue"
             tooltipSide="bottom"
           >
-            <IconBrandGithub className="size-4" /> Issue
+            <IconBrandGithub className="size-4" />
+            {!cfg.iconOnly && " Issue"}
           </Button>
         </Link>
       ) : null,
 
-    githubPr: () =>
+    githubPr: (cfg) =>
       task.githubPullRequest?.prUrl ? (
         <Link
           to={task.githubPullRequest.prUrl}
@@ -691,12 +789,15 @@ export default function TaskFieldToolbar({
         >
           <Button
             variant="primary"
-            className="h-[26px] p-1 w-fit bg-accent text-xs"
+            className={cn(
+              "h-[26px] p-1 w-fit bg-accent text-xs",
+              cfg.className,
+            )}
             tooltipText="View linked GitHub PR"
             tooltipSide="bottom"
           >
-            <IconGitMerge className="size-4" /> #
-            {task.githubPullRequest.prNumber}
+            <IconGitMerge className="size-4" />
+            {!cfg.iconOnly && <> #{task.githubPullRequest.prNumber}</>}
           </Button>
         </Link>
       ) : null,
@@ -706,12 +807,12 @@ export default function TaskFieldToolbar({
 
   return (
     <div className={style.container}>
-      {fields.map((key) => {
-        const renderer = FIELD_RENDERERS[key];
+      {resolvedFields.map((cfg) => {
+        const renderer = FIELD_RENDERERS[cfg.key];
         if (!renderer) return null;
-        const node = renderer();
+        const node = renderer(cfg);
         if (!node) return null;
-        return <React.Fragment key={key}>{node}</React.Fragment>;
+        return <React.Fragment key={cfg.key}>{node}</React.Fragment>;
       })}
     </div>
   );
