@@ -135,11 +135,11 @@ export default function GlobalTaskStatus({
 										{statusConfig[currentStatus as keyof typeof statusConfig]?.icon(
 											cn(statusConfig[currentStatus as keyof typeof statusConfig]?.className, "h-4 w-4")
 										)}
-										{/*{!compact && (*/}
+									{!compact && (
 										<span className="truncate">
 											{statusConfig[currentStatus as keyof typeof statusConfig]?.label}
 										</span>
-										{/*)}*/}
+									)}
 									</div>
 								)}
 							</ComboBoxValue>

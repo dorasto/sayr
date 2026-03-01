@@ -154,16 +154,6 @@ export function useTasksSearchParams() {
 }
 
 /**
- * Hook specifically for the task detail panel (task query param).
- * Provides a simpler API similar to nuqs useQueryState.
- */
-export function useTaskDetailParam() {
-	const { task, setTask } = useTasksSearchParams();
-
-	return [task, setTask] as const;
-}
-
-/**
  * Hook specifically for the view query param.
  * Provides a simpler API similar to nuqs useQueryState.
  */

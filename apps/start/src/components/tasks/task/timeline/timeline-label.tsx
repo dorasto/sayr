@@ -1,5 +1,10 @@
 import { getDisplayName } from "@repo/util";
-import { IconTag, IconTagMinus, IconTagPlus } from "@tabler/icons-react";
+import {
+  IconLockFilled,
+  IconTag,
+  IconTagMinus,
+  IconTagPlus,
+} from "@tabler/icons-react";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
@@ -39,7 +44,16 @@ export function TimelineLabelAdded({
       <InlineLabel
         className="text-muted-foreground hover:text-foreground"
         text={label.name}
-        icon={<IconTag size={12} style={{ color: label.color || undefined }} />}
+        icon={
+          label.visible === "public" ? (
+            <IconTag size={12} style={{ color: label.color || undefined }} />
+          ) : (
+            <IconLockFilled
+              size={12}
+              style={{ color: label.color || undefined }}
+            />
+          )
+        }
       />
     </TimelineItemWrapper>
   );
@@ -80,7 +94,16 @@ export function TimelineLabelRemoved({
       <InlineLabel
         className="text-muted-foreground hover:text-foreground"
         text={label.name}
-        icon={<IconTag size={12} style={{ color: label.color || undefined }} />}
+        icon={
+          label.visible === "public" ? (
+            <IconTag size={12} style={{ color: label.color || undefined }} />
+          ) : (
+            <IconLockFilled
+              size={12}
+              style={{ color: label.color || undefined }}
+            />
+          )
+        }
       />
     </TimelineItemWrapper>
   );

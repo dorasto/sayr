@@ -71,9 +71,12 @@ export default function GlobalTaskPriority({
 			onChange(value);
 		}
 
-		// Support legacy prop
+		// Support legacy prop — when onPriorityChange is provided, it handles the
+		// full update flow (API call + optimistic update), so skip internal logic
+		// to avoid duplicate API requests and duplicate timeline entries.
 		if (onPriorityChange) {
 			onPriorityChange(value);
+			return;
 		}
 
 		if (useInternalLogic && tasks && setTasks && setSelectedTask) {

@@ -21,6 +21,9 @@ export function useAdminRoute() {
 	// /:orgId/tasks/:taskId
 	const isTaskPage = /^\/[^/]+\/tasks\/[^/]+$/.test(pathname) && !/^\/(?:console|mine|settings)\b/.test(pathname);
 
+	// /:orgId/releases/:slug
+	const isReleasePage = /^\/[^/]+\/releases\/[^/]+$/.test(pathname) && !/^\/(?:console|mine|settings)\b/.test(pathname);
+
 	return {
 		isMinePage,
 		isStaffPage,
@@ -28,5 +31,6 @@ export function useAdminRoute() {
 		isOrgPage,
 		isTasksPage,
 		isTaskPage,
+		isReleasePage,
 	};
 }

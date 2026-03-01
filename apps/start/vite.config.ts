@@ -17,6 +17,9 @@ const config = defineConfig({
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
       process.env.APP_ENV ?? "development",
     ),
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(
+      process.env.VITE_APP_VERSION ?? "localhost",
+    ),
   },
   // Use Vite's built-in proxy in development (avoids nitro caching/hydration issues)
   // See: https://github.com/TanStack/router/issues/6556
@@ -33,7 +36,13 @@ const config = defineConfig({
                 console.log("[Proxy Error]", err);
               });
               proxy.on("proxyReq", (_proxyReq, req) => {
-                console.log("[Proxy]", req.method, req.url, "→", `http://localhost:5468${req.url?.replace(/^\/backend-api/, "/api")}`);
+                console.log(
+                  "[Proxy]",
+                  req.method,
+                  req.url,
+                  "→",
+                  `http://localhost:5468${req.url?.replace(/^\/backend-api/, "/api")}`,
+                );
               });
             },
           },

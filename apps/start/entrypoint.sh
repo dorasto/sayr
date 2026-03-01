@@ -26,6 +26,7 @@ replace_env "VITE_GITHUB_APP_NAME" "___VITE_GITHUB_APP_NAME___"
 replace_env "VITE_SAYR_FRONTEND_AXIOM_DATASET" "___VITE_SAYR_FRONTEND_AXIOM_DATASET___"
 replace_env "VITE_SAYR_FRONTEND_AXIOM_TOKEN" "___VITE_SAYR_FRONTEND_AXIOM_TOKEN___"
 replace_env "VITE_TENOR_API" "___VITE_TENOR_API___"
+replace_env "VITE_APP_VERSION" "___VITE_APP_VERSION___"
 
 # Patch Nitro's asset manifest in index.mjs to reflect post-sed file sizes.
 # Without this, Nitro sends stale Content-Length headers -> NS_ERROR_NET_PARTIAL_TRANSFER.

@@ -15,7 +15,9 @@ import {
 } from "@repo/ui/components/doras-ui/grid-board";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useStore } from "@tanstack/react-store";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { useTaskViewManager } from "@/hooks/useTaskViewManager";
 import {
   useWSMessageHandler,
@@ -36,7 +38,10 @@ import {
 } from "../shared/nested-grouping";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
+import { BulkActionBar, type BulkUpdateAddRemove } from "./bulk-action-bar";
 import Loader from "@/components/Loader";
+import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
+import { TaskDetailDialog } from "../task/task-detail-dialog";
 
 interface UnifiedTaskViewProps {
   tasks: schema.TaskWithLabels[];
@@ -53,6 +58,10 @@ interface UnifiedTaskViewProps {
   personal?: boolean;
   /** Optional views to pass when no org context is available */
   views?: schema.savedViewType[];
+  /** Optional className override for the outermost wrapper div */
+  className?: string;
+  /** Called when the dialog opens/closes a task, so the parent can switch WS channels */
+  onActiveDialogTaskChange?: (taskId: string | null) => void;
 }
 
 export function UnifiedTaskView({
@@ -68,6 +77,8 @@ export function UnifiedTaskView({
   forceShowCompleted = false,
   personal = false,
   views: viewsProp,
+  className: classNameProp,
+  onActiveDialogTaskChange,
 }: UnifiedTaskViewProps) {
   // console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -87,8 +98,64 @@ export function UnifiedTaskView({
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
+  // Task open mode preference
+  const taskOpenMode = useStore(userPreferencesStore, (s) => s.taskOpenMode);
+  const [dialogTask, setDialogTask] = useState<schema.TaskWithLabels | null>(null);
+
+  const handleTaskClick = useCallback(
+    (task: schema.TaskWithLabels) => {
+      setDialogTask(task);
+    },
+    [],
+  );
+
+  const handleOpenInDialog = useCallback(
+    (task: schema.TaskWithLabels) => {
+      setDialogTask(task);
+    },
+    [],
+  );
+
+  // Notify parent when the active dialog task changes (for WS channel switching)
+  useEffect(() => {
+    onActiveDialogTaskChange?.(dialogTask?.id ?? null);
+  }, [dialogTask?.id, onActiveDialogTaskChange]);
+
+  // Keep dialogTask in sync with the tasks array (real-time updates)
+  useEffect(() => {
+    if (dialogTask) {
+      const updated = tasks.find((t) => t.id === dialogTask.id);
+      if (updated && updated !== dialogTask) {
+        setDialogTask(updated);
+      }
+    }
+  }, [tasks, dialogTask]);
+
   // List View Specific State
-  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  // Apply filters to tasks (used by both grouping and selection)
+  const filteredTasks = useMemo(() => {
+    return applyFilters(tasks, filters);
+  }, [tasks, filters]);
+
+  const filteredTaskIds = useMemo(() => {
+    return filteredTasks.map((t) => t.id);
+  }, [filteredTasks]);
+
+  const {
+    selectedSet: selectedTasks,
+    selectedCount,
+    toggleTask,
+    selectAll,
+    deselectAll,
+    isAllSelected,
+    isIndeterminate,
+  } = useTaskSelection(filteredTaskIds);
+
+  // Resolve selected task objects for the bulk action bar
+  const selectedTaskData = useMemo(() => {
+    return tasks.filter((t) => selectedTasks.has(t.id));
+  }, [tasks, selectedTasks]);
+
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     new Set(),
   );
@@ -99,11 +166,6 @@ export function UnifiedTaskView({
     void grouping;
   }, [grouping]);
 
-  // Apply filters to tasks
-  const filteredTasks = useMemo(() => {
-    return applyFilters(tasks, filters);
-  }, [tasks, filters]);
-
   // WebSocket Handlers
   const handlers: WSMessageHandler<WSMessage> = {
     UPDATE_TASK: (msg) => {
@@ -113,7 +175,6 @@ export function UnifiedTaskView({
       );
       setTasks(updatedTasks);
     },
-    UPDATE_TASK_COMMENTS: async (_msg) => {},
   };
 
   const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
@@ -130,15 +191,19 @@ export function UnifiedTaskView({
   }, [ws, handleMessage]);
 
   // Handlers
-  const handleTaskSelect = (taskId: string, selected: boolean) => {
-    const newSelected = new Set(selectedTasks);
-    if (selected) {
-      newSelected.add(taskId);
-    } else {
-      newSelected.delete(taskId);
-    }
-    setSelectedTasks(newSelected);
-  };
+  const handleTaskSelect = useCallback(
+    (taskId: string, selected: boolean) => {
+      toggleTask(taskId, selected);
+    },
+    [toggleTask],
+  );
+
+  // Clear selection on unmount
+  useEffect(() => {
+    return () => {
+      deselectAll();
+    };
+  }, [deselectAll]);
 
   const handleToggleSection = (groupId: string) => {
     const newCollapsed = new Set(collapsedSections);
@@ -272,6 +337,75 @@ export function UnifiedTaskView({
     }
   };
 
+  // Bulk update handler - iterates over selected tasks in parallel
+  const handleBulkUpdate = async (field: string, value: unknown) => {
+    const selectedIds = Array.from(selectedTasks);
+    if (selectedIds.length === 0) return;
+
+    // Build updates based on field
+    const getUpdatesForTask = (
+      taskId: string,
+    ): Partial<schema.TaskWithLabels> => {
+      const task = tasks.find((t) => t.id === taskId);
+      switch (field) {
+        case "status":
+          return { status: value as schema.TaskWithLabels["status"] };
+        case "priority":
+          return { priority: value as schema.TaskWithLabels["priority"] };
+        case "assignees": {
+          const { add, remove } = value as BulkUpdateAddRemove;
+          const existing = task?.assignees ?? [];
+          const existingIds = new Set(existing.map((a) => a.id));
+          // Add new assignees, remove unwanted ones
+          const finalIds = new Set(existingIds);
+          for (const id of add) finalIds.add(id);
+          for (const id of remove) finalIds.delete(id);
+          const users = availableUsers.filter((u) => finalIds.has(u.id));
+          return { assignees: users };
+        }
+        case "labels": {
+          const { add, remove } = value as BulkUpdateAddRemove;
+          const existing = task?.labels ?? [];
+          const existingIds = new Set(existing.map((l) => l.id));
+          // Add new labels, remove unwanted ones
+          const finalIds = new Set(existingIds);
+          for (const id of add) finalIds.add(id);
+          for (const id of remove) finalIds.delete(id);
+          const labels = availableLabels.filter((l) => finalIds.has(l.id));
+          return { labels };
+        }
+        case "category":
+          return { category: value as string };
+        case "release":
+          return { releaseId: value as string };
+        default:
+          return {};
+      }
+    };
+
+    // Optimistic update for all selected tasks
+    const updatedTasks = tasks.map((t) => {
+      if (!selectedTasks.has(t.id)) return t;
+      return { ...t, ...getUpdatesForTask(t.id) };
+    });
+    setTasks(updatedTasks);
+
+    // Fire API calls in parallel
+    const results = await Promise.allSettled(
+      selectedIds.map((taskId) =>
+        handleTaskUpdate(taskId, getUpdatesForTask(taskId)),
+      ),
+    );
+
+    const failures = results.filter((r) => r.status === "rejected");
+    if (failures.length > 0) {
+      console.error(`Failed to update ${failures.length} task(s)`, failures);
+    }
+
+    // Clear selection after bulk action
+    deselectAll();
+  };
+
   // Grouping Logic with nested sub-grouping support
   const groupedTasks = useMemo((): NestedTaskGroup[] => {
     return applyNestedGrouping(grouping, subGrouping, {
@@ -325,6 +459,8 @@ export function UnifiedTaskView({
       availableUsers={availableUsers}
       availableLabels={availableLabels}
       onTaskUpdate={handleTaskUpdate}
+      onTaskClick={taskOpenMode === "dialog" ? handleTaskClick : undefined}
+      onOpenInDialog={handleOpenInDialog}
       categories={categories}
       releases={releases}
       compact={compact}
@@ -738,10 +874,40 @@ export function UnifiedTaskView({
   if (!mounted) {
     return renderLoading();
   }
-
+  const smallViewport = window.innerWidth < 1000;
   return (
-    <div className="h-full overflow-auto rounded">
+    <div className={cn("h-full overflow-auto rounded", classNameProp)}>
       {renderMainContent()}
+      {!compact && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          selectedTasks={selectedTaskData}
+          visible={selectedCount > 0 && viewMode === "list"}
+          onDeselectAll={deselectAll}
+          onSelectAll={() => selectAll(filteredTaskIds)}
+          isAllSelected={isAllSelected}
+          isIndeterminate={isIndeterminate}
+          onBulkUpdate={handleBulkUpdate}
+          availableUsers={availableUsers}
+          availableLabels={availableLabels}
+          categories={categories}
+          releases={releases}
+          compact={smallViewport}
+        />
+      )}
+      <TaskDetailDialog
+        task={dialogTask}
+        open={dialogTask !== null}
+        onOpenChange={(open) => {
+          if (!open) setDialogTask(null);
+        }}
+        tasks={tasks}
+        setTasks={setTasks}
+        labels={availableLabels}
+        categories={categories}
+        releases={releases}
+        organization={organization}
+      />
     </div>
   );
 }

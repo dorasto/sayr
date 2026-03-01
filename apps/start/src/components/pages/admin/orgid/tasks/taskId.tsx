@@ -33,7 +33,7 @@ import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 
 export default function OrganizationTaskIdPage() {
   const useMobile = useIsMobile();
-  const { task } = useLayoutTask();
+  const { task, setTask } = useLayoutTask();
   const {
     organization,
     labels,
@@ -42,7 +42,7 @@ export default function OrganizationTaskIdPage() {
     isProjectPanelOpen,
     setProjectPanelOpen,
   } = useLayoutOrganization();
-  const { tasks } = useLayoutTasks();
+  const { tasks, setTasks } = useLayoutTasks();
   const { setValue: setMentionContext } =
     useStateManagement<MentionContext | null>("mentionContext", null);
 
@@ -121,8 +121,8 @@ export default function OrganizationTaskIdPage() {
                   task={task}
                   labels={labels}
                   tasks={tasks}
-                  setTasks={() => {}}
-                  setSelectedTask={() => {}}
+                  setTasks={setTasks}
+                  setSelectedTask={(t) => t && setTask(t)}
                   availableUsers={
                     organization.members.map((member) => member.user) || []
                   }

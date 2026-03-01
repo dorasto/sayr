@@ -171,6 +171,27 @@ export async function markNotificationRead(notificationId: string, userId: strin
 }
 
 /**
+ * Marks all unread, non-archived notifications for a given user + task as read.
+ * Returns the number of notifications that were marked read.
+ */
+export async function markNotificationsReadByTask(userId: string, taskId: string): Promise<number> {
+	const result = await db
+		.update(notification)
+		.set({ read: true })
+		.where(
+			and(
+				eq(notification.userId, userId),
+				eq(notification.taskId, taskId),
+				eq(notification.read, false),
+				eq(notification.archived, false),
+			),
+		)
+		.returning({ id: notification.id });
+
+	return result.length;
+}
+
+/**
  * Marks all notifications as read for a user, optionally scoped to an org.
  */
 export async function markAllNotificationsRead(userId: string, organizationId?: string) {

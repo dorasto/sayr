@@ -150,15 +150,6 @@ export default function GlobalTimeline({
 				const nextEnd = endPage - 1;
 				const hasMore = nextStart <= nextEnd;
 
-				console.log("🟩 Outside‑in batch", {
-					fromStart,
-					fromEnd: endPage,
-					nextStart,
-					nextEnd,
-					hasMore,
-					merged: unique.length,
-				});
-
 				return {
 					data: unique,
 					pagination: {
@@ -360,8 +351,8 @@ export default function GlobalTimeline({
 				</div>
 			) : (
 				<>
-					<div className="grow">
-						<Timeline>
+				<div className="grow">
+					<Timeline>
 							{/* top half */}
 							{topItems.map(renderItem)}
 							{/* load more middle button */}

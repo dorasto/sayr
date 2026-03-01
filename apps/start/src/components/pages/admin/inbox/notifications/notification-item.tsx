@@ -8,9 +8,11 @@ import { cn } from "@repo/ui/lib/utils";
 import {
   IconArchive,
   IconBell,
+  IconBellFilled,
   IconBellRinging,
   IconCheck,
   IconCircle,
+  IconCircleFilled,
   IconExternalLink,
   IconTrash,
   IconUsers,
@@ -25,6 +27,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@repo/ui/context-menu";
+import { formatDateCompact, formatDateTimeFromNow } from "@repo/util";
 
 export interface NotificationItemProps {
   notification: schema.NotificationWithDetails;
@@ -69,7 +72,7 @@ export function NotificationItem({
             isSelected && "bg-secondary hover:bg-secondary text-foreground",
             !isSelected &&
               !notification.read &&
-              "bg-primary/5 hover:bg-primary/10",
+              "bg-primary/5 hover:bg-primary/10 text-foreground",
           )}
         >
           {/* Unread dot */}
@@ -81,7 +84,7 @@ export function NotificationItem({
           <div className="flex items-center flex-1 gap-1">
             {notification.organization && (
               <InlineLabel
-                className="shrink ps-6 truncate"
+                className="shrink ps-6 truncate text-inherit"
                 icon={
                   <Avatar className="h-4 w-4">
                     <AvatarImage
@@ -116,15 +119,25 @@ export function NotificationItem({
                   {priority.icon(cn(priority.className, "size-4"))}
                 </div>
               )}
+              {!notification.read && (
+                <IconBellFilled className="size-4 text-primary" />
+              )}
             </div>
           </div>
 
           {/* Row 2: Action text + task title */}
-          <p className="text-xs font-medium line-clamp-1">
-            <span className="text-muted-foreground font-normal">
-              {actorName} {config.label}
-            </span>
-          </p>
+          <div className="flex items-center gap-1 justify-between">
+            <p className="text-xs font-medium line-clamp-1">
+              <span className="text-inherit font-normal">
+                {actorName} {config.label}
+              </span>
+            </p>
+            <p className="text-xs font-medium line-clamp-1">
+              <span className="text-inherit font-normal ml-auto">
+                {formatDateTimeFromNow(notification.createdAt as Date)}
+              </span>
+            </p>
+          </div>
 
           {/* Action buttons (visible on hover) */}
           {/*<div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-accent rounded-md p-0.5">

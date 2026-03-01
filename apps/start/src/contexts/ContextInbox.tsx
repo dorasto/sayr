@@ -1,8 +1,10 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { getNotifications, getUnreadNotificationCount } from "@/lib/fetches/notification";
 import { notificationActions } from "@/lib/stores/notification-store";
+
+const NOTIFICATION_PAGE_SIZE = 20;
 
 interface InboxContextType {
 	tasks: schema.TaskWithLabels[];
@@ -18,6 +20,9 @@ interface InboxContextType {
 	unreadCount: number;
 	setUnreadCount: (count: number) => void;
 	refreshNotifications: () => Promise<void>;
+	hasMoreNotifications: boolean;
+	isLoadingMoreNotifications: boolean;
+	loadMoreNotifications: () => Promise<void>;
 }
 
 const InboxContext = createContext<InboxContextType | undefined>(undefined);
@@ -43,6 +48,9 @@ export function RootProviderInbox({
 	// Notification state
 	const [notifications, setNotifications] = useState<schema.NotificationWithDetails[]>([]);
 	const [unreadCount, _setUnreadCount] = useState(0);
+	const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
+	const [isLoadingMoreNotifications, setIsLoadingMoreNotifications] = useState(false);
+	const isLoadingMoreRef = useRef(false);
 
 	// Wrap setUnreadCount to sync with the global notification store
 	const setUnreadCount = useCallback((count: number) => {
@@ -53,11 +61,12 @@ export function RootProviderInbox({
 	const refreshNotifications = useCallback(async () => {
 		try {
 			const [notifResult, countResult] = await Promise.all([
-				getNotifications({ limit: 50 }),
+				getNotifications({ limit: NOTIFICATION_PAGE_SIZE }),
 				getUnreadNotificationCount(),
 			]);
 			if (notifResult.success) {
 				setNotifications(notifResult.data);
+				setHasMoreNotifications(notifResult.data.length === NOTIFICATION_PAGE_SIZE);
 			}
 			if (countResult.success) {
 				_setUnreadCount(countResult.data.count);
@@ -67,6 +76,28 @@ export function RootProviderInbox({
 			// Notification fetch failures are non-critical
 		}
 	}, []);
+
+	const loadMoreNotifications = useCallback(async () => {
+		if (isLoadingMoreRef.current || !hasMoreNotifications) return;
+		isLoadingMoreRef.current = true;
+		setIsLoadingMoreNotifications(true);
+
+		try {
+			const result = await getNotifications({
+				limit: NOTIFICATION_PAGE_SIZE,
+				offset: notifications.length,
+			});
+			if (result.success) {
+				setNotifications((prev) => [...prev, ...result.data]);
+				setHasMoreNotifications(result.data.length === NOTIFICATION_PAGE_SIZE);
+			}
+		} catch {
+			// Load-more failures are non-critical
+		} finally {
+			isLoadingMoreRef.current = false;
+			setIsLoadingMoreNotifications(false);
+		}
+	}, [hasMoreNotifications, notifications.length]);
 
 	// Sync props -> state
 	useEffect(() => setTasks(tasks), [tasks, setTasks]);
@@ -95,6 +126,9 @@ export function RootProviderInbox({
 				unreadCount,
 				setUnreadCount,
 				refreshNotifications,
+				hasMoreNotifications,
+				isLoadingMoreNotifications,
+				loadMoreNotifications,
 			}}
 		>
 			{children}

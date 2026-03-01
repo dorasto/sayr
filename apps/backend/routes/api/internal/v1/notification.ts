@@ -6,6 +6,7 @@ import {
 	markAllNotificationsRead,
 	markNotificationRead,
 	markNotificationUnread,
+	markNotificationsReadByTask,
 } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { Hono } from "hono";
@@ -139,6 +140,38 @@ apiRouteAdminNotification.patch("/read-all", async (c) => {
 	});
 
 	return c.json({ success: true });
+});
+
+// Mark all notifications for a specific task as read
+apiRouteAdminNotification.patch("/read-by-task/:taskId", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const taskId = c.req.param("taskId");
+
+	const markedCount = await traceAsync(
+		"notifications.mark_read_by_task",
+		() => markNotificationsReadByTask(session.userId, taskId),
+		{
+			description: "Marking notifications read by task",
+			data: { userId: session.userId, taskId },
+		},
+	);
+
+	if (markedCount > 0) {
+		// Broadcast to user's other tabs/sessions
+		broadcastByUserId(session.userId, "", "", {
+			type: "NOTIFICATION_READ" as WSBaseMessage["type"],
+			data: { taskId, count: markedCount },
+			meta: { ts: Date.now() },
+		});
+	}
+
+	return c.json({ success: true, data: { markedCount } });
 });
 
 // Archive a notification

@@ -630,7 +630,7 @@ export default function CreateIssueDialog({
                       availableUsers={availableUsers}
                       categories={categories}
                       releases={releases}
-                      fields={{ visibility: false }}
+                      fields={["status", "priority", "labels", "assignees", "category", "release"]}
                       onChange={{
                         status: (value) => setStatus(value),
                         priority: (value) => setPriority(value),
