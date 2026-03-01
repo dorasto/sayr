@@ -29,7 +29,7 @@ export default function SettingsOrganizationBillingPage() {
     <div className="flex flex-col gap-9">
       <BillingCurrentPlan memberCount={memberCount} />
       <BillingUsage usage={usage} />
-      {CURRENT_PLAN.id === "free" && <BillingUpgradePrompt />}
+      {organization.plan === "free" && <BillingUpgradePrompt />}
       <Separator />
       <BillingPlanComparison />
     </div>

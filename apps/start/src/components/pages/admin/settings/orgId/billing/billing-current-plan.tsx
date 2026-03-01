@@ -9,12 +9,14 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { IconSparkles } from "@tabler/icons-react";
 import { CURRENT_PLAN } from "./billing-data";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 
 interface BillingCurrentPlanProps {
   memberCount: number;
 }
 
 export function BillingCurrentPlan({ memberCount }: BillingCurrentPlanProps) {
+  const { organization } = useLayoutOrganizationSettings();
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -36,15 +38,15 @@ export function BillingCurrentPlan({ memberCount }: BillingCurrentPlanProps) {
             <IconSparkles className="size-6!" />
           </TileIcon>
           <TileTitle className="flex items-center gap-2">
-            {CURRENT_PLAN.name}
+            {organization.plan === "free" ? "Free" : organization.plan === "pro" ? "Pro" : "Enterprise"}
             <Badge variant="outline" className="text-xs">
               Current
             </Badge>
           </TileTitle>
           <TileDescription>
-            {CURRENT_PLAN.price === 0
+            {organization.plan === "free"
               ? "Free for all users"
-              : `$${CURRENT_PLAN.price}/seat/mo`}
+              : `$3/seat/mo`}
           </TileDescription>
         </TileHeader>
         <TileAction>

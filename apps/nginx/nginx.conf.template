@@ -59,6 +59,11 @@ http {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;
         }
+        
+        location ^~ /api/polar {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
     
         location ^~ /api/image-preview {
             proxy_pass http://start_upstream;
@@ -129,6 +134,11 @@ http {
         # Auth
         # Auth API -> start
         location ^~ /api/auth {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        location ^~ /api/polar {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;
         }

@@ -21,44 +21,45 @@ const config = defineConfig({
   // Use Vite's built-in proxy in development (avoids nitro caching/hydration issues)
   // See: https://github.com/TanStack/router/issues/6556
   server: {
+    allowedHosts: true,
     proxy: isDev
       ? {
-          // /backend-api/internal/v1/... → http://localhost:5468/api/internal/v1/...
-          "/backend-api": {
-            target: "http://localhost:5468",
-            changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/backend-api/, "/api"),
-            configure: (proxy) => {
-              proxy.on("error", (err) => {
-                console.log("[Proxy Error]", err);
-              });
-              proxy.on("proxyReq", (_proxyReq, req) => {
-                console.log("[Proxy]", req.method, req.url, "→", `http://localhost:5468${req.url?.replace(/^\/backend-api/, "/api")}`);
-              });
-            },
+        // /backend-api/internal/v1/... → http://localhost:5468/api/internal/v1/...
+        "/backend-api": {
+          target: "http://localhost:5468",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/backend-api/, "/api"),
+          configure: (proxy) => {
+            proxy.on("error", (err) => {
+              console.log("[Proxy Error]", err);
+            });
+            proxy.on("proxyReq", (_proxyReq, req) => {
+              console.log("[Proxy]", req.method, req.url, "→", `http://localhost:5468${req.url?.replace(/^\/backend-api/, "/api")}`);
+            });
           },
-        }
+        },
+      }
       : undefined,
   },
   plugins: [
     devtools(),
     !isDev &&
-      nitro({
-        // @ts-expect-error - externals exists at runtime, types may be outdated
-        externals: {
-          inline: ["@tabler/icons-react", "lucide-react"],
-        },
-        routeRules: {
-          "/api/auth/**": {}, // local auth
-          "/api/image-preview/**": {},
-          // ✅ proxy ONLY backend-api
-          "/backend-api/**": {
-            proxy: {
-              to: "http://localhost:5468/api/**",
-            },
+    nitro({
+      // @ts-expect-error - externals exists at runtime, types may be outdated
+      externals: {
+        inline: ["@tabler/icons-react", "lucide-react"],
+      },
+      routeRules: {
+        "/api/auth/**": {}, // local auth
+        "/api/image-preview/**": {},
+        // ✅ proxy ONLY backend-api
+        "/backend-api/**": {
+          proxy: {
+            to: "http://localhost:5468/api/**",
           },
         },
-      }),
+      },
+    }),
 
     // this is the plugin that enables path aliases
     viteTsConfigPaths({

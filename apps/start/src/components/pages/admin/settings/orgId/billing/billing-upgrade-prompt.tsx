@@ -1,3 +1,5 @@
+import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { Button } from "@repo/ui/components/button";
 import {
   Tile,
@@ -10,6 +12,8 @@ import {
 import { IconRocket } from "@tabler/icons-react";
 
 export function BillingUpgradePrompt() {
+  const { account } = useLayoutData();
+  const { organization } = useLayoutOrganizationSettings();
   return (
     <Tile
       variant="outline"
@@ -25,9 +29,11 @@ export function BillingUpgradePrompt() {
         </TileDescription>
       </TileHeader>
       <TileAction>
-        <Button size="sm" className="shrink-0">
-          Upgrade
-        </Button>
+        <a href={`/api/polar/checkout?orgId=${organization.id}&email=${encodeURIComponent(account.email ?? "")}&name=${encodeURIComponent(account.name ?? "")}&userId=${account.id}`} rel="noopener noreferrer">
+          <Button size="sm" className="shrink-0">
+            Upgrade
+          </Button>
+        </a>
       </TileAction>
     </Tile>
   );

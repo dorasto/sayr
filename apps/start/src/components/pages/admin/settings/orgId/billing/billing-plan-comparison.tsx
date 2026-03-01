@@ -3,14 +3,17 @@ import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import { CURRENT_PLAN, PLANS } from "./billing-data";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 
 export function BillingPlanComparison() {
+	const { organization } = useLayoutOrganizationSettings();
+
 	return (
 		<div className="flex flex-col gap-3">
 			<span className="text-sm font-medium text-foreground">Compare plans</span>
 			<div className="grid grid-cols-2 gap-3">
 				{PLANS.map((plan) => {
-					const isCurrent = plan.id === CURRENT_PLAN.id;
+					const isCurrent = plan.id === organization.plan;
 					return (
 						<div
 							key={plan.id}

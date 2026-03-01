@@ -39,6 +39,11 @@ export const organization = table("organization", {
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	privateId: v.text("private_id").$defaultFn(() => generatePrivateId()),
+	plan: v.text("plan").default("free"),
+	seatCount: v.integer("seat_count").default(0),
+	polarCustomerId: v.text("polar_customer_id"),
+	polarSubscriptionId: v.text("polar_subscription_id"),
+	currentPeriodEnd: v.timestamp("current_period_end"),
 });
 
 export type organizationType = typeof organization.$inferSelect;

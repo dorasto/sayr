@@ -206,9 +206,9 @@ export default function SettingsOrganizationPageMembers({
             members: organization.members.map((m) =>
               m.id === memberId
                 ? {
-                    ...m,
-                    teams: (m.teams || []).filter((t) => t.teamId !== teamId),
-                  }
+                  ...m,
+                  teams: (m.teams || []).filter((t) => t.teamId !== teamId),
+                }
                 : m,
             ),
           });
@@ -245,21 +245,21 @@ export default function SettingsOrganizationPageMembers({
               members: organization.members.map((m) =>
                 m.id === memberId
                   ? {
-                      ...m,
-                      teams: [
-                        ...(m.teams || []),
-                        {
-                          id: result.data?.id || `${memberId}-${teamId}`,
-                          memberId,
-                          teamId,
-                          team: {
-                            id: teamData.id,
-                            name: teamData.name,
-                            permissions: teamData.permissions,
-                          },
+                    ...m,
+                    teams: [
+                      ...(m.teams || []),
+                      {
+                        id: result.data?.id || `${memberId}-${teamId}`,
+                        memberId,
+                        teamId,
+                        team: {
+                          id: teamData.id,
+                          name: teamData.name,
+                          permissions: teamData.permissions,
                         },
-                      ],
-                    }
+                      },
+                    ],
+                  }
                   : m,
               ),
             });
@@ -442,25 +442,43 @@ export default function SettingsOrganizationPageMembers({
       })}
       <Separator />
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
-        <AdaptiveDialogTrigger asChild>
+        {organization.members.length === organization.seatCount ? (
           <Tile
-            className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-            variant={"transparent"}
+            variant="outline"
+            className="md:w-full border-destructive/30 bg-destructive/5"
           >
-            <TileHeader className="md:w-full">
-              <TileIcon className="bg-transparent">
-                <Avatar className="h-10 w-10 rounded-md">
-                  {/* <AvatarImage src={member.user.image || ""} alt={member.user.name} className="rounded-none" /> */}
-                  <AvatarFallback className="rounded-md uppercase text-xs">
-                    <IconUserPlus className="size-6!" />
-                  </AvatarFallback>
-                </Avatar>
+            <TileHeader>
+              <TileIcon className="bg-destructive/15 border-none">
+                <IconBadge className="size-6! text-destructive" />
               </TileIcon>
-              <TileTitle>Invite</TileTitle>
-              <TileDescription>Invite a new member</TileDescription>
+              <TileTitle>Seat limit reached</TileTitle>
+              <TileDescription>
+                You have reached the maximum number of members for your current
+                plan. Please upgrade your plan to invite more members.
+              </TileDescription>
             </TileHeader>
           </Tile>
-        </AdaptiveDialogTrigger>
+        ) : (
+          <AdaptiveDialogTrigger asChild>
+            <Tile
+              className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
+              variant={"transparent"}
+            >
+              <TileHeader className="md:w-full">
+                <TileIcon className="bg-transparent">
+                  <Avatar className="h-10 w-10 rounded-md">
+                    {/* <AvatarImage src={member.user.image || ""} alt={member.user.name} className="rounded-none" /> */}
+                    <AvatarFallback className="rounded-md uppercase text-xs">
+                      <IconUserPlus className="size-6!" />
+                    </AvatarFallback>
+                  </Avatar>
+                </TileIcon>
+                <TileTitle>Invite</TileTitle>
+                <TileDescription>Invite a new member</TileDescription>
+              </TileHeader>
+            </Tile>
+          </AdaptiveDialogTrigger>
+        )}
         <AdaptiveDialogContent>
           <AdaptiveDialogHeader className="bg-card">
             <AdaptiveDialogTitle asChild>

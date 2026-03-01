@@ -8,6 +8,7 @@ import { apiRouteAdminRelease } from "./release";
 import { apiRouteAdminUser } from "./user";
 import { apiRouteAdminNotification } from "./notification";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { polarClient } from "@repo/auth";
 
 export const apiRouteAdmin = new Hono<AppEnv>();
 
@@ -144,6 +145,19 @@ apiRouteAdmin.post("/invite", async (c) => {
 				}),
 			}
 		);
+		const org = await db.query.organization.findFirst({
+			where: eq(schema.organization.id, invite.organizationId),
+		});
+		await polarClient.customerSeats.assignSeat({
+			subscriptionId: org?.polarSubscriptionId || "",
+			externalCustomerId: session.userId,
+			immediateClaim: true,
+			metadata: {
+				userId: session.userId,
+				organizationId: invite.organizationId,
+				action: "invite_accept_seat_assignment",
+			}
+		});
 
 		// ✅ Trace acceptance event
 		await traceAsync(

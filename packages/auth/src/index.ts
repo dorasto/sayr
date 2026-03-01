@@ -3,6 +3,15 @@ import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, apiKey, genericOAuth } from "better-auth/plugins";
+import {
+	polar,
+	checkout,
+	portal,
+	usage,
+	webhooks,
+} from "@polar-sh/better-auth";
+import { Polar } from "@polar-sh/sdk";
+import { eq } from "drizzle-orm";
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
 const isProd = process.env.APP_ENV === "production";
 // Auth callback URL for OAuth providers (must be consistent subdomain)
@@ -10,6 +19,9 @@ const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_U
 // Cookie domains need at least 2 parts (e.g., ".app.localhost" works, ".localhost" doesn't)
 // For local dev with subdomains, use "app.localhost" pattern or sslip.io/nip.io
 const isBarelocalhost = rootUrl === "localhost";
+export const polarClient = new Polar({
+	accessToken: process.env.POLAR_ACCESS_TOKEN,
+});
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -44,6 +56,14 @@ export const auth = betterAuth({
 			displayName: {
 				type: "string",
 				input: true,
+			},
+		},
+		deleteUser: {
+			enabled: true,
+			afterDelete: async (user, request) => {
+				await polarClient.customers.deleteExternal({
+					externalId: user.id,
+				});
 			},
 		},
 	},
@@ -120,6 +140,95 @@ export const auth = betterAuth({
 				},
 			],
 		}),
+		polar({
+			client: polarClient,
+			createCustomerOnSignUp: true,
+			use: [
+				checkout({
+					products: [
+						{
+							productId: process.env.POLAR_PRODUCT_ID || "",
+							slug: "sayr-pro" // Custom slug for easy reference in Checkout URL, e.g. /checkout/Copy-of-Sayr-Pro-for-testing
+						}
+					],
+					successUrl: isProd ? "https://admin.sayr.io/success?checkout_id={CHECKOUT_ID}" : "http://admin.app.localhost:3000/success?checkout_id={CHECKOUT_ID}",
+					authenticatedUsersOnly: true,
+					returnUrl: isProd ? "https://admin.sayr.io/" : "http://admin.app.localhost:3000/",
+				})
+				,
+				webhooks({
+					secret: process.env.POLAR_WEBHOOK_SECRET as string,
+
+					async onSubscriptionCreated({ data }) {
+						const orgId = data.customer.externalId;
+						if (!orgId) return;
+
+						const isActive =
+							data.status === "active" ||
+							data.status === "trialing";
+
+						await db.update(schema.schema.organization)
+							.set({
+								plan: isActive ? "pro" : "free",
+								seatCount: data.seats ?? 1,
+								polarCustomerId: data.customerId,
+								polarSubscriptionId: data.id,
+								currentPeriodEnd: data.currentPeriodEnd,
+							})
+							.where(eq(schema.schema.organization.id, orgId));
+
+
+						if (data.metadata?.firstUserId) {
+							await polarClient.customerSeats.assignSeat({
+								subscriptionId: data.id,
+								externalCustomerId: data.metadata.firstUserId as any,
+								immediateClaim: true,
+								metadata: {
+									userId: data.metadata.firstUserId as any,
+									organizationId: orgId,
+									action: "initial_seat_assignment",
+								}
+							});
+						}
+
+						console.log("✅ Subscription created:", orgId);
+					},
+
+					async onSubscriptionUpdated({ data }) {
+						const orgId = data.customer.externalId;
+						if (!orgId) return;
+
+						const isActive =
+							data.status === "active" ||
+							data.status === "trialing";
+
+						await db.update(schema.schema.organization)
+							.set({
+								plan: isActive ? "pro" : "free",
+								seatCount: data.seats ?? 1,
+								currentPeriodEnd: data.currentPeriodEnd,
+							})
+							.where(eq(schema.schema.organization.id, orgId));
+
+						console.log("🔄 Subscription updated:", orgId);
+					},
+
+					async onSubscriptionCanceled({ data }) {
+						const orgId = data.customer.externalId;
+						if (!orgId) return;
+
+						await db.update(schema.schema.organization)
+							.set({
+								plan: "free",
+								seatCount: 5,
+							})
+							.where(eq(schema.schema.organization.id, orgId));
+
+						console.log("❌ Subscription canceled:", orgId);
+					},
+				})
+			],
+		})
 	],
 });
 

@@ -28,6 +28,8 @@ import { apiRouteAdminProjectTask } from "./task";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { Octokit } from "@octokit/rest";
+import { polarClient } from "@repo/auth";
+import { UseSend } from "usesend-js";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 // Create a new organization
@@ -1906,9 +1908,11 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		"member.invite.process",
 		async () => {
 			// biome-ignore lint/suspicious/noExplicitAny: <any>
-			const invites: any[] = [];
+			const invites = [];
 			const failedEmails: string[] = [];
-
+			const org = await db.query.organization.findFirst({
+				where: eq(schema.organization.id, orgId),
+			});
 			for (const email of emails) {
 				try {
 					const user = await db.query.user.findFirst({
@@ -1946,7 +1950,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 						})
 						.returning();
 
-					invites.push(newInvite);
+					invites.push({ ...newInvite, user, organization: org });
 				} catch (err) {
 					console.error("Failed to invite email:", email, err);
 					failedEmails.push(email);
@@ -1967,6 +1971,39 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 			}),
 		}
 	);
+	await traceAsync("email.sendInvites", async () => {
+		const usesend = new UseSend(process.env.SAYR_EMAIL);
+
+		const chunkSize = 100;
+
+		for (let i = 0; i < invites.length; i += chunkSize) {
+			const chunk = invites.slice(i, i + chunkSize);
+
+			const batchPayload: any = chunk.map((invite) => {
+				const normalizedEmail = invite?.email?.toLowerCase().trim();
+				if (!normalizedEmail) {
+					return null;
+				}
+
+				return {
+					to: normalizedEmail,
+					from: `Sayr.io <${process.env.SAYR_FROM_EMAIL}>`,
+					text: "You've been invited to join a Sayr organization",
+					templateId: process.env.SAYR_INVITE_TEMPLATE_ID || "",
+					variables: {
+						orgName: invite?.organization?.name,
+						displayname: invite?.user?.displayName || "",
+						inviteUrl: `${process.env.VITE_URL_ROOT}/invite/${invite.organizationId}?code=${invite.inviteCode}`,
+					}
+
+				};
+			});
+
+			if (batchPayload.length > 0) {
+				await usesend.emails.batch(batchPayload);
+			}
+		}
+	});
 
 	return c.json({
 		success: true,
@@ -2009,6 +2046,18 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 			contextData: { orgId, userId },
 		});
 		return c.json({ success: false, error: "Failed to remove member." }, 500);
+	}
+	const org = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+	});
+	const seats = await polarClient.customerSeats.listSeats({
+		subscriptionId: org?.polarSubscriptionId || ""
+	});
+	const seatFound = seats.seats.find(seat => seat.seatMetadata?.userId === userId);
+	if (seatFound) {
+		await polarClient.customerSeats.revokeSeat({
+			seatId: seatFound.id,
+		});
 	}
 
 	await traceAsync(
