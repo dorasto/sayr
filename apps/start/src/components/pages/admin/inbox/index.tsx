@@ -236,6 +236,21 @@ export default function InboxPage() {
         // Mark all as read
         setNotifications(notifications.map((n) => ({ ...n, read: true })));
         setUnreadCount(0);
+      } else if (msg.data.taskId) {
+        // Mark all notifications for a specific task as read
+        let markedCount = 0;
+        setNotifications(
+          notifications.map((n) => {
+            if (n.task.id === msg.data.taskId && !n.read) {
+              markedCount++;
+              return { ...n, read: true };
+            }
+            return n;
+          }),
+        );
+        if (markedCount > 0) {
+          setUnreadCount(Math.max(0, unreadCount - markedCount));
+        }
       } else if (msg.data.id) {
         // Mark single as read
         setNotifications(

@@ -27,6 +27,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@repo/ui/context-menu";
+import { formatDateCompact, formatDateTimeFromNow } from "@repo/util";
 
 export interface NotificationItemProps {
   notification: schema.NotificationWithDetails;
@@ -125,11 +126,18 @@ export function NotificationItem({
           </div>
 
           {/* Row 2: Action text + task title */}
-          <p className="text-xs font-medium line-clamp-1">
-            <span className="text-muted-foreground font-normal">
-              {actorName} {config.label}
-            </span>
-          </p>
+          <div className="flex items-center gap-1 justify-between">
+            <p className="text-xs font-medium line-clamp-1">
+              <span className="text-inherit font-normal">
+                {actorName} {config.label}
+              </span>
+            </p>
+            <p className="text-xs font-medium line-clamp-1">
+              <span className="text-inherit font-normal ml-auto">
+                {formatDateTimeFromNow(notification.createdAt as Date)}
+              </span>
+            </p>
+          </div>
 
           {/* Action buttons (visible on hover) */}
           {/*<div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-accent rounded-md p-0.5">
