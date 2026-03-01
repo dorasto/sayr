@@ -8,7 +8,6 @@ import { cn } from "@repo/ui/lib/utils";
 import {
   IconBrandGithub,
   IconCategory,
-  IconExternalLink,
   IconGitMerge,
   IconLabel,
   IconLock,
@@ -18,7 +17,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   Avatar,
   AvatarFallback,
@@ -44,7 +43,7 @@ import { ensureCdnUrl } from "@repo/util";
 // Types
 // ────────────────────────────────────────────────────────────────────────────
 
-type FieldKey =
+export type FieldKey =
   | "identifier"
   | "status"
   | "priority"
@@ -57,12 +56,28 @@ type FieldKey =
   | "githubIssue"
   | "githubPr";
 
+/** Default field order when no `fields` prop is provided. */
+const DEFAULT_FIELDS: FieldKey[] = [
+  "status",
+  "priority",
+  "labels",
+  "assignees",
+  "category",
+  "visibility",
+  "release",
+];
+
 export interface TaskFieldToolbarProps {
   task: schema.TaskWithLabels;
   editable?: boolean;
 
-  /** Toggle which fields to show. All default to `true`. */
-  fields?: Partial<Record<FieldKey, boolean>>;
+  /**
+   * Ordered array of fields to render.
+   * - Presence in the array = visible; absence = hidden.
+   * - Array order = render order.
+   * - When omitted, defaults to `DEFAULT_FIELDS`.
+   */
+  fields?: FieldKey[];
 
   // Data for pickers
   availableLabels?: schema.labelType[];
@@ -159,20 +174,8 @@ export default function TaskFieldToolbar({
   const { runWithToast } = useToastAction();
   const style = VARIANT_STYLES[variant];
 
-  // Default all fields to true
-  const fields: Record<FieldKey, boolean> = {
-    identifier: fieldsProp?.identifier ?? false,
-    status: fieldsProp?.status ?? true,
-    priority: fieldsProp?.priority ?? true,
-    labels: fieldsProp?.labels ?? true,
-    assignees: fieldsProp?.assignees ?? true,
-    category: fieldsProp?.category ?? true,
-    visibility: fieldsProp?.visibility ?? true,
-    release: fieldsProp?.release ?? true,
-    vote: fieldsProp?.vote ?? false,
-    githubIssue: fieldsProp?.githubIssue ?? false,
-    githubPr: fieldsProp?.githubPr ?? false,
-  };
+  // Resolve the ordered field list
+  const fields = fieldsProp ?? DEFAULT_FIELDS;
 
   // ── Derived state for creator variant triggers ──────────────────────
   const resolvedStatus = (task.status ?? "backlog") || "backlog";
@@ -539,112 +542,112 @@ export default function TaskFieldToolbar({
       : {}),
   };
 
-  // ── Render ──────────────────────────────────────────────────────────
+  // ── Field renderers map ─────────────────────────────────────────────
 
-  return (
-    <div className={style.container}>
-      {fields.status && (
-        <GlobalTaskStatus
+  const FIELD_RENDERERS: Record<FieldKey, () => React.ReactNode> = {
+    status: () => (
+      <GlobalTaskStatus
+        {...sharedProps}
+        onChange={onChange?.status}
+        {...(style.useCustomTrigger
+          ? { customTrigger: creatorStatusTrigger }
+          : {})}
+      />
+    ),
+
+    priority: () => (
+      <GlobalTaskPriority
+        {...sharedProps}
+        {...(useInternalLogic && handlePriorityChange
+          ? { onPriorityChange: handlePriorityChange }
+          : { onChange: onChange?.priority })}
+        {...(style.useCustomTrigger
+          ? { customTrigger: creatorPriorityTrigger }
+          : {})}
+      />
+    ),
+
+    labels: () => (
+      <GlobalTaskLabels
+        {...sharedProps}
+        availableLabels={availableLabels}
+        canCreateLabel={canCreateLabel}
+        onLabelCreated={onLabelCreated}
+        {...(useInternalLogic && handleLabelsChange
+          ? { onLabelsChange: handleLabelsChange }
+          : { onLabelsChange: onChange?.labels })}
+        {...(style.useCustomTrigger
+          ? { customTrigger: creatorLabelsTrigger, customChildren: true }
+          : {})}
+      />
+    ),
+
+    assignees: () => (
+      <GlobalTaskAssignees
+        {...sharedProps}
+        availableUsers={availableUsers}
+        onChange={onChange?.assignees}
+        {...(style.useCustomTrigger
+          ? { customTrigger: creatorAssigneesTrigger }
+          : {})}
+      />
+    ),
+
+    category: () => (
+      <GlobalTaskCategory
+        {...sharedProps}
+        categories={categories}
+        onChange={onChange?.category}
+        {...(style.useCustomTrigger
+          ? { customTrigger: creatorCategoryTrigger }
+          : {})}
+      />
+    ),
+
+    visibility: () =>
+      style.useCustomTrigger ? (
+        // Creator variant: simple toggle button (not a ComboBox)
+        creatorVisibilityTrigger
+      ) : (
+        <GlobalTaskVisibility
           {...sharedProps}
-          onChange={onChange?.status}
-          {...(style.useCustomTrigger
-            ? { customTrigger: creatorStatusTrigger }
-            : {})}
+          onChange={onChange?.visibility}
         />
-      )}
+      ),
 
-      {fields.priority && (
-        <GlobalTaskPriority
-          {...sharedProps}
-          {...(useInternalLogic && handlePriorityChange
-            ? { onPriorityChange: handlePriorityChange }
-            : { onChange: onChange?.priority })}
-          {...(style.useCustomTrigger
-            ? { customTrigger: creatorPriorityTrigger }
-            : {})}
-        />
-      )}
+    release: () => (
+      <GlobalTaskRelease
+        {...sharedProps}
+        releases={releases}
+        onChange={onChange?.release}
+        {...(style.useCustomTrigger
+          ? { customTrigger: creatorReleaseTrigger }
+          : {})}
+      />
+    ),
 
-      {fields.labels && (
-        <GlobalTaskLabels
-          {...sharedProps}
-          availableLabels={availableLabels}
-          canCreateLabel={canCreateLabel}
-          onLabelCreated={onLabelCreated}
-          {...(useInternalLogic && handleLabelsChange
-            ? { onLabelsChange: handleLabelsChange }
-            : { onLabelsChange: onChange?.labels })}
-          {...(style.useCustomTrigger
-            ? { customTrigger: creatorLabelsTrigger, customChildren: true }
-            : {})}
-        />
-      )}
+    vote: () => (
+      <TaskVoting
+        task={task}
+        editable={editable}
+        organizationId={task.organizationId}
+        wsClientId={wsClientId}
+        tasks={tasks}
+        setTasks={setTasks ?? (() => {})}
+        setSelectedTask={setSelectedTask ?? (() => {})}
+        className={cn(
+          style.useCustomTrigger ? "w-fit text-xs" : style.className,
+          "bg-accent!",
+        )}
+      />
+    ),
 
-      {fields.assignees && (
-        <GlobalTaskAssignees
-          {...sharedProps}
-          availableUsers={availableUsers}
-          onChange={onChange?.assignees}
-          {...(style.useCustomTrigger
-            ? { customTrigger: creatorAssigneesTrigger }
-            : {})}
-        />
-      )}
-
-      {fields.category && (
-        <GlobalTaskCategory
-          {...sharedProps}
-          categories={categories}
-          onChange={onChange?.category}
-          {...(style.useCustomTrigger
-            ? { customTrigger: creatorCategoryTrigger }
-            : {})}
-        />
-      )}
-
-      {fields.visibility &&
-        (style.useCustomTrigger ? (
-          // Creator variant: simple toggle button (not a ComboBox)
-          creatorVisibilityTrigger
-        ) : (
-          <GlobalTaskVisibility
-            {...sharedProps}
-            onChange={onChange?.visibility}
-          />
-        ))}
-
-      {fields.release && (
-        <GlobalTaskRelease
-          {...sharedProps}
-          releases={releases}
-          onChange={onChange?.release}
-          {...(style.useCustomTrigger
-            ? { customTrigger: creatorReleaseTrigger }
-            : {})}
-        />
-      )}
-
-      {fields.vote && (
-        <TaskVoting
-          task={task}
-          editable={editable}
-          organizationId={task.organizationId}
-          wsClientId={wsClientId}
-          tasks={tasks}
-          setTasks={setTasks ?? (() => {})}
-          setSelectedTask={setSelectedTask ?? (() => {})}
-          className={cn(
-            style.useCustomTrigger ? "w-fit text-xs" : style.className,
-            "bg-accent!",
-          )}
-        />
-      )}
-
-      {fields.identifier && organization && (
+    identifier: () =>
+      organization ? (
         <Link to={`/${task.organizationId}/tasks/${task.shortId}`} className="">
           <Button
-            variant="ghost"
-            className="border-transparent h-[26px] text-xs"
+            variant="primary"
+            className="h-[26px] p-1 w-fit bg-accent text-xs"
             size="sm"
           >
             <Avatar className="h-4 w-4 shrink-0">
@@ -659,8 +662,10 @@ export default function TaskFieldToolbar({
             {organization.slug}/#{task.shortId}
           </Button>
         </Link>
-      )}
-      {fields.githubIssue && task.githubIssue?.issueUrl && (
+      ) : null,
+
+    githubIssue: () =>
+      task.githubIssue?.issueUrl ? (
         <Link
           to={task.githubIssue.issueUrl}
           target="_blank"
@@ -675,9 +680,10 @@ export default function TaskFieldToolbar({
             <IconBrandGithub className="size-4" /> Issue
           </Button>
         </Link>
-      )}
+      ) : null,
 
-      {fields.githubPr && task.githubPullRequest?.prUrl && (
+    githubPr: () =>
+      task.githubPullRequest?.prUrl ? (
         <Link
           to={task.githubPullRequest.prUrl}
           target="_blank"
@@ -693,7 +699,20 @@ export default function TaskFieldToolbar({
             {task.githubPullRequest.prNumber}
           </Button>
         </Link>
-      )}
+      ) : null,
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────
+
+  return (
+    <div className={style.container}>
+      {fields.map((key) => {
+        const renderer = FIELD_RENDERERS[key];
+        if (!renderer) return null;
+        const node = renderer();
+        if (!node) return null;
+        return <React.Fragment key={key}>{node}</React.Fragment>;
+      })}
     </div>
   );
 }

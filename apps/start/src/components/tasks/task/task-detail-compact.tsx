@@ -93,13 +93,19 @@ export function TaskDetailCompact({
           availableLabels={orgLabels}
           availableUsers={availableUsers}
           organization={resolvedOrg}
-          fields={{
-            identifier: true,
-            visibility: true,
-            vote: true,
-            githubIssue: true,
-            githubPr: true,
-          }}
+          fields={[
+            "identifier",
+            "status",
+            "priority",
+            "labels",
+            "assignees",
+            "category",
+            "release",
+            "vote",
+            "githubIssue",
+            "githubPr",
+            "visibility",
+          ]}
         />
         <SimpleClipboard
           textToCopy={`https://${resolvedOrg?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
