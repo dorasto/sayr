@@ -1,8 +1,6 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
 import {
   Tile,
   TileAction,
@@ -12,24 +10,18 @@ import {
 import { Label } from "@repo/ui/components/label";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
-import { cn } from "@repo/ui/lib/utils";
-import {
-  IconBrandGithub,
-  IconExternalLink,
-  IconLink,
-} from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
+import { IconLink } from "@tabler/icons-react";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
 import { updateLabelToTaskAction } from "@/lib/fetches/task";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import type { useToastAction } from "@/lib/util";
 import GlobalTaskAssignees from "../shared/assignee";
+import GlobalTaskGithubIssue from "../shared/github-issue";
 import GlobalTaskLabels from "../shared/label";
 import TaskFieldToolbar from "../shared/task-field-toolbar";
 import GlobalTimeline from "./timeline/root";
 import { Separator } from "@repo/ui/components/separator";
-import { InlineLabel } from "../shared/inlinelabel";
 import { TaskEditableHeader } from "./editable-header";
 
 interface TaskContentSideContentProps {
@@ -41,8 +33,8 @@ interface TaskContentSideContentProps {
   availableUsers?: schema.userType[];
   wsClientId: string;
   runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-  ? T
-  : never;
+    ? T
+    : never;
   categories: schema.categoryType[];
   releases: schema.releaseType[];
   organization: schema.OrganizationWithMembers;
@@ -96,10 +88,6 @@ export function TaskContentSideContent({
     },
     1500, // debounce delay
   );
-  const urlParts = task.githubIssue?.issueUrl?.split("/")
-  const urlPartsPr = task.githubPullRequest?.prUrl?.split("/");
-  const [GitHubIssueOrg, GitHubIssueRepo] = [urlParts?.[3], urlParts?.[4]];
-  const [GitHubPrOrg, GitHubPrRepo] = [urlPartsPr?.[3], urlPartsPr?.[4]];
   return (
     <div className="flex flex-col gap-3 w-full">
       <div className="p-1 pt-3 flex flex-col gap-2 max-w-full md:max-w-1/2">
@@ -114,7 +102,16 @@ export function TaskContentSideContent({
           releases={releases}
           availableLabels={labels}
           availableUsers={availableUsers}
-          fields={["status", "priority", "category", "visibility", "release", "vote"]}
+          fields={[
+            "vote",
+            "status",
+            "priority",
+            "category",
+            "visibility",
+            "release",
+            "githubIssue",
+            "githubPr",
+          ]}
         />
       </div>
       <div className="p-1 flex flex-col gap-2 max-w-full">
@@ -171,11 +168,11 @@ export function TaskContentSideContent({
                 const updatedTasks = tasks.map((t) =>
                   t.id === task.id
                     ? {
-                      ...task,
-                      labels: labels.filter((label) =>
-                        values.includes(label.id),
-                      ),
-                    }
+                        ...task,
+                        labels: labels.filter((label) =>
+                          values.includes(label.id),
+                        ),
+                      }
                     : t,
                 );
                 setTasks(updatedTasks);
@@ -208,67 +205,6 @@ export function TaskContentSideContent({
           </TileAction>
         </Tile>
       </div>
-
-      <Separator />
-      <div className="p-1 flex flex-col gap-2 max-w-full md:max-w-1/2">
-        {task.githubIssue?.issueUrl && (
-          <Link to={task.githubIssue?.issueUrl} target="_blank">
-            <Badge
-              variant="secondary"
-              className={cn(
-                "flex items-center justify-center gap-1 ps-0 text-xs border rounded-lg border-transparent truncate group/link cursor-pointer w-fit relative bg-transparent p-1 h-auto",
-              )}
-            >
-              {/*{GitHubIssueOrg}/{GitHubIssueRepo}/
-                {task.githubIssue?.issueNumber}*/}
-              <InlineLabel
-                text={`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}
-                icon={<IconBrandGithub className="size-3" />}
-                className="cursor-pointer"
-                textNode={
-                  <div className="flex items-center gap-2">
-                    <span className="truncate">{`${GitHubIssueOrg}/${GitHubIssueRepo}/${task.githubIssue?.issueNumber}`}</span>
-                    <IconExternalLink className="size-3 opacity-0 group-hover/link:opacity-100 transition-all" />
-                  </div>
-                }
-              />
-            </Badge>
-          </Link>
-        )}
-        {task.githubPullRequest?.prUrl && (
-          <Link to={task.githubPullRequest.prUrl} target="_blank">
-            <Badge
-              variant="secondary"
-              className={cn(
-                "flex items-center gap-2 text-xs rounded-lg bg-transparent p-1 h-auto group/link"
-              )}
-            >
-              <IconBrandGithub className="size-3" />
-
-              <span className="truncate">
-                PR #{GitHubPrOrg}/{GitHubPrRepo}/{task.githubPullRequest.prNumber}
-              </span>
-
-              {/* Status Indicator */}
-              {task.githubPullRequest.merged ? (
-                <span className="text-emerald-600 text-[10px] font-medium">
-                  merged
-                </span>
-              ) : task.githubPullRequest.state === "closed" ? (
-                <span className="text-muted-foreground text-[10px] font-medium">
-                  closed
-                </span>
-              ) : (
-                <span className="text-blue-600 text-[10px] font-medium">
-                  open
-                </span>
-              )}
-
-              <IconExternalLink className="size-3 opacity-0 group-hover/link:opacity-100 transition-all" />
-            </Badge>
-          </Link>
-        )}
-      </div>
     </div>
   );
 }
@@ -283,10 +219,7 @@ export function TaskContentMobileContent({
   categories,
   organization,
   releases,
-}: Omit<
-  TaskContentSideContentProps,
-  "wsClientId" | "runWithToast"
->) {
+}: Omit<TaskContentSideContentProps, "wsClientId" | "runWithToast">) {
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center flex-wrap gap-1 w-full overflow-x-auto py-1">
@@ -321,22 +254,7 @@ export function TaskContentMobileContent({
           tooltipText="Copy task URL"
           tooltipSide="bottom"
         />
-        {task.githubIssue && (
-          <Link
-            to={task.githubIssue?.issueUrl}
-            target="_blank"
-            className="shrink-0"
-          >
-            <Button
-              variant="primary"
-              className="h-[26px] p-1 w-fit bg-accent text-xs"
-              tooltipText="View linked GitHub issue"
-              tooltipSide="bottom"
-            >
-              <IconBrandGithub className="size-4" /> GitHub
-            </Button>
-          </Link>
-        )}
+        <GlobalTaskGithubIssue task={task} className="bg-accent" />
       </div>
     </div>
   );
@@ -395,5 +313,3 @@ export function TaskContentMain({
     </div>
   );
 }
-
-

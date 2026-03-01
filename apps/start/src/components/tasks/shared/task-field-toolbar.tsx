@@ -751,6 +751,7 @@ export default function TaskFieldToolbar({
           task={task}
           compact={fieldCompact}
           iconOnly={isIconOnly}
+          variant={variant === "sidebar" ? "sidebar" : "button"}
           className={cfg.className}
         />
       );
@@ -764,6 +765,7 @@ export default function TaskFieldToolbar({
           task={task}
           compact={fieldCompact}
           iconOnly={isIconOnly}
+          variant={variant === "sidebar" ? "sidebar" : "button"}
           className={cfg.className}
         />
       );
