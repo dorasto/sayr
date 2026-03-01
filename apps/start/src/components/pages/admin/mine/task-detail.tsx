@@ -8,6 +8,7 @@ import {
 	IconLink,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { useEffect } from "react";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import TaskFieldToolbar from "@/components/tasks/shared/task-field-toolbar";
@@ -22,6 +23,8 @@ interface MyTaskDetailProps {
   labels: schema.labelType[];
   categories: schema.categoryType[];
   releases?: schema.releaseType[];
+  /** Extra elements rendered at the end of the toolbar (e.g. expand toggle) */
+  toolbarExtra?: ReactNode;
 }
 
 export function MyTaskDetail({
@@ -32,6 +35,7 @@ export function MyTaskDetail({
   labels,
   categories,
   releases = [],
+  toolbarExtra,
 }: MyTaskDetailProps) {
    const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
 
@@ -112,10 +116,9 @@ export function MyTaskDetail({
             </Button>
           </Link>
         )}
+        {toolbarExtra}
       </div>
-
-      {/* Timeline */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 [&>*]:h-auto">
         <TaskEditableHeader
           task={task}
           tasks={tasks}

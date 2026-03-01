@@ -15,6 +15,7 @@ import {
 } from "@repo/ui/components/doras-ui/grid-board";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { useStore } from "@tanstack/react-store";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { useTaskViewManager } from "@/hooks/useTaskViewManager";
@@ -39,6 +40,8 @@ import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
 import { BulkActionBar, type BulkUpdateAddRemove } from "./bulk-action-bar";
 import Loader from "@/components/Loader";
+import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
+import { TaskDetailDialog } from "../task/task-detail-dialog";
 
 interface UnifiedTaskViewProps {
   tasks: schema.TaskWithLabels[];
@@ -91,6 +94,34 @@ export function UnifiedTaskView({
 
   const { runWithToast } = useToastAction();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+
+  // Task open mode preference
+  const taskOpenMode = useStore(userPreferencesStore, (s) => s.taskOpenMode);
+  const [dialogTask, setDialogTask] = useState<schema.TaskWithLabels | null>(null);
+
+  const handleTaskClick = useCallback(
+    (task: schema.TaskWithLabels) => {
+      setDialogTask(task);
+    },
+    [],
+  );
+
+  const handleOpenInDialog = useCallback(
+    (task: schema.TaskWithLabels) => {
+      setDialogTask(task);
+    },
+    [],
+  );
+
+  // Keep dialogTask in sync with the tasks array (real-time updates)
+  useEffect(() => {
+    if (dialogTask) {
+      const updated = tasks.find((t) => t.id === dialogTask.id);
+      if (updated && updated !== dialogTask) {
+        setDialogTask(updated);
+      }
+    }
+  }, [tasks, dialogTask]);
 
   // List View Specific State
   // Apply filters to tasks (used by both grouping and selection)
@@ -421,6 +452,8 @@ export function UnifiedTaskView({
       availableUsers={availableUsers}
       availableLabels={availableLabels}
       onTaskUpdate={handleTaskUpdate}
+      onTaskClick={taskOpenMode === "dialog" ? handleTaskClick : undefined}
+      onOpenInDialog={handleOpenInDialog}
       categories={categories}
       releases={releases}
       compact={compact}
@@ -855,6 +888,18 @@ export function UnifiedTaskView({
           compact={smallViewport}
         />
       )}
+      <TaskDetailDialog
+        task={dialogTask}
+        open={dialogTask !== null}
+        onOpenChange={(open) => {
+          if (!open) setDialogTask(null);
+        }}
+        tasks={tasks}
+        setTasks={setTasks}
+        labels={availableLabels}
+        categories={categories}
+        releases={releases}
+      />
     </div>
   );
 }

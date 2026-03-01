@@ -12,6 +12,7 @@ import {
   ContextMenu,
   ContextMenuCheckboxItem,
   ContextMenuContent,
+  ContextMenuGroup,
   ContextMenuItem,
   ContextMenuLabel,
   ContextMenuRadioGroup,
@@ -28,9 +29,11 @@ import { cn } from "@repo/ui/lib/utils";
 import { formatCount, formatDateCompact } from "@repo/util";
 import {
   IconAppWindow,
+  IconArrowRight,
   IconCategory,
   IconChevronUp,
   IconCircleFilled,
+  IconExternalLink,
   IconRocket,
   IconTag,
   IconUser,
@@ -72,6 +75,12 @@ interface UnifiedTaskItemProps {
     updates: Partial<schema.TaskWithLabels>,
   ) => void;
 
+  /** When provided, left-click opens the task via this callback instead of navigating */
+  onTaskClick?: (task: schema.TaskWithLabels) => void;
+
+  /** Explicit handler to open in dialog regardless of preference */
+  onOpenInDialog?: (task: schema.TaskWithLabels) => void;
+
   // List View Specific
   isSelected?: boolean;
   onSelect?: (selected: boolean) => void;
@@ -94,6 +103,8 @@ export function UnifiedTaskItem({
   categories = [],
   releases = [],
   onTaskUpdate,
+  onTaskClick,
+  onOpenInDialog,
   isSelected = false,
   onSelect,
   personal = false,
@@ -246,6 +257,26 @@ export function UnifiedTaskItem({
     }
   };
 
+  // --- Link click handler that supports dialog mode ---
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Let interactive sub-elements suppress navigation
+    if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
+      e.preventDefault();
+      return;
+    }
+    if (preventClickRef.current) {
+      e.preventDefault();
+      preventClickRef.current = false;
+      return;
+    }
+    // If onTaskClick is provided and this is a normal left-click (not ctrl/meta/middle-click),
+    // intercept and open via the callback instead of navigating
+    if (onTaskClick && !e.ctrlKey && !e.metaKey && e.button === 0) {
+      e.preventDefault();
+      onTaskClick(task);
+    }
+  };
+
   // --- Render Content based on View Mode ---
 
   // Compact List View - simplified for releases
@@ -253,23 +284,11 @@ export function UnifiedTaskItem({
     <Link
       className={cn(
         "block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        // task.status === "backlog" && "bg-accent/5",
-        // task.status === "todo" && "bg-secondary/5",
-        // task.status === "in-progress" && "bg-primary/5",
-        // task.status === "done" && "bg-success/5",
       )}
       to="/$orgId/tasks/$taskShortId"
       params={{ orgId: task.organizationId, taskShortId: taskId }}
       preload={false}
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
-          e.preventDefault();
-        }
-        if (preventClickRef.current) {
-          e.preventDefault();
-          preventClickRef.current = false;
-        }
-      }}
+      onClick={handleLinkClick}
     >
       <div
         className={cn(
@@ -439,17 +458,7 @@ export function UnifiedTaskItem({
       to="/$orgId/tasks/$taskShortId"
       params={{ orgId: task.organizationId, taskShortId: taskId }}
       preload={false}
-      onClick={(e) => {
-        // Prevent Link navigation when clicking on interactive elements
-        if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
-          e.preventDefault();
-        }
-        // Also check the ref for popover close scenarios
-        if (preventClickRef.current) {
-          e.preventDefault();
-          preventClickRef.current = false;
-        }
-      }}
+      onClick={handleLinkClick}
     >
       <div
         className={cn(
@@ -716,17 +725,7 @@ export function UnifiedTaskItem({
       to="/$orgId/tasks/$taskShortId"
       params={{ orgId: task.organizationId, taskShortId: taskId }}
       preload={false}
-      onClick={(e) => {
-        // Prevent Link navigation when clicking on interactive elements
-        if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
-          e.preventDefault();
-        }
-        // Also check the ref for popover close scenarios
-        if (preventClickRef.current) {
-          e.preventDefault();
-          preventClickRef.current = false;
-        }
-      }}
+      onClick={handleLinkClick}
     >
       <div className="flex items-start gap-2 w-full">
         <Label variant={"description"}>#{task.shortId}</Label>
@@ -887,15 +886,34 @@ export function UnifiedTaskItem({
         #{task.shortId} - {task.title}
       </ContextMenuLabel>
       <ContextMenuSeparator />
-      <Link
-        to="/$orgId/tasks/$taskShortId"
-        params={{ orgId: task.organizationId, taskShortId: taskId }}
-      >
-        <ContextMenuItem className="gap-3 w-full">
-          <IconAppWindow className="size-4" />
-          Open
-        </ContextMenuItem>
-      </Link>
+
+      <ContextMenuSub>
+        <ContextMenuSubTrigger className="gap-3 w-full">
+          <IconArrowRight className="size-3.5 -rotate-45" /> Open in
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent className="w-44">
+          <ContextMenuGroup>
+            <Link
+              to="/$orgId/tasks/$taskShortId"
+              params={{ orgId: task.organizationId, taskShortId: taskId }}
+            >
+              <ContextMenuItem className="gap-3 w-full">
+                <IconExternalLink className="size-4" />
+                Page
+              </ContextMenuItem>
+            </Link>
+            {onOpenInDialog && (
+              <ContextMenuItem
+                className="gap-3 w-full"
+                onClick={() => onOpenInDialog(task)}
+              >
+                <IconAppWindow className="size-4" />
+                Window
+              </ContextMenuItem>
+            )}
+          </ContextMenuGroup>
+        </ContextMenuSubContent>
+      </ContextMenuSub>
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           {priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)} Priority

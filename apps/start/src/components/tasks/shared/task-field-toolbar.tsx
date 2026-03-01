@@ -616,7 +616,10 @@ export default function TaskFieldToolbar({
           tasks={tasks}
           setTasks={setTasks ?? (() => {})}
           setSelectedTask={setSelectedTask ?? (() => {})}
-          className={style.useCustomTrigger ? "w-fit text-xs" : style.className}
+          className={cn(
+            style.useCustomTrigger ? "w-fit text-xs" : style.className,
+            "bg-accent!",
+          )}
         />
       )}
     </div>

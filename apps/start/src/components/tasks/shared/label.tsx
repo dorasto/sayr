@@ -258,7 +258,7 @@ export default function GlobalTaskLabels({
 
     return (
       <div className={cn("flex items-center")}>
-        <div className="flex -space-x-2">
+        <div className="flex -space-x-2 p-0.5">
           {visibleLabels.map((label) => (
             <div
               key={label.id}

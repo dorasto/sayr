@@ -360,8 +360,8 @@ export default function GlobalTimeline({
 				</div>
 			) : (
 				<>
-					<div className="grow">
-						<Timeline>
+				<div className="grow">
+					<Timeline>
 							{/* top half */}
 							{topItems.map(renderItem)}
 							{/* load more middle button */}
