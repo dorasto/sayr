@@ -1,0 +1,2 @@
+ALTER TABLE "organization" ADD COLUMN "is_system_org" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "one_system_org_only" ON "organization" USING btree ("is_system_org") WHERE is_system_org = true;
