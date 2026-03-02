@@ -45,7 +45,7 @@ http {
 
     # ==========================================================
     # ROOT DOMAIN  (example.com)
-    # Fakes: MAIN_ORG.example.com internally
+    # Fakes: selfhost_main.example.com internally
     # ==========================================================
 
     server {
@@ -53,18 +53,13 @@ http {
         server_name ${VITE_ROOT_DOMAIN} www.${VITE_ROOT_DOMAIN};
     
         # ✅ Override host globally for this server
-        proxy_set_header Host ${MAIN_ORG}.${VITE_ROOT_DOMAIN};
+        proxy_set_header Host selfhost_main.${VITE_ROOT_DOMAIN};
     
         location ^~ /api/auth {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;
         }
         
-        location ^~ /api/polar {
-            proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
-        }
-    
         location ^~ /api/image-preview {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;
@@ -134,11 +129,6 @@ http {
         # Auth
         # Auth API -> start
         location ^~ /api/auth {
-            proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
-        }
-
-        location ^~ /api/polar {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;
         }

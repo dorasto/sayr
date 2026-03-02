@@ -6,12 +6,12 @@ import { admin, apiKey, genericOAuth } from "better-auth/plugins";
 import {
 	polar,
 	checkout,
-	portal,
-	usage,
-	webhooks,
 } from "@polar-sh/better-auth";
 import { Polar } from "@polar-sh/sdk";
-import { eq } from "drizzle-orm";
+import { validateEvent } from '@polar-sh/sdk/webhooks'
+import { Subscription } from "@polar-sh/sdk/models/components/subscription.js";
+export { Polar, validateEvent };
+export type { Subscription };
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
 const isProd = process.env.APP_ENV === "production";
 // Auth callback URL for OAuth providers (must be consistent subdomain)
@@ -148,7 +148,7 @@ export const auth = betterAuth({
 					products: [
 						{
 							productId: process.env.POLAR_PRODUCT_ID || "",
-							slug: "sayr-pro" // Custom slug for easy reference in Checkout URL, e.g. /checkout/Copy-of-Sayr-Pro-for-testing
+							slug: "sayr-pro" // Custom slug for easy reference in Checkout URL, e.g.
 						}
 					],
 					successUrl: isProd ? "https://admin.sayr.io/success?checkout_id={CHECKOUT_ID}" : "http://admin.app.localhost:3000/success?checkout_id={CHECKOUT_ID}",
@@ -156,82 +156,10 @@ export const auth = betterAuth({
 					returnUrl: isProd ? "https://admin.sayr.io/" : "http://admin.app.localhost:3000/",
 				})
 				,
-				webhooks({
-					secret: process.env.POLAR_WEBHOOK_SECRET as string,
-
-					async onSubscriptionCreated({ data }) {
-						const orgId = data.customer.externalId;
-						if (!orgId) return;
-
-						const isActive =
-							data.status === "active" ||
-							data.status === "trialing";
-
-						await db.update(schema.schema.organization)
-							.set({
-								plan: isActive ? "pro" : "free",
-								seatCount: data.seats ?? 1,
-								polarCustomerId: data.customerId,
-								polarSubscriptionId: data.id,
-								currentPeriodEnd: data.currentPeriodEnd,
-							})
-							.where(eq(schema.schema.organization.id, orgId));
-
-
-						if (data.metadata?.firstUserId) {
-							await polarClient.customerSeats.assignSeat({
-								subscriptionId: data.id,
-								externalCustomerId: data.metadata.firstUserId as any,
-								immediateClaim: true,
-								metadata: {
-									userId: data.metadata.firstUserId as any,
-									organizationId: orgId,
-									action: "initial_seat_assignment",
-								}
-							});
-						}
-
-						console.log("✅ Subscription created:", orgId);
-					},
-
-					async onSubscriptionUpdated({ data }) {
-						const orgId = data.customer.externalId;
-						if (!orgId) return;
-
-						const isActive =
-							data.status === "active" ||
-							data.status === "trialing";
-
-						await db.update(schema.schema.organization)
-							.set({
-								plan: isActive ? "pro" : "free",
-								seatCount: data.seats ?? 1,
-								currentPeriodEnd: data.currentPeriodEnd,
-							})
-							.where(eq(schema.schema.organization.id, orgId));
-
-						console.log("🔄 Subscription updated:", orgId);
-					},
-
-					async onSubscriptionCanceled({ data }) {
-						const orgId = data.customer.externalId;
-						if (!orgId) return;
-
-						await db.update(schema.schema.organization)
-							.set({
-								plan: "free",
-								seatCount: 5,
-							})
-							.where(eq(schema.schema.organization.id, orgId));
-
-						console.log("❌ Subscription canceled:", orgId);
-					},
-				})
 			],
 		})
 	],
 });
-
 async function DorasUser(accessToken: string) {
 	try {
 		const response = await fetch("https://doras.to/api/v1/account/me", {
