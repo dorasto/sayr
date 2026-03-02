@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo } from "react";
 import { Separator } from "@repo/ui/components/separator";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { getPlanLimits } from "./billing/billing-data";
@@ -7,6 +7,8 @@ import { BillingCurrentPlan } from "./billing/billing-current-plan";
 import { BillingUsage } from "./billing/billing-usage";
 import { BillingUpgradePrompt } from "./billing/billing-upgrade-prompt";
 import { BillingPlanComparison } from "./billing/billing-plan-comparison";
+import { BillingSubscriptionDetails } from "./billing/billing-subscription-details";
+import { BillingOrderHistory } from "./billing/billing-order-history";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useLayoutData } from "@/components/generic/Context";
 import { Button } from "@repo/ui/components/button";
@@ -63,21 +65,23 @@ export default function SettingsOrganizationBillingPage() {
     setOrganization: setOrganization,
   });
 
-  return (
-    <div className="flex flex-col gap-9">
-      <BillingCurrentPlan memberCount={memberCount} />
-      <BillingUsage usage={usage} />
-      {isAdmin && (
-        <a
-          href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}
-        >
-          <Button variant="outline">View Customer Portal</Button>
-        </a>
-      )}
+	return (
+		<div className="flex flex-col gap-9">
+			<BillingCurrentPlan memberCount={memberCount} />
+			{isAdmin && <BillingSubscriptionDetails memberCount={memberCount} />}
+			<BillingUsage usage={usage} />
+			{isAdmin && <BillingOrderHistory />}
+			{isAdmin && (
+				<a
+					href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}
+				>
+					<Button variant="outline">View Customer Portal</Button>
+				</a>
+			)}
 
-      {organization.plan === "free" && <BillingUpgradePrompt />}
-      <Separator />
-      <BillingPlanComparison />
-    </div>
-  );
+			{organization.plan === "free" && <BillingUpgradePrompt />}
+			<Separator />
+			<BillingPlanComparison />
+		</div>
+	);
 }
