@@ -2,7 +2,7 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCheck, IconX } from "@tabler/icons-react";
-import { CURRENT_PLAN, PLANS } from "./billing-data";
+import { PLANS } from "./billing-data";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 
 export function BillingPlanComparison() {

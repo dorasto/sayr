@@ -206,9 +206,9 @@ export default function SettingsOrganizationPageMembers({
             members: organization.members.map((m) =>
               m.id === memberId
                 ? {
-                  ...m,
-                  teams: (m.teams || []).filter((t) => t.teamId !== teamId),
-                }
+                    ...m,
+                    teams: (m.teams || []).filter((t) => t.teamId !== teamId),
+                  }
                 : m,
             ),
           });
@@ -245,21 +245,21 @@ export default function SettingsOrganizationPageMembers({
               members: organization.members.map((m) =>
                 m.id === memberId
                   ? {
-                    ...m,
-                    teams: [
-                      ...(m.teams || []),
-                      {
-                        id: result.data?.id || `${memberId}-${teamId}`,
-                        memberId,
-                        teamId,
-                        team: {
-                          id: teamData.id,
-                          name: teamData.name,
-                          permissions: teamData.permissions,
+                      ...m,
+                      teams: [
+                        ...(m.teams || []),
+                        {
+                          id: result.data?.id || `${memberId}-${teamId}`,
+                          memberId,
+                          teamId,
+                          team: {
+                            id: teamData.id,
+                            name: teamData.name,
+                            permissions: teamData.permissions,
+                          },
                         },
-                      },
-                    ],
-                  }
+                      ],
+                    }
                   : m,
               ),
             });
@@ -323,12 +323,17 @@ export default function SettingsOrganizationPageMembers({
                   <TileDescription>{member.user.email}</TileDescription>
                 </TileHeader>
                 <TileAction className="flex-1 min-w-0">
-                  {isInvite && member.status && (
-                    <Badge variant="outline" className="gap-1 text-xs py-0 h-5">
-                      {member.status === "pending" ? "Pending invite" : member.status}
-                    </Badge>
-                  )}
                   <div className="flex gap-1 flex-1 overflow-hidden flex-wrap justify-end">
+                    {isInvite && member.status && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-xs py-0 h-5"
+                      >
+                        {member.status === "pending"
+                          ? "Pending invite"
+                          : member.status}
+                      </Badge>
+                    )}
                     {"teams" in member &&
                       member.teams &&
                       member.teams.length > 0 &&

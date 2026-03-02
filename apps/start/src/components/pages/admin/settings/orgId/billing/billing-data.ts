@@ -1,10 +1,3 @@
-export const CURRENT_PLAN = {
-	id: "free" as const,
-	name: "Free",
-	price: 0,
-	interval: "month" as const,
-};
-
 export interface PlanFeature {
 	name: string;
 	included: boolean;
@@ -53,12 +46,58 @@ export const PLANS: Plan[] = [
 	},
 ];
 
-export const USAGE = {
-	members: { current: 3, limit: 5 },
-	savedViews: { current: 1, limit: 3 },
-	issueTemplates: { current: 2, limit: 3 },
-	teams: { current: 1, limit: 1 },
+/**
+ * Plan-aware usage limits.
+ * `null` means unlimited for that plan.
+ */
+export interface PlanLimits {
+	members: number | null;
+	savedViews: number | null;
+	issueTemplates: number | null;
+	teams: number | null;
+	releases: number | null;
+}
+
+export const PLAN_LIMITS: Record<string, PlanLimits> = {
+	free: {
+		members: 5,
+		savedViews: 3,
+		issueTemplates: 3,
+		teams: 1,
+		releases: 0,
+	},
+	pro: {
+		members: null,
+		savedViews: null,
+		issueTemplates: null,
+		teams: null,
+		releases: null,
+	},
+	"self-hosted": {
+		members: null,
+		savedViews: null,
+		issueTemplates: null,
+		teams: null,
+		releases: null,
+	},
 };
+
+const FREE_LIMITS: PlanLimits = {
+	members: 5,
+	savedViews: 3,
+	issueTemplates: 3,
+	teams: 1,
+	releases: 0,
+};
+
+export function getPlanLimits(plan: string | null | undefined): PlanLimits {
+	const key = plan ?? "free";
+	const limits = PLAN_LIMITS[key];
+	if (limits !== undefined) {
+		return limits;
+	}
+	return FREE_LIMITS;
+}
 
 export interface Invoice {
 	id: string;

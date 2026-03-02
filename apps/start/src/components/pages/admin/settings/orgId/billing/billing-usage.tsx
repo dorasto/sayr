@@ -6,10 +6,12 @@ import {
 import { Label } from "@repo/ui/components/label";
 import { Progress } from "@repo/ui/components/progress";
 import { cn } from "@repo/ui/lib/utils";
+import { IconInfinity } from "@tabler/icons-react";
 
-interface UsageEntry {
+export interface UsageEntry {
   current: number;
-  limit: number;
+  /** `null` means unlimited */
+  limit: number | null;
 }
 
 interface BillingUsageProps {
@@ -25,30 +27,41 @@ export function BillingUsage({ usage }: BillingUsageProps) {
           const label = key
             .replace(/([A-Z])/g, " $1")
             .replace(/^./, (s) => s.toUpperCase());
-          const pct = Math.round((current / limit) * 100);
-          const isAtLimit = current >= limit;
+          const isUnlimited = limit === null;
+          const pct = isUnlimited ? 0 : Math.round((current / limit) * 100);
+          const isAtLimit = !isUnlimited && current >= limit;
 
           return (
             <Tile
               key={key}
               variant="outline"
-              className="md:w-full flex-col gap-2 items-stretch"
+              className="md:w-full flex-col gap-2 items-stretch p-3 py-2"
             >
               <div className="flex items-center justify-between">
-                <TileTitle className="text-xs">{label}</TileTitle>
+                <TileTitle className="text-sm">{label}</TileTitle>
                 <TileDescription
                   className={cn(
-                    "text-xs",
+                    "text-sm",
                     isAtLimit ? "text-destructive" : "text-foreground",
                   )}
                 >
-                  {current}/{limit}
+                  {isUnlimited ? (
+                    <span className="flex items-center">
+                      {current}/<IconInfinity className="size-4" />
+                    </span>
+                  ) : (
+                    `${current}/${limit}`
+                  )}
                 </TileDescription>
               </div>
-              <Progress
-                value={pct}
-                className={cn("h-1.5", isAtLimit && "[&>div]:bg-destructive")}
-              />
+              {isUnlimited ? (
+                <Progress value={100} className="h-1.5" />
+              ) : (
+                <Progress
+                  value={pct}
+                  className={cn("h-1.5", isAtLimit && "[&>div]:bg-destructive")}
+                />
+              )}
             </Tile>
           );
         })}

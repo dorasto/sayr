@@ -8,7 +8,6 @@ import {
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
 import { IconSparkles } from "@tabler/icons-react";
-import { CURRENT_PLAN } from "./billing-data";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 
 interface BillingCurrentPlanProps {
