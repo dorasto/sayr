@@ -72,20 +72,25 @@ async function handleSubscriptionCreated(data: Subscription) {
         })
         .where(eq(schema.schema.organization.id, orgId));
 
-    // ✅ Assign first seat to initial user
-    if (data.metadata?.firstUserId) {
+    // Assign seats to all current members of the organization in Polar
+    const orgMembers = await db.query.member.findMany({
+        where: (member) => eq(member.organizationId, orgId),
+        with: {
+            user: true,
+        },
+    });
+    orgMembers.forEach(async (member) => {
         await polarClient.customerSeats.assignSeat({
             subscriptionId: data.id,
-            externalCustomerId: data.metadata.firstUserId || "" as any,
+            externalCustomerId: member.userId,
             immediateClaim: true,
             metadata: {
-                userId: data.metadata.firstUserId,
+                userId: member.userId,
                 organizationId: orgId,
                 action: "initial_seat_assignment",
             },
         });
-    }
-
+    });
     console.log("✅ Subscription created:", orgId);
 }
 

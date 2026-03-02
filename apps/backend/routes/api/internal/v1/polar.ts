@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { db, schema } from "@repo/database";
+import { db, getOrganization, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { polarClient } from "@repo/auth";
 import { AppEnv } from "@/index";
@@ -12,7 +12,11 @@ app.get("/checkout", async (c) => {
     const userId = c.req.query("userId");
     const name = c.req.query("name");
     const session = c.get("session");
+    const productId = process.env.POLAR_PRODUCT_ID;
 
+    if (!productId) {
+        throw new Error("POLAR_PRODUCT_ID is not set");
+    }
     if (!session?.userId) {
         return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
     }
@@ -22,9 +26,7 @@ app.get("/checkout", async (c) => {
     }
 
     // 1️⃣ Fetch org
-    const org = await db.query.organization.findFirst({
-        where: eq(schema.organization.id, orgId),
-    });
+    const org = await getOrganization(orgId, session.userId);
 
     if (!org) {
         return c.json({ error: "Org not found" }, 404);
@@ -51,11 +53,11 @@ app.get("/checkout", async (c) => {
 
     // 3️⃣ Create checkout under ORG customer
     const checkout = await polarClient.checkouts.create({
-        products: [process.env.POLAR_PRODUCT_ID || ""],
+        products: [productId],
         externalCustomerId: org.id,
         customerEmail: orgEmail,
         customerName: `${org.name} (${email})`,
-        seats: org.seatCount || 1,
+        seats: org.members.length || org.seatCount || 1,
         successUrl: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}`,
         returnUrl: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
         metadata: {
