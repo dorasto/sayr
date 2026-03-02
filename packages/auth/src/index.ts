@@ -10,8 +10,9 @@ import {
 import { Polar } from "@polar-sh/sdk";
 import { validateEvent } from '@polar-sh/sdk/webhooks'
 import { Subscription } from "@polar-sh/sdk/models/components/subscription.js";
+import { CustomerSeat } from "@polar-sh/sdk/models/components/customerseat.js";
 export { Polar, validateEvent };
-export type { Subscription };
+export type { Subscription, CustomerSeat };
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
 const isProd = process.env.APP_ENV === "production";
 // Auth callback URL for OAuth providers (must be consistent subdomain)

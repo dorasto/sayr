@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { db } from "@repo/database";
 import * as schema from "@repo/database";
-import { eq } from "drizzle-orm";
-import { Polar, validateEvent, Subscription } from "@repo/auth";
+import { and, eq, or } from "drizzle-orm";
+import { Polar, validateEvent, Subscription, CustomerSeat } from "@repo/auth";
+import { broadcastByUserId } from "../ws";
 
 const app = new Hono();
 
@@ -42,6 +43,9 @@ app.post("/", async (c) => {
 
             case "subscription.canceled":
                 await handleSubscriptionCanceled(event.data);
+                break;
+            case "customer_seat.revoked":
+                await handleSeatRevoked(event.data);
                 break;
         }
     } catch (err) {
@@ -126,4 +130,27 @@ async function handleSubscriptionCanceled(data: Subscription) {
         .where(eq(schema.schema.organization.id, orgId));
 
     console.log("❌ Subscription canceled:", orgId);
+}
+
+async function handleSeatRevoked(data: CustomerSeat) {
+    const user = await db.query.user.findFirst({
+        where: (user) => or(eq(user.email, data.customerEmail!), eq(user.id, data.seatMetadata?.userId!)),
+    });
+    if (!user) {
+        console.warn("⚠️ User not found for revoked seat:", data.customerEmail, data.seatMetadata?.userId);
+        return;
+    }
+    const removed = await db
+        .delete(schema.schema.member)
+        .where(and(eq(schema.schema.member.organizationId, data?.seatMetadata?.organizationId), eq(schema.schema.member.userId, user.id)))
+        .returning();
+    if (removed.length > 0) {
+        console.log("🪑 Seat revoked and user removed from organization:", user.email, data.seatMetadata?.organizationId);
+    } else {
+        console.warn("⚠️ No member record found to revoke seat for user:", user.email, data.seatMetadata?.organizationId);
+    }
+    broadcastByUserId(user.id, "", data?.seatMetadata?.organizationId, {
+        type: "MEMBER_ACTIONS",
+        data: { organizationId: data?.seatMetadata?.organizationId, userId: user.id, action: "REMOVED" },
+    });
 }
