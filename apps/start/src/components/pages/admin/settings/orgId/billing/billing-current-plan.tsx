@@ -9,6 +9,7 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { IconSparkles } from "@tabler/icons-react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { cn } from "@/lib/utils";
 
 interface BillingCurrentPlanProps {
   memberCount: number;
@@ -33,19 +34,26 @@ export function BillingCurrentPlan({ memberCount }: BillingCurrentPlanProps) {
       </div>
       <Tile className="md:w-full">
         <TileHeader>
-          <TileIcon className="bg-transparent ">
-            <IconSparkles className="size-6!" />
+          <TileIcon className="bg-transparent">
+            <IconSparkles
+              className={cn(
+                "size-6!",
+                organization.plan !== "free" && "text-primary",
+              )}
+            />
           </TileIcon>
           <TileTitle className="flex items-center gap-2">
-            {organization.plan === "free" ? "Free" : organization.plan === "pro" ? "Pro" : "Enterprise"}
+            {organization.plan === "free"
+              ? "Free"
+              : organization.plan === "pro"
+                ? "Pro"
+                : "Enterprise"}
             <Badge variant="outline" className="text-xs">
               Current
             </Badge>
           </TileTitle>
           <TileDescription>
-            {organization.plan === "free"
-              ? "Free for all users"
-              : `$3/seat/mo`}
+            {organization.plan === "free" ? "Free for all users" : `$3/seat/mo`}
           </TileDescription>
         </TileHeader>
         <TileAction>

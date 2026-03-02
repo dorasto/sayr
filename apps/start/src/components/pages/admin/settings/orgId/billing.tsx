@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { Separator } from "@repo/ui/components/separator";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { getPlanLimits } from "./billing/billing-data";
@@ -10,6 +10,7 @@ import { BillingPlanComparison } from "./billing/billing-plan-comparison";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useLayoutData } from "@/components/generic/Context";
 import { Button } from "@repo/ui/components/button";
+
 const API_URL =
   import.meta.env.VITE_APP_ENV === "development"
     ? "/backend-api/internal"
@@ -61,12 +62,15 @@ export default function SettingsOrganizationBillingPage() {
     channel: "admin",
     setOrganization: setOrganization,
   });
+
   return (
     <div className="flex flex-col gap-9">
       <BillingCurrentPlan memberCount={memberCount} />
       <BillingUsage usage={usage} />
       {isAdmin && (
-        <a href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}>
+        <a
+          href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}
+        >
           <Button variant="outline">View Customer Portal</Button>
         </a>
       )}

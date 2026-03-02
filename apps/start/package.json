@@ -17,6 +17,7 @@
     "format": "biome format --write ."
   },
   "dependencies": {
+    "@polar-sh/checkout": "^0.2.0",
     "@repo/auth": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/opentelemetry": "workspace:*",
