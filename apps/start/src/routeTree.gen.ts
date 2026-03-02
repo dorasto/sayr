@@ -33,8 +33,6 @@ import { Route as adminInboxIndexRouteImport } from './routes/(admin)/inbox/inde
 import { Route as adminHomeIndexRouteImport } from './routes/(admin)/home/index'
 import { Route as adminConsoleIndexRouteImport } from './routes/(admin)/console/index'
 import { Route as adminOrgIdIndexRouteImport } from './routes/(admin)/$orgId/index'
-import { Route as ApiPolarPortalRouteImport } from './routes/api/polar/portal'
-import { Route as ApiPolarCheckoutRouteImport } from './routes/api/polar/checkout'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
 import { Route as adminOrgIdTasksRouteRouteImport } from './routes/(admin)/$orgId/tasks/route'
@@ -181,16 +179,6 @@ const adminOrgIdIndexRoute = adminOrgIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => adminOrgIdRouteRoute,
-} as any)
-const ApiPolarPortalRoute = ApiPolarPortalRouteImport.update({
-  id: '/api/polar/portal',
-  path: '/api/polar/portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPolarCheckoutRoute = ApiPolarCheckoutRouteImport.update({
-  id: '/api/polar/checkout',
-  path: '/api/polar/checkout',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -366,8 +354,6 @@ export interface FileRoutesByFullPath {
   '/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
   '/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/polar/checkout': typeof ApiPolarCheckoutRoute
-  '/api/polar/portal': typeof ApiPolarPortalRoute
   '/$orgId/': typeof adminOrgIdIndexRoute
   '/console/': typeof adminConsoleIndexRoute
   '/home/': typeof adminHomeIndexRoute
@@ -412,8 +398,6 @@ export interface FileRoutesByTo {
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/polar/checkout': typeof ApiPolarCheckoutRoute
-  '/api/polar/portal': typeof ApiPolarPortalRoute
   '/$orgId': typeof adminOrgIdIndexRoute
   '/console': typeof adminConsoleIndexRoute
   '/home': typeof adminHomeIndexRoute
@@ -466,8 +450,6 @@ export interface FileRoutesById {
   '/(admin)/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
   '/(admin)/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/polar/checkout': typeof ApiPolarCheckoutRoute
-  '/api/polar/portal': typeof ApiPolarPortalRoute
   '/(admin)/$orgId/': typeof adminOrgIdIndexRoute
   '/(admin)/console/': typeof adminConsoleIndexRoute
   '/(admin)/home/': typeof adminHomeIndexRoute
@@ -522,8 +504,6 @@ export interface FileRouteTypes {
     | '/$orgId/tasks'
     | '/settings/connections'
     | '/api/auth/$'
-    | '/api/polar/checkout'
-    | '/api/polar/portal'
     | '/$orgId/'
     | '/console/'
     | '/home/'
@@ -568,8 +548,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/auth/$'
-    | '/api/polar/checkout'
-    | '/api/polar/portal'
     | '/$orgId'
     | '/console'
     | '/home'
@@ -621,8 +599,6 @@ export interface FileRouteTypes {
     | '/(admin)/$orgId/tasks'
     | '/(admin)/settings/connections'
     | '/api/auth/$'
-    | '/api/polar/checkout'
-    | '/api/polar/portal'
     | '/(admin)/$orgId/'
     | '/(admin)/console/'
     | '/(admin)/home/'
@@ -669,8 +645,6 @@ export interface RootRouteChildren {
   LoginAuthCheckRoute: typeof LoginAuthCheckRoute
   LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiPolarCheckoutRoute: typeof ApiPolarCheckoutRoute
-  ApiPolarPortalRoute: typeof ApiPolarPortalRoute
   InternalLoginIndexRoute: typeof InternalLoginIndexRoute
   InviteOrgIdIndexRoute: typeof InviteOrgIdIndexRoute
 }
@@ -844,20 +818,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/$orgId/'
       preLoaderRoute: typeof adminOrgIdIndexRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
-    }
-    '/api/polar/portal': {
-      id: '/api/polar/portal'
-      path: '/api/polar/portal'
-      fullPath: '/api/polar/portal'
-      preLoaderRoute: typeof ApiPolarPortalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/polar/checkout': {
-      id: '/api/polar/checkout'
-      path: '/api/polar/checkout'
-      fullPath: '/api/polar/checkout'
-      preLoaderRoute: typeof ApiPolarCheckoutRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -1264,8 +1224,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginAuthCheckRoute: LoginAuthCheckRoute,
   LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiPolarCheckoutRoute: ApiPolarCheckoutRoute,
-  ApiPolarPortalRoute: ApiPolarPortalRoute,
   InternalLoginIndexRoute: InternalLoginIndexRoute,
   InviteOrgIdIndexRoute: InviteOrgIdIndexRoute,
 }
