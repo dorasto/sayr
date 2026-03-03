@@ -344,6 +344,91 @@ export async function deleteOrganizationMemberAction(
 	return result;
 }
 
+export async function assignOrganizationMemberSeatAction(
+	organizationId: string,
+	userId: string,
+): Promise<{
+	success: boolean;
+	member?: schema.OrganizationMemberType;
+	error?: string;
+}> {
+	console.info("Assigning seat to organization member", {
+		organizationId,
+		userId,
+	});
+
+	const result = await fetch(
+		`${API_URL}/v1/admin/organization/member-seat-assign`,
+		{
+			method: "PATCH",
+			body: JSON.stringify({
+				org_id: organizationId,
+				user_id: userId,
+			}),
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include",
+		},
+	).then(async (res) => res.json());
+
+	if (!result.success) {
+		console.error(
+			"Failed to assign seat to organization member",
+			{
+				error: result.error,
+				organizationId,
+				userId,
+			},
+		);
+	}
+
+	return result;
+}
+
+export async function unassignOrganizationMemberSeatAction(
+	organizationId: string,
+	userId: string,
+): Promise<{
+	success: boolean;
+	member?: schema.OrganizationMemberType;
+	error?: string;
+}> {
+	console.info(
+		"Removing seat from organization member",
+		{ organizationId, userId },
+	);
+
+	const result = await fetch(
+		`${API_URL}/v1/admin/organization/member-seat-unassign`,
+		{
+			method: "PATCH",
+			body: JSON.stringify({
+				org_id: organizationId,
+				user_id: userId,
+			}),
+			headers: {
+				"Content-Type":
+					"application/json",
+			},
+			credentials: "include",
+		},
+	).then(async (res) => res.json());
+
+	if (!result.success) {
+		console.error(
+			"Failed to remove seat from member",
+			{
+				error: result.error,
+				organizationId,
+				userId,
+			},
+		);
+	}
+
+	return result;
+}
+
 /**
  * Creates new labels in an organization.
  *

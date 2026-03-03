@@ -5,42 +5,155 @@ import type { schema } from "@repo/database";
 import { db, getLabels, getTasksByUserId, getReleases } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { createServerFn } from "@tanstack/react-start";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export const getMyTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType }) => data)
 	.handler(async ({ data }) => {
 		try {
-			const tasks = await getTasksByUserId(data.account.id);
-			// Transform organization logos to use CDN URLs
-			const transformedTasks = tasks.map((task) => ({
-				...task,
-				organization: task.organization
-					? {
-						...task.organization,
-						logo: task.organization.logo ? ensureCdnUrl(task.organization.logo) : null,
-					}
-					: undefined,
-			}));
-			const organizationIds = Array.from(new Set(tasks.map((task) => task.organizationId)));
-			const labelsPromises = organizationIds.map((orgId) => getLabels(orgId));
-			const labelsArrays = await Promise.all(labelsPromises);
-			const allLabels: schema.labelType[] = labelsArrays.flat();
-			const views = await db.query.savedView.findMany({
-				where: (view) => inArray(view.organizationId, organizationIds),
+			const tasks = await getTasksByUserId(
+				data.account.id,
+			);
+
+			if (tasks.length === 0) {
+				return {
+					tasks: [],
+					labels: [],
+					views: [],
+					categories: [],
+					releases: [],
+				};
+			}
+
+			const organizationIds = Array.from(
+				new Set(
+					tasks.map(
+						(task) => task.organizationId,
+					),
+				),
+			);
+
+			// Load orgs with seat info for this user
+			const orgs = await db.query.organization.findMany({
+				where: (org, { inArray }) =>
+					inArray(org.id, organizationIds),
+				with: {
+					members: {
+						where: (member) =>
+							eq(
+								member.userId,
+								data.account.id,
+							),
+					},
+				},
 			});
-			const categories = await db.query.category.findMany({
-				where: (category) => inArray(category.organizationId, organizationIds),
-			});
-			const releasesPromises = organizationIds.map((orgId) => getReleases(orgId));
-			const releasesArrays = await Promise.all(releasesPromises);
-			const allReleases: schema.releaseType[] = releasesArrays.flat();
-			return { tasks: transformedTasks, labels: allLabels, views, categories, releases: allReleases };
+
+			// Build map of orgId -> allowed
+			const allowedOrgIds = new Set(
+				orgs
+					.filter((org) => {
+						if (org.plan !== "pro")
+							return true;
+
+						const member =
+							org.members[0];
+
+						return (
+							member?.seatAssigned ===
+							true
+						);
+					})
+					.map((org) => org.id),
+			);
+
+			// Filter tasks based on seat rules
+			const filteredTasks = tasks.filter(
+				(task) =>
+					allowedOrgIds.has(
+						task.organizationId,
+					),
+			);
+
+			// Transform organization logos
+			const transformedTasks =
+				filteredTasks.map((task) => ({
+					...task,
+					organization:
+						task.organization
+							? {
+								...task.organization,
+								logo:
+									task
+										.organization
+										.logo
+										? ensureCdnUrl(
+											task
+												.organization
+												.logo,
+										)
+										: null,
+							}
+							: undefined,
+				}));
+
+			const filteredOrgIds = Array.from(
+				allowedOrgIds,
+			);
+
+			const labelsArrays =
+				await Promise.all(
+					filteredOrgIds.map((orgId) =>
+						getLabels(orgId),
+					),
+				);
+
+			const allLabels: schema.labelType[] =
+				labelsArrays.flat();
+
+			const views =
+				await db.query.savedView.findMany({
+					where: (view) =>
+						inArray(
+							view.organizationId,
+							filteredOrgIds,
+						),
+				});
+
+			const categories =
+				await db.query.category.findMany({
+					where: (category) =>
+						inArray(
+							category.organizationId,
+							filteredOrgIds,
+						),
+				});
+
+			const releasesArrays =
+				await Promise.all(
+					filteredOrgIds.map((orgId) =>
+						getReleases(orgId),
+					),
+				);
+
+			const allReleases: schema.releaseType[] =
+				releasesArrays.flat();
+
+			return {
+				tasks: transformedTasks,
+				labels: allLabels,
+				views,
+				categories,
+				releases: allReleases,
+			};
 		} catch (error) {
-			// If it's already a redirect, re-throw it
-			if (error && typeof error === "object" && "redirect" in error) {
+			if (
+				error &&
+				typeof error === "object" &&
+				"redirect" in error
+			) {
 				throw error;
 			}
+
 			throw redirect({ to: "/" });
 		}
 	});

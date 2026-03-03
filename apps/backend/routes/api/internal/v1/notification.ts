@@ -45,9 +45,9 @@ apiRouteAdminNotification.get("/", async (c) => {
 		...n,
 		organization: n.organization
 			? {
-					...n.organization,
-					logo: n.organization.logo ? ensureCdnUrl(n.organization.logo) : null,
-				}
+				...n.organization,
+				logo: n.organization.logo ? ensureCdnUrl(n.organization.logo) : null,
+			}
 			: undefined,
 	}));
 

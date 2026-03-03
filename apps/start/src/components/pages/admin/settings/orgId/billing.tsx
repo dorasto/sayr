@@ -21,7 +21,7 @@ export default function SettingsOrganizationBillingPage() {
   const { ws, account } = useLayoutData();
   const { organization, setOrganization, views, issueTemplates, releases } =
     useLayoutOrganizationSettings();
-  const memberCount = organization.members?.length ?? 0;
+  const memberCount = organization.members.filter((m) => m.seatAssigned).length ?? 0;
 
   const isAdmin = useMemo(() => {
     if (!account) return false;
@@ -65,23 +65,23 @@ export default function SettingsOrganizationBillingPage() {
     setOrganization: setOrganization,
   });
 
-	return (
-		<div className="flex flex-col gap-9">
-			<BillingCurrentPlan memberCount={memberCount} />
-			{isAdmin && <BillingSubscriptionDetails memberCount={memberCount} />}
-			<BillingUsage usage={usage} />
-			{isAdmin && <BillingOrderHistory />}
-			{isAdmin && (
-				<a
-					href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}
-				>
-					<Button variant="outline">View Customer Portal</Button>
-				</a>
-			)}
+  return (
+    <div className="flex flex-col gap-9">
+      <BillingCurrentPlan memberCount={memberCount} />
+      {isAdmin && <BillingSubscriptionDetails memberCount={memberCount} />}
+      <BillingUsage usage={usage} />
+      {isAdmin && <BillingOrderHistory />}
+      {isAdmin && (
+        <a
+          href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}
+        >
+          <Button variant="outline">View Customer Portal</Button>
+        </a>
+      )}
 
-			{organization.plan === "free" && <BillingUpgradePrompt />}
-			<Separator />
-			<BillingPlanComparison />
-		</div>
-	);
+      {organization.plan === "free" && <BillingUpgradePrompt />}
+      <Separator />
+      <BillingPlanComparison />
+    </div>
+  );
 }

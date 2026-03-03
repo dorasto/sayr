@@ -65,9 +65,11 @@ import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import {
   addOrganizationMemberToTeamAction,
+  assignOrganizationMemberSeatAction,
   deleteOrganizationMemberAction,
   inviteOrganizationMembersAction,
   removeOrganizationMemberFromTeamAction,
+  unassignOrganizationMemberSeatAction,
 } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
 
@@ -207,9 +209,9 @@ export default function SettingsOrganizationPageMembers({
             members: organization.members.map((m) =>
               m.id === memberId
                 ? {
-                    ...m,
-                    teams: (m.teams || []).filter((t) => t.teamId !== teamId),
-                  }
+                  ...m,
+                  teams: (m.teams || []).filter((t) => t.teamId !== teamId),
+                }
                 : m,
             ),
           });
@@ -246,21 +248,21 @@ export default function SettingsOrganizationPageMembers({
               members: organization.members.map((m) =>
                 m.id === memberId
                   ? {
-                      ...m,
-                      teams: [
-                        ...(m.teams || []),
-                        {
-                          id: result.data?.id || `${memberId}-${teamId}`,
-                          memberId,
-                          teamId,
-                          team: {
-                            id: teamData.id,
-                            name: teamData.name,
-                            permissions: teamData.permissions,
-                          },
+                    ...m,
+                    teams: [
+                      ...(m.teams || []),
+                      {
+                        id: result.data?.id || `${memberId}-${teamId}`,
+                        memberId,
+                        teamId,
+                        team: {
+                          id: teamData.id,
+                          name: teamData.name,
+                          permissions: teamData.permissions,
                         },
-                      ],
-                    }
+                      },
+                    ],
+                  }
                   : m,
               ),
             });
@@ -324,8 +326,8 @@ export default function SettingsOrganizationPageMembers({
                   <TileTitle>
                     {member.user.name}{" "}
                     {organization.plan === "pro" &&
-                    seatAssigned &&
-                    member.seatAssigned ? null : (
+                      seatAssigned &&
+                      member.seatAssigned ? null : (
                       <Badge
                         variant="outline"
                         className="gap-1 text-xs py-0 px-2 h-4 bg-destructive/50 border-destructive text-destructive-foreground"
@@ -389,10 +391,37 @@ export default function SettingsOrganizationPageMembers({
                 {member.user.name}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border" />
-              <DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem disabled={
+                organization.plan === "pro" && seatAssigned && !member.seatAssigned && organization.seatCount === organization.members.filter((m) => m.seatAssigned,).length} onClick={async () => {
+                  if (seatAssigned && member.seatAssigned) {
+                    const seat = await unassignOrganizationMemberSeatAction(organization.id, member.userId || "");
+                    if (seat?.success) {
+                      setOrganization({
+                        ...organization,
+                        members: organization.members.map((m) =>
+                          m.userId === member.userId
+                            ? { ...m, seatAssigned: false }
+                            : m,
+                        ),
+                      });
+                    }
+                  } else {
+                    const seat = await assignOrganizationMemberSeatAction(organization.id, member.userId || "");
+                    if (seat?.success) {
+                      setOrganization({
+                        ...organization,
+                        members: organization.members.map((m) =>
+                          m.userId === member.userId
+                            ? { ...m, seatAssigned: true }
+                            : m,
+                        ),
+                      });
+                    }
+                  }
+                }}>
                 {organization.plan === "pro" &&
-                seatAssigned &&
-                member.seatAssigned
+                  seatAssigned &&
+                  member.seatAssigned
                   ? "Unassign seat"
                   : "Assign a seat"}
               </DropdownMenuCheckboxItem>
@@ -473,7 +502,7 @@ export default function SettingsOrganizationPageMembers({
       })}
       <Separator />
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
-        {organization.members.length === organization.seatCount ? (
+        {organization.members.filter((m) => m.seatAssigned,).length >= (organization.seatCount ?? 0) ? (
           <Tile
             variant="outline"
             className="md:w-full border-destructive/30 bg-destructive/5"

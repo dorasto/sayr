@@ -2011,6 +2011,236 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		...(failedEmails.length > 0 && { errors: failedEmails }),
 	});
 });
+apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const { org_id: orgId, user_id: userId } = await c.req.json();
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
+	}
+
+	const member = await db.query.member.findFirst({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
+	});
+	if (!member) {
+		return c.json({ success: false, error: "Member not found." }, 404);
+	}
+	if (member.seatAssignedId) {
+		return c.json({ success: false, error: "Member already has a seat assigned." }, 400);
+	}
+	const org = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { polarSubscriptionId: true }
+	});
+	const seatId = await traceAsync(
+		"member.seatAssign.assign",
+		async () => {
+			const seat = await polarClient.customerSeats.assignSeat({
+				subscriptionId: org?.polarSubscriptionId || "",
+				externalCustomerId: member.userId,
+				immediateClaim: true,
+				metadata: {
+					userId: member.userId,
+					organizationId: orgId,
+					action: "seat_assign",
+				}
+			});
+			return seat.id;
+		},
+		{ description: "Assigning seat to member", data: { orgId, userId } }
+	);
+	const updatedMember = await traceAsync(
+		"member.seatAssign.update_member",
+		async () => {
+			const [updated] = await db
+				.update(schema.member)
+				.set({ seatAssignedId: seatId, seatAssigned: true })
+				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
+				.returning();
+			return updated;
+		},
+		{ description: "Updating member with seat assignment", data: { orgId, userId, seatId } }
+	);
+	if (!updatedMember) {
+		await recordWideError({
+			name: "member.seatAssign.update_member_failed",
+			error: new Error("Failed to update member with seat assignment"),
+			code: "MEMBER_SEAT_ASSIGNMENT_FAILED",
+			message: "Failed to assign seat to member.",
+			contextData: { orgId, userId, seatId },
+		});
+		return c.json({ success: false, error: "Failed to assign seat to member." }, 500);
+	}
+	return c.json({
+		success: true,
+		member: updatedMember,
+	});
+});
+
+apiRouteAdminOrganization.patch(
+	"/member-seat-unassign",
+	async (c) => {
+		const traceAsync = createTraceAsync();
+		const recordWideError =
+			c.get("recordWideError");
+		const session = c.get("session");
+
+		const {
+			org_id: orgId,
+			user_id: userId,
+		} = await c.req.json();
+
+		const isAuthorized =
+			await traceOrgPermissionCheck(
+				session?.userId || "",
+				orgId,
+				"admin.administrator",
+			);
+
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"You don't have permission to modify member seat assignments.",
+				},
+				401,
+			);
+		}
+
+		const member =
+			await db.query.member.findFirst({
+				where: and(
+					eq(
+						schema.member.organizationId,
+						orgId,
+					),
+					eq(
+						schema.member.userId,
+						userId,
+					),
+				),
+			});
+
+		if (!member) {
+			return c.json(
+				{
+					success: false,
+					error: "Member not found.",
+				},
+				404,
+			);
+		}
+
+		if (!member.seatAssignedId) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"Member does not have a seat assigned.",
+				},
+				400,
+			);
+		}
+
+		// ✅ Unassign seat from Polar
+		await traceAsync(
+			"member.seatUnassign.unassign",
+			async () => {
+				await polarClient.customerSeats.revokeSeat(
+					{
+						seatId:
+							member.seatAssignedId || "",
+					},
+				);
+			},
+			{
+				description:
+					"Unassigning seat from member",
+				data: {
+					orgId,
+					userId,
+					seatId:
+						member.seatAssignedId,
+				},
+			},
+		);
+
+		// ✅ Update member record
+		const updatedMember =
+			await traceAsync(
+				"member.seatUnassign.update_member",
+				async () => {
+					const [updated] =
+						await db
+							.update(
+								schema.member,
+							)
+							.set({
+								seatAssignedId:
+									null,
+								seatAssigned:
+									false,
+							})
+							.where(
+								and(
+									eq(
+										schema.member.organizationId,
+										orgId,
+									),
+									eq(
+										schema.member.userId,
+										userId,
+									),
+								),
+							)
+							.returning();
+					return updated;
+				},
+				{
+					description:
+						"Updating member after seat removal",
+					data: {
+						orgId,
+						userId,
+					},
+				},
+			);
+
+		if (!updatedMember) {
+			await recordWideError({
+				name: "member.seatUnassign.update_member_failed",
+				error: new Error(
+					"Failed to update member after seat removal",
+				),
+				code: "MEMBER_SEAT_UNASSIGNMENT_FAILED",
+				message:
+					"Failed to remove seat from member.",
+				contextData: {
+					orgId,
+					userId,
+				},
+			});
+
+			return c.json(
+				{
+					success: false,
+					error:
+						"Failed to remove seat from member.",
+				},
+				500,
+			);
+		}
+
+		return c.json({
+			success: true,
+			member: updatedMember,
+		});
+	},
+);
 
 apiRouteAdminOrganization.delete("/member", async (c) => {
 	const traceAsync = createTraceAsync();
