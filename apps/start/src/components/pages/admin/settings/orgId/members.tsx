@@ -206,9 +206,9 @@ export default function SettingsOrganizationPageMembers({
             members: organization.members.map((m) =>
               m.id === memberId
                 ? {
-                    ...m,
-                    teams: (m.teams || []).filter((t) => t.teamId !== teamId),
-                  }
+                  ...m,
+                  teams: (m.teams || []).filter((t) => t.teamId !== teamId),
+                }
                 : m,
             ),
           });
@@ -245,21 +245,21 @@ export default function SettingsOrganizationPageMembers({
               members: organization.members.map((m) =>
                 m.id === memberId
                   ? {
-                      ...m,
-                      teams: [
-                        ...(m.teams || []),
-                        {
-                          id: result.data?.id || `${memberId}-${teamId}`,
-                          memberId,
-                          teamId,
-                          team: {
-                            id: teamData.id,
-                            name: teamData.name,
-                            permissions: teamData.permissions,
-                          },
+                    ...m,
+                    teams: [
+                      ...(m.teams || []),
+                      {
+                        id: result.data?.id || `${memberId}-${teamId}`,
+                        memberId,
+                        teamId,
+                        team: {
+                          id: teamData.id,
+                          name: teamData.name,
+                          permissions: teamData.permissions,
                         },
-                      ],
-                    }
+                      },
+                    ],
+                  }
                   : m,
               ),
             });
@@ -297,6 +297,7 @@ export default function SettingsOrganizationPageMembers({
             : [],
         );
         const isInvite = "status" in member;
+        const seatAssigned = "seatAssigned" in member;
 
         return (
           <DropdownMenu key={member.id}>
@@ -332,6 +333,23 @@ export default function SettingsOrganizationPageMembers({
                         {member.status === "pending"
                           ? "Pending invite"
                           : member.status}
+                      </Badge>
+                    )}
+                    {organization.plan === "pro" && seatAssigned && member.seatAssigned ? (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-xs py-0 h-5 bg-green-100 border-green-300 text-green-800"
+                      >
+                        <IconShieldCheck className="size-3 shrink-0" />
+                        Seat assigned
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-xs py-0 h-5 bg-yellow-100 border-yellow-300 text-yellow-800"
+                      >
+                        <IconShield className="size-3 shrink-0" />
+                        Assign seat
                       </Badge>
                     )}
                     {"teams" in member &&
@@ -406,7 +424,7 @@ export default function SettingsOrganizationPageMembers({
                             />
                           )}
                           <span className="truncate">
-                            {team.name} saodifj asodif joasidjf oasijdfoaisjd f
+                            {team.name}
                           </span>
                         </DropdownMenuItem>
                       );
