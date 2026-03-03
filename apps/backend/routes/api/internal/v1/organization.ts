@@ -2024,6 +2024,9 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove members." }, 401);
 	}
+	const member = await db.query.member.findFirst({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
+	});
 
 	const removed = await traceAsync(
 		"member.remove.delete",
@@ -2047,16 +2050,9 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 		});
 		return c.json({ success: false, error: "Failed to remove member." }, 500);
 	}
-	const org = await db.query.organization.findFirst({
-		where: eq(schema.organization.id, orgId),
-	});
-	const seats = await polarClient.customerSeats.listSeats({
-		subscriptionId: org?.polarSubscriptionId || ""
-	});
-	const seatFound = seats.seats.find(seat => seat.seatMetadata?.userId === userId);
-	if (seatFound) {
+	if (member?.seatAssignedId) {
 		await polarClient.customerSeats.revokeSeat({
-			seatId: seatFound.id,
+			seatId: member?.seatAssignedId,
 		});
 	}
 

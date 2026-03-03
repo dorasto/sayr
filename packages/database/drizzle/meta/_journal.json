@@ -71,6 +71,13 @@
       "when": 1772426394378,
       "tag": "20260302043954_bored_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772510101938,
+      "tag": "20260303035501_jittery_stryfe",
+      "breakpoints": true
     }
   ]
 }

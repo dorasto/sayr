@@ -75,6 +75,8 @@ export const member = table(
 			.notNull()
 			.references(() => organization.id, { onDelete: "cascade" }),
 		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
+		seatAssignedId: v.text("seat_assigned_id"), // for Polar seat management
+		seatAssigned: v.boolean("seat_assigned").notNull().default(false), // whether this member has been assigned a seat in Polar
 	},
 	(t) => [v.unique("unq_member_org_user").on(t.userId, t.organizationId)]
 );

@@ -47,6 +47,11 @@ app.post("/", async (c) => {
             case "customer_seat.revoked":
                 await handleSeatRevoked(event.data);
                 break;
+            case "customer_seat.claimed":
+                await handleSeatClaimed(event.data);
+                break;
+            default:
+                console.warn("⚠️ Unhandled event type:", event.type);
         }
     } catch (err) {
         console.error("❌ Webhook handler error:", err);
@@ -84,7 +89,7 @@ async function handleSubscriptionCreated(data: Subscription) {
         },
     });
     orgMembers.forEach(async (member) => {
-        await polarClient.customerSeats.assignSeat({
+        const seatInfo = await polarClient.customerSeats.assignSeat({
             subscriptionId: data.id,
             externalCustomerId: member.userId,
             immediateClaim: true,
@@ -94,6 +99,17 @@ async function handleSubscriptionCreated(data: Subscription) {
                 action: "initial_seat_assignment",
             },
         });
+        if (seatInfo) {
+            await db.update(schema.schema.member)
+                .set({
+                    seatAssignedId: seatInfo.id,
+                    seatAssigned: true,
+                })
+                .where(eq(schema.schema.member.id, member.id));
+            console.log(`✅ Assigned seat ${seatInfo.id} to user ${member.user.email} for organization ${orgId}`);
+        } else {
+            console.warn(`⚠️ Failed to assign seat to user ${member.user.email} for organization ${orgId}`);
+        }
     });
     console.log("✅ Subscription created:", orgId);
 }
@@ -133,24 +149,159 @@ async function handleSubscriptionCanceled(data: Subscription) {
 }
 
 async function handleSeatRevoked(data: CustomerSeat) {
-    const user = await db.query.user.findFirst({
-        where: (user) => or(eq(user.email, data.customerEmail!), eq(user.id, data.seatMetadata?.userId!)),
+    const org = await db.query.organization.findFirst({
+        where: (org) => eq(org.polarSubscriptionId, data.subscriptionId!),
     });
-    if (!user) {
-        console.warn("⚠️ User not found for revoked seat:", data.customerEmail, data.seatMetadata?.userId);
+
+    if (!org) {
+        console.warn(
+            "⚠️ Organization not found for revoked seat:",
+            data.subscriptionId
+        );
         return;
     }
-    const removed = await db
-        .delete(schema.schema.member)
-        .where(and(eq(schema.schema.member.organizationId, data?.seatMetadata?.organizationId), eq(schema.schema.member.userId, user.id)))
-        .returning();
-    if (removed.length > 0) {
-        console.log("🪑 Seat revoked and user removed from organization:", user.email, data.seatMetadata?.organizationId);
-    } else {
-        console.warn("⚠️ No member record found to revoke seat for user:", user.email, data.seatMetadata?.organizationId);
+
+    const user = await db.query.user.findFirst({
+        where: (user) =>
+            data.seatMetadata?.userId ? eq(user.id, data.seatMetadata!.userId)
+                : eq(user.email, data.customerEmail!)
+    });
+
+    if (!user) {
+        console.warn(
+            "⚠️ User not found for revoked seat:",
+            data.customerEmail,
+            data.seatMetadata?.userId
+        );
+        return;
     }
-    broadcastByUserId(user.id, "", data?.seatMetadata?.organizationId, {
+
+    const member = await db.query.member.findFirst({
+        where: and(
+            eq(schema.schema.member.organizationId, org.id),
+            eq(schema.schema.member.userId, user.id)
+        ),
+    });
+
+    if (!member) {
+        console.warn(
+            "⚠️ Member record not found:",
+            user.id,
+            org.id
+        );
+        return;
+    }
+
+    await db
+        .update(schema.schema.member)
+        .set({
+            seatAssigned: false,
+            seatAssignedId: null,
+        })
+        .where(eq(schema.schema.member.id, member.id));
+
+    console.log(
+        "🪑 Seat revoked but member retained:",
+        user.email,
+        org.id
+    );
+
+    broadcastByUserId(user.id, "", org.id, {
         type: "MEMBER_ACTIONS",
-        data: { organizationId: data?.seatMetadata?.organizationId, userId: user.id, action: "REMOVED" },
+        data: {
+            organizationId: org.id,
+            userId: user.id,
+            action: "SEAT_REVOKED",
+        },
+    });
+}
+
+async function handleSeatClaimed(data: CustomerSeat) {
+    const org = await db.query.organization.findFirst({
+        where: (org) => eq(org.polarSubscriptionId, data.subscriptionId!),
+    });
+
+    if (!org) {
+        console.warn(
+            "⚠️ Organization not found for claimed seat:",
+            data.subscriptionId
+        );
+        return;
+    }
+
+    let user;
+
+    // ✅ Always prefer metadata userId
+    if (data.seatMetadata?.userId) {
+        user = await db.query.user.findFirst({
+            where: (user) => eq(user.id, data.seatMetadata!.userId),
+        });
+    } else if (data.customerEmail) {
+        user = await db.query.user.findFirst({
+            where: (user) => eq(user.email, data.customerEmail!),
+        });
+    }
+
+    if (!user) {
+        console.warn(
+            "⚠️ User not found for claimed seat:",
+            data.customerEmail,
+            data.seatMetadata?.userId
+        );
+        return;
+    }
+
+    // ✅ Check if member exists
+    let member = await db.query.member.findFirst({
+        where: and(
+            eq(schema.schema.member.organizationId, org.id),
+            eq(schema.schema.member.userId, user.id)
+        ),
+    });
+
+    // ✅ Create member if added via Polar UI
+    if (!member) {
+        const [created] = await db
+            .insert(schema.schema.member)
+            .values({
+                id: crypto.randomUUID(),
+                organizationId: org.id,
+                userId: user.id,
+                seatAssigned: true,
+                seatAssignedId: data.id,
+            })
+            .returning();
+
+        member = created;
+
+        console.log(
+            "🆕 Member created via Polar seat claim:",
+            user.email,
+            org.id
+        );
+    } else {
+        // ✅ Update existing member
+        await db
+            .update(schema.schema.member)
+            .set({
+                seatAssigned: true,
+                seatAssignedId: data.id,
+            })
+            .where(eq(schema.schema.member.id, member.id));
+
+        console.log(
+            "🪑 Seat assigned to existing member:",
+            user.email,
+            org.id
+        );
+    }
+
+    broadcastByUserId(user.id, "", org.id, {
+        type: "MEMBER_ACTIONS",
+        data: {
+            organizationId: org.id,
+            userId: user.id,
+            action: "SEAT_ASSIGNED",
+        },
     });
 }
