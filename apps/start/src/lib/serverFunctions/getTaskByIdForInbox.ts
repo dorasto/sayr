@@ -8,7 +8,7 @@ export const getTaskByIdForInbox = createServerFn({ method: "GET" })
 		if (!orgId || !taskId) {
 			return { task: null };
 		}
-		const organization = await getOrganization(orgId, accountId);
+		const organization = await getOrganization(orgId, accountId, { blockOrgUnseated: true });
 		if (!organization) {
 			return { task: null };
 		}

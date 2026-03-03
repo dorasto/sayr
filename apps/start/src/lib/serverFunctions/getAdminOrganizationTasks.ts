@@ -8,12 +8,10 @@ export const getAdminOrganizationTasks = createServerFn({ method: "GET" })
 		const { account, orgId } = data;
 		try {
 			if (!orgId) {
-				console.log("🚀 ~ orgId:", orgId);
 				throw redirect({ to: "/" });
 			}
-			const organization = await getOrganization(orgId, account.id);
+			const organization = await getOrganization(orgId, account.id, { blockOrgUnseated: true });
 			if (!organization) {
-				console.log("🚀 ~ organization:", organization);
 				throw redirect({ to: "/" });
 			}
 			const tasks = await getTasksByOrganizationId(organization.id);

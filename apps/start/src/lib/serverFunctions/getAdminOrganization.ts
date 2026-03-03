@@ -11,7 +11,7 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			if (!orgId) {
 				throw redirect({ to: "/" });
 			}
-			const organization = await getOrganization(orgId, account.id);
+			const organization = await getOrganization(orgId, account.id, { blockOrgUnseated: true });
 			if (!organization) {
 				throw redirect({ to: "/" });
 			}

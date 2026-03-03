@@ -135,9 +135,10 @@ export async function getOrganizations(
 export async function getOrganization(
 	orgId: string,
 	userId: string,
-	options?: { includeUnseated?: boolean },
+	options?: { includeUnseated?: boolean, blockOrgUnseated?: boolean },
 ): Promise<schema.OrganizationWithMembers | null> {
 	const includeUnseated = options?.includeUnseated ?? false;
+	const blockOrgUnseated = options?.blockOrgUnseated ?? false;
 
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.id, orgId),
@@ -161,6 +162,12 @@ export async function getOrganization(
 	);
 
 	if (!member) {
+		return null;
+	}
+	if (blockOrgUnseated &&
+		organization.plan === "pro" &&
+		!member.seatAssigned
+	) {
 		return null;
 	}
 
