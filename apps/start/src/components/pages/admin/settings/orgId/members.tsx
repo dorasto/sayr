@@ -327,15 +327,16 @@ export default function SettingsOrganizationPageMembers({
                     {member.user.name}{" "}
                     {organization.plan === "pro" &&
                       seatAssigned &&
-                      member.seatAssigned ? null : (
-                      <Badge
-                        variant="outline"
-                        className="gap-1 text-xs py-0 px-2 h-4 bg-destructive/50 border-destructive text-destructive-foreground"
-                      >
-                        <IconShield className="size-3 shrink-0" />
-                        No seat
-                      </Badge>
-                    )}
+                      member.seatAssigned ? null :
+                      organization.plan === "free" ? null : (
+                        <Badge
+                          variant="outline"
+                          className="gap-1 text-xs py-0 px-2 h-4 bg-destructive/50 border-destructive text-destructive-foreground"
+                        >
+                          <IconShield className="size-3 shrink-0" />
+                          No seat
+                        </Badge>
+                      )}
                   </TileTitle>
                   <TileDescription>{member.user.email}</TileDescription>
                 </TileHeader>
@@ -391,40 +392,42 @@ export default function SettingsOrganizationPageMembers({
                 {member.user.name}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border" />
-              <DropdownMenuCheckboxItem disabled={
-                organization.plan === "pro" && seatAssigned && !member.seatAssigned && organization.seatCount === organization.members.filter((m) => m.seatAssigned,).length} onClick={async () => {
-                  if (seatAssigned && member.seatAssigned) {
-                    const seat = await unassignOrganizationMemberSeatAction(organization.id, member.userId || "");
-                    if (seat?.success) {
-                      setOrganization({
-                        ...organization,
-                        members: organization.members.map((m) =>
-                          m.userId === member.userId
-                            ? { ...m, seatAssigned: false }
-                            : m,
-                        ),
-                      });
+              {organization.plan === "pro" && (
+                <DropdownMenuCheckboxItem disabled={
+                  organization.plan === "pro" && seatAssigned && !member.seatAssigned && organization.seatCount === organization.members.filter((m) => m.seatAssigned,).length} onClick={async () => {
+                    if (seatAssigned && member.seatAssigned) {
+                      const seat = await unassignOrganizationMemberSeatAction(organization.id, member.userId || "");
+                      if (seat?.success) {
+                        setOrganization({
+                          ...organization,
+                          members: organization.members.map((m) =>
+                            m.userId === member.userId
+                              ? { ...m, seatAssigned: false }
+                              : m,
+                          ),
+                        });
+                      }
+                    } else {
+                      const seat = await assignOrganizationMemberSeatAction(organization.id, member.userId || "");
+                      if (seat?.success) {
+                        setOrganization({
+                          ...organization,
+                          members: organization.members.map((m) =>
+                            m.userId === member.userId
+                              ? { ...m, seatAssigned: true }
+                              : m,
+                          ),
+                        });
+                      }
                     }
-                  } else {
-                    const seat = await assignOrganizationMemberSeatAction(organization.id, member.userId || "");
-                    if (seat?.success) {
-                      setOrganization({
-                        ...organization,
-                        members: organization.members.map((m) =>
-                          m.userId === member.userId
-                            ? { ...m, seatAssigned: true }
-                            : m,
-                        ),
-                      });
-                    }
-                  }
-                }}>
-                {organization.plan === "pro" &&
-                  seatAssigned &&
-                  member.seatAssigned
-                  ? "Unassign seat"
-                  : "Assign a seat"}
-              </DropdownMenuCheckboxItem>
+                  }}>
+                  {organization.plan === "pro" &&
+                    seatAssigned &&
+                    member.seatAssigned
+                    ? "Unassign seat"
+                    : "Assign a seat"}
+                </DropdownMenuCheckboxItem>
+              )}
 
               {canManageTeams && !isInvite && teams.length > 0 && (
                 <DropdownMenuSub>
