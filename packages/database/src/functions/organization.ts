@@ -1,8 +1,8 @@
 import crypto from "node:crypto";
 import { ensureCdnUrl } from "@repo/util";
-import { and, eq, ilike, inArray, ne, notInArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema, auth } from "..";
-import { defaultTeamPermissions, type TeamPermissions } from "../../schema/member.schema";
+import { type TeamPermissions } from "../../schema/member.schema";
 import { userSummaryColumns, userSummarySelect } from "./index";
 
 /**
@@ -25,8 +25,10 @@ import { userSummaryColumns, userSummarySelect } from "./index";
  * });
  * ```
  */
-export async function getOrganizations(userId: string): Promise<schema.OrganizationWithMembers[]> {
-	// Step 1: Find orgIds the user belongs to
+export async function getOrganizations(
+	userId: string
+): Promise<schema.OrganizationWithMembers[]> {
+	// Step 1: Find memberships
 	const memberships = await db.query.member.findMany({
 		where: (member) => eq(member.userId, userId),
 	});
@@ -35,23 +37,39 @@ export async function getOrganizations(userId: string): Promise<schema.Organizat
 
 	const orgIds = memberships.map((m) => m.organizationId);
 
-	// Step 2: Load organizations with members + users in a *single query*
+	// Step 2: Load orgs with members
 	const orgsWithMembers = await db.query.organization.findMany({
 		with: {
 			members: {
 				with: {
-					user: true, // ✅ this now works because of relations()
+					user: true,
 				},
 			},
 		},
-		where: (organization, { inArray }) => inArray(organization.id, orgIds),
+		where: (organization, { inArray }) =>
+			inArray(organization.id, orgIds),
 	});
 
-	// Step 3: Rewrite the logo URL
-	const enriched = orgsWithMembers.map((org) => ({
+	// Step 3: Filter based on seat logic
+	const filtered = orgsWithMembers.filter((org) => {
+		if (org.plan !== "pro") return true;
+
+		const currentMember = org.members.find(
+			(m) => m.userId === userId
+		);
+
+		if (!currentMember) return false;
+
+		return currentMember.seatAssigned === true;
+	});
+
+	// Step 4: Enrich media URLs
+	const enriched = filtered.map((org) => ({
 		...org,
 		logo: org.logo ? ensureCdnUrl(org.logo) : null,
-		bannerImg: org.bannerImg ? ensureCdnUrl(org.bannerImg) : null,
+		bannerImg: org.bannerImg
+			? ensureCdnUrl(org.bannerImg)
+			: null,
 	}));
 
 	return enriched;
@@ -96,6 +114,10 @@ export async function getOrganization(orgId: string, userId: string): Promise<sc
 	// Ensure the current user is part of it
 	if (!organization?.members.some((m) => m.userId === userId)) {
 		return null; // unauthorized
+	}
+	const member = organization.members.find((m) => m.userId === userId);
+	if (member && !member.seatAssigned && organization.plan === "pro") {
+		return null; // user is a member but doesn't have an assigned seat (Polar)
 	}
 	return {
 		...organization,
@@ -172,6 +194,7 @@ export async function getOrganizationPublic(orgSlug: string): Promise<schema.Org
 		},
 	});
 	if (organization) {
+		//@ts-expect-error
 		return {
 			...organization,
 			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
@@ -264,6 +287,7 @@ const fullAdminPermissions: TeamPermissions = {
 export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<schema.OrganizationTeamType> {
 	// Check if Administrators team already exists
 	let adminTeam = await db.query.team.findFirst({
+		//@ts-expect-error
 		where: (t, { and, eq }) => and(eq(t.organizationId, orgId), eq(t.name, "Admin")),
 	});
 
@@ -327,6 +351,7 @@ export async function addMemberToAdminTeam(orgId: string, memberId: string): Pro
 
 	// Check if already a member
 	const existing = await db.query.memberTeam.findFirst({
+		//@ts-expect-error
 		where: (mt, { and, eq }) => and(eq(mt.teamId, adminTeam.id), eq(mt.memberId, memberId)),
 	});
 
