@@ -30,6 +30,7 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -206,9 +207,9 @@ export default function SettingsOrganizationPageMembers({
             members: organization.members.map((m) =>
               m.id === memberId
                 ? {
-                  ...m,
-                  teams: (m.teams || []).filter((t) => t.teamId !== teamId),
-                }
+                    ...m,
+                    teams: (m.teams || []).filter((t) => t.teamId !== teamId),
+                  }
                 : m,
             ),
           });
@@ -245,21 +246,21 @@ export default function SettingsOrganizationPageMembers({
               members: organization.members.map((m) =>
                 m.id === memberId
                   ? {
-                    ...m,
-                    teams: [
-                      ...(m.teams || []),
-                      {
-                        id: result.data?.id || `${memberId}-${teamId}`,
-                        memberId,
-                        teamId,
-                        team: {
-                          id: teamData.id,
-                          name: teamData.name,
-                          permissions: teamData.permissions,
+                      ...m,
+                      teams: [
+                        ...(m.teams || []),
+                        {
+                          id: result.data?.id || `${memberId}-${teamId}`,
+                          memberId,
+                          teamId,
+                          team: {
+                            id: teamData.id,
+                            name: teamData.name,
+                            permissions: teamData.permissions,
+                          },
                         },
-                      },
-                    ],
-                  }
+                      ],
+                    }
                   : m,
               ),
             });
@@ -320,7 +321,20 @@ export default function SettingsOrganizationPageMembers({
                       </AvatarFallback>
                     </Avatar>
                   </TileIcon>
-                  <TileTitle>{member.user.name}</TileTitle>
+                  <TileTitle>
+                    {member.user.name}{" "}
+                    {organization.plan === "pro" &&
+                    seatAssigned &&
+                    member.seatAssigned ? null : (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-xs py-0 px-2 h-4 bg-destructive/50 border-destructive text-destructive-foreground"
+                      >
+                        <IconShield className="size-3 shrink-0" />
+                        No seat
+                      </Badge>
+                    )}
+                  </TileTitle>
                   <TileDescription>{member.user.email}</TileDescription>
                 </TileHeader>
                 <TileAction className="flex-1 min-w-0">
@@ -335,23 +349,7 @@ export default function SettingsOrganizationPageMembers({
                           : member.status}
                       </Badge>
                     )}
-                    {organization.plan === "pro" && seatAssigned && member.seatAssigned ? (
-                      <Badge
-                        variant="outline"
-                        className="gap-1 text-xs py-0 h-5 bg-green-100 border-green-300 text-green-800"
-                      >
-                        <IconShieldCheck className="size-3 shrink-0" />
-                        Seat assigned
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="gap-1 text-xs py-0 h-5 bg-yellow-100 border-yellow-300 text-yellow-800"
-                      >
-                        <IconShield className="size-3 shrink-0" />
-                        Assign seat
-                      </Badge>
-                    )}
+
                     {"teams" in member &&
                       member.teams &&
                       member.teams.length > 0 &&
@@ -391,6 +389,13 @@ export default function SettingsOrganizationPageMembers({
                 {member.user.name}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuCheckboxItem>
+                {organization.plan === "pro" &&
+                seatAssigned &&
+                member.seatAssigned
+                  ? "Unassign seat"
+                  : "Assign a seat"}
+              </DropdownMenuCheckboxItem>
 
               {canManageTeams && !isInvite && teams.length > 0 && (
                 <DropdownMenuSub>
@@ -423,9 +428,7 @@ export default function SettingsOrganizationPageMembers({
                               className="pointer-events-none"
                             />
                           )}
-                          <span className="truncate">
-                            {team.name}
-                          </span>
+                          <span className="truncate">{team.name}</span>
                         </DropdownMenuItem>
                       );
                     })}
