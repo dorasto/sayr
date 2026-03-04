@@ -1513,6 +1513,32 @@ export async function deleteIssueTemplateAction(
 }
 
 // ────────────────────────────────────
+//  Billing / Polar Portal Mutations
+// ────────────────────────────────────
+
+/**
+ * Updates the seat count on the org's Polar subscription.
+ *
+ * @param organizationId - The ID of the organization.
+ * @param seats - The new total seat count.
+ */
+export async function updateSubscriptionSeats(
+	organizationId: string,
+	seats: number,
+): Promise<{ success: boolean; data?: { seats: number }; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/polar/subscription/seats`, {
+		method: "PATCH",
+		body: JSON.stringify({ orgId: organizationId, seats }),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	});
+
+	return res.json();
+}
+
+// ────────────────────────────────────
 //  Billing / Polar Portal Fetchers
 // ────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Separator } from "@repo/ui/components/separator";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { getPlanLimits } from "./billing/billing-data";
@@ -9,9 +9,14 @@ import { BillingUpgradePrompt } from "./billing/billing-upgrade-prompt";
 import { BillingPlanComparison } from "./billing/billing-plan-comparison";
 import { BillingSubscriptionDetails } from "./billing/billing-subscription-details";
 import { BillingOrderHistory } from "./billing/billing-order-history";
+import { BillingSeatManagement } from "./billing/billing-seat-management";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useLayoutData } from "@/components/generic/Context";
 import { Button } from "@repo/ui/components/button";
+import {
+  getSubscriptionDetails,
+  type SubscriptionDetails,
+} from "@/lib/fetches/organization";
 
 const API_URL =
   import.meta.env.VITE_APP_ENV === "development"
@@ -22,6 +27,30 @@ export default function SettingsOrganizationBillingPage() {
   const { organization, setOrganization, views, issueTemplates, releases } =
     useLayoutOrganizationSettings();
   const memberCount = organization.members.filter((m) => m.seatAssigned).length ?? 0;
+  const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
+
+  const refreshSubscription = useCallback(() => {
+    if (organization.plan === "free" || !organization.polarSubscriptionId) return;
+    getSubscriptionDetails(organization.id).then((res) => {
+      if (res.success && res.data) {
+        setSubscription(res.data);
+      }
+    });
+  }, [organization.id, organization.plan, organization.polarSubscriptionId]);
+
+  useEffect(() => {
+    if (organization.plan === "free" || !organization.polarSubscriptionId) return;
+    let cancelled = false;
+    getSubscriptionDetails(organization.id).then((res) => {
+      if (cancelled) return;
+      if (res.success && res.data) {
+        setSubscription(res.data);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [organization.id, organization.plan, organization.polarSubscriptionId]);
 
   const isAdmin = useMemo(() => {
     if (!account) return false;
@@ -68,7 +97,8 @@ export default function SettingsOrganizationBillingPage() {
   return (
     <div className="flex flex-col gap-9">
       <BillingCurrentPlan memberCount={memberCount} />
-      {isAdmin && <BillingSubscriptionDetails memberCount={memberCount} />}
+      {isAdmin && <BillingSubscriptionDetails memberCount={memberCount} subscription={subscription} />}
+      {isAdmin && <BillingSeatManagement subscription={subscription} onSeatsUpdated={refreshSubscription} />}
       <BillingUsage usage={usage} />
       {isAdmin && <BillingOrderHistory />}
       {isAdmin && (

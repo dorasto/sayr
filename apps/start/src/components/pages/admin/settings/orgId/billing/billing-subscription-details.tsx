@@ -1,26 +1,14 @@
-import { useEffect, useState } from "react";
 import { Badge } from "@repo/ui/components/badge";
-import {
-  Tile,
-  TileDescription,
-  TileHeader,
-  TileIcon,
-  TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+import { Tile } from "@repo/ui/components/doras-ui/tile";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Label } from "@repo/ui/components/label";
 import {
-  IconCreditCard,
-  IconCalendar,
   IconUsers,
   IconAlertTriangle,
   IconSparkles,
 } from "@tabler/icons-react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import {
-  getSubscriptionDetails,
-  type SubscriptionDetails,
-} from "@/lib/fetches/organization";
+import type { SubscriptionDetails } from "@/lib/fetches/organization";
 import { cn } from "@/lib/utils";
 import { Separator } from "@repo/ui/components/separator";
 
@@ -94,49 +82,21 @@ function getIntervalLabel(interval: string): string {
 
 interface BillingSubscriptionDetailsProps {
   memberCount: number;
+  subscription: SubscriptionDetails | null;
 }
 
 export function BillingSubscriptionDetails({
   memberCount,
+  subscription,
 }: BillingSubscriptionDetailsProps) {
   const { organization } = useLayoutOrganizationSettings();
-  const [subscription, setSubscription] = useState<SubscriptionDetails | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (organization.plan === "free" || !organization.polarSubscriptionId) {
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    getSubscriptionDetails(organization.id).then((res) => {
-      if (cancelled) return;
-      if (res.success && res.data) {
-        setSubscription(res.data);
-      } else {
-        setError(res.error ?? "Failed to load subscription");
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [organization.id, organization.plan, organization.polarSubscriptionId]);
 
   // Free plan — don't show subscription details
   if (organization.plan === "free" || !organization.polarSubscriptionId) {
     return null;
   }
 
-  if (loading) {
+  if (!subscription) {
     return (
       <div className="flex flex-col gap-3">
         <Label variant="subheading">Subscription</Label>
@@ -145,27 +105,6 @@ export function BillingSubscriptionDetails({
             <Skeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (error || !subscription) {
-    return (
-      <div className="flex flex-col gap-3">
-        <Label variant="subheading">Subscription</Label>
-        <Tile variant="outline" className="md:w-full">
-          <TileHeader>
-            <TileIcon className="bg-destructive/10 border-none">
-              <IconAlertTriangle className="size-4! text-destructive" />
-            </TileIcon>
-            <TileTitle className="text-sm">
-              Unable to load subscription details
-            </TileTitle>
-            <TileDescription>
-              {error ?? "No subscription data available"}
-            </TileDescription>
-          </TileHeader>
-        </Tile>
       </div>
     );
   }
@@ -198,6 +137,7 @@ export function BillingSubscriptionDetails({
               {getStatusLabel(subscription.status)}
             </Badge>
           </div>
+
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-semibold text-foreground">
               {formatCurrency(subscription.amount, subscription.currency)}
@@ -206,12 +146,16 @@ export function BillingSubscriptionDetails({
               /{getIntervalLabel(subscription.recurringInterval)}
             </span>
           </div>
-          {subscription.seats != null && (
-            <span className="text-xs text-muted-foreground">
-              {formatCurrency(pricePerSeat, subscription.currency)}/seat/
+          <div className="flex items-baseline gap-1">
+            <span className="font-semibold text-foreground">
+              {subscription.seats} seats
+            </span>
+            <span className="text-sm text-muted-foreground">
+              at {formatCurrency(pricePerSeat, subscription.currency)}/seat/
               {getIntervalLabel(subscription.recurringInterval)}
             </span>
-          )}
+          </div>
+
           <Separator />
           <div className="flex flex-col gap-1 w-full">
             <div className="flex items-center justify-between">

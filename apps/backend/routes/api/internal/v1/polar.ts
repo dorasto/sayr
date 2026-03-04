@@ -328,4 +328,72 @@ app.get("/orders/:orderId/invoice", async (c) => {
 	}
 });
 
+/**
+ * PATCH /polar/subscription/seats
+ * Updates the seat count on the org's Polar subscription.
+ * Body: { orgId: string; seats: number }
+ */
+app.patch("/subscription/seats", async (c) => {
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const body = await c.req.json<{ orgId?: string; seats?: number }>();
+	const { orgId, seats } = body;
+
+	if (!orgId) {
+		return c.json({ success: false, error: "Missing orgId" }, 400);
+	}
+	if (typeof seats !== "number" || seats < 1 || !Number.isInteger(seats)) {
+		return c.json({ success: false, error: "seats must be a positive integer" }, 400);
+	}
+	if (seats > 1000) {
+		return c.json({ success: false, error: "Maximum seat count is 1000" }, 400);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	const org = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+	});
+
+	if (!org) {
+		return c.json({ success: false, error: "Organization not found" }, 404);
+	}
+	if (!org.polarCustomerId) {
+		return c.json({ success: false, error: "No billing customer linked" }, 400);
+	}
+	if (!org.polarSubscriptionId) {
+		return c.json({ success: false, error: "No active subscription" }, 400);
+	}
+
+	try {
+		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
+		const updated = await polarClient.customerPortal.subscriptions.update(
+			{ customerSession: token },
+			{
+				id: org.polarSubscriptionId,
+				customerSubscriptionUpdate: {
+					seats,
+				},
+			},
+		);
+
+		return c.json({
+			success: true,
+			data: {
+				seats: updated.seats ?? seats,
+			},
+		});
+	} catch (err) {
+		console.error("Failed to update subscription seats on Polar", err);
+		return c.json({ success: false, error: "Failed to update seat count" }, 500);
+	}
+});
+
 export const apiRoutePolar = app;
