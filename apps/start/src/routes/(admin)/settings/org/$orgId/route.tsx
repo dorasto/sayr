@@ -5,6 +5,7 @@ import {
 	getIssueTemplates,
 	getLabels,
 	getOrganization,
+	getOrgPermissions,
 	getReleases,
 	getTasksByOrganizationId,
 	schema,
@@ -13,9 +14,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 
 export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType; orgId: string }) => data)
+	.inputValidator((data: { account: schema.userType; orgId: string; permissions: schema.TeamPermissions }) => data)
 	.handler(async ({ data }) => {
-		const { account, orgId } = data;
+		const { account, orgId, permissions } = data;
 		try {
 			if (!orgId) {
 				throw redirect({ to: "/" });
@@ -35,7 +36,7 @@ export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 			});
 			const issueTemplates = await getIssueTemplates(organization.id);
 			const releases = await getReleases(organization.id);
-			return { organization, labels, views, categories, tasks, issueTemplates, releases };
+			return { organization, labels, views, categories, tasks, issueTemplates, releases, permissions };
 		} catch (error) {
 			console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it
@@ -45,16 +46,40 @@ export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 			throw redirect({ to: "/" });
 		}
 	});
-
+export const getUserOrgPermissions = createServerFn({ method: "GET" })
+	.inputValidator((data: { account: schema.userType; orgId: string }) => data)
+	.handler(async ({ data }) => {
+		try {
+			const permissions = await getOrgPermissions(data.account.id, data.orgId);
+			return {
+				account: data.account,
+				orgId: data.orgId,
+				permissions,
+			};
+		} catch (error) {
+			console.error("Error fetching org permissions:", error);
+			if (error && typeof error === "object" && "redirect" in error) {
+				throw error;
+			}
+			throw redirect({ to: "/login" });
+		}
+	});
 export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 	loader: async ({ params, context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/login" });
 		}
+		const { permissions } = await getUserOrgPermissions({
+			data: {
+				account: context.account,
+				orgId: params.orgId,
+			},
+		});
 		return await getAdminOrganizationSettings({
 			data: {
 				account: context.account,
 				orgId: params.orgId,
+				permissions: permissions as any,
 			},
 		});
 	},
@@ -62,7 +87,7 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 });
 
 function RouteComponent() {
-	const { organization, labels, views, categories, tasks, issueTemplates, releases } = Route.useLoaderData();
+	const { organization, labels, views, categories, tasks, issueTemplates, releases, permissions } = Route.useLoaderData();
 	return (
 		<SettingsProviderOrganization
 			organization={organization}
@@ -72,6 +97,7 @@ function RouteComponent() {
 			tasks={tasks}
 			issueTemplates={issueTemplates}
 			releases={releases}
+			permissions={permissions}
 		>
 			<Outlet />
 		</SettingsProviderOrganization>

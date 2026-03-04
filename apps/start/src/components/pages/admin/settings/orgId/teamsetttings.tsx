@@ -8,6 +8,7 @@ const defaultTeamPermissions: TeamPermissions = {
 		administrator: false,
 		manageMembers: false,
 		manageTeams: false,
+		billing: false,
 	},
 	content: {
 		manageCategories: false,
@@ -117,8 +118,8 @@ export default function SettingsOrganizationPageTeamSettings({
 	const hasChanges = isNew
 		? name.length > 0
 		: name !== team?.name ||
-			description !== (team?.description || "") ||
-			JSON.stringify(permissions) !== JSON.stringify(team?.permissions);
+		description !== (team?.description || "") ||
+		JSON.stringify(permissions) !== JSON.stringify(team?.permissions);
 
 	// Reset form when team changes
 	useEffect(() => {
@@ -484,6 +485,13 @@ export default function SettingsOrganizationPageTeamSettings({
 									description="Create, edit, and delete teams"
 									checked={permissions.admin.manageTeams}
 									onCheckedChange={(checked) => updateAdminPermission("manageTeams", checked)}
+									disabled={isAdmin}
+								/>
+								<PermissionRow
+									label="Manage billing"
+									description="Access billing information and manage subscription (if applicable)"
+									checked={permissions.admin.billing}
+									onCheckedChange={(checked) => updateAdminPermission("billing", checked)}
 									disabled={isAdmin}
 								/>
 							</div>

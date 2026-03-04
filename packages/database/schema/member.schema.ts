@@ -28,6 +28,7 @@ export const team = table(
 					administrator: false,
 					manageMembers: false,
 					manageTeams: false,
+					billing: false,
 				},
 				content: {
 					manageCategories: false,
@@ -159,6 +160,8 @@ export interface TeamPermissions {
 		manageMembers: boolean;
 		/** Create, edit, and delete teams */
 		manageTeams: boolean;
+		/** Manage billing and subscription (if applicable) */
+		billing: boolean;
 	};
 	/** Content and settings management */
 	content: {
@@ -201,6 +204,7 @@ export const defaultTeamPermissions: TeamPermissions = {
 		administrator: false,
 		manageMembers: false,
 		manageTeams: false,
+		billing: false,
 	},
 	content: {
 		manageCategories: false,

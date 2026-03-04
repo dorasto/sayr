@@ -22,6 +22,7 @@ interface ContextType {
 	setProjectPanelOpen: (newValue: boolean) => void;
 	isMobile: boolean;
 	isMobileHydrated: boolean;
+	permissions: schema.TeamPermissions;
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);
@@ -34,6 +35,7 @@ export function RootProviderOrganization({
 	categories: initialCategories,
 	issueTemplates: initialIssueTemplates,
 	releases: initialReleases,
+	permissions: initialPermissions,
 }: {
 	children: ReactNode;
 	organization: ContextType["organization"];
@@ -42,6 +44,7 @@ export function RootProviderOrganization({
 	categories: ContextType["categories"];
 	issueTemplates: ContextType["issueTemplates"];
 	releases: ContextType["releases"];
+	permissions: ContextType["permissions"];
 }) {
 	const isMobile = useIsMobile();
 	const { isHydrated } = useHydration();
@@ -53,6 +56,7 @@ export function RootProviderOrganization({
 	const { value: categories, setValue: setCategories } = useStateManagementKey(["categories", initialOrganization.id], initialCategories, 30000);
 	const { value: issueTemplates, setValue: setIssueTemplates } = useStateManagementKey(["issueTemplates", initialOrganization.id], initialIssueTemplates, 30000);
 	const { value: releases, setValue: setReleases } = useStateManagementKey(["releases", initialOrganization.id], initialReleases, 30000);
+	const { value: permissions } = useStateManagementKey(["permissions", initialOrganization.id], initialPermissions, 30000);
 	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement("isProjectPanelOpen", true, 30000);
 
 	// After hydration, sync panel state with mobile detection (only once)
@@ -81,6 +85,7 @@ export function RootProviderOrganization({
 				setProjectPanelOpen,
 				isMobile,
 				isMobileHydrated: isHydrated,
+				permissions: permissions!,
 			}}
 		>
 			{children}

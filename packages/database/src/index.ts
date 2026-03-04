@@ -20,6 +20,7 @@ const fullPermissions: TeamPermissions = {
 		administrator: true,
 		manageMembers: true,
 		manageTeams: true,
+		billing: true,
 	},
 	content: {
 		manageCategories: true,

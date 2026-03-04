@@ -20,6 +20,7 @@ interface ContextType {
 	setReleases: (newValue: ContextType["releases"]) => void;
 	isProjectPanelOpen: boolean;
 	setProjectPanelOpen: (newValue: boolean) => void;
+	permissions: schema.TeamPermissions;
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);
@@ -33,6 +34,7 @@ export function SettingsProviderOrganization({
 	tasks: initialTasks,
 	issueTemplates: initialIssueTemplates,
 	releases: initialReleases,
+	permissions: initialPermissions,
 }: {
 	children: ReactNode;
 	organization: ContextType["organization"];
@@ -42,6 +44,7 @@ export function SettingsProviderOrganization({
 	tasks: ContextType["tasks"];
 	issueTemplates: ContextType["issueTemplates"];
 	releases: ContextType["releases"];
+	permissions: ContextType["permissions"];
 }) {
 	const { value: organization, setValue: setOrganization } = useStateManagementKey(["organization", initialOrganization.id], initialOrganization, 30000);
 	const { value: labels, setValue: setLabels } = useStateManagementKey(["labels", initialOrganization.id], initialLabels, 30000);
@@ -50,6 +53,7 @@ export function SettingsProviderOrganization({
 	const { value: tasks, setValue: setTasks } = useStateManagementKey(["tasks", initialOrganization.id], initialTasks, 30000);
 	const { value: issueTemplates, setValue: setIssueTemplates } = useStateManagementKey(["issueTemplates", initialOrganization.id], initialIssueTemplates, 30000);
 	const { value: releases, setValue: setReleases } = useStateManagementKey(["releases", initialOrganization.id], initialReleases, 30000);
+	const { value: permissions } = useStateManagementKey(["permissions", initialOrganization.id], initialPermissions, 30000);
 	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement("isProjectPanelOpen", true, 30000);
 
 	return (
@@ -71,6 +75,7 @@ export function SettingsProviderOrganization({
 				setReleases,
 				isProjectPanelOpen,
 				setProjectPanelOpen,
+				permissions,
 			}}
 		>
 			{children}

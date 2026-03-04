@@ -4,9 +4,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 
 export const getAdminOrganization = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType; orgId: string }) => data)
+	.inputValidator((data: { account: schema.userType; orgId: string, permissions: schema.TeamPermissions }) => data)
 	.handler(async ({ data }) => {
-		const { account, orgId } = data;
+		const { account, orgId, permissions } = data;
 		try {
 			if (!orgId) {
 				throw redirect({ to: "/" });
@@ -25,7 +25,7 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			});
 			const issueTemplates = await getIssueTemplates(organization.id);
 			const releases = await getReleases(organization.id);
-			return { organization, labels, views, categories, issueTemplates, releases };
+			return { organization, labels, views, categories, issueTemplates, releases, permissions };
 		} catch (error) {
 			// console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it

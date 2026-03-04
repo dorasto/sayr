@@ -78,6 +78,13 @@
       "when": 1772510101938,
       "tag": "20260303035501_jittery_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772621763476,
+      "tag": "20260304105603_lethal_meltdown",
+      "breakpoints": true
     }
   ]
 }
