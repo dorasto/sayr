@@ -1904,6 +1904,31 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to invite members." }, 401);
 	}
 
+	// Enforce seat limit: check if inviting would exceed seat capacity
+	const org = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { seatCount: true, plan: true },
+	});
+	const assignedCount = await db.query.member.findMany({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.seatAssigned, true)),
+		columns: { id: true },
+	});
+	const pendingInvites = await db.query.invite.findMany({
+		where: and(eq(schema.invite.organizationId, orgId), eq(schema.invite.status, "pending")),
+		columns: { id: true },
+	});
+	const effectiveUsed = assignedCount.length + pendingInvites.length;
+	const seatLimit = org?.seatCount ?? 0;
+	if (effectiveUsed + emails.length > seatLimit) {
+		const available = Math.max(0, seatLimit - effectiveUsed);
+		return c.json({
+			success: false,
+			error: available === 0
+				? "Seat limit reached. Upgrade your plan or free up seats before inviting new members."
+				: `You can only invite ${available} more member${available === 1 ? "" : "s"} within your current seat limit.`,
+		}, 403);
+	}
+
 	const { invites, failedEmails } = await traceAsync(
 		"member.invite.process",
 		async () => {
@@ -2028,41 +2053,80 @@ apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 	if (!member) {
 		return c.json({ success: false, error: "Member not found." }, 404);
 	}
-	if (member.seatAssignedId) {
+	if (member.seatAssigned) {
 		return c.json({ success: false, error: "Member already has a seat assigned." }, 400);
 	}
+
 	const org = await db.query.organization.findFirst({
 		where: eq(schema.organization.id, orgId),
-		columns: { polarSubscriptionId: true }
+		columns: { polarSubscriptionId: true, plan: true, seatCount: true },
 	});
-	const seatId = await traceAsync(
-		"member.seatAssign.assign",
-		async () => {
-			const seat = await polarClient.customerSeats.assignSeat({
-				subscriptionId: org?.polarSubscriptionId || "",
-				externalCustomerId: member.userId,
-				immediateClaim: true,
-				metadata: {
-					userId: member.userId,
-					organizationId: orgId,
-					action: "seat_assign",
-				}
+
+	// Enforce seat limit: check current assigned count against seatCount
+	const assignedMembers = await db.query.member.findMany({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.seatAssigned, true)),
+		columns: { id: true },
+	});
+	if (assignedMembers.length >= (org?.seatCount ?? 0)) {
+		return c.json({ success: false, error: "Seat limit reached. Upgrade your plan or remove seats from other members." }, 403);
+	}
+
+	// Pro plan with active subscription: go through Polar
+	if (org?.plan === "pro" && org?.polarSubscriptionId) {
+		const seatId = await traceAsync(
+			"member.seatAssign.assign",
+			async () => {
+				const seat = await polarClient.customerSeats.assignSeat({
+					subscriptionId: org.polarSubscriptionId || "",
+					externalCustomerId: member.userId,
+					immediateClaim: true,
+					metadata: {
+						userId: member.userId,
+						organizationId: orgId,
+						action: "seat_assign",
+					}
+				});
+				return seat.id;
+			},
+			{ description: "Assigning seat to member via Polar", data: { orgId, userId } }
+		);
+		const updatedMember = await traceAsync(
+			"member.seatAssign.update_member",
+			async () => {
+				const [updated] = await db
+					.update(schema.member)
+					.set({ seatAssignedId: seatId, seatAssigned: true })
+					.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
+					.returning();
+				return updated;
+			},
+			{ description: "Updating member with seat assignment", data: { orgId, userId, seatId } }
+		);
+		if (!updatedMember) {
+			await recordWideError({
+				name: "member.seatAssign.update_member_failed",
+				error: new Error("Failed to update member with seat assignment"),
+				code: "MEMBER_SEAT_ASSIGNMENT_FAILED",
+				message: "Failed to assign seat to member.",
+				contextData: { orgId, userId, seatId },
 			});
-			return seat.id;
-		},
-		{ description: "Assigning seat to member", data: { orgId, userId } }
-	);
+			return c.json({ success: false, error: "Failed to assign seat to member." }, 500);
+		}
+		return c.json({ success: true, member: updatedMember });
+	}
+
+	// Free plan (or no active Polar subscription): toggle directly in DB
 	const updatedMember = await traceAsync(
-		"member.seatAssign.update_member",
+		"member.seatAssign.update_member_local",
 		async () => {
 			const [updated] = await db
 				.update(schema.member)
-				.set({ seatAssignedId: seatId, seatAssigned: true })
+				.set({ seatAssigned: true })
 				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
 				.returning();
 			return updated;
 		},
-		{ description: "Updating member with seat assignment", data: { orgId, userId, seatId } }
+		{ description: "Assigning seat to member (local)", data: { orgId, userId } }
 	);
 	if (!updatedMember) {
 		await recordWideError({
@@ -2070,14 +2134,11 @@ apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 			error: new Error("Failed to update member with seat assignment"),
 			code: "MEMBER_SEAT_ASSIGNMENT_FAILED",
 			message: "Failed to assign seat to member.",
-			contextData: { orgId, userId, seatId },
+			contextData: { orgId, userId },
 		});
 		return c.json({ success: false, error: "Failed to assign seat to member." }, 500);
 	}
-	return c.json({
-		success: true,
-		member: updatedMember,
-	});
+	return c.json({ success: true, member: updatedMember });
 });
 
 apiRouteAdminOrganization.patch(
@@ -2135,7 +2196,7 @@ apiRouteAdminOrganization.patch(
 			);
 		}
 
-		if (!member.seatAssignedId) {
+		if (!member.seatAssigned) {
 			return c.json(
 				{
 					success: false,
@@ -2146,30 +2207,37 @@ apiRouteAdminOrganization.patch(
 			);
 		}
 
-		// ✅ Unassign seat from Polar
-		await traceAsync(
-			"member.seatUnassign.unassign",
-			async () => {
-				await polarClient.customerSeats.revokeSeat(
-					{
-						seatId:
-							member.seatAssignedId || "",
-					},
-				);
-			},
-			{
-				description:
-					"Unassigning seat from member",
-				data: {
-					orgId,
-					userId,
-					seatId:
-						member.seatAssignedId,
-				},
-			},
-		);
+		const org = await db.query.organization.findFirst({
+			where: eq(schema.organization.id, orgId),
+			columns: { polarSubscriptionId: true, plan: true },
+		});
 
-		// ✅ Update member record
+		// Pro plan with active subscription and a Polar seat ID: revoke via Polar
+		if (org?.plan === "pro" && org?.polarSubscriptionId && member.seatAssignedId) {
+			await traceAsync(
+				"member.seatUnassign.unassign",
+				async () => {
+					await polarClient.customerSeats.revokeSeat(
+						{
+							seatId:
+								member.seatAssignedId || "",
+						},
+					);
+				},
+				{
+					description:
+						"Unassigning seat from member via Polar",
+					data: {
+						orgId,
+						userId,
+						seatId:
+							member.seatAssignedId,
+					},
+				},
+			);
+		}
+
+		// Update member record (works for both Pro and Free)
 		const updatedMember =
 			await traceAsync(
 				"member.seatUnassign.update_member",

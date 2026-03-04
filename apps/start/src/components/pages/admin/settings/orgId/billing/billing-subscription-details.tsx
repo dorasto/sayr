@@ -9,12 +9,25 @@ import { Label } from "@repo/ui/components/label";
 import { Progress } from "@repo/ui/components/progress";
 import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
+import { Button } from "@repo/ui/components/button";
+import {
   IconAlertTriangle,
   IconSparkles,
   IconInfoCircle,
 } from "@tabler/icons-react";
+import { useState } from "react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import type { SubscriptionDetails } from "@/lib/fetches/organization";
+import { revokeSubscription } from "@/lib/fetches/organization";
 import { cn } from "@/lib/utils";
 import { Separator } from "@repo/ui/components/separator";
 
@@ -88,15 +101,32 @@ function getIntervalLabel(interval: string): string {
 
 interface BillingSubscriptionDetailsProps {
   subscription: SubscriptionDetails | null;
+  onSubscriptionRevoked?: () => void;
 }
 
 export function BillingSubscriptionDetails({
   subscription,
+  onSubscriptionRevoked,
 }: BillingSubscriptionDetailsProps) {
   const { organization } = useLayoutOrganizationSettings();
+  const [revokeLoading, setRevokeLoading] = useState(false);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
 
   const members = organization.members ?? [];
   const assignedCount = members.filter((m) => m.seatAssigned).length;
+
+  const handleRevokeNow = async () => {
+    setRevokeLoading(true);
+    try {
+      const result = await revokeSubscription(organization.id);
+      if (result.success) {
+        setRevokeDialogOpen(false);
+        onSubscriptionRevoked?.();
+      }
+    } finally {
+      setRevokeLoading(false);
+    }
+  };
 
   // Free plan — don't show subscription details
   if (organization.plan === "free" || !organization.polarSubscriptionId) {
@@ -116,9 +146,8 @@ export function BillingSubscriptionDetails({
     );
   }
 
-  const isCanceling =
-    subscription.cancelAtPeriodEnd && !subscription.canceledAt;
   const isCanceled = subscription.status === "canceled";
+  const isCanceling = subscription.cancelAtPeriodEnd && !isCanceled;
   const pricePerSeat = subscription.seats
     ? subscription.amount / subscription.seats
     : subscription.amount;
@@ -137,12 +166,20 @@ export function BillingSubscriptionDetails({
                 {subscription.product.name}
               </span>
             </div>
-            <Badge
-              variant="outline"
-              className={cn("text-xs", getStatusColor(subscription.status))}
-            >
-              {getStatusLabel(subscription.status)}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {isCanceling ? (
+                <Badge variant="outline" className="text-xs text-yellow-500">
+                  To be canceled
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className={cn("text-xs", getStatusColor(subscription.status))}
+                >
+                  {getStatusLabel(subscription.status)}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="flex items-baseline gap-1">
@@ -185,15 +222,66 @@ export function BillingSubscriptionDetails({
               </div>
             )}
           </div>
-          {(isCanceling || isCanceled) && (
-            <div className="flex items-center gap-1.5 mt-1">
+          {isCanceling && (
+            <div className="flex items-center gap-1.5">
               <IconAlertTriangle className="size-3.5 text-yellow-500" />
               <span className="text-xs text-yellow-500">
-                {isCanceled
-                  ? "Subscription canceled"
-                  : `Cancels ${formatDate(subscription.currentPeriodEnd)}`}
+                Cancels {formatDate(subscription.currentPeriodEnd)}
               </span>
             </div>
+          )}
+          {isCanceled && (
+            <div className="flex items-center gap-1.5">
+              <IconAlertTriangle className="size-3.5 text-yellow-500" />
+              <span className="text-xs text-yellow-500">
+                Subscription canceled
+              </span>
+            </div>
+          )}
+          {/* Cancel Now — testing only, remove before production */}
+          {!isCanceled && (
+            <AlertDialog
+              open={revokeDialogOpen}
+              onOpenChange={setRevokeDialogOpen}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-fit ml-auto"
+                >
+                  Cancel subscription immediately
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle asChild>
+                    <Label variant="heading">
+                      Cancel subscription immediately?
+                    </Label>
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <Label variant="description">
+                      This will immediately revoke your Pro subscription. Your
+                      organization will be downgraded to the free plan and
+                      excess members may lose access. This cannot be undone.
+                    </Label>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={revokeLoading}>
+                    Keep subscription
+                  </AlertDialogCancel>
+                  <Button
+                    variant="destructive"
+                    disabled={revokeLoading}
+                    onClick={handleRevokeNow}
+                  >
+                    {revokeLoading ? "Canceling..." : "Cancel now"}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </Tile>
 

@@ -298,7 +298,7 @@ export default function SettingsOrganizationPageMembers({
             : [],
         );
         const isInvite = "status" in member;
-        const seatAssigned = "seatAssigned" in member;
+        const hasSeat = "seatAssigned" in member ? member.seatAssigned : false;
 
         return (
           <DropdownMenu key={member.id}>
@@ -323,18 +323,15 @@ export default function SettingsOrganizationPageMembers({
                   </TileIcon>
                   <TileTitle>
                     {member.user.name}{" "}
-                    {organization.plan === "pro" &&
-                      seatAssigned &&
-                      member.seatAssigned ? null :
-                      organization.plan === "free" ? null : (
-                        <Badge
-                          variant="outline"
-                          className="gap-1 text-xs py-0 px-2 h-4 bg-destructive/50 border-destructive text-destructive-foreground"
-                        >
-                          <IconShield className="size-3 shrink-0" />
-                          No seat
-                        </Badge>
-                      )}
+                    {!isInvite && !hasSeat && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-xs py-0 px-2 h-4 bg-destructive/50 border-destructive text-destructive-foreground"
+                      >
+                        <IconShield className="size-3 shrink-0" />
+                        No seat
+                      </Badge>
+                    )}
                   </TileTitle>
                   <TileDescription>{member.user.email}</TileDescription>
                 </TileHeader>

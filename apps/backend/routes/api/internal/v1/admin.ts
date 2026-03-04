@@ -126,6 +126,21 @@ apiRouteAdmin.post("/invite", async (c) => {
 	);
 
 	if (type === "accept") {
+		const org = await db.query.organization.findFirst({
+			where: eq(schema.organization.id, invite.organizationId),
+		});
+
+		// Enforce seat limit before accepting
+		const assignedMembers = await db.query.member.findMany({
+			where: and(
+				eq(schema.member.organizationId, invite.organizationId),
+				eq(schema.member.seatAssigned, true),
+			),
+			columns: { id: true },
+		});
+		const seatLimit = org?.seatCount ?? 0;
+		const hasAvailableSeat = assignedMembers.length < seatLimit;
+
 		await traceAsync(
 			"invite.response.create_member",
 			() =>
@@ -133,31 +148,38 @@ apiRouteAdmin.post("/invite", async (c) => {
 					id: randomUUID(),
 					userId: session.userId,
 					organizationId: invite.organizationId,
+					seatAssigned: hasAvailableSeat,
 				}),
 			{
 				description: "Creating organization membership",
 				data: {
 					user: { id: session.userId },
 					organization: { id: invite.organizationId },
+					seatAssigned: hasAvailableSeat,
 				},
 				onSuccess: () => ({
 					outcome: "Membership created",
 				}),
 			}
 		);
-		const org = await db.query.organization.findFirst({
-			where: eq(schema.organization.id, invite.organizationId),
-		});
-		await polarClient.customerSeats.assignSeat({
-			subscriptionId: org?.polarSubscriptionId || "",
-			externalCustomerId: session.userId,
-			immediateClaim: true,
-			metadata: {
-				userId: session.userId,
-				organizationId: invite.organizationId,
-				action: "invite_accept_seat_assignment",
+
+		// Only assign via Polar if Pro plan with active subscription and seat available
+		if (hasAvailableSeat && org?.plan === "pro" && org?.polarSubscriptionId) {
+			try {
+				await polarClient.customerSeats.assignSeat({
+					subscriptionId: org.polarSubscriptionId,
+					externalCustomerId: session.userId,
+					immediateClaim: true,
+					metadata: {
+						userId: session.userId,
+						organizationId: invite.organizationId,
+						action: "invite_accept_seat_assignment",
+					}
+				});
+			} catch (err) {
+				console.error("Failed to assign Polar seat on invite accept:", err);
 			}
-		});
+		}
 
 		// ✅ Trace acceptance event
 		await traceAsync(

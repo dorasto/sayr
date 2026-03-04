@@ -42,7 +42,6 @@ import {
   IconMinus,
   IconPlus,
   IconArrowRight,
-  IconAdjustments,
 } from "@tabler/icons-react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import {
@@ -130,9 +129,7 @@ export function BillingSeatManagement({
       });
   }, [members, search, filter]);
 
-  if (!isPro || !organization.polarSubscriptionId) {
-    return null;
-  }
+  const canAdjustSeats = isPro && !!organization.polarSubscriptionId;
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredMembers.length / PAGE_SIZE));
@@ -242,146 +239,158 @@ export function BillingSeatManagement({
           <span className="text-xs text-muted-foreground">
             {assignedCount} / {totalSeats} seats used
           </span>
-          <AlertDialog open={adjustOpen} onOpenChange={handleAdjustOpen}>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="primary"
-                size="sm"
-                className="h-7 text-xs px-2 bg-secondary hover:bg-accent hover:border-primary"
-              >
-                Add or remove seats
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle asChild>
-                  <Label variant={"heading"}>Adjust seat count</Label>
-                </AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <Label variant={"description"}>
-                    Change the number of seats on your subscription. You cannot
-                    go below the number of currently assigned seats (
-                    {assignedCount}).
-                  </Label>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-
-              <div className="flex flex-col gap-4 py-2">
-                {/* Stepper */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Seats</span>
-                  <ButtonGroup>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={newSeatCount <= minSeats}
-                      onClick={() =>
-                        setNewSeatCount((c) => Math.max(minSeats, c - 1))
-                      }
-                    >
-                      <IconMinus className="size-3.5" />
-                    </Button>
-                    <ButtonGroupText className="h-8 min-w-14 justify-center p-0">
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={minSeats}
-                        max={MAX_SEATS}
-                        value={newSeatCount}
-                        onChange={(e) => {
-                          const parsed = Number.parseInt(e.target.value, 10);
-                          if (!Number.isNaN(parsed)) {
-                            setNewSeatCount(
-                              Math.max(minSeats, Math.min(MAX_SEATS, parsed)),
-                            );
-                          }
-                        }}
-                        onBlur={() => {
-                          if (newSeatCount < minSeats) {
-                            setNewSeatCount(minSeats);
-                          } else if (newSeatCount > MAX_SEATS) {
-                            setNewSeatCount(MAX_SEATS);
-                          }
-                        }}
-                        className="h-full w-full bg-transparent text-center text-sm tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                    </ButtonGroupText>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={newSeatCount >= MAX_SEATS}
-                      onClick={() =>
-                        setNewSeatCount((c) => Math.min(MAX_SEATS, c + 1))
-                      }
-                    >
-                      <IconPlus className="size-3.5" />
-                    </Button>
-                  </ButtonGroup>
-                </div>
-
-                {/* Pricing info */}
-                {perSeatPrice !== null && (
-                  <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/50 p-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Per seat</span>
-                      <span>
-                        {formatCurrency(perSeatPrice)} /{" "}
-                        {subscription?.recurringInterval ?? "month"}
-                      </span>
-                    </div>
-                    {currentTotal !== null && newTotal !== null && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">New total</span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-muted-foreground line-through">
-                            {formatCurrency(currentTotal)}
-                          </span>
-                          <IconArrowRight className="size-3 text-muted-foreground" />
-                          <span className="font-medium">
-                            {formatCurrency(newTotal)}
-                          </span>
-                        </span>
-                      </div>
-                    )}
-                    {seatDiff !== 0 && (
-                      <div className="flex justify-between pt-1 border-t border-border">
-                        <span className="text-muted-foreground">
-                          {seatDiff > 0 ? "Adding" : "Removing"}{" "}
-                          {Math.abs(seatDiff)} seat
-                          {Math.abs(seatDiff) !== 1 ? "s" : ""}
-                        </span>
-                        <span
-                          className={
-                            seatDiff > 0 ? "text-foreground" : "text-success"
-                          }
-                        >
-                          {seatDiff > 0 ? "+" : "-"}
-                          {formatCurrency(
-                            Math.abs(seatDiff * perSeatPrice),
-                          )} / {subscription?.recurringInterval ?? "month"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={adjustLoading}>
-                  Cancel
-                </AlertDialogCancel>
+          {canAdjustSeats && (
+            <AlertDialog open={adjustOpen} onOpenChange={handleAdjustOpen}>
+              <AlertDialogTrigger asChild>
                 <Button
                   variant="primary"
-                  disabled={adjustLoading || newSeatCount === totalSeats}
-                  onClick={handleConfirmAdjust}
+                  size="sm"
+                  className="h-7 text-xs px-2 bg-secondary hover:bg-accent hover:border-primary"
                 >
-                  {adjustLoading ? "Updating..." : "Confirm"}
+                  Add or remove seats
                 </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle asChild>
+                    <Label variant={"heading"}>Adjust seat count</Label>
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <Label variant={"description"}>
+                      Change the number of seats on your subscription. You
+                      cannot go below the number of currently assigned seats (
+                      {assignedCount}).
+                    </Label>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="flex flex-col gap-4 py-2">
+                  {/* Stepper */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Seats</span>
+                    <ButtonGroup>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={newSeatCount <= minSeats}
+                        onClick={() =>
+                          setNewSeatCount((c) => Math.max(minSeats, c - 1))
+                        }
+                      >
+                        <IconMinus className="size-3.5" />
+                      </Button>
+                      <ButtonGroupText className="h-8 min-w-14 justify-center p-0">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={minSeats}
+                          max={MAX_SEATS}
+                          value={newSeatCount}
+                          onChange={(e) => {
+                            const parsed = Number.parseInt(
+                              e.target.value,
+                              10,
+                            );
+                            if (!Number.isNaN(parsed)) {
+                              setNewSeatCount(
+                                Math.max(
+                                  minSeats,
+                                  Math.min(MAX_SEATS, parsed),
+                                ),
+                              );
+                            }
+                          }}
+                          onBlur={() => {
+                            if (newSeatCount < minSeats) {
+                              setNewSeatCount(minSeats);
+                            } else if (newSeatCount > MAX_SEATS) {
+                              setNewSeatCount(MAX_SEATS);
+                            }
+                          }}
+                          className="h-full w-full bg-transparent text-center text-sm tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                      </ButtonGroupText>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={newSeatCount >= MAX_SEATS}
+                        onClick={() =>
+                          setNewSeatCount((c) => Math.min(MAX_SEATS, c + 1))
+                        }
+                      >
+                        <IconPlus className="size-3.5" />
+                      </Button>
+                    </ButtonGroup>
+                  </div>
+
+                  {/* Pricing info */}
+                  {perSeatPrice !== null && (
+                    <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/50 p-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Per seat</span>
+                        <span>
+                          {formatCurrency(perSeatPrice)} /{" "}
+                          {subscription?.recurringInterval ?? "month"}
+                        </span>
+                      </div>
+                      {currentTotal !== null && newTotal !== null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            New total
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground line-through">
+                              {formatCurrency(currentTotal)}
+                            </span>
+                            <IconArrowRight className="size-3 text-muted-foreground" />
+                            <span className="font-medium">
+                              {formatCurrency(newTotal)}
+                            </span>
+                          </span>
+                        </div>
+                      )}
+                      {seatDiff !== 0 && (
+                        <div className="flex justify-between pt-1 border-t border-border">
+                          <span className="text-muted-foreground">
+                            {seatDiff > 0 ? "Adding" : "Removing"}{" "}
+                            {Math.abs(seatDiff)} seat
+                            {Math.abs(seatDiff) !== 1 ? "s" : ""}
+                          </span>
+                          <span
+                            className={
+                              seatDiff > 0
+                                ? "text-foreground"
+                                : "text-success"
+                            }
+                          >
+                            {seatDiff > 0 ? "+" : "-"}
+                            {formatCurrency(
+                              Math.abs(seatDiff * perSeatPrice),
+                            )} / {subscription?.recurringInterval ?? "month"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={adjustLoading}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <Button
+                    variant="primary"
+                    disabled={adjustLoading || newSeatCount === totalSeats}
+                    onClick={handleConfirmAdjust}
+                  >
+                    {adjustLoading ? "Updating..." : "Confirm"}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 

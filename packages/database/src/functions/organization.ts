@@ -55,7 +55,6 @@ export async function getOrganizations(
 	const result = orgsWithMembers
 		// Step 3: Filter org access based on seat logic
 		.filter((org) => {
-			if (org.plan !== "pro") return true;
 			if (includeUnseated) return true;
 
 			const currentMember = org.members.find(
@@ -68,10 +67,7 @@ export async function getOrganizations(
 		.map((org) => {
 			let members = org.members;
 
-			if (
-				org.plan === "pro" &&
-				!includeUnseated
-			) {
+			if (!includeUnseated) {
 				members = members.filter(
 					(m) => m.seatAssigned,
 				);
@@ -96,7 +92,7 @@ export async function getOrganizations(
  * Retrieves a single organization by its ID **only if the user
  * belongs to it**, including all members and their user details.
  *
- * For organizations on the `"pro"` plan:
+ * For all plans:
  * - Members without an assigned seat are hidden by default.
  * - You can override this behavior by setting `includeUnseated: true`.
  *
@@ -104,7 +100,7 @@ export async function getOrganizations(
  * @param userId - The ID of the requesting user (must be a member).
  * @param options - Optional configuration.
  * @param options.includeUnseated - If `true`, includes members without
- * an assigned seat (Pro plan only). Defaults to `false`.
+ * an assigned seat. Defaults to `false`.
  *
  * @returns The organization with enriched member data, or `null`
  * if the user is not part of the organization.
@@ -165,7 +161,6 @@ export async function getOrganization(
 		return null;
 	}
 	if (blockOrgUnseated &&
-		organization.plan === "pro" &&
 		!member.seatAssigned
 	) {
 		return null;
@@ -173,11 +168,8 @@ export async function getOrganization(
 
 	let members = organization.members;
 
-	// If Pro plan and we're NOT including unseated → filter them out
-	if (
-		organization.plan === "pro" &&
-		!includeUnseated
-	) {
+	// If we're NOT including unseated → filter them out
+	if (!includeUnseated) {
 		members = members.filter((m) => m.seatAssigned);
 	}
 
@@ -265,12 +257,9 @@ export async function getOrganizationPublic(
 
 	if (!organization) return null;
 
-	const filteredMembers =
-		organization.plan === "pro"
-			? organization.members.filter(
-				(m) => m.seatAssigned,
-			)
-			: organization.members;
+	const filteredMembers = organization.members.filter(
+		(m) => m.seatAssigned,
+	);
 
 	return {
 		...organization,
@@ -482,15 +471,13 @@ export async function searchOrgMembers(
 
 	if (!organization) return [];
 
-	// Get members (filter seats if Pro)
+	// Get members (only those with assigned seats)
 	const members = await db.query.member.findMany({
 		where: (member) =>
-			organization.plan === "pro"
-				? and(
-					eq(member.organizationId, orgId),
-					eq(member.seatAssigned, true),
-				)
-				: eq(member.organizationId, orgId),
+			and(
+				eq(member.organizationId, orgId),
+				eq(member.seatAssigned, true),
+			),
 		with: {
 			user: {
 				columns: userSummaryColumns,

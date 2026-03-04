@@ -106,7 +106,13 @@ export default function SettingsOrganizationBillingPage() {
         totalMembers={totalMemberCount}
         subscription={subscription}
       />
-      {isAdmin && <BillingSubscriptionDetails subscription={subscription} />}
+      {organization.plan === "free" && <BillingUpgradePrompt />}
+      {isAdmin && (
+        <BillingSubscriptionDetails
+          subscription={subscription}
+          onSubscriptionRevoked={() => window.location.reload()}
+        />
+      )}
       {isAdmin && (
         <BillingSeatManagement
           subscription={subscription}
@@ -116,7 +122,6 @@ export default function SettingsOrganizationBillingPage() {
       <BillingUsage usage={usage} />
       {isAdmin && <BillingOrderHistory />}
 
-      {organization.plan === "free" && <BillingUpgradePrompt />}
       <Separator />
       <BillingPlanComparison />
     </div>

@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { db } from "@repo/database";
 import * as schema from "@repo/database";
-import { and, eq, or } from "drizzle-orm";
+import { type TeamPermissions } from "@repo/database";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { Polar, validateEvent, Subscription, CustomerSeat } from "@repo/auth";
 import { broadcastByUserId } from "../ws";
 
@@ -137,15 +138,94 @@ async function handleSubscriptionCanceled(data: Subscription) {
     const orgId = data.customer?.externalId;
     if (!orgId) return;
 
+    const FREE_SEAT_LIMIT = 5;
+
     await db.update(schema.schema.organization)
         .set({
             plan: "free",
-            seatCount: 5,
+            seatCount: FREE_SEAT_LIMIT,
             polarSubscriptionId: null,
         })
         .where(eq(schema.schema.organization.id, orgId));
 
-    console.log("❌ Subscription canceled:", orgId);
+    // Auto-assign seats to the top-priority members on downgrade.
+    // Priority order:
+    //   1. The Polar billing customer (matched by email)
+    //   2. Members with admin.administrator permission
+    //   3. Members with admin.billing permission
+    //   4. Remaining members by join date (oldest first)
+    const orgMembers = await db.query.member.findMany({
+        where: (member) => eq(member.organizationId, orgId),
+        with: {
+            user: true,
+            teams: {
+                with: { team: true },
+            },
+        },
+    });
+
+    const billingEmail = data.customer?.email?.toLowerCase();
+
+    // Helper: check if any of a member's teams grant a specific admin permission
+    const hasAdminPermission = (
+        member: typeof orgMembers[number],
+        key: "administrator" | "billing",
+    ): boolean => {
+        return (member.teams ?? []).some((mt) => {
+            const perms = mt.team?.permissions as TeamPermissions | null;
+            return perms?.admin?.[key] === true;
+        });
+    };
+
+    // Sort members by priority
+    const sorted = [...orgMembers].sort((a, b) => {
+        // 1. Polar billing customer first
+        const aIsBillingCustomer = a.user.email?.toLowerCase() === billingEmail ? 1 : 0;
+        const bIsBillingCustomer = b.user.email?.toLowerCase() === billingEmail ? 1 : 0;
+        if (aIsBillingCustomer !== bIsBillingCustomer) return bIsBillingCustomer - aIsBillingCustomer;
+
+        // 2. Administrators second
+        const aIsAdmin = hasAdminPermission(a, "administrator") ? 1 : 0;
+        const bIsAdmin = hasAdminPermission(b, "administrator") ? 1 : 0;
+        if (aIsAdmin !== bIsAdmin) return bIsAdmin - aIsAdmin;
+
+        // 3. Billing permission third
+        const aIsBilling = hasAdminPermission(a, "billing") ? 1 : 0;
+        const bIsBilling = hasAdminPermission(b, "billing") ? 1 : 0;
+        if (aIsBilling !== bIsBilling) return bIsBilling - aIsBilling;
+
+        // 4. Oldest members first (by createdAt)
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return aTime - bTime;
+    });
+
+    // Assign seats to the first N members, unassign the rest
+    const seatedIds = new Set(sorted.slice(0, FREE_SEAT_LIMIT).map((m) => m.id));
+
+    for (const member of sorted) {
+        const shouldHaveSeat = seatedIds.has(member.id);
+        await db.update(schema.schema.member)
+            .set({
+                seatAssigned: shouldHaveSeat,
+                seatAssignedId: null, // Clear Polar seat IDs since there's no active subscription
+            })
+            .where(eq(schema.schema.member.id, member.id));
+
+        // Notify each member of their seat status change
+        broadcastByUserId(member.userId, "", orgId, {
+            type: "MEMBER_ACTIONS",
+            data: {
+                organizationId: orgId,
+                userId: member.userId,
+                action: shouldHaveSeat ? "SEAT_ASSIGNED" : "SEAT_REVOKED",
+            },
+        });
+    }
+
+    console.log(
+        `❌ Subscription canceled for org ${orgId}. Auto-assigned ${seatedIds.size} seats to priority members out of ${sorted.length} total.`,
+    );
 }
 
 async function handleSeatRevoked(data: CustomerSeat) {
@@ -154,9 +234,12 @@ async function handleSeatRevoked(data: CustomerSeat) {
     });
 
     if (!org) {
-        console.warn(
-            "⚠️ Organization not found for revoked seat:",
-            data.subscriptionId
+        // If no org has this subscriptionId, it may have already been cancelled
+        // (polarSubscriptionId is cleared on cancellation). In that case,
+        // the cancellation handler already managed seat assignments — skip.
+        console.log(
+            "🪑 Skipping seat revocation — no active subscription found (likely already cancelled):",
+            data.subscriptionId,
         );
         return;
     }
