@@ -65,21 +65,52 @@ export const getUserOrgPermissions = createServerFn({ method: "GET" })
 		}
 	});
 export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
+	beforeLoad: async ({ params, context, location }) => {
+		const { account } = context;
+
+		// ❌ Skip non-app / internal routes
+		if (
+			location.external ||
+			location.pathname.startsWith("/.well-known")
+		) {
+			return;
+		}
+
+		const searchParams = new URLSearchParams(location.search);
+		const currentUrl = `${location.pathname}${searchParams.toString()
+			? `?${searchParams.toString()}`
+			: ""
+			}`;
+
+		if (!account) {
+			throw redirect({
+				to: "/login",
+				headers: {
+					"Set-Cookie": `post_login_redirect=${encodeURIComponent(
+						currentUrl
+					)}; Path=/; HttpOnly; SameSite=Lax`,
+				},
+			});
+		}
+
+		const { permissions } = await getUserOrgPermissions({
+			data: {
+				account,
+				orgId: params.orgId,
+			},
+		});
+
+		return { permissions };
+	},
 	loader: async ({ params, context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/login" });
 		}
-		const { permissions } = await getUserOrgPermissions({
-			data: {
-				account: context.account,
-				orgId: params.orgId,
-			},
-		});
 		return await getAdminOrganizationSettings({
 			data: {
 				account: context.account,
 				orgId: params.orgId,
-				permissions: permissions as any,
+				permissions: context.permissions as any,
 			},
 		});
 	},

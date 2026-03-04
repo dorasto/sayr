@@ -65,11 +65,9 @@ import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import {
   addOrganizationMemberToTeamAction,
-  assignOrganizationMemberSeatAction,
   deleteOrganizationMemberAction,
   inviteOrganizationMembersAction,
   removeOrganizationMemberFromTeamAction,
-  unassignOrganizationMemberSeatAction,
 } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
 
@@ -392,43 +390,6 @@ export default function SettingsOrganizationPageMembers({
                 {member.user.name}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border" />
-              {organization.plan === "pro" && (
-                <DropdownMenuCheckboxItem disabled={
-                  organization.plan === "pro" && seatAssigned && !member.seatAssigned && organization.seatCount === organization.members.filter((m) => m.seatAssigned,).length} onClick={async () => {
-                    if (seatAssigned && member.seatAssigned) {
-                      const seat = await unassignOrganizationMemberSeatAction(organization.id, member.userId || "");
-                      if (seat?.success) {
-                        setOrganization({
-                          ...organization,
-                          members: organization.members.map((m) =>
-                            m.userId === member.userId
-                              ? { ...m, seatAssigned: false }
-                              : m,
-                          ),
-                        });
-                      }
-                    } else {
-                      const seat = await assignOrganizationMemberSeatAction(organization.id, member.userId || "");
-                      if (seat?.success) {
-                        setOrganization({
-                          ...organization,
-                          members: organization.members.map((m) =>
-                            m.userId === member.userId
-                              ? { ...m, seatAssigned: true }
-                              : m,
-                          ),
-                        });
-                      }
-                    }
-                  }}>
-                  {organization.plan === "pro" &&
-                    seatAssigned &&
-                    member.seatAssigned
-                    ? "Unassign seat"
-                    : "Assign a seat"}
-                </DropdownMenuCheckboxItem>
-              )}
-
               {canManageTeams && !isInvite && teams.length > 0 && (
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>

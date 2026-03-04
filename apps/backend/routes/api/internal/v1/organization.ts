@@ -2016,7 +2016,7 @@ apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 	const { org_id: orgId, user_id: userId } = await c.req.json();
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.billing");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
@@ -2097,7 +2097,7 @@ apiRouteAdminOrganization.patch(
 			await traceOrgPermissionCheck(
 				session?.userId || "",
 				orgId,
-				"admin.administrator",
+				"admin.billing",
 			);
 
 		if (!isAuthorized) {
