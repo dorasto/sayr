@@ -459,8 +459,8 @@ export default function SettingsOrganizationPageTeamSettings({
 									<IconSettings className="size-4 text-muted-foreground" />
 									<Label className="font-medium cursor-pointer">Organization</Label>
 									<Badge variant="secondary" className="text-xs">
-										{[permissions.admin.manageMembers, permissions.admin.manageTeams].filter(Boolean).length}
-										/2
+										{[permissions.admin.manageMembers, permissions.admin.manageTeams, permissions.admin.billing].filter(Boolean).length}
+										/3
 									</Badge>
 								</div>
 								<IconChevronDown
