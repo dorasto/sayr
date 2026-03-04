@@ -26,12 +26,16 @@ export default function SettingsOrganizationBillingPage() {
   const { ws, account } = useLayoutData();
   const { organization, setOrganization, views, issueTemplates, releases } =
     useLayoutOrganizationSettings();
-  const memberCount = organization.members.filter((m) => m.seatAssigned).length ?? 0;
+  const memberCount =
+    organization.members.filter((m) => m.seatAssigned).length ?? 0;
   const totalMemberCount = organization.members?.length ?? 0;
-  const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionDetails | null>(
+    null,
+  );
 
   const refreshSubscription = useCallback(() => {
-    if (organization.plan === "free" || !organization.polarSubscriptionId) return;
+    if (organization.plan === "free" || !organization.polarSubscriptionId)
+      return;
     getSubscriptionDetails(organization.id).then((res) => {
       if (res.success && res.data) {
         setSubscription(res.data);
@@ -40,7 +44,8 @@ export default function SettingsOrganizationBillingPage() {
   }, [organization.id, organization.plan, organization.polarSubscriptionId]);
 
   useEffect(() => {
-    if (organization.plan === "free" || !organization.polarSubscriptionId) return;
+    if (organization.plan === "free" || !organization.polarSubscriptionId)
+      return;
     let cancelled = false;
     getSubscriptionDetails(organization.id).then((res) => {
       if (cancelled) return;
@@ -97,18 +102,19 @@ export default function SettingsOrganizationBillingPage() {
 
   return (
     <div className="flex flex-col gap-9">
-      <BillingCurrentPlan totalMembers={totalMemberCount} subscription={subscription} />
+      <BillingCurrentPlan
+        totalMembers={totalMemberCount}
+        subscription={subscription}
+      />
       {isAdmin && <BillingSubscriptionDetails subscription={subscription} />}
-      {isAdmin && <BillingSeatManagement subscription={subscription} onSeatsUpdated={refreshSubscription} />}
+      {isAdmin && (
+        <BillingSeatManagement
+          subscription={subscription}
+          onSeatsUpdated={refreshSubscription}
+        />
+      )}
       <BillingUsage usage={usage} />
       {isAdmin && <BillingOrderHistory />}
-      {isAdmin && (
-        <a
-          href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}
-        >
-          <Button variant="outline">View Customer Portal</Button>
-        </a>
-      )}
 
       {organization.plan === "free" && <BillingUpgradePrompt />}
       <Separator />

@@ -11,6 +11,8 @@ import { IconSparkles } from "@tabler/icons-react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import type { SubscriptionDetails } from "@/lib/fetches/organization";
 import { cn } from "@/lib/utils";
+import { Button } from "@repo/ui/components/button";
+import { Separator } from "@repo/ui/components/separator";
 
 function formatPricePerSeat(subscription: SubscriptionDetails | null): string {
   if (!subscription || !subscription.seats || subscription.seats === 0) {
@@ -31,22 +33,40 @@ interface BillingCurrentPlanProps {
   subscription: SubscriptionDetails | null;
 }
 
-export function BillingCurrentPlan({ totalMembers, subscription }: BillingCurrentPlanProps) {
+export function BillingCurrentPlan({
+  totalMembers,
+  subscription,
+}: BillingCurrentPlanProps) {
   const { organization } = useLayoutOrganizationSettings();
+  const API_URL =
+    import.meta.env.VITE_APP_ENV === "development"
+      ? "/backend-api/internal"
+      : "/api/internal";
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-foreground">
           Current plan
         </span>
-        <a
-          href="https://sayr.io/pricing"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          View all plans &rarr;
-        </a>
+        <div className="flex items-center gap-2">
+          {organization.plan === "free" ? (
+            <a
+              href="https://sayr.io/pricing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View all plans &rarr;
+            </a>
+          ) : (
+            <a
+              href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Manage billing &rarr;
+            </a>
+          )}
+        </div>
       </div>
       <Tile className="md:w-full">
         <TileHeader>
