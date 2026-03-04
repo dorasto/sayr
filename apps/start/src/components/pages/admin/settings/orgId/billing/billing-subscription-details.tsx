@@ -196,22 +196,28 @@ export function BillingSubscriptionDetails({
             <IconUsers className="size-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">Seats</span>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-semibold text-foreground">
-              {memberCount}
+          <div className="flex items-center justify-between w-full gap-1">
+            <span className="font-semibold text-sm text-foreground">
+              Paid seats
             </span>
-            {subscription.seats != null && (
-              <span className="text-sm text-muted-foreground">
-                / {subscription.seats} seats
-              </span>
-            )}
+            <span className="text-sm text-muted-foreground">
+              {subscription.seats}
+            </span>
           </div>
-          {subscription.seats != null && (
-            <span className="text-xs text-muted-foreground">
-              {subscription.seats - memberCount > 0
-                ? `${subscription.seats - memberCount} seat${subscription.seats - memberCount !== 1 ? "s" : ""} available`
-                : "All seats in use"}
+          <div className="flex items-center justify-between w-full gap-1">
+            <span className="font-semibold text-sm text-foreground">
+              Used seats
             </span>
+            <span className="text-sm text-muted-foreground">{memberCount}</span>
+          </div>
+          <Separator />
+
+          {subscription.seats != null && (
+            <Label variant={"description"} className="">
+              {subscription.seats - memberCount > 0
+                ? `There are ${subscription.seats - memberCount} unused seat${subscription.seats - memberCount !== 1 ? "s" : ""} available. You can assign these to users without seats, or remove them from the "Adjust Seats" button below.`
+                : `All seats are currently in use. To invite new users, you must add new seats from the "Adjust Seats" button below.`}
+            </Label>
           )}
         </Tile>
       </div>
