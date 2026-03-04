@@ -9,13 +9,29 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { IconSparkles } from "@tabler/icons-react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import type { SubscriptionDetails } from "@/lib/fetches/organization";
 import { cn } from "@/lib/utils";
 
-interface BillingCurrentPlanProps {
-  memberCount: number;
+function formatPricePerSeat(subscription: SubscriptionDetails | null): string {
+  if (!subscription || !subscription.seats || subscription.seats === 0) {
+    return "Free for all users";
+  }
+  const perSeat = subscription.amount / subscription.seats;
+  const currency = subscription.currency ?? "usd";
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(perSeat / 100);
+  const interval = subscription.recurringInterval === "year" ? "yr" : "mo";
+  return `${formatted}/seat/${interval}`;
 }
 
-export function BillingCurrentPlan({ memberCount }: BillingCurrentPlanProps) {
+interface BillingCurrentPlanProps {
+  totalMembers: number;
+  subscription: SubscriptionDetails | null;
+}
+
+export function BillingCurrentPlan({ totalMembers, subscription }: BillingCurrentPlanProps) {
   const { organization } = useLayoutOrganizationSettings();
   return (
     <div className="flex flex-col gap-3">
@@ -53,14 +69,16 @@ export function BillingCurrentPlan({ memberCount }: BillingCurrentPlanProps) {
             </Badge>
           </TileTitle>
           <TileDescription>
-            {organization.plan === "free" ? "Free for all users" : `$3/seat/mo`}
+            {organization.plan === "free"
+              ? "Free for all users"
+              : formatPricePerSeat(subscription)}
           </TileDescription>
         </TileHeader>
         <TileAction>
           <div className="flex flex-col text-right">
             <span className="text-xs text-muted-foreground">Members</span>
             <span className="text-lg font-semibold text-foreground">
-              {memberCount}
+              {totalMembers}
             </span>
           </div>
         </TileAction>

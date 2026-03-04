@@ -27,6 +27,7 @@ export default function SettingsOrganizationBillingPage() {
   const { organization, setOrganization, views, issueTemplates, releases } =
     useLayoutOrganizationSettings();
   const memberCount = organization.members.filter((m) => m.seatAssigned).length ?? 0;
+  const totalMemberCount = organization.members?.length ?? 0;
   const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
 
   const refreshSubscription = useCallback(() => {
@@ -96,8 +97,8 @@ export default function SettingsOrganizationBillingPage() {
 
   return (
     <div className="flex flex-col gap-9">
-      <BillingCurrentPlan memberCount={memberCount} />
-      {isAdmin && <BillingSubscriptionDetails memberCount={memberCount} subscription={subscription} />}
+      <BillingCurrentPlan totalMembers={totalMemberCount} subscription={subscription} />
+      {isAdmin && <BillingSubscriptionDetails subscription={subscription} />}
       {isAdmin && <BillingSeatManagement subscription={subscription} onSeatsUpdated={refreshSubscription} />}
       <BillingUsage usage={usage} />
       {isAdmin && <BillingOrderHistory />}

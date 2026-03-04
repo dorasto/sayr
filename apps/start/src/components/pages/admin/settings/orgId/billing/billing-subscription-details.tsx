@@ -1,11 +1,17 @@
 import { Badge } from "@repo/ui/components/badge";
-import { Tile } from "@repo/ui/components/doras-ui/tile";
+import {
+  Tile,
+  TileDescription,
+  TileTitle,
+} from "@repo/ui/components/doras-ui/tile";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Label } from "@repo/ui/components/label";
+import { Progress } from "@repo/ui/components/progress";
+import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
 import {
-  IconUsers,
   IconAlertTriangle,
   IconSparkles,
+  IconInfoCircle,
 } from "@tabler/icons-react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import type { SubscriptionDetails } from "@/lib/fetches/organization";
@@ -81,15 +87,16 @@ function getIntervalLabel(interval: string): string {
 }
 
 interface BillingSubscriptionDetailsProps {
-  memberCount: number;
   subscription: SubscriptionDetails | null;
 }
 
 export function BillingSubscriptionDetails({
-  memberCount,
   subscription,
 }: BillingSubscriptionDetailsProps) {
   const { organization } = useLayoutOrganizationSettings();
+
+  const members = organization.members ?? [];
+  const assignedCount = members.filter((m) => m.seatAssigned).length;
 
   // Free plan — don't show subscription details
   if (organization.plan === "free" || !organization.polarSubscriptionId) {
@@ -191,34 +198,52 @@ export function BillingSubscriptionDetails({
         </Tile>
 
         {/* Seats */}
-        <Tile className="md:w-full flex-col items-start gap-2 p-3">
-          <div className="flex items-center gap-2">
-            <IconUsers className="size-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Seats</span>
+        <Tile className="md:w-full flex-col gap-2 items-stretch p-3 py-2">
+          <div className="flex items-center justify-between">
+            <TileTitle className="text-sm">Seats</TileTitle>
+            <TileDescription
+              className={cn(
+                "text-sm",
+                assignedCount >= (subscription.seats ?? 0)
+                  ? "text-destructive"
+                  : "text-foreground",
+              )}
+            >
+              {assignedCount}/{subscription.seats ?? 0}
+            </TileDescription>
           </div>
-          <div className="flex items-center justify-between w-full gap-1">
-            <span className="font-semibold text-sm text-foreground">
-              Paid seats
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {subscription.seats}
-            </span>
-          </div>
-          <div className="flex items-center justify-between w-full gap-1">
-            <span className="font-semibold text-sm text-foreground">
-              Used seats
-            </span>
-            <span className="text-sm text-muted-foreground">{memberCount}</span>
-          </div>
-          <Separator />
-
-          {subscription.seats != null && (
-            <Label variant={"description"} className="">
-              {subscription.seats - memberCount > 0
-                ? `There are ${subscription.seats - memberCount} unused seat${subscription.seats - memberCount !== 1 ? "s" : ""} available. You can assign these to users without seats, or remove them from the "Adjust Seats" button below.`
-                : `All seats are currently in use. To invite new users, you must add new seats from the "Adjust Seats" button below.`}
-            </Label>
-          )}
+          <Progress
+            value={
+              (subscription.seats ?? 0) > 0
+                ? Math.round((assignedCount / (subscription.seats ?? 1)) * 100)
+                : 0
+            }
+            className={cn(
+              "h-4",
+              assignedCount >= (subscription.seats ?? 0) &&
+                "[&>div]:bg-destructive",
+            )}
+          />
+          <Alert
+            className={cn(
+              "border mt-1",
+              assignedCount >= (subscription.seats ?? 0)
+                ? "bg-destructive/15 text-destructive-foreground border-destructive/40"
+                : "bg-primary/15 text-primary-foreground border-primary/40",
+            )}
+          >
+            <IconInfoCircle />
+            <AlertTitle>
+              {(subscription.seats ?? 0) - assignedCount > 0
+                ? `${(subscription.seats ?? 0) - assignedCount} unused seat${(subscription.seats ?? 0) - assignedCount !== 1 ? "s" : ""} available`
+                : "All seats in use"}
+            </AlertTitle>
+            <AlertDescription>
+              {(subscription.seats ?? 0) - assignedCount > 0
+                ? `You can assign ${(subscription.seats ?? 0) - assignedCount === 1 ? "this seat" : "these seats"} to users without seats, or remove them from the "Adjust Seats" button below.`
+                : 'To invite new users, you must add new seats from the "Adjust Seats" button below.'}
+            </AlertDescription>
+          </Alert>
         </Tile>
       </div>
     </div>
