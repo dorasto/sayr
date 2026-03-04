@@ -1,11 +1,12 @@
 import { SubWrapper } from "@/components/generic/wrapper";
 import SettingsOrganizationBillingPage from "@/components/pages/admin/settings/orgId/billing";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { PermissionError } from "@repo/util";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/billing/")({
   loader(ctx) {
     if (!ctx.context.permissions?.admin.billing) {
-      throw redirect({ to: "/settings/org/$orgId", params: { orgId: ctx.params.orgId } })
+      throw new PermissionError();
     }
   },
   component: RouteComponent,
