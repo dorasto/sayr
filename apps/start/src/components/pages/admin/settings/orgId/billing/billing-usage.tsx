@@ -34,7 +34,6 @@ export function BillingUsage({ usage }: BillingUsageProps) {
           return (
             <Tile
               key={key}
-              variant="outline"
               className="md:w-full flex-col gap-2 items-stretch p-3 py-2"
             >
               <div className="flex items-center justify-between">

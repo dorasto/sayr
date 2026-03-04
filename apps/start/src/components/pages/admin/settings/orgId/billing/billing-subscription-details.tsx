@@ -240,8 +240,8 @@ export function BillingSubscriptionDetails({
             </AlertTitle>
             <AlertDescription>
               {(subscription.seats ?? 0) - assignedCount > 0
-                ? `You can assign ${(subscription.seats ?? 0) - assignedCount === 1 ? "this seat" : "these seats"} to users without seats, or remove them from the "Adjust Seats" button below.`
-                : 'To invite new users, you must add new seats from the "Adjust Seats" button below.'}
+                ? `You can assign ${(subscription.seats ?? 0) - assignedCount === 1 ? "this seat" : "these seats"} to users without seats, or remove unused seats from "Add or remove seats" in the Seat Assignments section.`
+                : 'To invite new users, you\'ll need to add seats from "Add or remove seats" in the Seat Assignments section.'}
             </AlertDescription>
           </Alert>
         </Tile>
