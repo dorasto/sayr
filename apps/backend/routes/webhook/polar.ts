@@ -145,6 +145,7 @@ async function handleSubscriptionCanceled(data: Subscription) {
             plan: "free",
             seatCount: FREE_SEAT_LIMIT,
             polarSubscriptionId: null,
+            currentPeriodEnd: null
         })
         .where(eq(schema.schema.organization.id, orgId));
 
