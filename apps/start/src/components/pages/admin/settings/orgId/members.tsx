@@ -426,6 +426,7 @@ export default function SettingsOrganizationPageMembers({
                 </DropdownMenuSub>
               )}
               <DropdownMenuItem
+                disabled={organization.createdBy === member.userId || member.userId === account?.id}
                 onClick={async () => {
                   if (member.userId === account?.id) {
                     alert("You cannot remove yourself from the organization.");
