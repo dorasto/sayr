@@ -15,8 +15,19 @@ export {
 } from "./edition";
 
 export {
+	// Server-side convenience wrappers (use getEdition() internally)
 	getEditionCapabilities,
 	getEffectiveLimits,
 	canCreateResource,
 	getLimitReachedMessage,
+	// Pure functions (no process.env -- safe for browser use)
+	getLimitsForEdition,
+	canCreate,
+	isOverLimit,
+	getResourceLimitMessage,
+	formatResourceName,
+	// Limit constants
+	CLOUD_PLAN_LIMITS,
+	SELF_HOSTED_LIMITS,
+	FREE_LIMITS,
 } from "./capabilities";

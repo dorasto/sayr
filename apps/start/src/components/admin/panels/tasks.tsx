@@ -45,6 +45,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
+import { PlanLimitBanner } from "@/components/generic/PlanLimitBanner";
 import RenderIcon from "@/components/generic/RenderIcon";
 import SettingsOrganizationViewDetailPage from "@/components/pages/admin/settings/orgId/view-detail";
 import { releaseStatusConfig } from "@/components/releases/config";
@@ -56,6 +57,7 @@ import {
 	useTaskViewManager,
 	type FilterState,
 } from "@/hooks/useTaskViewManager";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 
 // --- Filter helpers ---
 
@@ -172,6 +174,8 @@ function TasksPanelContent() {
 	const { views, categories, releases } =
 		useLayoutOrganization();
 	const { tasks } = useLayoutTasks();
+	const { isOverLimit: checkOverLimit, getLimitMessage } = usePlanLimits();
+	const viewsOverLimit = checkOverLimit("savedViews");
 
 	const {
 		filters,
@@ -392,89 +396,95 @@ function TasksPanelContent() {
 					</TabsList>
 				</div>
 
-				{/* Saved Views tab */}
-				<TabsContent value="views" className="mt-0">
-					<div className="flex flex-col gap-0.5">
-						{views.map((view) => {
-							const viewSlug = view.slug || view.id;
-							const isActive = selectedViewSlug === viewSlug;
-							return (
-								<Tile
-									className={cn(
-										"md:w-full cursor-pointer transition-colors group p-0 justify-baseline gap-0 group/view",
-										isActive
-											? "bg-accent"
-											: "bg-transparent hover:bg-accent",
-									)}
-									style={{
-										backgroundColor: isActive
-											? `hsla(${extractHslValues(view.viewConfig?.color || "#ffffff")}, 0.05)`
-											: undefined,
+			{/* Saved Views tab */}
+			<TabsContent value="views" className="mt-0">
+				<div className="flex flex-col gap-0.5">
+					{viewsOverLimit && (
+						<PlanLimitBanner
+							title="Views limit exceeded"
+							description={getLimitMessage("savedViews")}
+						/>
+					)}
+					{views.map((view) => {
+						const viewSlug = view.slug || view.id;
+						const isActive = selectedViewSlug === viewSlug;
+						return (
+							<Tile
+								className={cn(
+									"md:w-full cursor-pointer transition-colors group p-0 justify-baseline gap-0 group/view",
+									isActive
+										? "bg-accent"
+										: "bg-transparent hover:bg-accent",
+								)}
+								style={{
+									backgroundColor: isActive
+										? `hsla(${extractHslValues(view.viewConfig?.color || "#ffffff")}, 0.05)`
+										: undefined,
+								}}
+								key={view.id}
+							>
+								<TileHeader
+									className="h-fit p-3 flex-1 min-w-0"
+									onClick={() => {
+										if (isActive) {
+											clearView();
+										} else {
+											selectView(view);
+										}
 									}}
-									key={view.id}
 								>
-									<TileHeader
-										className="h-fit p-3 flex-1 min-w-0"
-										onClick={() => {
-											if (isActive) {
-												clearView();
-											} else {
-												selectView(view);
-											}
-										}}
-									>
-										<TileTitle className="flex items-center gap-2 min-w-0">
-											<TileIcon
-												className={cn(
-													"bg-transparent shrink-0",
-												)}
-											>
-												<RenderIcon
-													iconName={
-														view.viewConfig
-															?.icon ||
-														"IconStack2"
-													}
-													color={
-														view.viewConfig
-															?.color ||
-														"#ffffff"
-													}
-													button
-													className={cn(
-														"size-5! [&_svg]:size-4! border-0 ",
-														!isActive &&
-															"text-muted-foreground [&_svg]:grayscale! bg-transparent!",
-													)}
-												/>
-											</TileIcon>
-											<span className="truncate min-w-0">
-												{view.name}
-											</span>
-										</TileTitle>
-									</TileHeader>
-
-									<TileAction
-										className={cn(
-											"p-3 opacity-0 group-hover/view:opacity-100 transition-all",
-											isActive && "opacity-100",
-										)}
-									>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-6 w-6"
-											onClick={(e) => {
-												e.stopPropagation();
-												setEditingView(view);
-											}}
+									<TileTitle className="flex items-center gap-2 min-w-0">
+										<TileIcon
+											className={cn(
+												"bg-transparent shrink-0",
+											)}
 										>
-											<IconPencil className="size-5 text-muted-foreground" />
-										</Button>
-									</TileAction>
-								</Tile>
-							);
-						})}
+											<RenderIcon
+												iconName={
+													view.viewConfig
+														?.icon ||
+													"IconStack2"
+												}
+												color={
+													view.viewConfig
+														?.color ||
+													"#ffffff"
+												}
+												button
+												className={cn(
+													"size-5! [&_svg]:size-4! border-0 ",
+													!isActive &&
+														"text-muted-foreground [&_svg]:grayscale! bg-transparent!",
+												)}
+											/>
+										</TileIcon>
+										<span className="truncate min-w-0">
+											{view.name}
+										</span>
+									</TileTitle>
+								</TileHeader>
+
+							<TileAction
+								className={cn(
+									"p-3 opacity-0 group-hover/view:opacity-100 transition-all",
+									isActive && "opacity-100",
+								)}
+							>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-6 w-6"
+									onClick={(e) => {
+										e.stopPropagation();
+										setEditingView(view);
+									}}
+								>
+									<IconPencil className="size-5 text-muted-foreground" />
+								</Button>
+							</TileAction>
+							</Tile>
+						);
+					})}
 					</div>
 				</TabsContent>
 

@@ -7,6 +7,7 @@ import { apiRouteAdminOrganization } from "./organization";
 import { apiRouteAdminRelease } from "./release";
 import { apiRouteAdminUser } from "./user";
 import { apiRouteAdminNotification } from "./notification";
+import { getEffectiveLimits } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { polarClient } from "@repo/auth";
 import { getEditionCapabilities } from "@repo/edition";
@@ -139,7 +140,7 @@ apiRouteAdmin.post("/invite", async (c) => {
 			),
 			columns: { id: true },
 		});
-		const seatLimit = org?.seatCount ?? 0;
+		const seatLimit = getEffectiveLimits(org?.plan).members ?? org?.seatCount ?? Infinity;
 		const hasAvailableSeat = assignedMembers.length < seatLimit;
 
 		await traceAsync(

@@ -58,6 +58,7 @@ import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import type { WSMessage } from "@/lib/ws";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
@@ -87,6 +88,7 @@ export default function OrganizationTasksHomePage() {
   } = useTaskViewManager(views);
 	const { tasks, setTasks } = useLayoutTasks();
 	const useMobile = useIsMobile();
+	const { canCreateResource, getLimitMessage } = usePlanLimits();
 
 	// Track which task is open in the dialog (for WS channel switching)
 	const [activeDialogTaskId, setActiveDialogTaskId] = useState<string | null>(null);
@@ -437,6 +439,8 @@ export default function OrganizationTasksHomePage() {
                   setViews={setViews}
                   categories={categories}
                   releases={releases}
+                  canCreateView={canCreateResource("savedViews")}
+                  viewLimitMessage={getLimitMessage("savedViews")}
                 />
               </>
             }

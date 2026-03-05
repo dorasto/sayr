@@ -3,7 +3,7 @@ import { createTraceAsync, type TraceAsync as type_TraceAsync } from "@repo/open
 import { and, eq, count } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { account } from "../../packages/database/schema/auth";
-import { type Edition, getEdition, getEffectiveLimits } from "@repo/edition";
+import { type Edition, getEdition, getEffectiveLimits, isCloud } from "@repo/edition";
 import { RecordWideError } from "./tracing/wideEvent";
 
 export async function getOrganization(orgId: string, userId: string): Promise<{ id: string } | null> {
@@ -244,11 +244,15 @@ export async function enforceLimit({
 	entityName: string;
 	traceAsync: type_TraceAsync;
 	recordWideError: RecordWideError;
-}) {
+}): Promise<Response | undefined> {
+	// Global instance-level limits only apply on self-hosted editions.
+	// On cloud, per-org plan limits (canCreateResource) are the enforcement layer.
+	if (isCloud()) return undefined;
+
 	const limits = getEffectiveLimits(null);
 	const limit = limits[limitKey];
 
-	if (limit === null) return;
+	if (limit === null) return undefined;
 
 	const edition = getEdition();
 
@@ -297,4 +301,6 @@ export async function enforceLimit({
 			403
 		);
 	}
+
+	return undefined;
 }

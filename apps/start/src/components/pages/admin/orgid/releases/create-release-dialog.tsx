@@ -24,9 +24,13 @@ import IconPicker from "@/components/generic/icon-picker";
 interface CreateReleaseDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	/** When true, blocks creating releases (plan limit). */
+	disabled?: boolean;
+	/** Message to show when creation is blocked by plan limits. */
+	disabledMessage?: string;
 }
 
-export function CreateReleaseDialog({ open, onOpenChange }: CreateReleaseDialogProps) {
+export function CreateReleaseDialog({ open, onOpenChange, disabled = false, disabledMessage }: CreateReleaseDialogProps) {
 	const { organization, releases, setReleases } = useLayoutOrganization();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
@@ -190,10 +194,13 @@ export function CreateReleaseDialog({ open, onOpenChange }: CreateReleaseDialogP
 				</div>
 
 				<DialogFooter>
+					{disabled && disabledMessage && (
+						<p className="text-xs text-destructive mr-auto self-center">{disabledMessage}</p>
+					)}
 					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isFetching}>
 						Cancel
 					</Button>
-					<Button onClick={handleCreate} disabled={!name.trim() || !slug.trim() || isFetching}>
+					<Button onClick={handleCreate} disabled={!name.trim() || !slug.trim() || isFetching || disabled}>
 						Create Release
 					</Button>
 				</DialogFooter>

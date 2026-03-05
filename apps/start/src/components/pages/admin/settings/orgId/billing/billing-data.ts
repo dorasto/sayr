@@ -1,5 +1,4 @@
-// Re-export plan limits from the shared edition package
-export { getEffectiveLimits as getPlanLimits } from "@repo/edition";
+// Re-export plan types from the shared edition package
 export type { PlanLimits } from "@repo/edition";
 
 export interface PlanFeature {

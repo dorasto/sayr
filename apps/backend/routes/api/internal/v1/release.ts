@@ -35,7 +35,7 @@ apiRouteAdminRelease.post("/create", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create releases." }, 401);
 	}
-	await enforceLimit({
+	const releaseLimitRes = await enforceLimit({
 		c,
 		limitKey: "releases",
 		table: schema.release,
@@ -44,6 +44,7 @@ apiRouteAdminRelease.post("/create", async (c) => {
 		traceAsync,
 		recordWideError
 	});
+	if (releaseLimitRes) return releaseLimitRes;
 
 	// Validate required fields
 	if (!name || !slug) {

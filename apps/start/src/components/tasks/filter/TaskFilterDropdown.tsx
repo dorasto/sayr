@@ -1,6 +1,9 @@
 "use client";
 import type { schema } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
+import { IconLock } from "@tabler/icons-react";
 import { useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
@@ -26,6 +29,10 @@ interface Props {
 	setViews?: (newValue: schema.savedViewType[]) => void;
 	categories: schema.categoryType[];
 	releases: schema.releaseType[];
+	/** Whether the plan allows creating new saved views. Defaults to true. */
+	canCreateView?: boolean;
+	/** Message to show when view creation is blocked by plan limits. */
+	viewLimitMessage?: string;
 }
 
 export function TaskFilterDropdown({
@@ -37,6 +44,8 @@ export function TaskFilterDropdown({
 	views,
 	categories,
 	releases,
+	canCreateView = true,
+	viewLimitMessage,
 }: Props) {
 	// console.log("[RENDER] TaskFilterDropdown");
 
@@ -208,14 +217,25 @@ export function TaskFilterDropdown({
 					className="gap-1 h-6 w-6 bg-accent border-transparent p-1 relative"
 				/>
 			)}
-			{showNewViewPopover && (
-				<NewViewPopover
-					organizationId={organizationId!}
-					setViews={setViews!}
-					currentFilters={currentFiltersString}
-					viewConfig={currentViewConfig}
-				/>
-			)}
+		{showNewViewPopover && canCreateView && (
+			<NewViewPopover
+				organizationId={organizationId!}
+				setViews={setViews!}
+				currentFilters={currentFiltersString}
+				viewConfig={currentViewConfig}
+			/>
+		)}
+		{showNewViewPopover && !canCreateView && (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button variant="accent" className="gap-2 h-6 w-fit p-1 text-xs opacity-60 cursor-not-allowed" disabled>
+						<IconLock className="w-4 h-4" />
+						Save
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent>{viewLimitMessage || "Upgrade your plan to save more views"}</TooltipContent>
+			</Tooltip>
+		)}
 		</div>
 	);
 }

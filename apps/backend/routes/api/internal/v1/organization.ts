@@ -1035,7 +1035,7 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
-	await enforceLimit({
+	const issueTemplateLimitRes = await enforceLimit({
 		c,
 		limitKey: "issueTemplates",
 		table: schema.issueTemplate,
@@ -1044,7 +1044,7 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 		traceAsync,
 		recordWideError
 	});
-
+	if (issueTemplateLimitRes) return issueTemplateLimitRes;
 
 	// Plan-level issue template limit
 	const templateOrg = await db.query.organization.findFirst({
@@ -1183,6 +1183,26 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	// Block editing if the org is over the issue templates limit (must delete to get back under)
+	const templateOrg = await db.query.organization.findFirst({
+		where: (org) => eq(org.id, orgId),
+		columns: { plan: true },
+	});
+	const existingTemplateCount = await db
+		.select({ count: count() })
+		.from(schema.issueTemplate)
+		.where(eq(schema.issueTemplate.organizationId, orgId));
+	const templateLimits = getEffectiveLimits(templateOrg?.plan);
+	if (templateLimits.issueTemplates !== null && (existingTemplateCount[0]?.count ?? 0) > templateLimits.issueTemplates) {
+		return c.json(
+			{
+				success: false,
+				error: getLimitReachedMessage("issueTemplates", templateOrg?.plan),
+			},
+			403
+		);
 	}
 
 	const edited = await traceAsync(
@@ -1368,7 +1388,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
-	await enforceLimit({
+	const savedViewLimitRes = await enforceLimit({
 		c,
 		limitKey: "savedViews",
 		table: schema.savedView,
@@ -1377,6 +1397,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 		traceAsync,
 		recordWideError
 	});
+	if (savedViewLimitRes) return savedViewLimitRes;
 
 	// Plan-level saved view limit
 	const viewOrg = await db.query.organization.findFirst({
@@ -1474,6 +1495,26 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 				error: "You don't have permission to update saved views.",
 			},
 			401
+		);
+	}
+
+	// Block editing if the org is over the saved views limit (must delete to get back under)
+	const viewOrg = await db.query.organization.findFirst({
+		where: (org) => eq(org.id, orgId),
+		columns: { plan: true },
+	});
+	const existingViewCount = await db
+		.select({ count: count() })
+		.from(schema.savedView)
+		.where(eq(schema.savedView.organizationId, orgId));
+	const viewLimits = getEffectiveLimits(viewOrg?.plan);
+	if (viewLimits.savedViews !== null && (existingViewCount[0]?.count ?? 0) > viewLimits.savedViews) {
+		return c.json(
+			{
+				success: false,
+				error: getLimitReachedMessage("savedViews", viewOrg?.plan),
+			},
+			403
 		);
 	}
 
@@ -1985,7 +2026,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to invite members." }, 401);
 	}
 
-	await enforceLimit({
+	const memberLimitRes = await enforceLimit({
 		c,
 		limitKey: "members",
 		table: schema.member,
@@ -1994,6 +2035,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		traceAsync,
 		recordWideError,
 	});
+	if (memberLimitRes) return memberLimitRes;
 
 	// Enforce seat limit: check if inviting would exceed seat capacity
 	const org = await db.query.organization.findFirst({
@@ -3019,7 +3061,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to create teams." }, 401);
 	}
 
-	await enforceLimit({
+	const teamLimitRes = await enforceLimit({
 		c,
 		limitKey: "teams",
 		table: schema.team,
@@ -3028,6 +3070,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 		traceAsync,
 		recordWideError
 	});
+	if (teamLimitRes) return teamLimitRes;
 
 	// Plan-level team limit (exclude system teams from count)
 	const teamOrg = await db.query.organization.findFirst({

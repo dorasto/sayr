@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Separator } from "@repo/ui/components/separator";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { getEffectiveLimits } from "@repo/edition";
+import type { PlanLimits } from "@repo/edition";
 import type { UsageEntry } from "./billing/billing-usage";
 import { BillingCurrentPlan } from "./billing/billing-current-plan";
 import { BillingUsage } from "./billing/billing-usage";
@@ -22,7 +22,7 @@ const API_URL =
   import.meta.env.VITE_APP_ENV === "development"
     ? "/backend-api/internal"
     : "/api/internal";
-export default function SettingsOrganizationBillingPage() {
+export default function SettingsOrganizationBillingPage({ limits }: { limits: PlanLimits }) {
   const { ws, account } = useLayoutData();
   const { organization, setOrganization, views, issueTemplates, releases } =
     useLayoutOrganizationSettings();
@@ -68,8 +68,6 @@ export default function SettingsOrganizationBillingPage() {
       (mt) => mt.team.permissions.admin.administrator,
     );
   }, [account, organization.members]);
-
-   const limits = getEffectiveLimits(organization.plan);
 
   const teamsCount = useMemo(() => {
     const teamIds = new Set<string>();
