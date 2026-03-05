@@ -53,9 +53,11 @@ export async function getOrganizations(
 	});
 
 	const result = orgsWithMembers
-		// Step 3: Filter org access based on seat logic
+		// Step 3: Filter org access based on seat logic ONLY for pro
 		.filter((org) => {
 			if (includeUnseated) return true;
+
+			if (org.plan !== "pro") return true;
 
 			const currentMember = org.members.find(
 				(m) => m.userId === userId,
@@ -67,10 +69,8 @@ export async function getOrganizations(
 		.map((org) => {
 			let members = org.members;
 
-			if (!includeUnseated) {
-				members = members.filter(
-					(m) => m.seatAssigned,
-				);
+			if (!includeUnseated && org.plan === "pro") {
+				members = members.filter((m) => m.seatAssigned);
 			}
 
 			return {
@@ -131,7 +131,7 @@ export async function getOrganizations(
 export async function getOrganization(
 	orgId: string,
 	userId: string,
-	options?: { includeUnseated?: boolean, blockOrgUnseated?: boolean },
+	options?: { includeUnseated?: boolean; blockOrgUnseated?: boolean },
 ): Promise<schema.OrganizationWithMembers | null> {
 	const includeUnseated = options?.includeUnseated ?? false;
 	const blockOrgUnseated = options?.blockOrgUnseated ?? false;
@@ -157,10 +157,12 @@ export async function getOrganization(
 		(m) => m.userId === userId,
 	);
 
-	if (!member) {
-		return null;
-	}
-	if (blockOrgUnseated &&
+	if (!member) return null;
+
+	// Only enforce seat checks on pro plans
+	if (
+		organization.plan === "pro" &&
+		blockOrgUnseated &&
 		!member.seatAssigned
 	) {
 		return null;
@@ -168,8 +170,8 @@ export async function getOrganization(
 
 	let members = organization.members;
 
-	// If we're NOT including unseated → filter them out
-	if (!includeUnseated) {
+	// Only filter seats for pro plans
+	if (!includeUnseated && organization.plan === "pro") {
 		members = members.filter((m) => m.seatAssigned);
 	}
 
