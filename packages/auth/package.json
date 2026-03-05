@@ -19,6 +19,7 @@
     "@polar-sh/better-auth": "^1.8.1",
     "@polar-sh/sdk": "^0.45.1",
     "@repo/database": "workspace:*",
+    "@repo/edition": "workspace:*",
     "better-auth": "^1.4.11"
   },
   "devDependencies": {

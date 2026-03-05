@@ -11,6 +11,7 @@ import { Polar } from "@polar-sh/sdk";
 import { validateEvent } from '@polar-sh/sdk/webhooks'
 import { Subscription } from "@polar-sh/sdk/models/components/subscription.js";
 import { CustomerSeat } from "@polar-sh/sdk/models/components/customerseat.js";
+import { getEditionCapabilities } from "@repo/edition";
 export { Polar, validateEvent };
 export type { Subscription, CustomerSeat };
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
@@ -20,9 +21,88 @@ const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_U
 // Cookie domains need at least 2 parts (e.g., ".app.localhost" works, ".localhost" doesn't)
 // For local dev with subdomains, use "app.localhost" pattern or sslip.io/nip.io
 const isBarelocalhost = rootUrl === "localhost";
-export const polarClient = new Polar({
-	accessToken: process.env.POLAR_ACCESS_TOKEN,
-});
+const { polarBillingEnabled } = getEditionCapabilities();
+
+export const polarClient = polarBillingEnabled
+	? new Polar({
+		accessToken: process.env.POLAR_ACCESS_TOKEN,
+	})
+	: null;
+const plugins: any[] = [
+	apiKey({ enableMetadata: true, defaultPrefix: "api_", defaultKeyLength: 64 }),
+	admin(),
+	genericOAuth({
+		config: [
+			{
+				providerId: "doras",
+				clientId: process.env.DORAS_CLIENT_ID as string,
+				clientSecret: process.env.DORAS_CLIENT_SECRET as string,
+				authorizationUrl: "https://doras.to/oauth2/authorize",
+				tokenUrl: "https://doras.to/oauth2/token",
+				userInfoUrl: "https://doras.to/api/v1/account/me",
+				scopes: ["identity,brands"],
+				responseType: "code",
+				authentication: "post",
+				authorizationUrlParams: {
+					redirect_to: "/",
+				},
+				redirectURI: `${authCallbackUrl}/api/auth/oauth2/callback/doras`,
+				getUserInfo: async (tokens) => {
+					if (tokens.accessToken) {
+						const data = await DorasUser(tokens.accessToken);
+						if (data?.error) {
+							throw new Error(data.error);
+						}
+						const profile = data?.account;
+						return profile;
+					}
+				},
+				mapProfileToUser: async (profile) => {
+					return {
+						id: profile.id,
+						email: profile.email,
+						name: profile.username,
+						displayName: profile.displayName ?? profile.username,
+						emailVerified: true,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+						image: profile.pic,
+					};
+				},
+			},
+		],
+	}),
+]
+if (polarBillingEnabled) {
+	if (!process.env.POLAR_PRODUCT_ID) {
+		throw new Error("POLAR_PRODUCT_ID is required for cloud edition");
+	}
+
+	if (!polarClient) {
+		throw new Error("Polar client not initialized");
+	}
+
+	plugins.push(
+		polar({
+			client: polarClient,
+			createCustomerOnSignUp: true,
+			use: [
+				checkout({
+					products: [
+						{
+							productId: process.env.POLAR_PRODUCT_ID || "",
+							slug: "sayr-pro" // Custom slug for easy reference in Checkout URL, e.g.
+						}
+					],
+					successUrl: isProd ? "https://admin.sayr.io/success?checkout_id={CHECKOUT_ID}" : "http://admin.app.localhost:3000/success?checkout_id={CHECKOUT_ID}",
+					authenticatedUsersOnly: true,
+					returnUrl: isProd ? "https://admin.sayr.io/" : "http://admin.app.localhost:3000/",
+				})
+				,
+			],
+		})
+	);
+}
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -62,7 +142,7 @@ export const auth = betterAuth({
 		deleteUser: {
 			enabled: true,
 			afterDelete: async (user, request) => {
-				await polarClient.customers.deleteExternal({
+				polarClient && await polarClient.customers.deleteExternal({
 					externalId: user.id,
 				});
 			},
@@ -97,69 +177,7 @@ export const auth = betterAuth({
 			allowDifferentEmails: true,
 		},
 	},
-	plugins: [
-		apiKey({ enableMetadata: true, defaultPrefix: "api_", defaultKeyLength: 64 }),
-		admin(),
-		genericOAuth({
-			config: [
-				{
-					providerId: "doras",
-					clientId: process.env.DORAS_CLIENT_ID as string,
-					clientSecret: process.env.DORAS_CLIENT_SECRET as string,
-					authorizationUrl: "https://doras.to/oauth2/authorize",
-					tokenUrl: "https://doras.to/oauth2/token",
-					userInfoUrl: "https://doras.to/api/v1/account/me",
-					scopes: ["identity,brands"],
-					responseType: "code",
-					authentication: "post",
-					authorizationUrlParams: {
-						redirect_to: "/",
-					},
-					redirectURI: `${authCallbackUrl}/api/auth/oauth2/callback/doras`,
-					getUserInfo: async (tokens) => {
-						if (tokens.accessToken) {
-							const data = await DorasUser(tokens.accessToken);
-							if (data?.error) {
-								throw new Error(data.error);
-							}
-							const profile = data?.account;
-							return profile;
-						}
-					},
-					mapProfileToUser: async (profile) => {
-						return {
-							id: profile.id,
-							email: profile.email,
-							name: profile.username,
-							displayName: profile.displayName ?? profile.username,
-							emailVerified: true,
-							createdAt: new Date(),
-							updatedAt: new Date(),
-							image: profile.pic,
-						};
-					},
-				},
-			],
-		}),
-		polar({
-			client: polarClient,
-			createCustomerOnSignUp: true,
-			use: [
-				checkout({
-					products: [
-						{
-							productId: process.env.POLAR_PRODUCT_ID || "",
-							slug: "sayr-pro" // Custom slug for easy reference in Checkout URL, e.g.
-						}
-					],
-					successUrl: isProd ? "https://admin.sayr.io/success?checkout_id={CHECKOUT_ID}" : "http://admin.app.localhost:3000/success?checkout_id={CHECKOUT_ID}",
-					authenticatedUsersOnly: true,
-					returnUrl: isProd ? "https://admin.sayr.io/" : "http://admin.app.localhost:3000/",
-				})
-				,
-			],
-		})
-	],
+	plugins: plugins
 });
 async function DorasUser(accessToken: string) {
 	try {
