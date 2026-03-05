@@ -99,10 +99,12 @@ export default function UserDropdown() {
               </Link>
             </DropdownMenuGroup>
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
+              {editionRaw === "cloud" && (
+                <DropdownMenuItem>
+                  <CreditCard />
+                  Billing
+                </DropdownMenuItem>
+              )}
               <Link to={"/mine"} search={{ tab: "inbox" }} className="w-full">
                 <DropdownMenuItem>
                   <Bell />
