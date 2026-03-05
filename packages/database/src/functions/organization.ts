@@ -372,6 +372,7 @@ export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<sch
 				name: "Admin",
 				description: "Full access to all organization settings and content",
 				permissions: fullAdminPermissions,
+				isSystem: true,
 			})
 			.returning();
 

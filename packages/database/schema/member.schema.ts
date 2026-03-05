@@ -54,6 +54,10 @@ export const team = table(
 			.timestamp("updated_at")
 			.notNull()
 			.$defaultFn(() => new Date()),
+		isSystem: v
+			.boolean("is_system")
+			.notNull()
+			.default(false),
 	},
 	(t) => [v.index("idx_team_org_name").on(t.organizationId, t.name)]
 );

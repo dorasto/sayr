@@ -152,7 +152,7 @@ export default function SettingsOrganizationPageTeams({ teams }: { teams: schema
 						<DropdownMenuItem
 							className="text-destructive focus:text-destructive"
 							onClick={() => handleDeleteTeam(team)}
-							disabled={isFetching && deletingTeamId === team.id}
+							disabled={isFetching && deletingTeamId === team.id || team.isSystem}
 						>
 							<IconTrash /> Delete team
 						</DropdownMenuItem>

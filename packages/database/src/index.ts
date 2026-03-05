@@ -78,6 +78,17 @@ export async function hasOrgPermission(userId: string, orgId: string, permPath: 
 		return true;
 	}
 
+	// Organization creator = full access
+	const org = await db
+		.select({ createdBy: organization.createdBy })
+		.from(organization)
+		.where(eq(organization.id, orgId))
+		.limit(1);
+
+	if (org[0]?.createdBy === userId) {
+		return true;
+	}
+
 	// 1️⃣ Find membership for this org
 	const [m] = await db
 		.select({ id: member.id })
@@ -166,7 +177,16 @@ export async function getOrgPermissions(userId: string, orgId: string): Promise<
 	if (await isPlatformAdmin(userId)) {
 		return { ...fullPermissions };
 	}
+	// Organization creator = full access
+	const org = await db
+		.select({ createdBy: organization.createdBy })
+		.from(organization)
+		.where(eq(organization.id, orgId))
+		.limit(1);
 
+	if (org[0]?.createdBy === userId) {
+		return { ...fullPermissions };
+	}
 	// 1️⃣ Find membership for this org
 	const [m] = await db
 		.select({ id: member.id })

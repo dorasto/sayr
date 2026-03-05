@@ -369,36 +369,59 @@ export default function SettingsOrganizationPageTeamSettings({
 										</Button>
 									</PopoverTrigger>
 									<PopoverContent className="p-0 flex flex-col gap-3">
-										<Tile className="md:w-full p-3 bg-accent">
-											<TileHeader>
-												<TileIcon>
-													<IconUsersGroup className="size-5" />
-												</TileIcon>
-												<TileTitle>{team.name}</TileTitle>
-											</TileHeader>
-											<TileAction>
-												{team.members.length} {team.members.length === 1 ? "member" : "members"}
-											</TileAction>
-										</Tile>
-										<div className="flex flex-col gap-3 p-3">
-											<Label>Are you sure you want to delete this team? This action cannot be undone.</Label>
-											<div className="flex justify-end gap-2">
-												<ButtonGroup>
-													<Button variant="outline" size="sm" onClick={() => setConfirmDeleteOpen(false)}>
-														Cancel
-													</Button>
-													<Button
-														variant="destructive"
-														size="sm"
-														onClick={handleDelete}
-														disabled={isFetching}
-													>
-														<IconTrash className="size-4" />
-														Delete
-													</Button>
-												</ButtonGroup>
+										{team.isSystem ? (
+											<div className="p-4 text-sm text-muted-foreground">
+												This is a system team and cannot be deleted.
 											</div>
-										</div>
+										) : (
+											<>
+												<Tile className="md:w-full p-3 bg-accent">
+													<TileHeader>
+														<TileIcon>
+															<IconUsersGroup className="size-5" />
+														</TileIcon>
+														<TileTitle>{team.name}</TileTitle>
+													</TileHeader>
+													<TileAction>
+														{team.members.length}{" "}
+														{team.members.length === 1
+															? "member"
+															: "members"}
+													</TileAction>
+												</Tile>
+
+												<div className="flex flex-col gap-3 p-3">
+													<Label>
+														Are you sure you want to delete this
+														team? This action cannot be undone.
+													</Label>
+
+													<div className="flex justify-end gap-2">
+														<ButtonGroup>
+															<Button
+																variant="outline"
+																size="sm"
+																onClick={() =>
+																	setConfirmDeleteOpen(false)
+																}
+															>
+																Cancel
+															</Button>
+
+															<Button
+																variant="destructive"
+																size="sm"
+																onClick={handleDelete}
+																disabled={isFetching}
+															>
+																<IconTrash className="size-4" />
+																Delete
+															</Button>
+														</ButtonGroup>
+													</div>
+												</div>
+											</>
+										)}
 									</PopoverContent>
 								</Popover>
 							</div>
@@ -427,6 +450,7 @@ export default function SettingsOrganizationPageTeamSettings({
 							<Switch
 								checked={isAdmin}
 								onCheckedChange={(checked) => updateAdminPermission("administrator", checked)}
+								disabled={team?.isSystem}
 							/>
 						</div>
 					</div>

@@ -45,11 +45,13 @@ export const organization = table("organization", {
 	polarSubscriptionId: v.text("polar_subscription_id"),
 	currentPeriodEnd: v.timestamp("current_period_end"),
 	isSystemOrg: v.boolean("is_system_org").default(false).notNull(),
+	createdBy: v.text("created_by"),
 }, (t) => [
 	v
 		.uniqueIndex("one_system_org_only")
 		.on(t.isSystemOrg)
 		.where(sql`is_system_org = true`),
+	v.index("idx_org_created_by").on(t.createdBy)
 ]);
 
 export type organizationType = typeof organization.$inferSelect;

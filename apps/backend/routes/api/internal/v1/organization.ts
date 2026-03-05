@@ -94,6 +94,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 					name,
 					slug,
 					description: description || "",
+					createdBy: session.userId,
 				})
 				.returning();
 			return org;
@@ -2941,6 +2942,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 					name,
 					description,
 					permissions: teamPermissions,
+					isSystem: false,
 				})
 				.returning();
 			return created;
@@ -3036,6 +3038,26 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove teams." }, 401);
+	}
+
+	const existingTeam = await db.query.team.findFirst({
+		where: (m) =>
+			and(eq(m.organizationId, orgId), eq(m.id, teamId)),
+	});
+
+	if (!existingTeam) {
+		return c.json(
+			{ success: false, error: "Team not found." },
+			404
+		);
+	}
+
+	// ✅ Prevent deletion of system teams
+	if (existingTeam.isSystem) {
+		return c.json(
+			{ success: false, error: "System teams cannot be deleted." },
+			403
+		);
 	}
 
 	const removed = await traceAsync(

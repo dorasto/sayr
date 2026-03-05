@@ -86,11 +86,52 @@
                                                 "description": {
                                                     "type": "string"
                                                 },
+                                                "settings": {
+                                                    "anyOf": [
+                                                        {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "number"
+                                                                },
+                                                                {
+                                                                    "type": "boolean"
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "propertyNames": {
+                                                                "type": "string"
+                                                            },
+                                                            "additionalProperties": {}
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    ]
+                                                },
                                                 "createdAt": {
                                                     "type": "string"
                                                 },
                                                 "updatedAt": {
                                                     "type": "string"
+                                                },
+                                                "plan": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
                                                 },
                                                 "wsUrl": {
                                                     "type": "string"
@@ -160,8 +201,10 @@
                                                 "logo",
                                                 "bannerImg",
                                                 "description",
+                                                "settings",
                                                 "createdAt",
                                                 "updatedAt",
+                                                "plan",
                                                 "wsUrl",
                                                 "members"
                                             ]
@@ -1222,6 +1265,16 @@
                                                             "github"
                                                         ]
                                                     },
+                                                    "parentId": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
                                                     "externalAuthorLogin": {
                                                         "anyOf": [
                                                             {
@@ -1328,6 +1381,7 @@
                                                     "content",
                                                     "visibility",
                                                     "source",
+                                                    "parentId",
                                                     "externalAuthorLogin",
                                                     "externalAuthorUrl",
                                                     "externalIssueNumber",
@@ -1615,11 +1669,52 @@
                                                     "description": {
                                                         "type": "string"
                                                     },
+                                                    "settings": {
+                                                        "anyOf": [
+                                                            {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "number"
+                                                                    },
+                                                                    {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "propertyNames": {
+                                                                    "type": "string"
+                                                                },
+                                                                "additionalProperties": {}
+                                                            },
+                                                            {
+                                                                "type": "array",
+                                                                "items": {}
+                                                            }
+                                                        ]
+                                                    },
                                                     "createdAt": {
                                                         "type": "string"
                                                     },
                                                     "updatedAt": {
                                                         "type": "string"
+                                                    },
+                                                    "plan": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
                                                     },
                                                     "wsUrl": {
                                                         "type": "string"
@@ -1689,8 +1784,10 @@
                                                     "logo",
                                                     "bannerImg",
                                                     "description",
+                                                    "settings",
                                                     "createdAt",
                                                     "updatedAt",
+                                                    "plan",
                                                     "wsUrl",
                                                     "members"
                                                 ]
