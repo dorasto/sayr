@@ -1538,25 +1538,6 @@ export async function updateSubscriptionSeats(
 	return res.json();
 }
 
-/**
- * Immediately revokes (cancels) the org's subscription via Polar.
- * Testing-only — remove before production launch.
- */
-export async function revokeSubscription(
-	organizationId: string,
-): Promise<{ success: boolean; error?: string }> {
-	const res = await fetch(`${API_URL}/v1/polar/subscription/revoke`, {
-		method: "POST",
-		body: JSON.stringify({ orgId: organizationId }),
-		headers: {
-			"Content-Type": "application/json",
-		},
-		credentials: "include",
-	});
-
-	return res.json();
-}
-
 // ────────────────────────────────────
 //  Billing / Polar Portal Fetchers
 // ────────────────────────────────────
