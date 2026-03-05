@@ -11,7 +11,8 @@ import { Polar } from "@polar-sh/sdk";
 import { validateEvent } from '@polar-sh/sdk/webhooks'
 import { Subscription } from "@polar-sh/sdk/models/components/subscription.js";
 import { CustomerSeat } from "@polar-sh/sdk/models/components/customerseat.js";
-import { getEditionCapabilities } from "@repo/edition";
+import { getEditionCapabilities, isSelfHosted } from "@repo/edition";
+import { eq, sql } from "drizzle-orm";
 export { Polar, validateEvent };
 export type { Subscription, CustomerSeat };
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
@@ -177,7 +178,28 @@ export const auth = betterAuth({
 			allowDifferentEmails: true,
 		},
 	},
-	plugins: plugins
+	plugins: plugins,
+	databaseHooks: {
+		user: {
+			create: {
+				after: async (user) => {
+					// On self-hosted editions, automatically promote the first user to platform admin
+					if (!isSelfHosted()) return;
+
+					const result = await db
+						.select({ count: sql<number>`count(*)::int` })
+						.from(schema.auth.user);
+
+					if (result[0]?.count === 1) {
+						await db
+							.update(schema.auth.user)
+							.set({ role: "admin" })
+							.where(eq(schema.auth.user.id, user.id));
+					}
+				},
+			},
+		},
+	},
 });
 async function DorasUser(accessToken: string) {
 	try {

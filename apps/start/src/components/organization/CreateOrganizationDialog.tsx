@@ -47,6 +47,11 @@ export default function CreateOrganizationDialog({ onSuccess, trigger }: Props) 
 		}
 	}, [name, slugManuallyEdited]);
 
+	// On community edition, hide the entire dialog trigger once the user has an org
+	if (isLimited) {
+		return null;
+	}
+
 	const handleSlugChange = (value: string) => {
 		setSlugManuallyEdited(true);
 		// Only allow lowercase letters, numbers, and hyphens
@@ -113,91 +118,76 @@ export default function CreateOrganizationDialog({ onSuccess, trigger }: Props) 
 					</Button>
 				)}
 			</AdaptiveDialogTrigger>
-			<AdaptiveDialogContent className="sm:max-w-md">
-				<AdaptiveDialogHeader>
-					<AdaptiveDialogTitle className="flex items-center gap-2">
-						<IconBuilding className="h-5 w-5" />
-						Create Organization
-					</AdaptiveDialogTitle>
-					<AdaptiveDialogDescription>
-						{isLimited
-							? "The Community Edition is limited to a single organization."
-							: "Create a new organization to manage your projects and team."}
-					</AdaptiveDialogDescription>
-				</AdaptiveDialogHeader>
+		<AdaptiveDialogContent className="sm:max-w-md">
+			<AdaptiveDialogHeader>
+				<AdaptiveDialogTitle className="flex items-center gap-2">
+					<IconBuilding className="h-5 w-5" />
+					Create Organization
+				</AdaptiveDialogTitle>
+				<AdaptiveDialogDescription>
+					Create a new organization to manage your projects and team.
+				</AdaptiveDialogDescription>
+			</AdaptiveDialogHeader>
 
-				{isLimited ? (
-					<div className="flex flex-col gap-3 p-4">
-						<p className="text-sm text-muted-foreground">
-							Self-hosted Community Edition instances support one organization. You already have an organization on this instance.
-						</p>
-						<p className="text-sm text-muted-foreground">
-							To create additional organizations, upgrade to the Enterprise Edition or use Sayr Cloud.
-						</p>
+			<div className="flex flex-col gap-4 p-4">
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="org-name">Organization Name</Label>
+					<Input
+						id="org-name"
+						placeholder="My Organization"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						autoFocus
+						className="bg-accent border-transparent"
+					/>
+				</div>
+
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="org-slug">
+						Slug
+						<span className="text-muted-foreground ml-1 text-xs">(URL-friendly identifier)</span>
+					</Label>
+					<div className="flex items-center gap-2">
+						<Input
+							id="org-slug"
+							placeholder="my-organization"
+							value={slug}
+							onChange={(e) => handleSlugChange(e.target.value)}
+							className="bg-accent border-transparent font-mono"
+						/>
 					</div>
-				) : (
-					<div className="flex flex-col gap-4 p-4">
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="org-name">Organization Name</Label>
-							<Input
-								id="org-name"
-								placeholder="My Organization"
-								value={name}
-								onChange={(e) => setName(e.target.value)}
-								autoFocus
-								className="bg-accent border-transparent"
-							/>
-						</div>
+					<p className="text-xs text-muted-foreground">
+						Your organization will be accessible at{" "}
+						<code className="bg-muted px-1 py-0.5 rounded">
+							{slug || "your-slug"}.{import.meta.env.VITE_ROOT_DOMAIN || "example.com"}
+						</code>
+					</p>
+				</div>
 
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="org-slug">
-								Slug
-								<span className="text-muted-foreground ml-1 text-xs">(URL-friendly identifier)</span>
-							</Label>
-							<div className="flex items-center gap-2">
-								<Input
-									id="org-slug"
-									placeholder="my-organization"
-									value={slug}
-									onChange={(e) => handleSlugChange(e.target.value)}
-									className="bg-accent border-transparent font-mono"
-								/>
-							</div>
-							<p className="text-xs text-muted-foreground">
-								Your organization will be accessible at{" "}
-								<code className="bg-muted px-1 py-0.5 rounded">
-									{slug || "your-slug"}.{import.meta.env.VITE_ROOT_DOMAIN || "example.com"}
-								</code>
-							</p>
-						</div>
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="org-description">
+						Description
+						<span className="text-muted-foreground ml-1 text-xs">(optional)</span>
+					</Label>
+					<Textarea
+						id="org-description"
+						placeholder="A brief description of your organization..."
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+						className="bg-accent rounded-lg border-transparent resize-none"
+					/>
+				</div>
+			</div>
 
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="org-description">
-								Description
-								<span className="text-muted-foreground ml-1 text-xs">(optional)</span>
-							</Label>
-							<Textarea
-								id="org-description"
-								placeholder="A brief description of your organization..."
-								value={description}
-								onChange={(e) => setDescription(e.target.value)}
-								className="bg-accent rounded-lg border-transparent resize-none"
-							/>
-						</div>
-					</div>
-				)}
-
-				<AdaptiveDialogFooter>
-					<Button variant="ghost" onClick={() => setOpen(false)}>
-						{isLimited ? "Close" : "Cancel"}
-					</Button>
-					{!isLimited && (
-						<Button variant="default" onClick={handleCreate} disabled={isFetching || !name.trim() || !slug.trim()}>
-							{isFetching ? "Creating..." : "Create Organization"}
-						</Button>
-					)}
-				</AdaptiveDialogFooter>
-			</AdaptiveDialogContent>
+			<AdaptiveDialogFooter>
+				<Button variant="ghost" onClick={() => setOpen(false)}>
+					Cancel
+				</Button>
+				<Button variant="default" onClick={handleCreate} disabled={isFetching || !name.trim() || !slug.trim()}>
+					{isFetching ? "Creating..." : "Create Organization"}
+				</Button>
+			</AdaptiveDialogFooter>
+		</AdaptiveDialogContent>
 		</AdaptiveDialog>
 	);
 }
