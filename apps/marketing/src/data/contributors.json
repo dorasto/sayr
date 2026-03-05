@@ -1,5 +1,5 @@
 {
-  "src/content/docs/docs\\quick-start.md": {
+  "src/content/docs/docs/quick-start.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -10,7 +10,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\index.md": {
+  "src/content/docs/docs/index.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -21,7 +21,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\404.md": {
+  "src/content/docs/docs/404.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -32,7 +32,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\self-hosting\\railway.md": {
+  "src/content/docs/docs/self-hosting/railway.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -43,7 +43,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\organizations\\Connections\\github.md": {
+  "src/content/docs/docs/organizations/Connections/github.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -54,7 +54,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\knowledge-base\\index.md": {
+  "src/content/docs/docs/knowledge-base/index.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -65,7 +65,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\knowledge-base\\faq.md": {
+  "src/content/docs/docs/knowledge-base/faq.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -76,7 +76,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\guides\\visibility.md": {
+  "src/content/docs/docs/guides/visibility.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -87,7 +87,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\guides\\views.md": {
+  "src/content/docs/docs/guides/views.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -98,7 +98,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\guides\\releases.md": {
+  "src/content/docs/docs/guides/releases.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -109,7 +109,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\guides\\public-pages.md": {
+  "src/content/docs/docs/guides/public-pages.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -120,7 +120,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\contributing\\schema-types.mdx": {
+  "src/content/docs/docs/contributing/schema-types.mdx": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -131,7 +131,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\contributing\\local-development.mdx": {
+  "src/content/docs/docs/contributing/local-development.mdx": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -142,7 +142,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\contributing\\documentation.md": {
+  "src/content/docs/docs/contributing/documentation.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -153,7 +153,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\contributing\\database.md": {
+  "src/content/docs/docs/contributing/database.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -164,7 +164,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\contributing\\architecture.md": {
+  "src/content/docs/docs/contributing/architecture.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -184,7 +184,7 @@
       }
     ]
   },
-  "src/content/docs/docs\\contributing\\adding-features.md": {
+  "src/content/docs/docs/contributing/adding-features.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -204,7 +204,7 @@
       }
     ]
   },
-  "src/content/docs/docs\\contributing\\Guidelines\\testing.md": {
+  "src/content/docs/docs/contributing/Guidelines/testing.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -215,7 +215,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\contributing\\Guidelines\\pull-requests.md": {
+  "src/content/docs/docs/contributing/Guidelines/pull-requests.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -226,7 +226,7 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs\\contributing\\Guidelines\\code-style.md": {
+  "src/content/docs/docs/contributing/Guidelines/code-style.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -246,7 +246,7 @@
       }
     ]
   },
-  "src/content/docs/docs\\api\\sdk.mdx": {
+  "src/content/docs/docs/api/sdk.mdx": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -266,7 +266,7 @@
       }
     ]
   },
-  "src/content/docs/docs\\api\\reference-v1.mdx": {
+  "src/content/docs/docs/api/reference-v1.mdx": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -286,7 +286,7 @@
       }
     ]
   },
-  "src/content/docs/docs\\api\\overview.md": {
+  "src/content/docs/docs/api/overview.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
