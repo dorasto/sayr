@@ -32,6 +32,17 @@
     },
     "contributors": []
   },
+  "src/content/docs/docs/self-hosting/editions.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
   "src/content/docs/docs/organizations/Connections/github.md": {
     "author": {
       "name": "Tommy Lundy",

@@ -1,6 +1,8 @@
 ---
 title: Editions
 description: Understanding Sayr's edition system - Community, Cloud, and Enterprise
+sidebar:
+  order: 1
 ---
 
 Sayr ships in three editions. Each edition targets a different deployment scenario and determines what capabilities and limits are available on your instance.
