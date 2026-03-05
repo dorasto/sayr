@@ -7,7 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 
 const app = new Hono<AppEnv>();
-app.post("/github", async (c) => {
+app.post("/", async (c) => {
     const traceAsync = createTraceAsync();
     const recordWideError = c.get("recordWideError");
 
