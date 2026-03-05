@@ -32,6 +32,9 @@ jobs:
           # Marketing site is cloud-only
           - app: marketing
             edition: ce
+          # CE edition is amd64-only to reduce build costs
+          - platform: linux/arm64
+            edition: ce
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
