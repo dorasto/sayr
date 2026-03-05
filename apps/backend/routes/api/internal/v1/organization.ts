@@ -29,6 +29,7 @@ import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { Octokit } from "@octokit/rest";
 import { polarClient } from "@repo/auth";
+import { canCreateResource, getEditionCapabilities, getLimitReachedMessage } from "@repo/edition";
 import { UseSend } from "usesend-js";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
@@ -47,6 +48,36 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 			contextData: {},
 		});
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	// Edition-level org creation limit
+	const capabilities = getEditionCapabilities();
+	if (capabilities.maxOrganizations !== null) {
+		const existingOrgCount = await traceAsync(
+			"organization.create.count_user_orgs",
+			async () => {
+				const memberships = await db.query.member.findMany({
+					where: eq(schema.member.userId, session.userId),
+					columns: { id: true },
+				});
+				return memberships.length;
+			},
+			{ description: "Counting user organizations", data: { userId: session.userId } }
+		);
+
+		if (existingOrgCount >= capabilities.maxOrganizations) {
+			await recordWideError({
+				name: "organization.create.limit_reached",
+				error: new Error("Organization limit reached"),
+				code: "ORG_LIMIT_REACHED",
+				message: `User has reached the maximum of ${capabilities.maxOrganizations} organization(s) for this edition`,
+				contextData: { userId: session.userId, currentCount: existingOrgCount, limit: capabilities.maxOrganizations },
+			});
+			return c.json({
+				success: false,
+				error: `You've reached the maximum of ${capabilities.maxOrganizations} organization(s). Upgrade to an enterprise license to create more.`,
+			}, 403);
+		}
 	}
 
 	const { name, slug, description } = await c.req.json();
@@ -1002,6 +1033,19 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
+	// Plan-level issue template limit
+	const templateOrg = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { plan: true },
+	});
+	const existingTemplates = await db.query.issueTemplate.findMany({
+		where: eq(schema.issueTemplate.organizationId, orgId),
+		columns: { id: true },
+	});
+	if (!canCreateResource("issueTemplates", existingTemplates.length, templateOrg?.plan)) {
+		return c.json({ success: false, error: getLimitReachedMessage("issueTemplates", templateOrg?.plan) }, 403);
+	}
+
 	const templateId = randomUUID();
 
 	const created = await traceAsync(
@@ -1309,6 +1353,19 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	// Plan-level saved view limit
+	const viewOrg = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { plan: true },
+	});
+	const existingViews = await db.query.savedView.findMany({
+		where: eq(schema.savedView.organizationId, orgId),
+		columns: { id: true },
+	});
+	if (!canCreateResource("savedViews", existingViews.length, viewOrg?.plan)) {
+		return c.json({ success: false, error: getLimitReachedMessage("savedViews", viewOrg?.plan) }, 403);
 	}
 
 	const view = await traceAsync(
@@ -2917,6 +2974,19 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create teams." }, 401);
+	}
+
+	// Plan-level team limit (exclude system teams from count)
+	const teamOrg = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { plan: true },
+	});
+	const existingTeams = await db.query.team.findMany({
+		where: and(eq(schema.team.organizationId, orgId), eq(schema.team.isSystem, false)),
+		columns: { id: true },
+	});
+	if (!canCreateResource("teams", existingTeams.length, teamOrg?.plan)) {
+		return c.json({ success: false, error: getLimitReachedMessage("teams", teamOrg?.plan) }, 403);
 	}
 
 	const teamPermissions: TeamPermissions = permissions

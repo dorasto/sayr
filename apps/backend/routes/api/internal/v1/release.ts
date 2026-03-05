@@ -16,6 +16,8 @@ import type { AppEnv } from "@/index";
 import { broadcast, broadcastPublic, findClientByWsId } from "../../../ws";
 import type { WSBaseMessage } from "../../../ws/types";
 import { traceOrgPermissionCheck } from "@/util";
+import { eq } from "drizzle-orm";
+import { canCreateResource, getLimitReachedMessage } from "@repo/edition";
 
 export const apiRouteAdminRelease = new Hono<AppEnv>();
 
@@ -61,6 +63,19 @@ apiRouteAdminRelease.post("/create", async (c) => {
 			contextData: { slug, orgId },
 		});
 		return c.json({ success: false, error: "Release slug is already taken" }, 400);
+	}
+
+	// Plan-level release limit
+	const releaseOrg = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { plan: true },
+	});
+	const existingReleases = await db.query.release.findMany({
+		where: eq(schema.release.organizationId, orgId),
+		columns: { id: true },
+	});
+	if (!canCreateResource("releases", existingReleases.length, releaseOrg?.plan)) {
+		return c.json({ success: false, error: getLimitReachedMessage("releases", releaseOrg?.plan) }, 403);
 	}
 
 	// Create the release

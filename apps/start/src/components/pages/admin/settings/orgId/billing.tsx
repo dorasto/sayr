@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Separator } from "@repo/ui/components/separator";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { getPlanLimits } from "./billing/billing-data";
+import { getEffectiveLimits } from "@repo/edition";
 import type { UsageEntry } from "./billing/billing-usage";
 import { BillingCurrentPlan } from "./billing/billing-current-plan";
 import { BillingUsage } from "./billing/billing-usage";
@@ -69,7 +69,7 @@ export default function SettingsOrganizationBillingPage() {
     );
   }, [account, organization.members]);
 
-  const limits = getPlanLimits(organization.plan);
+   const limits = getEffectiveLimits(organization.plan);
 
   const teamsCount = useMemo(() => {
     const teamIds = new Set<string>();

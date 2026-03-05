@@ -1,6 +1,7 @@
 import { SubWrapper } from "@/components/generic/wrapper";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
 import { db, getLabels, getOrganizationPublic } from "@repo/database";
+import { getEditionCapabilities } from "@repo/edition";
 import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
@@ -37,8 +38,10 @@ async function getSystemOrgSlug() {
 	return cachedSystemOrgSlug;
 }
 
-async function resolvePublicOrganization(slug: string, isCloud?: boolean) {
-	if (!isCloud) {
+async function resolvePublicOrganization(slug: string) {
+	const { multiTenantEnabled } = getEditionCapabilities();
+
+	if (!multiTenantEnabled) {
 		const systemSlug = await getSystemOrgSlug();
 		if (!systemSlug) return null;
 
@@ -51,7 +54,7 @@ async function resolvePublicOrganization(slug: string, isCloud?: boolean) {
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
-		const organization = await resolvePublicOrganization(data.slug, import.meta.env.VITE_SAYR_CLOUD === "true");
+		const organization = await resolvePublicOrganization(data.slug);
 
 		if (!organization) {
 			return { organization: null, labels: [], categories: [] };
@@ -92,7 +95,7 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 		return {
 			meta: [
 				{
-					title: loaderData.organization.name + " | Sayr.io",
+					title: `${loaderData.organization.name} | Sayr.io`,
 				},
 			],
 		};

@@ -3,10 +3,14 @@ import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+// Load .env files so non-VITE_ vars (SAYR_EDITION, APP_ENV) are available in the define block.
+// Vite only auto-exposes VITE_* prefixed vars; loadEnv with "" prefix loads all of them.
+const env = loadEnv(isDev ? "development" : "production", process.cwd(), "");
 
 const config = defineConfig({
   build: {
@@ -15,10 +19,13 @@ const config = defineConfig({
   },
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
-      process.env.APP_ENV ?? "development",
+      env.APP_ENV ?? "development",
     ),
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(
-      process.env.VITE_APP_VERSION ?? "localhost",
+      env.VITE_APP_VERSION ?? "localhost",
+    ),
+    "import.meta.env.VITE_SAYR_EDITION": JSON.stringify(
+      env.SAYR_EDITION_BAKED ?? env.SAYR_EDITION ?? "community",
     ),
   },
   // Use Vite's built-in proxy in development (avoids nitro caching/hydration issues)

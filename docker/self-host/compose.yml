@@ -3,7 +3,7 @@ version: "3.8"
 services:
   start:
     container_name: sayr-start
-    image: ghcr.io/dorasto/sayr-start:latest
+    image: ghcr.io/dorasto/sayr-ce-start:latest
     restart: always
     pull_policy: always
     environment:
@@ -38,12 +38,11 @@ services:
       - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
       - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
       - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
-      - SAYR_CLOUD=${SAYR_CLOUD}
       - APP_ENV=${APP_ENV}
 
   backend:
     container_name: sayr-backend
-    image: ghcr.io/dorasto/sayr-backend:latest
+    image: ghcr.io/dorasto/sayr-ce-backend:latest
     restart: always
     pull_policy: always
     environment:
@@ -72,12 +71,11 @@ services:
       - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
       - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
       - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
-      - SAYR_CLOUD=${SAYR_CLOUD}
       - APP_ENV=${APP_ENV}
 
   github-worker:
     container_name: sayr-worker-github
-    image: ghcr.io/dorasto/sayr-worker:latest
+    image: ghcr.io/dorasto/sayr-ce-worker:latest
     restart: always
     pull_policy: always
     command: ["bun", "run", "dist/index.js", "github"]
@@ -106,7 +104,6 @@ services:
       - AXIOM_OTEL_DOMAIN=${AXIOM_OTEL_DOMAIN}
       - AXIOM_OTEL_TOKEN=${AXIOM_OTEL_TOKEN}
       - AXIOM_OTEL_DATASET=${AXIOM_OTEL_DATASET}
-      - SAYR_CLOUD=${SAYR_CLOUD}
       - APP_ENV=${APP_ENV}
 
   redis:

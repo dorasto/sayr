@@ -37,6 +37,8 @@ export default function UserDropdown() {
   const { account } = useLayoutData();
   const isMobile = useIsMobile();
   const { theme, setTheme } = useTheme();
+  const editionRaw = import.meta.env.VITE_SAYR_EDITION ?? "community";
+  const editionLabel = editionRaw.charAt(0).toUpperCase() + editionRaw.slice(1);
   // const [isUserUpdateOpen, setIsUserUpdateOpen] = useState(false);
   return (
     <>
@@ -128,7 +130,7 @@ export default function UserDropdown() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Sayr {import.meta.env.VITE_APP_VERSION ?? "localhost"}
+              Sayr {import.meta.env.VITE_APP_VERSION ?? "localhost"} · {editionLabel}
             </DropdownMenuLabel>
           </DropdownMenuContent>
         </DropdownMenu>

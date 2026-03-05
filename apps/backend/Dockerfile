@@ -26,6 +26,10 @@ RUN pnpm install
 # Copy source code of isolated subworkspace
 COPY --from=builder /app/out/full/ .
 
+# Edition baking: set at Docker build time, compiled into JS bundle
+ARG SAYR_EDITION_BAKED="community"
+ENV SAYR_EDITION_BAKED=$SAYR_EDITION_BAKED
+
 # Build the project
 WORKDIR /app/apps/backend
 RUN bun run build
@@ -62,7 +66,7 @@ ENV INTERNAL_SECRET=""
 ENV AXIOM_OTEL_TOKEN=""
 ENV AXIOM_OTEL_DOMAIN=""
 ENV AXIOM_OTEL_DATASET=""
-ENV SAYR_CLOUD=""
+ENV SAYR_EDITION_BAKED=""
 ENV APP_ENV="production"
 
 # Expose the port the app runs on
