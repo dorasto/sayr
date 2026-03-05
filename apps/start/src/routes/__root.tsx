@@ -67,6 +67,7 @@ export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
   account?: schema.userType;
   permissions?: NonNullable<(typeof schema.team.$inferSelect)["permissions"]>;
+  systemSlug?: string;
 }>()({
   loader: () => getThemeServerFn(),
   head: (ctx) => ({

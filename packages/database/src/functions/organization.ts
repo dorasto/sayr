@@ -479,13 +479,15 @@ export async function searchOrgMembers(
 		where: (member) =>
 			and(
 				eq(member.organizationId, orgId),
-				eq(member.seatAssigned, true),
+				organization.plan === "pro"
+					? eq(member.seatAssigned, true)
+					: undefined
 			),
 		with: {
 			user: {
-				columns: userSummaryColumns,
-			},
-		},
+				columns: userSummaryColumns
+			}
+		}
 	});
 
 	let users = members.map((m) => m.user);

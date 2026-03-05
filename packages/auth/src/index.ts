@@ -195,6 +195,14 @@ export const auth = betterAuth({
 							.update(schema.auth.user)
 							.set({ role: "admin" })
 							.where(eq(schema.auth.user.id, user.id));
+						await db.insert(schema.auth.user).values({
+							id: crypto.randomUUID(),
+							name: "sayr",
+							email: "",
+							emailVerified: true,
+							image: "https://files.sayr.io/sayr.webp",
+							role: "system"
+						})
 					}
 				},
 			},

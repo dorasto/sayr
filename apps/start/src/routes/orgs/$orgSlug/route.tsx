@@ -50,7 +50,11 @@ async function resolvePublicOrganization(slug: string) {
 
 	return getOrganizationPublic(slug);
 }
-
+export const fetchSystemOrgSlug = createServerFn({ method: "GET" })
+	.handler(async () => {
+		const systemSlug = await getSystemOrgSlug();
+		return { systemSlug };
+	});
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
@@ -71,6 +75,11 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug")({
+	beforeLoad: async () => {
+		const { systemSlug } = await fetchSystemOrgSlug();
+		if (!systemSlug) return null;
+		return { systemSlug };
+	},
 	loader: async ({ params }) =>
 		fetchPublicOrganizationAndTasks({
 			data: { slug: params.orgSlug },
