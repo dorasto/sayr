@@ -15,7 +15,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { broadcast, broadcastPublic, findClientByWsId } from "../../../ws";
 import type { WSBaseMessage } from "../../../ws/types";
-import { traceOrgPermissionCheck } from "@/util";
+import { enforceLimit, traceOrgPermissionCheck } from "@/util";
 import { eq } from "drizzle-orm";
 import { canCreateResource, getLimitReachedMessage } from "@repo/edition";
 
@@ -35,6 +35,15 @@ apiRouteAdminRelease.post("/create", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create releases." }, 401);
 	}
+	await enforceLimit({
+		c,
+		limitKey: "releases",
+		table: schema.release,
+		traceName: "release.count_all",
+		entityName: "release",
+		traceAsync,
+		recordWideError
+	});
 
 	// Validate required fields
 	if (!name || !slug) {

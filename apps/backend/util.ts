@@ -1,8 +1,11 @@
 import { canPublicAccessOrg, db, hasOrgPermission, schema } from "@repo/database";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { and, eq } from "drizzle-orm";
+import { createTraceAsync, type TraceAsync as type_TraceAsync } from "@repo/opentelemetry/trace";
+import { and, eq, count } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { account } from "../../packages/database/schema/auth";
+import { type Edition, getEdition, getEffectiveLimits } from "@repo/edition";
+import { RecordWideError } from "./tracing/wideEvent";
+
 export async function getOrganization(orgId: string, userId: string): Promise<{ id: string } | null> {
 	// Check if the user is a member of this org
 	const membership = await db.query.member.findFirst({
@@ -222,5 +225,76 @@ export async function refreshGitHubTokenIfNeeded(githubAccount: schema.accountTy
 	} catch (e) {
 		console.error("GitHub token refresh failed", e);
 		return githubAccount;
+	}
+}
+
+export async function enforceLimit({
+	c,
+	limitKey,
+	table,
+	traceName,
+	entityName,
+	traceAsync,
+	recordWideError,
+}: {
+	c: any;
+	limitKey: keyof ReturnType<typeof getEffectiveLimits>;
+	table: any;
+	traceName: string;
+	entityName: string;
+	traceAsync: type_TraceAsync;
+	recordWideError: RecordWideError;
+}) {
+	const limits = getEffectiveLimits(null);
+	const limit = limits[limitKey];
+
+	if (limit === null) return;
+
+	const edition = getEdition();
+
+	const editionDescriptions: Record<Edition, string> = {
+		cloud: "Sayr Cloud (hosted)",
+		community: "Community Edition (self-hosted)",
+		enterprise: "Enterprise Edition (self-hosted, licensed)",
+	};
+
+	const editionDescription = editionDescriptions[edition];
+
+	const total = await traceAsync(
+		traceName,
+		async () => {
+			const result = await db.select({ count: count() }).from(table);
+			return result[0]?.count ?? 0;
+		},
+		{ description: `Counting total ${entityName}s` }
+	);
+
+	if (total >= limit) {
+		await recordWideError({
+			name: `${entityName}.create.limit_reached`,
+			error: new Error(`${entityName} limit reached`),
+			code: `${entityName.toUpperCase()}_LIMIT_REACHED`,
+			message: `Maximum of ${limit} ${entityName}(s) reached for ${editionDescription}`,
+			contextData: {
+				currentCount: total,
+				limit,
+				edition,
+			},
+		});
+
+		const upgradeMessage =
+			edition === "community"
+				? "Upgrade to the Enterprise Edition to unlock higher limits."
+				: edition === "enterprise"
+					? "Increase your Enterprise license limits to create more."
+					: "Upgrade your Sayr Cloud plan to create more.";
+
+		return c.json(
+			{
+				success: false,
+				error: `You've reached the maximum of ${limit} ${entityName}(s) allowed in ${editionDescription}. ${upgradeMessage}`,
+			},
+			403
+		);
 	}
 }

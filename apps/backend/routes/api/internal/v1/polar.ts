@@ -14,13 +14,13 @@ const isProd = process.env.APP_ENV === "production";
  * Returns the token string or null if the org has no Polar customer.
  */
 async function getCustomerSessionToken(polarCustomerId: string, orgId: string): Promise<string> {
-	const session = await polarClient.customerSessions.create({
+	const session = await polarClient?.customerSessions.create({
 		customerId: polarCustomerId,
 		returnUrl: isProd
 			? `https://admin.sayr.io/settings/org/${orgId}/billing`
 			: `http://admin.app.localhost:3000/settings/org/${orgId}/billing`,
 	});
-	return session.token;
+	return session?.token as any;
 }
 app.get("/checkout", async (c) => {
 	const orgId = c.req.query("orgId");
@@ -54,17 +54,17 @@ app.get("/checkout", async (c) => {
 	}
 
 	// 2️⃣ Ensure Polar org customer exists
-	let customerId = org.polarCustomerId;
+	let customerId: any = org.polarCustomerId;
 	const orgEmail = email?.replace("@", `+sayr-${org.slug}@`) || "";
 
 	if (!customerId) {
-		const customer = await polarClient.customers.create({
+		const customer = await polarClient?.customers.create({
 			externalId: org.id,
 			email: orgEmail,
 			name: org.name,
 		});
 
-		customerId = customer.id;
+		customerId = customer?.id;
 
 		await db
 			.update(schema.organization)
@@ -73,7 +73,7 @@ app.get("/checkout", async (c) => {
 	}
 
 	// 3️⃣ Create checkout under ORG customer
-	const checkout = await polarClient.checkouts.create({
+	const checkout = await polarClient?.checkouts.create({
 		products: [productId],
 		externalCustomerId: org.id,
 		customerEmail: orgEmail,
@@ -89,7 +89,7 @@ app.get("/checkout", async (c) => {
 	});
 
 	// 4️⃣ Redirect user
-	return c.redirect(checkout.url);
+	return c.redirect(checkout?.url || "");
 });
 
 app.get("/customer-portal", async (c) => {
@@ -120,12 +120,12 @@ app.get("/customer-portal", async (c) => {
 	if (!customerId) {
 		throw new Error("Customer not found for org");
 	}
-	const portal = await polarClient.customerSessions.create({
+	const portal = await polarClient?.customerSessions.create({
 		customerId: customerId,
 		returnUrl: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
 	});
 	// 4️⃣ Redirect user
-	return c.redirect(portal.customerPortalUrl);
+	return c.redirect(portal?.customerPortalUrl || "");
 });
 
 // ─── Custom Billing Portal (read-only) ──────────────────────────
@@ -166,10 +166,13 @@ app.get("/subscription", async (c) => {
 
 	try {
 		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
-		const subscription = await polarClient.customerPortal.subscriptions.get(
+		const subscription = await polarClient?.customerPortal.subscriptions.get(
 			{ customerSession: token },
 			{ id: org.polarSubscriptionId },
 		);
+		if (!subscription) {
+			return c.json({ success: false, error: "No active subscription" }, 400);
+		}
 
 		return c.json({
 			success: true,
@@ -236,7 +239,7 @@ app.get("/orders", async (c) => {
 
 	try {
 		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
-		const ordersPage = await polarClient.customerPortal.orders.list(
+		const ordersPage = await polarClient?.customerPortal.orders.list(
 			{ customerSession: token },
 			{
 				page,
@@ -245,7 +248,7 @@ app.get("/orders", async (c) => {
 			},
 		);
 
-		const items = ordersPage.result.items.map((order) => ({
+		const items = ordersPage?.result.items.map((order) => ({
 			id: order.id,
 			createdAt: order.createdAt,
 			status: order.status,
@@ -280,7 +283,7 @@ app.get("/orders", async (c) => {
 			success: true,
 			data: {
 				items,
-				pagination: ordersPage.result.pagination,
+				pagination: ordersPage?.result.pagination,
 			},
 		});
 	} catch (err) {
@@ -323,14 +326,14 @@ app.get("/orders/:orderId/invoice", async (c) => {
 
 	try {
 		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
-		const invoice = await polarClient.customerPortal.orders.invoice(
+		const invoice = await polarClient?.customerPortal.orders.invoice(
 			{ customerSession: token },
 			{ id: orderId },
 		);
 
 		return c.json({
 			success: true,
-			data: { url: invoice.url },
+			data: { url: invoice?.url || "" },
 		});
 	} catch (err) {
 		console.error("Failed to fetch invoice from Polar", err);
@@ -383,7 +386,7 @@ app.patch("/subscription/seats", async (c) => {
 	}
 
 	try {
-		const updated = await polarClient.subscriptions.update({
+		const updated = await polarClient?.subscriptions.update({
 			id: org.polarSubscriptionId,
 			subscriptionUpdate: {
 				seats,
@@ -393,7 +396,7 @@ app.patch("/subscription/seats", async (c) => {
 		return c.json({
 			success: true,
 			data: {
-				seats: updated.seats ?? seats,
+				seats: updated?.seats ?? seats,
 			},
 		});
 	} catch (err) {

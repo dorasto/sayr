@@ -9,6 +9,7 @@ import { apiRouteAdminUser } from "./user";
 import { apiRouteAdminNotification } from "./notification";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { polarClient } from "@repo/auth";
+import { getEditionCapabilities } from "@repo/edition";
 
 export const apiRouteAdmin = new Hono<AppEnv>();
 
@@ -164,9 +165,10 @@ apiRouteAdmin.post("/invite", async (c) => {
 		);
 
 		// Only assign via Polar if Pro plan with active subscription and seat available
-		if (hasAvailableSeat && org?.plan === "pro" && org?.polarSubscriptionId) {
+		const { polarBillingEnabled } = getEditionCapabilities()
+		if (hasAvailableSeat && org?.plan === "pro" && org?.polarSubscriptionId && polarBillingEnabled) {
 			try {
-				await polarClient.customerSeats.assignSeat({
+				await polarClient?.customerSeats.assignSeat({
 					subscriptionId: org.polarSubscriptionId,
 					externalCustomerId: session.userId,
 					immediateClaim: true,

@@ -57,7 +57,7 @@ const CLOUD_PLAN_LIMITS: Record<string, PlanLimits> = {
 		releases: 0,
 	},
 	pro: {
-		members: null,
+		members: 1000,
 		savedViews: null,
 		issueTemplates: null,
 		teams: null,
@@ -70,7 +70,7 @@ const CLOUD_PLAN_LIMITS: Record<string, PlanLimits> = {
  * The only limits on self-hosted are at the edition level (e.g. max orgs).
  */
 const SELF_HOSTED_LIMITS: PlanLimits = {
-	members: null,
+	members: 1000,
 	savedViews: null,
 	issueTemplates: null,
 	teams: null,
