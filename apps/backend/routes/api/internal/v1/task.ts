@@ -145,6 +145,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		assignees,
 		category,
 		releaseId,
+		parentId,
 	} = body;
 	let { visible } = body as {
 		visible?: "public" | "private";
@@ -170,10 +171,10 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	}
 	const task = await traceAsync(
 		"task.create.insert",
-		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible }, session?.userId),
+		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible, parentId }, session?.userId),
 		{
 			description: "Creating task record",
-			data: { orgId, title, status, priority, category, releaseId, visible },
+			data: { orgId, title, status, priority, category, releaseId, visible, parentId },
 		}
 	);
 
@@ -226,6 +227,20 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		}
 	);
 
+	// If created as a subtask, log timeline events on both child and parent
+	if (parentId) {
+		await traceAsync(
+			"task.create.parent_link",
+			async () => {
+				await Promise.all([
+					addLogEventTask(task.id, orgId, "parent_added", null, parentId, session?.userId),
+					addLogEventTask(parentId, orgId, "subtask_added", null, task.id, session?.userId),
+				]);
+			},
+			{ description: "Logging parent/subtask timeline events", data: { taskId: task.id, parentId } },
+		);
+	}
+
 	const taskWithData = await traceAsync("task.create.refetch", () => getTaskById(orgId, task.id), {
 		description: "Fetching created task with relations",
 	});
@@ -257,6 +272,22 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		},
 		{ description: "Broadcasting new task to clients" }
 	);
+
+	// If created as a subtask, broadcast an update to the parent so other clients see the new subtask count
+	if (parentId) {
+		await traceAsync(
+			"task.create.broadcast_parent",
+			async () => {
+				const parentWithData = await getTaskById(orgId, parentId);
+				if (parentWithData) {
+					const found = findClientByWsId(wsClientId);
+					const parentUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: parentWithData };
+					broadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.socket, true);
+				}
+			},
+			{ description: "Broadcasting parent task update for new subtask", data: { parentId } },
+		);
+	}
 
 	await traceAsync(
 		"task.create.github_sync",

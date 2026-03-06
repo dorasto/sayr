@@ -290,6 +290,7 @@ export async function createTask(
 		category?: schema.taskType["category"];
 		releaseId?: string | null;
 		visible?: schema.taskType["visible"];
+		parentId?: string | null;
 	},
 	createdBy?: string | null
 ) {
@@ -315,6 +316,7 @@ export async function createTask(
 			releaseId: data.releaseId ?? null,
 			createdBy: createdBy, // nullable for ANONYMOUS
 			visible: data.visible ?? "public",
+			parentId: data.parentId ?? null,
 		})
 		.returning();
 	return task;

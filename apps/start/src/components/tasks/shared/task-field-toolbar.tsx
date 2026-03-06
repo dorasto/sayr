@@ -5,13 +5,15 @@ import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
   IconCategory,
+  IconGitBranch,
   IconLabel,
   IconLock,
   IconLockOpen2,
   IconRocket,
   IconUserPlus,
+  IconX,
 } from "@tabler/icons-react";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Avatar,
   AvatarFallback,
@@ -34,6 +36,8 @@ import GlobalTaskRelease from "./release";
 import GlobalTaskStatus from "./status";
 import GlobalTaskVisibility from "./visibility";
 import { TaskVoting } from "./voting";
+import TaskPicker, { TaskPickerItem } from "./task-picker";
+import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -50,7 +54,8 @@ export type FieldKey =
   | "release"
   | "vote"
   | "githubIssue"
-  | "githubPr";
+  | "githubPr"
+  | "parent";
 
 /** Per-field presentation overrides. */
 export interface FieldConfig {
@@ -110,6 +115,14 @@ export interface TaskFieldToolbarProps {
   /** Organization used by the `identifier` field for slug display & clipboard URL */
   organization?: TaskDetailOrganization;
 
+  // --- Parent task field (creator mode) ---
+  /** Organization ID for server-side task search in the parent picker */
+  organizationId?: string;
+  /** Currently selected parent task (for display in the creator trigger) */
+  selectedParentTask?: OrgTaskSearchResult | null;
+  /** Called with the full task object when parent selection changes (supplements onChange.parent) */
+  onParentTaskChange?: (task: OrgTaskSearchResult | null) => void;
+
   // --- Creator mode: simple onChange callbacks ---
   onChange?: {
     status?: (value: string | undefined) => void;
@@ -119,6 +132,7 @@ export interface TaskFieldToolbarProps {
     category?: (id: string) => void;
     visibility?: (value: "public" | "private") => void;
     release?: (id: string) => void;
+    parent?: (id: string | null) => void;
   };
 
   // --- Label creation ---
@@ -183,6 +197,9 @@ export default function TaskFieldToolbar({
   categories = [],
   releases = [],
   organization,
+  organizationId,
+  selectedParentTask,
+  onParentTaskChange,
   onChange,
   canCreateLabel = false,
   onLabelCreated,
@@ -576,6 +593,38 @@ export default function TaskFieldToolbar({
     </Button>
   );
 
+  // ── Parent field: local popover state ───────────────────────────────
+  const [parentPickerOpen, setParentPickerOpen] = useState(false);
+
+  const creatorParentTrigger = (cfg: FieldConfig) =>
+    selectedParentTask ? (
+      <div className="inline-flex items-center gap-1 rounded-lg p-1 text-xs font-medium border border-transparent hover:border-border bg-transparent hover:bg-secondary transition-colors h-7">
+        <TaskPickerItem task={selectedParentTask} />
+        <button
+          type="button"
+          className="inline-flex items-center justify-center h-4 w-4 rounded shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange?.parent?.(null);
+            onParentTaskChange?.(null);
+          }}
+        >
+          <IconX className="h-3 w-3" />
+        </button>
+      </div>
+    ) : (
+      <Button
+        variant={"primary"}
+        className={cn("w-fit text-xs h-7", cfg.className)}
+        size={"sm"}
+      >
+        <IconGitBranch
+          className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
+        />
+        {!cfg.iconOnly && "Subtask of..."}
+      </Button>
+    );
+
   // ── Shared props helpers ────────────────────────────────────────────
 
   /** Build shared props for a specific field, merging variant defaults with per-field overrides. */
@@ -765,6 +814,32 @@ export default function TaskFieldToolbar({
           iconOnly={isIconOnly}
           variant={variant === "sidebar" ? "sidebar" : "button"}
           className={cfg.className}
+        />
+      );
+    },
+
+    parent: (cfg) => {
+      // Only supported in creator variant; sidebar handles parent display separately
+      if (!style.useCustomTrigger || !organizationId) return null;
+
+      return selectedParentTask ? (
+        // When a parent is selected, show it inline (not inside a popover)
+        creatorParentTrigger(cfg)
+      ) : (
+        <TaskPicker
+          organizationId={organizationId}
+          onSelect={(t) => {
+            onChange?.parent?.(t.id);
+            onParentTaskChange?.(t);
+            setParentPickerOpen(false);
+          }}
+          excludeIds={[]}
+          filter={(t) => !t.parentId}
+          searchPlaceholder="Search for parent task..."
+          placeholder="Subtask of..."
+          open={parentPickerOpen}
+          onOpenChange={setParentPickerOpen}
+          customTrigger={creatorParentTrigger(cfg)}
         />
       );
     },
