@@ -26,6 +26,7 @@ import {
 	createTaskRelation,
 	removeTaskRelation,
 	getTaskRelations,
+	searchTasksByOrganization,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
 import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
@@ -855,6 +856,56 @@ apiRouteAdminProjectTask.get("/relations", async (c) => {
 			contextData: { orgId, taskId },
 		});
 		return c.json({ success: false, error: "Failed to fetch task relations" }, 500);
+	}
+});
+
+// --- Search tasks within an organization (for TaskPicker) ---
+apiRouteAdminProjectTask.get("/search", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const orgId = c.req.query("org_id");
+	const query = c.req.query("q") || "";
+	const limitParam = c.req.query("limit");
+	const offsetParam = c.req.query("offset");
+	const session = c.get("session");
+
+	if (!orgId) {
+		return c.json(errorResponse("Missing organization id", "Query parameter `org_id` is required"), 400);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	const limit = Math.min(Math.max(Number.parseInt(limitParam || "20", 10) || 20, 1), 50);
+	const offset = Math.max(Number.parseInt(offsetParam || "0", 10) || 0, 0);
+
+	try {
+		const results = await traceAsync(
+			"task.search_org",
+			() => searchTasksByOrganization(orgId, query || undefined, limit, offset),
+			{
+				description: "Searching tasks within organization",
+				data: { orgId, query, limit, offset },
+				onSuccess: (result) => ({
+					description: "Org task search completed",
+					data: { resultCount: result.length },
+				}),
+			},
+		);
+
+		return c.json({ success: true, data: results });
+	} catch (err) {
+		await recordWideError({
+			name: "task.search_org.failed",
+			error: err,
+			code: "TASK_SEARCH_FAILED",
+			message: "Failed to search tasks in organization",
+			contextData: { orgId, query },
+		});
+		return c.json({ success: false, error: "Failed to search tasks" }, 500);
 	}
 });
 

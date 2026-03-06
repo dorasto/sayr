@@ -759,6 +759,62 @@ export async function searchTasksForUser(
 	return results;
 }
 
+/**
+ * Org-scoped task search for pickers (parent, subtask, relation targets).
+ * When no query is provided, returns recent tasks. When a query is provided,
+ * does an ILIKE search on task title with prefix-match priority.
+ *
+ * Returns minimal fields needed for picker display.
+ */
+export async function searchTasksByOrganization(
+	orgId: string,
+	query?: string,
+	limit = 20,
+	offset = 0,
+): Promise<
+	{
+		id: string;
+		title: string | null;
+		shortId: number | null;
+		status: string;
+		priority: string;
+		parentId: string | null;
+		subtaskCount: number | null;
+	}[]
+> {
+	const clampedLimit = Math.min(Math.max(limit, 1), 50);
+
+	const conditions = [eq(schema.task.organizationId, orgId)];
+
+	if (query && query.trim().length >= 2) {
+		const searchPattern = `%${query.trim()}%`;
+		conditions.push(sql`${schema.task.title} ILIKE ${searchPattern}`);
+	}
+
+	const results = await db
+		.select({
+			id: schema.task.id,
+			title: schema.task.title,
+			shortId: schema.task.shortId,
+			status: schema.task.status,
+			priority: schema.task.priority,
+			parentId: schema.task.parentId,
+			subtaskCount: sql<number>`(SELECT COUNT(*) FROM task AS child WHERE child.parent_id = ${schema.task.id})`.as("subtask_count"),
+		})
+		.from(schema.task)
+		.where(and(...conditions))
+		.orderBy(
+			...(query && query.trim().length >= 2
+				? [sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${query.trim().toLowerCase()}%`} THEN 0 ELSE 1 END`]
+				: []),
+			desc(schema.task.updatedAt),
+		)
+		.limit(clampedLimit)
+		.offset(offset);
+
+	return results;
+}
+
 export async function createOrToggleCommentReaction(
 	orgId: string,
 	taskId: string,

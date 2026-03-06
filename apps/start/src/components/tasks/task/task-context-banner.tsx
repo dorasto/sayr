@@ -54,7 +54,7 @@ function RelationTaskRow({
   const status = statusConfig[taskData.status as keyof typeof statusConfig];
 
   return (
-    <div className="flex items-center gap-1.5 py-1 group text-sm w-fit p-1 rounded-lg bg-card hover:bg-accent transition-all">
+    <div className="flex items-center gap-1.5 py-1 group text-sm  p-1 rounded-lg bg-transparent hover:bg-muted transition-all w-full">
       {fullTask ? (
         <GlobalTaskStatus
           task={fullTask}
@@ -95,36 +95,36 @@ function RelationTaskRow({
  * Section wrapper with a collapsible trigger.
  */
 function ContextSection({
-	label,
-	icon,
-	trailing,
-	children,
+  label,
+  icon,
+  trailing,
+  children,
 }: {
-	label: string;
-	icon?: React.ReactNode;
-	/** Content rendered inline after the label (e.g. progress badge) */
-	trailing?: React.ReactNode;
-	children: React.ReactNode;
+  label: string;
+  icon?: React.ReactNode;
+  /** Content rendered inline after the label (e.g. progress badge) */
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
 }) {
-	return (
-		<Collapsible defaultOpen>
-			<div className="flex items-center gap-1">
-				<CollapsibleTrigger asChild>
-					<div className="flex items-center gap-1 group cursor-pointer">
-						<IconChevronRight className="size-4 text-muted-foreground group-data-[state=open]:rotate-90 transition-all" />
-						{icon}
-						<Label variant={"description"} className="text-xs select-none">
-							{label}
-						</Label>
-					</div>
-				</CollapsibleTrigger>
-				{trailing}
-			</div>
-			<CollapsibleContent className="py-1">
-				<div className="flex flex-col gap-0.5">{children}</div>
-			</CollapsibleContent>
-		</Collapsible>
-	);
+  return (
+    <Collapsible defaultOpen>
+      <div className="flex items-center gap-1">
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center gap-1 group cursor-pointer">
+            <IconChevronRight className="size-4 text-muted-foreground group-data-[state=open]:rotate-90 transition-all" />
+            {icon}
+            <Label variant={"description"} className="text-xs select-none">
+              {label}
+            </Label>
+          </div>
+        </CollapsibleTrigger>
+        {trailing}
+      </div>
+      <CollapsibleContent className="py-1">
+        <div className="flex flex-col gap-0.5">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }
 
 export function TaskContextBanner({
@@ -225,9 +225,7 @@ export function TaskContextBanner({
 
       {/* Blocked by section */}
       {hasBlockedBy && (
-        <ContextSection
-          label="Blocked by"
-        >
+        <ContextSection label="Blocked by">
           {blockedByRelations.map((r) => (
             <RelationTaskRow
               key={r.id}

@@ -1,23 +1,21 @@
-"use client";
-
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
-	IconCategory,
-	IconLabel,
-	IconLock,
-	IconLockOpen2,
-	IconRocket,
-	IconUserPlus,
+  IconCategory,
+  IconLabel,
+  IconLock,
+  IconLockOpen2,
+  IconRocket,
+  IconUserPlus,
 } from "@tabler/icons-react";
 import React, { useMemo } from "react";
 import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
 } from "@repo/ui/components/avatar";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
@@ -721,7 +719,7 @@ export default function TaskFieldToolbar({
           iconOnly={isIconOnly}
           className={cn(
             style.useCustomTrigger ? "w-fit text-xs" : style.className,
-            "bg-accent!",
+            "bg-transparent!",
             cfg.className,
           )}
         />

@@ -166,6 +166,8 @@ interface ComboBoxContentProps {
   className?: string;
   align?: "start" | "center" | "end";
   side?: "top" | "right" | "bottom" | "left";
+  /** When true, disables cmdk's built-in client-side filtering (for server-side search) */
+  shouldFilter?: boolean;
 }
 
 function ComboBoxContent({
@@ -173,6 +175,7 @@ function ComboBoxContent({
   className,
   align = "start",
   side = "bottom",
+  shouldFilter,
 }: ComboBoxContentProps) {
   const { isMobile } = useComboBox();
 
@@ -188,7 +191,7 @@ function ComboBoxContent({
           e.stopPropagation();
         }}
       >
-        <Command>{children}</Command>
+        <Command shouldFilter={shouldFilter}>{children}</Command>
       </PopoverContent>
     );
   }
@@ -196,7 +199,7 @@ function ComboBoxContent({
   return (
     <DrawerContent>
       <div className="mt-4 border-t">
-        <Command>{children}</Command>
+        <Command shouldFilter={shouldFilter}>{children}</Command>
       </div>
     </DrawerContent>
   );
