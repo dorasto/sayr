@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo } from "react";
 import type { schema } from "@repo/database";
 import { cn } from "@repo/ui/lib/utils";
 import {
@@ -11,7 +11,6 @@ import { Link } from "@tanstack/react-router";
 import GlobalTaskStatus from "../shared/status";
 import { statusConfig } from "../shared/config";
 import { SubtaskProgressBadge } from "../shared/subtask-progress";
-import { getTaskRelationsAction } from "@/lib/fetches/task";
 import {
   Collapsible,
   CollapsibleContent,
@@ -161,21 +160,8 @@ export function TaskContextBanner({
     return task.parent ?? null;
   }, [task.parentId, task.parent, tasks]);
 
-  // Lazy-fetch relations (same pattern as TaskRelationsSection in sidebar)
-  const [relations, setRelations] = useState<schema.TaskRelationWithTarget[]>(
-    [],
-  );
-
-  const fetchRelations = useCallback(async () => {
-    const result = await getTaskRelationsAction(task.organizationId, task.id);
-    if (result.success && result.data) {
-      setRelations(result.data);
-    }
-  }, [task.organizationId, task.id]);
-
-  useEffect(() => {
-    fetchRelations();
-  }, [fetchRelations]);
+  // Relations are now included in the task data from the server
+  const relations = task.relations ?? [];
 
   const blockedByRelations = useMemo(
     () =>

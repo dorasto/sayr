@@ -10,6 +10,7 @@ import TaskFieldToolbar from "../shared/task-field-toolbar";
 import { TaskEditableHeader } from "./editable-header";
 import GlobalTimeline from "./timeline/root";
 import { TaskContextBanner } from "./task-context-banner";
+import { Separator } from "@repo/ui/components/separator";
 
 export interface TaskDetailCompactProps {
   task: schema.TaskWithLabels;
@@ -139,6 +140,7 @@ export function TaskDetailCompact({
           organization={resolvedOrg}
           showContent="both"
         />
+        <Separator />
         <TaskContextBanner
           task={task}
           tasks={tasks}

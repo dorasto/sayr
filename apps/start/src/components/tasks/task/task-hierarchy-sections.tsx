@@ -30,7 +30,6 @@ import {
 	getSubtasksAction,
 	createTaskRelationAction,
 	removeTaskRelationAction,
-	getTaskRelationsAction,
 } from "@/lib/fetches/task";
 import type { useToastAction } from "@/lib/util";
 import {
@@ -378,26 +377,9 @@ export function TaskRelationsSection({
 	wsClientId,
 	runWithToast,
 }: HierarchySectionProps) {
-	const [relations, setRelations] = useState<schema.TaskRelationWithTarget[]>([]);
-	const [loading, setLoading] = useState(false);
+	const relations = task.relations ?? [];
 	const [addingType, setAddingType] = useState<"related" | "blocking" | "duplicate" | null>(null);
 	const [typePickerOpen, setTypePickerOpen] = useState(false);
-
-	const fetchRelations = useCallback(async () => {
-		setLoading(true);
-		try {
-			const result = await getTaskRelationsAction(task.organizationId, task.id);
-			if (result.success && result.data) {
-				setRelations(result.data);
-			}
-		} finally {
-			setLoading(false);
-		}
-	}, [task.organizationId, task.id]);
-
-	useEffect(() => {
-		fetchRelations();
-	}, [fetchRelations]);
 
 	const handleAddRelation = async (targetTask: schema.TaskWithLabels) => {
 		if (!addingType) return;
@@ -415,15 +397,12 @@ export function TaskRelationsSection({
 		);
 
 		if (data?.success) {
-			fetchRelations();
+			// Relations will be updated via WebSocket broadcast (task.relations)
 			sendWindowMessage(window, { type: "timeline-update", payload: task.id }, "*");
 		}
 	};
 
 	const handleRemoveRelation = async (relation: schema.TaskRelationWithTarget) => {
-		// Optimistic: remove from local list
-		setRelations((prev) => prev.filter((r) => r.id !== relation.id));
-
 		// Determine source and target IDs for the backend
 		const sourceTaskId = relation.direction === "source" ? task.id : relation.task.id;
 		const targetTaskId = relation.direction === "source" ? relation.task.id : task.id;
@@ -439,11 +418,8 @@ export function TaskRelationsSection({
 		);
 
 		if (data?.success) {
-			fetchRelations();
+			// Relations will be updated via WebSocket broadcast (task.relations)
 			sendWindowMessage(window, { type: "timeline-update", payload: task.id }, "*");
-		} else {
-			// Revert
-			fetchRelations();
 		}
 	};
 

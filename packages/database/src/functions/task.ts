@@ -96,6 +96,33 @@ export async function getTasksByOrganizationId(
  * }
  * ```
  */
+
+/**
+ * Normalizes eagerly-loaded relationsAsSource / relationsAsTarget into the
+ * unified TaskRelationWithTarget[] format used by the frontend.
+ */
+function normalizeTaskRelations(
+	asSource: { id: string; type: string; targetTask: { id: string; shortId: number | null; title: string | null; status: string }; createdBy?: schema.UserSummary | null }[],
+	asTarget: { id: string; type: string; sourceTask: { id: string; shortId: number | null; title: string | null; status: string }; createdBy?: schema.UserSummary | null }[],
+): schema.TaskRelationWithTarget[] {
+	return [
+		...asSource.map((r) => ({
+			id: r.id,
+			type: r.type as schema.TaskRelationWithTarget["type"],
+			direction: "source" as const,
+			task: r.targetTask,
+			createdBy: r.createdBy ?? null,
+		})),
+		...asTarget.map((r) => ({
+			id: r.id,
+			type: r.type as schema.TaskRelationWithTarget["type"],
+			direction: "target" as const,
+			task: r.sourceTask,
+			createdBy: r.createdBy ?? null,
+		})),
+	];
+}
+
 export async function getTaskByShortId(
 	orgId: string,
 	shortId: number,
@@ -128,6 +155,18 @@ export async function getTaskByShortId(
 			subtasks: {
 				columns: { id: true },
 			},
+			relationsAsSource: {
+				with: {
+					targetTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					createdBy: { columns: userSummaryColumns },
+				},
+			},
+			relationsAsTarget: {
+				with: {
+					sourceTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					createdBy: { columns: userSummaryColumns },
+				},
+			},
 		},
 	});
 
@@ -141,6 +180,7 @@ export async function getTaskByShortId(
 		assignees: task.assignees.map((assignment) => assignment.user),
 		parent: task.parent ?? null,
 		subtaskCount: task.subtasks?.length ?? 0,
+		relations: normalizeTaskRelations(task.relationsAsSource, task.relationsAsTarget),
 	} as schema.TaskWithLabels;
 }
 
@@ -188,6 +228,18 @@ export async function getTaskById(orgId: string, Id: string) {
 			subtasks: {
 				columns: { id: true },
 			},
+			relationsAsSource: {
+				with: {
+					targetTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					createdBy: { columns: userSummaryColumns },
+				},
+			},
+			relationsAsTarget: {
+				with: {
+					sourceTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					createdBy: { columns: userSummaryColumns },
+				},
+			},
 		},
 	});
 	if (!task) return null;
@@ -197,6 +249,7 @@ export async function getTaskById(orgId: string, Id: string) {
 		assignees: task.assignees.map((assignment) => assignment.user),
 		parent: task.parent ?? null,
 		subtaskCount: task.subtasks?.length ?? 0,
+		relations: normalizeTaskRelations(task.relationsAsSource, task.relationsAsTarget),
 	};
 }
 

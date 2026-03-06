@@ -328,7 +328,7 @@ export function TaskContentMain({
           categories={categories}
           organization={organization}
         />
-
+        <Separator />
         <TaskContextBanner
           task={task}
           tasks={tasks}
