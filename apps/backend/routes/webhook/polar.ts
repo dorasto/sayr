@@ -136,6 +136,9 @@ async function handleSubscriptionUpdated(data: Subscription) {
 
 async function handleSubscriptionCanceled(data: Subscription) {
     const orgId = data.customer?.externalId;
+    if (data.status === "active") {
+        return;
+    }
     if (!orgId) return;
 
     const FREE_SEAT_LIMIT = 5;

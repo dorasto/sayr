@@ -12,6 +12,7 @@ import {
 } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
+import { PermissionError } from "@repo/util";
 
 export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType; orgId: string; permissions: schema.TeamPermissions }) => data)
@@ -106,13 +107,17 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 		if (!context.account) {
 			throw redirect({ to: "/login" });
 		}
-		return await getAdminOrganizationSettings({
+		const org = await getAdminOrganizationSettings({
 			data: {
 				account: context.account,
 				orgId: params.orgId,
 				permissions: context.permissions as any,
 			},
 		});
+		if (!org.organization.members.find(e => e.userId === context?.account?.id)?.seatAssigned) {
+			throw new PermissionError();
+		}
+		return org
 	},
 	component: RouteComponent,
 });

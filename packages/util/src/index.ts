@@ -449,13 +449,12 @@ export function extractTaskText(description: unknown): string {
 }
 
 export class PermissionError extends Error {
+	readonly type = "PERMISSION_ERROR";
+
 	constructor(
 		message = "You do not have permission to access this page."
 	) {
 		super(message);
 		this.name = "PermissionError";
-
-		// Fix prototype chain (important in some TS setups)
-		Object.setPrototypeOf(this, PermissionError.prototype);
 	}
 }
