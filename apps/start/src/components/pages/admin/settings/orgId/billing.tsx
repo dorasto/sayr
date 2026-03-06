@@ -79,8 +79,15 @@ export default function SettingsOrganizationBillingPage({ limits }: { limits: Pl
     return teamIds.size;
   }, [organization.members]);
 
+  // For pro plans, show the purchased seat count as the member limit
+  // instead of the hard cap from PlanLimits (1000).
+  const memberLimit =
+    organization.plan === "pro"
+      ? (subscription?.seats ?? organization.seatCount ?? limits.members)
+      : limits.members;
+
   const usage: Record<string, UsageEntry> = {
-    members: { current: memberCount, limit: limits.members },
+    members: { current: memberCount, limit: memberLimit },
     savedViews: { current: views?.length ?? 0, limit: limits.savedViews },
     issueTemplates: {
       current: issueTemplates?.length ?? 0,
