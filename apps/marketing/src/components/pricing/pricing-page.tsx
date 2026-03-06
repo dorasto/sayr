@@ -89,7 +89,7 @@ export function PricingPage() {
       <section className="px-6 pb-24">
         <div className="mx-auto max-w-(--breakpoint-lg)">
           {/* Tier headers */}
-          <div className="grid grid-cols-3 gap-0 sticky top-15 border-b">
+          <div className="grid grid-cols-4 gap-0 sticky top-15 border-b">
             {tiers.map((tier) => (
               <div
                 key={tier.id}
@@ -98,24 +98,8 @@ export function PricingPage() {
                   tier.highlighted && "bg-card rounded-t-lg",
                 )}
               >
-                <div className="flex items-center justify-between h-full">
+                <div className="flex items-center justify-between h-full p-3">
                   <h2 className="text-xl! font-semibold ">{tier.name}</h2>
-                  <div className="mt-3 mb-3">
-                    {tier.price === null ? (
-                      <span className="text-3xl font-bold invisible">Free</span>
-                    ) : tier.price === 0 ? (
-                      <span className="text-3xl font-bold invisible">$0</span>
-                    ) : (
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xl! font-bold">
-                          ${tier.price}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {tier.priceSuffix}
-                        </span>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             ))}
@@ -125,7 +109,7 @@ export function PricingPage() {
           {pricingData.featureGroups.map((group) => (
             <div key={group.name}>
               {/* Group header */}
-              <div className="grid grid-cols-3 gap-0">
+              <div className="grid grid-cols-4 gap-0">
                 {tiers.map((tier, i) => (
                   <div
                     key={tier.id}
@@ -145,7 +129,7 @@ export function PricingPage() {
 
               {/* Features */}
               {group.features.map((feature) => (
-                <div key={feature.name} className="grid grid-cols-3 gap-0">
+                <div key={feature.name} className="grid grid-cols-4 gap-0">
                   {tiers.map((tier) => {
                     const value =
                       feature.tiers[tier.id as keyof typeof feature.tiers];
@@ -170,7 +154,7 @@ export function PricingPage() {
           ))}
 
           {/* Bottom border for highlighted column */}
-          <div className="grid grid-cols-3 gap-0">
+          <div className="grid grid-cols-4 gap-0">
             {tiers.map((tier) => (
               <div
                 key={tier.id}

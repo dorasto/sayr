@@ -32,7 +32,18 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs/self-hosting/railway.md": {
+  "src/content/docs/docs/self-hosting/get-started.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/self-hosting/editions.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -132,6 +143,17 @@
     "contributors": []
   },
   "src/content/docs/docs/contributing/local-development.mdx": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/contributing/edition-system.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",

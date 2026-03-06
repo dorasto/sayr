@@ -2,15 +2,26 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCheck, IconX } from "@tabler/icons-react";
-import { CURRENT_PLAN, PLANS } from "./billing-data";
+import { PLANS } from "./billing-data";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+
+const API_URL =
+	import.meta.env.VITE_APP_ENV === "development"
+		? "/backend-api/internal"
+		: "/api/internal";
 
 export function BillingPlanComparison() {
+	const { organization } = useLayoutOrganizationSettings();
+
 	return (
 		<div className="flex flex-col gap-3">
 			<span className="text-sm font-medium text-foreground">Compare plans</span>
 			<div className="grid grid-cols-2 gap-3">
 				{PLANS.map((plan) => {
-					const isCurrent = plan.id === CURRENT_PLAN.id;
+					const isCurrent = plan.id === organization.plan;
+					const currentPlanIndex = PLANS.findIndex((p) => p.id === organization.plan);
+					const thisPlanIndex = PLANS.findIndex((p) => p.id === plan.id);
+					const isDowngrade = thisPlanIndex < currentPlanIndex;
 					return (
 						<div
 							key={plan.id}
@@ -59,6 +70,12 @@ export function BillingPlanComparison() {
 									<Button variant="outline" size="sm" className="w-full" disabled>
 										Current plan
 									</Button>
+								) : isDowngrade ? (
+									<a href={`${API_URL}/v1/polar/customer-portal?orgId=${organization.id}`}>
+										<Button variant="destructive" size="sm" className="w-full">
+											Downgrade
+										</Button>
+									</a>
 								) : (
 									<Button size="sm" className="w-full">
 										Upgrade

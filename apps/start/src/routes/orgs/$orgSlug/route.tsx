@@ -1,15 +1,64 @@
 import { SubWrapper } from "@/components/generic/wrapper";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
 import { db, getLabels, getOrganizationPublic } from "@repo/database";
+import { getEditionCapabilities } from "@repo/edition";
 import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
+let cachedSystemOrgSlug: string | null | undefined = undefined;
+let lastFetch = 0;
+
+const TTL = 1000 * 60 * 60; // 1 hour
+
+async function getSystemOrgSlug() {
+	const now = Date.now();
+
+	if (
+		cachedSystemOrgSlug !== undefined &&
+		now - lastFetch < TTL
+	) {
+		return cachedSystemOrgSlug;
+	}
+
+	const org = await db.query.organization.findFirst({
+		where: (o, { eq }) => eq(o.isSystemOrg, true),
+		columns: { slug: true },
+	});
+
+	if (!org?.slug) {
+		// Do NOT cache failures
+		return null;
+	}
+
+	cachedSystemOrgSlug = org.slug;
+	lastFetch = now;
+
+	return cachedSystemOrgSlug;
+}
+
+async function resolvePublicOrganization(slug: string) {
+	const { multiTenantEnabled } = getEditionCapabilities();
+
+	if (!multiTenantEnabled) {
+		const systemSlug = await getSystemOrgSlug();
+		if (!systemSlug) return null;
+
+		return getOrganizationPublic(systemSlug);
+	}
+
+	return getOrganizationPublic(slug);
+}
+export const fetchSystemOrgSlug = createServerFn({ method: "GET" })
+	.handler(async () => {
+		const systemSlug = await getSystemOrgSlug();
+		return { systemSlug };
+	});
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
-		const organization = await getOrganizationPublic(data.slug);
+		const organization = await resolvePublicOrganization(data.slug);
 
 		if (!organization) {
 			return { organization: null, labels: [], categories: [] };
@@ -26,6 +75,11 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug")({
+	beforeLoad: async () => {
+		const { systemSlug } = await fetchSystemOrgSlug();
+		if (!systemSlug) return null;
+		return { systemSlug };
+	},
 	loader: async ({ params }) =>
 		fetchPublicOrganizationAndTasks({
 			data: { slug: params.orgSlug },
@@ -50,7 +104,7 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 		return {
 			meta: [
 				{
-					title: loaderData.organization.name + " | Sayr.io",
+					title: `${loaderData.organization.name} | Sayr.io`,
 				},
 			],
 		};

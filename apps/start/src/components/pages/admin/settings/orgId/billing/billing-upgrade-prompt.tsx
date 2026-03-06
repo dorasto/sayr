@@ -1,3 +1,5 @@
+import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { Button } from "@repo/ui/components/button";
 import {
   Tile,
@@ -9,7 +11,14 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { IconRocket } from "@tabler/icons-react";
 
+const API_URL =
+  import.meta.env.VITE_APP_ENV === "development"
+    ? "/backend-api/internal"
+    : "/api/internal";
+
 export function BillingUpgradePrompt() {
+  const { account } = useLayoutData();
+  const { organization } = useLayoutOrganizationSettings();
   return (
     <Tile
       variant="outline"
@@ -25,9 +34,15 @@ export function BillingUpgradePrompt() {
         </TileDescription>
       </TileHeader>
       <TileAction>
-        <Button size="sm" className="shrink-0">
-          Upgrade
-        </Button>
+        <a
+          href={`${API_URL}/v1/polar/checkout?orgId=${organization.id}&email=${encodeURIComponent(account.email ?? "")}&name=${encodeURIComponent(account.name ?? "")}&userId=${account.id}`}
+          rel="noopener noreferrer"
+          data-polar-checkout
+        >
+          <Button size="sm" className="shrink-0">
+            Upgrade
+          </Button>
+        </a>
       </TileAction>
     </Tile>
   );

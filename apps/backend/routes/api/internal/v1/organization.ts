@@ -19,15 +19,18 @@ import {
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, count, eq, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../../../ws";
 import type { WSBaseMessage } from "../../../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
+import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { Octokit } from "@octokit/rest";
+import { polarClient } from "@repo/auth";
+import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
+import { UseSend } from "usesend-js";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 // Create a new organization
@@ -45,6 +48,38 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 			contextData: {},
 		});
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	// Edition-level org creation limit
+	const capabilities = getEditionCapabilities();
+	if (capabilities.maxOrganizations !== null) {
+		const totalOrgCount = await traceAsync(
+			"organization.count_all",
+			async () => {
+				const result = await db
+					.select({ count: count() })
+					.from(schema.organization);
+
+				return result[0]?.count ?? 0;
+			},
+			{
+				description: "Counting total organizations",
+			}
+		);
+
+		if (totalOrgCount >= capabilities.maxOrganizations) {
+			await recordWideError({
+				name: "organization.create.limit_reached",
+				error: new Error("Organization limit reached"),
+				code: "ORG_LIMIT_REACHED",
+				message: `User has reached the maximum of ${capabilities.maxOrganizations} organization(s) for this edition`,
+				contextData: { currentCount: totalOrgCount, limit: capabilities.maxOrganizations },
+			});
+			return c.json({
+				success: false,
+				error: `You've reached the maximum of ${capabilities.maxOrganizations} organization(s). Upgrade to an enterprise license to create more.`,
+			}, 403);
+		}
 	}
 
 	const { name, slug, description } = await c.req.json();
@@ -92,6 +127,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 					name,
 					slug,
 					description: description || "",
+					createdBy: session.userId,
 				})
 				.returning();
 			return org;
@@ -999,6 +1035,30 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
+	const issueTemplateLimitRes = await enforceLimit({
+		c,
+		limitKey: "issueTemplates",
+		table: schema.issueTemplate,
+		traceName: "issue_template.count_all",
+		entityName: "issue template",
+		traceAsync,
+		recordWideError
+	});
+	if (issueTemplateLimitRes) return issueTemplateLimitRes;
+
+	// Plan-level issue template limit
+	const templateOrg = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { plan: true },
+	});
+	const existingTemplates = await db.query.issueTemplate.findMany({
+		where: eq(schema.issueTemplate.organizationId, orgId),
+		columns: { id: true },
+	});
+	if (!canCreateResource("issueTemplates", existingTemplates.length, templateOrg?.plan)) {
+		return c.json({ success: false, error: getLimitReachedMessage("issueTemplates", templateOrg?.plan) }, 403);
+	}
+
 	const templateId = randomUUID();
 
 	const created = await traceAsync(
@@ -1123,6 +1183,26 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	// Block editing if the org is over the issue templates limit (must delete to get back under)
+	const templateOrg = await db.query.organization.findFirst({
+		where: (org) => eq(org.id, orgId),
+		columns: { plan: true },
+	});
+	const existingTemplateCount = await db
+		.select({ count: count() })
+		.from(schema.issueTemplate)
+		.where(eq(schema.issueTemplate.organizationId, orgId));
+	const templateLimits = getEffectiveLimits(templateOrg?.plan);
+	if (templateLimits.issueTemplates !== null && (existingTemplateCount[0]?.count ?? 0) > templateLimits.issueTemplates) {
+		return c.json(
+			{
+				success: false,
+				error: getLimitReachedMessage("issueTemplates", templateOrg?.plan),
+			},
+			403
+		);
 	}
 
 	const edited = await traceAsync(
@@ -1308,6 +1388,30 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
+	const savedViewLimitRes = await enforceLimit({
+		c,
+		limitKey: "savedViews",
+		table: schema.savedView,
+		traceName: "saved_view.count_all",
+		entityName: "saved view",
+		traceAsync,
+		recordWideError
+	});
+	if (savedViewLimitRes) return savedViewLimitRes;
+
+	// Plan-level saved view limit
+	const viewOrg = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { plan: true },
+	});
+	const existingViews = await db.query.savedView.findMany({
+		where: eq(schema.savedView.organizationId, orgId),
+		columns: { id: true },
+	});
+	if (!canCreateResource("savedViews", existingViews.length, viewOrg?.plan)) {
+		return c.json({ success: false, error: getLimitReachedMessage("savedViews", viewOrg?.plan) }, 403);
+	}
+
 	const view = await traceAsync(
 		"savedView.create.insert",
 		async () => {
@@ -1391,6 +1495,26 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 				error: "You don't have permission to update saved views.",
 			},
 			401
+		);
+	}
+
+	// Block editing if the org is over the saved views limit (must delete to get back under)
+	const viewOrg = await db.query.organization.findFirst({
+		where: (org) => eq(org.id, orgId),
+		columns: { plan: true },
+	});
+	const existingViewCount = await db
+		.select({ count: count() })
+		.from(schema.savedView)
+		.where(eq(schema.savedView.organizationId, orgId));
+	const viewLimits = getEffectiveLimits(viewOrg?.plan);
+	if (viewLimits.savedViews !== null && (existingViewCount[0]?.count ?? 0) > viewLimits.savedViews) {
+		return c.json(
+			{
+				success: false,
+				error: getLimitReachedMessage("savedViews", viewOrg?.plan),
+			},
+			403
 		);
 	}
 
@@ -1902,13 +2026,52 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to invite members." }, 401);
 	}
 
+	const memberLimitRes = await enforceLimit({
+		c,
+		limitKey: "members",
+		table: schema.member,
+		traceName: "member.count_all",
+		entityName: "member",
+		traceAsync,
+		recordWideError,
+	});
+	if (memberLimitRes) return memberLimitRes;
+
+	// Enforce seat limit: check if inviting would exceed seat capacity
+	const org = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { seatCount: true, plan: true },
+	});
+	const assignedCount = await db.query.member.findMany({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.seatAssigned, true)),
+		columns: { id: true },
+	});
+	const pendingInvites = await db.query.invite.findMany({
+		where: and(eq(schema.invite.organizationId, orgId), eq(schema.invite.status, "pending")),
+		columns: { id: true },
+	});
+	const effectiveUsed = assignedCount.length + pendingInvites.length;
+	const limits = getEffectiveLimits(org?.plan);
+	const seatLimit = limits.members ?? org?.seatCount ?? 0;
+	if (effectiveUsed + emails.length > seatLimit) {
+		const available = Math.max(0, seatLimit - effectiveUsed);
+		return c.json({
+			success: false,
+			error: available === 0
+				? "Seat limit reached. Upgrade your plan or free up seats before inviting new members."
+				: `You can only invite ${available} more member${available === 1 ? "" : "s"} within your current seat limit.`,
+		}, 403);
+	}
+
 	const { invites, failedEmails } = await traceAsync(
 		"member.invite.process",
 		async () => {
 			// biome-ignore lint/suspicious/noExplicitAny: <any>
-			const invites: any[] = [];
+			const invites = [];
 			const failedEmails: string[] = [];
-
+			const org = await db.query.organization.findFirst({
+				where: eq(schema.organization.id, orgId),
+			});
 			for (const email of emails) {
 				try {
 					const user = await db.query.user.findFirst({
@@ -1946,7 +2109,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 						})
 						.returning();
 
-					invites.push(newInvite);
+					invites.push({ ...newInvite, user, organization: org });
 				} catch (err) {
 					console.error("Failed to invite email:", email, err);
 					failedEmails.push(email);
@@ -1967,6 +2130,39 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 			}),
 		}
 	);
+	await traceAsync("email.sendInvites", async () => {
+		const usesend = new UseSend(process.env.SAYR_EMAIL);
+
+		const chunkSize = 100;
+
+		for (let i = 0; i < invites.length; i += chunkSize) {
+			const chunk = invites.slice(i, i + chunkSize);
+
+			const batchPayload: any = chunk.map((invite) => {
+				const normalizedEmail = invite?.email?.toLowerCase().trim();
+				if (!normalizedEmail) {
+					return null;
+				}
+
+				return {
+					to: normalizedEmail,
+					from: `Sayr.io <${process.env.SAYR_FROM_EMAIL}>`,
+					text: "You've been invited to join a Sayr organization",
+					templateId: process.env.SAYR_INVITE_TEMPLATE_ID || "",
+					variables: {
+						orgName: invite?.organization?.name,
+						displayname: invite?.user?.displayName || "",
+						inviteUrl: `${process.env.VITE_URL_ROOT}/invite/${invite.organizationId}?code=${invite.inviteCode}`,
+					}
+
+				};
+			});
+
+			if (batchPayload.length > 0) {
+				await usesend.emails.batch(batchPayload);
+			}
+		}
+	});
 
 	return c.json({
 		success: true,
@@ -1974,6 +2170,287 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		...(failedEmails.length > 0 && { errors: failedEmails }),
 	});
 });
+apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const { org_id: orgId, user_id: userId } = await c.req.json();
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.billing");
+
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
+	}
+	const { polarBillingEnabled } = getEditionCapabilities()
+	if (!polarBillingEnabled) {
+		return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
+	}
+
+	const member = await db.query.member.findFirst({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
+	});
+	if (!member) {
+		return c.json({ success: false, error: "Member not found." }, 404);
+	}
+	if (member.seatAssigned) {
+		return c.json({ success: false, error: "Member already has a seat assigned." }, 400);
+	}
+
+	const org = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { polarSubscriptionId: true, plan: true, seatCount: true },
+	});
+
+	// Enforce seat limit: check current assigned count against seatCount
+	const assignedMembers = await db.query.member.findMany({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.seatAssigned, true)),
+		columns: { id: true },
+	});
+	if (assignedMembers.length >= (org?.seatCount ?? 0)) {
+		return c.json({ success: false, error: "Seat limit reached. Upgrade your plan or remove seats from other members." }, 403);
+	}
+
+	// Pro plan with active subscription: go through Polar
+	if (org?.plan === "pro" && org?.polarSubscriptionId) {
+		const seatId = await traceAsync(
+			"member.seatAssign.assign",
+			async () => {
+				const seat = await polarClient?.customerSeats.assignSeat({
+					subscriptionId: org.polarSubscriptionId || "",
+					externalCustomerId: member.userId,
+					immediateClaim: true,
+					metadata: {
+						userId: member.userId,
+						organizationId: orgId,
+						action: "seat_assign",
+					}
+				});
+				return seat?.id;
+			},
+			{ description: "Assigning seat to member via Polar", data: { orgId, userId } }
+		);
+		const updatedMember = await traceAsync(
+			"member.seatAssign.update_member",
+			async () => {
+				const [updated] = await db
+					.update(schema.member)
+					.set({ seatAssignedId: seatId, seatAssigned: true })
+					.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
+					.returning();
+				return updated;
+			},
+			{ description: "Updating member with seat assignment", data: { orgId, userId, seatId } }
+		);
+		if (!updatedMember) {
+			await recordWideError({
+				name: "member.seatAssign.update_member_failed",
+				error: new Error("Failed to update member with seat assignment"),
+				code: "MEMBER_SEAT_ASSIGNMENT_FAILED",
+				message: "Failed to assign seat to member.",
+				contextData: { orgId, userId, seatId },
+			});
+			return c.json({ success: false, error: "Failed to assign seat to member." }, 500);
+		}
+		return c.json({ success: true, member: updatedMember });
+	}
+
+	// Free plan (or no active Polar subscription): toggle directly in DB
+	const updatedMember = await traceAsync(
+		"member.seatAssign.update_member_local",
+		async () => {
+			const [updated] = await db
+				.update(schema.member)
+				.set({ seatAssigned: true })
+				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
+				.returning();
+			return updated;
+		},
+		{ description: "Assigning seat to member (local)", data: { orgId, userId } }
+	);
+	if (!updatedMember) {
+		await recordWideError({
+			name: "member.seatAssign.update_member_failed",
+			error: new Error("Failed to update member with seat assignment"),
+			code: "MEMBER_SEAT_ASSIGNMENT_FAILED",
+			message: "Failed to assign seat to member.",
+			contextData: { orgId, userId },
+		});
+		return c.json({ success: false, error: "Failed to assign seat to member." }, 500);
+	}
+	return c.json({ success: true, member: updatedMember });
+});
+
+apiRouteAdminOrganization.patch(
+	"/member-seat-unassign",
+	async (c) => {
+		const traceAsync = createTraceAsync();
+		const recordWideError =
+			c.get("recordWideError");
+		const session = c.get("session");
+
+		const {
+			org_id: orgId,
+			user_id: userId,
+		} = await c.req.json();
+
+		const isAuthorized =
+			await traceOrgPermissionCheck(
+				session?.userId || "",
+				orgId,
+				"admin.billing",
+			);
+
+		if (!isAuthorized) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"You don't have permission to modify member seat assignments.",
+				},
+				401,
+			);
+		}
+		const { polarBillingEnabled } = getEditionCapabilities()
+		if (!polarBillingEnabled) {
+			return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
+		}
+
+		const member =
+			await db.query.member.findFirst({
+				where: and(
+					eq(
+						schema.member.organizationId,
+						orgId,
+					),
+					eq(
+						schema.member.userId,
+						userId,
+					),
+				),
+			});
+
+		if (!member) {
+			return c.json(
+				{
+					success: false,
+					error: "Member not found.",
+				},
+				404,
+			);
+		}
+
+		if (!member.seatAssigned) {
+			return c.json(
+				{
+					success: false,
+					error:
+						"Member does not have a seat assigned.",
+				},
+				400,
+			);
+		}
+
+		const org = await db.query.organization.findFirst({
+			where: eq(schema.organization.id, orgId),
+			columns: { polarSubscriptionId: true, plan: true },
+		});
+
+		// Pro plan with active subscription and a Polar seat ID: revoke via Polar
+		if (org?.plan === "pro" && org?.polarSubscriptionId && member.seatAssignedId) {
+			await traceAsync(
+				"member.seatUnassign.unassign",
+				async () => {
+					await polarClient?.customerSeats.revokeSeat(
+						{
+							seatId:
+								member.seatAssignedId || "",
+						},
+					);
+				},
+				{
+					description:
+						"Unassigning seat from member via Polar",
+					data: {
+						orgId,
+						userId,
+						seatId:
+							member.seatAssignedId,
+					},
+				},
+			);
+		}
+
+		// Update member record (works for both Pro and Free)
+		const updatedMember =
+			await traceAsync(
+				"member.seatUnassign.update_member",
+				async () => {
+					const [updated] =
+						await db
+							.update(
+								schema.member,
+							)
+							.set({
+								seatAssignedId:
+									null,
+								seatAssigned:
+									false,
+							})
+							.where(
+								and(
+									eq(
+										schema.member.organizationId,
+										orgId,
+									),
+									eq(
+										schema.member.userId,
+										userId,
+									),
+								),
+							)
+							.returning();
+					return updated;
+				},
+				{
+					description:
+						"Updating member after seat removal",
+					data: {
+						orgId,
+						userId,
+					},
+				},
+			);
+
+		if (!updatedMember) {
+			await recordWideError({
+				name: "member.seatUnassign.update_member_failed",
+				error: new Error(
+					"Failed to update member after seat removal",
+				),
+				code: "MEMBER_SEAT_UNASSIGNMENT_FAILED",
+				message:
+					"Failed to remove seat from member.",
+				contextData: {
+					orgId,
+					userId,
+				},
+			});
+
+			return c.json(
+				{
+					success: false,
+					error:
+						"Failed to remove seat from member.",
+				},
+				500,
+			);
+		}
+
+		return c.json({
+			success: true,
+			member: updatedMember,
+		});
+	},
+);
 
 apiRouteAdminOrganization.delete("/member", async (c) => {
 	const traceAsync = createTraceAsync();
@@ -1987,6 +2464,9 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove members." }, 401);
 	}
+	const member = await db.query.member.findFirst({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
+	});
 
 	const removed = await traceAsync(
 		"member.remove.delete",
@@ -2009,6 +2489,12 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 			contextData: { orgId, userId },
 		});
 		return c.json({ success: false, error: "Failed to remove member." }, 500);
+	}
+	const { polarBillingEnabled } = getEditionCapabilities()
+	if (member?.seatAssignedId && polarBillingEnabled) {
+		await polarClient?.customerSeats.revokeSeat({
+			seatId: member?.seatAssignedId,
+		});
 	}
 
 	await traceAsync(
@@ -2575,6 +3061,30 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to create teams." }, 401);
 	}
 
+	const teamLimitRes = await enforceLimit({
+		c,
+		limitKey: "teams",
+		table: schema.team,
+		traceName: "team.count_all",
+		entityName: "team",
+		traceAsync,
+		recordWideError
+	});
+	if (teamLimitRes) return teamLimitRes;
+
+	// Plan-level team limit (exclude system teams from count)
+	const teamOrg = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { plan: true },
+	});
+	const existingTeams = await db.query.team.findMany({
+		where: and(eq(schema.team.organizationId, orgId), eq(schema.team.isSystem, false)),
+		columns: { id: true },
+	});
+	if (!canCreateResource("teams", existingTeams.length, teamOrg?.plan)) {
+		return c.json({ success: false, error: getLimitReachedMessage("teams", teamOrg?.plan) }, 403);
+	}
+
 	const teamPermissions: TeamPermissions = permissions
 		? {
 			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
@@ -2598,6 +3108,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 					name,
 					description,
 					permissions: teamPermissions,
+					isSystem: false,
 				})
 				.returning();
 			return created;
@@ -2693,6 +3204,26 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove teams." }, 401);
+	}
+
+	const existingTeam = await db.query.team.findFirst({
+		where: (m) =>
+			and(eq(m.organizationId, orgId), eq(m.id, teamId)),
+	});
+
+	if (!existingTeam) {
+		return c.json(
+			{ success: false, error: "Team not found." },
+			404
+		);
+	}
+
+	// ✅ Prevent deletion of system teams
+	if (existingTeam.isSystem) {
+		return c.json(
+			{ success: false, error: "System teams cannot be deleted." },
+			403
+		);
 	}
 
 	const removed = await traceAsync(

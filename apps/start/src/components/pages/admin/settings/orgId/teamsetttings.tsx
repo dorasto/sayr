@@ -8,6 +8,7 @@ const defaultTeamPermissions: TeamPermissions = {
 		administrator: false,
 		manageMembers: false,
 		manageTeams: false,
+		billing: false,
 	},
 	content: {
 		manageCategories: false,
@@ -117,8 +118,8 @@ export default function SettingsOrganizationPageTeamSettings({
 	const hasChanges = isNew
 		? name.length > 0
 		: name !== team?.name ||
-			description !== (team?.description || "") ||
-			JSON.stringify(permissions) !== JSON.stringify(team?.permissions);
+		description !== (team?.description || "") ||
+		JSON.stringify(permissions) !== JSON.stringify(team?.permissions);
 
 	// Reset form when team changes
 	useEffect(() => {
@@ -368,36 +369,59 @@ export default function SettingsOrganizationPageTeamSettings({
 										</Button>
 									</PopoverTrigger>
 									<PopoverContent className="p-0 flex flex-col gap-3">
-										<Tile className="md:w-full p-3 bg-accent">
-											<TileHeader>
-												<TileIcon>
-													<IconUsersGroup className="size-5" />
-												</TileIcon>
-												<TileTitle>{team.name}</TileTitle>
-											</TileHeader>
-											<TileAction>
-												{team.members.length} {team.members.length === 1 ? "member" : "members"}
-											</TileAction>
-										</Tile>
-										<div className="flex flex-col gap-3 p-3">
-											<Label>Are you sure you want to delete this team? This action cannot be undone.</Label>
-											<div className="flex justify-end gap-2">
-												<ButtonGroup>
-													<Button variant="outline" size="sm" onClick={() => setConfirmDeleteOpen(false)}>
-														Cancel
-													</Button>
-													<Button
-														variant="destructive"
-														size="sm"
-														onClick={handleDelete}
-														disabled={isFetching}
-													>
-														<IconTrash className="size-4" />
-														Delete
-													</Button>
-												</ButtonGroup>
+										{team.isSystem ? (
+											<div className="p-4 text-sm text-muted-foreground">
+												This is a system team and cannot be deleted.
 											</div>
-										</div>
+										) : (
+											<>
+												<Tile className="md:w-full p-3 bg-accent">
+													<TileHeader>
+														<TileIcon>
+															<IconUsersGroup className="size-5" />
+														</TileIcon>
+														<TileTitle>{team.name}</TileTitle>
+													</TileHeader>
+													<TileAction>
+														{team.members.length}{" "}
+														{team.members.length === 1
+															? "member"
+															: "members"}
+													</TileAction>
+												</Tile>
+
+												<div className="flex flex-col gap-3 p-3">
+													<Label>
+														Are you sure you want to delete this
+														team? This action cannot be undone.
+													</Label>
+
+													<div className="flex justify-end gap-2">
+														<ButtonGroup>
+															<Button
+																variant="outline"
+																size="sm"
+																onClick={() =>
+																	setConfirmDeleteOpen(false)
+																}
+															>
+																Cancel
+															</Button>
+
+															<Button
+																variant="destructive"
+																size="sm"
+																onClick={handleDelete}
+																disabled={isFetching}
+															>
+																<IconTrash className="size-4" />
+																Delete
+															</Button>
+														</ButtonGroup>
+													</div>
+												</div>
+											</>
+										)}
 									</PopoverContent>
 								</Popover>
 							</div>
@@ -426,6 +450,7 @@ export default function SettingsOrganizationPageTeamSettings({
 							<Switch
 								checked={isAdmin}
 								onCheckedChange={(checked) => updateAdminPermission("administrator", checked)}
+								disabled={team?.isSystem}
 							/>
 						</div>
 					</div>
@@ -458,8 +483,8 @@ export default function SettingsOrganizationPageTeamSettings({
 									<IconSettings className="size-4 text-muted-foreground" />
 									<Label className="font-medium cursor-pointer">Organization</Label>
 									<Badge variant="secondary" className="text-xs">
-										{[permissions.admin.manageMembers, permissions.admin.manageTeams].filter(Boolean).length}
-										/2
+										{[permissions.admin.manageMembers, permissions.admin.manageTeams, permissions.admin.billing].filter(Boolean).length}
+										/3
 									</Badge>
 								</div>
 								<IconChevronDown
@@ -484,6 +509,13 @@ export default function SettingsOrganizationPageTeamSettings({
 									description="Create, edit, and delete teams"
 									checked={permissions.admin.manageTeams}
 									onCheckedChange={(checked) => updateAdminPermission("manageTeams", checked)}
+									disabled={isAdmin}
+								/>
+								<PermissionRow
+									label="Manage billing"
+									description="Access billing information and manage subscription (if applicable)"
+									checked={permissions.admin.billing}
+									onCheckedChange={(checked) => updateAdminPermission("billing", checked)}
 									disabled={isAdmin}
 								/>
 							</div>

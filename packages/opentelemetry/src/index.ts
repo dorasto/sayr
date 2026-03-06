@@ -2,17 +2,18 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { trace } from "@opentelemetry/api";
 import { PrettyConsoleSpanExporter } from "./console";
+import { getEditionCapabilities } from "@repo/edition";
 let globalTracer: ReturnType<typeof trace.getTracer> | undefined;
 
 export async function initTracing(_serviceName: string) {
-	const SAYR_CLOUD = process.env.SAYR_CLOUD === "true";
+	const { axiomTelemetryEnabled } = getEditionCapabilities();
 	const appEnv = process.env.APP_ENV;
 	const env = appEnv === "production" || appEnv === "development" ? appEnv : "development";
 	const isProd = env === "production";
 	const serviceName = `${_serviceName}${isProd ? "" : "-dev"}`;
 
-	// ✅ LOCAL / NON-CLOUD: log spans to console
-	if (!SAYR_CLOUD) {
+	// LOCAL / SELF-HOSTED: log spans to console
+	if (!axiomTelemetryEnabled) {
 		const sdk = new NodeSDK({
 			traceExporter: new PrettyConsoleSpanExporter(),
 			serviceName,
@@ -25,7 +26,7 @@ export async function initTracing(_serviceName: string) {
 		return;
 	}
 
-	// ✅ CLOUD MODE (Axiom)
+	// CLOUD MODE (Axiom)
 	if (!process.env.AXIOM_OTEL_DOMAIN || !process.env.AXIOM_OTEL_TOKEN) {
 		console.warn("OpenTelemetry not configured — missing AXIOM_OTEL_DOMAIN or AXIOM_OTEL_TOKEN.");
 		return;

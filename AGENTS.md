@@ -50,6 +50,7 @@ apps/
 packages/
   auth/        # Better Auth config (GitHub + Doras OAuth)
   database/    # Drizzle ORM schemas and CRUD functions (PostgreSQL)
+  edition/     # Edition detection (cloud/community/enterprise), capabilities, and plan limits
   storage/     # MinIO S3-compatible client with obfuscated filenames
   ui/          # Shadcn/ui component library
   util/        # Shared utilities (date formatting, slugs, CDN URLs)
@@ -180,7 +181,10 @@ const result = await traceAsync("operation.name", () => performOperation(), {
 ```
 
 ### PageHeader
-All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages integrate `UnifiedTaskView` which supports both single-org and cross-org modes. See `.claude/skills/page-header/SKILL.md` for full patterns and props reference.
+All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages integrate `UnifiedTaskView` which supports both single-org and cross-org modes. See `.opencode/skills/page-header/SKILL.md` for full patterns and props reference.
+
+### Edition System
+Sayr has three editions: `cloud` (hosted sayr.io), `community` (free self-host), `enterprise` (licensed self-host). The `@repo/edition` package is the single source of truth for edition detection, capabilities, and plan limits. Import from `@repo/edition` in server-side code; use `import.meta.env.VITE_SAYR_EDITION` in client-side React components. See `.opencode/skills/edition/SKILL.md` for full API reference, patterns, and rules.
 
 ## Database Schema
 

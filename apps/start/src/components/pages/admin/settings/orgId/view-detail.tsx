@@ -66,6 +66,7 @@ import {
 } from "@/components/tasks";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 
 const slugify = (text: string) => {
   return text
@@ -95,6 +96,8 @@ export default function SettingsOrganizationViewDetailPage({
   });
   const { tasks } = useLayoutTasks();
   const router = useRouter();
+  const { isOverLimit: checkOverLimit, getLimitMessage } = usePlanLimits();
+  const viewsOverLimit = checkOverLimit("savedViews");
   const { value: wsClientId } = useStateManagement<string>(
     "ws-clientId",
     "",
@@ -486,11 +489,16 @@ export default function SettingsOrganizationViewDetailPage({
         </Tile>
       </div>
       <div className="flex flex-col gap-4 max-w-2xl">
+        {viewsOverLimit && (
+          <p className="text-sm text-destructive">
+            {getLimitMessage("savedViews")} Editing is disabled until you remove views to get back under the limit.
+          </p>
+        )}
         <div className="flex items-center gap-2 mt-4">
           <Button
             onClick={handleSave}
             variant={"primary"}
-            // disabled={name === view.name && filterParams === view.filterParams}
+            disabled={viewsOverLimit}
           >
             <IconDeviceFloppy className="" />
             Save Changes

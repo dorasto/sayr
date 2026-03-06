@@ -28,6 +28,7 @@ export const team = table(
 					administrator: false,
 					manageMembers: false,
 					manageTeams: false,
+					billing: false,
 				},
 				content: {
 					manageCategories: false,
@@ -53,6 +54,10 @@ export const team = table(
 			.timestamp("updated_at")
 			.notNull()
 			.$defaultFn(() => new Date()),
+		isSystem: v
+			.boolean("is_system")
+			.notNull()
+			.default(false),
 	},
 	(t) => [v.index("idx_team_org_name").on(t.organizationId, t.name)]
 );
@@ -75,6 +80,8 @@ export const member = table(
 			.notNull()
 			.references(() => organization.id, { onDelete: "cascade" }),
 		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
+		seatAssignedId: v.text("seat_assigned_id"), // for Polar seat management
+		seatAssigned: v.boolean("seat_assigned").notNull().default(false), // whether this member has been assigned a seat in Polar
 	},
 	(t) => [v.unique("unq_member_org_user").on(t.userId, t.organizationId)]
 );
@@ -157,6 +164,8 @@ export interface TeamPermissions {
 		manageMembers: boolean;
 		/** Create, edit, and delete teams */
 		manageTeams: boolean;
+		/** Manage billing and subscription (if applicable) */
+		billing: boolean;
 	};
 	/** Content and settings management */
 	content: {
@@ -199,6 +208,7 @@ export const defaultTeamPermissions: TeamPermissions = {
 		administrator: false,
 		manageMembers: false,
 		manageTeams: false,
+		billing: false,
 	},
 	content: {
 		manageCategories: false,

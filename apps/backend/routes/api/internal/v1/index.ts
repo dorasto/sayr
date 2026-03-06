@@ -5,11 +5,17 @@ import { UseSend } from "usesend-js";
 import { apiRouteAdmin } from "./admin";
 import { apiRouteFile } from "./file";
 import { apiRouteConsole } from "./console";
+import { apiRoutePolar } from "./polar";
+import { getEditionCapabilities } from "@repo/edition";
 
 export const internalApiV1 = new Hono<AppEnv>();
 internalApiV1.route("/admin", apiRouteAdmin);
 internalApiV1.route("/file", apiRouteFile);
 internalApiV1.route("/console", apiRouteConsole);
+const { polarBillingEnabled } = getEditionCapabilities()
+if (polarBillingEnabled) {
+    internalApiV1.route("/polar", apiRoutePolar);
+}
 
 internalApiV1.post("/waitlist", async (c) => {
     try {

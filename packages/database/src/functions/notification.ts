@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "..";
 import { notification } from "../../schema/notification.schema";
 import { userSummaryColumns } from "./index";
@@ -79,9 +79,44 @@ export async function getNotificationsForUser(
 	const limit = options?.limit ?? 50;
 	const offset = options?.offset ?? 0;
 
+	// Get org memberships for seat validation
+	const memberships = await db.query.member.findMany({
+		where: (member) => eq(member.userId, userId),
+		with: {
+			organization: {
+				columns: {
+					id: true,
+					plan: true,
+				},
+			},
+		},
+	});
+
+	const allowedOrgIds = new Set(
+		memberships
+			.filter((m) => {
+				if (m.organization.plan !== "pro")
+					return true;
+				return m.seatAssigned === true;
+			})
+			.map((m) => m.organizationId),
+	);
+
+	// If filtering by specific org, ensure it's allowed
+	if (
+		options?.organizationId &&
+		!allowedOrgIds.has(options.organizationId)
+	) {
+		return [];
+	}
+
 	const conditions = [
 		eq(notification.userId, userId),
 		eq(notification.archived, false),
+		inArray(
+			notification.organizationId,
+			Array.from(allowedOrgIds),
+		),
 	];
 
 	if (options?.unreadOnly) {
@@ -89,45 +124,51 @@ export async function getNotificationsForUser(
 	}
 
 	if (options?.organizationId) {
-		conditions.push(eq(notification.organizationId, options.organizationId));
+		conditions.push(
+			eq(
+				notification.organizationId,
+				options.organizationId,
+			),
+		);
 	}
 
-	const results = await db.query.notification.findMany({
-		where: and(...conditions),
-		with: {
-			actor: {
-				columns: userSummaryColumns,
-			},
-			task: {
-				columns: {
-					id: true,
-					shortId: true,
-					title: true,
-					status: true,
-					priority: true,
+	const results =
+		await db.query.notification.findMany({
+			where: and(...conditions),
+			with: {
+				actor: {
+					columns: userSummaryColumns,
+				},
+				task: {
+					columns: {
+						id: true,
+						shortId: true,
+						title: true,
+						status: true,
+						priority: true,
+					},
+				},
+				organization: {
+					columns: {
+						id: true,
+						name: true,
+						slug: true,
+						logo: true,
+					},
+				},
+				timelineEvent: {
+					columns: {
+						id: true,
+						eventType: true,
+						fromValue: true,
+						toValue: true,
+					},
 				},
 			},
-			organization: {
-				columns: {
-					id: true,
-					name: true,
-					slug: true,
-					logo: true,
-				},
-			},
-			timelineEvent: {
-				columns: {
-					id: true,
-					eventType: true,
-					fromValue: true,
-					toValue: true,
-				},
-			},
-		},
-		orderBy: desc(notification.createdAt),
-		limit,
-		offset,
-	});
+			orderBy: desc(notification.createdAt),
+			limit,
+			offset,
+		});
 
 	return results as NotificationWithDetails[];
 }
@@ -139,14 +180,49 @@ export async function getUnreadNotificationCount(
 	userId: string,
 	organizationId?: string,
 ): Promise<number> {
+	const memberships = await db.query.member.findMany({
+		where: (member) => eq(member.userId, userId),
+		with: {
+			organization: {
+				columns: {
+					id: true,
+					plan: true,
+				},
+			},
+		},
+	});
+
+	const allowedOrgIds = new Set(
+		memberships
+			.filter((m) => {
+				if (m.organization.plan !== "pro")
+					return true;
+				return m.seatAssigned === true;
+			})
+			.map((m) => m.organizationId),
+	);
+
+	if (
+		organizationId &&
+		!allowedOrgIds.has(organizationId)
+	) {
+		return 0;
+	}
+
 	const conditions = [
 		eq(notification.userId, userId),
 		eq(notification.read, false),
 		eq(notification.archived, false),
+		inArray(
+			notification.organizationId,
+			Array.from(allowedOrgIds),
+		),
 	];
 
 	if (organizationId) {
-		conditions.push(eq(notification.organizationId, organizationId));
+		conditions.push(
+			eq(notification.organizationId, organizationId),
+		);
 	}
 
 	const [result] = await db

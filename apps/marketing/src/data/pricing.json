@@ -1,18 +1,6 @@
 {
   "tiers": [
     {
-      "id": "self-hosted",
-      "name": "Self-Hosted",
-      "price": null,
-      "priceSuffix": "",
-      "description": "Deploy on your own infrastructure, self managed for your own needs.",
-      "cta": {
-        "label": "Deploy Guide",
-        "href": "/docs/self-hosting/railway"
-      },
-      "highlighted": false
-    },
-    {
       "id": "free",
       "name": "Free",
       "price": 0,
@@ -35,6 +23,30 @@
         "href": "https://admin.sayr.io"
       },
       "highlighted": true
+    },
+    {
+      "id": "enterprise",
+      "name": "Enterprise",
+      "price": "Contact us",
+      "priceSuffix": "",
+      "description": "The full experience on your own infrastructure with priority support",
+      "cta": {
+        "label": "Contact us",
+        "href": "mailto:sales@sayr.io"
+      },
+      "highlighted": false
+    },
+    {
+      "id": "self-hosted",
+      "name": "Self-Hosted",
+      "price": null,
+      "priceSuffix": "",
+      "description": "Deploy on your own infrastructure, self managed for your own needs.",
+      "cta": {
+        "label": "Deploy Guide",
+        "href": "/docs/self-hosting/get-started"
+      },
+      "highlighted": false
     }
   ],
   "featureGroups": [
@@ -46,6 +58,7 @@
           "tiers": {
             "free": "Up to 5 members",
             "pro": "Unlimited members",
+            "enterprise": "Unlimited members",
             "self-hosted": "Unlimited members"
           }
         },
@@ -54,6 +67,7 @@
           "tiers": {
             "free": "Unlimited tasks",
             "pro": "Unlimited tasks",
+            "enterprise": "Unlimited tasks",
             "self-hosted": "Unlimited tasks"
           }
         },
@@ -62,6 +76,7 @@
           "tiers": {
             "free": "Unlimited labels & categories",
             "pro": "Unlimited labels & categories",
+            "enterprise": "Unlimited labels & categories",
             "self-hosted": "Unlimited labels & categories"
           }
         },
@@ -70,6 +85,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         }
@@ -83,6 +99,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         },
@@ -91,6 +108,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         },
@@ -99,6 +117,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         },
@@ -107,6 +126,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         }
@@ -120,6 +140,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         },
@@ -128,6 +149,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         },
@@ -136,6 +158,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         },
@@ -144,6 +167,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         }
@@ -157,6 +181,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         },
@@ -165,6 +190,7 @@
           "tiers": {
             "free": true,
             "pro": true,
+            "enterprise": true,
             "self-hosted": true
           }
         }
@@ -178,6 +204,7 @@
           "tiers": {
             "free": false,
             "pro": "Unlimited releases",
+            "enterprise": "Unlimited releases",
             "self-hosted": "Unlimited releases"
           }
         },
@@ -186,6 +213,7 @@
           "tiers": {
             "free": "3 saved views",
             "pro": "Unlimited saved views",
+            "enterprise": "Unlimited saved views",
             "self-hosted": "Unlimited saved views"
           }
         },
@@ -194,6 +222,7 @@
           "tiers": {
             "free": "3 issue templates",
             "pro": "Unlimited issue templates",
+            "enterprise": "Unlimited issue templates",
             "self-hosted": "Unlimited issue templates"
           }
         },
@@ -202,6 +231,7 @@
           "tiers": {
             "free": "1 team",
             "pro": "Unlimited teams",
+            "enterprise": "Unlimited teams",
             "self-hosted": "Unlimited teams"
           }
         }

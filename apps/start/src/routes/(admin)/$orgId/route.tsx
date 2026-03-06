@@ -72,12 +72,13 @@ export const Route = createFileRoute("/(admin)/$orgId")({
 		return { permissions };
 	},
 	loader: async ({ params, context }) => {
-		const { account } = context;
+		const { account, permissions } = context;
 		if (!account) throw redirect({ to: "/login" });
 		return await getAdminOrganization({
 			data: {
 				account,
 				orgId: params.orgId,
+				permissions: permissions as any,
 			},
 		});
 	},
@@ -96,8 +97,7 @@ export const Route = createFileRoute("/(admin)/$orgId")({
  * Layout that wraps nested admin pages
  */
 function OrgLayout() {
-	const { organization, labels, views, categories, issueTemplates, releases } = Route.useLoaderData();
-
+	const { organization, labels, views, categories, issueTemplates, releases, permissions } = Route.useLoaderData();
 	return (
 		<RootProviderOrganization
 			organization={organization}
@@ -106,6 +106,7 @@ function OrgLayout() {
 			categories={categories}
 			issueTemplates={issueTemplates}
 			releases={releases}
+			permissions={permissions}
 		>
 			<OrgCommandRegistrar />
 			<Outlet />

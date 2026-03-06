@@ -32,5 +32,6 @@
 		}
 	},
 	"globalDependencies": ["package.json", "pnpm-lock.yaml"],
-	"globalEnv": ["NODE_ENV"]
+	"globalEnv": ["NODE_ENV"],
+	"globalPassThroughEnv": ["SAYR_EDITION", "VITE_SAYR_EDITION"]
 }

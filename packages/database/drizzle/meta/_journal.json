@@ -50,6 +50,48 @@
       "when": 1772145549790,
       "tag": "20260226223909_rainy_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772363896606,
+      "tag": "20260301111816_motionless_overlord",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772364186513,
+      "tag": "20260301112306_cuddly_marvel_zombies",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772426394378,
+      "tag": "20260302043954_bored_sage",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772510101938,
+      "tag": "20260303035501_jittery_stryfe",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772621763476,
+      "tag": "20260304105603_lethal_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1772684512969,
+      "tag": "20260305042152_neat_barracuda",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { member } from "./member.schema";
@@ -39,7 +39,20 @@ export const organization = table("organization", {
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
 	privateId: v.text("private_id").$defaultFn(() => generatePrivateId()),
-});
+	plan: v.text("plan").default("free"),
+	seatCount: v.integer("seat_count").default(5),
+	polarCustomerId: v.text("polar_customer_id"),
+	polarSubscriptionId: v.text("polar_subscription_id"),
+	currentPeriodEnd: v.timestamp("current_period_end"),
+	isSystemOrg: v.boolean("is_system_org").default(false).notNull(),
+	createdBy: v.text("created_by"),
+}, (t) => [
+	v
+		.uniqueIndex("one_system_org_only")
+		.on(t.isSystemOrg)
+		.where(sql`is_system_org = true`),
+	v.index("idx_org_created_by").on(t.createdBy)
+]);
 
 export type organizationType = typeof organization.$inferSelect;
 

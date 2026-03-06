@@ -1,17 +1,20 @@
 "use client";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
+import { PlanLimitBanner } from "@/components/generic/PlanLimitBanner";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
-import { IconPlus, IconRocket, IconSettings, IconUsers } from "@tabler/icons-react";
+import { IconLock, IconPlus, IconRocket, IconSettings, IconUsers } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { CreateReleaseDialog } from "./create-release-dialog";
@@ -20,6 +23,9 @@ export default function OrganizationReleasesPage() {
 	const { ws } = useLayoutData();
 	const { organization, setOrganization, releases, setReleases } = useLayoutOrganization();
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
+	const { canCreateResource, getLimitMessage } = usePlanLimits();
+	const canCreateRelease = canCreateResource("releases");
+	const releaseLimitMessage = getLimitMessage("releases");
 
 	useWebSocketSubscription({
 		ws,
@@ -128,10 +134,22 @@ export default function OrganizationReleasesPage() {
 			<PageHeader>
 				<PageHeader.Identity
 					actions={
-						<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
-							<IconPlus className="size-4" />
-							New Release
-						</Button>
+						canCreateRelease ? (
+							<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+								<IconPlus className="size-4" />
+								New Release
+							</Button>
+						) : (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button variant="default" size="sm" className="gap-2 opacity-50 cursor-not-allowed" disabled>
+										<IconLock className="size-4" />
+										New Release
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>{releaseLimitMessage}</TooltipContent>
+							</Tooltip>
+						)
 					}
 				>
 					<Link to="/$orgId" params={{ orgId: organization.id }}>
@@ -164,6 +182,9 @@ export default function OrganizationReleasesPage() {
 				</PageHeader.Identity>
 			</PageHeader>
 			<div className="flex flex-col gap-6 md:p-6 md:pt-3 p-3 overflow-y-auto">
+				{!canCreateRelease && (
+					<PlanLimitBanner title="Releases unavailable" description={releaseLimitMessage} />
+				)}
 				{/* Releases Lists */}
 				<div className="flex flex-col gap-6">
 					{renderReleasesList(plannedReleases, "Planned")}
@@ -181,15 +202,32 @@ export default function OrganizationReleasesPage() {
 							Create releases to track which tasks ship in each version. Releases help you organize work by
 							milestones and communicate what's coming.
 						</p>
-						<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
-							<IconPlus className="size-4" />
-							Create Your First Release
-						</Button>
+						{canCreateRelease ? (
+							<Button variant="default" size="sm" className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+								<IconPlus className="size-4" />
+								Create Your First Release
+							</Button>
+						) : (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button variant="default" size="sm" className="gap-2 opacity-50 cursor-not-allowed" disabled>
+										<IconLock className="size-4" />
+										Create Your First Release
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>{releaseLimitMessage}</TooltipContent>
+							</Tooltip>
+						)}
 					</div>
 				)}
 
 				{/* Create Dialog */}
-				<CreateReleaseDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+				<CreateReleaseDialog
+					open={createDialogOpen}
+					onOpenChange={setCreateDialogOpen}
+					disabled={!canCreateRelease}
+					disabledMessage={releaseLimitMessage}
+				/>
 			</div>
 		</>
 	);

@@ -14,10 +14,11 @@ const fetchPublicTask = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
-	loader: async ({ params }) => {
+	loader: async ({ params, context }) => {
+		const slug = context?.systemSlug ? context?.systemSlug : params.orgSlug
 		return await fetchPublicTask({
 			data: {
-				slug: params.orgSlug,
+				slug: slug,
 				shortId: Number(params.shortId),
 			},
 		});

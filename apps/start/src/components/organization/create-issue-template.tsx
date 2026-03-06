@@ -20,13 +20,14 @@ import {
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
-  IconArrowsDiagonal,
-  IconArrowsDiagonalMinimize2,
-  IconDeviceFloppy,
-  IconPlus,
-  IconTemplate,
-  IconTrash,
-  IconX,
+	IconArrowsDiagonal,
+	IconArrowsDiagonalMinimize2,
+	IconDeviceFloppy,
+	IconLock,
+	IconPlus,
+	IconTemplate,
+	IconTrash,
+	IconX,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
@@ -49,6 +50,7 @@ import { formatDateCompact } from "@repo/util";
 import Editor from "@/components/prosekit/editor";
 import processUploads from "@/components/prosekit/upload";
 import type { NodeJSON } from "prosekit/core";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 
 // Dialog size configuration - mirrors CreateIssueDialog sizing
@@ -81,17 +83,23 @@ interface Props {
   availableUsers: schema.userType[];
   releases?: schema.releaseType[];
   mode?: "create" | "edit";
+  /** When true, blocks creating new templates or saving edits (delete still works). */
+  disabled?: boolean;
+  /** Message to show when creation/editing is blocked by plan limits. */
+  disabledMessage?: string;
 }
 
 export default function CreateIssueTemplate({
-  orgId,
-  setIssueTemplates,
-  template,
-  availableLabels,
-  availableCategories,
-  availableUsers,
-  releases = [],
-  mode = "create",
+	orgId,
+	setIssueTemplates,
+	template,
+	availableLabels,
+	availableCategories,
+	availableUsers,
+	releases = [],
+	mode = "create",
+	disabled = false,
+	disabledMessage,
 }: Props) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { setValue: setMentionContext } =
@@ -375,33 +383,57 @@ export default function CreateIssueTemplate({
     }
   };
 
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={cn(
-          "w-full text-left rounded-lg bg-card hover:bg-accent transition-colors p-0 border-0 cursor-pointer",
-        )}
-      >
-        <Tile variant={"transparent"} className="md:w-full">
-          <TileHeader className="w-full text-left">
-            <TileTitle className="flex items-center gap-2 w-full">
-              <TileIcon>
-                {isEditMode ? <IconTemplate /> : <IconPlus />}
-              </TileIcon>
-              {template?.name || "Create new template"}
-            </TileTitle>
-            {isEditMode && (
-              <TileDescription>
-                <Label variant={"description"}>
-                  Created on {formatDateCompact(template.createdAt as Date)}
-                </Label>
-              </TileDescription>
-            )}
-          </TileHeader>
-        </Tile>
-      </button>
+	return (
+		<>
+			{!isEditMode && disabled ? (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<div
+							className={cn(
+								"w-full text-left rounded-lg bg-card transition-colors p-0 border-0 opacity-50 cursor-not-allowed",
+							)}
+						>
+							<Tile variant={"transparent"} className="md:w-full">
+								<TileHeader className="w-full text-left">
+									<TileTitle className="flex items-center gap-2 w-full">
+										<TileIcon>
+											<IconLock />
+										</TileIcon>
+										Create new template
+									</TileTitle>
+								</TileHeader>
+							</Tile>
+						</div>
+					</TooltipTrigger>
+					<TooltipContent>{disabledMessage || "Plan limit reached"}</TooltipContent>
+				</Tooltip>
+			) : (
+			<button
+				type="button"
+				onClick={() => setOpen(true)}
+				className={cn(
+					"w-full text-left rounded-lg bg-card hover:bg-accent transition-colors p-0 border-0 cursor-pointer",
+				)}
+			>
+				<Tile variant={"transparent"} className="md:w-full">
+					<TileHeader className="w-full text-left">
+						<TileTitle className="flex items-center gap-2 w-full">
+							<TileIcon>
+								{isEditMode ? <IconTemplate /> : <IconPlus />}
+							</TileIcon>
+							{template?.name || "Create new template"}
+						</TileTitle>
+						{isEditMode && (
+							<TileDescription>
+								<Label variant={"description"}>
+									Created on {formatDateCompact(template.createdAt as Date)}
+								</Label>
+							</TileDescription>
+						)}
+					</TileHeader>
+				</Tile>
+			</button>
+			)}
 
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
         <AdaptiveDialogContent
@@ -558,6 +590,9 @@ export default function CreateIssueTemplate({
               </div>
 
               <AdaptiveDialogFooter className="mt-auto bg-background flex flex-col! gap-2 shrink-0">
+                {isEditMode && disabled && disabledMessage && (
+                  <p className="text-xs text-destructive">{disabledMessage}</p>
+                )}
                 <div className="flex items-center gap-2 ml-auto">
                   {isEditMode ? (
                     <div className="flex items-center gap-1">
@@ -602,7 +637,7 @@ export default function CreateIssueTemplate({
                           size="sm"
                           className="h-7 text-xs"
                           onClick={handleEdit}
-                          disabled={isFetching || name.length === 0}
+                          disabled={isFetching || name.length === 0 || disabled}
                         >
                           <IconDeviceFloppy className="h-4 w-4" />
                           Save
@@ -615,7 +650,7 @@ export default function CreateIssueTemplate({
                       size="sm"
                       className="h-7 text-xs"
                       onClick={handleCreate}
-                      disabled={isFetching || name.length === 0}
+                      disabled={isFetching || name.length === 0 || disabled}
                     >
                       <IconPlus className="h-4 w-4" />
                       Create

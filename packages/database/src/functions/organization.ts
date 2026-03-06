@@ -1,32 +1,36 @@
 import crypto from "node:crypto";
 import { ensureCdnUrl } from "@repo/util";
-import { and, eq, ilike, inArray, ne, notInArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema, auth } from "..";
-import { defaultTeamPermissions, type TeamPermissions } from "../../schema/member.schema";
+import { type TeamPermissions } from "../../schema/member.schema";
 import { userSummaryColumns, userSummarySelect } from "./index";
 
 /**
  * Retrieves all organizations that a given user belongs to, including
  * their members and associated user account details.
  *
+ * For organizations on the `"pro"` plan:
+ * - Organizations where the user does not have a seat are excluded
+ *   by default.
+ * - Members without seats are hidden by default.
+ * - You can override this behavior using `includeUnseated: true`.
+ *
  * @param userId - The ID of the user whose organizations should be retrieved.
+ * @param options - Optional configuration.
+ * @param options.includeUnseated - If `true`, includes Pro organizations
+ * where the user does not have a seat and shows all members regardless
+ * of seat assignment. Defaults to `false`.
+ *
  * @returns A promise that resolves to an array of organizations,
  * each containing its members and each member's user information.
- *
- * @example
- * ```ts
- * const orgs = await getOrganizations("user_123");
- *
- * orgs.forEach(org => {
- *   console.log(`Organization: ${org.name}`);
- *   org.members.forEach(member => {
- *     console.log(`- ${member.user.name} (${member.user.email})`);
- *   });
- * });
- * ```
  */
-export async function getOrganizations(userId: string): Promise<schema.OrganizationWithMembers[]> {
-	// Step 1: Find orgIds the user belongs to
+export async function getOrganizations(
+	userId: string,
+	options?: { includeUnseated?: boolean },
+): Promise<schema.OrganizationWithMembers[]> {
+	const includeUnseated = options?.includeUnseated ?? false;
+
+	// Step 1: Find memberships
 	const memberships = await db.query.member.findMany({
 		where: (member) => eq(member.userId, userId),
 	});
@@ -35,50 +39,103 @@ export async function getOrganizations(userId: string): Promise<schema.Organizat
 
 	const orgIds = memberships.map((m) => m.organizationId);
 
-	// Step 2: Load organizations with members + users in a *single query*
+	// Step 2: Load orgs with members
 	const orgsWithMembers = await db.query.organization.findMany({
 		with: {
 			members: {
 				with: {
-					user: true, // ✅ this now works because of relations()
+					user: true,
 				},
 			},
 		},
-		where: (organization, { inArray }) => inArray(organization.id, orgIds),
+		where: (organization, { inArray }) =>
+			inArray(organization.id, orgIds),
 	});
 
-	// Step 3: Rewrite the logo URL
-	const enriched = orgsWithMembers.map((org) => ({
-		...org,
-		logo: org.logo ? ensureCdnUrl(org.logo) : null,
-		bannerImg: org.bannerImg ? ensureCdnUrl(org.bannerImg) : null,
-	}));
+	const result = orgsWithMembers
+		// Step 3: Filter org access based on seat logic ONLY for pro
+		.filter((org) => {
+			if (includeUnseated) return true;
 
-	return enriched;
+			if (org.plan !== "pro") return true;
+
+			const currentMember = org.members.find(
+				(m) => m.userId === userId,
+			);
+
+			return currentMember?.seatAssigned === true;
+		})
+		// Step 4: Filter members + enrich media
+		.map((org) => {
+			let members = org.members;
+
+			if (!includeUnseated && org.plan === "pro") {
+				members = members.filter((m) => m.seatAssigned);
+			}
+
+			return {
+				...org,
+				members,
+				logo: org.logo
+					? ensureCdnUrl(org.logo)
+					: null,
+				bannerImg: org.bannerImg
+					? ensureCdnUrl(org.bannerImg)
+					: null,
+			};
+		});
+
+	return result;
 }
+
 /**
  * Retrieves a single organization by its ID **only if the user
  * belongs to it**, including all members and their user details.
  *
+ * For all plans:
+ * - Members without an assigned seat are hidden by default.
+ * - You can override this behavior by setting `includeUnseated: true`.
+ *
  * @param orgId - The ID of the organization to retrieve.
  * @param userId - The ID of the requesting user (must be a member).
- * @returns The organization with enriched member data, or `null` if the user
- * is not part of the organization.
+ * @param options - Optional configuration.
+ * @param options.includeUnseated - If `true`, includes members without
+ * an assigned seat. Defaults to `false`.
+ *
+ * @returns The organization with enriched member data, or `null`
+ * if the user is not part of the organization.
  *
  * @example
  * ```ts
  * const org = await getOrganization("org_123", "user_123");
+ *
  * if (org) {
  *   console.log(`Organization: ${org.name}`);
  *   org.members.forEach(member => {
- *     console.log(`- ${member.user.name} (${member.user.email})`);
+ *     console.log(`- ${member.user.name}`);
  *   });
  * } else {
  *   console.log("User does not belong to this organization.");
  * }
  * ```
+ *
+ * @example
+ * // Include unseated members (e.g., admin/billing view)
+ * const orgWithAllMembers = await getOrganization(
+ *   "org_123",
+ *   "user_123",
+ *   { includeUnseated: true }
+ * );
+ * ```
  */
-export async function getOrganization(orgId: string, userId: string): Promise<schema.OrganizationWithMembers | null> {
+export async function getOrganization(
+	orgId: string,
+	userId: string,
+	options?: { includeUnseated?: boolean; blockOrgUnseated?: boolean },
+): Promise<schema.OrganizationWithMembers | null> {
+	const includeUnseated = options?.includeUnseated ?? false;
+	const blockOrgUnseated = options?.blockOrgUnseated ?? false;
+
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.id, orgId),
 		with: {
@@ -93,14 +150,40 @@ export async function getOrganization(orgId: string, userId: string): Promise<sc
 		},
 	});
 
-	// Ensure the current user is part of it
-	if (!organization?.members.some((m) => m.userId === userId)) {
-		return null; // unauthorized
+	if (!organization) return null;
+
+	// Ensure current user is part of it
+	const member = organization.members.find(
+		(m) => m.userId === userId,
+	);
+
+	if (!member) return null;
+
+	// Only enforce seat checks on pro plans
+	if (
+		organization.plan === "pro" &&
+		blockOrgUnseated &&
+		!member.seatAssigned
+	) {
+		return null;
 	}
+
+	let members = organization.members;
+
+	// Only filter seats for pro plans
+	if (!includeUnseated && organization.plan === "pro") {
+		members = members.filter((m) => m.seatAssigned);
+	}
+
 	return {
 		...organization,
-		logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
-		bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
+		members,
+		logo: organization.logo
+			? ensureCdnUrl(organization.logo)
+			: null,
+		bannerImg: organization.bannerImg
+			? ensureCdnUrl(organization.bannerImg)
+			: null,
 	};
 }
 
@@ -142,7 +225,9 @@ export async function getOrganizationMembers(orgId: string): Promise<schema.Orga
  * }
  * ```
  */
-export async function getOrganizationPublic(orgSlug: string): Promise<schema.OrganizationWithMembers | null> {
+export async function getOrganizationPublic(
+	orgSlug: string,
+): Promise<schema.OrganizationWithMembers | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.slug, orgSlug),
 		with: {
@@ -171,15 +256,25 @@ export async function getOrganizationPublic(orgSlug: string): Promise<schema.Org
 			},
 		},
 	});
-	if (organization) {
-		return {
-			...organization,
-			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
-			bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
-			privateId: null,
-		};
-	}
-	return null;
+
+	if (!organization) return null;
+
+	const filteredMembers = organization.members.filter(
+		(m) => m.seatAssigned,
+	);
+
+	return {
+		...organization,
+		//@ts-expect-error
+		members: filteredMembers,
+		logo: organization.logo
+			? ensureCdnUrl(organization.logo)
+			: null,
+		bannerImg: organization.bannerImg
+			? ensureCdnUrl(organization.bannerImg)
+			: null,
+		privateId: null,
+	};
 }
 
 /**
@@ -221,6 +316,7 @@ const fullAdminPermissions: TeamPermissions = {
 		administrator: true,
 		manageMembers: true,
 		manageTeams: true,
+		billing: true,
 	},
 	content: {
 		manageCategories: true,
@@ -264,6 +360,7 @@ const fullAdminPermissions: TeamPermissions = {
 export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<schema.OrganizationTeamType> {
 	// Check if Administrators team already exists
 	let adminTeam = await db.query.team.findFirst({
+		//@ts-expect-error
 		where: (t, { and, eq }) => and(eq(t.organizationId, orgId), eq(t.name, "Admin")),
 	});
 
@@ -277,6 +374,7 @@ export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<sch
 				name: "Admin",
 				description: "Full access to all organization settings and content",
 				permissions: fullAdminPermissions,
+				isSystem: true,
 			})
 			.returning();
 
@@ -327,6 +425,7 @@ export async function addMemberToAdminTeam(orgId: string, memberId: string): Pro
 
 	// Check if already a member
 	const existing = await db.query.memberTeam.findFirst({
+		//@ts-expect-error
 		where: (mt, { and, eq }) => and(eq(mt.teamId, adminTeam.id), eq(mt.memberId, memberId)),
 	});
 
@@ -360,19 +459,35 @@ export async function addMemberToAdminTeam(orgId: string, memberId: string): Pro
  */
 export async function searchOrgMembers(
 	orgId: string,
-	options?: { query?: string; limit?: number }
+	options?: { query?: string; limit?: number },
 ): Promise<schema.UserSummary[]> {
 	const limit = options?.limit ?? 20;
 	const query = options?.query?.trim();
 
-	// Use relational query to get members with user data
+	// Get organization plan
+	const organization = await db.query.organization.findFirst({
+		where: (org) => eq(org.id, orgId),
+		columns: {
+			plan: true,
+		},
+	});
+
+	if (!organization) return [];
+
+	// Get members (only those with assigned seats)
 	const members = await db.query.member.findMany({
-		where: (member) => eq(member.organizationId, orgId),
+		where: (member) =>
+			and(
+				eq(member.organizationId, orgId),
+				organization.plan === "pro"
+					? eq(member.seatAssigned, true)
+					: undefined
+			),
 		with: {
 			user: {
-				columns: userSummaryColumns,
-			},
-		},
+				columns: userSummaryColumns
+			}
+		}
 	});
 
 	let users = members.map((m) => m.user);
@@ -381,13 +496,17 @@ export async function searchOrgMembers(
 	if (query) {
 		const lowerQuery = query.toLowerCase();
 		users = users.filter((user) => {
-			const matchesName = user.name.toLowerCase().includes(lowerQuery);
-			const matchesDisplayName = user.displayName?.toLowerCase().includes(lowerQuery);
+			const matchesName = user.name
+				.toLowerCase()
+				.includes(lowerQuery);
+			const matchesDisplayName = user.displayName
+				?.toLowerCase()
+				.includes(lowerQuery);
+
 			return matchesName || matchesDisplayName;
 		});
 	}
 
-	// Apply limit
 	return users.slice(0, limit);
 }
 

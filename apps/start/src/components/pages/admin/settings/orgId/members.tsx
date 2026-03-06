@@ -30,6 +30,7 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -206,9 +207,9 @@ export default function SettingsOrganizationPageMembers({
             members: organization.members.map((m) =>
               m.id === memberId
                 ? {
-                    ...m,
-                    teams: (m.teams || []).filter((t) => t.teamId !== teamId),
-                  }
+                  ...m,
+                  teams: (m.teams || []).filter((t) => t.teamId !== teamId),
+                }
                 : m,
             ),
           });
@@ -245,21 +246,21 @@ export default function SettingsOrganizationPageMembers({
               members: organization.members.map((m) =>
                 m.id === memberId
                   ? {
-                      ...m,
-                      teams: [
-                        ...(m.teams || []),
-                        {
-                          id: result.data?.id || `${memberId}-${teamId}`,
-                          memberId,
-                          teamId,
-                          team: {
-                            id: teamData.id,
-                            name: teamData.name,
-                            permissions: teamData.permissions,
-                          },
+                    ...m,
+                    teams: [
+                      ...(m.teams || []),
+                      {
+                        id: result.data?.id || `${memberId}-${teamId}`,
+                        memberId,
+                        teamId,
+                        team: {
+                          id: teamData.id,
+                          name: teamData.name,
+                          permissions: teamData.permissions,
                         },
-                      ],
-                    }
+                      },
+                    ],
+                  }
                   : m,
               ),
             });
@@ -297,6 +298,7 @@ export default function SettingsOrganizationPageMembers({
             : [],
         );
         const isInvite = "status" in member;
+        const hasSeat = "seatAssigned" in member ? member.seatAssigned : false;
 
         return (
           <DropdownMenu key={member.id}>
@@ -319,11 +321,33 @@ export default function SettingsOrganizationPageMembers({
                       </AvatarFallback>
                     </Avatar>
                   </TileIcon>
-                  <TileTitle>{member.user.name}</TileTitle>
+                  <TileTitle>
+                    {member.user.name}{" "}
+                    {!isInvite && !hasSeat && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-xs py-0 px-2 h-4 bg-destructive/50 border-destructive text-destructive-foreground"
+                      >
+                        <IconShield className="size-3 shrink-0" />
+                        No seat
+                      </Badge>
+                    )}
+                  </TileTitle>
                   <TileDescription>{member.user.email}</TileDescription>
                 </TileHeader>
                 <TileAction className="flex-1 min-w-0">
                   <div className="flex gap-1 flex-1 overflow-hidden flex-wrap justify-end">
+                    {isInvite && member.status && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-xs py-0 h-5"
+                      >
+                        {member.status === "pending"
+                          ? "Pending invite"
+                          : member.status}
+                      </Badge>
+                    )}
+
                     {"teams" in member &&
                       member.teams &&
                       member.teams.length > 0 &&
@@ -363,7 +387,6 @@ export default function SettingsOrganizationPageMembers({
                 {member.user.name}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border" />
-
               {canManageTeams && !isInvite && teams.length > 0 && (
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
@@ -395,9 +418,7 @@ export default function SettingsOrganizationPageMembers({
                               className="pointer-events-none"
                             />
                           )}
-                          <span className="truncate">
-                            {team.name} saodifj asodif joasidjf oasijdfoaisjd f
-                          </span>
+                          <span className="truncate">{team.name}</span>
                         </DropdownMenuItem>
                       );
                     })}
@@ -405,6 +426,7 @@ export default function SettingsOrganizationPageMembers({
                 </DropdownMenuSub>
               )}
               <DropdownMenuItem
+                disabled={organization.createdBy === member.userId || member.userId === account?.id}
                 onClick={async () => {
                   if (member.userId === account?.id) {
                     alert("You cannot remove yourself from the organization.");
@@ -442,25 +464,43 @@ export default function SettingsOrganizationPageMembers({
       })}
       <Separator />
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
-        <AdaptiveDialogTrigger asChild>
+        {organization.members.filter((m) => m.seatAssigned,).length >= (organization.seatCount ?? 0) ? (
           <Tile
-            className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
-            variant={"transparent"}
+            variant="outline"
+            className="md:w-full border-destructive/30 bg-destructive/5"
           >
-            <TileHeader className="md:w-full">
-              <TileIcon className="bg-transparent">
-                <Avatar className="h-10 w-10 rounded-md">
-                  {/* <AvatarImage src={member.user.image || ""} alt={member.user.name} className="rounded-none" /> */}
-                  <AvatarFallback className="rounded-md uppercase text-xs">
-                    <IconUserPlus className="size-6!" />
-                  </AvatarFallback>
-                </Avatar>
+            <TileHeader>
+              <TileIcon className="bg-destructive/15 border-none">
+                <IconBadge className="size-6! text-destructive" />
               </TileIcon>
-              <TileTitle>Invite</TileTitle>
-              <TileDescription>Invite a new member</TileDescription>
+              <TileTitle>Seat limit reached</TileTitle>
+              <TileDescription>
+                You have reached the maximum number of members for your current
+                plan. Please upgrade your plan to invite more members.
+              </TileDescription>
             </TileHeader>
           </Tile>
-        </AdaptiveDialogTrigger>
+        ) : (
+          <AdaptiveDialogTrigger asChild>
+            <Tile
+              className="md:w-full hover:bg-accent data-[state=open]:bg-accent"
+              variant={"transparent"}
+            >
+              <TileHeader className="md:w-full">
+                <TileIcon className="bg-transparent">
+                  <Avatar className="h-10 w-10 rounded-md">
+                    {/* <AvatarImage src={member.user.image || ""} alt={member.user.name} className="rounded-none" /> */}
+                    <AvatarFallback className="rounded-md uppercase text-xs">
+                      <IconUserPlus className="size-6!" />
+                    </AvatarFallback>
+                  </Avatar>
+                </TileIcon>
+                <TileTitle>Invite</TileTitle>
+                <TileDescription>Invite a new member</TileDescription>
+              </TileHeader>
+            </Tile>
+          </AdaptiveDialogTrigger>
+        )}
         <AdaptiveDialogContent>
           <AdaptiveDialogHeader className="bg-card">
             <AdaptiveDialogTitle asChild>

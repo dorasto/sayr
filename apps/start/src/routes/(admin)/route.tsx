@@ -49,9 +49,9 @@ const authCacheMap =
 const authInFlightMap =
   typeof window !== "undefined"
     ? new Map<
-        string,
-        Promise<{ account: schema.userType | null; sessionId?: string }>
-      >()
+      string,
+      Promise<{ account: schema.userType | null; sessionId?: string }>
+    >()
     : null;
 
 /**

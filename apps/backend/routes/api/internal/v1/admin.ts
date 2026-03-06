@@ -7,7 +7,10 @@ import { apiRouteAdminOrganization } from "./organization";
 import { apiRouteAdminRelease } from "./release";
 import { apiRouteAdminUser } from "./user";
 import { apiRouteAdminNotification } from "./notification";
+import { getEffectiveLimits } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { polarClient } from "@repo/auth";
+import { getEditionCapabilities } from "@repo/edition";
 
 export const apiRouteAdmin = new Hono<AppEnv>();
 
@@ -125,6 +128,21 @@ apiRouteAdmin.post("/invite", async (c) => {
 	);
 
 	if (type === "accept") {
+		const org = await db.query.organization.findFirst({
+			where: eq(schema.organization.id, invite.organizationId),
+		});
+
+		// Enforce seat limit before accepting
+		const assignedMembers = await db.query.member.findMany({
+			where: and(
+				eq(schema.member.organizationId, invite.organizationId),
+				eq(schema.member.seatAssigned, true),
+			),
+			columns: { id: true },
+		});
+		const seatLimit = getEffectiveLimits(org?.plan).members ?? org?.seatCount ?? Infinity;
+		const hasAvailableSeat = assignedMembers.length < seatLimit;
+
 		await traceAsync(
 			"invite.response.create_member",
 			() =>
@@ -132,18 +150,39 @@ apiRouteAdmin.post("/invite", async (c) => {
 					id: randomUUID(),
 					userId: session.userId,
 					organizationId: invite.organizationId,
+					seatAssigned: hasAvailableSeat,
 				}),
 			{
 				description: "Creating organization membership",
 				data: {
 					user: { id: session.userId },
 					organization: { id: invite.organizationId },
+					seatAssigned: hasAvailableSeat,
 				},
 				onSuccess: () => ({
 					outcome: "Membership created",
 				}),
 			}
 		);
+
+		// Only assign via Polar if Pro plan with active subscription and seat available
+		const { polarBillingEnabled } = getEditionCapabilities()
+		if (hasAvailableSeat && org?.plan === "pro" && org?.polarSubscriptionId && polarBillingEnabled) {
+			try {
+				await polarClient?.customerSeats.assignSeat({
+					subscriptionId: org.polarSubscriptionId,
+					externalCustomerId: session.userId,
+					immediateClaim: true,
+					metadata: {
+						userId: session.userId,
+						organizationId: invite.organizationId,
+						action: "invite_accept_seat_assignment",
+					}
+				});
+			} catch (err) {
+				console.error("Failed to assign Polar seat on invite accept:", err);
+			}
+		}
 
 		// ✅ Trace acceptance event
 		await traceAsync(

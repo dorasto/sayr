@@ -94,7 +94,7 @@ const OrganizationMemberSchema = z.object({
 
 //@ts-expect-error
 const OrganizationSchema = createSelectSchema(schema.organization)
-	.omit({ privateId: true })
+	.omit({ privateId: true, isSystemOrg: true, createdBy: true, polarCustomerId: true, polarSubscriptionId: true, seatCount: true, currentPeriodEnd: true })
 	.extend({
 		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
@@ -150,10 +150,27 @@ apiPublicRouteV1.get(
 		}
 
 		// biome-ignore lint/correctness/noUnusedVariables: <needed>
-		const { privateId, ...publicOrg } = organization;
+		const { privateId, isSystemOrg, createdBy, polarCustomerId, polarSubscriptionId, seatCount, currentPeriodEnd, ...publicOrg } = organization;
+		const sanitizedMembers = organization.members.map((m) => ({
+			id: m.id,
+			userId: m.userId,
+			organizationId: m.organizationId,
+			createdAt: m.createdAt,
+			user: m.user,
+			teams: m.teams?.map((t) => ({
+				id: t.id,
+				memberId: t.memberId,
+				teamId: t.teamId,
+				team: {
+					id: t.team.id,
+					name: t.team.name,
+				},
+			})),
+		}));
 		return c.json(
 			successResponse({
 				...publicOrg,
+				members: sanitizedMembers,
 				wsUrl: `${process.env.APP_ENV === "development" ? `ws://api.${process.env.VITE_ROOT_DOMAIN}:5468` : `wss://api.${process.env.VITE_ROOT_DOMAIN}`}/ws?orgId=${publicOrg.id}&ref=publicApi`,
 			})
 		);
@@ -546,10 +563,10 @@ apiPublicRouteV1.get(
 			});
 			return c.json(errorResponse("No Task found"), 404);
 		}
-
+		const { githubIssue, githubPullRequest, ...publicTask } = task;
 		return c.json(
 			successResponse({
-				...task,
+				...publicTask,
 				descriptionHtml: task.description && prosekitJSONToHTML(task.description),
 				descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
 			})

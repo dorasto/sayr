@@ -27,6 +27,14 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
+        edition: [cloud, ce]
+        exclude:
+          # Marketing site is cloud-only
+          - app: marketing
+            edition: ce
+          # CE edition is amd64-only to reduce build costs
+          - platform: linux/arm64
+            edition: ce
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,18 +42,29 @@ jobs:
       - name: Determine Docker Config
         id: config
         run: |
+          # Dockerfile path
           if [[ "${{ matrix.app }}" == "start" ]]; then
             echo "dockerfile=./apps/start/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-start" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "backend" ]]; then
             echo "dockerfile=./apps/backend/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-backend" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "worker" ]]; then
             echo "dockerfile=./apps/worker/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-worker" >> $GITHUB_OUTPUT
           elif [[ "${{ matrix.app }}" == "marketing" ]]; then
             echo "dockerfile=./apps/marketing/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
+          fi
+
+          # Image suffix: CE images get -ce- prefix
+          if [[ "${{ matrix.edition }}" == "ce" ]]; then
+            echo "image_suffix=-ce-${{ matrix.app }}" >> $GITHUB_OUTPUT
+          else
+            echo "image_suffix=-${{ matrix.app }}" >> $GITHUB_OUTPUT
+          fi
+
+          # Edition build arg
+          if [[ "${{ matrix.edition }}" == "ce" ]]; then
+            echo "edition_baked=community" >> $GITHUB_OUTPUT
+          else
+            echo "edition_baked=cloud" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up Docker Builder
@@ -81,6 +100,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
+            SAYR_EDITION_BAKED=${{ steps.config.outputs.edition_baked }}
             ${{ matrix.app == 'marketing' && format('PUBLIC_CAP_API_ENDPOINT={0}', secrets.PUBLIC_CAP_API_ENDPOINT) || '' }}
             ${{ matrix.app == 'start' && format('VITE_APP_VERSION={0}', inputs.version) || '' }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }},push-by-digest=true,name-canonical=true,push=true
@@ -94,7 +114,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.app }}-${{ strategy.job-index }}
+          name: digests-${{ matrix.edition }}-${{ matrix.app }}-${{ strategy.job-index }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -109,24 +129,24 @@ jobs:
       fail-fast: false
       matrix:
         app: [start, backend, worker, marketing]
+        edition: [cloud, ce]
+        exclude:
+          - app: marketing
+            edition: ce
     steps:
       - name: Determine Docker Config
         id: config
         run: |
-          if [[ "${{ matrix.app }}" == "start" ]]; then
-            echo "image_suffix=-start" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.app }}" == "backend" ]]; then
-            echo "image_suffix=-backend" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.app }}" == "worker" ]]; then
-            echo "image_suffix=-worker" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.app }}" == "marketing" ]]; then
-            echo "image_suffix=-marketing" >> $GITHUB_OUTPUT
+          if [[ "${{ matrix.edition }}" == "ce" ]]; then
+            echo "image_suffix=-ce-${{ matrix.app }}" >> $GITHUB_OUTPUT
+          else
+            echo "image_suffix=-${{ matrix.app }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          pattern: digests-${{ matrix.app }}-*
+          pattern: digests-${{ matrix.edition }}-${{ matrix.app }}-*
           merge-multiple: true
           path: /tmp/digests
 

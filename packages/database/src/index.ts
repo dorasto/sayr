@@ -20,6 +20,7 @@ const fullPermissions: TeamPermissions = {
 		administrator: true,
 		manageMembers: true,
 		manageTeams: true,
+		billing: true,
 	},
 	content: {
 		manageCategories: true,
@@ -74,6 +75,17 @@ type PermissionPath =
 export async function hasOrgPermission(userId: string, orgId: string, permPath: PermissionPath): Promise<boolean> {
 	// 0️⃣ Platform admin = god mode, bypass all checks
 	if (await isPlatformAdmin(userId)) {
+		return true;
+	}
+
+	// Organization creator = full access
+	const org = await db
+		.select({ createdBy: organization.createdBy })
+		.from(organization)
+		.where(eq(organization.id, orgId))
+		.limit(1);
+
+	if (org[0]?.createdBy === userId) {
 		return true;
 	}
 
@@ -165,7 +177,16 @@ export async function getOrgPermissions(userId: string, orgId: string): Promise<
 	if (await isPlatformAdmin(userId)) {
 		return { ...fullPermissions };
 	}
+	// Organization creator = full access
+	const org = await db
+		.select({ createdBy: organization.createdBy })
+		.from(organization)
+		.where(eq(organization.id, orgId))
+		.limit(1);
 
+	if (org[0]?.createdBy === userId) {
+		return { ...fullPermissions };
+	}
 	// 1️⃣ Find membership for this org
 	const [m] = await db
 		.select({ id: member.id })

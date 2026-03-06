@@ -1,8 +1,10 @@
 "use client";
 
 import { useLayoutData } from "@/components/generic/Context";
+import { PlanLimitBanner } from "@/components/generic/PlanLimitBanner";
 import CreateIssueTemplate from "@/components/organization/create-issue-template";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { usePlanLimitsFromData } from "@/hooks/usePlanLimits";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
@@ -10,8 +12,20 @@ import { useEffect } from "react";
 
 export default function SettingsOrganizationTemplatesPage() {
 	const { ws } = useLayoutData();
-	const { organization, setOrganization, setIssueTemplates, issueTemplates, labels, categories, releases } =
+	const { organization, setOrganization, setIssueTemplates, issueTemplates, labels, categories, releases, views } =
 		useLayoutOrganizationSettings();
+
+	const { canCreateResource, isOverLimit, getLimitMessage } = usePlanLimitsFromData({
+		plan: organization.plan,
+		memberCount: organization.members.length,
+		viewCount: views.length,
+		issueTemplateCount: issueTemplates.length,
+		releaseCount: releases.length,
+	});
+	const canCreateTemplate = canCreateResource("issueTemplates");
+	const templatesOverLimit = isOverLimit("issueTemplates");
+	const templateLimitMessage = getLimitMessage("issueTemplates");
+
 	useWebSocketSubscription({
 		ws,
 		orgId: organization.id,
@@ -41,6 +55,9 @@ export default function SettingsOrganizationTemplatesPage() {
 	}
 	return (
 		<div className="flex flex-col gap-2">
+			{templatesOverLimit && (
+				<PlanLimitBanner title="Template limit exceeded" description={templateLimitMessage} />
+			)}
 			<CreateIssueTemplate
 				orgId={organization.id}
 				setIssueTemplates={setIssueTemplates}
@@ -48,6 +65,8 @@ export default function SettingsOrganizationTemplatesPage() {
 				availableCategories={categories}
 				availableUsers={organization.members.map((m) => m.user)}
 				releases={releases}
+				disabled={!canCreateTemplate}
+				disabledMessage={templateLimitMessage}
 			/>
 			{issueTemplates.map((template) => (
 				<CreateIssueTemplate
@@ -60,6 +79,8 @@ export default function SettingsOrganizationTemplatesPage() {
 					availableUsers={organization.members.map((m) => m.user)}
 					releases={releases}
 					mode="edit"
+					disabled={templatesOverLimit}
+					disabledMessage={templateLimitMessage}
 				/>
 			))}
 		</div>

@@ -2,6 +2,68 @@ import type { schema, TeamPermissions, OrganizationSettings } from "@repo/databa
 
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
+// ────────────────────────────────────
+//  Billing / Polar Portal Types
+// ────────────────────────────────────
+
+export interface SubscriptionDetails {
+	id: string;
+	status: string;
+	amount: number;
+	currency: string;
+	recurringInterval: string;
+	currentPeriodStart: string;
+	currentPeriodEnd: string | null;
+	cancelAtPeriodEnd: boolean;
+	canceledAt: string | null;
+	startedAt: string | null;
+	seats: number | null;
+	product: {
+		id: string;
+		name: string;
+		description: string | null;
+	};
+	prices: Array<Record<string, unknown>>;
+	customerCancellationReason: string | null;
+	customerCancellationComment: string | null;
+}
+
+export interface OrderItem {
+	id: string;
+	label: string;
+	amount: number;
+	taxAmount: number;
+	proration: boolean;
+}
+
+export interface OrderEntry {
+	id: string;
+	createdAt: string;
+	status: string;
+	paid: boolean;
+	subtotalAmount: number;
+	discountAmount: number;
+	netAmount: number;
+	taxAmount: number;
+	totalAmount: number;
+	currency: string;
+	billingReason: string;
+	invoiceNumber: string;
+	isInvoiceGenerated: boolean;
+	seats: number | null;
+	product: { id: string; name: string } | null;
+	description: string;
+	items: OrderItem[];
+}
+
+export interface OrdersResponse {
+	items: OrderEntry[];
+	pagination: {
+		totalCount: number;
+		maxPage: number;
+	};
+}
+
 export interface CreateOrganizationData {
 	name: string;
 	slug: string;
@@ -279,6 +341,91 @@ export async function deleteOrganizationMemberAction(
 			organizationId,
 		});
 	}
+	return result;
+}
+
+export async function assignOrganizationMemberSeatAction(
+	organizationId: string,
+	userId: string,
+): Promise<{
+	success: boolean;
+	member?: schema.OrganizationMemberType;
+	error?: string;
+}> {
+	console.info("Assigning seat to organization member", {
+		organizationId,
+		userId,
+	});
+
+	const result = await fetch(
+		`${API_URL}/v1/admin/organization/member-seat-assign`,
+		{
+			method: "PATCH",
+			body: JSON.stringify({
+				org_id: organizationId,
+				user_id: userId,
+			}),
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include",
+		},
+	).then(async (res) => res.json());
+
+	if (!result.success) {
+		console.error(
+			"Failed to assign seat to organization member",
+			{
+				error: result.error,
+				organizationId,
+				userId,
+			},
+		);
+	}
+
+	return result;
+}
+
+export async function unassignOrganizationMemberSeatAction(
+	organizationId: string,
+	userId: string,
+): Promise<{
+	success: boolean;
+	member?: schema.OrganizationMemberType;
+	error?: string;
+}> {
+	console.info(
+		"Removing seat from organization member",
+		{ organizationId, userId },
+	);
+
+	const result = await fetch(
+		`${API_URL}/v1/admin/organization/member-seat-unassign`,
+		{
+			method: "PATCH",
+			body: JSON.stringify({
+				org_id: organizationId,
+				user_id: userId,
+			}),
+			headers: {
+				"Content-Type":
+					"application/json",
+			},
+			credentials: "include",
+		},
+	).then(async (res) => res.json());
+
+	if (!result.success) {
+		console.error(
+			"Failed to remove seat from member",
+			{
+				error: result.error,
+				organizationId,
+				userId,
+			},
+		);
+	}
+
 	return result;
 }
 
@@ -1363,4 +1510,94 @@ export async function deleteIssueTemplateAction(
 	});
 
 	return result;
+}
+
+// ────────────────────────────────────
+//  Billing / Polar Portal Mutations
+// ────────────────────────────────────
+
+/**
+ * Updates the seat count on the org's Polar subscription.
+ *
+ * @param organizationId - The ID of the organization.
+ * @param seats - The new total seat count.
+ */
+export async function updateSubscriptionSeats(
+	organizationId: string,
+	seats: number,
+): Promise<{ success: boolean; data?: { seats: number }; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/polar/subscription/seats`, {
+		method: "PATCH",
+		body: JSON.stringify({ orgId: organizationId, seats }),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	});
+
+	return res.json();
+}
+
+// ────────────────────────────────────
+//  Billing / Polar Portal Fetchers
+// ────────────────────────────────────
+
+/**
+ * Fetches the org's active subscription details from Polar via the backend proxy.
+ *
+ * @param organizationId - The ID of the organization.
+ * @returns Subscription details or null if no subscription exists.
+ */
+export async function getSubscriptionDetails(
+	organizationId: string,
+): Promise<{ success: boolean; data?: SubscriptionDetails; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/polar/subscription?orgId=${organizationId}`, {
+		credentials: "include",
+	});
+
+	return res.json();
+}
+
+/**
+ * Fetches the org's order/invoice history from Polar via the backend proxy.
+ *
+ * @param organizationId - The ID of the organization.
+ * @param page - Page number (1-indexed).
+ * @param limit - Results per page (max 100).
+ */
+export async function getOrderHistory(
+	organizationId: string,
+	page = 1,
+	limit = 10,
+): Promise<{ success: boolean; data?: OrdersResponse; error?: string }> {
+	const params = new URLSearchParams({
+		orgId: organizationId,
+		page: String(page),
+		limit: String(limit),
+	});
+
+	const res = await fetch(`${API_URL}/v1/polar/orders?${params.toString()}`, {
+		credentials: "include",
+	});
+
+	return res.json();
+}
+
+/**
+ * Fetches the invoice URL for a specific order.
+ *
+ * @param organizationId - The ID of the organization.
+ * @param orderId - The Polar order ID.
+ * @returns The invoice download URL.
+ */
+export async function getOrderInvoice(
+	organizationId: string,
+	orderId: string,
+): Promise<{ success: boolean; data?: { url: string }; error?: string }> {
+	const res = await fetch(
+		`${API_URL}/v1/polar/orders/${orderId}/invoice?orgId=${organizationId}`,
+		{ credentials: "include" },
+	);
+
+	return res.json();
 }
