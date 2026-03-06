@@ -30,10 +30,14 @@ import { formatCount, formatDateCompact } from "@repo/util";
 import {
   IconAppWindow,
   IconArrowRight,
+  IconArrowUpRight,
   IconCategory,
   IconChevronUp,
   IconCircleFilled,
+  IconCopy,
   IconExternalLink,
+  IconGitBranch,
+  IconLink,
   IconRocket,
   IconTag,
   IconUser,
@@ -41,7 +45,7 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   useTaskViewManager,
   type FilterState,
@@ -52,6 +56,7 @@ import { RenderLabel } from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
 import { RenderCategory, RenderRelease } from "../shared";
+import { SubtaskProgressBadge } from "../shared/subtask-progress";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../shared/inlinelabel";
 import { Input } from "@repo/ui/components/input";
@@ -81,6 +86,13 @@ interface UnifiedTaskItemProps {
   /** Explicit handler to open in dialog regardless of preference */
   onOpenInDialog?: (task: schema.TaskWithLabels) => void;
 
+  /** Handler to add a relation between two tasks */
+  onAddRelation?: (
+    sourceTaskId: string,
+    targetTaskId: string,
+    type: "related" | "blocking" | "duplicate",
+  ) => void;
+
   // List View Specific
   isSelected?: boolean;
   onSelect?: (selected: boolean) => void;
@@ -105,6 +117,7 @@ export function UnifiedTaskItem({
   onTaskUpdate,
   onTaskClick,
   onOpenInDialog,
+  onAddRelation,
   isSelected = false,
   onSelect,
   personal = false,
@@ -132,10 +145,29 @@ export function UnifiedTaskItem({
   const [labelSearch, setLabelSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
   const [releaseSearch, setReleaseSearch] = useState("");
+  const [parentSearch, setParentSearch] = useState("");
+  const [relationTaskSearch, setRelationTaskSearch] = useState("");
   const preventClickRef = useRef(false);
 
   // Consolidated task view state management
   const { applyFilter } = useTaskViewManager();
+
+  // Derive subtask progress from the full tasks array (children have parentId set)
+  const subtaskProgress = useMemo(() => {
+    const childTasks = tasks.filter((t) => t.parentId === task.id);
+    const total = childTasks.length;
+    if (total === 0) return null;
+    const completed = childTasks.filter(
+      (t) => t.status === "done" || t.status === "canceled",
+    ).length;
+    return { completed, total };
+  }, [task.id, tasks]);
+
+  // Resolve parent task from the tasks array when this task is a subtask
+  const parentTask = useMemo(() => {
+    if (!task.parentId) return null;
+    return tasks.find((t) => t.id === task.parentId) ?? null;
+  }, [task.parentId, tasks]);
 
   const handleCategoryClick = (categoryId: string) => {
     preventClickRef.current = true;
@@ -326,7 +358,17 @@ export function UnifiedTaskItem({
 
             {/* Title */}
             <p className="truncate cursor-pointer text-sm text-foreground w-fit">
-              {task.title}
+              {parentTask ? (
+                <span>
+                  {task.title}
+                  <span className="text-muted-foreground">
+                    <span className="mx-1">&rsaquo;</span>
+                    {parentTask.title}
+                  </span>
+                </span>
+              ) : (
+                task.title
+              )}
             </p>
           </div>
         </div>
@@ -556,13 +598,30 @@ export function UnifiedTaskItem({
             )}
             {/* Title */}
             <p className="truncate cursor-pointer text-sm text-foreground w-fit">
-              {task.title}{" "}
+              {parentTask ? (
+                <span>
+                  {task.title}
+                  <span className="text-muted-foreground">
+                    <span className="mx-1">&rsaquo;</span>
+                    {parentTask.title}
+                  </span>
+                </span>
+              ) : (
+                task.title
+              )}
+              {/*{task.title}{" "}*/}
             </p>
           </div>
         </div>
         {/* Right section with metadata and actions */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="relative flex flex-wrap grow shrink-0 items-center gap-2 whitespace-nowrap">
+            {subtaskProgress && (
+              <SubtaskProgressBadge
+                completed={subtaskProgress.completed}
+                total={subtaskProgress.total}
+              />
+            )}
             {/* Organization (personal/cross-org mode) */}
 
             {/* Category */}
@@ -778,7 +837,17 @@ export function UnifiedTaskItem({
         </div>
       </div>
       <div className="font-medium text-xs line-clamp-2 leading-tight">
-        {task.title}
+        {parentTask ? (
+          <span>
+            {task.title}
+            <span className="text-muted-foreground font-normal">
+              <span className="mx-0.5">&rsaquo;</span>
+              {parentTask.title}
+            </span>
+          </span>
+        ) : (
+          task.title
+        )}
       </div>
 
       {task.labels && task.labels.length > 0 && (
@@ -801,6 +870,12 @@ export function UnifiedTaskItem({
 
       <div className="flex items-center justify-between mt-auto pt-2">
         <div className="flex items-center gap-1">
+          {subtaskProgress && (
+            <SubtaskProgressBadge
+              completed={subtaskProgress.completed}
+              total={subtaskProgress.total}
+            />
+          )}
           {task.category &&
             (() => {
               const category = categories.find((c) => c.id === task.category);
@@ -1230,6 +1305,224 @@ export function UnifiedTaskItem({
                   </ContextMenuRadioItem>
                 ))}
             </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      )}
+      <ContextMenuSeparator />
+      <ContextMenuSub>
+        <ContextMenuSubTrigger className="gap-3 w-full">
+          <IconGitBranch className="size-3.5" /> Parent task
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+            <Input
+              variant={"ghost"}
+              className="w-full p-3 border-b rounded-none"
+              placeholder="Search tasks..."
+              value={parentSearch}
+              onChange={(e) => setParentSearch(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ContextMenuRadioGroup
+            value={task.parentId || ""}
+            onValueChange={(value) => {
+              const selectedParent = tasks.find((t) => t.id === value);
+              if (selectedParent) {
+                onTaskUpdate?.(task.id, {
+                  parentId: selectedParent.id,
+                  parent: {
+                    id: selectedParent.id,
+                    shortId: selectedParent.shortId,
+                    title: selectedParent.title,
+                    status: selectedParent.status,
+                  },
+                });
+              }
+            }}
+          >
+            {task.parentId && (
+              <ContextMenuItem
+                className="gap-3 w-full text-muted-foreground"
+                onSelect={() =>
+                  onTaskUpdate?.(task.id, { parentId: null, parent: null })
+                }
+              >
+                Remove parent
+              </ContextMenuItem>
+            )}
+            {tasks
+              .filter(
+                (t) =>
+                  t.id !== task.id &&
+                  !t.parentId &&
+                  (parentSearch === "" ||
+                    t.title
+                      .toLowerCase()
+                      .includes(parentSearch.toLowerCase()) ||
+                    String(t.shortId).includes(parentSearch)),
+              )
+              .slice(0, 20)
+              .map((t) => (
+                <ContextMenuRadioItem key={t.id} value={t.id} showDot={false}>
+                  <div className="flex items-center gap-2 truncate">
+                    {statusConfig[t.status as keyof typeof statusConfig]?.icon(
+                      "h-3.5 w-3.5",
+                    )}
+                    <span className="text-muted-foreground text-xs shrink-0">
+                      #{t.shortId}
+                    </span>
+                    <span className="truncate">{t.title}</span>
+                  </div>
+                </ContextMenuRadioItem>
+              ))}
+          </ContextMenuRadioGroup>
+        </ContextMenuSubContent>
+      </ContextMenuSub>
+      {onAddRelation && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconLink className="size-3.5" /> Add relation
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-44">
+            <ContextMenuSub>
+              <ContextMenuSubTrigger className="gap-3 w-full">
+                <IconArrowUpRight className="size-3.5 text-destructive" />{" "}
+                Blocking
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+                <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+                  <Input
+                    variant={"ghost"}
+                    className="w-full p-3 border-b rounded-none"
+                    placeholder="Search tasks..."
+                    value={relationTaskSearch}
+                    onChange={(e) => setRelationTaskSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+                {tasks
+                  .filter(
+                    (t) =>
+                      t.id !== task.id &&
+                      (relationTaskSearch === "" ||
+                        t.title
+                          .toLowerCase()
+                          .includes(relationTaskSearch.toLowerCase()) ||
+                        String(t.shortId).includes(relationTaskSearch)),
+                  )
+                  .slice(0, 20)
+                  .map((t) => (
+                    <ContextMenuItem
+                      key={t.id}
+                      className="gap-2"
+                      onSelect={() => onAddRelation(task.id, t.id, "blocking")}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {statusConfig[
+                          t.status as keyof typeof statusConfig
+                        ]?.icon("h-3.5 w-3.5")}
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          #{t.shortId}
+                        </span>
+                        <span className="truncate">{t.title}</span>
+                      </div>
+                    </ContextMenuItem>
+                  ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+              <ContextMenuSubTrigger className="gap-3 w-full">
+                <IconLink className="size-3.5 text-muted-foreground" /> Related
+                to
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+                <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+                  <Input
+                    variant={"ghost"}
+                    className="w-full p-3 border-b rounded-none"
+                    placeholder="Search tasks..."
+                    value={relationTaskSearch}
+                    onChange={(e) => setRelationTaskSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+                {tasks
+                  .filter(
+                    (t) =>
+                      t.id !== task.id &&
+                      (relationTaskSearch === "" ||
+                        t.title
+                          .toLowerCase()
+                          .includes(relationTaskSearch.toLowerCase()) ||
+                        String(t.shortId).includes(relationTaskSearch)),
+                  )
+                  .slice(0, 20)
+                  .map((t) => (
+                    <ContextMenuItem
+                      key={t.id}
+                      className="gap-2"
+                      onSelect={() => onAddRelation(task.id, t.id, "related")}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {statusConfig[
+                          t.status as keyof typeof statusConfig
+                        ]?.icon("h-3.5 w-3.5")}
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          #{t.shortId}
+                        </span>
+                        <span className="truncate">{t.title}</span>
+                      </div>
+                    </ContextMenuItem>
+                  ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+              <ContextMenuSubTrigger className="gap-3 w-full">
+                <IconCopy className="size-3.5 text-muted-foreground" />{" "}
+                Duplicate of
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+                <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+                  <Input
+                    variant={"ghost"}
+                    className="w-full p-3 border-b rounded-none"
+                    placeholder="Search tasks..."
+                    value={relationTaskSearch}
+                    onChange={(e) => setRelationTaskSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+                {tasks
+                  .filter(
+                    (t) =>
+                      t.id !== task.id &&
+                      (relationTaskSearch === "" ||
+                        t.title
+                          .toLowerCase()
+                          .includes(relationTaskSearch.toLowerCase()) ||
+                        String(t.shortId).includes(relationTaskSearch)),
+                  )
+                  .slice(0, 20)
+                  .map((t) => (
+                    <ContextMenuItem
+                      key={t.id}
+                      className="gap-2"
+                      onSelect={() => onAddRelation(task.id, t.id, "duplicate")}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {statusConfig[
+                          t.status as keyof typeof statusConfig
+                        ]?.icon("h-3.5 w-3.5")}
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          #{t.shortId}
+                        </span>
+                        <span className="truncate">{t.title}</span>
+                      </div>
+                    </ContextMenuItem>
+                  ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
           </ContextMenuSubContent>
         </ContextMenuSub>
       )}

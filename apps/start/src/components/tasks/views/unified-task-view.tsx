@@ -27,6 +27,9 @@ import {
   updateAssigneesToTaskAction,
   updateLabelToTaskAction,
   updateTaskAction,
+  setTaskParentAction,
+  removeTaskParentAction,
+  createTaskRelationAction,
 } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import type { WSMessage } from "@/lib/ws";
@@ -335,6 +338,47 @@ export function UnifiedTaskView({
           ),
       );
     }
+    if (updates.parentId !== undefined) {
+      if (updates.parentId === null) {
+        await runWithToast(
+          "remove-parent",
+          {
+            loading: { title: "Removing parent..." },
+            success: { title: "Parent removed" },
+            error: { title: "Failed to remove parent" },
+          },
+          () => removeTaskParentAction(orgId, taskId, wsClientId),
+        );
+      } else {
+        await runWithToast(
+          "set-parent",
+          {
+            loading: { title: "Setting parent..." },
+            success: { title: "Parent set" },
+            error: { title: "Failed to set parent" },
+          },
+          () =>
+            setTaskParentAction(orgId, taskId, updates.parentId as string, wsClientId),
+        );
+      }
+    }
+  };
+
+  const handleAddRelation = async (
+    sourceTaskId: string,
+    targetTaskId: string,
+    type: "related" | "blocking" | "duplicate",
+  ) => {
+    const orgId = getOrgId(sourceTaskId);
+    await runWithToast(
+      "add-relation",
+      {
+        loading: { title: "Adding relation..." },
+        success: { title: "Relation added" },
+        error: { title: "Failed to add relation" },
+      },
+      () => createTaskRelationAction(orgId, sourceTaskId, targetTaskId, type, wsClientId),
+    );
   };
 
   // Bulk update handler - iterates over selected tasks in parallel
@@ -461,6 +505,7 @@ export function UnifiedTaskView({
       onTaskUpdate={handleTaskUpdate}
       onTaskClick={taskOpenMode === "dialog" ? handleTaskClick : undefined}
       onOpenInDialog={handleOpenInDialog}
+      onAddRelation={handleAddRelation}
       categories={categories}
       releases={releases}
       compact={compact}
@@ -732,6 +777,7 @@ export function UnifiedTaskView({
           availableUsers={availableUsers}
           availableLabels={availableLabels}
           onTaskUpdate={handleTaskUpdate}
+          onAddRelation={handleAddRelation}
           categories={categories}
           releases={releases}
           compact={compact}

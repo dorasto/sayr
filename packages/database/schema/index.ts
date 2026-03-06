@@ -12,6 +12,7 @@ import type { labelType as LabelTypeImport } from "./label.schema";
 import type { notificationType } from "./notification.schema";
 import { githubPullRequestType } from "./github_pull_request.schema";
 import type { blockedUserType } from "./blockedUser.schema";
+import type { taskRelationType } from "./taskRelation.schema";
 
 export * from "./category.schema";
 export * from "./github_installation.schema";
@@ -30,6 +31,7 @@ export * from "./taskComment.schema";
 export * from "./taskTimeline.schema";
 export * from "./taskCommentHistory.schema";
 export * from "./taskCommentReaction.schema";
+export * from "./taskRelation.schema";
 export * from "./taskTemplate.schema";
 export * from "./taskVote.schema";
 export * from "./apikey.schema";
@@ -81,6 +83,46 @@ export type TaskWithLabels = Omit<taskType, "createdBy"> & {
 	githubIssue?: githubIssueType;
 	githubPullRequest?: githubPullRequestType;
 	description: NodeJSON;
+	// Subtask hierarchy
+	parentId?: string | null;
+	parent?: TaskParentSummary | null;
+	subtasks?: SubtaskSummary[];
+	subtaskCount?: number;
+	// Task relations (related, blocking, duplicate)
+	relations?: TaskRelationWithTarget[];
+};
+
+/** Lightweight parent task info for display on subtasks */
+export type TaskParentSummary = {
+	id: string;
+	shortId: number | null;
+	title: string | null;
+	status: string;
+};
+
+/** Lightweight subtask info for display on parent tasks */
+export type SubtaskSummary = {
+	id: string;
+	shortId: number | null;
+	title: string | null;
+	status: string;
+	priority: string;
+	assignees: UserSummary[];
+};
+
+/** Task relation display type with computed direction */
+export type TaskRelationWithTarget = {
+	id: string;
+	type: taskRelationType["type"];
+	/** "source" = this task is the source; "target" = this task is the target */
+	direction: "source" | "target";
+	task: {
+		id: string;
+		shortId: number | null;
+		title: string | null;
+		status: string;
+	};
+	createdBy?: UserSummary | null;
 };
 
 export type CommentsWithAuthor = Array<

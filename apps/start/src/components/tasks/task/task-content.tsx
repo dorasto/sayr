@@ -23,6 +23,7 @@ import TaskFieldToolbar from "../shared/task-field-toolbar";
 import GlobalTimeline from "./timeline/root";
 import { Separator } from "@repo/ui/components/separator";
 import { TaskEditableHeader } from "./editable-header";
+import { TaskParentSection, TaskSubtasksSection, TaskRelationsSection } from "./task-hierarchy-sections";
 
 interface TaskContentSideContentProps {
   task: schema.TaskWithLabels;
@@ -205,6 +206,30 @@ export function TaskContentSideContent({
           </TileAction>
         </Tile>
       </div>
+      <TaskParentSection
+        task={task}
+        tasks={tasks}
+        setTasks={setTasks}
+        setSelectedTask={setSelectedTask}
+        wsClientId={wsClientId}
+        runWithToast={runWithToast}
+      />
+      <TaskSubtasksSection
+        task={task}
+        tasks={tasks}
+        setTasks={setTasks}
+        setSelectedTask={setSelectedTask}
+        wsClientId={wsClientId}
+        runWithToast={runWithToast}
+      />
+      <TaskRelationsSection
+        task={task}
+        tasks={tasks}
+        setTasks={setTasks}
+        setSelectedTask={setSelectedTask}
+        wsClientId={wsClientId}
+        runWithToast={runWithToast}
+      />
     </div>
   );
 }

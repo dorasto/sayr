@@ -4,10 +4,12 @@ import type { schema } from "@repo/database";
 import {
 	IconAlertSquareFilled,
 	IconArrowLeft,
+	IconArrowUpRight,
 	IconCategory,
 	IconCheck,
 	IconCopy,
 	IconEye,
+	IconGitBranch,
 	IconLink,
 	IconLock,
 	IconLockOpen2,
@@ -29,6 +31,9 @@ import {
 	updateAssigneesToTaskAction,
 	updateLabelToTaskAction,
 	updateTaskAction,
+	setTaskParentAction,
+	removeTaskParentAction,
+	createTaskRelationAction,
 } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import type { CommandItem, CommandMap } from "@/types/command";
@@ -132,6 +137,11 @@ export function useTaskCommands() {
 		const visibilityViewId = `task-${task.id}-visibility`;
 		const assigneesViewId = `task-${task.id}-assignees`;
 		const labelsViewId = `task-${task.id}-labels`;
+		const parentViewId = `task-${task.id}-parent`;
+		const relationTypeViewId = `task-${task.id}-relation-type`;
+		const relationBlockingViewId = `task-${task.id}-relation-blocking`;
+		const relationRelatedViewId = `task-${task.id}-relation-related`;
+		const relationDuplicateViewId = `task-${task.id}-relation-duplicate`;
 
 		// --- Status sub-view items ---
 		const statusItems: CommandItem[] = Object.entries(statusConfig).map(([key, config]) => {
@@ -454,6 +464,146 @@ export function useTaskCommands() {
 			};
 		});
 
+		// --- Parent task sub-view items ---
+		const hasSubtasks = (task.subtaskCount ?? 0) > 0;
+		const parentItems: CommandItem[] = hasSubtasks
+			? []
+			: [
+					{
+						id: `task-parent-${task.id}-none`,
+						label: "No Parent (top-level)",
+						icon: <IconGitBranch className="h-4 w-4 text-muted-foreground" />,
+						action: () => {
+							if (!task.parentId) return;
+							const optimisticTask = { ...task, parentId: null, parent: null };
+							setTask(optimisticTask);
+							setTasks(tasks.map((t) => (t.id === task.id ? optimisticTask : t)));
+
+							runWithToast(
+								"remove-parent",
+								{
+									loading: { title: "Removing parent..." },
+									success: { title: "Parent removed" },
+									error: { title: "Failed to remove parent" },
+								},
+								() => removeTaskParentAction(task.organizationId, task.id, wsClientId),
+							).then((data) => {
+								if (data?.success && data.data) {
+									setTask(data.data);
+									setTasks(tasks.map((t) => (t.id === task.id && data.data ? data.data : t)));
+									sendWindowMessage(window, { type: "timeline-update", payload: data.data.id }, "*");
+								}
+							});
+						},
+						closeOnSelect: true,
+						metadata: !task.parentId ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
+						keywords: "parent none remove top level",
+					},
+					...tasks
+						.filter((t) => t.id !== task.id && !t.parentId && (t.subtaskCount ?? 0) === 0)
+						.map((t) => {
+							const isCurrent = task.parentId === t.id;
+							return {
+								id: `task-parent-${task.id}-${t.id}`,
+								label: `#${t.shortId} ${t.title}`,
+								icon: <StatusIcon status={t.status} className="h-4 w-4" />,
+								action: () => {
+									if (isCurrent) return;
+									const optimisticTask = {
+										...task,
+										parentId: t.id,
+										parent: { id: t.id, shortId: t.shortId, title: t.title, status: t.status },
+									};
+									setTask(optimisticTask);
+									setTasks(tasks.map((x) => (x.id === task.id ? optimisticTask : x)));
+
+									runWithToast(
+										"set-parent",
+										{
+											loading: { title: "Setting parent..." },
+											success: { title: "Parent set", description: `Set to #${t.shortId}` },
+											error: { title: "Failed to set parent" },
+										},
+										() => setTaskParentAction(task.organizationId, task.id, t.id, wsClientId),
+									).then((data) => {
+										if (data?.success && data.data) {
+											setTask(data.data);
+											setTasks(
+												tasks.map((x) => (x.id === task.id && data.data ? data.data : x)),
+											);
+											sendWindowMessage(
+												window,
+												{ type: "timeline-update", payload: data.data.id },
+												"*",
+											);
+										}
+									});
+								},
+								closeOnSelect: true,
+								metadata: isCurrent ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
+								keywords: `parent ${t.title} ${t.shortId}`,
+							};
+						}),
+				];
+
+		// --- Relation sub-view items ---
+		const buildRelationTaskItems = (type: "related" | "blocking" | "duplicate"): CommandItem[] =>
+			tasks
+				.filter((t) => t.id !== task.id)
+				.map((t) => ({
+					id: `task-relation-${task.id}-${type}-${t.id}`,
+					label: `#${t.shortId} ${t.title}`,
+					icon: <StatusIcon status={t.status} className="h-4 w-4" />,
+					action: () => {
+						runWithToast(
+							"add-relation",
+							{
+								loading: { title: "Adding relation..." },
+								success: { title: "Relation added", description: `${type} #${t.shortId}` },
+								error: { title: "Failed to add relation" },
+							},
+							() =>
+								createTaskRelationAction(
+									task.organizationId,
+									task.id,
+									t.id,
+									type,
+									wsClientId,
+								),
+						).then((data) => {
+							if (data?.success) {
+								sendWindowMessage(window, { type: "timeline-update", payload: task.id }, "*");
+							}
+						});
+					},
+					closeOnSelect: true,
+					keywords: `${t.title} ${t.shortId}`,
+				}));
+
+		const relationTypeItems: CommandItem[] = [
+			{
+				id: `task-relation-type-${task.id}-blocking`,
+				label: "Blocking",
+				icon: <IconArrowUpRight className="h-4 w-4 text-destructive" />,
+				subId: relationBlockingViewId,
+				keywords: "blocking blocks",
+			},
+			{
+				id: `task-relation-type-${task.id}-related`,
+				label: "Related to",
+				icon: <IconLink className="h-4 w-4 text-muted-foreground" />,
+				subId: relationRelatedViewId,
+				keywords: "related",
+			},
+			{
+				id: `task-relation-type-${task.id}-duplicate`,
+				label: "Duplicate of",
+				icon: <IconCopy className="h-4 w-4 text-muted-foreground" />,
+				subId: relationDuplicateViewId,
+				keywords: "duplicate copy",
+			},
+		];
+
 		// --- Current value display helpers ---
 		const currentStatusLabel =
 			statusConfig[task.status as keyof typeof statusConfig]?.label || task.status;
@@ -571,6 +721,26 @@ export function useTaskCommands() {
 							keywords: "labels change add remove tags",
 						},
 						{
+							id: `task-set-parent-${task.id}`,
+							label: "Set parent task",
+							icon: <IconGitBranch className="h-4 w-4 opacity-60" />,
+							subId: parentViewId,
+							show: !hasSubtasks,
+							metadata: (
+								<span className="text-xs text-muted-foreground">
+									{task.parent ? `#${task.parent.shortId}` : "None"}
+								</span>
+							),
+							keywords: "parent hierarchy subtask nest",
+						},
+						{
+							id: `task-add-relation-${task.id}`,
+							label: "Add relation",
+							icon: <IconLink className="h-4 w-4 opacity-60" />,
+							subId: relationTypeViewId,
+							keywords: "relation link blocking related duplicate",
+						},
+						{
 							id: `task-copy-link-${task.id}`,
 							label: "Copy task link",
 							icon: (
@@ -660,6 +830,41 @@ export function useTaskCommands() {
 					heading: "Labels",
 					priority: 1,
 					items: labelItems,
+				},
+			],
+			[parentViewId]: [
+				{
+					heading: "Parent Task",
+					priority: 1,
+					items: parentItems,
+				},
+			],
+			[relationTypeViewId]: [
+				{
+					heading: "Relation Type",
+					priority: 1,
+					items: relationTypeItems,
+				},
+			],
+			[relationBlockingViewId]: [
+				{
+					heading: "Blocking",
+					priority: 1,
+					items: buildRelationTaskItems("blocking"),
+				},
+			],
+			[relationRelatedViewId]: [
+				{
+					heading: "Related to",
+					priority: 1,
+					items: buildRelationTaskItems("related"),
+				},
+			],
+			[relationDuplicateViewId]: [
+				{
+					heading: "Duplicate of",
+					priority: 1,
+					items: buildRelationTaskItems("duplicate"),
 				},
 			],
 		};
