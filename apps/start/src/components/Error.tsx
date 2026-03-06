@@ -8,10 +8,9 @@ import { captureUserFacingError } from "./PostHogProvider";
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
 	const router = useRouter();
-	const err = error as Error & { cause?: unknown };
+	const err = error as Error & { type?: string; cause?: unknown };
 
-	const isPermissionError =
-		err.name === "PermissionError";
+	const isPermissionError = err.type === "PERMISSION_ERROR";
 
 	useEffect(() => {
 		captureUserFacingError(err, {
@@ -19,8 +18,6 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
 			location: "DefaultCatchBoundary",
 		});
 	}, [err]);
-
-	console.error("DefaultCatchBoundary Error:", err);
 
 	if (isPermissionError) {
 		return (
@@ -85,6 +82,7 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
 					<h2 className="text-xl font-semibold mb-3 text-white/95">
 						Error details
 					</h2>
+
 					<pre className="whitespace-pre-wrap wrap-break-word text-sm font-mono text-red-200 leading-relaxed">
 						{err.message}
 					</pre>

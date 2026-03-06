@@ -5,6 +5,7 @@ import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization
 import { createServerFn } from "@tanstack/react-start";
 import { getOrgPermissions, type schema } from "@repo/database";
 import { seo } from "@/seo";
+import { PermissionError } from "@repo/util";
 
 /**
  * Fetches all merged organization-level permissions for a user.
@@ -74,13 +75,17 @@ export const Route = createFileRoute("/(admin)/$orgId")({
 	loader: async ({ params, context }) => {
 		const { account, permissions } = context;
 		if (!account) throw redirect({ to: "/login" });
-		return await getAdminOrganization({
+		const org = await getAdminOrganization({
 			data: {
 				account,
 				orgId: params.orgId,
 				permissions: permissions as any,
 			},
 		});
+		if (!org.organization.members.find(e => e.userId === account.id)?.seatAssigned) {
+			throw new PermissionError();
+		}
+		return org;
 	},
 	// staleTime prevents refetching for this duration
 	// Path params (orgId) automatically determine cache identity

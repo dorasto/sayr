@@ -163,6 +163,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 					id: randomUUID(),
 					userId: session.userId,
 					organizationId: orgId,
+					seatAssigned: true,
 				})
 				.returning();
 			return member;
