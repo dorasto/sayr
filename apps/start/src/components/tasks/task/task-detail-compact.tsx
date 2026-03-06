@@ -9,6 +9,7 @@ import { deriveAvailableUsers, type TaskDetailOrganization } from "../types";
 import TaskFieldToolbar from "../shared/task-field-toolbar";
 import { TaskEditableHeader } from "./editable-header";
 import GlobalTimeline from "./timeline/root";
+import { TaskContextBanner } from "./task-context-banner";
 
 export interface TaskDetailCompactProps {
   task: schema.TaskWithLabels;
@@ -137,6 +138,12 @@ export function TaskDetailCompact({
           categories={orgCategories}
           organization={resolvedOrg}
           showContent="both"
+        />
+        <TaskContextBanner
+          task={task}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
         />
         <GlobalTimeline
           task={task}
