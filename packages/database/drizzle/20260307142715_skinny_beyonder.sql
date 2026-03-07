@@ -1,0 +1,1 @@
+ALTER TABLE "organization" ADD COLUMN "short_id" text DEFAULT 'SAY' NOT NULL;

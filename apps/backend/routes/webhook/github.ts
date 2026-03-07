@@ -329,8 +329,19 @@ async function handleContentEvents(
             const type = payload.ref_type;
             if (type === "branch") {
                 const branch = payload.ref;
+                const sayrRepositoryTable = await db.query.githubRepository.findFirst({
+                    where: eq(schema.githubRepository.repoId, repoId),
+                    with: {
+                        organization: {
+                            columns: {
+                                shortId: true
+                            }
+                        }
+                    }
+                });
                 // Try to pull a task key from the branch name, e.g. "sayr16", "sayr-16"
-                const branchPrefix = payload.branchPrefix ?? "SAY"; // fallback if needed
+                const branchPrefix = sayrRepositoryTable?.organization?.shortId ?? "SAY"; // fallback if needed
+                console.log("🚀 ~ handleContentEvents ~ branchPrefix:", branchPrefix)
                 const escapedPrefix = branchPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
                 // Matches: PREFIX16, PREFIX-16, PREFIX_16 anywhere in branch path
                 // e.g. "feature/SAY16-foo", "bugfix/XXX-42"
