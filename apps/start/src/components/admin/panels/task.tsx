@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Avatar,
   AvatarFallback,
@@ -7,13 +5,19 @@ import {
 } from "@repo/ui/components/avatar";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { ensureCdnUrl } from "@repo/util";
-import { IconLink, IconUsers } from "@tabler/icons-react";
+import {
+  IconCopy,
+  IconGitBranch,
+  IconLink,
+  IconUsers,
+} from "@tabler/icons-react";
 import { useMatch } from "@tanstack/react-router";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { useToastAction } from "@/lib/util";
 import { TaskContentSideContent } from "@/components/tasks/task/task-content";
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 
 /**
@@ -46,6 +50,28 @@ export function TaskPanelHeader() {
           copyIcon={<IconLink />}
           tooltipText="Copy task URL"
           tooltipSide="bottom"
+          onCopy={() =>
+            headlessToast({
+              title: `${organization?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
+              description: `Task URL copied`,
+              icon: <IconCopy className="size-4" />,
+            })
+          }
+        />
+        <SimpleClipboard
+          textToCopy={`${organization.shortId}-${task.shortId}`}
+          variant={"primary"}
+          className="h-6 p-1 w-fit bg-transparent"
+          copyIcon={<IconGitBranch />}
+          tooltipText="Copy branch name"
+          tooltipSide="bottom"
+          onCopy={() =>
+            headlessToast({
+              title: `${organization.shortId}-${task.shortId}`,
+              description: `Create a branch with this name to sync it with this task`,
+              icon: <IconCopy className="size-4" />,
+            })
+          }
         />
       </div>
     </div>
@@ -57,35 +83,35 @@ export function TaskPanelHeader() {
  * Pulls all required data from context hooks so it stays in sync.
  */
 export function TaskPanelContent() {
-	const { task, setTask } = useLayoutTask();
-	const { organization, labels, categories, releases } =
-		useLayoutOrganization();
-	const { tasks, setTasks } = useLayoutTasks();
-	const { runWithToast } = useToastAction();
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
-	const permissions = orgMatch?.context?.permissions;
-	const canCreateLabel =
-		permissions?.admin?.administrator === true ||
-		permissions?.content?.manageLabels === true;
+  const { task, setTask } = useLayoutTask();
+  const { organization, labels, categories, releases } =
+    useLayoutOrganization();
+  const { tasks, setTasks } = useLayoutTasks();
+  const { runWithToast } = useToastAction();
+  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
+  const permissions = orgMatch?.context?.permissions;
+  const canCreateLabel =
+    permissions?.admin?.administrator === true ||
+    permissions?.content?.manageLabels === true;
 
-	const availableUsers =
-		organization?.members.map((member) => member.user) || [];
+  const availableUsers =
+    organization?.members.map((member) => member.user) || [];
 
-	return (
-		<TaskContentSideContent
-			task={task}
-			labels={labels}
-			tasks={tasks}
-			setTasks={setTasks}
-			setSelectedTask={(t) => t && setTask(t)}
-			availableUsers={availableUsers}
-			wsClientId={wsClientId}
-			runWithToast={runWithToast}
-			categories={categories}
-			releases={releases}
-			organization={organization}
-			canCreateLabel={canCreateLabel}
-		/>
-	);
+  return (
+    <TaskContentSideContent
+      task={task}
+      labels={labels}
+      tasks={tasks}
+      setTasks={setTasks}
+      setSelectedTask={(t) => t && setTask(t)}
+      availableUsers={availableUsers}
+      wsClientId={wsClientId}
+      runWithToast={runWithToast}
+      categories={categories}
+      releases={releases}
+      organization={organization}
+      canCreateLabel={canCreateLabel}
+    />
+  );
 }
