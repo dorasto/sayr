@@ -222,7 +222,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	const isAuthorized = await traceOrgPermissionCheck(
 		session?.userId ?? "",
 		orgId,
-		"admin.manageMembers"
+		"admin.administrator"
 	);
 
 	if (!isAuthorized) {
