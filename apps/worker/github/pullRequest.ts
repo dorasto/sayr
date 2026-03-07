@@ -328,7 +328,6 @@ export async function handleGithubPullRequestLink(
                                 eq(t.shortId, match.taskKey)
                             ),
                     });
-                    console.log("🚀 ~ handleGithubPullRequestLink ~ found:", found)
 
                     if (found) {
                         task = found;
