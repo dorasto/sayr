@@ -26,6 +26,7 @@ import {
 	TimelinePriorityChange,
 	TimelineStatusChange,
 	TimelineUpdated,
+	TimelineGithubBranchLinked,
 } from "./index";
 import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
@@ -81,6 +82,7 @@ export default function GlobalTimeline({
 		github_pr_linked: TimelineGithubPRLinked,
 		github_pr_commit: TimelineGithubPRCommit,
 		github_pr_merged: TimelineGithubPRClosed,
+		github_branch_linked: TimelineGithubBranchLinked,
 	};
 
 	// --- ACTIVITY FETCH ---
@@ -351,8 +353,8 @@ export default function GlobalTimeline({
 				</div>
 			) : (
 				<>
-				<div className="grow">
-					<Timeline>
+					<div className="grow">
+						<Timeline>
 							{/* top half */}
 							{topItems.map(renderItem)}
 							{/* load more middle button */}

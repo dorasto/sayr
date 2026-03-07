@@ -99,6 +99,8 @@ export type GithubPullRequestLinkPayload = GithubRepoContext & {
 
 	userId?: number;
 	author: string;
+	draft: boolean;
+	state: "open" | "closed" | "all"
 
 	matches: {
 		keyword: string;
@@ -127,6 +129,14 @@ export type GithubPullRequestClosedPayload = GithubRepoContext & {
 	mergedAt?: string | null;
 	mergeCommitSha?: string | null;
 	userId?: number;
+};
+
+export type GithubBranchCreatePayload = GithubRepoContext & {
+	linkedId: string;
+	branch: string;
+	userId?: number;
+	author: string;
+	taskKey: number;
 };
 
 /* ============================================================
@@ -168,4 +178,12 @@ export type GithubJob =
 		type: "pull_request_closed";
 		traceContext?: TraceContext;
 		payload: GithubPullRequestClosedPayload;
+	} | {
+		type: "branch_create";
+		traceContext?: TraceContext;
+		payload: GithubBranchCreatePayload;
+	} | {
+		type: "branch_delete";
+		traceContext?: TraceContext;
+		payload: GithubBranchCreatePayload;
 	};
