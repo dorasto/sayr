@@ -29,10 +29,7 @@ export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalPro
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
-				className="p-0 border-none overflow-hidden
-                   
-                   w-[400px] max-w-[calc(100%-2rem)]
-                   data-[state=open]:animate-scale-in"
+				className="p-0 border-none overflow-hidden w-[400px] max-w-[calc(100%-2rem)] data-[state=open]:animate-scale-in"
 				showClose={false}
 			>
 				<GifPicker
