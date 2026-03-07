@@ -652,8 +652,8 @@ export default function CreateIssueDialog({
                         "labels",
                         "assignees",
                         "category",
-                        "release",
-                        "parent",
+                        { key: "release", overflow: true },
+                        { key: "parent", overflow: true },
                       ]}
                       onChange={{
                         status: (value) => setStatus(value),

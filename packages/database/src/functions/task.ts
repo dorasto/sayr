@@ -1,4 +1,4 @@
-import { and, eq, sql, or, isNull, inArray, count, desc } from "drizzle-orm";
+import { and, eq, sql, or, isNull, inArray, count, desc, asc } from "drizzle-orm";
 import { type NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskRelation } from "../../schema/taskRelation.schema";
@@ -789,9 +789,34 @@ export async function searchTasksByOrganization(
 	const conditions = [eq(schema.task.organizationId, orgId)];
 
 	if (query && query.trim().length >= 2) {
-		const searchPattern = `%${query.trim()}%`;
-		conditions.push(sql`${schema.task.title} ILIKE ${searchPattern}`);
+		const trimmed = query.trim();
+
+		// Support "#123" syntax to search by shortId
+		const shortIdMatch = trimmed.match(/^#?(\d+)$/);
+		if (shortIdMatch) {
+			const shortIdDigits = shortIdMatch[1];
+			conditions.push(
+				or(
+					sql`${schema.task.title} ILIKE ${`%${trimmed}%`}`,
+					sql`CAST(${schema.task.shortId} AS TEXT) LIKE ${`${shortIdDigits}%`}`,
+				)!,
+			);
+		} else {
+			const searchPattern = `%${trimmed}%`;
+			conditions.push(sql`${schema.task.title} ILIKE ${searchPattern}`);
+		}
+	} else if (query && query.trim().length >= 1) {
+		// Allow single-character "#" prefix queries like "#1"
+		const trimmed = query.trim();
+		const shortIdMatch = trimmed.match(/^#(\d+)$/);
+		if (shortIdMatch) {
+			const shortIdDigits = shortIdMatch[1];
+			conditions.push(sql`CAST(${schema.task.shortId} AS TEXT) LIKE ${`${shortIdDigits}%`}`);
+		}
 	}
+
+	const trimmedQuery = query?.trim() || "";
+	const isShortIdQuery = /^#?\d+$/.test(trimmedQuery);
 
 	const results = await db
 		.select({
@@ -806,9 +831,15 @@ export async function searchTasksByOrganization(
 		.from(schema.task)
 		.where(and(...conditions))
 		.orderBy(
-			...(query && query.trim().length >= 2
-				? [sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${query.trim().toLowerCase()}%`} THEN 0 ELSE 1 END`]
-				: []),
+			sql`CASE WHEN ${schema.task.status} IN ('done', 'canceled') THEN 1 ELSE 0 END`,
+			...(isShortIdQuery
+				? [
+						sql`CASE WHEN ${schema.task.shortId} = ${Number.parseInt(trimmedQuery.replace("#", ""), 10)} THEN 0 ELSE 1 END`,
+						asc(schema.task.shortId),
+					]
+				: trimmedQuery.length >= 2
+					? [sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${trimmedQuery.toLowerCase()}%`} THEN 0 ELSE 1 END`]
+					: []),
 			desc(schema.task.updatedAt),
 		)
 		.limit(clampedLimit)

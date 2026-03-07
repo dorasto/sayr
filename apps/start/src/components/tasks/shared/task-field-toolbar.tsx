@@ -5,6 +5,7 @@ import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
   IconCategory,
+  IconDots,
   IconGitBranch,
   IconLabel,
   IconLock,
@@ -13,13 +14,19 @@ import {
   IconUserPlus,
   IconX,
 } from "@tabler/icons-react";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@repo/ui/components/avatar";
 import RenderIcon from "@/components/generic/RenderIcon";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
 import { updateLabelToTaskAction, updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
@@ -70,6 +77,12 @@ export interface FieldConfig {
   showChevron?: boolean;
   /** Extra className merged onto the field trigger. */
   className?: string;
+  /**
+   * When true (creator variant only), hide this field behind the "..." overflow
+   * menu unless it currently has a value set. Fields with values are promoted
+   * back to the inline toolbar automatically.
+   */
+  overflow?: boolean;
 }
 
 /** A field entry is either a plain key (uses variant defaults) or an object with overrides. */
@@ -233,6 +246,89 @@ export default function TaskFieldToolbar({
     () => releases.find((r) => r.id === task.releaseId),
     [releases, task.releaseId],
   );
+
+  // ── Overflow menu logic (creator variant only) ─────────────────────
+  // Track which overflow field picker is currently open
+  const [overflowOpenField, setOverflowOpenField] = useState<FieldKey | null>(
+    null,
+  );
+
+  /** Check whether a field currently has a value set. Used to decide whether
+   *  an overflow field should be promoted to the inline toolbar. */
+  const fieldHasValue = useCallback(
+    (key: FieldKey): boolean => {
+      switch (key) {
+        case "parent":
+          return !!selectedParentTask;
+        case "release":
+          return !!task.releaseId;
+        case "labels":
+          return selectedLabels.length > 0;
+        case "assignees":
+          return selectedAssignees.length > 0;
+        case "category":
+          return !!task.category;
+        case "visibility":
+          return task.visible === "private"; // "public" is the default / no-value state
+        case "status":
+          return !!task.status && task.status !== "backlog";
+        case "priority":
+          return !!task.priority && task.priority !== "none";
+        default:
+          return false;
+      }
+    },
+    [selectedParentTask, task, selectedLabels, selectedAssignees],
+  );
+
+  /** Icon + label metadata for overflow menu items */
+  const OVERFLOW_FIELD_META: Partial<
+    Record<FieldKey, { icon: React.ReactNode; label: string }>
+  > = {
+    parent: {
+      icon: <IconGitBranch className="h-4 w-4" />,
+      label: "Subtask of...",
+    },
+    release: {
+      icon: <IconRocket className="h-4 w-4" />,
+      label: "Release",
+    },
+    labels: {
+      icon: <IconLabel className="h-4 w-4" />,
+      label: "Labels",
+    },
+    assignees: {
+      icon: <IconUserPlus className="h-4 w-4" />,
+      label: "Assignees",
+    },
+    category: {
+      icon: <IconCategory className="h-4 w-4" />,
+      label: "Category",
+    },
+    visibility: {
+      icon: <IconLockOpen2 className="h-4 w-4" />,
+      label: "Visibility",
+    },
+  };
+
+  // Split fields into inline (always shown) and overflow (behind "..." menu)
+  // Overflow only applies when using creator variant (useCustomTrigger)
+  const isOverflowEnabled = style.useCustomTrigger;
+  const { inlineFields, overflowFields } = useMemo(() => {
+    if (!isOverflowEnabled) {
+      return { inlineFields: resolvedFields, overflowFields: [] };
+    }
+    const inline: FieldConfig[] = [];
+    const overflow: FieldConfig[] = [];
+    for (const cfg of resolvedFields) {
+      if (cfg.overflow && !fieldHasValue(cfg.key)) {
+        overflow.push(cfg);
+      } else {
+        inline.push(cfg);
+      }
+    }
+    return { inlineFields: inline, overflowFields: overflow };
+  }, [resolvedFields, isOverflowEnabled, fieldHasValue]);
 
   // ── Internalized Priority callback (detail mode) ───────────────────
   const handlePriorityChange = useInternalLogic
@@ -741,16 +837,28 @@ export default function TaskFieldToolbar({
         />
       ),
 
-    release: (cfg) => (
-      <GlobalTaskRelease
-        {...buildSharedProps(cfg)}
-        releases={releases}
-        onChange={onChange?.release}
-        {...(style.useCustomTrigger
-          ? { customTrigger: creatorReleaseTrigger(cfg) }
-          : {})}
-      />
-    ),
+    release: (cfg) => {
+      // Support controlled open from overflow menu
+      const isOverflowTriggered = overflowOpenField === "release";
+      return (
+        <GlobalTaskRelease
+          {...buildSharedProps(cfg)}
+          releases={releases}
+          onChange={onChange?.release}
+          {...(style.useCustomTrigger
+            ? { customTrigger: creatorReleaseTrigger(cfg) }
+            : {})}
+          {...(isOverflowTriggered
+            ? {
+                open: true,
+                setOpen: (open: boolean) => {
+                  if (!open) setOverflowOpenField(null);
+                },
+              }
+            : {})}
+        />
+      );
+    },
 
     vote: (cfg) => {
       const isIconOnly = cfg.iconOnly ?? false;
@@ -822,6 +930,10 @@ export default function TaskFieldToolbar({
       // Only supported in creator variant; sidebar handles parent display separately
       if (!style.useCustomTrigger || !organizationId) return null;
 
+      // Support controlled open from overflow menu
+      const isOverflowTriggered = overflowOpenField === "parent";
+      const isOpen = parentPickerOpen || isOverflowTriggered;
+
       return selectedParentTask ? (
         // When a parent is selected, show it inline (not inside a popover)
         creatorParentTrigger(cfg)
@@ -832,13 +944,17 @@ export default function TaskFieldToolbar({
             onChange?.parent?.(t.id);
             onParentTaskChange?.(t);
             setParentPickerOpen(false);
+            setOverflowOpenField(null);
           }}
           excludeIds={[]}
           filter={(t) => !t.parentId}
           searchPlaceholder="Search for parent task..."
           placeholder="Subtask of..."
-          open={parentPickerOpen}
-          onOpenChange={setParentPickerOpen}
+          open={isOpen}
+          onOpenChange={(open) => {
+            setParentPickerOpen(open);
+            if (!open) setOverflowOpenField(null);
+          }}
           customTrigger={creatorParentTrigger(cfg)}
         />
       );
@@ -849,13 +965,63 @@ export default function TaskFieldToolbar({
 
   return (
     <div className={style.container}>
-      {resolvedFields.map((cfg) => {
+      {inlineFields.map((cfg) => {
         const renderer = FIELD_RENDERERS[cfg.key];
         if (!renderer) return null;
         const node = renderer(cfg);
         if (!node) return null;
         return <React.Fragment key={cfg.key}>{node}</React.Fragment>;
       })}
+
+      {/* Overflow: either show the "..." dropdown or the active field's picker */}
+      {isOverflowEnabled &&
+        overflowFields.length > 0 &&
+        (overflowOpenField ? (
+          // An overflow field was selected — render its picker directly (open={true} pattern)
+          (() => {
+            const activeCfg = overflowFields.find(
+              (cfg) => cfg.key === overflowOpenField,
+            );
+            if (!activeCfg) return null;
+            const renderer = FIELD_RENDERERS[activeCfg.key];
+            if (!renderer) return null;
+            return (
+              <React.Fragment key={`overflow-active-${activeCfg.key}`}>
+                {renderer(activeCfg)}
+              </React.Fragment>
+            );
+          })()
+        ) : (
+          // No overflow field active — show the "..." menu
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={"primary"}
+                className="w-fit text-xs h-7"
+                size={"sm"}
+              >
+                <IconDots className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {overflowFields.map((cfg) => {
+                const meta = OVERFLOW_FIELD_META[cfg.key];
+                if (!meta) return null;
+                return (
+                  <DropdownMenuItem
+                    key={cfg.key}
+                    onSelect={() => {
+                      setOverflowOpenField(cfg.key);
+                    }}
+                  >
+                    {meta.icon}
+                    {meta.label}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ))}
     </div>
   );
 }
