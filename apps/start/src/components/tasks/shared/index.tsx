@@ -11,6 +11,7 @@ export * from "./voting";
 export * from "./release";
 export * from "./task-picker";
 export * from "./subtask-progress";
+export * from "./inlinelabel";
 
 // Import/export default exports
 export { default as GlobalTaskRelease } from "./release";
