@@ -14,10 +14,10 @@ export type {
 export { getStatusOptions, getStatusDisplay, getStatusUpdatePayload } from "./status";
 export { getPriorityOptions, getPriorityDisplay, getPriorityUpdatePayload } from "./priority";
 export { getVisibilityOptions, getVisibilityDisplay, getVisibilityUpdatePayload } from "./visibility";
-export { getCategoryOptions, getCategoryDisplay, getCategoryUpdatePayload } from "./category";
-export { getReleaseOptions, getReleaseDisplay, getReleaseUpdatePayload } from "./release";
-export { getAssigneeOptions, getAssigneeDisplay, getAssigneeUpdatePayload, getAssigneeBulkUpdatePayload } from "./assignees";
-export { getLabelOptions, getLabelDisplay, getLabelUpdatePayload, getLabelBulkUpdatePayload } from "./labels";
+export { getCategoryOptions, getCategoryDisplay, getCategoryUpdatePayload, type CategoryOptionMeta } from "./category";
+export { getReleaseOptions, getReleaseDisplay, getReleaseUpdatePayload, type ReleaseOptionMeta } from "./release";
+export { getAssigneeOptions, getAssigneeOptionsFromUsers, getAssigneeDisplay, getAssigneeUpdatePayload, getAssigneeBulkUpdatePayload, type AssigneeOptionMeta } from "./assignees";
+export { getLabelOptions, getLabelDisplay, getLabelUpdatePayload, getLabelBulkUpdatePayload, type LabelOptionMeta } from "./labels";
 export { getParentOptions, getParentDisplay, getParentUpdatePayload } from "./parent";
 export {
 	getRelationTypeOptions,

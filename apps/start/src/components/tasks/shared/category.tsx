@@ -17,10 +17,9 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconCategory } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { getCategoryUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
+import { getCategoryOptions, getCategoryDisplay, getCategoryUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
 import { Button } from "@repo/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { InlineLabel } from "./inlinelabel";
@@ -29,13 +28,9 @@ interface GlobalTaskCategoryProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
 	onChange?: (categoryId: string) => void;
-
-	// Optional internal logic for linked state management with task list
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (newValue: schema.TaskWithLabels[]) => void;
 	setSelectedTask?: (newValue: schema.TaskWithLabels | null) => void;
-
-	useInternalLogic?: boolean;
 	open?: boolean;
 	setOpen?: (open: boolean) => void;
 	customTrigger?: React.ReactNode;
@@ -54,7 +49,6 @@ export default function GlobalTaskCategory({
 	tasks = [],
 	setTasks,
 	setSelectedTask,
-	useInternalLogic = false,
 	open,
 	setOpen,
 	customTrigger,
@@ -74,56 +68,68 @@ export default function GlobalTaskCategory({
 		wsClientId,
 	);
 
-	const handleCategoryChange = async (categoryId: string | null) => {
-		// Always call onChange first
-		if (onChange) {
-			onChange(categoryId || "");
-		}
-
-		if (useInternalLogic && setTasks && setSelectedTask) {
-			execute(getCategoryUpdatePayload(task, categoryId || null, categories));
-		}
+	const handleCategoryChange = (categoryId: string | null) => {
+		onChange?.(categoryId || "");
+		execute(getCategoryUpdatePayload(task, categoryId || null, categories));
 	};
 
-	const currentCategory = categories.find((c) => c.id === task.category);
+	// Get options from the action system (skip the "none" option for ComboBox — deselection is handled natively)
+	const options = getCategoryOptions(categories).filter((opt) => opt.id !== "none");
+	const display = getCategoryDisplay(task, categories);
 
-	return (
+	return customTrigger ? (
+		<ComboBox
+			value={task.category || ""}
+			onValueChange={handleCategoryChange}
+			open={open}
+			onOpenChange={setOpen}
+		>
+			<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
+			<ComboBoxContent>
+				<ComboBoxSearch icon placeholder="Search categories..." />
+				<ComboBoxList>
+					<ComboBoxEmpty className="px-3 pt-3 flex flex-col items-center w-full">
+						<div className="flex flex-col gap-1">
+							<Label>No categories found</Label>
+							<Link to="/settings/org/$orgId/categories" params={{ orgId: task.organizationId }}>
+								<Button variant="primary" size={"sm"}>
+									Create new
+								</Button>
+							</Link>
+						</div>
+					</ComboBoxEmpty>
+					<ComboBoxGroup>
+						{options.map((opt) => (
+							<ComboBoxItem key={opt.id} value={opt.id} searchValue={opt.label.toLowerCase()}>
+								<div className="flex items-center gap-2">
+									{opt.icon}
+									<span>{opt.label}</span>
+								</div>
+							</ComboBoxItem>
+						))}
+					</ComboBoxGroup>
+				</ComboBoxList>
+			</ComboBoxContent>
+		</ComboBox>
+	) : (
 		<div className="flex flex-col gap-3">
-			{!customTrigger && showLabel && <Label variant={"subheading"}>Category</Label>}
-
+			{showLabel && <Label variant={"subheading"}>Category</Label>}
 			<div className="flex flex-col gap-2">
 				<ComboBox
-					value={currentCategory?.id || ""}
+					value={task.category || ""}
 					onValueChange={handleCategoryChange}
 					open={open}
 					onOpenChange={setOpen}
 				>
-					{customTrigger ? (
-						<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
-					) : (
-						<ComboBoxTrigger disabled={!editable} className={className}>
-							<ComboBoxValue placeholder="Select category">
-								{currentCategory ? (
-									<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>
-										<RenderIcon
-											iconName={currentCategory.icon || "IconCircleFilled"}
-											size={12}
-											color={currentCategory.color || undefined}
-											raw
-										/>
-										<span className="truncate">{currentCategory.name}</span>
-									</div>
-								) : (
-									<div className="flex items-center gap-2 text-muted-foreground">
-										<IconCategory className="h-4 w-4" />
-										{!compact && <span className="truncate">No Category</span>}
-									</div>
-								)}
-							</ComboBoxValue>
-							{showChevron && <ComboBoxIcon />}
-						</ComboBoxTrigger>
-					)}
-
+					<ComboBoxTrigger disabled={!editable} className={className}>
+						<ComboBoxValue placeholder="Select category">
+							<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>
+								{display.icon}
+								{!compact && <span className="truncate">{display.label}</span>}
+							</div>
+						</ComboBoxValue>
+						{showChevron && <ComboBoxIcon />}
+					</ComboBoxTrigger>
 					<ComboBoxContent>
 						<ComboBoxSearch icon placeholder="Search categories..." />
 						<ComboBoxList>
@@ -131,23 +137,18 @@ export default function GlobalTaskCategory({
 								<div className="flex flex-col gap-1">
 									<Label>No categories found</Label>
 									<Link to="/settings/org/$orgId/categories" params={{ orgId: task.organizationId }}>
-										<Button variant="primary" size={"sm"} className="">
+										<Button variant="primary" size={"sm"}>
 											Create new
 										</Button>
 									</Link>
 								</div>
 							</ComboBoxEmpty>
 							<ComboBoxGroup>
-								{categories.map((cat) => (
-									<ComboBoxItem key={cat.id} value={cat.id} searchValue={cat.name.toLowerCase()}>
+								{options.map((opt) => (
+									<ComboBoxItem key={opt.id} value={opt.id} searchValue={opt.label.toLowerCase()}>
 										<div className="flex items-center gap-2">
-											<RenderIcon
-												iconName={cat.icon || "IconCircleFilled"}
-												size={12}
-												color={cat.color || undefined}
-												raw
-											/>
-											<span>{cat.name}</span>
+											{opt.icon}
+											<span>{opt.label}</span>
 										</div>
 									</ComboBoxItem>
 								))}
@@ -190,26 +191,8 @@ export function RenderCategory({
 				showRemove && "pe-5",
 				className
 			)}
-			// style={{
-			//   borderColor: category.color
-			//     ? `hsla(${extractHslValues(category.color)}, 0.5)`
-			//     : undefined,
-			//   // background: category.color
-			//   //   ? `hsla(${extractHslValues(category.color)}, 0.1)`
-			//   //   : undefined,
-			// }}
 			onClick={onClick ? (e) => onClick(e, category.id) : undefined}
 		>
-			{/*<div className="shrink-0 absolute inset-y-0 flex items-center justify-center start-0 ps-1">
-        <RenderIcon
-          iconName={category.icon || "IconCircleFilled"}
-          size={12}
-          color={category.color || undefined}
-          button
-          className="size-3 [&_svg]:size-3"
-        />
-      </div>
-      <span className="truncate">{category.name}</span>*/}
 			<InlineLabel
 				text={category.name}
 				icon={

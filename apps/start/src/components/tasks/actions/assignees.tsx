@@ -3,12 +3,17 @@ import { IconUser, IconUsers } from "@tabler/icons-react";
 import { updateAssigneesToTaskAction } from "@/lib/fetches/task";
 import type { FieldDisplay, FieldOption, MultiFieldUpdatePayload } from "./types";
 
+export interface AssigneeOptionMeta {
+	image: string | null;
+	displayName: string | null;
+}
+
 /**
  * Builds assignee options from the org's member list.
  */
 export function getAssigneeOptions(
 	members: schema.OrganizationWithMembers["members"],
-): FieldOption<string>[] {
+): FieldOption<string, AssigneeOptionMeta>[] {
 	return (members || []).map((member) => {
 		const user = member.user;
 		return {
@@ -17,8 +22,36 @@ export function getAssigneeOptions(
 			icon: <IconUser className="h-4 w-4 text-muted-foreground shrink-0" />,
 			value: user.id,
 			keywords: `assignee ${user.name || ""} ${user.email || ""}`,
+			metadata: {
+				image: user.image ?? null,
+				displayName: user.displayName ?? null,
+			},
 		};
 	});
+}
+
+/**
+ * Builds assignee options from a flat user array.
+ *
+ * Many surfaces (shared components, task views, toolbar) receive
+ * `availableUsers: schema.userType[]` rather than the nested `members`
+ * structure. This helper produces the same `FieldOption` shape so those
+ * consumers can use the action system directly.
+ */
+export function getAssigneeOptionsFromUsers(
+	users: schema.userType[],
+): FieldOption<string, AssigneeOptionMeta>[] {
+	return (users || []).map((user) => ({
+		id: user.id,
+		label: user.name || user.email || "Unknown",
+		icon: <IconUser className="h-4 w-4 text-muted-foreground shrink-0" />,
+		value: user.id,
+		keywords: `assignee ${user.name || ""} ${user.email || ""}`,
+		metadata: {
+			image: user.image ?? null,
+			displayName: user.displayName ?? null,
+		},
+	}));
 }
 
 /**

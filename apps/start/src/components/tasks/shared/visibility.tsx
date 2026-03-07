@@ -16,33 +16,15 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconLock, IconLockOpen2 } from "@tabler/icons-react";
-import { getVisibilityUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
-
-const visibilityConfig = {
-	public: {
-		label: "Public",
-		icon: (className?: string) => <IconLockOpen2 className={className} />,
-		className: "text-muted-foreground",
-		description: "Visible to everyone",
-	},
-	private: {
-		label: "Private",
-		icon: (className?: string) => <IconLock className={className} />,
-		className: "text-primary",
-		description: "Only visible to team members",
-	},
-} as const;
+import { getVisibilityOptions, getVisibilityDisplay, getVisibilityUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
 
 interface GlobalTaskVisibilityProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
 	onChange?: (visibility: "public" | "private") => void;
-	// Props for internal logic (delegated to the unified action system)
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (newValue: schema.TaskWithLabels[]) => void;
 	setSelectedTask?: (newValue: schema.TaskWithLabels | null) => void;
-	useInternalLogic?: boolean;
 	open?: boolean;
 	setOpen?: (open: boolean) => void;
 	customTrigger?: React.ReactNode;
@@ -60,7 +42,6 @@ export default function GlobalTaskVisibility({
 	tasks = [],
 	setTasks,
 	setSelectedTask,
-	useInternalLogic = false,
 	open,
 	setOpen,
 	customTrigger,
@@ -70,7 +51,6 @@ export default function GlobalTaskVisibility({
 	compact = false,
 }: GlobalTaskVisibilityProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const currentVisibility = (task.visible ?? "public") || "public";
 
 	const { execute } = useTaskFieldAction(
 		task,
@@ -80,53 +60,65 @@ export default function GlobalTaskVisibility({
 		wsClientId,
 	);
 
-	const handleVisibilityChange = async (value: string | null) => {
+	const handleVisibilityChange = (value: string | null) => {
 		if (!value || (value !== "public" && value !== "private")) return;
-
-		// Always call onChange first if provided (for external side effects)
-		if (onChange) {
-			onChange(value as "public" | "private");
-		}
-
-		if (useInternalLogic && setTasks && setSelectedTask) {
-			execute(getVisibilityUpdatePayload(task, value));
-		}
+		onChange?.(value as "public" | "private");
+		execute(getVisibilityUpdatePayload(task, value));
 	};
 
-	const config = visibilityConfig[currentVisibility as keyof typeof visibilityConfig];
+	const options = getVisibilityOptions();
+	const display = getVisibilityDisplay(task);
 
-	return (
-		<div className="flex flex-col gap-3">
-			{!customTrigger && showLabel && <Label variant={"subheading"}>Visibility</Label>}
-			<div className="flex flex-col gap-2">
-				<ComboBox value={currentVisibility} onValueChange={handleVisibilityChange} open={open} onOpenChange={setOpen}>
-					{customTrigger ? (
-						// Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
-						<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
-					) : (
-						<ComboBoxTrigger disabled={!editable} className={className}>
-							<ComboBoxValue placeholder="Visibility">
-								{currentVisibility && config && (
-								<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>
-									{config.icon(cn(config.className, "h-4 w-4"))}
-									{!compact && <span className="truncate">{config.label}</span>}
+	return customTrigger ? (
+		<ComboBox value={task.visible ?? "public"} onValueChange={handleVisibilityChange} open={open} onOpenChange={setOpen}>
+			<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
+			<ComboBoxContent>
+				<ComboBoxSearch icon placeholder="Change visibility..." />
+				<ComboBoxList>
+					<ComboBoxEmpty>Not found</ComboBoxEmpty>
+					<ComboBoxGroup>
+						{options.map((opt) => (
+							<ComboBoxItem key={opt.id} value={opt.id}>
+								{opt.icon}
+								<div className="ml-2 flex flex-col">
+									<span>{opt.label}</span>
+									{opt.description && (
+										<span className="text-xs text-muted-foreground">{opt.description}</span>
+									)}
 								</div>
-								)}
-							</ComboBoxValue>
-							{showChevron && <ComboBoxIcon />}
-						</ComboBoxTrigger>
-					)}
+							</ComboBoxItem>
+						))}
+					</ComboBoxGroup>
+				</ComboBoxList>
+			</ComboBoxContent>
+		</ComboBox>
+	) : (
+		<div className="flex flex-col gap-3">
+			{showLabel && <Label variant={"subheading"}>Visibility</Label>}
+			<div className="flex flex-col gap-2">
+				<ComboBox value={task.visible ?? "public"} onValueChange={handleVisibilityChange} open={open} onOpenChange={setOpen}>
+					<ComboBoxTrigger disabled={!editable} className={className}>
+						<ComboBoxValue placeholder="Visibility">
+							<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>
+								{display.icon}
+								{!compact && <span className="truncate">{display.label}</span>}
+							</div>
+						</ComboBoxValue>
+						{showChevron && <ComboBoxIcon />}
+					</ComboBoxTrigger>
 					<ComboBoxContent>
 						<ComboBoxSearch icon placeholder="Change visibility..." />
 						<ComboBoxList>
 							<ComboBoxEmpty>Not found</ComboBoxEmpty>
 							<ComboBoxGroup>
-								{Object.entries(visibilityConfig).map(([key, config]) => (
-									<ComboBoxItem key={key} value={key}>
-										{config.icon(cn(config.className, "h-4 w-4"))}
+								{options.map((opt) => (
+									<ComboBoxItem key={opt.id} value={opt.id}>
+										{opt.icon}
 										<div className="ml-2 flex flex-col">
-											<span>{config.label}</span>
-											<span className="text-xs text-muted-foreground">{config.description}</span>
+											<span>{opt.label}</span>
+											{opt.description && (
+												<span className="text-xs text-muted-foreground">{opt.description}</span>
+											)}
 										</div>
 									</ComboBoxItem>
 								))}

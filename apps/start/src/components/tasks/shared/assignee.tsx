@@ -20,25 +20,24 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconPlus, IconUserPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
-import { getAssigneeBulkUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
-import { useDebounceAsync } from "@/hooks/useDebounceAsync";
+import {
+	getAssigneeBulkUpdatePayload,
+	getAssigneeDisplay,
+	getAssigneeOptionsFromUsers,
+	useTaskFieldAction,
+} from "@/components/tasks/actions";
 
 interface GlobalTaskAssigneesProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
 	availableUsers?: schema.userType[];
 	onChange?: (userIds: string[]) => void;
-	// New props for internal logic
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (newValue: schema.TaskWithLabels[]) => void;
 	setSelectedTask?: (newValue: schema.TaskWithLabels | null) => void;
-	// If you want to use custom logic instead of internal logic, use onChange
-	useInternalLogic?: boolean;
 	open?: boolean;
 	setOpen?: (open: boolean) => void;
 	customTrigger?: React.ReactNode;
-	// Legacy prop for backward compatibility
-	onAssigneesChange?: (userIds: string[]) => void;
 	align?: "start" | "center" | "end";
 	side?: "top" | "right" | "bottom" | "left";
 	showLabel?: boolean;
@@ -58,11 +57,9 @@ export default function GlobalTaskAssignees({
 	tasks = [],
 	setTasks,
 	setSelectedTask,
-	useInternalLogic = false,
 	open,
 	setOpen,
 	customTrigger,
-	onAssigneesChange, // Legacy prop support
 	side,
 	align,
 	showLabel = true,
@@ -81,43 +78,17 @@ export default function GlobalTaskAssignees({
 		wsClientId,
 	);
 
-	// Debounce only the API call + reconciliation; optimistic updates happen immediately.
-	const debouncedExecute = useDebounceAsync(
-		async (values: string[]) => {
-			const payload = getAssigneeBulkUpdatePayload(task, values, availableUsers, wsClientId);
-			await execute(payload, { skipOptimistic: true });
-		},
-		1500,
-	);
-
 	// Get current selected assignee IDs
 	const currentAssigneeIds = task.assignees?.map((assignee) => assignee.id) || [];
 
-	const handleAssigneesChange = async (values: string[]) => {
-		// Always call onChange first if provided (for external side effects like preventClick)
-		if (onChange) {
-			onChange(values);
-		}
-
-		// Support legacy prop
-		if (onAssigneesChange) {
-			onAssigneesChange(values);
-		}
-
-		if (useInternalLogic && tasks && setTasks && setSelectedTask) {
-			// Immediate optimistic update
-			const optimisticTask = {
-				...task,
-				assignees: availableUsers.filter((user) => values.includes(user.id)),
-			};
-			const updatedTasks = tasks.map((t) => (t.id === task.id ? optimisticTask : t));
-			setTasks(updatedTasks);
-			setSelectedTask(optimisticTask);
-
-			// Debounced API call + reconciliation
-			await debouncedExecute(values);
-		}
+	const handleAssigneesChange = (values: string[]) => {
+		onChange?.(values);
+		execute(getAssigneeBulkUpdatePayload(task, values, availableUsers, wsClientId));
 	};
+
+	// Build options from the action system
+	const options = getAssigneeOptionsFromUsers(availableUsers);
+	const display = getAssigneeDisplay(task);
 
 	// Compact view: stacked avatars
 	const renderCompactAssignees = () => {
@@ -155,118 +126,105 @@ export default function GlobalTaskAssignees({
 		);
 	};
 
+	/** Shared ComboBox dropdown content used by all three rendering paths */
+	const renderDropdownContent = () => (
+		<ComboBoxContent className="" align={align} side={side}>
+			<ComboBoxSearch placeholder="Assign to..." />
+			<ComboBoxList>
+				<ComboBoxEmpty>No users found.</ComboBoxEmpty>
+				<ComboBoxGroup>
+					{options.map((opt) => (
+						<ComboBoxItem key={opt.id} value={opt.id} searchValue={opt.keywords}>
+							<Avatar className="h-6 w-6">
+								<AvatarImage src={opt.metadata?.image || undefined} alt={opt.label} />
+								<AvatarFallback className="text-xs">
+									{opt.label
+										.split(" ")
+										.map((n: string) => n[0])
+										.join("")
+										.toUpperCase()
+										.slice(0, 2)}
+								</AvatarFallback>
+							</Avatar>
+							<div className="flex flex-col">
+								<span className="text-sm font-medium">{opt.label}</span>
+							</div>
+						</ComboBoxItem>
+					))}
+				</ComboBoxGroup>
+			</ComboBoxList>
+		</ComboBoxContent>
+	);
+
+	if (compact) {
+		return (
+			<ComboBox
+				values={currentAssigneeIds}
+				onValuesChange={handleAssigneesChange}
+				open={open}
+				onOpenChange={setOpen}
+			>
+				<ComboBoxTrigger
+					disabled={!editable}
+					className={cn("h-auto p-1 bg-transparent border-transparent", className)}
+				>
+					{renderCompactAssignees()}
+				</ComboBoxTrigger>
+				{renderDropdownContent()}
+			</ComboBox>
+		);
+	}
+
+	if (customTrigger) {
+		return (
+			<ComboBox
+				values={currentAssigneeIds}
+				onValuesChange={handleAssigneesChange}
+				open={open}
+				onOpenChange={setOpen}
+			>
+				<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
+				{renderDropdownContent()}
+			</ComboBox>
+		);
+	}
+
 	return (
 		<div className="flex flex-col gap-3">
-			{!customTrigger && showLabel && <Label variant={"subheading"}>Assigned</Label>}
+			{showLabel && <Label variant={"subheading"}>Assigned</Label>}
 			<div className="flex flex-wrap gap-1">
-				{compact ? (
-					// Compact mode: stacked avatars, clicking opens dropdown
-					<ComboBox
-						values={currentAssigneeIds}
-						onValuesChange={handleAssigneesChange}
-						open={open}
-						onOpenChange={setOpen}
-					>
-						<ComboBoxTrigger
-							disabled={!editable}
-							className={cn("h-auto p-1 bg-transparent border-transparent", className)}
-						>
-							{renderCompactAssignees()}
+				{task.assignees.map((assignee) => (
+					<RenderAssignee
+						key={assignee.id}
+						assignee={assignee as schema.userType}
+						onRemove={(assigneeId) => {
+							handleAssigneesChange(currentAssigneeIds.filter((id) => id !== assigneeId));
+						}}
+					/>
+				))}
+				<ComboBox
+					values={currentAssigneeIds}
+					onValuesChange={handleAssigneesChange}
+					open={open}
+					onOpenChange={setOpen}
+				>
+					{currentAssigneeIds.length === 0 ? (
+						<ComboBoxTrigger disabled={!editable} className={className}>
+							<ComboBoxValue placeholder="Status">
+								<div className="flex items-center gap-2 text-muted-foreground">
+									{display.icon}
+									<span>{display.label}</span>
+								</div>
+							</ComboBoxValue>
+							{showChevron && <ComboBoxIcon />}
 						</ComboBoxTrigger>
-						<ComboBoxContent className="" align={align} side={side}>
-							<ComboBoxSearch placeholder="Assign to..." />
-							<ComboBoxList>
-								<ComboBoxEmpty>No users found.</ComboBoxEmpty>
-								<ComboBoxGroup>
-									{availableUsers.map((user) => (
-										<ComboBoxItem key={user.id} value={user.id} searchValue={user.name.toLowerCase()}>
-											<Avatar className="h-6 w-6">
-												<AvatarImage src={user.image || undefined} alt={user.name} />
-												<AvatarFallback className="text-xs">
-													{user.name
-														.split(" ")
-														.map((n: string) => n[0])
-														.join("")
-														.toUpperCase()
-														.slice(0, 2)}
-												</AvatarFallback>
-											</Avatar>
-											<div className="flex flex-col">
-												<span className="text-sm font-medium">{user.name}</span>
-											</div>
-										</ComboBoxItem>
-									))}
-								</ComboBoxGroup>
-							</ComboBoxList>
-						</ComboBoxContent>
-					</ComboBox>
-				) : (
-					// Full mode: show assignees with names
-					<>
-						{!customTrigger &&
-							task.assignees.map((assignee) => (
-								<RenderAssignee
-									key={assignee.id}
-									assignee={assignee as schema.userType}
-									onRemove={(assigneeId) => {
-										handleAssigneesChange(currentAssigneeIds.filter((id) => id !== assigneeId));
-									}}
-								/>
-							))}
-						<ComboBox
-							values={currentAssigneeIds}
-							onValuesChange={handleAssigneesChange}
-							open={open}
-							onOpenChange={setOpen}
-						>
-							{customTrigger ? (
-								// Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
-								<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
-							) : currentAssigneeIds.length === 0 ? (
-								<ComboBoxTrigger disabled={!editable} className={className}>
-									<ComboBoxValue placeholder="Status">
-										<div className="flex items-center gap-2 text-muted-foreground">
-											<IconUserPlus className="h-4 w-4" />
-											<span>Unassigned</span>
-										</div>
-									</ComboBoxValue>
-									{showChevron && <ComboBoxIcon />}
-								</ComboBoxTrigger>
-							) : (
-								<ComboBoxTrigger disabled={!editable} className="h-6 w-6 aspect-square p-0 justify-center">
-									<IconPlus size={14} />
-								</ComboBoxTrigger>
-							)}
-
-							<ComboBoxContent className="" align={align} side={side}>
-								<ComboBoxSearch placeholder="Assign to..." />
-								<ComboBoxList>
-									<ComboBoxEmpty>No users found.</ComboBoxEmpty>
-									<ComboBoxGroup>
-										{availableUsers.map((user) => (
-											<ComboBoxItem key={user.id} value={user.id} searchValue={user.name.toLowerCase()}>
-												<Avatar className="h-6 w-6">
-													<AvatarImage src={user.image || undefined} alt={user.name} />
-													<AvatarFallback className="text-xs">
-														{user.name
-															.split(" ")
-															.map((n: string) => n[0])
-															.join("")
-															.toUpperCase()
-															.slice(0, 2)}
-													</AvatarFallback>
-												</Avatar>
-												<div className="flex flex-col">
-													<span className="text-sm font-medium">{user.name}</span>
-												</div>
-											</ComboBoxItem>
-										))}
-									</ComboBoxGroup>
-								</ComboBoxList>
-							</ComboBoxContent>
-						</ComboBox>
-					</>
-				)}
+					) : (
+						<ComboBoxTrigger disabled={!editable} className="h-6 w-6 aspect-square p-0 justify-center">
+							<IconPlus size={14} />
+						</ComboBoxTrigger>
+					)}
+					{renderDropdownContent()}
+				</ComboBox>
 			</div>
 		</div>
 	);

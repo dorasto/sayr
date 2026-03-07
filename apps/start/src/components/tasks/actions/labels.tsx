@@ -3,23 +3,30 @@ import { IconTag } from "@tabler/icons-react";
 import { updateLabelToTaskAction } from "@/lib/fetches/task";
 import type { FieldDisplay, FieldOption, MultiFieldUpdatePayload } from "./types";
 
-const LABEL_DOT_CLASS = "h-3 w-3 rounded-full border shrink-0";
+export interface LabelOptionMeta {
+	color: string | null;
+	visible: "public" | "private";
+}
 
 /**
  * Builds label options from the org's label list.
  */
-export function getLabelOptions(orgLabels: schema.labelType[]): FieldOption<string>[] {
+export function getLabelOptions(orgLabels: schema.labelType[]): FieldOption<string, LabelOptionMeta>[] {
 	return orgLabels.map((label) => ({
 		id: label.id,
 		label: label.name,
 		icon: (
-			<div
-				className={LABEL_DOT_CLASS}
+			<span
+				className="h-2 w-2 shrink-0 rounded-full"
 				style={{ backgroundColor: label.color || "#cccccc" }}
 			/>
 		),
 		value: label.id,
 		keywords: `label tag ${label.name}`,
+		metadata: {
+			color: label.color,
+			visible: (label.visible as "public" | "private") || "public",
+		},
 	}));
 }
 

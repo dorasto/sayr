@@ -86,7 +86,6 @@ export function TaskDetailCompact({
         <TaskFieldToolbar
           task={task}
           variant="compact"
-          useInternalLogic
           tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}

@@ -17,8 +17,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import { getLabelBulkUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
-import { useDebounceAsync } from "@/hooks/useDebounceAsync";
+
 import GlobalTaskAssignees from "./assignee";
 import GlobalTaskCategory from "./category";
 import { priorityConfig, statusConfig } from "./config";
@@ -74,7 +73,6 @@ export default function TaskFieldToolbar({
 	onChange,
 	canCreateLabel = false,
 	onLabelCreated,
-	useInternalLogic = false,
 	tasks = [],
 	setTasks,
 	setSelectedTask,
@@ -187,48 +185,6 @@ export default function TaskFieldToolbar({
 		return { inlineFields: inline, overflowFields: overflow };
 	}, [resolvedFields, isOverflowEnabled, fieldHasValue]);
 
-	// ── Action system hook for labels (debounced) ─────────────────────
-	const { execute } = useTaskFieldAction(
-		task,
-		tasks,
-		setSelectedTask ?? (() => {}),
-		setTasks ?? (() => {}),
-		wsClientId,
-	);
-
-	// Debounce only the API call + reconciliation; optimistic updates happen immediately.
-	const debouncedLabelExecute = useDebounceAsync(
-		async (values: string[]) => {
-			const payload = getLabelBulkUpdatePayload(task, values, availableLabels, wsClientId);
-			await execute(payload, { skipOptimistic: true });
-		},
-		1500,
-	);
-
-	const handleLabelsChange = useInternalLogic
-		? async (values: string[]) => {
-				onChange?.labels?.(values);
-
-				if (setTasks && setSelectedTask) {
-					// Immediate optimistic update
-					const optimisticTask = {
-						...task,
-						labels: availableLabels.filter((label) =>
-							values.includes(label.id),
-						),
-					};
-					const updatedTasks = tasks.map((t) =>
-						t.id === task.id ? optimisticTask : t,
-					);
-					setTasks(updatedTasks);
-					setSelectedTask(optimisticTask);
-
-					// Debounced API call + reconciliation
-					await debouncedLabelExecute(values);
-				}
-			}
-		: undefined;
-
 	// ── Parent field: local popover state ─────────────────────────────
 	const [parentPickerOpen, setParentPickerOpen] = useState(false);
 
@@ -253,6 +209,9 @@ export default function TaskFieldToolbar({
 		return {
 			task,
 			editable,
+			tasks,
+			setTasks,
+			setSelectedTask,
 			...(style.useCustomTrigger
 				? {}
 				: {
@@ -261,14 +220,6 @@ export default function TaskFieldToolbar({
 						compact: fieldCompact,
 						className: fieldClassName || undefined,
 					}),
-			...(useInternalLogic
-				? {
-						useInternalLogic: true as const,
-						tasks,
-						setTasks,
-						setSelectedTask,
-					}
-				: {}),
 		};
 	};
 
@@ -304,9 +255,7 @@ export default function TaskFieldToolbar({
 				availableLabels={availableLabels}
 				canCreateLabel={canCreateLabel}
 				onLabelCreated={onLabelCreated}
-				{...(useInternalLogic && handleLabelsChange
-					? { onLabelsChange: handleLabelsChange }
-					: { onLabelsChange: onChange?.labels })}
+				onLabelsChange={onChange?.labels}
 				{...(style.useCustomTrigger
 					? { customTrigger: creatorLabelsTrigger(cfg, selectedLabels), customChildren: true }
 					: {})}

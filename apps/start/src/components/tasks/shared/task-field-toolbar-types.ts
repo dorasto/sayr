@@ -93,8 +93,7 @@ export interface TaskFieldToolbarProps {
 	/** Called with the full updated labels list after a new label is created */
 	onLabelCreated?: (newLabels: schema.labelType[]) => void;
 
-	// --- Detail mode: internal optimistic updates ---
-	useInternalLogic?: boolean;
+	// --- Detail mode: state for internal optimistic updates ---
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (tasks: schema.TaskWithLabels[]) => void;
 	setSelectedTask?: (task: schema.TaskWithLabels | null) => void;

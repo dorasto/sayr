@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
  * For multi-select fields (assignees, labels):
  *   - `value` is the individual item ID being toggled
  */
-export interface FieldOption<TValue = string | null> {
+export interface FieldOption<TValue = string | null, TMeta = unknown> {
 	/** Unique option key (e.g. "backlog", "urgent", a UUID). */
 	id: string;
 	/** Display label shown in UIs. */
@@ -23,6 +23,12 @@ export interface FieldOption<TValue = string | null> {
 	keywords?: string;
 	/** Optional description text (e.g. visibility "Only visible to team members"). */
 	description?: string;
+	/**
+	 * Optional extra data for richer rendering in specific surfaces (e.g. context menus).
+	 * The base `icon` + `label` are sufficient for most UIs; consumers that need
+	 * additional detail (slug badges, status indicators, avatar URLs) can read `metadata`.
+	 */
+	metadata?: TMeta;
 }
 
 /**

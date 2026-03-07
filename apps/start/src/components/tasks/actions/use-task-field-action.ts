@@ -1,9 +1,20 @@
 import type { schema } from "@repo/database";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
-import type { FieldUpdatePayload } from "./types";
+import type { FieldUpdatePayload, MultiFieldUpdatePayload } from "./types";
+
+/**
+ * Auto-debounce delay (ms) for `multi` payloads (labels, assignees).
+ * The optimistic update is applied immediately; only the API call is debounced.
+ */
+const MULTI_DEBOUNCE_MS = 1500;
+
+interface PendingMulti {
+	timer: ReturnType<typeof setTimeout>;
+	payload: MultiFieldUpdatePayload;
+}
 
 /**
  * Shared hook that executes any FieldUpdatePayload.
@@ -11,6 +22,10 @@ import type { FieldUpdatePayload } from "./types";
  * Handles optimistic updates to both the single-task and task-list contexts,
  * fires the appropriate API call via `runWithToast`, and reconciles the
  * response back into state + triggers timeline refresh.
+ *
+ * For `multi` payloads (labels, assignees), the optimistic update is applied
+ * immediately and the API call is auto-debounced by `actionId` (1500 ms).
+ * Rapid toggling of checkboxes batches into a single API call.
  *
  * This is the single place where task field update side-effects live.
  * Action definition files produce *payloads*; this hook *executes* them.
@@ -24,56 +39,91 @@ export function useTaskFieldAction(
 ) {
 	const { runWithToast } = useToastAction();
 
-	const execute = useCallback(
-		async (payload: FieldUpdatePayload, options?: { skipOptimistic?: boolean }) => {
-			const skipOptimistic = options?.skipOptimistic ?? false;
+	// Map of pending debounced multi-field API calls, keyed by actionId.
+	const pendingRef = useRef<Map<string, PendingMulti>>(new Map());
 
+	// Keep latest task/tasks in refs so the debounced callback always
+	// sees current state without needing to re-create the timer.
+	const taskRef = useRef(task);
+	taskRef.current = task;
+	const tasksRef = useRef(tasks);
+	tasksRef.current = tasks;
+
+	// Clean up pending timers on unmount.
+	useEffect(() => {
+		return () => {
+			for (const pending of pendingRef.current.values()) {
+				clearTimeout(pending.timer);
+			}
+			pendingRef.current.clear();
+		};
+	}, []);
+
+	/**
+	 * Reconcile an API response into state and trigger a timeline refresh.
+	 */
+	const reconcile = useCallback(
+		(data: schema.TaskWithLabels) => {
+			setTask(data);
+			setTasks(tasksRef.current.map((t) => (t.id === data.id ? data : t)));
+			sendWindowMessage(window, { type: "timeline-update", payload: data.id }, "*");
+		},
+		[setTask, setTasks],
+	);
+
+	const execute = useCallback(
+		async (payload: FieldUpdatePayload) => {
 			switch (payload.kind) {
 				case "single": {
-					if (!skipOptimistic) {
-						setTask(payload.optimisticTask);
-						setTasks(tasks.map((t) => (t.id === task.id ? payload.optimisticTask : t)));
-					}
+					// Immediate optimistic update + API call (no debounce needed for single-select).
+					setTask(payload.optimisticTask);
+					setTasks(tasksRef.current.map((t) => (t.id === taskRef.current.id ? payload.optimisticTask : t)));
 
 					const data = await runWithToast(
 						`update-task-${payload.field}`,
 						payload.toastMessages,
-						() => updateTaskAction(task.organizationId, task.id, payload.updateData, wsClientId),
+						() => updateTaskAction(taskRef.current.organizationId, taskRef.current.id, payload.updateData, wsClientId),
 					);
 
 					if (data?.success && data.data) {
-						setTask(data.data);
-						setTasks(tasks.map((t) => (t.id === task.id && data.data ? data.data : t)));
-						sendWindowMessage(window, { type: "timeline-update", payload: data.data.id }, "*");
+						reconcile(data.data);
 					}
 					break;
 				}
 
 				case "multi": {
-					if (!skipOptimistic) {
-						setTask(payload.optimisticTask);
-						setTasks(tasks.map((t) => (t.id === task.id ? payload.optimisticTask : t)));
+					// Immediate optimistic update.
+					setTask(payload.optimisticTask);
+					setTasks(tasksRef.current.map((t) => (t.id === taskRef.current.id ? payload.optimisticTask : t)));
+
+					// Debounce the API call by actionId — if the user is rapidly toggling
+					// checkboxes, only the last payload fires.
+					const existing = pendingRef.current.get(payload.actionId);
+					if (existing) {
+						clearTimeout(existing.timer);
 					}
 
-					const multiData = await runWithToast(
-						payload.actionId,
-						payload.toastMessages,
-						payload.apiFn,
-					);
+					const timer = setTimeout(async () => {
+						pendingRef.current.delete(payload.actionId);
 
-					if (multiData?.success && multiData.data) {
-						setTask(multiData.data);
-						setTasks(tasks.map((t) => (t.id === task.id && multiData.data ? multiData.data : t)));
-						sendWindowMessage(window, { type: "timeline-update", payload: multiData.data.id }, "*");
-					}
+						const multiData = await runWithToast(
+							payload.actionId,
+							payload.toastMessages,
+							payload.apiFn,
+						);
+
+						if (multiData?.success && multiData.data) {
+							reconcile(multiData.data);
+						}
+					}, MULTI_DEBOUNCE_MS);
+
+					pendingRef.current.set(payload.actionId, { timer, payload });
 					break;
 				}
 
 				case "parent": {
-					if (!skipOptimistic) {
-						setTask(payload.optimisticTask);
-						setTasks(tasks.map((t) => (t.id === task.id ? payload.optimisticTask : t)));
-					}
+					setTask(payload.optimisticTask);
+					setTasks(tasksRef.current.map((t) => (t.id === taskRef.current.id ? payload.optimisticTask : t)));
 
 					const parentData = await runWithToast(
 						payload.actionId,
@@ -82,15 +132,13 @@ export function useTaskFieldAction(
 					);
 
 					if (parentData?.success && parentData.data) {
-						setTask(parentData.data);
-						setTasks(tasks.map((t) => (t.id === task.id && parentData.data ? parentData.data : t)));
-						sendWindowMessage(window, { type: "timeline-update", payload: parentData.data.id }, "*");
+						reconcile(parentData.data);
 					}
 					break;
 				}
 
 				case "relation": {
-					// No optimistic update for relations (they're separate entities)
+					// No optimistic update for relations (they're separate entities).
 					const relData = await runWithToast(
 						payload.actionId,
 						payload.toastMessages,
@@ -98,13 +146,13 @@ export function useTaskFieldAction(
 					);
 
 					if (relData?.success) {
-						sendWindowMessage(window, { type: "timeline-update", payload: task.id }, "*");
+						sendWindowMessage(window, { type: "timeline-update", payload: taskRef.current.id }, "*");
 					}
 					break;
 				}
 			}
 		},
-		[task, tasks, setTask, setTasks, wsClientId, runWithToast],
+		[setTask, setTasks, wsClientId, runWithToast, reconcile],
 	);
 
 	return { execute };
