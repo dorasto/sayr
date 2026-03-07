@@ -41,7 +41,7 @@
     "better-auth": "^1.4.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "gif-picker-react": "^1.5.0",
+    "gif-picker-react-klipy": "github:micenx/gif-picker-react-klipy",
     "gray-matter": "^4.0.3",
     "html-react-parser": "^5.2.17",
     "lodash": "^4.17.21",

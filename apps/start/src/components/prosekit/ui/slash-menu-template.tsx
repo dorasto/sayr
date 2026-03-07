@@ -34,7 +34,7 @@ export default function SlashMenuTemplate() {
 						onSelect={() => handleMediaUpload(editor, "video")}
 					/>
 
-					{import.meta.env.VITE_TENOR_API && (
+					{import.meta.env.VITE_KLIPY_API && (
 						<SlashMenuItem
 							label="GIF"
 							icon={<IconLibraryPhoto className="size-4" />}
@@ -45,7 +45,7 @@ export default function SlashMenuTemplate() {
 					<SlashMenuEmpty />
 				</AutocompleteList>
 			</AutocompletePopover>
-			{import.meta.env.VITE_TENOR_API && (
+			{import.meta.env.VITE_KLIPY_API && (
 				<GifPickerModal editor={editor} open={showGifPicker} onOpenChange={setShowGifPicker} />
 			)}
 		</>

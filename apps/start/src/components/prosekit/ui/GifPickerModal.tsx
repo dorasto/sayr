@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogOverlay } from "@repo/ui/components/dialog";
-import GifPicker from "gif-picker-react";
+import { Dialog, DialogContent } from "@repo/ui/components/dialog";
+import { type GifImage, GifPicker } from "gif-picker-react-klipy/index";
 import type { BasicExtension } from "prosekit/basic";
 import type { Editor } from "prosekit/core";
 
@@ -13,7 +13,7 @@ type GifPickerModalProps = {
  * Shadcn‑based Tenor GIF picker used inside the Slash Menu.
  */
 export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalProps) {
-	const handleGifSelect = (gif: { url?: string }) => {
+	const handleGifSelect = (gif: GifImage) => {
 		if (!gif?.url) return onOpenChange(false);
 		const { state, view } = editor;
 		const gifNode = state.schema.nodes.gif;
@@ -29,19 +29,15 @@ export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalPro
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
-				className="p-0 border-none overflow-hidden
-                   
-                   w-[400px] max-w-[calc(100%-2rem)]
-                   data-[state=open]:animate-scale-in"
+				className="p-0 border-none overflow-hidden w-[400px] max-w-[calc(100%-2rem)] data-[state=open]:animate-scale-in"
 				showClose={false}
 			>
 				<GifPicker
-					tenorApiKey={import.meta.env.VITE_TENOR_API ?? ""}
-					clientKey="sayr.io"
+					klipyApiKey={import.meta.env.VITE_KLIPY_API ?? ""}
+					clientKey="sayr.io-gif-picker"
 					onGifClick={handleGifSelect}
 					width={400}
 					height={460}
-					//@ts-expect-error theme isn't typed in library
 					theme="dark"
 				/>
 			</DialogContent>
