@@ -1,5 +1,5 @@
 import { Dialog, DialogContent } from "@repo/ui/components/dialog";
-import { GifPicker } from "gif-picker-react-klipy/index";
+import { type GifImage, GifPicker } from "gif-picker-react-klipy/index";
 import type { BasicExtension } from "prosekit/basic";
 import type { Editor } from "prosekit/core";
 
@@ -13,7 +13,7 @@ type GifPickerModalProps = {
  * Shadcn‑based Tenor GIF picker used inside the Slash Menu.
  */
 export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalProps) {
-	const handleGifSelect = (gif: { url?: string }) => {
+	const handleGifSelect = (gif: GifImage) => {
 		if (!gif?.url) return onOpenChange(false);
 		const { state, view } = editor;
 		const gifNode = state.schema.nodes.gif;
@@ -34,7 +34,7 @@ export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalPro
 			>
 				<GifPicker
 					klipyApiKey={import.meta.env.VITE_KLIPY_API ?? ""}
-					clientKey="sayr.io"
+					clientKey="sayr.io-gif-picker"
 					onGifClick={handleGifSelect}
 					width={400}
 					height={460}
