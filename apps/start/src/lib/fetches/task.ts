@@ -844,19 +844,3 @@ export async function removeTaskRelationAction(
 
 	return res.json();
 }
-
-/**
- * Fetches all relations for a given task (both directions).
- */
-export async function getTaskRelationsAction(
-	organizationId: string,
-	taskId: string,
-): Promise<{ success: boolean; data?: schema.TaskRelationWithTarget[]; error?: string }> {
-	const params = new URLSearchParams({ org_id: organizationId, task_id: taskId });
-	const res = await fetch(`${API_URL}/v1/admin/organization/task/relations?${params}`, {
-		method: "GET",
-		credentials: "include",
-	});
-
-	return res.json();
-}

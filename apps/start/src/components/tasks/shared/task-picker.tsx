@@ -138,13 +138,15 @@ export default function TaskPicker({
     [fetchResults],
   );
 
-  // Apply client-side exclusions and filters
-  const excludeSet = new Set(excludeIds);
-  const filteredResults = results.filter((t) => {
-    if (excludeSet.has(t.id)) return false;
-    if (filter && !filter(t)) return false;
-    return true;
-  });
+	// Apply client-side exclusions and filters
+	// Note: excludeIds callers pass inline arrays, so useMemo would be defeated by
+	// unstable references. With results capped at 20 items, direct filtering is trivial.
+	const excludeSet = new Set(excludeIds);
+	const filteredResults = results.filter((t) => {
+		if (excludeSet.has(t.id)) return false;
+		if (filter && !filter(t)) return false;
+		return true;
+	});
 
   const handleChange = (taskId: string | null) => {
     if (!taskId) return;
