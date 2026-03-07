@@ -34,6 +34,7 @@ import {
   uploadOrganizationLogo,
 } from "@/lib/fetches/organization";
 import { handleFileValidation } from "@/lib/utils/file-validation";
+import { Label } from "@repo/ui/components/label";
 
 export default function SettingsOrganizationPage() {
   const { ws } = useLayoutData();
@@ -97,7 +98,7 @@ export default function SettingsOrganizationPage() {
     setSlug(organization.slug);
     setShortId(organization.shortId);
     setDescription(organization.description || "");
-  }, [organization.id])
+  }, [organization.id]);
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -357,7 +358,9 @@ export default function SettingsOrganizationPage() {
         });
         headlessToast.success({ title: "ShortId updated successfully" });
       } else {
-        headlessToast.error({ title: result.error || "Failed to update ShortId" });
+        headlessToast.error({
+          title: result.error || "Failed to update ShortId",
+        });
       }
     } catch (error) {
       console.error("Error updating ShortId:", error);
@@ -420,8 +423,10 @@ export default function SettingsOrganizationPage() {
       <Tile className="md:w-full items-start" variant={"transparent"}>
         <TileHeader className="md:w-full">
           <TileTitle className="text-sm">Display</TileTitle>
-          <TileDescription className="text-xs">
-            Basic information about your organization
+          <TileDescription asChild>
+            <Label variant={"description"} className="text-xs">
+              Basic information about your organization
+            </Label>
           </TileDescription>
         </TileHeader>
         <TileAction className="w-full">
@@ -466,7 +471,7 @@ export default function SettingsOrganizationPage() {
                 size="icon-sm"
                 onClick={handleNameSave}
                 disabled={!nameChanged || isNameSaving}
-                className={cn(!nameChanged && "opacity-50")}
+                className={cn(!nameChanged && "opacity-50 text-foreground/0")}
               >
                 <IconCheck />
               </InputGroupButton>
@@ -478,8 +483,10 @@ export default function SettingsOrganizationPage() {
       <Tile className="md:w-full w-full items-start" variant={"transparent"}>
         <TileHeader className="w-full">
           <TileTitle className="text-sm">Slug</TileTitle>
-          <TileDescription className="text-xs">
-            The unique identifier for your organization.
+          <TileDescription asChild>
+            <Label variant={"description"} className="text-xs">
+              The unique identifier for your organization.
+            </Label>
           </TileDescription>
         </TileHeader>
         <TileAction className="w-full">
@@ -497,7 +504,7 @@ export default function SettingsOrganizationPage() {
                 size="icon-sm"
                 onClick={handleSlugSave}
                 disabled={!slugChanged || isSlugSaving}
-                className={cn(!slugChanged && "opacity-50")}
+                className={cn(!slugChanged && "opacity-50 text-foreground/0")}
               >
                 <IconCheck />
               </InputGroupButton>
@@ -508,10 +515,12 @@ export default function SettingsOrganizationPage() {
 
       <Tile className="md:w-full w-full items-start" variant="transparent">
         <TileHeader className="w-full">
-          <TileTitle className="text-sm">Org Code</TileTitle>
-          <TileDescription className="text-xs">
-            A short, 3-letter code (e.g. SAY) used as a prefix for IDs and branches.
-            For example: SAY-123.
+          <TileTitle className="text-sm">Short identifier</TileTitle>
+          <TileDescription asChild>
+            <Label variant={"description"} className="text-xs">
+              A short, 3-letter code used as a prefix for IDs and branches. For
+              example: DEV-123.
+            </Label>
           </TileDescription>
         </TileHeader>
         <TileAction className="w-full">
@@ -536,7 +545,9 @@ export default function SettingsOrganizationPage() {
                 size="icon-sm"
                 onClick={handleShortIdSave}
                 disabled={!shortIdChanged || isOrgShortIdSaving}
-                className={cn(!shortIdChanged && "opacity-50")}
+                className={cn(
+                  !shortIdChanged && "opacity-50 text-foreground/0",
+                )}
               >
                 <IconCheck />
               </InputGroupButton>
@@ -562,7 +573,9 @@ export default function SettingsOrganizationPage() {
                 size="icon-sm"
                 onClick={handleDescriptionSave}
                 disabled={!descriptionChanged || isDescriptionSaving}
-                className={cn(!descriptionChanged && "opacity-50")}
+                className={cn(
+                  !descriptionChanged && "opacity-50 text-foreground/0",
+                )}
               >
                 <IconCheck />
               </InputGroupButton>
@@ -574,7 +587,11 @@ export default function SettingsOrganizationPage() {
       <Tile className="md:w-full items-start" variant={"transparent"}>
         <TileHeader className="md:w-full">
           <TileTitle className="text-sm">Banner</TileTitle>
-          <TileDescription>Image for your public profile</TileDescription>
+          <TileDescription asChild>
+            <Label variant={"description"} className="text-xs">
+              Image for your public profile
+            </Label>
+          </TileDescription>
         </TileHeader>
         <TileAction className="w-full">
           <button
