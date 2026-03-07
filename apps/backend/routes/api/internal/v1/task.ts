@@ -388,6 +388,9 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		() =>
 			db.query.task.findFirst({
 				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+				with: {
+					githubIssue: {},
+				}
 			}),
 		{ description: "Finding task to update", data: { orgId, taskId } }
 	);
@@ -433,8 +436,81 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				);
 			}
 			if (updates.status && updates.status !== existingTask.status) {
-				const event = await addLogEventTask(taskId, orgId, "status_change", existingTask.status, updates.status, userId);
-				notifyAssignees({ taskId, orgId, actorId: userId, type: "status_change", timelineEventId: event?.id });
+				const event = await addLogEventTask(
+					taskId,
+					orgId,
+					"status_change",
+					existingTask.status,
+					updates.status,
+					userId
+				);
+
+				notifyAssignees({
+					taskId,
+					orgId,
+					actorId: userId,
+					type: "status_change",
+					timelineEventId: event?.id,
+				});
+
+				if ((updates.status === "done" || updates.status === "in-progress") && existingTask?.githubIssue) {
+					// Derive the issue number from your stored field.
+					// Adjust this if your schema is different.
+					const issueNumber =
+						existingTask.githubIssue.issueNumber ?? existingTask.githubIssue;
+
+					if (!issueNumber) {
+						// No issue number to close; just skip quietly
+						return;
+					}
+
+					const foundLink = await db.query.githubRepository.findFirst({
+						where: and(
+							eq(schema.githubRepository.organizationId, orgId),
+							isNull(schema.githubRepository.categoryId),
+							eq(schema.githubRepository.enabled, true)
+						),
+					});
+
+					// No linked repo? Just skip GitHub logic, but don't break the request.
+					if (!foundLink) {
+						return;
+					}
+
+					try {
+						const token = await getInstallationToken(foundLink.installationId);
+						const octokit = new Octokit({ auth: token });
+
+						// Resolve owner/repo from the repoId
+						const { data: repoInfo } = await octokit.request(
+							"GET /repositories/{repository_id}",
+							{
+								repository_id: foundLink.repoId,
+							}
+						);
+
+						const owner = repoInfo.owner.login;
+						const repo = repoInfo.name;
+
+						await octokit.request(
+							"PATCH /repos/{owner}/{repo}/issues/{issue_number}",
+							{
+								owner,
+								repo,
+								issue_number: issueNumber,
+								state: updates.status === "in-progress" ? "open" : "closed",
+							}
+						);
+					} catch (err) {
+						// Don't throw; just log so it doesn't affect the main task update flow
+						console.error("Failed to close GitHub issue", {
+							orgId,
+							taskId,
+							issueNumber,
+							error: err,
+						});
+					}
+				}
 			}
 			if (updates.priority && updates.priority !== existingTask.priority) {
 				const event = await addLogEventTask(

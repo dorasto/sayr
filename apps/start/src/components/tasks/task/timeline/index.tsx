@@ -26,6 +26,7 @@ export { TimelineGithubCommit } from "./timeline-github-commit";
 export { TimelineGithubPRLinked } from "./timeline-github-pr-linked";
 export { TimelineGithubPRCommit } from "./timeline-github-pr-commit";
 export { TimelineGithubPRClosed } from "./timeline-github-pr-closed";
+export { TimelineGithubBranchLinked } from "./timeline-github-branch";
 export { TimelineCategoryChange } from "./category-change";
 export { TimelineReleaseChange } from "./release-change";
 

@@ -222,7 +222,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	const isAuthorized = await traceOrgPermissionCheck(
 		session?.userId ?? "",
 		orgId,
-		"admin.manageMembers"
+		"admin.administrator"
 	);
 
 	if (!isAuthorized) {
@@ -396,7 +396,7 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 	const orgId = c.req.param("orgId");
 	const oldLogo = c.req.header("X-old-file");
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -466,7 +466,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 	const orgId = c.req.param("orgId");
 	const oldBanner = c.req.header("X-old-file");
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);

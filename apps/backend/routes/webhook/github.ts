@@ -3,7 +3,7 @@ import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { db, schema } from "@repo/database";
 import { enqueue } from "@repo/queue";
 import { verifySignature } from "@repo/util/github/verify";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
 
 const app = new Hono<AppEnv>();
@@ -32,6 +32,8 @@ app.post("/", async (c) => {
         case "installation":
             return handleInstallationEvent(payload, traceAsync);
 
+        case "create":
+        case "delete":
         case "issues":
         case "issue_comment":
         case "pull_request":
@@ -133,9 +135,9 @@ async function handleContentEvents(
             const existingPr = await db.query.githubPullRequest.findFirst({
                 where: (t) =>
                     and(
-                        eq(t.repositoryId, linked.id), // githubRepository.id
+                        eq(t.repositoryId, linked.id),
                         eq(t.headBranch, branch),
-                        eq(t.state, "open")
+                        or(eq(t.state, "open"), eq(t.state, "draft"))
                     ),
             });
 
@@ -154,11 +156,48 @@ async function handleContentEvents(
 
             if (!commits.length) return;
 
+            // 🔍 Check if branch is pre-linked to a task
+            const existingBranch = await db.query.githubBranchLink.findFirst({
+                where: (b) =>
+                    and(
+                        eq(b.repositoryId, linked.id),
+                        eq(b.branchName, branch)
+                    ),
+            });
+
+            let branchTaskShortId: number | null = null;
+
+            if (existingBranch?.taskId) {
+                const branchTask = await db.query.task.findFirst({
+                    where: (t) =>
+                        and(
+                            eq(t.id, existingBranch.taskId as any),
+                            eq(t.organizationId, existingBranch.organizationId)
+                        ),
+                    columns: {
+                        shortId: true,
+                    },
+                });
+
+                if (branchTask?.shortId) {
+                    branchTaskShortId = branchTask.shortId;
+                }
+            }
+
             for (const commit of commits) {
                 const message = commit.message?.trim();
                 if (!message) continue;
 
                 const keywordMatches = extractSayrKeywords(message);
+
+                // If branch is linked to a task, force-add a match for it
+                if (branchTaskShortId != null) {
+                    keywordMatches.push({
+                        keyword: "branch",
+                        taskKey: branchTaskShortId,
+                    });
+                }
+
                 if (!keywordMatches.length) continue;
 
                 await enqueue("github", {
@@ -186,6 +225,7 @@ async function handleContentEvents(
         }
         case "issues":
             if (payload.action === "opened") {
+                if (payload.issue.user.login.endsWith("[bot]")) return;
                 await traceAsync(
                     "webhook.github.issue.enqueue",
                     () =>
@@ -283,6 +323,112 @@ async function handleContentEvents(
                 });
             }
             break;
+        case "create": {
+            const author = payload.sender?.login ?? "";
+            if (author.endsWith("[bot]")) return;
+            const type = payload.ref_type;
+            if (type === "branch") {
+                const branch = payload.ref;
+                const sayrRepositoryTable = await db.query.githubRepository.findFirst({
+                    where: eq(schema.githubRepository.repoId, repoId),
+                    with: {
+                        organization: {
+                            columns: {
+                                shortId: true
+                            }
+                        }
+                    }
+                });
+                // Try to pull a task key from the branch name, e.g. "sayr16", "sayr-16"
+                const branchPrefix = sayrRepositoryTable?.organization?.shortId ?? "SAY"; // fallback if needed
+                console.log("🚀 ~ handleContentEvents ~ branchPrefix:", branchPrefix)
+                const escapedPrefix = branchPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                // Matches: PREFIX16, PREFIX-16, PREFIX_16 anywhere in branch path
+                // e.g. "feature/SAY16-foo", "bugfix/XXX-42"
+                const prefixRegex = new RegExp(
+                    String.raw`(?:^|[\/\-_])(${escapedPrefix})[\-_]?(\d+)\b`,
+                    "i"
+                );
+                const branchMatch = branch.match(prefixRegex);
+                if (branchMatch) {
+                    const branchTaskKey = Number(branchMatch[2]);
+                    if (!Number.isNaN(branchTaskKey)) {
+                        await enqueue("github", {
+                            type: "branch_create",
+                            traceContext,
+                            payload: {
+                                linkedId: linked.id,
+                                organizationId: linked.organizationId,
+
+                                owner: repository.owner.login,
+                                repo: repository.name,
+                                repoId: repository.id,
+                                repo_private: repository.private,
+                                branch: branch,
+
+                                userId: payload.sender?.id,
+                                author,
+                                taskKey: branchTaskKey
+                            },
+                        })
+                    }
+                }
+
+            }
+            break;
+        }
+        case "delete": {
+            const author = payload.sender?.login ?? "";
+            if (author.endsWith("[bot]")) return;
+            const type = payload.ref_type;
+            if (type === "branch") {
+                const branch = payload.ref;
+                const sayrRepositoryTable = await db.query.githubRepository.findFirst({
+                    where: eq(schema.githubRepository.repoId, repoId),
+                    with: {
+                        organization: {
+                            columns: {
+                                shortId: true
+                            }
+                        }
+                    }
+                });
+                // Try to pull a task key from the branch name, e.g. "sayr16", "sayr-16"
+                const branchPrefix = sayrRepositoryTable?.organization?.shortId ?? "SAY"; // fallback if needed
+                const escapedPrefix = branchPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                // Matches: PREFIX16, PREFIX-16, PREFIX_16 anywhere in branch path
+                // e.g. "feature/SAY16-foo", "bugfix/XXX-42"
+                const prefixRegex = new RegExp(
+                    String.raw`(?:^|[\/\-_])(${escapedPrefix})[\-_]?(\d+)\b`,
+                    "i"
+                );
+                const branchMatch = branch.match(prefixRegex);
+                if (branchMatch) {
+                    const branchTaskKey = Number(branchMatch[2]);
+                    if (!Number.isNaN(branchTaskKey)) {
+                        await enqueue("github", {
+                            type: "branch_delete",
+                            traceContext,
+                            payload: {
+                                linkedId: linked.id,
+                                organizationId: linked.organizationId,
+
+                                owner: repository.owner.login,
+                                repo: repository.name,
+                                repoId: repository.id,
+                                repo_private: repository.private,
+                                branch: branch,
+
+                                userId: payload.sender?.id,
+                                author,
+                                taskKey: branchTaskKey
+                            },
+                        })
+                    }
+                }
+            }
+            break;
+        }
         case "pull_request": {
             const action = payload.action;
             const pr = payload.pull_request;
@@ -293,7 +439,7 @@ async function handleContentEvents(
             const merged = pr.merged ?? false;
 
             // Only care about lifecycle + new commits
-            if (!["opened", "reopened", "synchronize", "closed"].includes(action)) {
+            if (!["opened", "reopened", "synchronize", "closed", "ready_for_review", "converted_to_draft"].includes(action)) {
                 return;
             }
 
@@ -309,7 +455,7 @@ async function handleContentEvents(
             // ----------------------------------------
             // 1️⃣ PR OPENED / REOPENED
             // ----------------------------------------
-            if (action === "opened" || action === "reopened") {
+            if (action === "opened" || action === "reopened" || action === "ready_for_review" || action === "converted_to_draft") {
                 await enqueue("github", {
                     type: "pull_request_link",
                     traceContext,
@@ -325,6 +471,8 @@ async function handleContentEvents(
                         number: prNumber,
                         title: prTitle,
                         body: prBody,
+                        draft: pr.draft,
+                        state: pr.state,
 
                         headSha: pr.head.sha,
                         baseRef: pr.base.ref,

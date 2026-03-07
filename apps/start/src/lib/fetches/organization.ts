@@ -73,6 +73,7 @@ export interface CreateOrganizationData {
 export interface UpdateOrganizationData {
 	name: string;
 	slug: string;
+	shortId: string;
 	logo?: string;
 	bannerImg?: string;
 	description?: string;

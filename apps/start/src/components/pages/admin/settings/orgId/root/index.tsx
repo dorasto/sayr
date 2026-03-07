@@ -34,6 +34,7 @@ import {
   uploadOrganizationLogo,
 } from "@/lib/fetches/organization";
 import { handleFileValidation } from "@/lib/utils/file-validation";
+import { Label } from "@repo/ui/components/label";
 
 export default function SettingsOrganizationPage() {
   const { ws } = useLayoutData();
@@ -47,6 +48,10 @@ export default function SettingsOrganizationPage() {
   // Slug state
   const [slug, setSlug] = useState(organization.slug);
   const [isSlugSaving, setIsSlugSaving] = useState(false);
+
+  //Org Short Id
+  const [orgShortId, setShortId] = useState(organization.shortId);
+  const [isOrgShortIdSaving, setisOrgShortIdSaving] = useState(false);
 
   // Description state
   const [description, setDescription] = useState(organization.description);
@@ -91,9 +96,9 @@ export default function SettingsOrganizationPage() {
   useEffect(() => {
     setName(organization.name);
     setSlug(organization.slug);
+    setShortId(organization.shortId);
     setDescription(organization.description || "");
-
-  }, [organization.id])
+  }, [organization.id]);
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,6 +165,7 @@ export default function SettingsOrganizationPage() {
             {
               name: organization.name,
               slug: organization.slug,
+              shortId: organization.shortId,
               logo: uploadResult.image,
               bannerImg: organization.bannerImg || undefined,
               description: organization.description || undefined,
@@ -218,6 +224,7 @@ export default function SettingsOrganizationPage() {
             {
               name: organization.name,
               slug: organization.slug,
+              shortId: organization.shortId,
               logo: organization.logo || undefined,
               bannerImg: uploadResult.image,
               description: organization.description || undefined,
@@ -263,6 +270,7 @@ export default function SettingsOrganizationPage() {
         {
           name,
           slug: organization.slug,
+          shortId: organization.shortId,
           logo: organization.logo || undefined,
           bannerImg: organization.bannerImg || undefined,
           description: organization.description || undefined,
@@ -298,6 +306,7 @@ export default function SettingsOrganizationPage() {
         {
           name: organization.name,
           slug: slug,
+          shortId: organization.shortId,
           logo: organization.logo || undefined,
           bannerImg: organization.bannerImg || undefined,
           description: organization.description || undefined,
@@ -323,6 +332,44 @@ export default function SettingsOrganizationPage() {
     }
   }, [slug, organization, wsClientId, setOrganization]);
 
+  const handleShortIdSave = useCallback(async () => {
+    if (orgShortId === organization.slug) return;
+
+    setIsSlugSaving(true);
+    try {
+      const result = await updateOrganizationAction(
+        organization.id,
+        {
+          name: organization.name,
+          slug: organization.slug,
+          shortId: orgShortId,
+          logo: organization.logo || undefined,
+          bannerImg: organization.bannerImg || undefined,
+          description: organization.description || undefined,
+        },
+        wsClientId,
+      );
+
+      if (result.success) {
+        // Preserve members from current organization when updating state
+        setOrganization({
+          ...result.data,
+          members: organization.members,
+        });
+        headlessToast.success({ title: "ShortId updated successfully" });
+      } else {
+        headlessToast.error({
+          title: result.error || "Failed to update ShortId",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating ShortId:", error);
+      headlessToast.error({ title: "Failed to update ShortId" });
+    } finally {
+      setisOrgShortIdSaving(false);
+    }
+  }, [orgShortId, organization, wsClientId, setOrganization]);
+
   const handleDescriptionSave = useCallback(async () => {
     if (description === organization.description) return;
 
@@ -333,6 +380,7 @@ export default function SettingsOrganizationPage() {
         {
           name: organization.name,
           slug: organization.slug,
+          shortId: organization.shortId,
           logo: organization.logo || undefined,
           bannerImg: organization.bannerImg || undefined,
           description: description || undefined,
@@ -366,6 +414,7 @@ export default function SettingsOrganizationPage() {
 
   const nameChanged = name !== organization.name;
   const slugChanged = slug !== organization.slug;
+  const shortIdChanged = orgShortId !== organization.shortId;
   const descriptionChanged = description !== organization.description;
 
   return (
@@ -374,8 +423,10 @@ export default function SettingsOrganizationPage() {
       <Tile className="md:w-full items-start" variant={"transparent"}>
         <TileHeader className="md:w-full">
           <TileTitle className="text-sm">Display</TileTitle>
-          <TileDescription className="text-xs">
-            Basic information about your organization
+          <TileDescription asChild>
+            <Label variant={"description"} className="text-xs">
+              Basic information about your organization
+            </Label>
           </TileDescription>
         </TileHeader>
         <TileAction className="w-full">
@@ -420,7 +471,7 @@ export default function SettingsOrganizationPage() {
                 size="icon-sm"
                 onClick={handleNameSave}
                 disabled={!nameChanged || isNameSaving}
-                className={cn(!nameChanged && "opacity-50")}
+                className={cn(!nameChanged && "opacity-50 text-foreground/0")}
               >
                 <IconCheck />
               </InputGroupButton>
@@ -432,8 +483,10 @@ export default function SettingsOrganizationPage() {
       <Tile className="md:w-full w-full items-start" variant={"transparent"}>
         <TileHeader className="w-full">
           <TileTitle className="text-sm">Slug</TileTitle>
-          <TileDescription className="text-xs">
-            The unique identifier for your organization.
+          <TileDescription asChild>
+            <Label variant={"description"} className="text-xs">
+              The unique identifier for your organization.
+            </Label>
           </TileDescription>
         </TileHeader>
         <TileAction className="w-full">
@@ -451,7 +504,50 @@ export default function SettingsOrganizationPage() {
                 size="icon-sm"
                 onClick={handleSlugSave}
                 disabled={!slugChanged || isSlugSaving}
-                className={cn(!slugChanged && "opacity-50")}
+                className={cn(!slugChanged && "opacity-50 text-foreground/0")}
+              >
+                <IconCheck />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+        </TileAction>
+      </Tile>
+
+      <Tile className="md:w-full w-full items-start" variant="transparent">
+        <TileHeader className="w-full">
+          <TileTitle className="text-sm">Short identifier</TileTitle>
+          <TileDescription asChild>
+            <Label variant={"description"} className="text-xs">
+              A short, 3-letter code used as a prefix for IDs and branches. For
+              example: DEV-123.
+            </Label>
+          </TileDescription>
+        </TileHeader>
+        <TileAction className="w-full">
+          <InputGroup className="bg-accent border-0 shadow-none transition-all">
+            <InputGroupInput
+              placeholder="ENG"
+              value={orgShortId}
+              onChange={(e) => {
+                const raw = e.target.value.toUpperCase();
+                const lettersOnly = raw.replace(/[^A-Z]/g, "");
+                setShortId(lettersOnly.slice(0, 3));
+              }}
+              className="uppercase font-mono"
+            />
+            <InputGroupAddon align="inline-end">
+              <InputGroupText>
+                {orgShortId ? `${orgShortId}-123` : "SAY-123"}
+              </InputGroupText>
+              <Separator orientation="vertical" className="h-3" />
+              <InputGroupButton
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleShortIdSave}
+                disabled={!shortIdChanged || isOrgShortIdSaving}
+                className={cn(
+                  !shortIdChanged && "opacity-50 text-foreground/0",
+                )}
               >
                 <IconCheck />
               </InputGroupButton>
@@ -477,7 +573,9 @@ export default function SettingsOrganizationPage() {
                 size="icon-sm"
                 onClick={handleDescriptionSave}
                 disabled={!descriptionChanged || isDescriptionSaving}
-                className={cn(!descriptionChanged && "opacity-50")}
+                className={cn(
+                  !descriptionChanged && "opacity-50 text-foreground/0",
+                )}
               >
                 <IconCheck />
               </InputGroupButton>
@@ -489,7 +587,11 @@ export default function SettingsOrganizationPage() {
       <Tile className="md:w-full items-start" variant={"transparent"}>
         <TileHeader className="md:w-full">
           <TileTitle className="text-sm">Banner</TileTitle>
-          <TileDescription>Image for your public profile</TileDescription>
+          <TileDescription asChild>
+            <Label variant={"description"} className="text-xs">
+              Image for your public profile
+            </Label>
+          </TileDescription>
         </TileHeader>
         <TileAction className="w-full">
           <button

@@ -3,7 +3,7 @@ import { handleComment, handleSayrKeywordParse } from "./github";
 import { withTraceContext } from "@repo/opentelemetry/trace";
 import { initTracing } from "@repo/opentelemetry";
 import { handleGithubCommitRef } from "./github/commitRef";
-import { handleGithubPullRequestClosed, handleGithubPullRequestLink, handleGithubPullRequestSync } from "./github/pullRequest";
+import { handleGithubBranchDelete, handleGithubBranchLink, handleGithubPullRequestClosed, handleGithubPullRequestLink, handleGithubPullRequestSync } from "./github/pullRequest";
 
 const APP_ENV = process.env.APP_ENV;
 const env =
@@ -42,6 +42,12 @@ async function processGithubJob(job: JobGroups["github"]) {
 			break;
 		case "pull_request_closed":
 			await handleGithubPullRequestClosed(job);
+			break;
+		case "branch_create":
+			await handleGithubBranchLink(job);
+			break;
+		case "branch_delete":
+			await handleGithubBranchDelete(job);
 			break;
 		default:
 			console.warn(`⚠️ Unhandled GitHub job type: ${job.type}`);
