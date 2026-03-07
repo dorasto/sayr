@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogOverlay } from "@repo/ui/components/dialog";
-import GifPicker from "gif-picker-react";
+import { Dialog, DialogContent } from "@repo/ui/components/dialog";
+import { GifPicker } from "gif-picker-react-klipy/index";
 import type { BasicExtension } from "prosekit/basic";
 import type { Editor } from "prosekit/core";
 
@@ -36,12 +36,11 @@ export function GifPickerModal({ editor, open, onOpenChange }: GifPickerModalPro
 				showClose={false}
 			>
 				<GifPicker
-					tenorApiKey={import.meta.env.VITE_TENOR_API ?? ""}
+					klipyApiKey={import.meta.env.VITE_KLIPY_API ?? ""}
 					clientKey="sayr.io"
 					onGifClick={handleGifSelect}
 					width={400}
 					height={460}
-					//@ts-expect-error theme isn't typed in library
 					theme="dark"
 				/>
 			</DialogContent>
