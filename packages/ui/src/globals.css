@@ -267,16 +267,23 @@ p {
 	background: transparent;
 }
 
-/* gif */
-.GifPickerReact {
-	--gpr-search-input-bg-color: var(--muted) !important;
-	--gpr-search-input-bg-color-active: var(--accent) !important;
-	--gpr-search-input-padding: 0 32px;
-	--gpr-search-input-border-radius: var(--radius-lg) !important;
-	--gpr-search-input-height: 2.5rem !important;
-	--gpr-search-input-text-color: var(--foreground) !important;
-	--gpr-search-input-placeholder-color: var(--muted-foreground) !important;
+/* GIF picker */
+.gpr-picker {
+  /* General picker theming (mapped to your design tokens) */
+  --gpr-bg-color: var(--background) !important;
+  --gpr-secondary-bg: var(--muted) !important;
+  --gpr-text-color: var(--foreground) !important;
+  --gpr-text-secondary: var(--muted-foreground) !important;
+  --gpr-border-color: var(--border) !important;
 
-	--gpr-search-border-color-active: var(--primary) !important;
-	--gpr-search-border-color-inactive: var(--gpr-search-input-bg-color);
+  --gpr-highlight-color: var(--primary) !important;
+  --gpr-highlight-hover: var(--accent) !important;
+
+  --gpr-input-bg: var(--muted) !important;
+
+  /* If you have a custom token for subtle hover, swap it here */
+  --gpr-hover-bg: rgba(99, 102, 241, 0.1);
+
+  --gpr-radius: var(--radius-lg, 12px);
+  --gpr-radius-sm: var(--radius, 8px);
 }
