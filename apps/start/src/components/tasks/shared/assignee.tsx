@@ -17,13 +17,11 @@ import {
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconPlus, IconUserPlus } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
+import { getAssigneeBulkUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
-import { updateAssigneesToTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
 
 interface GlobalTaskAssigneesProps {
 	task: schema.TaskWithLabels;
@@ -74,31 +72,23 @@ export default function GlobalTaskAssignees({
 	maxCompactAvatars = 3,
 }: GlobalTaskAssigneesProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const debouncedUpdate = useDebounceAsync(
-		async (values: string[], wsClientId: string) => {
-			const data = await runWithToast(
-				"update-task-assignees",
-				{
-					loading: {
-						title: "Updating task...",
-						description: "Updating your task... changes are already visible.",
-					},
-					success: {
-						title: "Task saved",
-						description: "Your changes have been saved successfully.",
-					},
-					error: {
-						title: "Save failed",
-						description: "Your changes are showing, but we couldn't save them to the server. Please try again.",
-					},
-				},
-				() => updateAssigneesToTaskAction(task.organizationId, task.id, values, wsClientId)
-			);
-			return data;
-		},
-		1500 // debounce delay
+
+	const { execute } = useTaskFieldAction(
+		task,
+		tasks,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		wsClientId,
 	);
-	const { runWithToast } = useToastAction();
+
+	// Debounce only the API call + reconciliation; optimistic updates happen immediately.
+	const debouncedExecute = useDebounceAsync(
+		async (values: string[]) => {
+			const payload = getAssigneeBulkUpdatePayload(task, values, availableUsers, wsClientId);
+			await execute(payload, { skipOptimistic: true });
+		},
+		1500,
+	);
 
 	// Get current selected assignee IDs
 	const currentAssigneeIds = task.assignees?.map((assignee) => assignee.id) || [];
@@ -115,40 +105,17 @@ export default function GlobalTaskAssignees({
 		}
 
 		if (useInternalLogic && tasks && setTasks && setSelectedTask) {
-			// Internal logic - same pattern as status and priority
-			const updatedTasks = tasks.map((t) =>
-				t.id === task.id
-					? {
-							...task,
-							assignees: availableUsers.filter((user) => values.includes(user.id)),
-						}
-					: t
-			);
+			// Immediate optimistic update
+			const optimisticTask = {
+				...task,
+				assignees: availableUsers.filter((user) => values.includes(user.id)),
+			};
+			const updatedTasks = tasks.map((t) => (t.id === task.id ? optimisticTask : t));
 			setTasks(updatedTasks);
-			if (task) {
-				setSelectedTask({
-					...task,
-					assignees: availableUsers.filter((user) => values.includes(user.id)),
-				});
-			}
+			setSelectedTask(optimisticTask);
 
-			const data = await debouncedUpdate(values, wsClientId);
-
-			if (data?.success && data.data && !data.skipped) {
-				const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
-				setTasks(finalTasks);
-				if (task && task.id === data.data.id) {
-					setSelectedTask(data.data);
-					sendWindowMessage(
-						window,
-						{
-							type: "timeline-update",
-							payload: data.data.id,
-						},
-						"*"
-					);
-				}
-			}
+			// Debounced API call + reconciliation
+			await debouncedExecute(values);
 		}
 	};
 

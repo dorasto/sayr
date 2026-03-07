@@ -16,24 +16,22 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { updateTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
+import { getPriorityUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
 import { priorityConfig } from "./config";
 
 interface GlobalTaskPriorityProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
 	onChange?: (priority: string) => void;
-	// New props for internal logic
+	// Props for internal logic (delegated to the unified action system)
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (newValue: schema.TaskWithLabels[]) => void;
 	setSelectedTask?: (newValue: schema.TaskWithLabels | null) => void;
-	// If you want to use custom logic instead of internal logic, use onChange
 	useInternalLogic?: boolean;
 	open?: boolean;
 	setOpen?: (open: boolean) => void;
 	customTrigger?: React.ReactNode;
-	// Legacy prop for backward compatibility
+	/** @deprecated No longer needed — internal logic is now handled by the action system */
 	onPriorityChange?: (priority: string) => void;
 	showLabel?: boolean;
 	showChevron?: boolean;
@@ -53,15 +51,22 @@ export default function GlobalTaskPriority({
 	open,
 	setOpen,
 	customTrigger,
-	onPriorityChange, // Legacy prop support
+	onPriorityChange: _onPriorityChange, // Legacy prop — ignored, kept for backward-compatible call sites
 	showLabel = true,
 	showChevron = true,
 	className,
 	compact = false,
 }: GlobalTaskPriorityProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const { runWithToast } = useToastAction();
 	const currentPriority = (task.priority ?? "none") || "none";
+
+	const { execute } = useTaskFieldAction(
+		task,
+		tasks,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		wsClientId,
+	);
 
 	const handlePriorityChange = async (value: string | null) => {
 		if (!value) return;
@@ -71,53 +76,8 @@ export default function GlobalTaskPriority({
 			onChange(value);
 		}
 
-		// Support legacy prop — when onPriorityChange is provided, it handles the
-		// full update flow (API call + optimistic update), so skip internal logic
-		// to avoid duplicate API requests and duplicate timeline entries.
-		if (onPriorityChange) {
-			onPriorityChange(value);
-			return;
-		}
-
-		if (useInternalLogic && tasks && setTasks && setSelectedTask) {
-			// Internal logic - same pattern as status
-			const updatedTasks = tasks.map((t) =>
-				t.id === task.id ? { ...task, priority: value as schema.TaskWithLabels["priority"] } : t
-			);
-			setTasks(updatedTasks);
-			if (task) {
-				setSelectedTask({
-					...task,
-					priority: value as schema.TaskWithLabels["priority"],
-				});
-			}
-
-			const data = await runWithToast(
-				"update-task-priority",
-				{
-					loading: {
-						title: "Updating task...",
-						description: "Updating your task... changes are already visible.",
-					},
-					success: {
-						title: "Task saved",
-						description: "Your changes have been saved successfully.",
-					},
-					error: {
-						title: "Save failed",
-						description: "Your changes are showing, but we couldn't save them to the server. Please try again.",
-					},
-				},
-				() => updateTaskAction(task.organizationId, task.id, { priority: value }, wsClientId)
-			);
-
-			if (data?.success && data.data) {
-				const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
-				setTasks(finalTasks);
-				if (task && task.id === data.data.id) {
-					setSelectedTask(data.data);
-				}
-			}
+		if (useInternalLogic && setTasks && setSelectedTask) {
+			execute(getPriorityUpdatePayload(task, value));
 		}
 	};
 

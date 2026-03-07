@@ -16,13 +16,11 @@ import {
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCategory } from "@tabler/icons-react";
 import { XIcon } from "lucide-react";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { updateTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
+import { getCategoryUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
 import { Button } from "@repo/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { InlineLabel } from "./inlinelabel";
@@ -67,69 +65,23 @@ export default function GlobalTaskCategory({
 	compact = false,
 }: GlobalTaskCategoryProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const { runWithToast } = useToastAction();
+
+	const { execute } = useTaskFieldAction(
+		task,
+		tasks,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		wsClientId,
+	);
 
 	const handleCategoryChange = async (categoryId: string | null) => {
-		// if (!categoryId) return;
-
 		// Always call onChange first
 		if (onChange) {
 			onChange(categoryId || "");
 		}
 
-		if (useInternalLogic && tasks && setTasks && setSelectedTask) {
-			// Find the category object for display
-			const selectedCategory = categories.find((c) => c.id === categoryId)?.id || "";
-
-			// Optimistic UI update
-			const updatedTasks = tasks.map((t) => (t.id === task.id ? { ...task, category: selectedCategory } : t));
-			setTasks(updatedTasks);
-			if (task) {
-				setSelectedTask({ ...task, category: selectedCategory });
-			}
-
-			// Server update
-			const data = await runWithToast(
-				"update-task-category",
-				{
-					loading: {
-						title: "Updating task...",
-						description: "Updating your task category...",
-					},
-					success: {
-						title: "Task updated",
-						description: "The category has been saved successfully.",
-					},
-					error: {
-						title: "Save failed",
-						description: "Your change is visible, but couldn't be saved. Please try again.",
-					},
-				},
-				() =>
-					updateTaskAction(
-						task.organizationId,
-						task.id,
-						{ category: categoryId }, // <-- Make sure your API expects categoryId or category
-						wsClientId
-					)
-			);
-
-			if (data?.success && data.data) {
-				const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
-				setTasks(finalTasks);
-
-				if (task && task.id === data.data.id) {
-					setSelectedTask(data.data);
-					sendWindowMessage(
-						window,
-						{
-							type: "timeline-update",
-							payload: data.data.id,
-						},
-						"*"
-					);
-				}
-			}
+		if (useInternalLogic && setTasks && setSelectedTask) {
+			execute(getCategoryUpdatePayload(task, categoryId || null, categories));
 		}
 	};
 

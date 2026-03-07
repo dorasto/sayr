@@ -15,21 +15,18 @@ import {
 	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { updateTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
+import { getStatusUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
 import { statusConfig } from "./config";
 
 interface GlobalTaskStatusProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
 	onChange?: (status: string) => void;
-	// New props for internal logic
+	// Props for internal logic (delegated to the unified action system)
 	tasks?: schema.TaskWithLabels[];
 	setTasks?: (newValue: schema.TaskWithLabels[]) => void;
 	setSelectedTask?: (newValue: schema.TaskWithLabels | null) => void;
-	// If you want to use custom logic instead of internal logic, use onChange
 	useInternalLogic?: boolean;
 	open?: boolean;
 	setOpen?: (open: boolean) => void;
@@ -58,8 +55,15 @@ export default function GlobalTaskStatus({
 	compact = false,
 }: GlobalTaskStatusProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const { runWithToast } = useToastAction();
 	const currentStatus = (task.status ?? "backlog") || "backlog";
+
+	const { execute } = useTaskFieldAction(
+		task,
+		tasks,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		wsClientId,
+	);
 
 	const handleStatusChange = async (value: string | null) => {
 		if (!value) return;
@@ -69,53 +73,8 @@ export default function GlobalTaskStatus({
 			onChange(value);
 		}
 
-		if (useInternalLogic && tasks && setTasks && setSelectedTask) {
-			// Internal logic - same as what was in TaskContentSideContent
-			const updatedTasks = tasks.map((t) =>
-				t.id === task.id ? { ...task, status: value as schema.TaskWithLabels["status"] } : t
-			);
-			setTasks(updatedTasks);
-			if (task) {
-				setSelectedTask({
-					...task,
-					status: value as schema.TaskWithLabels["status"],
-				});
-			}
-
-			const data = await runWithToast(
-				"update-task-status",
-				{
-					loading: {
-						title: "Updating task...",
-						description: "Updating your task... changes are already visible.",
-					},
-					success: {
-						title: "Task saved",
-						description: "Your changes have been saved successfully.",
-					},
-					error: {
-						title: "Save failed",
-						description: "Your changes are showing, but we couldn't save them to the server. Please try again.",
-					},
-				},
-				() => updateTaskAction(task.organizationId, task.id, { status: value }, wsClientId)
-			);
-
-			if (data?.success && data.data) {
-				const finalTasks = tasks.map((t) => (t.id === task.id && data.data ? data.data : t));
-				setTasks(finalTasks);
-				if (task && task.id === data.data.id) {
-					setSelectedTask(data.data);
-					sendWindowMessage(
-						window,
-						{
-							type: "timeline-update",
-							payload: data.data.id,
-						},
-						"*"
-					);
-				}
-			}
+		if (useInternalLogic && setTasks && setSelectedTask) {
+			execute(getStatusUpdatePayload(task, value));
 		}
 	};
 

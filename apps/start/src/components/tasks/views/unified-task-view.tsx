@@ -23,15 +23,19 @@ import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import {
-  updateAssigneesToTaskAction,
-  updateLabelToTaskAction,
-  updateTaskAction,
-  setTaskParentAction,
-  removeTaskParentAction,
-  createTaskRelationAction,
-} from "@/lib/fetches/task";
+import { updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
+import type { FieldUpdatePayload } from "../actions/types";
+import {
+  getStatusUpdatePayload,
+  getPriorityUpdatePayload,
+  getAssigneeBulkUpdatePayload,
+  getLabelBulkUpdatePayload,
+  getCategoryUpdatePayload,
+  getReleaseUpdatePayload,
+  getParentUpdatePayload,
+  getRelationUpdatePayload,
+} from "../actions";
 import type { WSMessage } from "@/lib/ws";
 import { applyFilters } from "../filter/filter-config";
 import type { TaskGroup } from "../filter/types";
@@ -218,149 +222,69 @@ export function UnifiedTaskView({
     setCollapsedSections(newCollapsed);
   };
 
-  // Resolve orgId: use organization prop when available, otherwise fall back to per-task organizationId (cross-org mode)
-  const getOrgId = (taskId: string): string => {
-    if (organization) return organization.id;
-    const task = tasks.find((t) => t.id === taskId);
-    return task?.organizationId ?? "";
+  // Lightweight dispatcher for FieldUpdatePayload — mirrors useTaskFieldAction.execute
+  // but operates on any task by ID rather than being bound to a single task instance.
+  const dispatchPayload = async (payload: FieldUpdatePayload) => {
+    switch (payload.kind) {
+      case "single": {
+        const orgId = payload.optimisticTask.organizationId;
+        await runWithToast(
+          `update-task-${payload.field}`,
+          payload.toastMessages,
+          () => updateTaskAction(orgId, payload.optimisticTask.id, payload.updateData, wsClientId),
+        );
+        break;
+      }
+      case "multi":
+      case "parent": {
+        await runWithToast(payload.actionId, payload.toastMessages, payload.apiFn);
+        break;
+      }
+      case "relation": {
+        await runWithToast(payload.actionId, payload.toastMessages, payload.apiFn);
+        break;
+      }
+    }
   };
 
   const handleTaskUpdate = async (
     taskId: string,
     updates: Partial<schema.TaskWithLabels>,
   ) => {
+    // Optimistic update
     const updatedTasks = tasks.map((t) =>
       t.id === taskId ? { ...t, ...updates } : t,
     );
     setTasks(updatedTasks);
 
-    const orgId = getOrgId(taskId);
+    // Look up the task to pass to payload generators
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
 
     if (updates.status) {
-      await runWithToast(
-        "update-status",
-        {
-          loading: { title: "Updating status..." },
-          success: { title: "Status updated" },
-          error: { title: "Failed to update status" },
-        },
-        () =>
-          updateTaskAction(
-            orgId,
-            taskId,
-            { status: updates.status },
-            wsClientId,
-          ),
-      );
+      await dispatchPayload(getStatusUpdatePayload(task, updates.status));
     }
     if (updates.priority) {
-      await runWithToast(
-        "update-priority",
-        {
-          loading: { title: "Updating priority..." },
-          success: { title: "Priority updated" },
-          error: { title: "Failed to update priority" },
-        },
-        () =>
-          updateTaskAction(
-            orgId,
-            taskId,
-            { priority: updates.priority },
-            wsClientId,
-          ),
-      );
+      await dispatchPayload(getPriorityUpdatePayload(task, updates.priority));
     }
     if (updates.assignees) {
-      await runWithToast(
-        "update-assignees",
-        {
-          loading: { title: "Updating assignees..." },
-          success: { title: "Assignees updated" },
-          error: { title: "Failed to update assignees" },
-        },
-        () =>
-          updateAssigneesToTaskAction(
-            orgId,
-            taskId,
-            updates.assignees?.map((u) => u.id) || [],
-            wsClientId,
-          ),
+      await dispatchPayload(
+        getAssigneeBulkUpdatePayload(task, updates.assignees.map((u) => u.id), availableUsers, wsClientId),
       );
     }
     if (updates.labels) {
-      await runWithToast(
-        "update-labels",
-        {
-          loading: { title: "Updating labels..." },
-          success: { title: "Labels updated" },
-          error: { title: "Failed to update labels" },
-        },
-        () =>
-          updateLabelToTaskAction(
-            orgId,
-            taskId,
-            updates.labels?.map((l) => l.id) || [],
-            wsClientId,
-          ),
+      await dispatchPayload(
+        getLabelBulkUpdatePayload(task, updates.labels.map((l) => l.id), availableLabels, wsClientId),
       );
     }
     if (updates.category !== undefined) {
-      await runWithToast(
-        "update-category",
-        {
-          loading: { title: "Updating category..." },
-          success: { title: "Category updated" },
-          error: { title: "Failed to update category" },
-        },
-        () =>
-          updateTaskAction(
-            orgId,
-            taskId,
-            { category: updates.category },
-            wsClientId,
-          ),
-      );
+      await dispatchPayload(getCategoryUpdatePayload(task, updates.category, categories));
     }
     if (updates.releaseId !== undefined) {
-      await runWithToast(
-        "update-release",
-        {
-          loading: { title: "Updating release..." },
-          success: { title: "Release updated" },
-          error: { title: "Failed to update release" },
-        },
-        () =>
-          updateTaskAction(
-            orgId,
-            taskId,
-            { releaseId: updates.releaseId },
-            wsClientId,
-          ),
-      );
+      await dispatchPayload(getReleaseUpdatePayload(task, updates.releaseId, releases));
     }
     if (updates.parentId !== undefined) {
-      if (updates.parentId === null) {
-        await runWithToast(
-          "remove-parent",
-          {
-            loading: { title: "Removing parent..." },
-            success: { title: "Parent removed" },
-            error: { title: "Failed to remove parent" },
-          },
-          () => removeTaskParentAction(orgId, taskId, wsClientId),
-        );
-      } else {
-        await runWithToast(
-          "set-parent",
-          {
-            loading: { title: "Setting parent..." },
-            success: { title: "Parent set" },
-            error: { title: "Failed to set parent" },
-          },
-          () =>
-            setTaskParentAction(orgId, taskId, updates.parentId as string, wsClientId),
-        );
-      }
+      await dispatchPayload(getParentUpdatePayload(task, updates.parentId, tasks, wsClientId));
     }
   };
 
@@ -369,16 +293,9 @@ export function UnifiedTaskView({
     targetTaskId: string,
     type: "related" | "blocking" | "duplicate",
   ) => {
-    const orgId = getOrgId(sourceTaskId);
-    await runWithToast(
-      "add-relation",
-      {
-        loading: { title: "Adding relation..." },
-        success: { title: "Relation added" },
-        error: { title: "Failed to add relation" },
-      },
-      () => createTaskRelationAction(orgId, sourceTaskId, targetTaskId, type, wsClientId),
-    );
+    const task = tasks.find((t) => t.id === sourceTaskId);
+    if (!task) return;
+    await dispatchPayload(getRelationUpdatePayload(task, targetTaskId, type, tasks, wsClientId));
   };
 
   // Bulk update handler - iterates over selected tasks in parallel
@@ -689,79 +606,27 @@ export function UnifiedTaskView({
       // Apply optimistic update
       updateLocal(updates);
 
-      const orgId = getOrgId(itemId);
+      // Look up the task to pass to payload generators
+      const task = tasks.find((t) => t.id === itemId);
+      if (!task) return;
 
-      // Send updates to server
+      // Send updates to server via action system
       if (updates.status) {
-        await runWithToast(
-          "update-task",
-          {
-            loading: { title: "Updating status..." },
-            success: { title: "Status updated" },
-            error: { title: "Failed to update status" },
-          },
-          () =>
-            updateTaskAction(
-              orgId,
-              itemId,
-              { status: updates.status },
-              wsClientId,
-            ),
-        );
+        await dispatchPayload(getStatusUpdatePayload(task, updates.status));
       }
 
       if (updates.priority) {
-        await runWithToast(
-          "update-task",
-          {
-            loading: { title: "Updating priority..." },
-            success: { title: "Priority updated" },
-            error: { title: "Failed to update priority" },
-          },
-          () =>
-            updateTaskAction(
-              orgId,
-              itemId,
-              { priority: updates.priority },
-              wsClientId,
-            ),
-        );
+        await dispatchPayload(getPriorityUpdatePayload(task, updates.priority));
       }
 
       if (updates.assignees !== undefined) {
-        await runWithToast(
-          "update-task",
-          {
-            loading: { title: "Updating assignee..." },
-            success: { title: "Assignee updated" },
-            error: { title: "Failed to update assignee" },
-          },
-          () =>
-            updateAssigneesToTaskAction(
-              orgId,
-              itemId,
-              updates.assignees?.map((u) => u.id) || [],
-              wsClientId,
-            ),
+        await dispatchPayload(
+          getAssigneeBulkUpdatePayload(task, updates.assignees.map((u) => u.id), availableUsers, wsClientId),
         );
       }
 
       if (updates.category !== undefined) {
-        await runWithToast(
-          "update-task",
-          {
-            loading: { title: "Updating category..." },
-            success: { title: "Category updated" },
-            error: { title: "Failed to update category" },
-          },
-          () =>
-            updateTaskAction(
-              orgId,
-              itemId,
-              { category: updates.category },
-              wsClientId,
-            ),
-        );
+        await dispatchPayload(getCategoryUpdatePayload(task, updates.category, categories));
       }
     };
 

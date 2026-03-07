@@ -17,13 +17,11 @@ import {
   ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconRocket } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { updateTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
 import RenderIcon from "@/components/generic/RenderIcon";
+import { getReleaseUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
 import { InlineLabel } from "./inlinelabel";
 
 interface GlobalTaskReleaseProps {
@@ -66,7 +64,14 @@ export default function GlobalTaskRelease({
   compact = false,
 }: GlobalTaskReleaseProps) {
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-  const { runWithToast } = useToastAction();
+
+  const { execute } = useTaskFieldAction(
+    task,
+    tasks,
+    setSelectedTask ?? (() => {}),
+    setTasks ?? (() => {}),
+    wsClientId,
+  );
 
   const handleReleaseChange = async (releaseId: string | null) => {
     // Always call onChange first
@@ -74,62 +79,8 @@ export default function GlobalTaskRelease({
       onChange(releaseId || "");
     }
 
-    if (useInternalLogic && tasks && setTasks && setSelectedTask) {
-      // Optimistic UI update
-      const updatedTasks = tasks.map((t) =>
-        t.id === task.id ? { ...task, releaseId: releaseId || null } : t,
-      );
-      setTasks(updatedTasks);
-      if (task) {
-        setSelectedTask({ ...task, releaseId: releaseId || null });
-      }
-
-      // Server update
-      const data = await runWithToast(
-        "update-task-release",
-        {
-          loading: {
-            title: "Updating task...",
-            description: "Updating your task release...",
-          },
-          success: {
-            title: "Updated task",
-            description: "Your task release has been updated successfully.",
-          },
-          error: {
-            title: "Failed to update task",
-            description: "An error occurred while updating your task release.",
-          },
-        },
-        () =>
-          updateTaskAction(
-            task.organizationId,
-            task.id,
-            {
-              releaseId: releaseId || null,
-            },
-            wsClientId,
-          ),
-      );
-
-      // If server update succeeded, update the task
-      if (data?.success && data.data && setTasks) {
-        const updatedTasks = tasks.map((t) =>
-          t.id === data.data.id ? data.data : t,
-        );
-        setTasks(updatedTasks);
-        if (task) {
-          setSelectedTask(data.data);
-          sendWindowMessage(
-            window,
-            {
-              type: "timeline-update",
-              payload: data.data.id,
-            },
-            "*",
-          );
-        }
-      }
+    if (useInternalLogic && setTasks && setSelectedTask) {
+      execute(getReleaseUpdatePayload(task, releaseId || null, releases));
     }
   };
 

@@ -1,7 +1,5 @@
-import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
 	IconCategory,
@@ -19,9 +17,8 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
+import { getLabelBulkUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";
-import { updateLabelToTaskAction, updateTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
 import GlobalTaskAssignees from "./assignee";
 import GlobalTaskCategory from "./category";
 import { priorityConfig, statusConfig } from "./config";
@@ -84,7 +81,6 @@ export default function TaskFieldToolbar({
 	variant = "creator",
 }: TaskFieldToolbarProps) {
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const { runWithToast } = useToastAction();
 	const style = VARIANT_STYLES[variant];
 
 	// Resolve the ordered field list into normalized configs
@@ -191,100 +187,20 @@ export default function TaskFieldToolbar({
 		return { inlineFields: inline, overflowFields: overflow };
 	}, [resolvedFields, isOverflowEnabled, fieldHasValue]);
 
-	// ── Internalized Priority callback (detail mode) ───────────────────
-	const handlePriorityChange = useInternalLogic
-		? async (value: string) => {
-				onChange?.priority?.(value);
+	// ── Action system hook for labels (debounced) ─────────────────────
+	const { execute } = useTaskFieldAction(
+		task,
+		tasks,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		wsClientId,
+	);
 
-				if (setTasks && setSelectedTask) {
-					const updatedTasks = tasks.map((t) =>
-						t.id === task.id
-							? {
-									...task,
-									priority: value as schema.TaskWithLabels["priority"],
-								}
-							: t,
-					);
-					setTasks(updatedTasks);
-					setSelectedTask({
-						...task,
-						priority: value as schema.TaskWithLabels["priority"],
-					});
-
-					const data = await runWithToast(
-						"update-task-priority",
-						{
-							loading: {
-								title: "Updating task...",
-								description:
-									"Updating your task... changes are already visible.",
-							},
-							success: {
-								title: "Task saved",
-								description: "Your changes have been saved successfully.",
-							},
-							error: {
-								title: "Save failed",
-								description:
-									"Your changes are showing, but we couldn't save them to the server. Please try again.",
-							},
-						},
-						() =>
-							updateTaskAction(
-								task.organizationId,
-								task.id,
-								{ priority: value },
-								wsClientId,
-							),
-					);
-
-					if (data?.success && data.data) {
-						const finalTasks = tasks.map((t) =>
-							t.id === task.id && data.data ? data.data : t,
-						);
-						setTasks(finalTasks);
-						if (task.id === data.data.id) {
-							setSelectedTask(data.data);
-							sendWindowMessage(
-								window,
-								{ type: "timeline-update", payload: data.data.id },
-								"*",
-							);
-						}
-					}
-				}
-			}
-		: undefined;
-
-	// ── Internalized Labels callback (detail mode, debounced) ──────────
-	const debouncedUpdateLabels = useDebounceAsync(
-		async (values: string[], _wsClientId: string) => {
-			const data = await runWithToast(
-				"update-task-labels",
-				{
-					loading: {
-						title: "Updating task...",
-						description: "Updating your task... changes are already visible.",
-					},
-					success: {
-						title: "Task saved",
-						description: "Your changes have been saved successfully.",
-					},
-					error: {
-						title: "Save failed",
-						description:
-							"Your changes are showing, but we couldn't save them to the server. Please try again.",
-					},
-				},
-				() =>
-					updateLabelToTaskAction(
-						task.organizationId,
-						task.id,
-						values,
-						_wsClientId,
-					),
-			);
-			return data;
+	// Debounce only the API call + reconciliation; optimistic updates happen immediately.
+	const debouncedLabelExecute = useDebounceAsync(
+		async (values: string[]) => {
+			const payload = getLabelBulkUpdatePayload(task, values, availableLabels, wsClientId);
+			await execute(payload, { skipOptimistic: true });
 		},
 		1500,
 	);
@@ -294,39 +210,21 @@ export default function TaskFieldToolbar({
 				onChange?.labels?.(values);
 
 				if (setTasks && setSelectedTask) {
-					const updatedTasks = tasks.map((t) =>
-						t.id === task.id
-							? {
-									...task,
-									labels: availableLabels.filter((label) =>
-										values.includes(label.id),
-									),
-								}
-							: t,
-					);
-					setTasks(updatedTasks);
-					setSelectedTask({
+					// Immediate optimistic update
+					const optimisticTask = {
 						...task,
 						labels: availableLabels.filter((label) =>
 							values.includes(label.id),
 						),
-					});
+					};
+					const updatedTasks = tasks.map((t) =>
+						t.id === task.id ? optimisticTask : t,
+					);
+					setTasks(updatedTasks);
+					setSelectedTask(optimisticTask);
 
-					const data = await debouncedUpdateLabels(values, wsClientId);
-					if (data?.success && data.data && !data.skipped) {
-						const finalTasks = tasks.map((t) =>
-							t.id === task.id && data.data ? data.data : t,
-						);
-						setTasks(finalTasks);
-						if (task.id === data.data.id) {
-							setSelectedTask(data.data);
-							sendWindowMessage(
-								window,
-								{ type: "timeline-update", payload: data.data.id },
-								"*",
-							);
-						}
-					}
+					// Debounced API call + reconciliation
+					await debouncedLabelExecute(values);
 				}
 			}
 		: undefined;
@@ -393,9 +291,7 @@ export default function TaskFieldToolbar({
 		priority: (cfg) => (
 			<GlobalTaskPriority
 				{...buildSharedProps(cfg)}
-				{...(useInternalLogic && handlePriorityChange
-					? { onPriorityChange: handlePriorityChange }
-					: { onChange: onChange?.priority })}
+				onChange={onChange?.priority}
 				{...(style.useCustomTrigger
 					? { customTrigger: creatorPriorityTrigger(cfg, { priorityCfg }) }
 					: {})}
