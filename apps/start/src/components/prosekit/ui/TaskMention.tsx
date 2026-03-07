@@ -94,7 +94,7 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 				<Link to="/$orgId/tasks/$taskShortId" params={{ orgId: task.organizationId, taskShortId: shortId }}>
 					<div className="flex items-center gap-1 p-1">
 						<Label variant={"subheading"} className="p-1 truncate">
-							{task.title} asdf asodifj asoidf jasoidj foasidjf oasidjf oasidjf oasidj foij
+							{task.title}
 						</Label>
 						<Badge
 							variant="outline"

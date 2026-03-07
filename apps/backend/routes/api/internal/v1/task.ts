@@ -20,6 +20,13 @@ import {
 	removeLabelFromTask,
 	schema,
 	userSummaryColumns,
+	setTaskParent,
+	removeTaskParent,
+	getSubtasks,
+	createTaskRelation,
+	removeTaskRelation,
+	getTaskRelations,
+	searchTasksByOrganization,
 } from "@repo/database";
 import { getInstallationToken } from "@repo/util/github/auth";
 import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
@@ -138,6 +145,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		assignees,
 		category,
 		releaseId,
+		parentId,
 	} = body;
 	let { visible } = body as {
 		visible?: "public" | "private";
@@ -163,10 +171,10 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	}
 	const task = await traceAsync(
 		"task.create.insert",
-		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible }, session?.userId),
+		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible, parentId }, session?.userId),
 		{
 			description: "Creating task record",
-			data: { orgId, title, status, priority, category, releaseId, visible },
+			data: { orgId, title, status, priority, category, releaseId, visible, parentId },
 		}
 	);
 
@@ -219,6 +227,20 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		}
 	);
 
+	// If created as a subtask, log timeline events on both child and parent
+	if (parentId) {
+		await traceAsync(
+			"task.create.parent_link",
+			async () => {
+				await Promise.all([
+					addLogEventTask(task.id, orgId, "parent_added", null, parentId, session?.userId),
+					addLogEventTask(parentId, orgId, "subtask_added", null, task.id, session?.userId),
+				]);
+			},
+			{ description: "Logging parent/subtask timeline events", data: { taskId: task.id, parentId } },
+		);
+	}
+
 	const taskWithData = await traceAsync("task.create.refetch", () => getTaskById(orgId, task.id), {
 		description: "Fetching created task with relations",
 	});
@@ -250,6 +272,22 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		},
 		{ description: "Broadcasting new task to clients" }
 	);
+
+	// If created as a subtask, broadcast an update to the parent so other clients see the new subtask count
+	if (parentId) {
+		await traceAsync(
+			"task.create.broadcast_parent",
+			async () => {
+				const parentWithData = await getTaskById(orgId, parentId);
+				if (parentWithData) {
+					const found = findClientByWsId(wsClientId);
+					const parentUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: parentWithData };
+					broadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.socket, true);
+				}
+			},
+			{ description: "Broadcasting parent task update for new subtask", data: { parentId } },
+		);
+	}
 
 	await traceAsync(
 		"task.create.github_sync",
@@ -505,6 +543,401 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	);
 
 	return c.json({ success: true, data: taskWithData });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                       Subtask / Parent Endpoints                           */
+/* -------------------------------------------------------------------------- */
+
+// Set parent task (make a task a subtask)
+apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const { org_id: orgId, wsClientId, task_id: taskId, parent_id: parentId } = await c.req.json();
+	const session = c.get("session");
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		const updated = await traceAsync(
+			"task.set_parent",
+			() => setTaskParent(orgId, taskId, parentId),
+			{ description: "Setting task parent", data: { orgId, taskId, parentId } },
+		);
+
+		// Log timeline events on both tasks
+		await Promise.all([
+			addLogEventTask(taskId, orgId, "parent_added", null, parentId, session?.userId),
+			addLogEventTask(parentId, orgId, "subtask_added", null, taskId, session?.userId),
+		]);
+
+		// Refetch and broadcast
+		const [taskWithData, parentWithData] = await Promise.all([
+			getTaskById(orgId, taskId),
+			getTaskById(orgId, parentId),
+		]);
+
+		const found = findClientByWsId(wsClientId);
+		const taskUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
+		const parentUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: parentWithData };
+
+		broadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.socket, true);
+		broadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.socket, true);
+
+		return c.json({ success: true, data: taskWithData });
+	} catch (err) {
+		await recordWideError({
+			name: "task.set_parent.failed",
+			error: err,
+			code: "SET_PARENT_FAILED",
+			message: err instanceof Error ? err.message : "Failed to set parent task",
+			contextData: { orgId, taskId, parentId },
+		});
+		return c.json(
+			{ success: false, error: err instanceof Error ? err.message : "Failed to set parent task" },
+			400,
+		);
+	}
+});
+
+// Remove parent task (promote subtask to top-level)
+apiRouteAdminProjectTask.patch("/remove-parent", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const { org_id: orgId, wsClientId, task_id: taskId } = await c.req.json();
+	const session = c.get("session");
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		// Get existing parent before removal
+		const existingTask = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+			columns: { parentId: true },
+		});
+
+		const oldParentId = existingTask?.parentId;
+
+		const updated = await traceAsync(
+			"task.remove_parent",
+			() => removeTaskParent(orgId, taskId),
+			{ description: "Removing task parent", data: { orgId, taskId } },
+		);
+
+		// Log timeline events
+		const timelinePromises = [
+			addLogEventTask(taskId, orgId, "parent_removed", oldParentId, null, session?.userId),
+		];
+		if (oldParentId) {
+			timelinePromises.push(
+				addLogEventTask(oldParentId, orgId, "subtask_removed", taskId, null, session?.userId),
+			);
+		}
+		await Promise.all(timelinePromises);
+
+		// Refetch and broadcast
+		const taskWithData = await getTaskById(orgId, taskId);
+		const found = findClientByWsId(wsClientId);
+		const taskUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
+		broadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.socket, true);
+
+		if (oldParentId) {
+			const parentWithData = await getTaskById(orgId, oldParentId);
+			const parentUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: parentWithData };
+			broadcastToRoom(orgId, `tasks;task:${oldParentId}`, parentUpdate, found?.socket, true);
+		}
+
+		return c.json({ success: true, data: taskWithData });
+	} catch (err) {
+		await recordWideError({
+			name: "task.remove_parent.failed",
+			error: err,
+			code: "REMOVE_PARENT_FAILED",
+			message: "Failed to remove parent task",
+			contextData: { orgId, taskId },
+		});
+		return c.json({ success: false, error: "Failed to remove parent task" }, 400);
+	}
+});
+
+// Get subtasks for a task
+apiRouteAdminProjectTask.get("/subtasks", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const orgId = c.req.query("org_id");
+	const taskId = c.req.query("task_id");
+	const session = c.get("session");
+
+	if (!orgId || !taskId) {
+		return c.json({ success: false, error: "Missing org_id or task_id" }, 400);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		const subtasks = await traceAsync(
+			"task.get_subtasks",
+			() => getSubtasks(orgId, taskId),
+			{ description: "Fetching subtasks", data: { orgId, taskId } },
+		);
+
+		return c.json({ success: true, data: subtasks });
+	} catch (err) {
+		await recordWideError({
+			name: "task.get_subtasks.failed",
+			error: err,
+			code: "GET_SUBTASKS_FAILED",
+			message: "Failed to fetch subtasks",
+			contextData: { orgId, taskId },
+		});
+		return c.json({ success: false, error: "Failed to fetch subtasks" }, 500);
+	}
+});
+
+/* -------------------------------------------------------------------------- */
+/*                         Task Relation Endpoints                            */
+/* -------------------------------------------------------------------------- */
+
+// Create a relation between two tasks
+apiRouteAdminProjectTask.post("/create-relation", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const {
+		org_id: orgId,
+		wsClientId,
+		source_task_id: sourceTaskId,
+		target_task_id: targetTaskId,
+		type,
+	} = await c.req.json();
+	const session = c.get("session");
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		const relation = await traceAsync(
+			"task.create_relation",
+			() => createTaskRelation(orgId, sourceTaskId, targetTaskId, type, session?.userId),
+			{ description: "Creating task relation", data: { orgId, sourceTaskId, targetTaskId, type } },
+		);
+
+		// Log timeline events on both tasks
+		const relationInfo = { type, relatedTaskId: targetTaskId };
+		const reverseInfo = { type, relatedTaskId: sourceTaskId };
+		await Promise.all([
+			addLogEventTask(sourceTaskId, orgId, "relation_added", null, relationInfo, session?.userId),
+			addLogEventTask(targetTaskId, orgId, "relation_added", null, reverseInfo, session?.userId),
+		]);
+
+		// Refetch and broadcast both tasks
+		const [sourceWithData, targetWithData] = await Promise.all([
+			getTaskById(orgId, sourceTaskId),
+			getTaskById(orgId, targetTaskId),
+		]);
+
+		const found = findClientByWsId(wsClientId);
+		broadcastToRoom(
+			orgId,
+			`tasks;task:${sourceTaskId}`,
+			{ type: "UPDATE_TASK" as WSBaseMessage["type"], data: sourceWithData },
+			found?.socket,
+			true,
+		);
+		broadcastToRoom(
+			orgId,
+			`tasks;task:${targetTaskId}`,
+			{ type: "UPDATE_TASK" as WSBaseMessage["type"], data: targetWithData },
+			found?.socket,
+			true,
+		);
+
+		return c.json({ success: true, data: relation });
+	} catch (err) {
+		await recordWideError({
+			name: "task.create_relation.failed",
+			error: err,
+			code: "CREATE_RELATION_FAILED",
+			message: err instanceof Error ? err.message : "Failed to create relation",
+			contextData: { orgId, sourceTaskId, targetTaskId, type },
+		});
+		return c.json(
+			{ success: false, error: err instanceof Error ? err.message : "Failed to create relation" },
+			400,
+		);
+	}
+});
+
+// Remove a task relation
+apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const {
+		org_id: orgId,
+		wsClientId,
+		relation_id: relationId,
+		source_task_id: sourceTaskId,
+		target_task_id: targetTaskId,
+	} = await c.req.json();
+	const session = c.get("session");
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		await traceAsync(
+			"task.remove_relation",
+			() => removeTaskRelation(orgId, relationId),
+			{ description: "Removing task relation", data: { orgId, relationId } },
+		);
+
+		// Log timeline events on both tasks if IDs were provided
+		if (sourceTaskId && targetTaskId) {
+			await Promise.all([
+				addLogEventTask(sourceTaskId, orgId, "relation_removed", relationId, null, session?.userId),
+				addLogEventTask(targetTaskId, orgId, "relation_removed", relationId, null, session?.userId),
+			]);
+		}
+
+		// Broadcast updates for both tasks
+		const found = findClientByWsId(wsClientId);
+		if (sourceTaskId) {
+			const sourceWithData = await getTaskById(orgId, sourceTaskId);
+			broadcastToRoom(
+				orgId,
+				`tasks;task:${sourceTaskId}`,
+				{ type: "UPDATE_TASK" as WSBaseMessage["type"], data: sourceWithData },
+				found?.socket,
+				true,
+			);
+		}
+		if (targetTaskId) {
+			const targetWithData = await getTaskById(orgId, targetTaskId);
+			broadcastToRoom(
+				orgId,
+				`tasks;task:${targetTaskId}`,
+				{ type: "UPDATE_TASK" as WSBaseMessage["type"], data: targetWithData },
+				found?.socket,
+				true,
+			);
+		}
+
+		return c.json({ success: true });
+	} catch (err) {
+		await recordWideError({
+			name: "task.remove_relation.failed",
+			error: err,
+			code: "REMOVE_RELATION_FAILED",
+			message: "Failed to remove relation",
+			contextData: { orgId, relationId },
+		});
+		return c.json({ success: false, error: "Failed to remove relation" }, 400);
+	}
+});
+
+// Get relations for a task
+apiRouteAdminProjectTask.get("/relations", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const orgId = c.req.query("org_id");
+	const taskId = c.req.query("task_id");
+	const session = c.get("session");
+
+	if (!orgId || !taskId) {
+		return c.json({ success: false, error: "Missing org_id or task_id" }, 400);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	try {
+		const relations = await traceAsync(
+			"task.get_relations",
+			() => getTaskRelations(orgId, taskId),
+			{ description: "Fetching task relations", data: { orgId, taskId } },
+		);
+
+		return c.json({ success: true, data: relations });
+	} catch (err) {
+		await recordWideError({
+			name: "task.get_relations.failed",
+			error: err,
+			code: "GET_RELATIONS_FAILED",
+			message: "Failed to fetch task relations",
+			contextData: { orgId, taskId },
+		});
+		return c.json({ success: false, error: "Failed to fetch task relations" }, 500);
+	}
+});
+
+// --- Search tasks within an organization (for TaskPicker) ---
+apiRouteAdminProjectTask.get("/search", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const orgId = c.req.query("org_id");
+	const query = c.req.query("q") || "";
+	const limitParam = c.req.query("limit");
+	const offsetParam = c.req.query("offset");
+	const session = c.get("session");
+
+	if (!orgId) {
+		return c.json(errorResponse("Missing organization id", "Query parameter `org_id` is required"), 400);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "Permission denied" }, 401);
+	}
+
+	const limit = Math.min(Math.max(Number.parseInt(limitParam || "20", 10) || 20, 1), 50);
+	const offset = Math.max(Number.parseInt(offsetParam || "0", 10) || 0, 0);
+
+	try {
+		const results = await traceAsync(
+			"task.search_org",
+			() => searchTasksByOrganization(orgId, query || undefined, limit, offset),
+			{
+				description: "Searching tasks within organization",
+				data: { orgId, query, limit, offset },
+				onSuccess: (result) => ({
+					description: "Org task search completed",
+					data: { resultCount: result.length },
+				}),
+			},
+		);
+
+		return c.json({ success: true, data: results });
+	} catch (err) {
+		await recordWideError({
+			name: "task.search_org.failed",
+			error: err,
+			code: "TASK_SEARCH_FAILED",
+			message: "Failed to search tasks in organization",
+			contextData: { orgId, query },
+		});
+		return c.json({ success: false, error: "Failed to search tasks" }, 500);
+	}
 });
 
 // --- GitHub Link Task ---

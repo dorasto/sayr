@@ -30,32 +30,40 @@ import { formatCount, formatDateCompact } from "@repo/util";
 import {
   IconAppWindow,
   IconArrowRight,
+  IconArrowUpRight,
   IconCategory,
   IconChevronUp,
   IconCircleFilled,
+  IconCopy,
   IconExternalLink,
+  IconGitBranch,
+  IconLink,
   IconRocket,
   IconTag,
   IconUser,
-  IconUserOff,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { nanoid } from "nanoid";
-import { useRef, useState } from "react";
+
+import { useMemo, useRef, useState } from "react";
 import {
   useTaskViewManager,
   type FilterState,
 } from "@/hooks/useTaskViewManager";
 import GlobalTaskAssignees from "../shared/assignee";
 import { priorityConfig, statusConfig } from "../shared/config";
-import { RenderLabel } from "../shared/label";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
-import { RenderCategory, RenderRelease } from "../shared";
+import { SubtaskProgressBadge } from "../shared/subtask-progress";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../shared/inlinelabel";
 import { Input } from "@repo/ui/components/input";
 import { releaseStatusConfig } from "@/components/releases/config";
+import {
+	AssigneeAvatarTrigger,
+	CategoryBadgeButton,
+	ReleaseBadgeButton,
+	TaskLabelsInline,
+} from "./unified-task-item-parts";
 
 interface UnifiedTaskItemProps {
   task: schema.TaskWithLabels;
@@ -81,6 +89,13 @@ interface UnifiedTaskItemProps {
   /** Explicit handler to open in dialog regardless of preference */
   onOpenInDialog?: (task: schema.TaskWithLabels) => void;
 
+  /** Handler to add a relation between two tasks */
+  onAddRelation?: (
+    sourceTaskId: string,
+    targetTaskId: string,
+    type: "related" | "blocking" | "duplicate",
+  ) => void;
+
   // List View Specific
   isSelected?: boolean;
   onSelect?: (selected: boolean) => void;
@@ -105,6 +120,7 @@ export function UnifiedTaskItem({
   onTaskUpdate,
   onTaskClick,
   onOpenInDialog,
+  onAddRelation,
   isSelected = false,
   onSelect,
   personal = false,
@@ -132,10 +148,29 @@ export function UnifiedTaskItem({
   const [labelSearch, setLabelSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
   const [releaseSearch, setReleaseSearch] = useState("");
+  const [parentSearch, setParentSearch] = useState("");
+  const [relationTaskSearch, setRelationTaskSearch] = useState("");
   const preventClickRef = useRef(false);
 
   // Consolidated task view state management
   const { applyFilter } = useTaskViewManager();
+
+  // Derive subtask progress from the full tasks array (children have parentId set)
+  const subtaskProgress = useMemo(() => {
+    const childTasks = tasks.filter((t) => t.parentId === task.id);
+    const total = childTasks.length;
+    if (total === 0) return null;
+    const completed = childTasks.filter(
+      (t) => t.status === "done" || t.status === "canceled",
+    ).length;
+    return { completed, total };
+  }, [task.id, tasks]);
+
+  // Resolve parent task from the tasks array when this task is a subtask
+  const parentTask = useMemo(() => {
+    if (!task.parentId) return null;
+    return tasks.find((t) => t.id === task.parentId) ?? null;
+  }, [task.parentId, tasks]);
 
   const handleCategoryClick = (categoryId: string) => {
     preventClickRef.current = true;
@@ -326,7 +361,17 @@ export function UnifiedTaskItem({
 
             {/* Title */}
             <p className="truncate cursor-pointer text-sm text-foreground w-fit">
-              {task.title}
+              {parentTask ? (
+                <span>
+                  {task.title}
+                  <span className="text-muted-foreground">
+                    <span className="mx-1">&rsaquo;</span>
+                    {parentTask.title}
+                  </span>
+                </span>
+              ) : (
+                task.title
+              )}
             </p>
           </div>
         </div>
@@ -334,121 +379,42 @@ export function UnifiedTaskItem({
         {/* Right section with metadata */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="relative flex flex-wrap grow shrink-0 items-center gap-2 whitespace-nowrap">
-            {/* Category */}
-            {task.category &&
-              (() => {
-                const category = categories.find((c) => c.id === task.category);
-                return category ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleCategoryClick(category.id);
-                    }}
-                    data-no-propagate
-                    className="cursor-pointer"
-                  >
-                    <RenderCategory category={category} />
-                  </button>
-                ) : null;
-              })()}
+						{/* Category */}
+						<CategoryBadgeButton
+							categoryId={task.category}
+							categories={categories}
+							onClick={handleCategoryClick}
+						/>
 
-            {/* Labels */}
-            {task.labels && task.labels.length > 0 && (
-              <div className="hidden sm:flex h-5 gap-1 max-w-[300px] overflow-x-auto">
-                {task.labels.slice(0, 2).map((label) => (
-                  <RenderLabel
-                    label={label}
-                    key={label.id + nanoid(5)}
-                    data-no-propagate
-                  />
-                ))}
-                {task.labels.length > 2 && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    +{task.labels.length - 2}
-                  </Badge>
-                )}
-              </div>
-            )}
+						{/* Labels */}
+						<TaskLabelsInline
+							labels={task.labels || []}
+							maxVisible={2}
+							className="hidden sm:flex h-5 gap-1 max-w-[300px] overflow-x-auto"
+							overflowStyle="count"
+						/>
 
-            {/* Assignees */}
-            <GlobalTaskAssignees
-              task={task}
-              editable={true}
-              availableUsers={availableUsers}
-              onChange={handleAssigneeChange}
-              useInternalLogic={true}
-              tasks={tasks}
-              setTasks={setTasks}
-              open={assigneePopoverOpen}
-              setOpen={handleAssigneePopoverChange}
-              side="left"
-              customTrigger={
-                task.assignees && task.assignees.length > 0 ? (
-                  <div
-                    className="flex items-center cursor-pointer"
-                    data-no-propagate
-                  >
-                    {task.assignees.length === 1 ? (
-                      <Avatar className={cn("rounded-full h-5 w-5")}>
-                        <AvatarImage
-                          src={task.assignees[0]?.image || "/avatar.jpg"}
-                          alt={task.assignees[0]?.name}
-                        />
-                        <AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-                          {task.assignees[0]?.name.slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                    ) : (
-                      <div className="flex -space-x-2">
-                        {task.assignees.slice(0, 3).map((assignee, index) => (
-                          <Avatar
-                            key={assignee.id + nanoid(5)}
-                            className={cn(
-                              "rounded-full h-5 w-5",
-                              index > 0 && "relative",
-                            )}
-                            style={{ zIndex: task.assignees.length - index }}
-                          >
-                            <AvatarImage
-                              src={assignee?.image || "/avatar.jpg"}
-                              alt={assignee?.name}
-                            />
-                            <AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-                              {assignee?.name.slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                        {task.assignees.length > 3 && (
-                          <div className="flex items-center justify-center rounded-full h-5 w-5 bg-muted border-2 border-background text-xs font-medium text-muted-foreground relative">
-                            +{task.assignees.length - 3}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div
-                    className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5 cursor-pointer"
-                    data-no-propagate
-                  >
-                    <IconUserOff className="h-3 w-3 shrink-0" />
-                  </div>
-                )
-              }
-            />
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
+						{/* Assignees */}
+						<GlobalTaskAssignees
+							task={task}
+							editable={true}
+							availableUsers={availableUsers}
+							onChange={handleAssigneeChange}
+							useInternalLogic={true}
+							tasks={tasks}
+							setTasks={setTasks}
+							open={assigneePopoverOpen}
+							setOpen={handleAssigneePopoverChange}
+							side="left"
+							customTrigger={
+								<AssigneeAvatarTrigger assignees={task.assignees || []} />
+							}
+						/>
+					</div>
+				</div>
+			</div>
+		</Link>
+	);
 
   const renderListContent = () => (
     <Link
@@ -556,154 +522,68 @@ export function UnifiedTaskItem({
             )}
             {/* Title */}
             <p className="truncate cursor-pointer text-sm text-foreground w-fit">
-              {task.title}{" "}
+              {parentTask ? (
+                <span>
+                  {task.title}
+                  <span className="text-muted-foreground">
+                    <span className="mx-1">&rsaquo;</span>
+                    {parentTask.title}
+                  </span>
+                </span>
+              ) : (
+                task.title
+              )}
+              {/*{task.title}{" "}*/}
             </p>
           </div>
         </div>
         {/* Right section with metadata and actions */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="relative flex flex-wrap grow shrink-0 items-center gap-2 whitespace-nowrap">
-            {/* Organization (personal/cross-org mode) */}
-
-            {/* Category */}
-            {task.category &&
-              (() => {
-                const category = categories.find((c) => c.id === task.category);
-                return category ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleCategoryClick(category.id);
-                    }}
-                    data-no-propagate
-                    className="cursor-pointer "
-                  >
-                    <RenderCategory category={category} />
-                  </button>
-                ) : null;
-              })()}
-            {/* Release */}
-            {task.releaseId &&
-              (() => {
-                const release = releases.find((r) => r.id === task.releaseId);
-                return release ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleReleaseClick(release.id);
-                    }}
-                    data-no-propagate
-                    className="cursor-pointer"
-                  >
-                    <RenderRelease release={release} />
-                  </button>
-                ) : null;
-              })()}
-            {/* Labels */}
-            {task.labels && task.labels.length > 0 && (
-              <div className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto">
-                {task.labels.slice(0, 2).map((label) => (
-                  <RenderLabel
-                    label={label}
-                    key={label.id + nanoid(5)}
-                    data-no-propagate
-                    className="max-w-20"
-                  />
-                ))}
-                {task.labels.length > 2 && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <div className="flex -space-x-1.5">
-                      {task.labels.slice(2).map((label) => (
-                        <IconCircleFilled
-                          key={label.id + nanoid(5)}
-                          className="h-3 w-3"
-                          style={{
-                            color: label.color || "var(--foreground)",
-                          }}
-                        />
-                      ))}
-                    </div>
-                    +{task.labels.length - 2}
-                  </Badge>
-                )}
-              </div>
+            {subtaskProgress && (
+              <SubtaskProgressBadge
+                completed={subtaskProgress.completed}
+                total={subtaskProgress.total}
+              />
             )}
-            {/* Assignees */}
-            <GlobalTaskAssignees
-              task={task}
-              editable={true}
-              availableUsers={availableUsers}
-              onChange={handleAssigneeChange}
-              useInternalLogic={true}
-              tasks={tasks}
-              setTasks={setTasks}
-              open={assigneePopoverOpen}
-              setOpen={handleAssigneePopoverChange}
-              side="left"
-              customTrigger={
-                task.assignees && task.assignees.length > 0 ? (
-                  <div
-                    className="flex items-center cursor-pointer"
-                    data-no-propagate
-                  >
-                    {task.assignees.length === 1 ? (
-                      <Avatar className={cn("rounded-full h-5 w-5")}>
-                        <AvatarImage
-                          src={task.assignees[0]?.image || "/avatar.jpg"}
-                          alt={task.assignees[0]?.name}
-                        />
-                        <AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-                          {task.assignees[0]?.name.slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                    ) : (
-                      <div className="flex -space-x-2">
-                        {task.assignees.slice(0, 3).map((assignee, index) => (
-                          <Avatar
-                            key={assignee.id + nanoid(5)}
-                            className={cn(
-                              "rounded-full h-5 w-5",
-                              index > 0 && "relative",
-                            )}
-                            style={{ zIndex: task.assignees.length - index }}
-                          >
-                            <AvatarImage
-                              src={assignee?.image || "/avatar.jpg"}
-                              alt={assignee?.name}
-                            />
-                            <AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-                              {assignee?.name.slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                        {task.assignees.length > 3 && (
-                          <div className="flex items-center justify-center rounded-full h-5 w-5 bg-muted border-2 border-background text-xs font-medium text-muted-foreground relative">
-                            +{task.assignees.length - 3}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div
-                    className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5 cursor-pointer"
-                    data-no-propagate
-                  >
-                    <IconUserOff className="h-3 w-3 shrink-0" />
-                  </div>
-                )
-              }
-            />
+						{/* Organization (personal/cross-org mode) */}
+
+						{/* Category */}
+						<CategoryBadgeButton
+							categoryId={task.category}
+							categories={categories}
+							onClick={handleCategoryClick}
+						/>
+						{/* Release */}
+						<ReleaseBadgeButton
+							releaseId={task.releaseId}
+							releases={releases}
+							onClick={handleReleaseClick}
+						/>
+						{/* Labels */}
+						<TaskLabelsInline
+							labels={task.labels || []}
+							maxVisible={2}
+							className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto"
+							labelClassName="max-w-20"
+							overflowStyle="dots"
+						/>
+						{/* Assignees */}
+						<GlobalTaskAssignees
+							task={task}
+							editable={true}
+							availableUsers={availableUsers}
+							onChange={handleAssigneeChange}
+							useInternalLogic={true}
+							tasks={tasks}
+							setTasks={setTasks}
+							open={assigneePopoverOpen}
+							setOpen={handleAssigneePopoverChange}
+							side="left"
+							customTrigger={
+								<AssigneeAvatarTrigger assignees={task.assignees || []} />
+							}
+						/>
             <span className="text-xs text-muted-foreground truncate hidden xl:flex">
               {formatDateCompact(task.createdAt as Date)}
             </span>
@@ -778,104 +658,63 @@ export function UnifiedTaskItem({
         </div>
       </div>
       <div className="font-medium text-xs line-clamp-2 leading-tight">
-        {task.title}
+        {parentTask ? (
+          <span>
+            {task.title}
+            <span className="text-muted-foreground font-normal">
+              <span className="mx-0.5">&rsaquo;</span>
+              {parentTask.title}
+            </span>
+          </span>
+        ) : (
+          task.title
+        )}
       </div>
 
-      {task.labels && task.labels.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1">
-          {task.labels.slice(0, 3).map((label) => (
-            <RenderLabel
-              key={label.id}
-              label={label}
-              className="max-w-[100px]"
-              data-no-propagate
-            />
-          ))}
-          {task.labels.length > 3 && (
-            <Badge variant="secondary" className="text-xs h-5 px-1">
-              +{task.labels.length - 3}
-            </Badge>
-          )}
-        </div>
-      )}
+		{task.labels && task.labels.length > 0 && (
+			<TaskLabelsInline
+				labels={task.labels}
+				maxVisible={3}
+				className="flex flex-wrap gap-1 mt-1"
+				labelClassName="max-w-[100px]"
+				overflowStyle="count"
+			/>
+		)}
 
-      <div className="flex items-center justify-between mt-auto pt-2">
-        <div className="flex items-center gap-1">
-          {task.category &&
-            (() => {
-              const category = categories.find((c) => c.id === task.category);
-              return category ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleCategoryClick(category.id);
-                  }}
-                  data-no-propagate
-                  className="cursor-pointer"
-                >
-                  <RenderCategory category={category} />
-                </button>
-              ) : null;
-            })()}
-          {task.releaseId &&
-            (() => {
-              const release = releases.find((r) => r.id === task.releaseId);
-              return release ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleReleaseClick(release.id);
-                  }}
-                  data-no-propagate
-                  className="cursor-pointer"
-                >
-                  <RenderRelease release={release} />
-                </button>
-              ) : null;
-            })()}
-        </div>
-        <GlobalTaskAssignees
-          task={task}
-          editable={true}
-          availableUsers={availableUsers}
-          onChange={handleAssigneeChange}
-          useInternalLogic={true}
-          tasks={tasks}
-          setTasks={setTasks}
-          open={assigneePopoverOpen}
-          setOpen={handleAssigneePopoverChange}
-          side="left"
-          customTrigger={
-            task.assignees && task.assignees.length > 0 ? (
-              <div className="flex -space-x-2 cursor-pointer" data-no-propagate>
-                {task.assignees.slice(0, 3).map((assignee) => (
-                  <Avatar key={assignee.id} className="h-5 w-5">
-                    <AvatarImage src={assignee.image || undefined} />
-                    <AvatarFallback className="text-[8px]">
-                      {assignee.name?.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-                {task.assignees.length > 3 && (
-                  <div className="h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-medium">
-                    +{task.assignees.length - 3}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5 cursor-pointer"
-                data-no-propagate
-              >
-                <IconUserOff className="h-3 w-3 shrink-0" />
-              </div>
-            )
-          }
-        />
+		<div className="flex items-center justify-between mt-auto pt-2">
+			<div className="flex items-center gap-1">
+				{subtaskProgress && (
+					<SubtaskProgressBadge
+						completed={subtaskProgress.completed}
+						total={subtaskProgress.total}
+					/>
+				)}
+				<CategoryBadgeButton
+					categoryId={task.category}
+					categories={categories}
+					onClick={handleCategoryClick}
+				/>
+				<ReleaseBadgeButton
+					releaseId={task.releaseId}
+					releases={releases}
+					onClick={handleReleaseClick}
+				/>
+			</div>
+			<GlobalTaskAssignees
+				task={task}
+				editable={true}
+				availableUsers={availableUsers}
+				onChange={handleAssigneeChange}
+				useInternalLogic={true}
+				tasks={tasks}
+				setTasks={setTasks}
+				open={assigneePopoverOpen}
+				setOpen={handleAssigneePopoverChange}
+				side="left"
+				customTrigger={
+					<AssigneeAvatarTrigger assignees={task.assignees || []} simple />
+				}
+			/>
       </div>
     </Link>
   );
@@ -1230,6 +1069,224 @@ export function UnifiedTaskItem({
                   </ContextMenuRadioItem>
                 ))}
             </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      )}
+      <ContextMenuSeparator />
+      <ContextMenuSub>
+        <ContextMenuSubTrigger className="gap-3 w-full">
+          <IconGitBranch className="size-3.5" /> Parent task
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+            <Input
+              variant={"ghost"}
+              className="w-full p-3 border-b rounded-none"
+              placeholder="Search tasks..."
+              value={parentSearch}
+              onChange={(e) => setParentSearch(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ContextMenuRadioGroup
+            value={task.parentId || ""}
+            onValueChange={(value) => {
+              const selectedParent = tasks.find((t) => t.id === value);
+              if (selectedParent) {
+                onTaskUpdate?.(task.id, {
+                  parentId: selectedParent.id,
+                  parent: {
+                    id: selectedParent.id,
+                    shortId: selectedParent.shortId,
+                    title: selectedParent.title,
+                    status: selectedParent.status,
+                  },
+                });
+              }
+            }}
+          >
+            {task.parentId && (
+              <ContextMenuItem
+                className="gap-3 w-full text-muted-foreground"
+                onSelect={() =>
+                  onTaskUpdate?.(task.id, { parentId: null, parent: null })
+                }
+              >
+                Remove parent
+              </ContextMenuItem>
+            )}
+            {tasks
+              .filter(
+                (t) =>
+                  t.id !== task.id &&
+                  !t.parentId &&
+                  (parentSearch === "" ||
+                    t.title
+                      .toLowerCase()
+                      .includes(parentSearch.toLowerCase()) ||
+                    String(t.shortId).includes(parentSearch)),
+              )
+              .slice(0, 20)
+              .map((t) => (
+                <ContextMenuRadioItem key={t.id} value={t.id} showDot={false}>
+                  <div className="flex items-center gap-2 truncate">
+                    {statusConfig[t.status as keyof typeof statusConfig]?.icon(
+                      "h-3.5 w-3.5",
+                    )}
+                    <span className="text-muted-foreground text-xs shrink-0">
+                      #{t.shortId}
+                    </span>
+                    <span className="truncate">{t.title}</span>
+                  </div>
+                </ContextMenuRadioItem>
+              ))}
+          </ContextMenuRadioGroup>
+        </ContextMenuSubContent>
+      </ContextMenuSub>
+      {onAddRelation && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconLink className="size-3.5" /> Add relation
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-44">
+            <ContextMenuSub>
+              <ContextMenuSubTrigger className="gap-3 w-full">
+                <IconArrowUpRight className="size-3.5 text-destructive" />{" "}
+                Blocking
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+                <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+                  <Input
+                    variant={"ghost"}
+                    className="w-full p-3 border-b rounded-none"
+                    placeholder="Search tasks..."
+                    value={relationTaskSearch}
+                    onChange={(e) => setRelationTaskSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+                {tasks
+                  .filter(
+                    (t) =>
+                      t.id !== task.id &&
+                      (relationTaskSearch === "" ||
+                        t.title
+                          .toLowerCase()
+                          .includes(relationTaskSearch.toLowerCase()) ||
+                        String(t.shortId).includes(relationTaskSearch)),
+                  )
+                  .slice(0, 20)
+                  .map((t) => (
+                    <ContextMenuItem
+                      key={t.id}
+                      className="gap-2"
+                      onSelect={() => onAddRelation(task.id, t.id, "blocking")}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {statusConfig[
+                          t.status as keyof typeof statusConfig
+                        ]?.icon("h-3.5 w-3.5")}
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          #{t.shortId}
+                        </span>
+                        <span className="truncate">{t.title}</span>
+                      </div>
+                    </ContextMenuItem>
+                  ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+              <ContextMenuSubTrigger className="gap-3 w-full">
+                <IconLink className="size-3.5 text-muted-foreground" /> Related
+                to
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+                <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+                  <Input
+                    variant={"ghost"}
+                    className="w-full p-3 border-b rounded-none"
+                    placeholder="Search tasks..."
+                    value={relationTaskSearch}
+                    onChange={(e) => setRelationTaskSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+                {tasks
+                  .filter(
+                    (t) =>
+                      t.id !== task.id &&
+                      (relationTaskSearch === "" ||
+                        t.title
+                          .toLowerCase()
+                          .includes(relationTaskSearch.toLowerCase()) ||
+                        String(t.shortId).includes(relationTaskSearch)),
+                  )
+                  .slice(0, 20)
+                  .map((t) => (
+                    <ContextMenuItem
+                      key={t.id}
+                      className="gap-2"
+                      onSelect={() => onAddRelation(task.id, t.id, "related")}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {statusConfig[
+                          t.status as keyof typeof statusConfig
+                        ]?.icon("h-3.5 w-3.5")}
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          #{t.shortId}
+                        </span>
+                        <span className="truncate">{t.title}</span>
+                      </div>
+                    </ContextMenuItem>
+                  ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+              <ContextMenuSubTrigger className="gap-3 w-full">
+                <IconCopy className="size-3.5 text-muted-foreground" />{" "}
+                Duplicate of
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+                <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+                  <Input
+                    variant={"ghost"}
+                    className="w-full p-3 border-b rounded-none"
+                    placeholder="Search tasks..."
+                    value={relationTaskSearch}
+                    onChange={(e) => setRelationTaskSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+                {tasks
+                  .filter(
+                    (t) =>
+                      t.id !== task.id &&
+                      (relationTaskSearch === "" ||
+                        t.title
+                          .toLowerCase()
+                          .includes(relationTaskSearch.toLowerCase()) ||
+                        String(t.shortId).includes(relationTaskSearch)),
+                  )
+                  .slice(0, 20)
+                  .map((t) => (
+                    <ContextMenuItem
+                      key={t.id}
+                      className="gap-2"
+                      onSelect={() => onAddRelation(task.id, t.id, "duplicate")}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {statusConfig[
+                          t.status as keyof typeof statusConfig
+                        ]?.icon("h-3.5 w-3.5")}
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          #{t.shortId}
+                        </span>
+                        <span className="truncate">{t.title}</span>
+                      </div>
+                    </ContextMenuItem>
+                  ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
           </ContextMenuSubContent>
         </ContextMenuSub>
       )}

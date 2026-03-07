@@ -9,6 +9,8 @@ import { deriveAvailableUsers, type TaskDetailOrganization } from "../types";
 import TaskFieldToolbar from "../shared/task-field-toolbar";
 import { TaskEditableHeader } from "./editable-header";
 import GlobalTimeline from "./timeline/root";
+import { TaskContextBanner } from "./task-context-banner";
+import { Separator } from "@repo/ui/components/separator";
 
 export interface TaskDetailCompactProps {
   task: schema.TaskWithLabels;
@@ -137,6 +139,13 @@ export function TaskDetailCompact({
           categories={orgCategories}
           organization={resolvedOrg}
           showContent="both"
+        />
+        <Separator />
+        <TaskContextBanner
+          task={task}
+          tasks={tasks}
+          setTasks={setTasks}
+          setSelectedTask={setSelectedTask}
         />
         <GlobalTimeline
           task={task}

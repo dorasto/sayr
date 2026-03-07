@@ -53,6 +53,7 @@ export async function createTaskAction(
 		assignees?: string[];
 		releaseId?: string;
 		visible?: "public" | "private";
+		parentId?: string | null;
 	},
 	wsClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
@@ -71,6 +72,7 @@ export async function createTaskAction(
 			assignees: data.assignees,
 			releaseId: data.releaseId,
 			visible: data.visible,
+			parentId: data.parentId,
 		}),
 		headers: {
 			"Content-Type": "application/json",
@@ -713,6 +715,131 @@ export async function UpdateCommentVisibilityAction(
 		headers: { "Content-Type": "application/json" },
 		credentials: "include",
 		body: JSON.stringify(payload),
+	});
+
+	return res.json();
+}
+
+/* -------------------------------------------------------------------------- */
+/*                       Subtask / Parent Actions                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Sets a parent task, making the specified task a subtask.
+ * Enforces single-level nesting (a subtask cannot have its own subtasks).
+ */
+export async function setTaskParentAction(
+	organizationId: string,
+	taskId: string,
+	parentId: string,
+	wsClientId: string,
+): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/set-parent`, {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify({
+			org_id: organizationId,
+			wsClientId,
+			task_id: taskId,
+			parent_id: parentId,
+		}),
+	});
+
+	return res.json();
+}
+
+/**
+ * Removes the parent from a task, promoting it back to a top-level task.
+ */
+export async function removeTaskParentAction(
+	organizationId: string,
+	taskId: string,
+	wsClientId: string,
+): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/remove-parent`, {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify({
+			org_id: organizationId,
+			wsClientId,
+			task_id: taskId,
+		}),
+	});
+
+	return res.json();
+}
+
+/**
+ * Fetches all subtasks for a given parent task.
+ */
+export async function getSubtasksAction(
+	organizationId: string,
+	taskId: string,
+): Promise<{ success: boolean; data?: schema.SubtaskSummary[]; error?: string }> {
+	const params = new URLSearchParams({ org_id: organizationId, task_id: taskId });
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/subtasks?${params}`, {
+		method: "GET",
+		credentials: "include",
+	});
+
+	return res.json();
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        Task Relation Actions                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Creates a relation between two tasks.
+ * @param type - "related" | "blocking" | "duplicate"
+ */
+export async function createTaskRelationAction(
+	organizationId: string,
+	sourceTaskId: string,
+	targetTaskId: string,
+	type: "related" | "blocking" | "duplicate",
+	wsClientId: string,
+): Promise<{ success: boolean; data?: schema.TaskRelationWithTarget; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/create-relation`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify({
+			org_id: organizationId,
+			wsClientId,
+			source_task_id: sourceTaskId,
+			target_task_id: targetTaskId,
+			type,
+		}),
+	});
+
+	return res.json();
+}
+
+/**
+ * Removes a task relation by its ID.
+ * Pass source/target task IDs so the backend can broadcast updates to both tasks.
+ */
+export async function removeTaskRelationAction(
+	organizationId: string,
+	relationId: string,
+	sourceTaskId: string,
+	targetTaskId: string,
+	wsClientId: string,
+): Promise<{ success: boolean; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/remove-relation`, {
+		method: "DELETE",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify({
+			org_id: organizationId,
+			wsClientId,
+			relation_id: relationId,
+			source_task_id: sourceTaskId,
+			target_task_id: targetTaskId,
+		}),
 	});
 
 	return res.json();

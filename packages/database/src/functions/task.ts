@@ -1,6 +1,7 @@
-import { and, eq, sql, or, isNull, inArray, count, desc } from "drizzle-orm";
+import { and, eq, sql, or, isNull, inArray, count, desc, asc } from "drizzle-orm";
 import { type NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
+import { taskRelation } from "../../schema/taskRelation.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db, schema } from "..";
 import { userSummaryColumns } from "./index";
@@ -95,6 +96,33 @@ export async function getTasksByOrganizationId(
  * }
  * ```
  */
+
+/**
+ * Normalizes eagerly-loaded relationsAsSource / relationsAsTarget into the
+ * unified TaskRelationWithTarget[] format used by the frontend.
+ */
+function normalizeTaskRelations(
+	asSource: { id: string; type: string; targetTask: { id: string; shortId: number | null; title: string | null; status: string }; createdBy?: schema.UserSummary | null }[],
+	asTarget: { id: string; type: string; sourceTask: { id: string; shortId: number | null; title: string | null; status: string }; createdBy?: schema.UserSummary | null }[],
+): schema.TaskRelationWithTarget[] {
+	return [
+		...asSource.map((r) => ({
+			id: r.id,
+			type: r.type as schema.TaskRelationWithTarget["type"],
+			direction: "source" as const,
+			task: r.targetTask,
+			createdBy: r.createdBy ?? null,
+		})),
+		...asTarget.map((r) => ({
+			id: r.id,
+			type: r.type as schema.TaskRelationWithTarget["type"],
+			direction: "target" as const,
+			task: r.sourceTask,
+			createdBy: r.createdBy ?? null,
+		})),
+	];
+}
+
 export async function getTaskByShortId(
 	orgId: string,
 	shortId: number,
@@ -121,6 +149,24 @@ export async function getTaskByShortId(
 			},
 			githubIssue: {},
 			githubPullRequest: {},
+			parent: {
+				columns: { id: true, shortId: true, title: true, status: true },
+			},
+			subtasks: {
+				columns: { id: true },
+			},
+			relationsAsSource: {
+				with: {
+					targetTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					createdBy: { columns: userSummaryColumns },
+				},
+			},
+			relationsAsTarget: {
+				with: {
+					sourceTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					createdBy: { columns: userSummaryColumns },
+				},
+			},
 		},
 	});
 
@@ -132,6 +178,9 @@ export async function getTaskByShortId(
 			.map((assignment) => assignment.label)
 			.filter(Boolean),
 		assignees: task.assignees.map((assignment) => assignment.user),
+		parent: task.parent ?? null,
+		subtaskCount: task.subtasks?.length ?? 0,
+		relations: normalizeTaskRelations(task.relationsAsSource, task.relationsAsTarget),
 	} as schema.TaskWithLabels;
 }
 
@@ -173,6 +222,24 @@ export async function getTaskById(orgId: string, Id: string) {
 			},
 			githubIssue: {},
 			githubPullRequest: {},
+			parent: {
+				columns: { id: true, shortId: true, title: true, status: true },
+			},
+			subtasks: {
+				columns: { id: true },
+			},
+			relationsAsSource: {
+				with: {
+					targetTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					createdBy: { columns: userSummaryColumns },
+				},
+			},
+			relationsAsTarget: {
+				with: {
+					sourceTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					createdBy: { columns: userSummaryColumns },
+				},
+			},
 		},
 	});
 	if (!task) return null;
@@ -180,6 +247,9 @@ export async function getTaskById(orgId: string, Id: string) {
 		...task,
 		labels: task.labels.map((assignment) => assignment.label),
 		assignees: task.assignees.map((assignment) => assignment.user),
+		parent: task.parent ?? null,
+		subtaskCount: task.subtasks?.length ?? 0,
+		relations: normalizeTaskRelations(task.relationsAsSource, task.relationsAsTarget),
 	};
 }
 
@@ -220,6 +290,7 @@ export async function createTask(
 		category?: schema.taskType["category"];
 		releaseId?: string | null;
 		visible?: schema.taskType["visible"];
+		parentId?: string | null;
 	},
 	createdBy?: string | null
 ) {
@@ -245,6 +316,7 @@ export async function createTask(
 			releaseId: data.releaseId ?? null,
 			createdBy: createdBy, // nullable for ANONYMOUS
 			visible: data.visible ?? "public",
+			parentId: data.parentId ?? null,
 		})
 		.returning();
 	return task;
@@ -689,6 +761,93 @@ export async function searchTasksForUser(
 	return results;
 }
 
+/**
+ * Org-scoped task search for pickers (parent, subtask, relation targets).
+ * When no query is provided, returns recent tasks. When a query is provided,
+ * does an ILIKE search on task title with prefix-match priority.
+ *
+ * Returns minimal fields needed for picker display.
+ */
+export async function searchTasksByOrganization(
+	orgId: string,
+	query?: string,
+	limit = 20,
+	offset = 0,
+): Promise<
+	{
+		id: string;
+		title: string | null;
+		shortId: number | null;
+		status: string;
+		priority: string;
+		parentId: string | null;
+		subtaskCount: number | null;
+	}[]
+> {
+	const clampedLimit = Math.min(Math.max(limit, 1), 50);
+
+	const conditions = [eq(schema.task.organizationId, orgId)];
+
+	if (query && query.trim().length >= 2) {
+		const trimmed = query.trim();
+
+		// Support "#123" syntax to search by shortId
+		const shortIdMatch = trimmed.match(/^#?(\d+)$/);
+		if (shortIdMatch) {
+			const shortIdDigits = shortIdMatch[1];
+			conditions.push(
+				or(
+					sql`${schema.task.title} ILIKE ${`%${trimmed}%`}`,
+					sql`CAST(${schema.task.shortId} AS TEXT) LIKE ${`${shortIdDigits}%`}`,
+				)!,
+			);
+		} else {
+			const searchPattern = `%${trimmed}%`;
+			conditions.push(sql`${schema.task.title} ILIKE ${searchPattern}`);
+		}
+	} else if (query && query.trim().length >= 1) {
+		// Allow single-character "#" prefix queries like "#1"
+		const trimmed = query.trim();
+		const shortIdMatch = trimmed.match(/^#(\d+)$/);
+		if (shortIdMatch) {
+			const shortIdDigits = shortIdMatch[1];
+			conditions.push(sql`CAST(${schema.task.shortId} AS TEXT) LIKE ${`${shortIdDigits}%`}`);
+		}
+	}
+
+	const trimmedQuery = query?.trim() || "";
+	const isShortIdQuery = /^#?\d+$/.test(trimmedQuery);
+
+	const results = await db
+		.select({
+			id: schema.task.id,
+			title: schema.task.title,
+			shortId: schema.task.shortId,
+			status: schema.task.status,
+			priority: schema.task.priority,
+			parentId: schema.task.parentId,
+			subtaskCount: sql<number>`(SELECT COUNT(*) FROM task AS child WHERE child.parent_id = ${schema.task.id})`.as("subtask_count"),
+		})
+		.from(schema.task)
+		.where(and(...conditions))
+		.orderBy(
+			sql`CASE WHEN ${schema.task.status} IN ('done', 'canceled') THEN 1 ELSE 0 END`,
+			...(isShortIdQuery
+				? [
+						sql`CASE WHEN ${schema.task.shortId} = ${Number.parseInt(trimmedQuery.replace("#", ""), 10)} THEN 0 ELSE 1 END`,
+						asc(schema.task.shortId),
+					]
+				: trimmedQuery.length >= 2
+					? [sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${trimmedQuery.toLowerCase()}%`} THEN 0 ELSE 1 END`]
+					: []),
+			desc(schema.task.updatedAt),
+		)
+		.limit(clampedLimit)
+		.offset(offset);
+
+	return results;
+}
+
 export async function createOrToggleCommentReaction(
 	orgId: string,
 	taskId: string,
@@ -839,4 +998,254 @@ export async function createOrToggleTaskVote({
 
 		return { added: true };
 	});
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           Subtask Functions                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Sets a parent task for a given task, making it a subtask.
+ * Enforces single-level nesting: the target parent must not itself be a subtask.
+ *
+ * @param orgId - The organization ID.
+ * @param taskId - The task to make a subtask.
+ * @param parentId - The task to set as parent.
+ * @returns The updated task row, or throws on validation failure.
+ */
+export async function setTaskParent(
+	orgId: string,
+	taskId: string,
+	parentId: string,
+): Promise<schema.taskType> {
+	if (taskId === parentId) {
+		throw new Error("A task cannot be its own parent");
+	}
+
+	// Validate parent exists in the same org and is not itself a subtask
+	const parentTask = await db.query.task.findFirst({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.id, parentId)),
+		columns: { id: true, parentId: true },
+	});
+
+	if (!parentTask) {
+		throw new Error("Parent task not found");
+	}
+
+	if (parentTask.parentId !== null) {
+		throw new Error("Cannot nest subtasks more than one level deep");
+	}
+
+	// Ensure the task being moved doesn't have its own subtasks
+	const existingSubtasks = await db.query.task.findFirst({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.parentId, taskId)),
+		columns: { id: true },
+	});
+
+	if (existingSubtasks) {
+		throw new Error("Cannot make a task with subtasks into a subtask");
+	}
+
+	const [updated] = await db
+		.update(schema.task)
+		.set({ parentId, updatedAt: new Date() })
+		.where(and(eq(schema.task.organizationId, orgId), eq(schema.task.id, taskId)))
+		.returning();
+
+	if (!updated) {
+		throw new Error("Task not found");
+	}
+
+	return updated;
+}
+
+/**
+ * Removes the parent from a task, promoting it back to a top-level task.
+ *
+ * @param orgId - The organization ID.
+ * @param taskId - The subtask to promote.
+ * @returns The updated task row.
+ */
+export async function removeTaskParent(
+	orgId: string,
+	taskId: string,
+): Promise<schema.taskType> {
+	const [updated] = await db
+		.update(schema.task)
+		.set({ parentId: null, updatedAt: new Date() })
+		.where(and(eq(schema.task.organizationId, orgId), eq(schema.task.id, taskId)))
+		.returning();
+
+	if (!updated) {
+		throw new Error("Task not found");
+	}
+
+	return updated;
+}
+
+/**
+ * Fetches all subtasks for a given parent task, enriched with labels and assignees.
+ *
+ * @param orgId - The organization ID.
+ * @param parentId - The parent task ID.
+ * @returns An array of subtask summaries.
+ */
+export async function getSubtasks(
+	orgId: string,
+	parentId: string,
+): Promise<schema.SubtaskSummary[]> {
+	const subtasks = await db.query.task.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.parentId, parentId)),
+		with: {
+			assignees: {
+				with: { user: { columns: userSummaryColumns } },
+			},
+		},
+		orderBy: (t, { asc }) => [asc(t.createdAt)],
+	});
+
+	return subtasks.map((t) => ({
+		id: t.id,
+		shortId: t.shortId,
+		title: t.title,
+		status: t.status,
+		priority: t.priority,
+		assignees: t.assignees.map((a) => a.user),
+	}));
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        Task Relation Functions                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Creates a relation between two tasks.
+ * Prevents self-relations and duplicate relations.
+ *
+ * @param orgId - The organization ID.
+ * @param sourceTaskId - The source task ID.
+ * @param targetTaskId - The target task ID.
+ * @param type - The relation type: "related", "blocking", or "duplicate".
+ * @param createdBy - The user creating the relation (optional).
+ * @returns The newly created task relation row.
+ */
+export async function createTaskRelation(
+	orgId: string,
+	sourceTaskId: string,
+	targetTaskId: string,
+	type: schema.taskRelationType["type"],
+	createdBy?: string | null,
+): Promise<schema.taskRelationType> {
+	if (sourceTaskId === targetTaskId) {
+		throw new Error("A task cannot be related to itself");
+	}
+
+	// For "related" type, also check the reverse direction to prevent duplicates
+	if (type === "related") {
+		const existingReverse = await db.query.taskRelation.findFirst({
+			where: (r) =>
+				and(
+					eq(r.organizationId, orgId),
+					eq(r.sourceTaskId, targetTaskId),
+					eq(r.targetTaskId, sourceTaskId),
+					eq(r.type, "related"),
+				),
+		});
+
+		if (existingReverse) {
+			throw new Error("This relation already exists");
+		}
+	}
+
+	const [relation] = await db
+		.insert(taskRelation)
+		.values({
+			organizationId: orgId,
+			sourceTaskId,
+			targetTaskId,
+			type,
+			createdBy: createdBy ?? null,
+		})
+		.returning();
+
+	if (!relation) {
+		throw new Error("Failed to create task relation");
+	}
+
+	return relation;
+}
+
+/**
+ * Removes a task relation by its ID.
+ *
+ * @param orgId - The organization ID.
+ * @param relationId - The relation ID to remove.
+ */
+export async function removeTaskRelation(
+	orgId: string,
+	relationId: string,
+): Promise<void> {
+	const result = await db
+		.delete(taskRelation)
+		.where(and(eq(taskRelation.organizationId, orgId), eq(taskRelation.id, relationId)))
+		.returning({ id: taskRelation.id });
+
+	if (result.length === 0) {
+		throw new Error("Task relation not found");
+	}
+}
+
+/**
+ * Fetches all relations for a given task, querying both directions.
+ * Returns normalized results with a computed `direction` field so the UI
+ * knows whether to display "Blocking" vs "Blocked by", etc.
+ *
+ * @param orgId - The organization ID.
+ * @param taskId - The task to fetch relations for.
+ * @returns An array of task relations with target task summaries.
+ */
+export async function getTaskRelations(
+	orgId: string,
+	taskId: string,
+): Promise<schema.TaskRelationWithTarget[]> {
+	// Fetch relations where this task is the source
+	const asSource = await db.query.taskRelation.findMany({
+		where: (r) => and(eq(r.organizationId, orgId), eq(r.sourceTaskId, taskId)),
+		with: {
+			targetTask: {
+				columns: { id: true, shortId: true, title: true, status: true },
+			},
+			createdBy: { columns: userSummaryColumns },
+		},
+	});
+
+	// Fetch relations where this task is the target
+	const asTarget = await db.query.taskRelation.findMany({
+		where: (r) => and(eq(r.organizationId, orgId), eq(r.targetTaskId, taskId)),
+		with: {
+			sourceTask: {
+				columns: { id: true, shortId: true, title: true, status: true },
+			},
+			createdBy: { columns: userSummaryColumns },
+		},
+	});
+
+	const results: schema.TaskRelationWithTarget[] = [
+		...asSource.map((r) => ({
+			id: r.id,
+			type: r.type,
+			direction: "source" as const,
+			task: r.targetTask,
+			createdBy: r.createdBy,
+		})),
+		...asTarget.map((r) => ({
+			id: r.id,
+			type: r.type,
+			direction: "target" as const,
+			task: r.sourceTask,
+			createdBy: r.createdBy,
+		})),
+	];
+
+	return results;
 }

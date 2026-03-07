@@ -11,6 +11,7 @@ import { organization } from "./organization.schema";
 import { release } from "./release.schema";
 import { taskAssignee } from "./taskAssignee.schema";
 import { taskComment } from "./taskComment.schema";
+import { taskRelation } from "./taskRelation.schema";
 import { taskTimeline } from "./taskTimeline.schema";
 import type { NodeJSON } from ".";
 export const visibleEnum = v.pgEnum("visible", ["public", "private"]);
@@ -40,6 +41,9 @@ export const task = table(
 		category: v.text("category").references(() => category.id, { onDelete: "set null" }),
 		releaseId: v.text("release_id").references(() => release.id, { onDelete: "set null" }),
 		voteCount: v.integer("vote_count").notNull().default(0),
+		// Subtask hierarchy: null = top-level task, set = subtask of parent.
+		// Single-level only — enforced in application code.
+		parentId: v.text("parent_id"),
 	},
 	(t) => [
 		v.index("idx_task_org_status_priority").on(t.organizationId, t.status, t.priority),
@@ -48,6 +52,12 @@ export const task = table(
 		v.index("idx_task_org_category").on(t.organizationId, t.category),
 		v.index("idx_task_org_release").on(t.organizationId, t.releaseId),
 		v.unique("task_organization_shortid_unique").on(t.organizationId, t.shortId),
+		v.index("idx_task_parent_id").on(t.parentId),
+		v.foreignKey({
+			columns: [t.parentId],
+			foreignColumns: [t.id],
+			name: "task_parent_fk",
+		}).onDelete("set null"),
 	]
 );
 
@@ -81,5 +91,21 @@ export const taskRelations = relations(task, ({ one, many }) => ({
 	githubPullRequest: one(githubPullRequest, {
 		fields: [task.id],
 		references: [githubPullRequest.taskId],
+	}),
+	// Subtask hierarchy (self-referential, single-level)
+	parent: one(task, {
+		fields: [task.parentId],
+		references: [task.id],
+		relationName: "taskHierarchy",
+	}),
+	subtasks: many(task, {
+		relationName: "taskHierarchy",
+	}),
+	// Task relations (related, blocking, duplicate)
+	relationsAsSource: many(taskRelation, {
+		relationName: "relationsAsSource",
+	}),
+	relationsAsTarget: many(taskRelation, {
+		relationName: "relationsAsTarget",
 	}),
 }));
