@@ -87,9 +87,9 @@ const priorityOptions = [
 ] as const;
 
 export function PublicTaskCreator() {
-	const { data: session } = authClient.useSession();
-	const navigate = useNavigate();
-	const { organization, labels, categories, issueTemplates } =
+  const { data: session } = authClient.useSession();
+  const navigate = useNavigate();
+  const { organization, labels, categories, issueTemplates } =
     usePublicOrganizationLayout();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
 
@@ -296,16 +296,13 @@ export function PublicTaskCreator() {
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className={cn(
-        "w-full justify-between bg-accent p-3 rounded-lg",
-        open && "",
-      )}
+      className={cn("w-full justify-between", open && "")}
     >
       <CollapsibleTrigger asChild>
-        <Button variant="primary" className="w-full">
+        <Button variant="primary" className="">
           <span className="flex items-center gap-2">
             <IconPlus className="size-4" />
-            Submit a task
+            Create
           </span>
           <IconChevronDown
             className={cn(
@@ -316,8 +313,8 @@ export function PublicTaskCreator() {
         </Button>
       </CollapsibleTrigger>
 
-      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-        <div className="bg-accent overflow-hidden">
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down pt-3">
+        <div className="bg-accent overflow-hidden rounded-lg">
           {/* Header row: template picker + close */}
           <div className="flex items-center gap-2 p-3 pb-0">
             {hasTemplates && (
