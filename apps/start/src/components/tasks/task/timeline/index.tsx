@@ -22,6 +22,14 @@ export {
 	TimelineAssigneeRemoved,
 } from "./timeline-assignee";
 export { TimelineUpdated } from "./timeline-updated";
+export {
+	TimelineParentAdded,
+	TimelineParentRemoved,
+	TimelineSubtaskAdded,
+	TimelineSubtaskRemoved,
+	TimelineRelationAdded,
+	TimelineRelationRemoved,
+} from "./timeline-hierarchy";
 export { TimelineGithubCommit } from "./timeline-github-commit";
 export { TimelineGithubPRLinked } from "./timeline-github-pr-linked";
 export { TimelineGithubPRCommit } from "./timeline-github-pr-commit";

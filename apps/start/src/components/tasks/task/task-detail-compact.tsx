@@ -139,7 +139,6 @@ export function TaskDetailCompact({
           organization={resolvedOrg}
           showContent="both"
         />
-        <Separator />
         <TaskContextBanner
           task={task}
           tasks={tasks}

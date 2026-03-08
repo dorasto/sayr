@@ -801,7 +801,7 @@ export async function createTaskRelationAction(
 	targetTaskId: string,
 	type: "related" | "blocking" | "duplicate",
 	wsClientId: string,
-): Promise<{ success: boolean; data?: schema.TaskRelationWithTarget; error?: string }> {
+): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/create-relation`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
@@ -828,7 +828,7 @@ export async function removeTaskRelationAction(
 	sourceTaskId: string,
 	targetTaskId: string,
 	wsClientId: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/remove-relation`, {
 		method: "DELETE",
 		headers: { "Content-Type": "application/json" },

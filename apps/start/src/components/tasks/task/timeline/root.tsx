@@ -23,8 +23,14 @@ import {
 	TimelineGithubPRLinked,
 	TimelineLabelAdded,
 	TimelineLabelRemoved,
+	TimelineParentAdded,
+	TimelineParentRemoved,
 	TimelinePriorityChange,
+	TimelineRelationAdded,
+	TimelineRelationRemoved,
 	TimelineStatusChange,
+	TimelineSubtaskAdded,
+	TimelineSubtaskRemoved,
 	TimelineUpdated,
 	TimelineGithubBranchLinked,
 } from "./index";
@@ -83,6 +89,12 @@ export default function GlobalTimeline({
 		github_pr_commit: TimelineGithubPRCommit,
 		github_pr_merged: TimelineGithubPRClosed,
 		github_branch_linked: TimelineGithubBranchLinked,
+		parent_added: TimelineParentAdded,
+		parent_removed: TimelineParentRemoved,
+		subtask_added: TimelineSubtaskAdded,
+		subtask_removed: TimelineSubtaskRemoved,
+		relation_added: TimelineRelationAdded,
+		relation_removed: TimelineRelationRemoved,
 	};
 
 	// --- ACTIVITY FETCH ---
