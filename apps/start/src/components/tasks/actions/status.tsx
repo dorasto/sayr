@@ -15,7 +15,7 @@ export function getStatusOptions(): FieldOption<string>[] {
 	return (Object.keys(sharedStatusConfig) as StatusKey[]).map((key) => ({
 		id: key,
 		label: sharedStatusConfig[key].label,
-		icon: <StatusIcon status={key} className={STATUS_ICON_CLASS} />,
+		icon: <StatusIcon status={key} className={`${STATUS_ICON_CLASS} ${sharedStatusConfig[key].className}`} />,
 		value: key,
 		keywords: `status ${sharedStatusConfig[key].label}`,
 	}));
@@ -29,7 +29,7 @@ export function getStatusDisplay(task: schema.TaskWithLabels): FieldDisplay {
 	const config = sharedStatusConfig[key];
 	return {
 		label: config?.label ?? task.status,
-		icon: <StatusIcon status={key} className={STATUS_ICON_CLASS} />,
+		icon: <StatusIcon status={key} className={`${STATUS_ICON_CLASS} ${config?.className ?? ""}`} />,
 	};
 }
 

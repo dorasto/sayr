@@ -73,6 +73,11 @@ export function useTaskFieldAction(
 
 	const execute = useCallback(
 		async (payload: FieldUpdatePayload) => {
+			// Skip API calls for unsaved/draft tasks (e.g., the task creator dialog).
+			// The parent component manages local state via onChange callbacks;
+			// hitting the API with a non-existent task ID would produce 404 errors.
+			if (taskRef.current.id === "draft") return;
+
 			switch (payload.kind) {
 				case "single": {
 					// Immediate optimistic update + API call (no debounce needed for single-select).
