@@ -1,4 +1,5 @@
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { PublicTaskCreator } from "./public-task-creator";
 import PublicTaskSide from "./side";
 import { PublicTaskView } from "./task-view";
 import {
@@ -241,7 +242,7 @@ export default function PublicOrgHomePage() {
             <div className="md:col-span-1 ">
               <PublicTaskSide />
             </div>
-            <div className="md:col-span-3">
+            <div className="md:col-span-3 flex flex-col gap-3">
               <PublicTaskView sortBy={sortBy} setSortBy={setSortBy} />
             </div>
           </>

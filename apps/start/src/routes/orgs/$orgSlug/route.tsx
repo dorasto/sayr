@@ -1,6 +1,6 @@
 import { SubWrapper } from "@/components/generic/wrapper";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
-import { db, getLabels, getOrganizationPublic } from "@repo/database";
+import { db, getIssueTemplates, getLabels, getOrganizationPublic } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
@@ -56,17 +56,18 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 		const organization = await getOrganizationPublic(data.slug);
 
 		if (!organization) {
-			return { organization: null, labels: [], categories: [] };
+			return { organization: null, labels: [], categories: [], issueTemplates: [] };
 		}
 
-		const [labels, categories] = await Promise.all([
+		const [labels, categories, issueTemplates] = await Promise.all([
 			getLabels(organization.id, "public"),
 			db.query.category.findMany({
 				where: (c, { eq }) => eq(c.organizationId, organization.id),
 			}),
+			getIssueTemplates(organization.id),
 		]);
 
-		return { organization, labels, categories };
+		return { organization, labels, categories, issueTemplates };
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug")({
@@ -112,7 +113,7 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 });
 
 function PublicLayout() {
-	const { organization, labels, categories } = Route.useLoaderData();
+	const { organization, labels, categories, issueTemplates } = Route.useLoaderData();
 
 	if (!organization?.settings?.enablePublicPage) {
 		return <OrganizationUnavailable />;
@@ -123,6 +124,7 @@ function PublicLayout() {
 			organization={organization}
 			labels={labels}
 			categories={categories}
+			issueTemplates={issueTemplates}
 		>
 			<div className="relative flex h-dvh flex-col overflow-hidden">
 				<div className="relative min-h-0 flex-1 overflow-y-auto">
