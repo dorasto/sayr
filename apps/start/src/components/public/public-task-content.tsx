@@ -33,10 +33,12 @@ import {
   IconArrowRight,
   IconCalendar,
   IconChevronUp,
+  IconCircleFilled,
   IconDashboard,
   IconHash,
   IconLock,
   IconProgress,
+  IconTag,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -45,7 +47,7 @@ import { authClient } from "@repo/auth/client";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { RenderLabel } from "@/components/tasks/shared/label";
+
 import { CreateTaskVoteAction } from "@/lib/fetches/task";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useSticky } from "@/hooks/use-sticky";
@@ -389,14 +391,31 @@ export function PublicTaskContent({
 
               {/* Labels */}
               {task.labels && task.labels.length > 0 && (
-                <div className="flex flex-col gap-1 px-3 py-2">
-                  <span className="text-xs text-muted-foreground">Labels</span>
-                  <div className="flex flex-wrap gap-1">
-                    {task.labels.map((label) => (
-                      <RenderLabel key={label.id} label={label} />
-                    ))}
-                  </div>
-                </div>
+                <Tile className="bg-card md:w-full select-none">
+                  <TileHeader className="w-full">
+                    <div className="flex flex-row gap-3 w-full">
+                      <TileTitle className="flex items-center gap-2">
+                        <TileIcon>
+                          <IconTag className="size-4 text-muted-foreground" />
+                        </TileIcon>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {task.labels.map((label, i) => (
+                            <span key={label.id} className="flex items-center gap-1.5">
+                              <IconCircleFilled
+                                size={8}
+                                style={{ color: label.color || "var(--muted-foreground)" }}
+                              />
+                              <span>{label.name}</span>
+                              {i < task.labels.length - 1 && (
+                                <span className="text-muted-foreground">·</span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      </TileTitle>
+                    </div>
+                  </TileHeader>
+                </Tile>
               )}
             </div>
           </div>
