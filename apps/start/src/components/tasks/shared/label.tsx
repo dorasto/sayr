@@ -1,5 +1,3 @@
-"use client";
-
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
@@ -34,10 +32,8 @@ import {
 } from "@repo/ui/components/tooltip";
 import {
   IconCircleFilled,
-  IconDeviceFloppy,
   IconEye,
   IconEyeOff,
-  IconLock,
   IconLockFilled,
   IconPlus,
   IconTag,
@@ -48,16 +44,16 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useToastAction } from "@/lib/util";
 import { createLabelAction } from "@/lib/fetches/organization";
 import RenderIcon from "@/components/generic/RenderIcon";
+import {
+  getLabelBulkUpdatePayload,
+  getLabelOptions,
+  useTaskFieldAction,
+} from "@/components/tasks/actions";
 
 interface GlobalTaskLabelsProps {
   task: schema.TaskWithLabels;
   editable?: boolean;
-  availableLabels?: Array<{
-    id: string;
-    name: string;
-    color?: string | null;
-    visible?: "public" | "private";
-  }>;
+  availableLabels?: schema.labelType[];
   onLabelsChange?: (labelIds: string[]) => void;
   customTrigger?: React.ReactNode;
   customChildren?: React.ReactNode;
@@ -71,6 +67,9 @@ interface GlobalTaskLabelsProps {
   canCreateLabel?: boolean;
   /** Called with the full updated labels list after a new label is created */
   onLabelCreated?: (newLabels: schema.labelType[]) => void;
+  tasks?: schema.TaskWithLabels[];
+  setTasks?: (newValue: schema.TaskWithLabels[]) => void;
+  setSelectedTask?: (newValue: schema.TaskWithLabels | null) => void;
 }
 
 /** Compact inline create-label form rendered inside the ComboBoxEmpty slot */
@@ -226,16 +225,33 @@ export default function GlobalTaskLabels({
   className,
   canCreateLabel = false,
   onLabelCreated,
+  tasks = [],
+  setTasks,
+  setSelectedTask,
 }: GlobalTaskLabelsProps) {
+  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+
   // Get current selected label IDs
   const currentLabelIds = task.labels?.map((label) => label.id) || [];
   const [searchValue, setSearchValue] = useState("");
 
+  const { execute } = useTaskFieldAction(
+    task,
+    tasks,
+    setSelectedTask ?? (() => {}),
+    setTasks ?? (() => {}),
+    wsClientId,
+  );
+
   const handleLabelsChange = (values: string[]) => {
-    if (onLabelsChange) {
-      onLabelsChange(values);
-    }
+    onLabelsChange?.(values);
+    execute(
+      getLabelBulkUpdatePayload(task, values, availableLabels, wsClientId),
+    );
   };
+
+  // Build options from the action system
+  const options = getLabelOptions(availableLabels);
 
   // Whether the empty state (no matching labels) should show the create form
   const showCreateForm = canCreateLabel && searchValue.trim().length > 0;
@@ -283,120 +299,87 @@ export default function GlobalTaskLabels({
     );
   };
 
+  /** Shared ComboBox dropdown content used by all rendering paths */
+  const renderDropdownContent = () => (
+    <ComboBoxContent className="">
+      <ComboBoxSearch
+        placeholder="Search labels..."
+        onValueChange={setSearchValue}
+      />
+      <ComboBoxList>
+        <ComboBoxEmpty className="p-0">{emptyContent}</ComboBoxEmpty>
+        <ComboBoxGroup>
+          {options.map((opt) => (
+            <ComboBoxItem key={opt.id} value={opt.id} searchValue={opt.label}>
+              {opt.icon}
+              <span className="flex-1 ml-2">{opt.label}</span>
+            </ComboBoxItem>
+          ))}
+        </ComboBoxGroup>
+      </ComboBoxList>
+    </ComboBoxContent>
+  );
+
+  if (compact) {
+    return (
+      <ComboBox values={currentLabelIds} onValuesChange={handleLabelsChange}>
+        <ComboBoxTrigger
+          disabled={!editable}
+          className={cn(
+            "h-auto p-1 bg-transparent border-transparent",
+            className,
+          )}
+        >
+          {task.labels?.length > 0 ? (
+            renderCompactLabels()
+          ) : (
+            <IconTag size={14} className="text-muted-foreground" />
+          )}
+        </ComboBoxTrigger>
+        {renderDropdownContent()}
+      </ComboBox>
+    );
+  }
+
+  if (customTrigger) {
+    return (
+      <ComboBox values={currentLabelIds} onValuesChange={handleLabelsChange}>
+        <ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
+        {customChildren}
+        {renderDropdownContent()}
+      </ComboBox>
+    );
+  }
+
   return (
-    <div className={cn("flex flex-col gap-3", !compact && className)}>
-      {!customTrigger && showLabel && (
-        <Label variant={"subheading"}>Labels</Label>
-      )}
+    <div className={cn("flex flex-col gap-3", className)}>
+      {showLabel && <Label variant={"subheading"}>Labels</Label>}
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-2">
-          {compact ? (
-            // Compact mode: dots + count, clicking opens dropdown
-            <ComboBox
-              values={currentLabelIds}
-              onValuesChange={handleLabelsChange}
+          {task.labels.map((label) => (
+            <RenderLabel
+              key={label.id}
+              label={label}
+              showRemove={editable}
+              onRemove={(labelId) => {
+                handleLabelsChange(
+                  currentLabelIds.filter((id) => id !== labelId),
+                );
+              }}
+            />
+          ))}
+          <ComboBox
+            values={currentLabelIds}
+            onValuesChange={handleLabelsChange}
+          >
+            <ComboBoxTrigger
+              disabled={!editable}
+              className="h-6 w-6 aspect-square p-0 justify-center"
             >
-              <ComboBoxTrigger
-                disabled={!editable}
-                className={cn(
-                  "h-auto p-1 bg-transparent border-transparent",
-                  className,
-                )}
-              >
-                {task.labels?.length > 0 ? (
-                  renderCompactLabels()
-                ) : (
-                  <IconTag size={14} className="text-muted-foreground" />
-                )}
-              </ComboBoxTrigger>
-              <ComboBoxContent className="">
-                <ComboBoxSearch
-                  placeholder="Search labels..."
-                  onValueChange={setSearchValue}
-                />
-                <ComboBoxList>
-                  <ComboBoxEmpty>{emptyContent}</ComboBoxEmpty>
-                  <ComboBoxGroup>
-                    {availableLabels.map((label) => (
-                      <ComboBoxItem
-                        key={label.id}
-                        value={label.id}
-                        searchValue={label.name}
-                      >
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full mr-2"
-                          style={{ backgroundColor: label.color || "#cccccc" }}
-                        />
-                        <span className="flex-1">{label.name}</span>
-                      </ComboBoxItem>
-                    ))}
-                  </ComboBoxGroup>
-                </ComboBoxList>
-              </ComboBoxContent>
-            </ComboBox>
-          ) : (
-            // Full mode: show all labels with names
-            <>
-              {customChildren
-                ? customChildren
-                : task.labels.map((label) => (
-                    <RenderLabel
-                      key={label.id}
-                      label={label}
-                      showRemove={editable}
-                      onRemove={(labelId) => {
-                        handleLabelsChange(
-                          currentLabelIds.filter((id) => id !== labelId),
-                        );
-                      }}
-                    />
-                  ))}
-              <ComboBox
-                values={currentLabelIds}
-                onValuesChange={handleLabelsChange}
-              >
-                {customTrigger ? (
-                  // Wrap customTrigger in ComboBoxTrigger asChild so it opens the ComboBox
-                  <ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
-                ) : (
-                  <ComboBoxTrigger
-                    disabled={!editable}
-                    className="h-6 w-6 aspect-square p-0 justify-center"
-                  >
-                    <IconPlus size={14} />
-                  </ComboBoxTrigger>
-                )}
-                <ComboBoxContent className="">
-                  <ComboBoxSearch
-                    placeholder="Search labels..."
-                    onValueChange={setSearchValue}
-                  />
-                  <ComboBoxList>
-                    <ComboBoxEmpty className="p-0">
-                      {emptyContent}
-                    </ComboBoxEmpty>
-                    <ComboBoxGroup>
-                      {availableLabels.map((label) => (
-                        <ComboBoxItem
-                          key={label.id}
-                          value={label.id}
-                          searchValue={label.name}
-                        >
-                          <span
-                            className="h-2 w-2 flex-shrink-0 rounded-full mr-2"
-                            style={{
-                              backgroundColor: label.color || "#cccccc",
-                            }}
-                          />
-                          <span className="flex-1">{label.name}</span>
-                        </ComboBoxItem>
-                      ))}
-                    </ComboBoxGroup>
-                  </ComboBoxList>
-                </ComboBoxContent>
-              </ComboBox>
-            </>
-          )}
+              <IconPlus size={14} />
+            </ComboBoxTrigger>
+            {renderDropdownContent()}
+          </ComboBox>
         </div>
       </div>
     </div>
@@ -428,14 +411,13 @@ export function RenderLabel({
       key={label.id}
       variant="secondary"
       className={cn(
-        "flex items-center justify-center gap-1 max-w-32 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative peer ps-5",
+        "flex items-center justify-center gap-1 max-w-32 bg-accent text-xs h-auto border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative peer ps-5",
         showRemove && "pe-5",
         className,
       )}
-      // style={{
-      // 	backgroundColor: label.color ? getHslaWithOpacity(label.color, 0.1) : "var(--muted)",
-      // 	borderColor: label.color ? getHslaWithOpacity(label.color, 0.5) : "var(--border)",
-      // }}
+      style={{
+        borderColor: label.color || "",
+      }}
       onClick={onClick ? (e) => onClick(e, label.id) : undefined}
     >
       <div className="shrink-0 absolute inset-y-0 flex items-center justify-center start-0 ps-1">
@@ -454,11 +436,6 @@ export function RenderLabel({
             }}
           />
         )}
-
-        {/*private here*/}
-        {/*{label.visible === "private" && (
-          <IconLock size={10} className="text-muted-foreground shrink-0" />
-        )}*/}
       </div>
       <span className="truncate">{label.name}</span>
       {showRemove && onRemove && (

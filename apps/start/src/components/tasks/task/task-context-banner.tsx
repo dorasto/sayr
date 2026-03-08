@@ -56,11 +56,10 @@ function RelationTaskRow({
   return (
     <div className="flex items-center gap-1.5 py-1 group text-sm  p-1 rounded-lg bg-transparent hover:bg-muted transition-all w-full">
       {fullTask ? (
-        <GlobalTaskStatus
-          task={fullTask}
-          editable={true}
-          useInternalLogic={true}
-          tasks={tasks}
+         <GlobalTaskStatus
+           task={fullTask}
+           editable={true}
+           tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
           customTrigger={

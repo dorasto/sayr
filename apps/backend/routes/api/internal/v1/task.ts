@@ -842,7 +842,7 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 			true,
 		);
 
-		return c.json({ success: true, data: relation });
+		return c.json({ success: true, data: sourceWithData });
 	} catch (err) {
 		await recordWideError({
 			name: "task.create_relation.failed",
@@ -894,8 +894,9 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 
 		// Broadcast updates for both tasks
 		const found = findClientByWsId(wsClientId);
+		let sourceWithData = null;
 		if (sourceTaskId) {
-			const sourceWithData = await getTaskById(orgId, sourceTaskId);
+			sourceWithData = await getTaskById(orgId, sourceTaskId);
 			broadcastToRoom(
 				orgId,
 				`tasks;task:${sourceTaskId}`,
@@ -915,7 +916,7 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 			);
 		}
 
-		return c.json({ success: true });
+		return c.json({ success: true, data: sourceWithData });
 	} catch (err) {
 		await recordWideError({
 			name: "task.remove_relation.failed",

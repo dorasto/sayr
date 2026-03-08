@@ -1,86 +1,107 @@
 "use client";
 
-import type { schema } from "@repo/database";
-import {
-	IconAlertSquareFilled,
-	IconArrowLeft,
-	IconArrowUpRight,
-	IconCategory,
-	IconCheck,
-	IconCopy,
-	IconEye,
-	IconGitBranch,
-	IconLink,
-	IconLock,
-	IconLockOpen2,
-	IconRocket,
-	IconTag,
-	IconUser,
-	IconUsers,
-} from "@tabler/icons-react";
-import PriorityIcon from "@repo/ui/components/icons/priority";
-import StatusIcon from "@repo/ui/components/icons/status";
+import { IconArrowLeft, IconCheck, IconCopy, IconLink } from "@tabler/icons-react";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
+import {
+	getStatusOptions,
+	getStatusDisplay,
+	getStatusUpdatePayload,
+	getPriorityOptions,
+	getPriorityDisplay,
+	getPriorityUpdatePayload,
+	getCategoryOptions,
+	getCategoryDisplay,
+	getCategoryUpdatePayload,
+	getReleaseOptions,
+	getReleaseDisplay,
+	getReleaseUpdatePayload,
+	getVisibilityOptions,
+	getVisibilityDisplay,
+	getVisibilityUpdatePayload,
+	getAssigneeOptions,
+	getAssigneeDisplay,
+	getAssigneeUpdatePayload,
+	getLabelOptions,
+	getLabelDisplay,
+	getLabelUpdatePayload,
+	getParentOptions,
+	getParentDisplay,
+	getParentUpdatePayload,
+	getRelationTypeOptions,
+	getRelationTargetOptions,
+	getRelationUpdatePayload,
+	useTaskFieldAction,
+} from "@/components/tasks/actions";
+import type { FieldOption } from "@/components/tasks/actions";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
-import {
-	updateAssigneesToTaskAction,
-	updateLabelToTaskAction,
-	updateTaskAction,
-	setTaskParentAction,
-	removeTaskParentAction,
-	createTaskRelationAction,
-} from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
 import type { CommandItem, CommandMap } from "@/types/command";
 import { useRegisterCommands } from "../useRegisterCommands";
 
-// --- Static configs for status and priority ---
+// --- Helpers to convert FieldOptions into CommandItems ---
 
-const statusConfig = {
-	backlog: { label: "Backlog", icon: <StatusIcon status="backlog" className="h-4 w-4" /> },
-	todo: { label: "Todo", icon: <StatusIcon status="todo" className="h-4 w-4" /> },
-	"in-progress": {
-		label: "In Progress",
-		icon: <StatusIcon status="in-progress" className="h-4 w-4" />,
-	},
-	done: { label: "Done", icon: <StatusIcon status="done" className="h-4 w-4" /> },
-	canceled: { label: "Canceled", icon: <StatusIcon status="canceled" className="h-4 w-4" /> },
-} as const;
+/**
+ * Converts a single-select field's options into CommandItems.
+ * Handles the isCurrent check and no-op on re-select pattern.
+ */
+function buildSingleSelectItems(
+	options: FieldOption<string | null>[],
+	currentValue: string | null,
+	taskId: string,
+	fieldPrefix: string,
+	buildPayload: (value: string | null) => Parameters<ReturnType<typeof useTaskFieldAction>["execute"]>[0],
+	execute: ReturnType<typeof useTaskFieldAction>["execute"],
+	closeOnSelect = true,
+): CommandItem[] {
+	return options.map((opt) => {
+		const isCurrent = currentValue === opt.value || (currentValue === null && opt.value === null);
+		return {
+			id: `task-${fieldPrefix}-${taskId}-${opt.id}`,
+			label: opt.label,
+			icon: opt.icon,
+			action: () => {
+				if (isCurrent) return;
+				execute(buildPayload(opt.value));
+			},
+			closeOnSelect,
+			metadata: isCurrent
+				? <IconCheck className="h-4 w-4 text-primary" />
+				: opt.description
+					? <span className="text-xs text-muted-foreground">{opt.description}</span>
+					: undefined,
+			keywords: opt.keywords,
+		};
+	});
+}
 
-const priorityConfig = {
-	none: {
-		label: "No Priority",
-		icon: <PriorityIcon bars="none" className="h-4 w-4 text-muted-foreground" />,
-	},
-	low: { label: "Low", icon: <PriorityIcon bars={1} className="h-4 w-4 text-gray-500" /> },
-	medium: {
-		label: "Medium",
-		icon: <PriorityIcon bars={2} className="h-4 w-4 text-yellow-500" />,
-	},
-	high: { label: "High", icon: <PriorityIcon bars={3} className="h-4 w-4 text-red-500" /> },
-	urgent: {
-		label: "Urgent",
-		icon: <IconAlertSquareFilled className="h-4 w-4 text-destructive" />,
-	},
-} as const;
-
-const visibilityConfig = {
-	public: {
-		label: "Public",
-		description: "Visible to everyone",
-		icon: <IconLockOpen2 className="h-4 w-4 text-muted-foreground" />,
-	},
-	private: {
-		label: "Private",
-		description: "Only visible to team members",
-		icon: <IconLock className="h-4 w-4 text-primary" />,
-	},
-} as const;
+/**
+ * Converts a multi-select field's options into CommandItems.
+ * Handles the toggle pattern (stays open after selection).
+ */
+function buildMultiSelectItems(
+	options: FieldOption<string>[],
+	activeIds: Set<string>,
+	taskId: string,
+	fieldPrefix: string,
+	buildPayload: (value: string) => Parameters<ReturnType<typeof useTaskFieldAction>["execute"]>[0],
+	execute: ReturnType<typeof useTaskFieldAction>["execute"],
+): CommandItem[] {
+	return options.map((opt) => {
+		const isActive = activeIds.has(opt.value);
+		return {
+			id: `task-${fieldPrefix}-${taskId}-${opt.id}`,
+			label: opt.label,
+			icon: opt.icon,
+			action: () => execute(buildPayload(opt.value)),
+			closeOnSelect: false,
+			metadata: isActive ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
+			keywords: opt.keywords,
+		};
+	});
+}
 
 /**
  * Registers single-task-specific commands when viewing a task.
@@ -93,41 +114,13 @@ export function useTaskCommands() {
 	const { task, setTask } = useLayoutTask();
 	const { tasks, setTasks } = useLayoutTasks();
 	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
-	const { runWithToast } = useToastAction();
 
-	// --- Shared update helper ---
-	const handleFieldUpdate = useCallback(
-		async (
-			field: string,
-			updateData: Parameters<typeof updateTaskAction>[2],
-			optimisticTask: schema.TaskWithLabels,
-			toastMessages: {
-				loading: { title: string; description?: string };
-				success: { title: string; description?: string };
-				error: { title: string; description?: string };
-			},
-		) => {
-			// Optimistic update
-			setTask(optimisticTask);
-			setTasks(tasks.map((t) => (t.id === task.id ? optimisticTask : t)));
-
-			const data = await runWithToast(
-				`update-task-${field}`,
-				toastMessages,
-				() => updateTaskAction(task.organizationId, task.id, updateData, wsClientId),
-			);
-
-			if (data?.success && data.data) {
-				setTask(data.data);
-				setTasks(tasks.map((t) => (t.id === task.id && data.data ? data.data : t)));
-				sendWindowMessage(window, { type: "timeline-update", payload: data.data.id }, "*");
-			}
-		},
-		[task, tasks, setTask, setTasks, wsClientId, runWithToast],
-	);
+	const { execute } = useTaskFieldAction(task, tasks, setTask, setTasks, wsClientId);
 
 	const commands: CommandMap = useMemo(() => {
 		const orgId = organization.id;
+		const members = organization.members || [];
+		const hasSubtasks = (task.subtaskCount ?? 0) > 0;
 
 		// --- Sub-view IDs ---
 		const statusViewId = `task-${task.id}-status`;
@@ -143,481 +136,119 @@ export function useTaskCommands() {
 		const relationRelatedViewId = `task-${task.id}-relation-related`;
 		const relationDuplicateViewId = `task-${task.id}-relation-duplicate`;
 
-		// --- Status sub-view items ---
-		const statusItems: CommandItem[] = Object.entries(statusConfig).map(([key, config]) => {
-			const isCurrent = task.status === key;
-			return {
-				id: `task-status-${task.id}-${key}`,
-				label: config.label,
-				icon: config.icon,
-				action: () => {
-					if (isCurrent) return;
-					handleFieldUpdate(
-						"status",
-						{ status: key },
-						{ ...task, status: key as typeof task.status },
-						{
-							loading: { title: "Updating status..." },
-							success: { title: "Status updated", description: `Changed to ${config.label}` },
-							error: { title: "Failed to update status" },
-						},
-					);
-				},
-				closeOnSelect: true,
-				metadata: isCurrent ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-				keywords: `status ${config.label}`,
-			};
-		});
-
-		// --- Priority sub-view items ---
-		const priorityItems: CommandItem[] = Object.entries(priorityConfig).map(([key, config]) => {
-			const isCurrent = (task.priority || "none") === key;
-			return {
-				id: `task-priority-${task.id}-${key}`,
-				label: config.label,
-				icon: config.icon,
-				action: () => {
-					if (isCurrent) return;
-					handleFieldUpdate(
-						"priority",
-						{ priority: key === "none" ? null : key },
-						{ ...task, priority: (key === "none" ? null : key) as typeof task.priority },
-						{
-							loading: { title: "Updating priority..." },
-							success: { title: "Priority updated", description: `Changed to ${config.label}` },
-							error: { title: "Failed to update priority" },
-						},
-					);
-				},
-				closeOnSelect: true,
-				metadata: isCurrent ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-				keywords: `priority ${config.label}`,
-			};
-		});
-
-		// --- Category sub-view items ---
-		const categoryItems: CommandItem[] = [
-			{
-				id: `task-category-${task.id}-none`,
-				label: "No Category",
-				icon: <IconCategory className="h-4 w-4 text-muted-foreground" />,
-				action: () => {
-					if (!task.category) return;
-					handleFieldUpdate(
-						"category",
-						{ category: null },
-						{ ...task, category: null },
-						{
-							loading: { title: "Removing category..." },
-							success: { title: "Category removed" },
-							error: { title: "Failed to remove category" },
-						},
-					);
-				},
-				closeOnSelect: true,
-				metadata: !task.category ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-				keywords: "category none remove",
-			},
-			...categories.map((cat) => {
-				const isCurrent = task.category === cat.id;
-				return {
-					id: `task-category-${task.id}-${cat.id}`,
-					label: cat.name,
-					icon: (
-						<div
-							className="h-3 w-3 rounded-full border shrink-0"
-							style={{ backgroundColor: cat.color || "#cccccc" }}
-						/>
-					),
-					action: () => {
-						if (isCurrent) return;
-						handleFieldUpdate(
-							"category",
-							{ category: cat.id },
-							{ ...task, category: cat.id },
-							{
-								loading: { title: "Updating category..." },
-								success: { title: "Category updated", description: `Changed to ${cat.name}` },
-								error: { title: "Failed to update category" },
-							},
-						);
-					},
-					closeOnSelect: true,
-					metadata: isCurrent ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-					keywords: `category ${cat.name}`,
-				};
-			}),
-		];
-
-		// --- Release sub-view items ---
-		const releaseItems: CommandItem[] = [
-			{
-				id: `task-release-${task.id}-none`,
-				label: "No Release",
-				icon: <IconRocket className="h-4 w-4 text-muted-foreground" />,
-				action: () => {
-					if (!task.releaseId) return;
-					handleFieldUpdate(
-						"release",
-						{ releaseId: null },
-						{ ...task, releaseId: null },
-						{
-							loading: { title: "Removing release..." },
-							success: { title: "Release removed" },
-							error: { title: "Failed to remove release" },
-						},
-					);
-				},
-				closeOnSelect: true,
-				metadata: !task.releaseId ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-				keywords: "release none remove",
-			},
-			...releases.map((rel) => {
-				const isCurrent = task.releaseId === rel.id;
-				return {
-					id: `task-release-${task.id}-${rel.id}`,
-					label: rel.name,
-					icon: rel.icon ? (
-						<span className="text-sm shrink-0">{rel.icon}</span>
-					) : (
-						<IconRocket className="h-4 w-4 text-muted-foreground shrink-0" />
-					),
-					action: () => {
-						if (isCurrent) return;
-						handleFieldUpdate(
-							"release",
-							{ releaseId: rel.id },
-							{ ...task, releaseId: rel.id },
-							{
-								loading: { title: "Updating release..." },
-								success: { title: "Release updated", description: `Changed to ${rel.name}` },
-								error: { title: "Failed to update release" },
-							},
-						);
-					},
-					closeOnSelect: true,
-					metadata: isCurrent ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-					keywords: `release ${rel.name}`,
-				};
-			}),
-		];
-
-		// --- Visibility sub-view items ---
-		const visibilityItems: CommandItem[] = Object.entries(visibilityConfig).map(
-			([key, config]) => {
-				const currentVisibility = task.visible || "public";
-				const isCurrent = currentVisibility === key;
-				return {
-					id: `task-visibility-${task.id}-${key}`,
-					label: config.label,
-					icon: config.icon,
-					action: () => {
-						if (isCurrent) return;
-						handleFieldUpdate(
-							"visibility",
-							{ visible: key as "public" | "private" },
-							{ ...task, visible: key as "public" | "private" },
-							{
-								loading: { title: "Updating visibility..." },
-								success: {
-									title: "Visibility updated",
-									description: `Task is now ${key}`,
-								},
-								error: { title: "Failed to update visibility" },
-							},
-						);
-					},
-					closeOnSelect: true,
-					metadata: isCurrent ? (
-						<IconCheck className="h-4 w-4 text-primary" />
-					) : (
-						<span className="text-xs text-muted-foreground">{config.description}</span>
-					),
-					keywords: `visibility ${config.label} ${key}`,
-				};
-			},
+		// --- Build sub-view items from action definitions ---
+		const statusItems = buildSingleSelectItems(
+			getStatusOptions(),
+			task.status,
+			task.id,
+			"status",
+			(value) => getStatusUpdatePayload(task, value as string),
+			execute,
 		);
 
-		// --- Assignees sub-view items (multi-select) ---
-		const members = organization.members || [];
-		const currentAssigneeIds = new Set((task.assignees || []).map((a) => a.id));
+		const priorityItems = buildSingleSelectItems(
+			getPriorityOptions(),
+			task.priority ?? null,
+			task.id,
+			"priority",
+			(value) => getPriorityUpdatePayload(task, value),
+			execute,
+		);
 
-		const assigneeItems: CommandItem[] = members.map((member) => {
-			const user = member.user;
-			const isAssigned = currentAssigneeIds.has(user.id);
-			return {
-				id: `task-assignee-${task.id}-${user.id}`,
-				label: user.name || user.email || "Unknown",
-				icon: <IconUser className="h-4 w-4 text-muted-foreground shrink-0" />,
-				action: () => {
-					const newAssigneeIds = isAssigned
-						? [...currentAssigneeIds].filter((id) => id !== user.id)
-						: [...currentAssigneeIds, user.id];
+		const categoryItems = buildSingleSelectItems(
+			getCategoryOptions(categories),
+			task.category ?? null,
+			task.id,
+			"category",
+			(value) => getCategoryUpdatePayload(task, value, categories),
+			execute,
+		);
 
-					const newAssignees = isAssigned
-						? (task.assignees || []).filter((a) => a.id !== user.id)
-						: [
-								...(task.assignees || []),
-								{ id: user.id, name: user.name, email: user.email, image: user.image },
-							];
+		const releaseItems = buildSingleSelectItems(
+			getReleaseOptions(releases),
+			task.releaseId ?? null,
+			task.id,
+			"release",
+			(value) => getReleaseUpdatePayload(task, value, releases),
+			execute,
+		);
 
-					const optimisticTask = { ...task, assignees: newAssignees };
-					setTask(optimisticTask);
-					setTasks(tasks.map((t) => (t.id === task.id ? optimisticTask : t)));
+		const visibilityItems = buildSingleSelectItems(
+			getVisibilityOptions(),
+			task.visible || "public",
+			task.id,
+			"visibility",
+			(value) => getVisibilityUpdatePayload(task, value as string),
+			execute,
+		);
 
-					runWithToast(
-						"update-task-assignees",
-						{
-							loading: { title: "Updating assignees..." },
-							success: {
-								title: "Assignees updated",
-								description: isAssigned
-									? `Removed ${user.name || user.email}`
-									: `Added ${user.name || user.email}`,
-							},
-							error: { title: "Failed to update assignees" },
-						},
-						() =>
-							updateAssigneesToTaskAction(
-								task.organizationId,
-								task.id,
-								newAssigneeIds,
-								wsClientId,
-							),
-					).then((data) => {
-						if (data?.success && data.data) {
-							setTask(data.data);
-							setTasks(tasks.map((t) => (t.id === task.id && data.data ? data.data : t)));
-							sendWindowMessage(
-								window,
-								{ type: "timeline-update", payload: data.data.id },
-								"*",
-							);
-						}
-					});
-				},
-				closeOnSelect: false,
-				metadata: isAssigned ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-				keywords: `assignee ${user.name || ""} ${user.email || ""}`,
-			};
-		});
+		const assigneeItems = buildMultiSelectItems(
+			getAssigneeOptions(members),
+			new Set((task.assignees || []).map((a) => a.id)),
+			task.id,
+			"assignee",
+			(userId) => getAssigneeUpdatePayload(task, userId, members, wsClientId),
+			execute,
+		);
 
-		// --- Labels sub-view items (multi-select) ---
-		const currentLabelIds = new Set((task.labels || []).map((l) => l.id));
+		const labelItems = buildMultiSelectItems(
+			getLabelOptions(orgLabels),
+			new Set((task.labels || []).map((l) => l.id)),
+			task.id,
+			"label",
+			(labelId) => getLabelUpdatePayload(task, labelId, orgLabels, wsClientId),
+			execute,
+		);
 
-		const labelItems: CommandItem[] = orgLabels.map((label) => {
-			const isActive = currentLabelIds.has(label.id);
-			return {
-				id: `task-label-${task.id}-${label.id}`,
-				label: label.name,
-				icon: (
-					<div
-						className="h-3 w-3 rounded-full border shrink-0"
-						style={{ backgroundColor: label.color || "#cccccc" }}
-					/>
-				),
-				action: () => {
-					const newLabelIds = isActive
-						? [...currentLabelIds].filter((id) => id !== label.id)
-						: [...currentLabelIds, label.id];
-
-					const newLabels = isActive
-						? (task.labels || []).filter((l) => l.id !== label.id)
-						: [...(task.labels || []), label];
-
-					const optimisticTask = { ...task, labels: newLabels };
-					setTask(optimisticTask);
-					setTasks(tasks.map((t) => (t.id === task.id ? optimisticTask : t)));
-
-					runWithToast(
-						"update-task-labels",
-						{
-							loading: { title: "Updating labels..." },
-							success: {
-								title: "Labels updated",
-								description: isActive ? `Removed ${label.name}` : `Added ${label.name}`,
-							},
-							error: { title: "Failed to update labels" },
-						},
-						() =>
-							updateLabelToTaskAction(
-								task.organizationId,
-								task.id,
-								newLabelIds,
-								wsClientId,
-							),
-					).then((data) => {
-						if (data?.success && data.data) {
-							setTask(data.data);
-							setTasks(tasks.map((t) => (t.id === task.id && data.data ? data.data : t)));
-							sendWindowMessage(
-								window,
-								{ type: "timeline-update", payload: data.data.id },
-								"*",
-							);
-						}
-					});
-				},
-				closeOnSelect: false,
-				metadata: isActive ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-				keywords: `label tag ${label.name}`,
-			};
-		});
-
-		// --- Parent task sub-view items ---
-		const hasSubtasks = (task.subtaskCount ?? 0) > 0;
+		// --- Parent items (conditionally empty if task has subtasks) ---
 		const parentItems: CommandItem[] = hasSubtasks
 			? []
-			: [
-					{
-						id: `task-parent-${task.id}-none`,
-						label: "No Parent (top-level)",
-						icon: <IconGitBranch className="h-4 w-4 text-muted-foreground" />,
-						action: () => {
-							if (!task.parentId) return;
-							const optimisticTask = { ...task, parentId: null, parent: null };
-							setTask(optimisticTask);
-							setTasks(tasks.map((t) => (t.id === task.id ? optimisticTask : t)));
+			: buildSingleSelectItems(
+					getParentOptions(task, tasks),
+					task.parentId ?? null,
+					task.id,
+					"parent",
+					(value) => getParentUpdatePayload(task, value, tasks, wsClientId),
+					execute,
+				);
 
-							runWithToast(
-								"remove-parent",
-								{
-									loading: { title: "Removing parent..." },
-									success: { title: "Parent removed" },
-									error: { title: "Failed to remove parent" },
-								},
-								() => removeTaskParentAction(task.organizationId, task.id, wsClientId),
-							).then((data) => {
-								if (data?.success && data.data) {
-									setTask(data.data);
-									setTasks(tasks.map((t) => (t.id === task.id && data.data ? data.data : t)));
-									sendWindowMessage(window, { type: "timeline-update", payload: data.data.id }, "*");
-								}
-							});
-						},
-						closeOnSelect: true,
-						metadata: !task.parentId ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-						keywords: "parent none remove top level",
-					},
-					...tasks
-						.filter((t) => t.id !== task.id && !t.parentId && (t.subtaskCount ?? 0) === 0)
-						.map((t) => {
-							const isCurrent = task.parentId === t.id;
-							return {
-								id: `task-parent-${task.id}-${t.id}`,
-								label: `#${t.shortId} ${t.title}`,
-								icon: <StatusIcon status={t.status} className="h-4 w-4" />,
-								action: () => {
-									if (isCurrent) return;
-									const optimisticTask = {
-										...task,
-										parentId: t.id,
-										parent: { id: t.id, shortId: t.shortId, title: t.title, status: t.status },
-									};
-									setTask(optimisticTask);
-									setTasks(tasks.map((x) => (x.id === task.id ? optimisticTask : x)));
+		// --- Relation type items (drill into sub-views) ---
+		const relationTypes = getRelationTypeOptions();
+		const relationViewMap: Record<string, string> = {
+			blocking: relationBlockingViewId,
+			related: relationRelatedViewId,
+			duplicate: relationDuplicateViewId,
+		};
+		const relationTypeItems: CommandItem[] = relationTypes.map((opt) => ({
+			id: `task-relation-type-${task.id}-${opt.id}`,
+			label: opt.label,
+			icon: opt.icon,
+			subId: relationViewMap[opt.value],
+			keywords: opt.keywords,
+		}));
 
-									runWithToast(
-										"set-parent",
-										{
-											loading: { title: "Setting parent..." },
-											success: { title: "Parent set", description: `Set to #${t.shortId}` },
-											error: { title: "Failed to set parent" },
-										},
-										() => setTaskParentAction(task.organizationId, task.id, t.id, wsClientId),
-									).then((data) => {
-										if (data?.success && data.data) {
-											setTask(data.data);
-											setTasks(
-												tasks.map((x) => (x.id === task.id && data.data ? data.data : x)),
-											);
-											sendWindowMessage(
-												window,
-												{ type: "timeline-update", payload: data.data.id },
-												"*",
-											);
-										}
-									});
-								},
-								closeOnSelect: true,
-								metadata: isCurrent ? <IconCheck className="h-4 w-4 text-primary" /> : undefined,
-								keywords: `parent ${t.title} ${t.shortId}`,
-							};
-						}),
-				];
+		// --- Relation target items (per type) ---
+		const buildRelationTargetItems = (type: "related" | "blocking" | "duplicate"): CommandItem[] => {
+			const targetOptions = getRelationTargetOptions(task, tasks);
+			return targetOptions.map((opt) => ({
+				id: `task-relation-${task.id}-${type}-${opt.id}`,
+				label: opt.label,
+				icon: opt.icon,
+				action: () => execute(getRelationUpdatePayload(task, opt.value, type, tasks, wsClientId)),
+				closeOnSelect: true,
+				keywords: opt.keywords,
+			}));
+		};
 
-		// --- Relation sub-view items ---
-		const buildRelationTaskItems = (type: "related" | "blocking" | "duplicate"): CommandItem[] =>
-			tasks
-				.filter((t) => t.id !== task.id)
-				.map((t) => ({
-					id: `task-relation-${task.id}-${type}-${t.id}`,
-					label: `#${t.shortId} ${t.title}`,
-					icon: <StatusIcon status={t.status} className="h-4 w-4" />,
-					action: () => {
-						runWithToast(
-							"add-relation",
-							{
-								loading: { title: "Adding relation..." },
-								success: { title: "Relation added", description: `${type} #${t.shortId}` },
-								error: { title: "Failed to add relation" },
-							},
-							() =>
-								createTaskRelationAction(
-									task.organizationId,
-									task.id,
-									t.id,
-									type,
-									wsClientId,
-								),
-						).then((data) => {
-							if (data?.success) {
-								sendWindowMessage(window, { type: "timeline-update", payload: task.id }, "*");
-							}
-						});
-					},
-					closeOnSelect: true,
-					keywords: `${t.title} ${t.shortId}`,
-				}));
-
-		const relationTypeItems: CommandItem[] = [
-			{
-				id: `task-relation-type-${task.id}-blocking`,
-				label: "Blocking",
-				icon: <IconArrowUpRight className="h-4 w-4 text-destructive" />,
-				subId: relationBlockingViewId,
-				keywords: "blocking blocks",
-			},
-			{
-				id: `task-relation-type-${task.id}-related`,
-				label: "Related to",
-				icon: <IconLink className="h-4 w-4 text-muted-foreground" />,
-				subId: relationRelatedViewId,
-				keywords: "related",
-			},
-			{
-				id: `task-relation-type-${task.id}-duplicate`,
-				label: "Duplicate of",
-				icon: <IconCopy className="h-4 w-4 text-muted-foreground" />,
-				subId: relationDuplicateViewId,
-				keywords: "duplicate copy",
-			},
-		];
-
-		// --- Current value display helpers ---
-		const currentStatusLabel =
-			statusConfig[task.status as keyof typeof statusConfig]?.label || task.status;
-		const currentPriorityLabel =
-			priorityConfig[(task.priority || "none") as keyof typeof priorityConfig]?.label || "None";
-		const currentCategoryName =
-			categories.find((c) => c.id === task.category)?.name || "None";
-		const currentReleaseName =
-			releases.find((r) => r.id === task.releaseId)?.name || "None";
-		const currentVisibilityLabel =
-			visibilityConfig[(task.visible || "public") as keyof typeof visibilityConfig]?.label ||
-			"Public";
-		const assigneeCount = (task.assignees || []).length;
-		const labelCount = (task.labels || []).length;
+		// --- Current value displays for root items ---
+		const statusDisplay = getStatusDisplay(task);
+		const priorityDisplay = getPriorityDisplay(task);
+		const categoryDisplay = getCategoryDisplay(task, categories);
+		const releaseDisplay = getReleaseDisplay(task, releases);
+		const visibilityDisplay = getVisibilityDisplay(task);
+		const assigneeDisplay = getAssigneeDisplay(task);
+		const labelDisplay = getLabelDisplay(task);
+		const parentDisplay = getParentDisplay(task);
 
 		return {
 			root: [
@@ -628,109 +259,66 @@ export function useTaskCommands() {
 						{
 							id: `task-change-status-${task.id}`,
 							label: "Change status",
-							icon:
-								statusConfig[task.status as keyof typeof statusConfig]?.icon || (
-									<StatusIcon status="backlog" className="h-4 w-4" />
-								),
+							icon: statusDisplay.icon,
 							subId: statusViewId,
-							metadata: (
-								<span className="text-xs text-muted-foreground">
-									{currentStatusLabel}
-								</span>
-							),
+							metadata: <span className="text-xs text-muted-foreground">{statusDisplay.label}</span>,
 							keywords: "status change update workflow",
 						},
 						{
 							id: `task-change-priority-${task.id}`,
 							label: "Change priority",
-							icon:
-								priorityConfig[
-									(task.priority || "none") as keyof typeof priorityConfig
-								]?.icon || (
-									<PriorityIcon bars="none" className="h-4 w-4 text-muted-foreground" />
-								),
+							icon: priorityDisplay.icon,
 							subId: priorityViewId,
-							metadata: (
-								<span className="text-xs text-muted-foreground">
-									{currentPriorityLabel}
-								</span>
-							),
+							metadata: <span className="text-xs text-muted-foreground">{priorityDisplay.label}</span>,
 							keywords: "priority change update level",
 						},
 						{
 							id: `task-change-category-${task.id}`,
 							label: "Change category",
-							icon: <IconCategory className="h-4 w-4 opacity-60" />,
+							icon: categoryDisplay.icon,
 							subId: categoryViewId,
-							metadata: (
-								<span className="text-xs text-muted-foreground">
-									{currentCategoryName}
-								</span>
-							),
+							metadata: <span className="text-xs text-muted-foreground">{categoryDisplay.label}</span>,
 							keywords: "category change update type",
 						},
 						{
 							id: `task-change-release-${task.id}`,
 							label: "Change release",
-							icon: <IconRocket className="h-4 w-4 opacity-60" />,
+							icon: releaseDisplay.icon,
 							subId: releaseViewId,
-							metadata: (
-								<span className="text-xs text-muted-foreground">
-									{currentReleaseName}
-								</span>
-							),
+							metadata: <span className="text-xs text-muted-foreground">{releaseDisplay.label}</span>,
 							keywords: "release change update milestone version",
 						},
 						{
 							id: `task-change-visibility-${task.id}`,
 							label: "Change visibility",
-							icon:
-								visibilityConfig[
-									(task.visible || "public") as keyof typeof visibilityConfig
-								]?.icon || <IconEye className="h-4 w-4 opacity-60" />,
+							icon: visibilityDisplay.icon,
 							subId: visibilityViewId,
-							metadata: (
-								<span className="text-xs text-muted-foreground">
-									{currentVisibilityLabel}
-								</span>
-							),
+							metadata: <span className="text-xs text-muted-foreground">{visibilityDisplay.label}</span>,
 							keywords: "visibility change public private",
 						},
 						{
 							id: `task-change-assignees-${task.id}`,
 							label: "Change assignees",
-							icon: <IconUsers className="h-4 w-4 opacity-60" />,
+							icon: assigneeDisplay.icon,
 							subId: assigneesViewId,
-							metadata: (
-								<span className="text-xs text-muted-foreground">
-									{assigneeCount > 0 ? `${assigneeCount} assigned` : "None"}
-								</span>
-							),
+							metadata: <span className="text-xs text-muted-foreground">{assigneeDisplay.label}</span>,
 							keywords: "assignees change add remove people members",
 						},
 						{
 							id: `task-change-labels-${task.id}`,
 							label: "Change labels",
-							icon: <IconTag className="h-4 w-4 opacity-60" />,
+							icon: labelDisplay.icon,
 							subId: labelsViewId,
-							metadata: (
-								<span className="text-xs text-muted-foreground">
-									{labelCount > 0 ? `${labelCount} labels` : "None"}
-								</span>
-							),
+							metadata: <span className="text-xs text-muted-foreground">{labelDisplay.label}</span>,
 							keywords: "labels change add remove tags",
 						},
 						{
 							id: `task-set-parent-${task.id}`,
 							label: "Set parent task",
-							icon: <IconGitBranch className="h-4 w-4 opacity-60" />,
+							icon: parentDisplay.icon,
 							subId: parentViewId,
 							show: !hasSubtasks,
-							metadata: (
-								<span className="text-xs text-muted-foreground">
-									{task.parent ? `#${task.parent.shortId}` : "None"}
-								</span>
-							),
+							metadata: <span className="text-xs text-muted-foreground">{parentDisplay.label}</span>,
 							keywords: "parent hierarchy subtask nest",
 						},
 						{
@@ -743,9 +331,7 @@ export function useTaskCommands() {
 						{
 							id: `task-copy-link-${task.id}`,
 							label: "Copy task link",
-							icon: (
-								<IconLink size={16} className="opacity-60" aria-hidden="true" />
-							),
+							icon: <IconLink size={16} className="opacity-60" aria-hidden="true" />,
 							action: () => {
 								const url = `${window.location.origin}/${orgId}/tasks/${task.shortId}`;
 								navigator.clipboard.writeText(url);
@@ -756,9 +342,7 @@ export function useTaskCommands() {
 						{
 							id: `task-copy-id-${task.id}`,
 							label: `Copy task ID (#${task.shortId})`,
-							icon: (
-								<IconCopy size={16} className="opacity-60" aria-hidden="true" />
-							),
+							icon: <IconCopy size={16} className="opacity-60" aria-hidden="true" />,
 							action: () => {
 								navigator.clipboard.writeText(`#${task.shortId}`);
 							},
@@ -768,105 +352,25 @@ export function useTaskCommands() {
 						{
 							id: `task-go-back-${task.id}`,
 							label: "Go back to tasks list",
-							icon: (
-								<IconArrowLeft
-									size={16}
-									className="opacity-60"
-									aria-hidden="true"
-								/>
-							),
-							action: () =>
-								navigate({ to: "/$orgId/tasks", params: { orgId } }),
+							icon: <IconArrowLeft size={16} className="opacity-60" aria-hidden="true" />,
+							action: () => navigate({ to: "/$orgId/tasks", params: { orgId } }),
 							keywords: "return list overview",
 						},
 					],
 				},
 			],
-			// --- Field sub-views ---
-			[statusViewId]: [
-				{
-					heading: "Status",
-					priority: 1,
-					items: statusItems,
-				},
-			],
-			[priorityViewId]: [
-				{
-					heading: "Priority",
-					priority: 1,
-					items: priorityItems,
-				},
-			],
-			[categoryViewId]: [
-				{
-					heading: "Category",
-					priority: 1,
-					items: categoryItems,
-				},
-			],
-			[releaseViewId]: [
-				{
-					heading: "Release",
-					priority: 1,
-					items: releaseItems,
-				},
-			],
-			[visibilityViewId]: [
-				{
-					heading: "Visibility",
-					priority: 1,
-					items: visibilityItems,
-				},
-			],
-			[assigneesViewId]: [
-				{
-					heading: "Assignees",
-					priority: 1,
-					items: assigneeItems,
-				},
-			],
-			[labelsViewId]: [
-				{
-					heading: "Labels",
-					priority: 1,
-					items: labelItems,
-				},
-			],
-			[parentViewId]: [
-				{
-					heading: "Parent Task",
-					priority: 1,
-					items: parentItems,
-				},
-			],
-			[relationTypeViewId]: [
-				{
-					heading: "Relation Type",
-					priority: 1,
-					items: relationTypeItems,
-				},
-			],
-			[relationBlockingViewId]: [
-				{
-					heading: "Blocking",
-					priority: 1,
-					items: buildRelationTaskItems("blocking"),
-				},
-			],
-			[relationRelatedViewId]: [
-				{
-					heading: "Related to",
-					priority: 1,
-					items: buildRelationTaskItems("related"),
-				},
-			],
-			[relationDuplicateViewId]: [
-				{
-					heading: "Duplicate of",
-					priority: 1,
-					items: buildRelationTaskItems("duplicate"),
-				},
-			],
+			[statusViewId]: [{ heading: "Status", priority: 1, items: statusItems }],
+			[priorityViewId]: [{ heading: "Priority", priority: 1, items: priorityItems }],
+			[categoryViewId]: [{ heading: "Category", priority: 1, items: categoryItems }],
+			[releaseViewId]: [{ heading: "Release", priority: 1, items: releaseItems }],
+			[visibilityViewId]: [{ heading: "Visibility", priority: 1, items: visibilityItems }],
+			[assigneesViewId]: [{ heading: "Assignees", priority: 1, items: assigneeItems }],
+			[labelsViewId]: [{ heading: "Labels", priority: 1, items: labelItems }],
+			[parentViewId]: [{ heading: "Parent Task", priority: 1, items: parentItems }],
+			[relationTypeViewId]: [{ heading: "Relation Type", priority: 1, items: relationTypeItems }],
+			[relationBlockingViewId]: [{ heading: "Blocking", priority: 1, items: buildRelationTargetItems("blocking") }],
+			[relationRelatedViewId]: [{ heading: "Related to", priority: 1, items: buildRelationTargetItems("related") }],
+			[relationDuplicateViewId]: [{ heading: "Duplicate of", priority: 1, items: buildRelationTargetItems("duplicate") }],
 		};
 	}, [
 		navigate,
@@ -877,11 +381,8 @@ export function useTaskCommands() {
 		categories,
 		releases,
 		orgLabels,
-		handleFieldUpdate,
-		setTask,
-		setTasks,
+		execute,
 		wsClientId,
-		runWithToast,
 	]);
 
 	useRegisterCommands("task-commands", commands);

@@ -86,7 +86,6 @@ export function TaskDetailCompact({
         <TaskFieldToolbar
           task={task}
           variant="compact"
-          useInternalLogic
           tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
@@ -140,7 +139,6 @@ export function TaskDetailCompact({
           organization={resolvedOrg}
           showContent="both"
         />
-        <Separator />
         <TaskContextBanner
           task={task}
           tasks={tasks}

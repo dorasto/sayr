@@ -177,13 +177,15 @@ export function TaskParentSection({
         className="md:w-full items-start p-0 flex-col gap-1"
         variant="transparent"
       >
-        <TileHeader>
-          <TileTitle asChild>
-            <Label variant="description" className="text-xs">
-              Parent task
-            </Label>
-          </TileTitle>
-        </TileHeader>
+        {task.parent && (
+          <TileHeader>
+            <TileTitle asChild>
+              <Label variant="description" className="text-xs">
+                Parent task
+              </Label>
+            </TileTitle>
+          </TileHeader>
+        )}
         <TileAction>
           {task.parent ? (
             <div className="flex items-center gap-1 group/parent w-full">
@@ -502,6 +504,9 @@ function groupRelations(
 
 export function TaskRelationsSection({
   task,
+  tasks,
+  setTasks,
+  setSelectedTask,
   wsClientId,
   runWithToast,
 }: HierarchySectionProps) {
@@ -542,8 +547,11 @@ export function TaskRelationsSection({
         ),
     );
 
-    if (data?.success) {
-      // Relations will be updated via WebSocket broadcast (task.relations)
+    if (data?.success && data.data) {
+      setSelectedTask(data.data);
+      setTasks(
+        tasks.map((t) => (t.id === task.id && data.data ? data.data : t)),
+      );
       sendWindowMessage(
         window,
         { type: "timeline-update", payload: task.id },
@@ -587,8 +595,11 @@ export function TaskRelationsSection({
         ),
     );
 
-    if (data?.success) {
-      // Relations will be updated via WebSocket broadcast (task.relations)
+    if (data?.success && data.data) {
+      setSelectedTask(data.data);
+      setTasks(
+        tasks.map((t) => (t.id === task.id && data.data ? data.data : t)),
+      );
       sendWindowMessage(
         window,
         { type: "timeline-update", payload: task.id },
