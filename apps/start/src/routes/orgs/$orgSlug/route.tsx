@@ -38,27 +38,22 @@ async function getSystemOrgSlug() {
 	return cachedSystemOrgSlug;
 }
 
-async function resolvePublicOrganization(slug: string) {
-	const { multiTenantEnabled } = getEditionCapabilities();
-
-	if (!multiTenantEnabled) {
-		const systemSlug = await getSystemOrgSlug();
-		if (!systemSlug) return null;
-
-		return getOrganizationPublic(systemSlug);
-	}
-
-	return getOrganizationPublic(slug);
-}
 export const fetchSystemOrgSlug = createServerFn({ method: "GET" })
 	.handler(async () => {
+		const { multiTenantEnabled } = getEditionCapabilities();
+
+		// If multi-tenant is enabled, never send a systemSlug
+		if (multiTenantEnabled) {
+			return { systemSlug: null };
+		}
+
 		const systemSlug = await getSystemOrgSlug();
 		return { systemSlug };
 	});
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
-		const organization = await resolvePublicOrganization(data.slug);
+		const organization = await getOrganizationPublic(data.slug);
 
 		if (!organization) {
 			return { organization: null, labels: [], categories: [] };
@@ -76,22 +71,21 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 
 export const Route = createFileRoute("/orgs/$orgSlug")({
 	beforeLoad: async () => {
-		const { multiTenantEnabled } = getEditionCapabilities();
+		const { systemSlug } = await fetchSystemOrgSlug();
 
-		if (!multiTenantEnabled) {
-			const { systemSlug } = await fetchSystemOrgSlug();
-			if (!systemSlug) return null;
-			return { systemSlug };
+		if (!systemSlug) {
+			return null;
 		}
-		return null;
+
+		return { systemSlug };
 	},
+
 	loader: async ({ params }) =>
 		fetchPublicOrganizationAndTasks({
 			data: { slug: params.orgSlug },
 		}),
 
 	pendingComponent: PublicLayoutPending,
-
 	head: ({ loaderData }) => {
 		if (!loaderData?.organization?.settings?.enablePublicPage) {
 			return {
@@ -114,7 +108,6 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 			],
 		};
 	},
-
 	component: PublicLayout,
 });
 
