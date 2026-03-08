@@ -80,9 +80,9 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 		return { systemSlug };
 	},
 
-	loader: async ({ params }) =>
+	loader: async ({ params, context }) =>
 		fetchPublicOrganizationAndTasks({
-			data: { slug: params.orgSlug },
+			data: { slug: context.systemSlug || params.orgSlug },
 		}),
 
 	pendingComponent: PublicLayoutPending,
