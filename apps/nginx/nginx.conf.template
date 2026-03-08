@@ -42,6 +42,11 @@ http {
     upstream backend_upstream {
         server backend:5468;
     }
+    
+    # NEW: Garage S3 upstream
+    upstream garage_upstream {
+        server garage:3900;
+    }
 
     # ==========================================================
     # ROOT DOMAIN  (example.com)
@@ -165,6 +170,24 @@ http {
             include /etc/nginx/proxy.conf;
         }
     }
+
+
+	# ==========================================================
+	# FILES SUBDOMAIN  (files.example.com -> Garage + bucket)
+	# ==========================================================
+	
+	server {
+	    listen 80;
+	    server_name files.${VITE_ROOT_DOMAIN};
+
+	    # Map / -> /${STORAGE_BUCKET}/
+	    location / {
+	        # preserve the rest of the path and prepend the bucket
+	        # /foo/bar.png -> /${STORAGE_BUCKET}/foo/bar.png
+	        proxy_pass http://garage_upstream/${STORAGE_BUCKET}/;
+	        include /etc/nginx/proxy.conf;
+	    }
+	}
 
     # ===============================
     # WILDCARD SUBDOMAINS (*.domain)

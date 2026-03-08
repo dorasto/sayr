@@ -1,0 +1,14 @@
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+
+node_name = "sayr-node-1"
+
+[rpc]
+bind_addr = "0.0.0.0:3901"
+
+[s3_api]
+bind_addr = "0.0.0.0:3900"
+root_domain = "" # path-style only
+
+[admin]
+bind_addr = "0.0.0.0:3902"
