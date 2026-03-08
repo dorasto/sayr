@@ -76,9 +76,14 @@ const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 
 export const Route = createFileRoute("/orgs/$orgSlug")({
 	beforeLoad: async () => {
-		const { systemSlug } = await fetchSystemOrgSlug();
-		if (!systemSlug) return null;
-		return { systemSlug };
+		const { multiTenantEnabled } = getEditionCapabilities();
+
+		if (!multiTenantEnabled) {
+			const { systemSlug } = await fetchSystemOrgSlug();
+			if (!systemSlug) return null;
+			return { systemSlug };
+		}
+		return null;
 	},
 	loader: async ({ params }) =>
 		fetchPublicOrganizationAndTasks({
