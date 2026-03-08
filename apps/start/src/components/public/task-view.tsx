@@ -137,14 +137,6 @@ export function PublicTaskView({ sortBy, setSortBy }: { sortBy: SortOption; setS
 		}
 	};
 
-	if (tasks.length === 0) {
-		return (
-			<div className="text-muted-foreground p-4 text-center border rounded-lg bg-card/50 border-dashed">
-				No public tasks found matching your criteria.
-			</div>
-		);
-	}
-
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="sticky top-0 z-50 pt-3 bg-background/95 backdrop-blur -mx-3 px-3" ref={stickyRef}>
@@ -195,20 +187,26 @@ export function PublicTaskView({ sortBy, setSortBy }: { sortBy: SortOption; setS
 				</div>
 			</div>
 
-			<div className="flex flex-col gap-2">
-				{tasks.map((task) => {
-					const voted = !!votes?.find((e) => e.taskId === task.id);
-					return (
-						<PublicTaskItem
-							key={task.id}
-							task={task}
-							categories={categories}
-							voted={voted}
-							onVote={() => handleVote(task.id)}
-						/>
-					);
-				})}
-			</div>
+			{tasks.length === 0 ? (
+				<div className="text-muted-foreground p-4 text-center border rounded-lg bg-card/50 border-dashed">
+					No public tasks found matching your criteria.
+				</div>
+			) : (
+				<div className="flex flex-col gap-2">
+					{tasks.map((task) => {
+						const voted = !!votes?.find((e) => e.taskId === task.id);
+						return (
+							<PublicTaskItem
+								key={task.id}
+								task={task}
+								categories={categories}
+								voted={voted}
+								onVote={() => handleVote(task.id)}
+							/>
+						);
+					})}
+				</div>
+			)}
 		</div>
 	);
 }
