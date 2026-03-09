@@ -44,8 +44,8 @@ http {
     }
     
     # NEW: Garage S3 upstream
-    upstream garage_upstream {
-        server garage:3900;
+    upstream rustfs_upstream {
+        server rustfs:9000;
     }
 
     # ==========================================================
@@ -173,21 +173,25 @@ http {
 
 
 	# ==========================================================
-	# FILES SUBDOMAIN  (files.example.com -> Garage + bucket)
+	# FILES SUBDOMAIN  (files.example.com -> rustfs + bucket)
 	# ==========================================================
 	
-	server {
-	    listen 80;
-	    server_name files.${VITE_ROOT_DOMAIN};
-
-	    # Map / -> /${STORAGE_BUCKET}/
-	    location / {
-	        # preserve the rest of the path and prepend the bucket
-	        # /foo/bar.png -> /${STORAGE_BUCKET}/foo/bar.png
-	        proxy_pass http://garage_upstream/${STORAGE_BUCKET}/;
-	        include /etc/nginx/proxy.conf;
-	    }
-	}
+    server {
+        listen 80;
+        server_name files.${VITE_ROOT_DOMAIN};
+    
+        # Map / -> /${STORAGE_BUCKET}/
+        location / {
+    
+            # Disable directory listing
+            autoindex off;
+    
+            # /foo/bar.png -> /${STORAGE_BUCKET}/foo/bar.png
+            proxy_pass http://rustfs_upstream/${STORAGE_BUCKET}/;
+    
+            include /etc/nginx/proxy.conf;
+        }
+    }
 
     # ===============================
     # WILDCARD SUBDOMAINS (*.domain)

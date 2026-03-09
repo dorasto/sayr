@@ -6,9 +6,14 @@ import {
 	DeleteObjectCommand,
 	DeleteObjectsCommand,
 	type DeleteObjectsCommandOutput,
+	CreateBucketCommand,
+	PutBucketPolicyCommand,
 } from "@aws-sdk/client-s3";
 import { lookup as mimeLookup } from "mime-types";
-
+const BUCKET = process.env.STORAGE_BUCKET || "";
+if (!BUCKET) {
+	throw new Error("STORAGE_BUCKET is not set");
+}
 function normalizeEndpoint(raw?: string): string | undefined {
 	const url = (raw || "").trim();
 
@@ -32,16 +37,58 @@ function normalizeEndpoint(raw?: string): string | undefined {
 }
 
 const s3Client = new S3Client({
-	region: process.env.STORAGE_REGION || "garage", // any non-empty string
+	region: process.env.STORAGE_REGION || "rustfs", // any non-empty string
 	endpoint: normalizeEndpoint(process.env.STORAGE_URL),
-	forcePathStyle: true, // important for Garage
+	forcePathStyle: true,
 	credentials: {
 		accessKeyId: process.env.STORAGE_ACCESS_KEY || "",
 		secretAccessKey: process.env.STORAGE_SECRET_KEY || "",
 	},
 });
 
-const BUCKET = process.env.STORAGE_BUCKET || "";
+const publicPolicy = (bucket: string) =>
+	JSON.stringify({
+		Version: "2012-10-17",
+		Statement: [
+			{
+				Sid: "AllowPublicReadObjectsOnly",
+				Effect: "Allow",
+				Principal: "*",
+				Action: ["s3:GetObject"],
+				Resource: [`arn:aws:s3:::${bucket}/*`],
+			}
+		],
+	});
+
+export async function ensureBucketExists() {
+	try {
+		await s3Client.send(
+			new CreateBucketCommand({
+				Bucket: BUCKET,
+			}),
+		);
+		console.log(`Storage Bucket "${BUCKET}" created`);
+		try {
+			await s3Client.send(
+				new PutBucketPolicyCommand({
+					Bucket: BUCKET,
+					Policy: publicPolicy(BUCKET),
+				}),
+			);
+			console.log(`Public object access policy applied to "${BUCKET}"`);
+		} catch (err) {
+			console.warn("Could not apply bucket policy", err);
+		}
+	} catch (err: any) {
+		const code = err?.name || err?.Code;
+		if (code === "BucketAlreadyOwnedByYou" || code === "BucketAlreadyExists") {
+			console.log(`Storage Bucket "${BUCKET}" already exists`);
+		} else {
+			console.error("Failed creating bucket", err);
+			throw err;
+		}
+	}
+}
 
 /**
  * Upload an object to an S3-compatible storage (Garage) with an obfuscated filename.

@@ -114,69 +114,18 @@ services:
     volumes:
       - redis_data:/data
 
-  garage:
-    image: dxflrs/garage:v0.9.4
-    container_name: garage
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs
     restart: always
-    volumes:
-      - garage_data:/var/lib/garage
-      - ./garage.toml:/etc/garage.toml:ro
     ports:
-      - "3900:3900"
-      - "3901:3901"
-    command: ["garage", "server"]
-
-  # One-shot init container to:
-  # - init layout
-  # - assign node
-  # - import key from env
-  # - create bucket
-  # - allow key on bucket
-  garage-init:
-    image: dxflrs/garage:v0.9.4
-    depends_on:
-      - garage
+      - "9000:9000"
+      - "9001:9001"
     volumes:
-      - garage_data:/var/lib/garage
-      - ./garage.toml:/etc/garage.toml:ro
+      - rustfs_data:/data
     environment:
-      - STORAGE_BUCKET=${STORAGE_BUCKET}
-      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
-      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "
-      set -e
-
-      echo 'Waiting for garage...'
-      until garage status >/dev/null 2>&1; do
-        sleep 1
-      done
-
-      echo 'Initializing layout (idempotent)...'
-      garage layout init || true
-
-      NODE_ID=$(garage node id)
-      echo 'Using node ID:' $NODE_ID
-
-      garage layout assign -z zone1 -c 1 $NODE_ID || true
-      garage layout apply || true
-
-      echo 'Importing key from env...'
-      garage key import sayr-key \
-        --access-key \"$STORAGE_ACCESS_KEY\" \
-        --secret-key \"$STORAGE_SECRET_KEY\" || true
-
-      echo 'Creating bucket:' \"$STORAGE_BUCKET\"
-      garage bucket create \"$STORAGE_BUCKET\" || true
-
-      echo 'Allowing key on bucket...'
-      garage bucket allow \"$STORAGE_BUCKET\" \
-        --read --write --owner sayr-key || true
-
-      echo 'Garage init done.'
-      "
-
+      - RUSTFS_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${STORAGE_SECRET_KEY}
   # ===============================
   # NGINX ROUTING LAYER
   # ===============================
@@ -220,4 +169,4 @@ services:
       - traefik.http.services.nginx.loadbalancer.server.port=80
 volumes:
   redis_data:
-  garage_data:
+  rustfs_data:
