@@ -296,10 +296,10 @@ export function PublicTaskCreator() {
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className={cn("w-full justify-between", open && "")}
+      className={cn("w-full justify-between flex flex-col gap-3", open && "")}
     >
       <CollapsibleTrigger asChild>
-        <Button variant="primary" className="">
+        <Button variant="primary" className="w-fit">
           <span className="flex items-center gap-2">
             <IconPlus className="size-4" />
             Create
@@ -313,7 +313,7 @@ export function PublicTaskCreator() {
         </Button>
       </CollapsibleTrigger>
 
-      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down pt-3">
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
         <div className="bg-accent overflow-hidden rounded-lg">
           {/* Header row: template picker + close */}
           <div className="flex items-center gap-2 p-3 pb-0">
