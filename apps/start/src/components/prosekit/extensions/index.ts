@@ -9,16 +9,19 @@ import { defineReactMarkView } from "prosekit/react";
 import type { EditorState } from "prosekit/pm/state";
 import Link from "../ui/links";
 import { defineGif } from "./gif-extension";
+import { defineTemplatePlaceholder, defineTemplatePlaceholderClickHandler } from "./placeholder-node-extension";
 import { defineVideo } from "./video-extension";
 
 export function defineExtension({
 	readonly = false,
 	placeholder = "Press / for commands...",
 	firstLinePlaceholder,
+	hasTemplate = false,
 }: {
 	readonly?: boolean;
 	placeholder?: string;
 	firstLinePlaceholder?: string;
+	hasTemplate?: boolean;
 } = {}) {
 	// Create placeholder function that shows different text for first line
 	const placeholderFn = firstLinePlaceholder
@@ -45,6 +48,8 @@ export function defineExtension({
 		}),
 		defineVideo(),
 		defineGif(),
+		defineTemplatePlaceholder(),
+		...(hasTemplate ? [defineTemplatePlaceholderClickHandler()] : []),
 	];
 
 	if (readonly) {

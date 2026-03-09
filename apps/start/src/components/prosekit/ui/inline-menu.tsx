@@ -3,6 +3,7 @@ import {
 	IconBold,
 	IconCheck,
 	IconCode,
+	IconForms,
 	IconItalic,
 	IconLink,
 	IconStrikethrough,
@@ -16,10 +17,16 @@ import type { EditorState } from "prosekit/pm/state";
 import { useEditor, useEditorDerivedValue } from "prosekit/react";
 import { InlinePopover } from "prosekit/react/inline-popover";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { useEditorMode } from "../editor-mode-context";
 import { Button } from "./button";
 
 function getInlineMenuItems(editor: Editor<BasicExtension>) {
+	// Cast to access custom marks/commands not in BasicExtension typing
+	const ed = editor as Editor<BasicExtension> & {
+		commands: { toggleTemplatePlaceholder?: { canExec: () => boolean; (): void } };
+		marks: { templatePlaceholder?: { isActive: () => boolean } };
+	};
+
 	return {
 		bold: editor.commands.toggleBold
 			? {
@@ -64,6 +71,13 @@ function getInlineMenuItems(editor: Editor<BasicExtension>) {
 					currentLink: getCurrentLink(editor.state) || "",
 				}
 			: undefined,
+		templatePlaceholder: ed.commands.toggleTemplatePlaceholder
+			? {
+					isActive: ed.marks.templatePlaceholder?.isActive() ?? false,
+					canExec: ed.commands.toggleTemplatePlaceholder.canExec(),
+					command: () => ed.commands.toggleTemplatePlaceholder?.(),
+				}
+			: undefined,
 	};
 }
 
@@ -83,6 +97,7 @@ function getCurrentLink(state: EditorState): string | undefined {
 export default function InlineMenu() {
 	const editor = useEditor<BasicExtension>();
 	const items = useEditorDerivedValue(getInlineMenuItems);
+	const { isTemplateEditor } = useEditorMode();
 
 	const [linkMenuOpen, setLinkMenuOpen] = useState(false);
 	const toggleLinkMenuOpen = () => setLinkMenuOpen((open) => !open);
@@ -176,6 +191,20 @@ export default function InlineMenu() {
 					>
 						<IconLink className="size-5" />
 					</Button>
+				)}
+				{isTemplateEditor && items.templatePlaceholder && (
+					<>
+						<div className="mx-0.5 h-5 w-px bg-border self-center" />
+						<Button
+							pressed={items.templatePlaceholder.isActive}
+							disabled={!items.templatePlaceholder.canExec}
+							onClick={items.templatePlaceholder.command}
+							tooltip="Placeholder"
+							variant={items.templatePlaceholder.isActive ? "primary" : "ghost"}
+						>
+							<IconForms className="size-5" />
+						</Button>
+					</>
 				)}
 			</InlinePopover>
 
