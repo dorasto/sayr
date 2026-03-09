@@ -43,7 +43,7 @@ http {
         server backend:5468;
     }
     
-    # NEW: Garage S3 upstream
+    # NEW: rustfs S3 upstream
     upstream rustfs_upstream {
         server rustfs:9000;
     }

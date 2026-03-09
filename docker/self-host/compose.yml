@@ -116,7 +116,7 @@ services:
 
   rustfs:
     image: rustfs/rustfs:latest
-    container_name: rustfs
+    container_name: sayr-rustfs
     restart: always
     ports:
       - "9000:9000"
