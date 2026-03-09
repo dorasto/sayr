@@ -12,8 +12,8 @@ import {
 } from "prosekit/react/autocomplete";
 import { TaskMention } from "./TaskMention";
 
-// Match inputs like "#1", "#23", "#456", etc. — strictly numeric after #
-const regex = /#\d*$/;
+// Match inputs like "#1", "#23", "#456", etc. — requires at least one digit after #
+const regex = /#\d+$/;
 
 export default function TaskMenu(props: {
 	tasks: schema.TaskWithLabels[];
