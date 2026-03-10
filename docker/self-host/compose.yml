@@ -6,6 +6,9 @@ services:
     image: ghcr.io/dorasto/sayr-ce-start:latest
     restart: always
     pull_policy: always
+    depends_on:
+      - db
+      - backend
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DORAS_CLIENT_ID=${DORAS_CLIENT_ID}
@@ -45,6 +48,9 @@ services:
     image: ghcr.io/dorasto/sayr-ce-backend:latest
     restart: always
     pull_policy: always
+    depends_on:
+      - db
+      - rustfs
     environment:
       - HOST=0.0.0.0
       - DATABASE_URL=${DATABASE_URL}
@@ -76,6 +82,10 @@ services:
   github-worker:
     container_name: sayr-worker-github
     image: ghcr.io/dorasto/sayr-ce-worker:latest
+    depends_on:
+      - db
+      - redis
+      - backend
     restart: always
     pull_policy: always
     command: ["bun", "run", "dist/index.js", "github"]
@@ -114,6 +124,37 @@ services:
     volumes:
       - redis_data:/data
 
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: sayr-rustfs
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs_data:/data
+    environment:
+      - RUSTFS_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${STORAGE_SECRET_KEY}
+
+  db:
+    image: postgres:16
+    restart: always
+    entrypoint: ["/app/db-entrypoint.sh"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}   # required for db-entrypoint.sh to parse
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db-entrypoint.sh:/app/db-entrypoint.sh:ro
+      - postgres_data:/var/lib/postgresql/data   # <-- persistent volume
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
   # ===============================
   # NGINX ROUTING LAYER
   # ===============================
@@ -143,6 +184,11 @@ services:
       - traefik.http.routers.admin.rule=Host(`admin.${VITE_ROOT_DOMAIN}`)
       - traefik.http.routers.admin.entrypoints=https
       - traefik.http.routers.admin.tls=true
+
+      # Files
+      - traefik.http.routers.files.rule=Host(`files.${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.files.entrypoints=https
+      - traefik.http.routers.files.tls=true
       
       # Wildcard
       - traefik.http.routers.wildcard.rule=HostRegexp(`{subdomain:.+}.${VITE_ROOT_DOMAIN}`)
@@ -152,3 +198,5 @@ services:
       - traefik.http.services.nginx.loadbalancer.server.port=80
 volumes:
   redis_data:
+  rustfs_data:
+  postgres_data:

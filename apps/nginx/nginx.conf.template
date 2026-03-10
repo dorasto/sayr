@@ -42,6 +42,11 @@ http {
     upstream backend_upstream {
         server backend:5468;
     }
+    
+    # NEW: rustfs S3 upstream
+    upstream rustfs_upstream {
+        server rustfs:9000;
+    }
 
     # ==========================================================
     # ROOT DOMAIN  (example.com)
@@ -162,6 +167,28 @@ http {
         # Admin UI
         location / {
             proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+    }
+
+
+	# ==========================================================
+	# FILES SUBDOMAIN  (files.example.com -> rustfs + bucket)
+	# ==========================================================
+	
+    server {
+        listen 80;
+        server_name files.${VITE_ROOT_DOMAIN};
+    
+        # Map / -> /${STORAGE_BUCKET}/
+        location / {
+    
+            # Disable directory listing
+            autoindex off;
+    
+            # /foo/bar.png -> /${STORAGE_BUCKET}/foo/bar.png
+            proxy_pass http://rustfs_upstream/${STORAGE_BUCKET}/;
+    
             include /etc/nginx/proxy.conf;
         }
     }
