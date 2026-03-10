@@ -1,10 +1,8 @@
 #!/bin/sh
-
 set -e
 
 echo "Running Drizzle migrations..."
-
-drizzle-kit migrate --config=packages/database/drizzle.config.ts
+bun run migrate.js
 
 echo "Starting backend server..."
 bun run dist/index.js

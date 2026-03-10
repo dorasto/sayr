@@ -34,6 +34,10 @@ ENV SAYR_EDITION_BAKED=$SAYR_EDITION_BAKED
 WORKDIR /app/apps/backend
 RUN bun run build
 
+# Bundle the migration script into a standalone JS file
+WORKDIR /app
+RUN bun build packages/database/src/migrate.ts --outfile packages/database/migrate.js --target bun
+
 FROM oven/bun:1 AS runner
 WORKDIR /app
 
@@ -41,8 +45,9 @@ COPY --from=installer /app/apps/backend/dist ./dist
 COPY --from=installer /app/node_modules ./node_modules
 COPY --from=installer /app/apps/backend/package.json ./package.json
 
-# Install drizzle-kit globally for migrations at runtime
-RUN bun add -g drizzle-kit drizzle-orm pg postgres
+# Copy migration script and SQL migration files
+COPY --from=installer /app/packages/database/migrate.js ./migrate.js
+COPY --from=installer /app/packages/database/drizzle ./drizzle
 
 # Environment Variables
 ENV DATABASE_URL=""
@@ -75,10 +80,7 @@ ENV APP_ENV="production"
 # Expose the port the app runs on
 EXPOSE 5468
 
-COPY --from=installer /app/packages/database ./packages/database
 COPY --from=installer /app/apps/backend/start.sh ./start.sh
-COPY packages/database/drizzle ./packages/database/drizzle
-
 RUN chmod +x ./start.sh
 
 # Run Drizzle migrations, then start backend
