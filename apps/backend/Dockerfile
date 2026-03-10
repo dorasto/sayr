@@ -73,7 +73,8 @@ ENV APP_ENV="production"
 EXPOSE 5468
 
 COPY --from=installer /app/packages/database ./packages/database
-COPY --from=installer /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
+COPY --from=installer /app/apps/backend/start.sh ./start.sh
+RUN chmod +x ./start.sh
 
-# Run Drizzle migrations from packages/database, then start backend
-CMD ["sh", "-c", "cd packages/database && bun run migrate && cd ../.. && bun run dist/index.js"]
+# Run Drizzle migrations, then start backend
+CMD ["sh", "start.sh"]
