@@ -41,6 +41,9 @@ COPY --from=installer /app/apps/backend/dist ./dist
 COPY --from=installer /app/node_modules ./node_modules
 COPY --from=installer /app/apps/backend/package.json ./package.json
 
+# Install drizzle-kit globally for migrations at runtime
+RUN bun add -g drizzle-kit drizzle-orm pg postgres
+
 # Environment Variables
 ENV DATABASE_URL=""
 ENV DORAS_CLIENT_ID=""
@@ -74,6 +77,8 @@ EXPOSE 5468
 
 COPY --from=installer /app/packages/database ./packages/database
 COPY --from=installer /app/apps/backend/start.sh ./start.sh
+COPY packages/database/drizzle ./packages/database/drizzle
+
 RUN chmod +x ./start.sh
 
 # Run Drizzle migrations, then start backend
