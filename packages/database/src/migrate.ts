@@ -8,22 +8,23 @@ if (!connectionString) {
 	process.exit(1);
 }
 
-// Use a single connection for migrations (not a pool)
-const client = postgres(connectionString, { max: 1 });
+// Single connection, no prepared statements (avoids issues with pgbouncer / Bun)
+const client = postgres(connectionString, { max: 1, prepare: false, idle_timeout: 5, connect_timeout: 30 });
 const db = drizzle(client);
 
-async function main() {
-	console.log("Running Drizzle migrations...");
-	await migrate(db, { migrationsFolder: "./drizzle" });
-	console.log("Migrations completed successfully.");
-	await client.end();
-}
-
-main()
-	.then(() => {
+console.log("Running Drizzle migrations...");
+migrate(db, { migrationsFolder: "./drizzle" })
+	.then(async () => {
+		console.log("Migrations completed successfully.");
+		await client.end({ timeout: 5 });
 		process.exit(0);
 	})
-	.catch((err) => {
+	.catch(async (err) => {
 		console.error("Migration failed:", err);
+		try {
+			await client.end({ timeout: 5 });
+		} catch (_) {
+			// ignore cleanup errors
+		}
 		process.exit(1);
 	});
