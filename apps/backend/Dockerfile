@@ -72,5 +72,8 @@ ENV APP_ENV="production"
 # Expose the port the app runs on
 EXPOSE 5468
 
-# Run Drizzle migrations first, then start backend
-CMD ["bun", "-c", "pnpm --filter @repo/database migrate && bun run dist/index.js"]
+COPY --from=installer /app/packages/database ./packages/database
+COPY --from=installer /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
+
+# Run Drizzle migrations from packages/database, then start backend
+CMD ["sh", "-c", "cd packages/database && bun run migrate && cd ../.. && bun run dist/index.js"]
