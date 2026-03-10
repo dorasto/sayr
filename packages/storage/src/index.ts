@@ -18,7 +18,7 @@ function normalizeEndpoint(raw?: string): string | undefined {
 	const url = (raw || "").trim();
 
 	if (!url) {
-		// Default to local Garage if nothing provided
+		// Default to local rustfs if nothing provided
 		return "http://localhost:3900";
 	}
 
@@ -27,8 +27,8 @@ function normalizeEndpoint(raw?: string): string | undefined {
 	}
 
 	// No scheme provided:
-	// - localhost / 127.0.0.1 → assume http (typically dev Garage)
-	// - everything else → assume https (Hetzner / remote Garage / etc.)
+	// - localhost / 127.0.0.1 → assume http (typically dev rustfs)
+	// - everything else → assume https (Hetzner / remote rustfs / etc.)
 	if (url.startsWith("localhost") || url.startsWith("127.0.0.1")) {
 		return `http://${url}`;
 	}
@@ -91,7 +91,7 @@ export async function ensureBucketExists() {
 }
 
 /**
- * Upload an object to an S3-compatible storage (Garage) with an obfuscated filename.
+ * Upload an object to an S3-compatible storage (rustfs) with an obfuscated filename.
  *
  * @param objectName - The original file name (used only to derive extension & metadata).
  * @param data - File contents (Buffer|string|Readable stream).
@@ -134,7 +134,7 @@ export async function uploadObject(
 	// Build final obfuscated filename
 	const obfuscatedName = extension ? `${shortHash}.${extension}` : shortHash;
 
-	// Prefix with optional path (like folders in S3/Garage)
+	// Prefix with optional path (like folders in S3/rustfs)
 	const finalKey = path
 		? `${path.replace(/\/+$/, "")}/${obfuscatedName}`
 		: obfuscatedName;
