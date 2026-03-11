@@ -8,6 +8,16 @@ import { member } from "./member.schema";
  * Organization-level preferences stored as JSONB.
  * All flags default to `true` so existing orgs keep current behaviour.
  */
+/** Controls which fields public users may set when creating a task. */
+export interface PublicTaskFieldSettings {
+	/** Allow public users to assign labels to the task. */
+	labels: boolean;
+	/** Allow public users to choose a category for the task. */
+	category: boolean;
+	/** Allow public users to set the priority of the task. */
+	priority: boolean;
+}
+
 export interface OrganizationSettings {
 	/** When false, users without privileges cannot comment on or modify closed tasks. */
 	allowActionsOnClosedTasks: boolean;
@@ -15,13 +25,25 @@ export interface OrganizationSettings {
 	publicActions: boolean;
 	/** When false, the organization's public page is disabled entirely. */
 	enablePublicPage: boolean;
+	/** When false, public users must choose a template when creating a task. */
+	publicTaskAllowBlank: boolean;
+	/** Controls which fields public users may set when creating a task. */
+	publicTaskFields: PublicTaskFieldSettings;
 }
+
+export const defaultPublicTaskFieldSettings: PublicTaskFieldSettings = {
+	labels: true,
+	category: true,
+	priority: true,
+};
 
 /** Sensible defaults — everything enabled so nothing breaks for existing orgs. */
 export const defaultOrganizationSettings: OrganizationSettings = {
 	allowActionsOnClosedTasks: true,
 	publicActions: true,
 	enablePublicPage: true,
+	publicTaskAllowBlank: true,
+	publicTaskFields: defaultPublicTaskFieldSettings,
 };
 
 export const organization = table("organization", {

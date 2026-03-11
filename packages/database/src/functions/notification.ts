@@ -360,3 +360,28 @@ export function extractUserMentions(content: NodeJSON | null | undefined): strin
 	walk(content);
 	return [...new Set(mentions)];
 }
+
+/**
+ * Extracts task mention IDs from ProseMirror/ProseKit NodeJSON content.
+ * Walks the content tree recursively to find mention nodes with kind === "task".
+ * Returns deduplicated task UUIDs.
+ */
+export function extractTaskMentions(content: NodeJSON | null | undefined): string[] {
+	if (!content) return [];
+
+	const mentions: string[] = [];
+
+	function walk(node: NodeJSON) {
+		if (node.type === "mention" && node.attrs?.kind === "task" && node.attrs?.id) {
+			mentions.push(node.attrs.id as string);
+		}
+		if (node.content) {
+			for (const child of node.content) {
+				walk(child);
+			}
+		}
+	}
+
+	walk(content);
+	return [...new Set(mentions)];
+}

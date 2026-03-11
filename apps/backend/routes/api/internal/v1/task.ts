@@ -9,6 +9,7 @@ import {
 	createNotifications,
 	createNotification,
 	extractUserMentions,
+	extractTaskMentions,
 	getTaskAssigneeIds,
 	getCommentReplies,
 	getCommentReplyCountBatch,
@@ -16,6 +17,7 @@ import {
 	db,
 	getOrganizationMembers,
 	getTaskById,
+	getIssueTemplateById,
 	getTaskTimeline,
 	removeLabelFromTask,
 	schema,
@@ -362,6 +364,186 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				data: {},
 			}),
 		}
+	);
+
+	return c.json({ success: true, data: taskWithData });
+});
+
+// Create a task as a public (non-member) user
+apiRouteAdminProjectTask.post("/public-create", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const body = await c.req.json();
+
+	const {
+		org_id: orgId,
+		wsClientId,
+		title,
+		description,
+		priority,
+		labels,
+		category,
+		templateId,
+	} = body;
+
+	const session = c.get("session");
+
+	// Must be signed in
+	if (!session?.userId) {
+		return c.json({ success: false, error: "You must be signed in to create a task." }, 401);
+	}
+
+	// Check publicActions + enablePublicPage are both on
+	const isPublicAccess = await tracePublicOrgAccessCheck(orgId);
+	if (!isPublicAccess) {
+		return c.json({ success: false, error: "Public task creation is not enabled for this organization." }, 403);
+	}
+
+	// Blocked users cannot create tasks
+	const blockedIds = await getBlockedUserIds(orgId);
+	if (blockedIds.includes(session.userId)) {
+		return c.json({ success: false, error: "You do not have permission to perform this action." }, 403);
+	}
+
+	// Read org settings to enforce public task field restrictions
+	const org = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { settings: true },
+	});
+
+	if (!org) {
+		return c.json({ success: false, error: "Organization not found." }, 404);
+	}
+
+	const settings = org.settings as import("@repo/database").OrganizationSettings | null;
+	const publicTaskFields = settings?.publicTaskFields;
+
+	// If a template was selected, load it server-side so we get the full data
+	// (assignees, status, release, visibility, etc.) that the frontend never sends.
+	const template = templateId
+		? await traceAsync("task.public_create.load_template", () => getIssueTemplateById(templateId), {
+				description: "Loading issue template for public task creation",
+				data: { templateId },
+			})
+		: null;
+
+	// Validate the template belongs to this org
+	if (template && template.organizationId !== orgId) {
+		return c.json({ success: false, error: "Invalid template." }, 400);
+	}
+
+	// Resolve fields: user-provided values take precedence, fall back to template,
+	// then to safe defaults. Field restrictions only apply to user-editable fields.
+	const resolvedPriority = publicTaskFields?.priority === false
+		? (template?.priority || "none")
+		: (priority || template?.priority || "none");
+	const resolvedLabels: string[] = publicTaskFields?.labels === false
+		? (template?.labels?.map((l) => l.id) || [])
+		: (labels?.length > 0 ? labels : template?.labels?.map((l) => l.id) || []);
+	const resolvedCategory = publicTaskFields?.category === false
+		? (template?.categoryId || null)
+		: (category || template?.categoryId || null);
+
+	// Template-only fields: these are never user-editable on the public form,
+	// so they always come from the template (or safe defaults).
+	const resolvedStatus = (template?.status || "backlog") as "backlog" | "todo" | "in-progress" | "done" | "canceled";
+	const resolvedAssignees: string[] = template?.assignees?.map((a) => a.id) || [];
+	const resolvedReleaseId = template?.releaseId || null;
+	const resolvedVisible = template?.visible || "public";
+	const resolvedParentId: string | null = null; // Templates don't set parent
+
+	// Public tasks are always visible=public unless the template sets private
+	const task = await traceAsync(
+		"task.public_create.insert",
+		() => createTask(orgId, {
+			title,
+			description: description || template?.description || undefined,
+			status: resolvedStatus,
+			priority: resolvedPriority,
+			category: resolvedCategory,
+			releaseId: resolvedReleaseId,
+			visible: resolvedVisible,
+			parentId: resolvedParentId,
+		}, session.userId),
+		{
+			description: "Creating public task record",
+			data: { orgId, title, priority: resolvedPriority, category: resolvedCategory, templateId },
+		}
+	);
+
+	if (!task) {
+		await recordWideError({
+			name: "task.public_create.failed",
+			error: new Error("Public task creation failed"),
+			code: "PUBLIC_TASK_CREATION_FAILED",
+			message: "Failed to create public task in database",
+			contextData: { orgId, title },
+		});
+		return c.json({ success: false, error: "Failed to create task" }, 500);
+	}
+
+	await traceAsync(
+		"task.public_create.relations",
+		async () => {
+			if (resolvedLabels.length > 0) {
+				for (const labelId of resolvedLabels) {
+					await addLabelToTask(orgId, task.id, labelId);
+				}
+			}
+
+			if (resolvedAssignees.length > 0) {
+				for (const userId of resolvedAssignees) {
+					await db
+						.insert(schema.taskAssignee)
+						.values({ taskId: task.id, organizationId: orgId, userId })
+						.onConflictDoNothing();
+				}
+			}
+
+			await addLogEventTask(
+				task.id,
+				orgId,
+				"created",
+				null,
+				{ status: resolvedStatus, priority: resolvedPriority, title, labels: resolvedLabels, assignees: resolvedAssignees },
+				session.userId,
+				description || template?.description
+			);
+		},
+		{
+			description: "Adding labels, assignees, and log event for public task",
+			data: { taskId: task.id, labelCount: resolvedLabels.length },
+		}
+	);
+
+	const taskWithData = await traceAsync("task.public_create.refetch", () => getTaskById(orgId, task.id), {
+		description: "Fetching created public task with relations",
+	});
+
+	await traceAsync(
+		"task.public_create.broadcast",
+		async () => {
+			const found = findClientByWsId(wsClientId);
+			const data = {
+				type: "CREATE_TASK" as WSBaseMessage["type"],
+				data: taskWithData,
+			};
+
+			broadcast(orgId, "tasks", data, found?.socket);
+			broadcastPublic(orgId, { ...data, data: data }, found?.socket);
+
+			const members = await getOrganizationMembers(orgId);
+			members.forEach((member) => {
+				const clients = findClientsByUserId(member.userId);
+				clients.forEach(
+					(client) =>
+						client.wsClientId !== wsClientId &&
+						client.channel !== "tasks" &&
+						broadcastIndividual(client.socket, data, orgId)
+				);
+			});
+		},
+		{ description: "Broadcasting new public task to clients" }
 	);
 
 	return c.json({ success: true, data: taskWithData });
@@ -1760,6 +1942,21 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				// Notification failures should never break task operations
 			}
 		}
+	}
+
+	// Fire timeline events on any tasks mentioned in the comment.
+	// Each mentioned task gets a "task_mentioned" event pointing back to this task.
+	const mentionedTaskIds = extractTaskMentions(content);
+	if (mentionedTaskIds.length > 0) {
+		await Promise.all(
+			mentionedTaskIds
+				.filter((id) => id !== taskId) // skip self-mentions
+				.map((mentionedTaskId) =>
+					addLogEventTask(mentionedTaskId, orgId, "task_mentioned", null, { sourceTaskId: taskId }, commentActorId ?? undefined).catch(
+						() => {} // never let timeline failures break comment creation
+					)
+				)
+		);
 	}
 
 	await traceAsync(

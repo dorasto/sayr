@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useMentionUsers } from "@/hooks/useMentionUsers";
 import { resolveUsersByIds } from "@/lib/fetches/mention";
+import { EditorModeContext } from "./editor-mode-context";
 import { defineExtension } from "./extensions/index";
 import BlockHandle from "./ui/block-handle";
 import CodeBlockView from "./ui/code-block-view";
@@ -53,6 +54,8 @@ export interface EditorProps {
   submit?: () => void;
   hasTemplate?: boolean;
   hideBlockHandle?: boolean;
+  /** When true, shows the Placeholder slash menu item for template authoring. */
+  isTemplateEditor?: boolean;
   /** Users for MentionView chip rendering (readonly editors). Merged with search cache. */
   mentionViewUsers?: schema.UserSummary[];
 }
@@ -69,6 +72,7 @@ export default function Editor({
   submit,
   hasTemplate = false,
   hideBlockHandle = false,
+  isTemplateEditor = false,
   mentionViewUsers,
 }: EditorProps) {
   // Use the mention hook — it reads mentionContext from the global store,
@@ -119,10 +123,10 @@ export default function Editor({
     return Array.from(merged.values());
   }, [allUsersForView, resolvedUsers]);
 
-  const editor = useMemo(() => {
-    const extension = defineExtension({ readonly, placeholder, firstLinePlaceholder });
-    return createEditor({ extension, defaultContent });
-  }, [readonly, placeholder, firstLinePlaceholder, defaultContent]);
+	const editor = useMemo(() => {
+		const extension = defineExtension({ readonly, placeholder, firstLinePlaceholder, hasTemplate });
+		return createEditor({ extension, defaultContent });
+	}, [readonly, placeholder, firstLinePlaceholder, hasTemplate, defaultContent]);
   useEffect(() => {
     if (readonly) {
       return;
@@ -246,7 +250,12 @@ export default function Editor({
     },
     { editor },
   );
+  const editorMode = useMemo(
+    () => ({ isTemplateEditor, hasTemplate }),
+    [isTemplateEditor, hasTemplate],
+  );
   return (
+    <EditorModeContext.Provider value={editorMode}>
     <ProseKit editor={editor}>
       <div className={className}>
         {/* <div className="z-10 box-border border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
@@ -258,11 +267,13 @@ export default function Editor({
             'ProseMirror box-border min-h-full px-12 py-0! outline-none outline-0 [&_span[data-mention="tag"]]:text-violet-500',
             (readonly || hideBlockHandle) && "px-0",
           )}
+          {...(isTemplateEditor ? { "data-template-editor": "true" } : {})}
+          {...(hasTemplate ? { "data-has-template": "true" } : {})}
         ></div>
         {!readonly && (
           <>
             <InlineMenu />
-            {!hasTemplate ? <SlashMenu /> : <SlashMenuTemplate />}
+			{!hasTemplate ? <SlashMenu /> : <SlashMenuTemplate />}
             <UserMenu
               users={mentionUsers}
               loading={mention.loading}
@@ -288,5 +299,6 @@ export default function Editor({
         )}
       </div>
     </ProseKit>
+    </EditorModeContext.Provider>
   );
 }

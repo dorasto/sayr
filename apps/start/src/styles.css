@@ -9,3 +9,49 @@
  * you can always add it with the @source directive.
  */
 @source '../node_modules/@repo/ui';
+
+/*
+ * Template Placeholder Mark Styles
+ * Styled via data attributes on the editor mount div so that
+ * ProseMirror's native DOM management is not disrupted (no React mark view).
+ */
+
+/* Template editor mode: dashed primary underline with subtle background */
+[data-template-editor] .template-placeholder {
+    border-bottom: 2px dashed var(--color-border);
+    color: var(--color-muted-foreground);
+    border-radius: 2px;
+    padding-bottom: 1px;
+}
+
+/* Consumer mode (using a template): dashed muted underline, clickable */
+[data-has-template] .template-placeholder {
+    border-bottom: 2px dashed oklch(0.556 0 0 / 0.3);
+    color: oklch(0.556 0 0 / 0.7);
+    font-style: italic;
+    cursor: pointer;
+    border-radius: 2px;
+    padding-bottom: 1px;
+    transition:
+        border-color 0.15s,
+        background-color 0.15s;
+}
+
+[data-has-template] .template-placeholder:hover {
+	border-bottom-color: oklch(0.556 0 0 / 0.5);
+	background-color: oklch(0.556 0 0 / 0.06);
+}
+
+/* When placeholder text is selected (click-to-replace), keep it subtle */
+[data-has-template] .template-placeholder::selection {
+	background-color: transparent;
+	color: inherit;
+}
+
+/* Readonly / default: subtle dashed underline */
+.ProseMirror:not([data-template-editor]):not([data-has-template])
+    .template-placeholder {
+    border-bottom: 2px dashed oklch(0.556 0 0 / 0.2);
+    color: oklch(0.556 0 0 / 0.5);
+    font-style: italic;
+}

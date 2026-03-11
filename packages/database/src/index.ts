@@ -7,7 +7,7 @@ export * from "./functions";
 export { type TeamPermissions, defaultTeamPermissions } from "../schema/member.schema";
 
 // Re-export organization settings types for convenience
-export { type OrganizationSettings, defaultOrganizationSettings } from "../schema/organization.schema";
+export { type OrganizationSettings, type PublicTaskFieldSettings, defaultOrganizationSettings, defaultPublicTaskFieldSettings } from "../schema/organization.schema";
 
 import { and, eq, inArray } from "drizzle-orm";
 import { member, memberTeam, team, defaultTeamPermissions as defaultPerms, type TeamPermissions, organization, OrganizationSettings, defaultOrganizationSettings, } from "../schema";

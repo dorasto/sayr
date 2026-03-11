@@ -564,6 +564,7 @@ export default function CreateIssueTemplate({
                       tasks={[]}
                       hideBlockHandle={true}
                       firstLinePlaceholder="Template description"
+                      isTemplateEditor={true}
                     />
                   </div>
 

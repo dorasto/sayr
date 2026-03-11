@@ -1,6 +1,6 @@
 import { SubWrapper } from "@/components/generic/wrapper";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
-import { db, getLabels, getOrganizationPublic } from "@repo/database";
+import { db, getIssueTemplates, getLabels, getOrganizationPublic } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
@@ -38,55 +38,55 @@ async function getSystemOrgSlug() {
 	return cachedSystemOrgSlug;
 }
 
-async function resolvePublicOrganization(slug: string) {
-	const { multiTenantEnabled } = getEditionCapabilities();
-
-	if (!multiTenantEnabled) {
-		const systemSlug = await getSystemOrgSlug();
-		if (!systemSlug) return null;
-
-		return getOrganizationPublic(systemSlug);
-	}
-
-	return getOrganizationPublic(slug);
-}
 export const fetchSystemOrgSlug = createServerFn({ method: "GET" })
 	.handler(async () => {
+		const { multiTenantEnabled } = getEditionCapabilities();
+
+		// If multi-tenant is enabled, never send a systemSlug
+		if (multiTenantEnabled) {
+			return { systemSlug: null };
+		}
+
 		const systemSlug = await getSystemOrgSlug();
 		return { systemSlug };
 	});
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
-		const organization = await resolvePublicOrganization(data.slug);
+		const organization = await getOrganizationPublic(data.slug);
 
 		if (!organization) {
-			return { organization: null, labels: [], categories: [] };
+			return { organization: null, labels: [], categories: [], issueTemplates: [] };
 		}
 
-		const [labels, categories] = await Promise.all([
+		const [labels, categories, issueTemplates] = await Promise.all([
 			getLabels(organization.id, "public"),
 			db.query.category.findMany({
 				where: (c, { eq }) => eq(c.organizationId, organization.id),
 			}),
+			getIssueTemplates(organization.id),
 		]);
 
-		return { organization, labels, categories };
+		return { organization, labels, categories, issueTemplates };
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug")({
 	beforeLoad: async () => {
 		const { systemSlug } = await fetchSystemOrgSlug();
-		if (!systemSlug) return null;
+
+		if (!systemSlug) {
+			return null;
+		}
+
 		return { systemSlug };
 	},
-	loader: async ({ params }) =>
+
+	loader: async ({ params, context }) =>
 		fetchPublicOrganizationAndTasks({
-			data: { slug: params.orgSlug },
+			data: { slug: context.systemSlug || params.orgSlug },
 		}),
 
 	pendingComponent: PublicLayoutPending,
-
 	head: ({ loaderData }) => {
 		if (!loaderData?.organization?.settings?.enablePublicPage) {
 			return {
@@ -109,12 +109,11 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 			],
 		};
 	},
-
 	component: PublicLayout,
 });
 
 function PublicLayout() {
-	const { organization, labels, categories } = Route.useLoaderData();
+	const { organization, labels, categories, issueTemplates } = Route.useLoaderData();
 
 	if (!organization?.settings?.enablePublicPage) {
 		return <OrganizationUnavailable />;
@@ -125,6 +124,7 @@ function PublicLayout() {
 			organization={organization}
 			labels={labels}
 			categories={categories}
+			issueTemplates={issueTemplates}
 		>
 			<div className="relative flex h-dvh flex-col overflow-hidden">
 				<div className="relative min-h-0 flex-1 overflow-y-auto">

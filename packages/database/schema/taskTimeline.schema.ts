@@ -29,7 +29,8 @@ export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
 	"subtask_removed",
 	"relation_added",
 	"relation_removed",
-	"github_branch_linked"
+	"github_branch_linked",
+	"task_mentioned"
 ]);
 
 export const taskTimeline = table(

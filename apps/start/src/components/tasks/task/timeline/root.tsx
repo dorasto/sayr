@@ -33,6 +33,7 @@ import {
 	TimelineSubtaskRemoved,
 	TimelineUpdated,
 	TimelineGithubBranchLinked,
+	TimelineTaskMentioned,
 } from "./index";
 import type { GlobalTimelineProps } from "./types";
 import { consolidateTimelineItems } from "./utils";
@@ -95,6 +96,7 @@ export default function GlobalTimeline({
 		subtask_removed: TimelineSubtaskRemoved,
 		relation_added: TimelineRelationAdded,
 		relation_removed: TimelineRelationRemoved,
+		task_mentioned: TimelineTaskMentioned,
 	};
 
 	// --- ACTIVITY FETCH ---

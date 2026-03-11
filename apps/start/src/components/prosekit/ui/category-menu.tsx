@@ -12,8 +12,8 @@ import {
 	AutocompletePopover,
 } from "prosekit/react/autocomplete";
 
-// Match inputs like "!", "!foo", "!foo_bar", etc.
-const regex = /![\da-z_]*$/i;
+// Match inputs like "!fo", "!foo", "!foo_bar", etc. — requires at least 2 chars after !
+const regex = /![\da-z_]{2,}$/i;
 
 export default function CategoryMenu(props: {
 	categories: schema.categoryType[];

@@ -89,6 +89,49 @@ export async function createTaskAction(
 }
 
 /**
+ * Calls the `/admin/task/public-create` API to create a task as a
+ * non-member public user. The backend enforces `publicActions`,
+ * `publicTaskAllowBlank`, and `publicTaskFields` settings.
+ */
+export async function createPublicTaskAction(
+	organizationId: string,
+	data: {
+		title: string;
+		description: NodeJSON | undefined;
+		priority?: string | null;
+		labels?: string[];
+		category?: string | null;
+		templateId?: string | null;
+	},
+	wsClientId: string
+): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
+	const result = await fetch(`${API_URL}/v1/admin/organization/task/public-create`, {
+		method: "POST",
+		body: JSON.stringify({
+			org_id: organizationId,
+			wsClientId,
+			title: data.title,
+			description: data.description,
+			priority: data.priority,
+			labels: data.labels ?? [],
+			category: data.category,
+			templateId: data.templateId,
+		}),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (e) => await e.json());
+	if (!result.success) {
+		console.error("Failed to create public task", {
+			error: result.error,
+			organizationId,
+		});
+	}
+	return result;
+}
+
+/**
  * Calls the `/admin/organization/task/update` API to update an existing task.
  *
  * Updates one or more fields of an existing task record.

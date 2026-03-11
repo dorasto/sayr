@@ -13,6 +13,7 @@ interface ContextType {
 	setLabels: (newValue: ContextType["labels"]) => void;
 	categories: schema.categoryType[];
 	setCategories: (newValue: ContextType["categories"]) => void;
+	issueTemplates: schema.issueTemplateWithRelations[];
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);
@@ -22,11 +23,13 @@ export function PublicOrganizationProvider({
 	organization,
 	labels,
 	categories,
+	issueTemplates,
 }: {
 	children: ReactNode;
 	organization: ContextType["organization"];
 	labels: ContextType["labels"];
 	categories: ContextType["categories"];
+	issueTemplates: ContextType["issueTemplates"];
 }) {
 	const { value: NewOrganization, setValue: setOrganization } = useStateManagement("organization", organization);
 	const { value: NewTasks, setValue: setTasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", []);
@@ -49,6 +52,7 @@ export function PublicOrganizationProvider({
 				setLabels,
 				categories: NewCategories,
 				setCategories,
+				issueTemplates,
 			}}
 		>
 			{children}

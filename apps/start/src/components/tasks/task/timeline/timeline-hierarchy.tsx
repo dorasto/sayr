@@ -1,3 +1,4 @@
+import { cn } from "@repo/ui/lib/utils";
 import { getDisplayName } from "@repo/util";
 import {
 	IconArrowUpRight,
@@ -8,9 +9,46 @@ import {
 	IconForbidFilled,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { statusConfig } from "../../shared/config";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
+import type { schema } from "@repo/database";
+
+/* -------------------------------------------------------------------------- */
+/*                               Shared helpers                               */
+/* -------------------------------------------------------------------------- */
+
+function taskStatusIcon(task: schema.TaskWithLabels, FallbackIcon: React.ComponentType<{ size?: number; className?: string }>) {
+	const statusKey = task.status?.replace(/"/g, "") as keyof typeof statusConfig | undefined;
+	const cfg = statusKey ? statusConfig[statusKey] : undefined;
+	return cfg ? cfg.icon(cn(cfg.className, "h-3.5 w-3.5")) : <FallbackIcon size={12} />;
+}
+
+function TaskLink({
+	task,
+	FallbackIcon,
+}: {
+	task: schema.TaskWithLabels;
+	FallbackIcon: React.ComponentType<{ size?: number; className?: string }>;
+}) {
+	return (
+		<Link
+			to="/$orgId/tasks/$taskShortId"
+			params={{
+				orgId: task.organizationId,
+				taskShortId: String(task.shortId),
+			}}
+			className="inline"
+		>
+			<InlineLabel
+				className="text-muted-foreground hover:text-foreground"
+				text={`#${task.shortId} ${task.title}`}
+				icon={taskStatusIcon(task, FallbackIcon)}
+			/>
+		</Link>
+	);
+}
 
 /* -------------------------------------------------------------------------- */
 /*                           Parent Added / Removed                           */
@@ -38,20 +76,7 @@ export function TimelineParentAdded({
 			/>{" "}
 			set parent to{" "}
 			{parentTask ? (
-				<Link
-					to="/$orgId/tasks/$taskShortId"
-					params={{
-						orgId: parentTask.organizationId,
-						taskShortId: String(parentTask.shortId),
-					}}
-					className="inline"
-				>
-					<InlineLabel
-						className="text-muted-foreground hover:text-foreground"
-						text={`${parentTask.shortId} ${parentTask.title}`}
-						icon={<IconArrowUpRight size={12} />}
-					/>
-				</Link>
+				<TaskLink task={parentTask} FallbackIcon={IconArrowUpRight} />
 			) : (
 				<InlineLabel
 					className="text-muted-foreground"
@@ -85,20 +110,7 @@ export function TimelineParentRemoved({
 			/>{" "}
 			removed parent{" "}
 			{parentTask ? (
-				<Link
-					to="/$orgId/tasks/$taskShortId"
-					params={{
-						orgId: parentTask.organizationId,
-						taskShortId: String(parentTask.shortId),
-					}}
-					className="inline"
-				>
-					<InlineLabel
-						className="text-muted-foreground hover:text-foreground"
-						text={`${parentTask.shortId} ${parentTask.title}`}
-						icon={<IconArrowUpRight size={12} />}
-					/>
-				</Link>
+				<TaskLink task={parentTask} FallbackIcon={IconArrowUpRight} />
 			) : (
 				<InlineLabel
 					className="text-muted-foreground"
@@ -136,20 +148,7 @@ export function TimelineSubtaskAdded({
 			/>{" "}
 			added subtask{" "}
 			{subtask ? (
-				<Link
-					to="/$orgId/tasks/$taskShortId"
-					params={{
-						orgId: subtask.organizationId,
-						taskShortId: String(subtask.shortId),
-					}}
-					className="inline"
-				>
-					<InlineLabel
-						className="text-muted-foreground hover:text-foreground"
-						text={`${subtask.shortId} ${subtask.title}`}
-						icon={<IconArrowDownRight size={12} />}
-					/>
-				</Link>
+				<TaskLink task={subtask} FallbackIcon={IconArrowDownRight} />
 			) : (
 				<InlineLabel
 					className="text-muted-foreground"
@@ -183,20 +182,7 @@ export function TimelineSubtaskRemoved({
 			/>{" "}
 			removed subtask{" "}
 			{subtask ? (
-				<Link
-					to="/$orgId/tasks/$taskShortId"
-					params={{
-						orgId: subtask.organizationId,
-						taskShortId: String(subtask.shortId),
-					}}
-					className="inline"
-				>
-					<InlineLabel
-						className="text-muted-foreground hover:text-foreground"
-						text={`${subtask.shortId} ${subtask.title}`}
-						icon={<IconArrowDownRight size={12} />}
-					/>
-				</Link>
+				<TaskLink task={subtask} FallbackIcon={IconArrowDownRight} />
 			) : (
 				<InlineLabel
 					className="text-muted-foreground"
@@ -244,7 +230,6 @@ export function TimelineRelationAdded({
 	const relatedTaskId = info?.relatedTaskId;
 	const relatedTask = relatedTaskId ? tasks.find((t) => t.id === relatedTaskId) : null;
 	const config = RELATION_TYPE_CONFIG[relationType] ?? RELATION_TYPE_CONFIG.related!;
-	const ConfigIcon = config.icon;
 
 	return (
 		<TimelineItemWrapper
@@ -260,25 +245,12 @@ export function TimelineRelationAdded({
 			/>{" "}
 			added {config.label} relation{" "}
 			{relatedTask ? (
-				<Link
-					to="/$orgId/tasks/$taskShortId"
-					params={{
-						orgId: relatedTask.organizationId,
-						taskShortId: String(relatedTask.shortId),
-					}}
-					className="inline"
-				>
-					<InlineLabel
-						className="text-muted-foreground hover:text-foreground"
-						text={`${relatedTask.shortId} ${relatedTask.title}`}
-						icon={<ConfigIcon size={12} className={config.className} />}
-					/>
-				</Link>
+				<TaskLink task={relatedTask} FallbackIcon={config.icon} />
 			) : (
 				<InlineLabel
 					className="text-muted-foreground"
 					text="a task"
-					icon={<ConfigIcon size={12} className={config.className} />}
+					icon={<config.icon size={12} className={config.className} />}
 				/>
 			)}
 		</TimelineItemWrapper>
