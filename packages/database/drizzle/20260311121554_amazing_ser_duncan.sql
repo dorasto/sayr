@@ -1,0 +1,2 @@
+ALTER TYPE "public"."timeline_event_type" ADD VALUE 'task_mentioned';--> statement-breakpoint
+ALTER TABLE "organization" ALTER COLUMN "settings" SET DEFAULT '{"allowActionsOnClosedTasks":true,"publicActions":true,"enablePublicPage":true,"publicTaskAllowBlank":true,"publicTaskFields":{"labels":true,"category":true,"priority":true}}'::json;

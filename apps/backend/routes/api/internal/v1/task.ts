@@ -9,6 +9,7 @@ import {
 	createNotifications,
 	createNotification,
 	extractUserMentions,
+	extractTaskMentions,
 	getTaskAssigneeIds,
 	getCommentReplies,
 	getCommentReplyCountBatch,
@@ -1941,6 +1942,21 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				// Notification failures should never break task operations
 			}
 		}
+	}
+
+	// Fire timeline events on any tasks mentioned in the comment.
+	// Each mentioned task gets a "task_mentioned" event pointing back to this task.
+	const mentionedTaskIds = extractTaskMentions(content);
+	if (mentionedTaskIds.length > 0) {
+		await Promise.all(
+			mentionedTaskIds
+				.filter((id) => id !== taskId) // skip self-mentions
+				.map((mentionedTaskId) =>
+					addLogEventTask(mentionedTaskId, orgId, "task_mentioned", null, { sourceTaskId: taskId }, commentActorId ?? undefined).catch(
+						() => {} // never let timeline failures break comment creation
+					)
+				)
+		);
 	}
 
 	await traceAsync(
