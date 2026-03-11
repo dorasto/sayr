@@ -117,6 +117,18 @@ services:
     volumes:
       - redis_data:/data
 
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: sayr-rustfs
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs_data:/data
+    environment:
+      - RUSTFS_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${STORAGE_SECRET_KEY}
   # ===============================
   # NGINX ROUTING LAYER
   # ===============================
@@ -147,6 +159,12 @@ services:
       - traefik.http.routers.admin.entrypoints=https
       - traefik.http.routers.admin.tls=true
 
+      # Files
+      - traefik.http.routers.files.rule=Host(`files.${VITE_ROOT_DOMAIN}`)
+      - traefik.http.routers.files.entrypoints=https
+      - traefik.http.routers.files.tls=true
+
       - traefik.http.services.nginx.loadbalancer.server.port=80
 volumes:
   redis_data:
+  rustfs_data:

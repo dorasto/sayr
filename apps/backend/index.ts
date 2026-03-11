@@ -14,6 +14,8 @@ import { wsRoute } from "./routes/ws";
 import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
 import { rootSpanPlugin } from "@/tracing/index";
 import { renderRoute } from "./routes/render";
+import { ensureBucketExists } from "@repo/storage";
+import { getEdition } from "@repo/edition";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -29,6 +31,10 @@ export type AppEnv = {
 // App setup
 // -----------------------------------------------------------------------------
 const app = new Hono<AppEnv>();
+const edition = getEdition();
+if (edition === "community" || edition === "enterprise") {
+	ensureBucketExists();
+}
 // -----------------------------------------------------------------------------
 // CORS
 // -----------------------------------------------------------------------------
