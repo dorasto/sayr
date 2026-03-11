@@ -1383,7 +1383,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -1487,7 +1487,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -1596,7 +1596,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, id } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
 	if (!isAuthorized) {
 		return c.json(
