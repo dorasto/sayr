@@ -2021,7 +2021,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 	const { org_id: orgId, emails }: { org_id: string; emails: string[] } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to invite members." }, 401);
@@ -2460,7 +2460,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 
 	const { org_id: orgId, user_id: userId } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove members." }, 401);
