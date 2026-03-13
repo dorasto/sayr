@@ -3,6 +3,7 @@ import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, apiKey, genericOAuth, twoFactor } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 import {
 	polar,
 	checkout,
@@ -77,7 +78,11 @@ const plugins: any[] = [
 	}),
 	twoFactor({
 		issuer: "sayr.io"
-	})
+	}),
+	passkey({
+		rpID: rootUrl || "localhost",
+		rpName: "sayr.io",
+	}),
 ]
 if (polarBillingEnabled) {
 	if (!process.env.POLAR_PRODUCT_ID) {
@@ -116,7 +121,8 @@ export const auth = betterAuth({
 		schema: {
 			...schema.auth,
 			apikey: schema.schema.apikey,
-			twoFactor: schema.auth.two_factor
+			twoFactor: schema.auth.two_factor,
+			passkey: schema.auth.passkey,
 		},
 	}),
 	trustedOrigins: [
