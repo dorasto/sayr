@@ -11,6 +11,9 @@ export const getConnections = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType }) => data)
 	.handler(async ({ data }) => {
 		try {
+			const email = await db.query.account.findFirst({
+				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "credential")),
+			});
 			// Find GitHub account association for this user
 			const github = await db.query.account.findFirst({
 				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "github")),
@@ -39,6 +42,7 @@ export const getConnections = createServerFn({ method: "GET" })
 			}
 
 			return {
+				email,
 				githubUser,
 				dorasUser,
 			};
@@ -62,10 +66,10 @@ export const Route = createFileRoute("/(admin)/settings/connections/")({
 });
 
 function RouteComponent() {
-	const { githubUser, dorasUser } = Route.useLoaderData();
+	const { email, githubUser, dorasUser } = Route.useLoaderData();
 	return (
 		<SubWrapper title="Connections" style="compact">
-			<UserConnections githubUser={githubUser} dorasUser={dorasUser} />
+			<UserConnections email={email} githubUser={githubUser} dorasUser={dorasUser} />
 		</SubWrapper>
 	);
 }

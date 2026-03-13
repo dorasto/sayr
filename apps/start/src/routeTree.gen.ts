@@ -16,6 +16,10 @@ import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
 import { Route as LoginAuthCheckRouteImport } from './routes/login/auth-check'
+import { Route as AuthSignupRouteImport } from './routes/auth/signup'
+import { Route as AuthPasswordResetRouteImport } from './routes/auth/password-reset'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthAuthCheckRouteImport } from './routes/auth/auth-check'
 import { Route as ApiTracesRouteImport } from './routes/api/traces'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
 import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
@@ -93,6 +97,26 @@ const adminIndexRoute = adminIndexRouteImport.update({
 const LoginAuthCheckRoute = LoginAuthCheckRouteImport.update({
   id: '/login/auth-check',
   path: '/login/auth-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthPasswordResetRoute = AuthPasswordResetRouteImport.update({
+  id: '/auth/password-reset',
+  path: '/auth/password-reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthAuthCheckRoute = AuthAuthCheckRouteImport.update({
+  id: '/auth/auth-check',
+  path: '/auth/auth-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTracesRoute = ApiTracesRouteImport.update({
@@ -348,6 +372,10 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/api/traces': typeof ApiTracesRoute
+  '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -394,6 +422,10 @@ export interface FileRoutesByTo {
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/api/traces': typeof ApiTracesRoute
+  '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
@@ -444,6 +476,10 @@ export interface FileRoutesById {
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/api/traces': typeof ApiTracesRoute
+  '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/(admin)/': typeof adminIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -498,6 +534,10 @@ export interface FileRouteTypes {
     | '/orgs/$orgSlug'
     | '/api/image-preview'
     | '/api/traces'
+    | '/auth/auth-check'
+    | '/auth/login'
+    | '/auth/password-reset'
+    | '/auth/signup'
     | '/login/auth-check'
     | '/'
     | '/login/'
@@ -544,6 +584,10 @@ export interface FileRouteTypes {
     | '/prosekit-test'
     | '/api/image-preview'
     | '/api/traces'
+    | '/auth/auth-check'
+    | '/auth/login'
+    | '/auth/password-reset'
+    | '/auth/signup'
     | '/login/auth-check'
     | '/'
     | '/login'
@@ -593,6 +637,10 @@ export interface FileRouteTypes {
     | '/orgs/$orgSlug'
     | '/api/image-preview'
     | '/api/traces'
+    | '/auth/auth-check'
+    | '/auth/login'
+    | '/auth/password-reset'
+    | '/auth/signup'
     | '/login/auth-check'
     | '/(admin)/'
     | '/login/'
@@ -642,6 +690,10 @@ export interface RootRouteChildren {
   OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
   ApiTracesRoute: typeof ApiTracesRoute
+  AuthAuthCheckRoute: typeof AuthAuthCheckRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthPasswordResetRoute: typeof AuthPasswordResetRoute
+  AuthSignupRoute: typeof AuthSignupRoute
   LoginAuthCheckRoute: typeof LoginAuthCheckRoute
   LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -698,6 +750,34 @@ declare module '@tanstack/react-router' {
       path: '/login/auth-check'
       fullPath: '/login/auth-check'
       preLoaderRoute: typeof LoginAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/password-reset': {
+      id: '/auth/password-reset'
+      path: '/auth/password-reset'
+      fullPath: '/auth/password-reset'
+      preLoaderRoute: typeof AuthPasswordResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/auth-check': {
+      id: '/auth/auth-check'
+      path: '/auth/auth-check'
+      fullPath: '/auth/auth-check'
+      preLoaderRoute: typeof AuthAuthCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/traces': {
@@ -1221,6 +1301,10 @@ const rootRouteChildren: RootRouteChildren = {
   OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
   ApiTracesRoute: ApiTracesRoute,
+  AuthAuthCheckRoute: AuthAuthCheckRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthPasswordResetRoute: AuthPasswordResetRoute,
+  AuthSignupRoute: AuthSignupRoute,
   LoginAuthCheckRoute: LoginAuthCheckRoute,
   LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

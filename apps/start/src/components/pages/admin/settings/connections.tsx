@@ -4,25 +4,111 @@ import { authClient } from "@repo/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { IconBrandGithub, IconBrandGithubFilled } from "@tabler/icons-react";
+import { IconBrandGithub, IconBrandGithubFilled, IconMail } from "@tabler/icons-react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import type { DorasUserType, GithubUserType } from "@/types";
+import { schema } from "@repo/database";
+import { useToastAction } from "@/lib/util";
 
 interface Props {
+	email: schema.accountType | null | undefined;
 	githubUser: GithubUserType | null | undefined;
 	dorasUser: DorasUserType | null | undefined;
 }
 
-export default function UserConnections({ githubUser, dorasUser }: Props) {
-	const { ws } = useLayoutData();
+export default function UserConnections({ email, githubUser, dorasUser }: Props) {
+	const connectedCount = (email ? 1 : 0) + (githubUser ? 1 : 0) + (dorasUser ? 1 : 0);
+	const canDisconnect = connectedCount >= 2;
+	const { ws, account } = useLayoutData();
 	useWebSocketSubscription({ ws });
-
-	/** ✅ true if both are connected */
-	const bothConnected = !!githubUser && !!dorasUser;
-
+	const { runWithToast } = useToastAction();
+	async function handleRequestPasswordEmail() {
+		await runWithToast(
+			"request-password-reset",
+			{
+				loading: {
+					title: "Sending email...",
+					description: "Requesting password reset link.",
+				},
+				success: {
+					title: "Email sent",
+					description: "Check your inbox for the reset link.",
+				},
+				error: {
+					title: "Failed",
+					description: "Could not send password reset email.",
+				},
+			},
+			// ⬇️ Adapt the return type so TS is happy
+			async () => {
+				await authClient.requestPasswordReset({
+					email: emailAddress,
+					redirectTo: "/auth/password-reset"
+				});
+				// Return something compatible with what runWithToast expects.
+				// You don't actually use it, so a dummy object is fine.
+				return {
+					success: true,
+				} as any;
+			},
+		);
+	}
+	const hasEmail = !!email;
+	const emailAddress = account.email
 	return (
 		<div className="flex flex-col gap-2">
+			{/* --- Email connection --- */}
+			<div className="bg-card rounded-lg flex flex-col">
+				<Tile className="md:w-full">
+					<TileHeader>
+						<TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
+							<Avatar className="w-full h-full rounded-md">
+								<AvatarFallback className="rounded-md uppercase text-xs">
+									<IconMail className="size-5" />
+								</AvatarFallback>
+							</Avatar>
+						</TileIcon>
+						<TileTitle>Email</TileTitle>
+						<TileDescription className="text-xs">
+							{hasEmail
+								? emailAddress
+								: "Connect an email/password login for this account"}
+						</TileDescription>
+					</TileHeader>
+
+					<TileAction>
+						{!hasEmail ? (
+							<Button
+								variant="accent"
+								size="sm"
+								onClick={handleRequestPasswordEmail}
+							>
+								Enable Password for ({account.email})
+							</Button>
+						) : (
+							<div className="flex gap-2">
+								<Button
+									variant="accent"
+									size="sm"
+									disabled={!canDisconnect}
+									title={
+										canDisconnect
+											? "Disconnect email login"
+											: "You must have at least one other connection to disconnect email"
+									}
+									onClick={async () => {
+										await authClient.unlinkAccount({ providerId: "credential" });
+										window.location.reload();
+									}}
+								>
+									Disconnect
+								</Button>
+							</div>
+						)}
+					</TileAction>
+				</Tile>
+			</div>
 			{/* --- Doras connection --- */}
 			<div className="bg-card rounded-lg flex flex-col">
 				<Tile className="md:w-full">
@@ -78,8 +164,12 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 							<Button
 								variant="accent"
 								size="sm"
-								disabled={!bothConnected} // 🔒 Only allow disconnect if both linked
-								title={bothConnected ? "Disconnect Doras" : "You must connect GitHub first to disconnect Doras"}
+								disabled={!canDisconnect}
+								title={
+									canDisconnect
+										? "Disconnect Doras"
+										: "You must have at least one other connection to disconnect Doras"
+								}
 								onClick={async () => {
 									await authClient.unlinkAccount({ providerId: "doras" });
 									window.location.reload();
@@ -135,9 +225,9 @@ export default function UserConnections({ githubUser, dorasUser }: Props) {
 							<Button
 								variant="accent"
 								size="sm"
-								disabled={!bothConnected} // 🔒 Only allow disconnect if both linked
+								disabled={!canDisconnect} // 🔒 Only allow disconnect if both linked
 								title={
-									bothConnected ? "Disconnect GitHub" : "You must connect Doras first to disconnect GitHub"
+									canDisconnect ? "Disconnect GitHub" : "You must connect Doras first to disconnect GitHub"
 								}
 								onClick={async () => {
 									await authClient.unlinkAccount({ providerId: "github" });

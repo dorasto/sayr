@@ -458,3 +458,5 @@ export class PermissionError extends Error {
 		this.name = "PermissionError";
 	}
 }
+
+export { sendEmail } from "./email";

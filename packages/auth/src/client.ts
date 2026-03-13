@@ -20,6 +20,17 @@ const setLoginOriginCookie = () => {
 	}
 	document.cookie = cookieParts.join("; ");
 };
+
+export const signInEmail = async () => {
+	const found = await authClient.getSession();
+	if (found.data) {
+		window.location.href = "/";
+		return;
+	}
+	setLoginOriginCookie();
+	window.location.href = "/auth/auth-check"
+}
+
 export const signInDoras = async () => {
 	const found = await authClient.getSession();
 	if (found.data) {
@@ -29,7 +40,7 @@ export const signInDoras = async () => {
 	setLoginOriginCookie();
 	await authClient.signIn.oauth2({
 		providerId: "doras",
-		callbackURL: `/login/auth-check`,
+		callbackURL: `/auth/auth-check`,
 	});
 };
 
@@ -42,6 +53,6 @@ export const singInGithub = async () => {
 	setLoginOriginCookie();
 	await authClient.signIn.social({
 		provider: "github",
-		callbackURL: `/login/auth-check`,
+		callbackURL: `/auth/auth-check`,
 	});
 };
