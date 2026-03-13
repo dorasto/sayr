@@ -1,13 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState } from "react";
 import { authClient } from "@repo/auth/client";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@repo/ui/components/input-otp";
 import { IconShieldCheck, IconKey } from "@tabler/icons-react";
-import QRCode from "qrcode";
-
+import { getAccess } from "@/getAccess";
+import { createServerFn } from "@tanstack/react-start";
+const checkAuth = createServerFn({ method: "GET" }).handler(async () => {
+	const { account } = await getAccess();
+	return { account };
+});
 export const Route = createFileRoute("/auth/2fa")({
+	beforeLoad: async () => {
+		const { account } = await checkAuth();
+		if (account) {
+			throw redirect({ to: "/" });
+		}
+	},
 	component: RouteComponent,
 });
 
@@ -16,18 +26,6 @@ function RouteComponent() {
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [useBackupCode, setUseBackupCode] = useState(false);
-	const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-	const [isSetupMode, setIsSetupMode] = useState(false);
-
-	useEffect(() => {
-		const totpURI = sessionStorage.getItem("2fa-setup-totp");
-		if (totpURI) {
-			setIsSetupMode(true);
-			QRCode.toDataURL(totpURI, { width: 200, margin: 2 })
-				.then(setQrCodeUrl)
-				.catch(console.error);
-		}
-	}, []);
 
 	const handleVerify = async () => {
 		if (useBackupCode) {
@@ -56,22 +54,12 @@ function RouteComponent() {
 				setError(result.error.message || "Invalid code");
 				return;
 			}
-			if (isSetupMode) {
-				sessionStorage.removeItem("2fa-setup-totp");
-			}
 			window.location.href = "/";
 		} catch (err) {
 			setError("An unexpected error occurred");
 		} finally {
 			setLoading(false);
 		}
-	};
-
-	const getTotpSecret = () => {
-		const totpURI = sessionStorage.getItem("2fa-setup-totp");
-		if (!totpURI) return null;
-		const match = totpURI.match(/secret=([A-Z0-9]+)/i);
-		return match ? match[1] : null;
 	};
 
 	return (
@@ -83,22 +71,13 @@ function RouteComponent() {
 					</div>
 					<h1 className="text-2xl font-semibold">Two-Factor Authentication</h1>
 					<p className="text-muted-foreground mt-2">
-						{isSetupMode
-							? "Scan the QR code with your authenticator app"
-							: useBackupCode
-								? "Enter one of your backup codes"
-								: "Enter the 6-digit code from your authenticator app"}
+						{useBackupCode
+							? "Enter one of your backup codes"
+							: "Enter the 6-digit code from your authenticator app"}
 					</p>
 				</div>
 
 				<div className="bg-card rounded-lg border p-6">
-					{isSetupMode && qrCodeUrl && (
-						<div className="flex flex-col items-center mb-6">
-							<img src={qrCodeUrl} alt="QR Code" className="rounded-lg" />
-							<p className="text-xs text-muted-foreground mt-3">Or enter this code manually:</p>
-							<p className="font-mono text-sm bg-accent px-2 py-1 rounded mt-1">{getTotpSecret()}</p>
-						</div>
-					)}
 
 					<div className="flex flex-col items-center">
 						{useBackupCode ? (
@@ -137,21 +116,18 @@ function RouteComponent() {
 								{loading ? "Verifying..." : "Verify"}
 							</Button>
 						</div>
-
-						{!isSetupMode && (
-							<button
-								type="button"
-								onClick={() => {
-									setUseBackupCode(!useBackupCode);
-									setCode("");
-									setError("");
-								}}
-								className="mt-4 text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-							>
-								<IconKey className="size-3" />
-								{useBackupCode ? "Use authenticator app" : "Use backup code"}
-							</button>
-						)}
+						<button
+							type="button"
+							onClick={() => {
+								setUseBackupCode(!useBackupCode);
+								setCode("");
+								setError("");
+							}}
+							className="mt-4 text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+						>
+							<IconKey className="size-3" />
+							{useBackupCode ? "Use authenticator app" : "Use backup code"}
+						</button>
 					</div>
 				</div>
 			</div>

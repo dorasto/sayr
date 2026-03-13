@@ -284,7 +284,7 @@ import { generateSlug, formatDate, ensureCdnUrl } from "@repo/util";
    └─► Session cookie set (HttpOnly)
 
 4. Callback redirects to auth-check
-   └─► /login/auth-check
+   └─► /auth/auth-check
 
 5. Auth-check validates *presence of session*
    └─► Reads `login_origin` cookie
