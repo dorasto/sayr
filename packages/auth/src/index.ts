@@ -23,7 +23,7 @@ const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_U
 // Cookie domains need at least 2 parts (e.g., ".app.localhost" works, ".localhost" doesn't)
 // For local dev with subdomains, use "app.localhost" pattern or sslip.io/nip.io
 const isBarelocalhost = rootUrl === "localhost";
-const { polarBillingEnabled } = getEditionCapabilities();
+const { polarBillingEnabled, dorasOAuthEnabled } = getEditionCapabilities();
 
 export const polarClient = polarBillingEnabled
 	? new Polar({
@@ -36,6 +36,7 @@ const plugins: any[] = [
 	genericOAuth({
 		config: [
 			{
+				disableSignUp: !dorasOAuthEnabled,
 				providerId: "doras",
 				clientId: process.env.DORAS_CLIENT_ID as string,
 				clientSecret: process.env.DORAS_CLIENT_SECRET as string,
