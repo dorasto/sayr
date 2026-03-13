@@ -1,0 +1,21 @@
+# see https://docs.zerops.io/zerops-yml/specification for full reference
+zerops:
+  - setup: app
+    build:
+      base: nodejs@20
+      buildCommands:
+        - pnpm i
+        - pnpm -F marketing build
+      deployFiles:
+        - apps/marketing/dist -> dist
+        - apps/marketing/package.json -> package.json
+        - apps/marketing/node_modules -> node_modules
+    run:
+      base: nodejs@20
+      ports:
+        - port: 3000
+          httpSupport: true
+      envVariables:
+        PORT: 3000
+        HOST: 0.0.0.0
+      start: node ./dist/server/entry.mjs
