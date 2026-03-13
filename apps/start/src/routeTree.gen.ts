@@ -13,9 +13,7 @@ import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
-import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
-import { Route as LoginAuthCheckRouteImport } from './routes/login/auth-check'
 import { Route as AuthSignupRouteImport } from './routes/auth/signup'
 import { Route as AuthPasswordResetRouteImport } from './routes/auth/password-reset'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
@@ -31,7 +29,6 @@ import { Route as adminHomeRouteRouteImport } from './routes/(admin)/home/route'
 import { Route as adminOrgIdRouteRouteImport } from './routes/(admin)/$orgId/route'
 import { Route as OrgsOrgSlugIndexRouteImport } from './routes/orgs/$orgSlug/index'
 import { Route as InviteOrgIdIndexRouteImport } from './routes/invite/$orgId/index'
-import { Route as InternalLoginIndexRouteImport } from './routes/internal/login/index'
 import { Route as adminSettingsIndexRouteImport } from './routes/(admin)/settings/index'
 import { Route as adminMineIndexRouteImport } from './routes/(admin)/mine/index'
 import { Route as adminInboxIndexRouteImport } from './routes/(admin)/inbox/index'
@@ -86,20 +83,10 @@ const adminRouteRoute = adminRouteRouteImport.update({
   id: '/(admin)',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginIndexRoute = LoginIndexRouteImport.update({
-  id: '/login/',
-  path: '/login/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const adminIndexRoute = adminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => adminRouteRoute,
-} as any)
-const LoginAuthCheckRoute = LoginAuthCheckRouteImport.update({
-  id: '/login/auth-check',
-  path: '/login/auth-check',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignupRoute = AuthSignupRouteImport.update({
   id: '/auth/signup',
@@ -174,11 +161,6 @@ const OrgsOrgSlugIndexRoute = OrgsOrgSlugIndexRouteImport.update({
 const InviteOrgIdIndexRoute = InviteOrgIdIndexRouteImport.update({
   id: '/invite/$orgId/',
   path: '/invite/$orgId/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InternalLoginIndexRoute = InternalLoginIndexRouteImport.update({
-  id: '/internal/login/',
-  path: '/internal/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminSettingsIndexRoute = adminSettingsIndexRouteImport.update({
@@ -390,9 +372,7 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/signup': typeof AuthSignupRoute
-  '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
-  '/login/': typeof LoginIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
   '/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -402,7 +382,6 @@ export interface FileRoutesByFullPath {
   '/inbox/': typeof adminInboxIndexRoute
   '/mine/': typeof adminMineIndexRoute
   '/settings/': typeof adminSettingsIndexRoute
-  '/internal/login/': typeof InternalLoginIndexRoute
   '/invite/$orgId/': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
@@ -442,9 +421,7 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/signup': typeof AuthSignupRoute
-  '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
-  '/login': typeof LoginIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/$orgId': typeof adminOrgIdIndexRoute
   '/console': typeof adminConsoleIndexRoute
@@ -452,7 +429,6 @@ export interface FileRoutesByTo {
   '/inbox': typeof adminInboxIndexRoute
   '/mine': typeof adminMineIndexRoute
   '/settings': typeof adminSettingsIndexRoute
-  '/internal/login': typeof InternalLoginIndexRoute
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug': typeof OrgsOrgSlugIndexRoute
   '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
@@ -498,9 +474,7 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/signup': typeof AuthSignupRoute
-  '/login/auth-check': typeof LoginAuthCheckRoute
   '/(admin)/': typeof adminIndexRoute
-  '/login/': typeof LoginIndexRoute
   '/(admin)/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
   '/(admin)/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -510,7 +484,6 @@ export interface FileRoutesById {
   '/(admin)/inbox/': typeof adminInboxIndexRoute
   '/(admin)/mine/': typeof adminMineIndexRoute
   '/(admin)/settings/': typeof adminSettingsIndexRoute
-  '/internal/login/': typeof InternalLoginIndexRoute
   '/invite/$orgId/': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug/': typeof OrgsOrgSlugIndexRoute
   '/(admin)/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
@@ -558,9 +531,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/password-reset'
     | '/auth/signup'
-    | '/login/auth-check'
     | '/'
-    | '/login/'
     | '/$orgId/tasks'
     | '/settings/connections'
     | '/api/auth/$'
@@ -570,7 +541,6 @@ export interface FileRouteTypes {
     | '/inbox/'
     | '/mine/'
     | '/settings/'
-    | '/internal/login/'
     | '/invite/$orgId/'
     | '/orgs/$orgSlug/'
     | '/$orgId/tasks/$taskShortId'
@@ -610,9 +580,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/password-reset'
     | '/auth/signup'
-    | '/login/auth-check'
     | '/'
-    | '/login'
     | '/api/auth/$'
     | '/$orgId'
     | '/console'
@@ -620,7 +588,6 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/mine'
     | '/settings'
-    | '/internal/login'
     | '/invite/$orgId'
     | '/orgs/$orgSlug'
     | '/$orgId/releases/$releaseSlug'
@@ -665,9 +632,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/password-reset'
     | '/auth/signup'
-    | '/login/auth-check'
     | '/(admin)/'
-    | '/login/'
     | '/(admin)/$orgId/tasks'
     | '/(admin)/settings/connections'
     | '/api/auth/$'
@@ -677,7 +642,6 @@ export interface FileRouteTypes {
     | '/(admin)/inbox/'
     | '/(admin)/mine/'
     | '/(admin)/settings/'
-    | '/internal/login/'
     | '/invite/$orgId/'
     | '/orgs/$orgSlug/'
     | '/(admin)/$orgId/tasks/$taskShortId'
@@ -720,10 +684,7 @@ export interface RootRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthPasswordResetRoute: typeof AuthPasswordResetRoute
   AuthSignupRoute: typeof AuthSignupRoute
-  LoginAuthCheckRoute: typeof LoginAuthCheckRoute
-  LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  InternalLoginIndexRoute: typeof InternalLoginIndexRoute
   InviteOrgIdIndexRoute: typeof InviteOrgIdIndexRoute
 }
 
@@ -757,26 +718,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login/': {
-      id: '/login/'
-      path: '/login'
-      fullPath: '/login/'
-      preLoaderRoute: typeof LoginIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/(admin)/': {
       id: '/(admin)/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof adminIndexRouteImport
       parentRoute: typeof adminRouteRoute
-    }
-    '/login/auth-check': {
-      id: '/login/auth-check'
-      path: '/login/auth-check'
-      fullPath: '/login/auth-check'
-      preLoaderRoute: typeof LoginAuthCheckRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/auth/signup': {
       id: '/auth/signup'
@@ -881,13 +828,6 @@ declare module '@tanstack/react-router' {
       path: '/invite/$orgId'
       fullPath: '/invite/$orgId/'
       preLoaderRoute: typeof InviteOrgIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/internal/login/': {
-      id: '/internal/login/'
-      path: '/internal/login'
-      fullPath: '/internal/login/'
-      preLoaderRoute: typeof InternalLoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)/settings/': {
@@ -1348,10 +1288,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthPasswordResetRoute: AuthPasswordResetRoute,
   AuthSignupRoute: AuthSignupRoute,
-  LoginAuthCheckRoute: LoginAuthCheckRoute,
-  LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  InternalLoginIndexRoute: InternalLoginIndexRoute,
   InviteOrgIdIndexRoute: InviteOrgIdIndexRoute,
 }
 export const routeTree = rootRouteImport

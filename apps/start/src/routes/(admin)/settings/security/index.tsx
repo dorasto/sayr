@@ -105,7 +105,7 @@ function RouteComponent() {
 	useWebSocketSubscription({ ws });
 
 	const [twoFactorEnabled, setTwoFactorEnabled] = useState(account.twoFactorEnabled || false);
-	const hasCredential = email !== null;
+	const hasCredential = !!email;
 
 	// --- Password dialog (step 1) ---
 	const [showPasswordDialog, setShowPasswordDialog] = useState(false);
