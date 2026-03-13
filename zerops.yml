@@ -7,9 +7,9 @@ zerops:
         - pnpm i
         - pnpm -F marketing build
       deployFiles:
-        - apps/marketing/dist -> dist
-        - apps/marketing/package.json -> package.json
-        - apps/marketing/node_modules -> node_modules
+        - apps/marketing/~dist
+        - apps/marketing/~package.json
+        - apps/marketing/~node_modules
     run:
       base: nodejs@20
       ports:
