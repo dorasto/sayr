@@ -588,6 +588,40 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		return c.json({ success: false, error: "Task not found" }, 404);
 	}
 
+	// Granular task permission checks for non-creator, non-assignee members
+	if (!isSystemAccount) {
+		const isCreator = existingTask.createdBy === session?.userId;
+		const assigneeIds = await getTaskAssigneeIds(taskId);
+		const isAssignee = assigneeIds.includes(session?.userId || "");
+
+		if (!isCreator && !isAssignee) {
+			if (updates.status !== undefined) {
+				const canChangeStatus = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.changeStatus");
+				if (!canChangeStatus) {
+					return c.json({ success: false, error: "You don't have permission to change task status." }, 401);
+				}
+			}
+			if (updates.priority !== undefined) {
+				const canChangePriority = await traceOrgPermissionCheck(
+					session?.userId || "",
+					orgId,
+					"tasks.changePriority",
+				);
+				if (!canChangePriority) {
+					return c.json({ success: false, error: "You don't have permission to change task priority." }, 401);
+				}
+			}
+			const editFields = ["title", "description", "category", "releaseId", "visible"];
+			const hasEditField = editFields.some((f) => updates[f] !== undefined);
+			if (hasEditField) {
+				const canEditAny = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.editAny");
+				if (!canEditAny) {
+					return c.json({ success: false, error: "You don't have permission to edit this task." }, 401);
+				}
+			}
+		}
+	}
+
 	const allowed: Partial<schema.taskType> = {};
 	["title", "description", "status", "priority", "category", "releaseId", "visible"].forEach((field) => {
 		if (updates[field] !== undefined) {

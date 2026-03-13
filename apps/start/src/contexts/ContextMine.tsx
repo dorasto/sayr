@@ -1,4 +1,4 @@
-import type { schema } from "@repo/database";
+import type { schema, TeamPermissions } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useContext } from "react";
 
@@ -13,6 +13,7 @@ interface ContextType {
 	setCategories: (newValue: ContextType["categories"]) => void;
 	releases: schema.releaseType[];
 	setReleases: (newValue: ContextType["releases"]) => void;
+	permissionsByOrg: Record<string, TeamPermissions>;
 }
 
 const MyTasksContext = createContext<ContextType | undefined>(undefined);
@@ -24,6 +25,7 @@ export function RootProviderMyTasks({
 	views,
 	categories,
 	releases,
+	permissionsByOrg,
 }: {
 	children: ReactNode;
 	tasks: ContextType["tasks"];
@@ -31,6 +33,7 @@ export function RootProviderMyTasks({
 	views: ContextType["views"];
 	categories: ContextType["categories"];
 	releases: ContextType["releases"];
+	permissionsByOrg: ContextType["permissionsByOrg"];
 }) {
 	const { value: newTasks, setValue: setTasks } = useStateManagement("my-tasks", tasks, 30000);
 	const { value: newLabels, setValue: setLabels } = useStateManagement("my-labels", labels, 30000);
@@ -51,6 +54,7 @@ export function RootProviderMyTasks({
 				setCategories,
 				releases: NewReleases,
 				setReleases,
+				permissionsByOrg,
 			}}
 		>
 			{children}

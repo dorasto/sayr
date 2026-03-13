@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { RootProviderMyTasks } from "@/contexts/ContextMine";
 
 import type { schema } from "@repo/database";
-import { db, getLabels, getTasksByUserId, getReleases } from "@repo/database";
+import { db, getLabels, getTasksByUserId, getReleases, getOrgPermissions, type TeamPermissions } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { createServerFn } from "@tanstack/react-start";
 import { eq, inArray } from "drizzle-orm";
@@ -22,6 +22,7 @@ export const getMyTasks = createServerFn({ method: "GET" })
 					views: [],
 					categories: [],
 					releases: [],
+					permissionsByOrg: {},
 				};
 			}
 
@@ -138,12 +139,22 @@ export const getMyTasks = createServerFn({ method: "GET" })
 			const allReleases: schema.releaseType[] =
 				releasesArrays.flat();
 
+			// Load per-org permissions for field-level gating in cross-org views
+			const permEntries = await Promise.all(
+				filteredOrgIds.map(async (orgId) => {
+					const perms = await getOrgPermissions(data.account.id, orgId);
+					return [orgId, perms] as const;
+				}),
+			);
+			const permissionsByOrg: Record<string, TeamPermissions> = Object.fromEntries(permEntries);
+
 			return {
 				tasks: transformedTasks,
 				labels: allLabels,
 				views,
 				categories,
 				releases: allReleases,
+				permissionsByOrg,
 			};
 		} catch (error) {
 			if (
@@ -169,7 +180,7 @@ export const Route = createFileRoute("/(admin)/mine")({
 });
 
 function MineLayout() {
-	const { tasks, labels, views, categories, releases } = Route.useLoaderData();
+	const { tasks, labels, views, categories, releases, permissionsByOrg } = Route.useLoaderData();
 	return (
 		<RootProviderMyTasks
 			tasks={tasks}
@@ -177,6 +188,7 @@ function MineLayout() {
 			views={views}
 			categories={categories}
 			releases={releases}
+			permissionsByOrg={permissionsByOrg}
 		>
 			<Outlet />
 		</RootProviderMyTasks>

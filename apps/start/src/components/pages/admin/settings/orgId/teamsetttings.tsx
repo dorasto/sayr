@@ -14,6 +14,7 @@ const defaultTeamPermissions: TeamPermissions = {
 		manageCategories: false,
 		manageLabels: false,
 		manageViews: false,
+		manageReleases: false,
 	},
 	tasks: {
 		create: true,
@@ -541,8 +542,8 @@ export default function SettingsOrganizationPageTeamSettings({
 									<IconSettings className="size-4 text-muted-foreground" />
 									<Label className="font-medium cursor-pointer">Content Settings</Label>
 									<Badge variant="secondary" className="text-xs">
-										{Object.values(permissions.content).filter(Boolean).length}
-										/3
+									{Object.values(permissions.content).filter(Boolean).length}
+									/4
 									</Badge>
 								</div>
 								<IconChevronDown
@@ -569,13 +570,20 @@ export default function SettingsOrganizationPageTeamSettings({
 									onCheckedChange={(checked) => updateContentPermission("manageLabels", checked)}
 									disabled={isAdmin}
 								/>
-								<PermissionRow
-									label="Manage views"
-									description="Create, edit, and delete saved views"
-									checked={permissions.content.manageViews}
-									onCheckedChange={(checked) => updateContentPermission("manageViews", checked)}
-									disabled={isAdmin}
-								/>
+							<PermissionRow
+								label="Manage views"
+								description="Create, edit, and delete saved views"
+								checked={permissions.content.manageViews}
+								onCheckedChange={(checked) => updateContentPermission("manageViews", checked)}
+								disabled={isAdmin}
+							/>
+							<PermissionRow
+								label="Manage releases"
+								description="Create, edit, and delete releases"
+								checked={permissions.content.manageReleases}
+								onCheckedChange={(checked) => updateContentPermission("manageReleases", checked)}
+								disabled={isAdmin}
+							/>
 							</div>
 						</CollapsibleContent>
 					</Collapsible>

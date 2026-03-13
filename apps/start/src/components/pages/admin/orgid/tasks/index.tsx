@@ -77,6 +77,7 @@ export default function OrganizationTasksHomePage() {
     issueTemplates,
     isProjectPanelOpen,
     setProjectPanelOpen,
+    permissions,
   } = useLayoutOrganization();
   const {
     viewMode,
@@ -469,6 +470,8 @@ export default function OrganizationTasksHomePage() {
             releases={releases}
             views={views}
             onActiveDialogTaskChange={handleActiveDialogTaskChange}
+            permissionsByOrg={{ [organization.id]: permissions }}
+            accountId={account.id}
           />
         </div>
       </div>

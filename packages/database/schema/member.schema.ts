@@ -34,6 +34,7 @@ export const team = table(
 					manageCategories: false,
 					manageLabels: false,
 					manageViews: false,
+					manageReleases: false,
 				},
 				tasks: {
 					create: true,
@@ -175,6 +176,8 @@ export interface TeamPermissions {
 		manageLabels: boolean;
 		/** Create, edit, and delete saved views */
 		manageViews: boolean;
+		/** Create, edit, and delete releases */
+		manageReleases: boolean;
 	};
 	/** Task/issue permissions */
 	tasks: {
@@ -214,6 +217,7 @@ export const defaultTeamPermissions: TeamPermissions = {
 		manageCategories: false,
 		manageLabels: false,
 		manageViews: false,
+		manageReleases: false,
 	},
 	tasks: {
 		create: true,

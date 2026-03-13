@@ -55,12 +55,14 @@ export type {
   FieldKey,
   FieldConfig,
   FieldEntry,
+  FieldPermissions,
   TaskFieldToolbarProps,
 } from "./task-field-toolbar-types";
 export {
   DEFAULT_FIELDS,
   VARIANT_STYLES,
   resolveFieldEntry,
+  getTaskFieldPermissions,
 } from "./task-field-toolbar-types";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -70,6 +72,7 @@ export {
 export default function TaskFieldToolbar({
   task,
   editable = true,
+  fieldPermissions,
   fields: fieldsProp,
   availableLabels = [],
   availableUsers = [],
@@ -217,7 +220,7 @@ export default function TaskFieldToolbar({
 
     return {
       task,
-      editable,
+      editable: fieldPermissions?.[cfg.key] ?? editable,
       tasks,
       setTasks,
       setSelectedTask,

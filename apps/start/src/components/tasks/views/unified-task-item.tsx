@@ -51,6 +51,7 @@ import GlobalTaskAssignees from "../shared/assignee";
 import { priorityConfig, statusConfig } from "../shared/config";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
+import type { FieldPermissions } from "../shared/task-field-toolbar-types";
 import { SubtaskProgressBadge } from "../shared/subtask-progress";
 import { InlineLabel } from "../shared/inlinelabel";
 import { Input } from "@repo/ui/components/input";
@@ -84,6 +85,9 @@ interface UnifiedTaskItemProps {
   availableLabels?: schema.labelType[];
   categories?: schema.categoryType[];
   releases?: schema.releaseType[];
+
+  /** Per-field editability flags based on the current user's permissions. */
+  fieldPermissions?: FieldPermissions;
 
   // Actions
   onTaskUpdate?: (
@@ -125,6 +129,7 @@ export function UnifiedTaskItem({
   availableLabels = [],
   categories = [],
   releases = [],
+  fieldPermissions,
   onTaskUpdate,
   onTaskClick,
   onOpenInDialog,
@@ -341,7 +346,7 @@ export function UnifiedTaskItem({
             {/* Priority */}
             <GlobalTaskPriority
               task={task}
-              editable={true}
+              editable={fieldPermissions?.priority ?? true}
               onChange={handlePriorityChange}
               tasks={tasks}
               setTasks={setTasks}
@@ -396,7 +401,7 @@ export function UnifiedTaskItem({
 						{/* Assignees */}
 						<GlobalTaskAssignees
 							task={task}
-							editable={true}
+							editable={fieldPermissions?.assignees ?? true}
 							availableUsers={availableUsers}
 							onChange={handleAssigneeChange}
 							tasks={tasks}
@@ -454,7 +459,7 @@ export function UnifiedTaskItem({
               {/* Priority */}
               <GlobalTaskPriority
                 task={task}
-                editable={true}
+                editable={fieldPermissions?.priority ?? true}
                 onChange={handlePriorityChange}
                 tasks={tasks}
                 setTasks={setTasks}
@@ -484,7 +489,7 @@ export function UnifiedTaskItem({
             {/* Status dropdown */}
             <GlobalTaskStatus
               task={task}
-              editable={true}
+              editable={fieldPermissions?.status ?? true}
               onChange={handleStatusChange}
               tasks={tasks}
               setTasks={setTasks}
@@ -567,7 +572,7 @@ export function UnifiedTaskItem({
 						{/* Assignees */}
 						<GlobalTaskAssignees
 							task={task}
-							editable={true}
+							editable={fieldPermissions?.assignees ?? true}
 							availableUsers={availableUsers}
 							onChange={handleAssigneeChange}
 							tasks={tasks}
@@ -607,7 +612,7 @@ export function UnifiedTaskItem({
         <div className="flex items-center ml-auto gap-1">
           <GlobalTaskStatus
             task={task}
-            editable={true}
+            editable={fieldPermissions?.status ?? true}
             onChange={handleStatusChange}
             tasks={tasks}
             setTasks={setTasks}
@@ -629,7 +634,7 @@ export function UnifiedTaskItem({
 
           <GlobalTaskPriority
             task={task}
-            editable={true}
+            editable={fieldPermissions?.priority ?? true}
             onChange={handlePriorityChange}
             tasks={tasks}
             setTasks={setTasks}
@@ -695,7 +700,7 @@ export function UnifiedTaskItem({
 			</div>
 			<GlobalTaskAssignees
 				task={task}
-				editable={true}
+				editable={fieldPermissions?.assignees ?? true}
 				availableUsers={availableUsers}
 							onChange={handleAssigneeChange}
 							tasks={tasks}
@@ -784,6 +789,7 @@ export function UnifiedTaskItem({
       </ContextMenuSub>
 
       {/* Priority */}
+      {(fieldPermissions?.priority ?? true) && (
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           {priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)} Priority
@@ -808,8 +814,10 @@ export function UnifiedTaskItem({
           </ContextMenuRadioGroup>
         </ContextMenuSubContent>
       </ContextMenuSub>
+      )}
 
       {/* Status */}
+      {(fieldPermissions?.status ?? true) && (
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           {status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)} Status
@@ -834,8 +842,10 @@ export function UnifiedTaskItem({
           </ContextMenuRadioGroup>
         </ContextMenuSubContent>
       </ContextMenuSub>
+      )}
 
       {/* Assignees */}
+      {(fieldPermissions?.assignees ?? true) && (
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           <IconUser className="size-3.5" />
@@ -906,8 +916,10 @@ export function UnifiedTaskItem({
           )}
         </ContextMenuSubContent>
       </ContextMenuSub>
+      )}
 
       {/* Labels */}
+      {(fieldPermissions?.labels ?? true) && (
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           <IconTag className="size-3.5" />
@@ -968,8 +980,10 @@ export function UnifiedTaskItem({
           )}
         </ContextMenuSubContent>
       </ContextMenuSub>
+      )}
 
       {/* Category */}
+      {(fieldPermissions?.category ?? true) && (
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           <IconCategory className="size-3.5" />
@@ -1020,8 +1034,10 @@ export function UnifiedTaskItem({
           </ContextMenuRadioGroup>
         </ContextMenuSubContent>
       </ContextMenuSub>
+      )}
 
       {/* Release */}
+      {(fieldPermissions?.release ?? true) && (
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           <IconRocket className="size-3.5" />
@@ -1091,10 +1107,12 @@ export function UnifiedTaskItem({
           </ContextMenuRadioGroup>
         </ContextMenuSubContent>
       </ContextMenuSub>
+      )}
 
-      <ContextMenuSeparator />
+      {(fieldPermissions?.parent ?? true) && <ContextMenuSeparator />}
 
       {/* Parent task */}
+      {(fieldPermissions?.parent ?? true) && (
       <ContextMenuSub>
         <ContextMenuSubTrigger className="gap-3 w-full">
           <IconGitBranch className="size-3.5" /> Parent task
@@ -1154,9 +1172,10 @@ export function UnifiedTaskItem({
           </ContextMenuRadioGroup>
         </ContextMenuSubContent>
       </ContextMenuSub>
+      )}
 
       {/* Relations */}
-      {onAddRelation && (
+      {onAddRelation && (fieldPermissions?.parent ?? true) && (
         <ContextMenuSub>
           <ContextMenuSubTrigger className="gap-3 w-full">
             <IconLink className="size-3.5" /> Add relation

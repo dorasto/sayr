@@ -1,6 +1,6 @@
 "use client";
 
-import type { schema } from "@repo/database";
+import type { schema, TeamPermissions } from "@repo/database";
 import {
   GridBoardCells,
   GridBoardColumnHeader,
@@ -45,6 +45,7 @@ import {
 } from "../shared/nested-grouping";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
+import { getTaskFieldPermissions, type FieldPermissions } from "../shared/task-field-toolbar-types";
 import { BulkActionBar, type BulkUpdateAddRemove } from "./bulk-action-bar";
 import Loader from "@/components/Loader";
 import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
@@ -69,6 +70,10 @@ interface UnifiedTaskViewProps {
   className?: string;
   /** Called when the dialog opens/closes a task, so the parent can switch WS channels */
   onActiveDialogTaskChange?: (taskId: string | null) => void;
+  /** Per-org permissions map for cross-org views (e.g. /mine). When provided with accountId, enables field-level gating. */
+  permissionsByOrg?: Record<string, TeamPermissions>;
+  /** The current user's ID. Required alongside permissionsByOrg for field-level gating. */
+  accountId?: string;
 }
 
 export function UnifiedTaskView({
@@ -86,6 +91,8 @@ export function UnifiedTaskView({
   views: viewsProp,
   className: classNameProp,
   onActiveDialogTaskChange,
+  permissionsByOrg,
+  accountId,
 }: UnifiedTaskViewProps) {
   // console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -403,7 +410,14 @@ export function UnifiedTaskView({
     groupId: string,
     mode: "list" | "kanban",
     columnId?: string,
-  ) => (
+  ) => {
+    // Compute field permissions when cross-org permission data is available
+    const fieldPerms: FieldPermissions | undefined =
+      permissionsByOrg && accountId
+        ? getTaskFieldPermissions(task, accountId, permissionsByOrg[task.organizationId])
+        : undefined;
+
+    return (
     <UnifiedTaskItem
       key={`${groupId}:${task.id}`}
       viewMode={mode}
@@ -427,8 +441,10 @@ export function UnifiedTaskView({
       releases={releases}
       compact={compact}
       personal={personal}
+      fieldPermissions={fieldPerms}
     />
-  );
+    );
+  };
 
   const renderEmptyGroup = () => (
     <div className="px-4 py-3 text-xs text-muted-foreground">
@@ -631,7 +647,13 @@ export function UnifiedTaskView({
     };
 
     // Render drag overlay
-    const renderDragOverlay = (item: GridItem) => (
+    const renderDragOverlay = (item: GridItem) => {
+      const dragFieldPerms: FieldPermissions | undefined =
+        permissionsByOrg && accountId
+          ? getTaskFieldPermissions(item, accountId, permissionsByOrg[item.organizationId])
+          : undefined;
+
+      return (
       <div className="opacity-90 rotate-2 scale-105">
         <UnifiedTaskItem
           viewMode="kanban"
@@ -647,9 +669,11 @@ export function UnifiedTaskView({
           releases={releases}
           compact={compact}
           personal={personal}
+          fieldPermissions={dragFieldPerms}
         />
       </div>
-    );
+      );
+    };
 
     return (
       <GridBoardProvider
@@ -818,6 +842,11 @@ export function UnifiedTaskView({
         categories={categories}
         releases={releases}
         organization={organization}
+        fieldPermissions={
+          dialogTask && permissionsByOrg && accountId
+            ? getTaskFieldPermissions(dialogTask, accountId, permissionsByOrg[dialogTask.organizationId])
+            : undefined
+        }
       />
     </div>
   );

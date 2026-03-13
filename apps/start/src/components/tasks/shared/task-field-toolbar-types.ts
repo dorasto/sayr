@@ -6,6 +6,9 @@ import type { TaskDetailOrganization } from "../types";
 // Types
 // ────────────────────────────────────────────────────────────────────────────
 
+/** Per-field editability flags. `true` = user can edit, `false` = read-only. */
+export type FieldPermissions = Partial<Record<FieldKey, boolean>>;
+
 export type FieldKey =
 	| "identifier"
 	| "status"
@@ -47,6 +50,8 @@ export type FieldEntry = FieldKey | FieldConfig;
 export interface TaskFieldToolbarProps {
 	task: schema.TaskWithLabels;
 	editable?: boolean;
+	/** Per-field editability overrides based on the current user's permissions. */
+	fieldPermissions?: FieldPermissions;
 
 	/**
 	 * Ordered array of fields to render.
@@ -151,3 +156,76 @@ export const VARIANT_STYLES = {
 		useCustomTrigger: false,
 	},
 } as const;
+
+// ────────────────────────────────────────────────────────────────────────────
+// Permission helper
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Compute per-field editability based on the user's relationship to the task
+ * and their org-level permissions. Creators and assignees bypass all granular
+ * checks — they can always edit their own tasks.
+ */
+export function getTaskFieldPermissions(
+	task: schema.TaskWithLabels,
+	userId: string | undefined,
+	permissions: schema.TeamPermissions | null | undefined,
+): FieldPermissions {
+	if (!userId || !permissions) return {};
+
+	// Creators and assignees can edit everything
+	const isCreator = task.createdBy?.id === userId;
+	const isAssignee = task.assignees?.some((a) => a.id === userId) ?? false;
+	if (isCreator || isAssignee) {
+		return {
+			status: true,
+			priority: true,
+			labels: true,
+			assignees: true,
+			category: true,
+			visibility: true,
+			release: true,
+			identifier: true,
+			vote: true,
+			githubIssue: true,
+			githubPr: true,
+			parent: true,
+		};
+	}
+
+	// Administrator bypasses all checks
+	if (permissions.admin?.administrator) {
+		return {
+			status: true,
+			priority: true,
+			labels: true,
+			assignees: true,
+			category: true,
+			visibility: true,
+			release: true,
+			identifier: true,
+			vote: true,
+			githubIssue: true,
+			githubPr: true,
+			parent: true,
+		};
+	}
+
+	// Map field keys to their corresponding permission flags
+	const editAny = permissions.tasks?.editAny ?? false;
+	return {
+		status: permissions.tasks?.changeStatus ?? false,
+		priority: permissions.tasks?.changePriority ?? false,
+		assignees: permissions.tasks?.assign ?? false,
+		labels: editAny,
+		category: editAny,
+		visibility: editAny,
+		release: editAny,
+		// These are always accessible (read-only display or not permission-gated)
+		identifier: true,
+		vote: true,
+		githubIssue: true,
+		githubPr: true,
+		parent: editAny,
+	};
+}

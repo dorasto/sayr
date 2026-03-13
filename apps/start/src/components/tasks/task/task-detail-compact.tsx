@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { deriveAvailableUsers, type TaskDetailOrganization } from "../types";
 import TaskFieldToolbar from "../shared/task-field-toolbar";
+import type { FieldPermissions } from "../shared/task-field-toolbar-types";
 import { TaskEditableHeader } from "./editable-header";
 import GlobalTimeline from "./timeline/root";
 import { TaskContextBanner } from "./task-context-banner";
@@ -32,6 +33,8 @@ export interface TaskDetailCompactProps {
    * falls back to `task.organization` when absent.
    */
   organization?: TaskDetailOrganization;
+  /** Per-field editability flags for cross-org views */
+  fieldPermissions?: FieldPermissions;
 }
 
 /**
@@ -49,6 +52,7 @@ export function TaskDetailCompact({
   releases = [],
   toolbarExtra,
   organization,
+  fieldPermissions,
 }: TaskDetailCompactProps) {
   const { setValue: setMentionContext } =
     useStateManagement<MentionContext | null>("mentionContext", null);
@@ -94,6 +98,7 @@ export function TaskDetailCompact({
           availableLabels={orgLabels}
           availableUsers={availableUsers}
           organization={resolvedOrg}
+          fieldPermissions={fieldPermissions}
           fields={[
             {
               key: "identifier",
@@ -138,6 +143,7 @@ export function TaskDetailCompact({
           categories={orgCategories}
           organization={resolvedOrg}
           showContent="both"
+          canEdit={fieldPermissions?.category}
         />
         <TaskContextBanner
           task={task}
