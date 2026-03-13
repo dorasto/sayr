@@ -16,6 +16,11 @@ import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
 import { Route as LoginAuthCheckRouteImport } from './routes/login/auth-check'
+import { Route as AuthSignupRouteImport } from './routes/auth/signup'
+import { Route as AuthPasswordResetRouteImport } from './routes/auth/password-reset'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthAuthCheckRouteImport } from './routes/auth/auth-check'
+import { Route as Auth2faRouteImport } from './routes/auth/2fa'
 import { Route as ApiTracesRouteImport } from './routes/api/traces'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
 import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
@@ -37,6 +42,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
 import { Route as adminOrgIdTasksRouteRouteImport } from './routes/(admin)/$orgId/tasks/route'
 import { Route as OrgsOrgSlugShortIdIndexRouteImport } from './routes/orgs/$orgSlug/$shortId/index'
+import { Route as adminSettingsSecurityIndexRouteImport } from './routes/(admin)/settings/security/index'
 import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(admin)/settings/connections/index'
 import { Route as adminConsoleConnectionsIndexRouteImport } from './routes/(admin)/console/connections/index'
 import { Route as adminOrgIdViewsIndexRouteImport } from './routes/(admin)/$orgId/views/index'
@@ -93,6 +99,31 @@ const adminIndexRoute = adminIndexRouteImport.update({
 const LoginAuthCheckRoute = LoginAuthCheckRouteImport.update({
   id: '/login/auth-check',
   path: '/login/auth-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthPasswordResetRoute = AuthPasswordResetRouteImport.update({
+  id: '/auth/password-reset',
+  path: '/auth/password-reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthAuthCheckRoute = AuthAuthCheckRouteImport.update({
+  id: '/auth/auth-check',
+  path: '/auth/auth-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Auth2faRoute = Auth2faRouteImport.update({
+  id: '/auth/2fa',
+  path: '/auth/2fa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTracesRoute = ApiTracesRouteImport.update({
@@ -201,6 +232,12 @@ const OrgsOrgSlugShortIdIndexRoute = OrgsOrgSlugShortIdIndexRouteImport.update({
   path: '/$shortId/',
   getParentRoute: () => OrgsOrgSlugRouteRoute,
 } as any)
+const adminSettingsSecurityIndexRoute =
+  adminSettingsSecurityIndexRouteImport.update({
+    id: '/security/',
+    path: '/security/',
+    getParentRoute: () => adminSettingsRouteRoute,
+  } as any)
 const adminSettingsConnectionsIndexRoute =
   adminSettingsConnectionsIndexRouteImport.update({
     id: '/',
@@ -348,6 +385,11 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/api/traces': typeof ApiTracesRoute
+  '/auth/2fa': typeof Auth2faRoute
+  '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -372,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/$orgId/views/': typeof adminOrgIdViewsIndexRoute
   '/console/connections/': typeof adminConsoleConnectionsIndexRoute
   '/settings/connections/': typeof adminSettingsConnectionsIndexRoute
+  '/settings/security/': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
   '/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
@@ -394,6 +437,11 @@ export interface FileRoutesByTo {
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/api/traces': typeof ApiTracesRoute
+  '/auth/2fa': typeof Auth2faRoute
+  '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/': typeof adminIndexRoute
   '/login': typeof LoginIndexRoute
@@ -414,6 +462,7 @@ export interface FileRoutesByTo {
   '/$orgId/views': typeof adminOrgIdViewsIndexRoute
   '/console/connections': typeof adminConsoleConnectionsIndexRoute
   '/settings/connections': typeof adminSettingsConnectionsIndexRoute
+  '/settings/security': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId': typeof OrgsOrgSlugShortIdIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
@@ -444,6 +493,11 @@ export interface FileRoutesById {
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
   '/api/traces': typeof ApiTracesRoute
+  '/auth/2fa': typeof Auth2faRoute
+  '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/login/auth-check': typeof LoginAuthCheckRoute
   '/(admin)/': typeof adminIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -468,6 +522,7 @@ export interface FileRoutesById {
   '/(admin)/$orgId/views/': typeof adminOrgIdViewsIndexRoute
   '/(admin)/console/connections/': typeof adminConsoleConnectionsIndexRoute
   '/(admin)/settings/connections/': typeof adminSettingsConnectionsIndexRoute
+  '/(admin)/settings/security/': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
   '/(admin)/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
@@ -498,6 +553,11 @@ export interface FileRouteTypes {
     | '/orgs/$orgSlug'
     | '/api/image-preview'
     | '/api/traces'
+    | '/auth/2fa'
+    | '/auth/auth-check'
+    | '/auth/login'
+    | '/auth/password-reset'
+    | '/auth/signup'
     | '/login/auth-check'
     | '/'
     | '/login/'
@@ -522,6 +582,7 @@ export interface FileRouteTypes {
     | '/$orgId/views/'
     | '/console/connections/'
     | '/settings/connections/'
+    | '/settings/security/'
     | '/orgs/$orgSlug/$shortId/'
     | '/$orgId/tasks/$taskShortId/'
     | '/settings/org/$orgId/'
@@ -544,6 +605,11 @@ export interface FileRouteTypes {
     | '/prosekit-test'
     | '/api/image-preview'
     | '/api/traces'
+    | '/auth/2fa'
+    | '/auth/auth-check'
+    | '/auth/login'
+    | '/auth/password-reset'
+    | '/auth/signup'
     | '/login/auth-check'
     | '/'
     | '/login'
@@ -564,6 +630,7 @@ export interface FileRouteTypes {
     | '/$orgId/views'
     | '/console/connections'
     | '/settings/connections'
+    | '/settings/security'
     | '/orgs/$orgSlug/$shortId'
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
@@ -593,6 +660,11 @@ export interface FileRouteTypes {
     | '/orgs/$orgSlug'
     | '/api/image-preview'
     | '/api/traces'
+    | '/auth/2fa'
+    | '/auth/auth-check'
+    | '/auth/login'
+    | '/auth/password-reset'
+    | '/auth/signup'
     | '/login/auth-check'
     | '/(admin)/'
     | '/login/'
@@ -617,6 +689,7 @@ export interface FileRouteTypes {
     | '/(admin)/$orgId/views/'
     | '/(admin)/console/connections/'
     | '/(admin)/settings/connections/'
+    | '/(admin)/settings/security/'
     | '/orgs/$orgSlug/$shortId/'
     | '/(admin)/$orgId/tasks/$taskShortId/'
     | '/(admin)/settings/org/$orgId/'
@@ -642,6 +715,11 @@ export interface RootRouteChildren {
   OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
   ApiTracesRoute: typeof ApiTracesRoute
+  Auth2faRoute: typeof Auth2faRoute
+  AuthAuthCheckRoute: typeof AuthAuthCheckRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthPasswordResetRoute: typeof AuthPasswordResetRoute
+  AuthSignupRoute: typeof AuthSignupRoute
   LoginAuthCheckRoute: typeof LoginAuthCheckRoute
   LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -698,6 +776,41 @@ declare module '@tanstack/react-router' {
       path: '/login/auth-check'
       fullPath: '/login/auth-check'
       preLoaderRoute: typeof LoginAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/password-reset': {
+      id: '/auth/password-reset'
+      path: '/auth/password-reset'
+      fullPath: '/auth/password-reset'
+      preLoaderRoute: typeof AuthPasswordResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/auth-check': {
+      id: '/auth/auth-check'
+      path: '/auth/auth-check'
+      fullPath: '/auth/auth-check'
+      preLoaderRoute: typeof AuthAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/2fa': {
+      id: '/auth/2fa'
+      path: '/auth/2fa'
+      fullPath: '/auth/2fa'
+      preLoaderRoute: typeof Auth2faRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/traces': {
@@ -846,6 +959,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/orgs/$orgSlug/$shortId/'
       preLoaderRoute: typeof OrgsOrgSlugShortIdIndexRouteImport
       parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
+    '/(admin)/settings/security/': {
+      id: '/(admin)/settings/security/'
+      path: '/security'
+      fullPath: '/settings/security/'
+      preLoaderRoute: typeof adminSettingsSecurityIndexRouteImport
+      parentRoute: typeof adminSettingsRouteRoute
     }
     '/(admin)/settings/connections/': {
       id: '/(admin)/settings/connections/'
@@ -1160,6 +1280,7 @@ interface adminSettingsRouteRouteChildren {
   adminSettingsConnectionsRouteRoute: typeof adminSettingsConnectionsRouteRouteWithChildren
   adminSettingsIndexRoute: typeof adminSettingsIndexRoute
   adminSettingsOrgOrgIdRouteRoute: typeof adminSettingsOrgOrgIdRouteRouteWithChildren
+  adminSettingsSecurityIndexRoute: typeof adminSettingsSecurityIndexRoute
 }
 
 const adminSettingsRouteRouteChildren: adminSettingsRouteRouteChildren = {
@@ -1167,6 +1288,7 @@ const adminSettingsRouteRouteChildren: adminSettingsRouteRouteChildren = {
     adminSettingsConnectionsRouteRouteWithChildren,
   adminSettingsIndexRoute: adminSettingsIndexRoute,
   adminSettingsOrgOrgIdRouteRoute: adminSettingsOrgOrgIdRouteRouteWithChildren,
+  adminSettingsSecurityIndexRoute: adminSettingsSecurityIndexRoute,
 }
 
 const adminSettingsRouteRouteWithChildren =
@@ -1221,6 +1343,11 @@ const rootRouteChildren: RootRouteChildren = {
   OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
   ApiTracesRoute: ApiTracesRoute,
+  Auth2faRoute: Auth2faRoute,
+  AuthAuthCheckRoute: AuthAuthCheckRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthPasswordResetRoute: AuthPasswordResetRoute,
+  AuthSignupRoute: AuthSignupRoute,
   LoginAuthCheckRoute: LoginAuthCheckRoute,
   LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

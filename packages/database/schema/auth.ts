@@ -25,6 +25,28 @@ export const user = table("user", {
 	banned: v.boolean("banned"),
 	banReason: v.text("ban_reason"),
 	banExpires: v.timestamp("ban_expires"),
+	twoFactorEnabled: v.boolean("two_factor_enabled"),
+});
+
+export const two_factor = table("twoFactor", {
+	id: v.text("id").primaryKey(),
+	userId: v.text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	secret: v.text("secret"),
+	backupCodes: v.text("backup_codes"),
+});
+
+export const passkey = table("passkey", {
+	id: v.text("id").primaryKey(),
+	name: v.text("name"),
+	publicKey: v.text("public_key").notNull(),
+	userId: v.text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	credentialID: v.text("credential_id").notNull(),
+	counter: v.integer("counter").notNull(),
+	deviceType: v.text("device_type").notNull(),
+	backedUp: v.boolean("backed_up").notNull(),
+	transports: v.text("transports"),
+	createdAt: v.timestamp("created_at", { precision: 6, withTimezone: true }),
+	aaguid: v.text("aaguid"),
 });
 
 // --------------------

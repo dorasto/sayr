@@ -1,9 +1,20 @@
-import { genericOAuthClient, inferAdditionalFields } from "better-auth/client/plugins";
+import { genericOAuthClient, inferAdditionalFields, twoFactorClient } from "better-auth/client/plugins";
 import { polarClient } from "@polar-sh/better-auth/client";
+import { passkeyClient } from "@better-auth/passkey/client";
 import { createAuthClient } from "better-auth/react"; // make sure to import from better-auth/react
 import type { auth } from "./index";
 export const authClient = createAuthClient({
-	plugins: [inferAdditionalFields<typeof auth>(), genericOAuthClient(), polarClient()],
+	plugins: [
+		inferAdditionalFields<typeof auth>(),
+		genericOAuthClient(),
+		polarClient(),
+		twoFactorClient({
+			onTwoFactorRedirect() {
+				window.location.href = "/auth/2fa";
+			},
+		}),
+		passkeyClient(),
+	],
 });
 const setLoginOriginCookie = () => {
 	const origin = window.location.origin;
@@ -20,6 +31,27 @@ const setLoginOriginCookie = () => {
 	}
 	document.cookie = cookieParts.join("; ");
 };
+
+export const signInEmailTwoFactor = async () => {
+	const found = await authClient.getSession();
+	if (found.data) {
+		window.location.href = "/";
+		return;
+	}
+	setLoginOriginCookie();
+	window.location.href = "/auth/2fa"
+}
+
+export const signInEmail = async () => {
+	const found = await authClient.getSession();
+	if (found.data) {
+		window.location.href = "/";
+		return;
+	}
+	setLoginOriginCookie();
+	window.location.href = "/auth/auth-check"
+}
+
 export const signInDoras = async () => {
 	const found = await authClient.getSession();
 	if (found.data) {
@@ -29,7 +61,7 @@ export const signInDoras = async () => {
 	setLoginOriginCookie();
 	await authClient.signIn.oauth2({
 		providerId: "doras",
-		callbackURL: `/login/auth-check`,
+		callbackURL: `/auth/auth-check`,
 	});
 };
 
@@ -42,6 +74,6 @@ export const singInGithub = async () => {
 	setLoginOriginCookie();
 	await authClient.signIn.social({
 		provider: "github",
-		callbackURL: `/login/auth-check`,
+		callbackURL: `/auth/auth-check`,
 	});
 };

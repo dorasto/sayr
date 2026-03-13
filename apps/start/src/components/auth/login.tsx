@@ -1,5 +1,6 @@
 "use client";
-import { signInDoras } from "@repo/auth/client";
+import { useEffect, useState } from "react";
+import { authClient, signInDoras, signInEmail, signInEmailTwoFactor } from "@repo/auth/client";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -13,7 +14,7 @@ import {
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { IconBrandGithub } from "@tabler/icons-react";
+import { IconBrandGithub, IconFingerprint } from "@tabler/icons-react";
 import { ArrowRight } from "lucide-react";
 
 interface Props {
@@ -53,6 +54,47 @@ export default function LoginDialog({ trigger }: Props) {
 }
 
 export function LoginComponent({ isDialog = false }: { isDialog?: boolean }) {
+	useEffect(() => {
+		if (!PublicKeyCredential.isConditionalMediationAvailable ||
+			!PublicKeyCredential.isConditionalMediationAvailable()) {
+			return;
+		}
+		setHasPasskey(true)
+	}, [])
+	const [hasPasskey, setHasPasskey] = useState(false);
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [step, setStep] = useState<"email" | "password">("email");
+
+	const handleEmailSubmit = () => {
+		if (email) {
+			setStep("password");
+		}
+	};
+
+	const handlePasswordSubmit = () => {
+		authClient.signIn.email({
+			email,
+			password
+		}).then(e => {
+			if (e.data) {
+				//@ts-expect-error
+				if (e.data.twoFactorRedirect) {
+					signInEmailTwoFactor();
+				} else {
+					signInEmail();
+				}
+			}
+		})
+	};
+
+	const handlePasskeySignIn = () => {
+		authClient.signIn.passkey().then(e => {
+			if (e.data?.session) {
+				signInEmail();
+			}
+		})
+	};
 	return (
 		<div className={cn("rounded-2xl mx-auto w-full max-w-prose", !isDialog && "bg-card border p-3")}>
 			<div className="flex flex-col items-center gap-9">
@@ -105,31 +147,82 @@ export function LoginComponent({ isDialog = false }: { isDialog?: boolean }) {
 						<IconBrandGithub className="size-5! text-black dark:hidden" />
 						<IconBrandGithub className="size-5! text-white hidden dark:block" />
 					</Button>
+					{hasPasskey && (
+						<Button
+							variant="accent"
+							size={"icon"}
+							className="flex flex-col items-center gap-1 w-full aspect-square size-18"
+							onClick={handlePasskeySignIn}
+						>
+							<IconFingerprint className="size-5!" />
+						</Button>
+					)}
 				</div>
 
 				<div className="flex flex-col gap-3">
-					{/* <div className="relative">
-						<div className="absolute inset-0 flex items-center">
-							<span className="w-full border-t border-border" />
-						</div>
-						<div className="relative flex justify-center text-xs uppercase">
-							<span className="bg-card px-2 text-muted-foreground">Or email</span>
-						</div>
-					</div> */}
 					<div className="flex items-end gap-2 justify-between">
-						<div className="group relative w-full">
-							<label
-								htmlFor={"email"}
-								className="bg-card text-foreground absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50"
-							>
-								Email address
-							</label>
-							<Input id={"email"} className="h-10 bg-card" placeholder="hi@yourcompany.com" type="email" />
-						</div>
-						<Button type="button" size={"icon"} className="shrink-0">
+						{step === "email" ? (
+							<div className="group relative w-full">
+								<label
+									htmlFor={"email"}
+									className="bg-card text-foreground absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50"
+								>
+									Email address
+								</label>
+								<Input
+									id={"email"}
+									className="h-10 bg-card"
+									placeholder="hi@yourcompany.com"
+									type="email"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+									autoComplete={"username webauthn"}
+									disabled
+								/>
+							</div>
+						) : (
+							<div className="group relative w-full">
+								<label
+									htmlFor={"password"}
+									className="bg-card text-foreground absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50"
+								>
+									Password
+								</label>
+								<Input
+									id={"password"}
+									className="h-10 bg-card"
+									placeholder="Enter your password"
+									type="password"
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+									autoComplete={"current-password webauthn"}
+								/>
+							</div>
+						)}
+						<Button
+							type="button"
+							size={"icon"}
+							className="shrink-0"
+							onClick={step === "email" ? handleEmailSubmit : handlePasswordSubmit}
+						>
 							<ArrowRight />
 						</Button>
 					</div>
+					{step === "password" && (
+						<Button
+							variant="link"
+							size={"sm"}
+							className="h-auto p-0 text-muted-foreground"
+							onClick={() => {
+								setStep("email");
+								setPassword("");
+							}}
+						>
+							Back to email
+						</Button>
+					)}
 				</div>
 			</div>
 		</div>
