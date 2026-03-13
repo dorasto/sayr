@@ -9,7 +9,9 @@ export const Route = createFileRoute("/auth/password-reset")({
 });
 
 function RouteComponent() {
-  const search = useSearch({ from: "/auth/password-reset" });
+  const search: {
+    token: string;
+  } = useSearch({ from: "/auth/password-reset" });
   const token = (search.token as string | undefined) ?? "";
 
   const [password, setPassword] = useState("");
