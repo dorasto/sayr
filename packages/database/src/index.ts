@@ -26,6 +26,7 @@ const fullPermissions: TeamPermissions = {
 		manageCategories: true,
 		manageLabels: true,
 		manageViews: true,
+		manageReleases: true,
 	},
 	tasks: {
 		create: true,
@@ -105,7 +106,12 @@ export async function hasOrgPermission(userId: string, orgId: string, permPath: 
 	// 2️⃣ Get connected teams
 	const joins = await db.select({ teamId: memberTeam.teamId }).from(memberTeam).where(eq(memberTeam.memberId, m.id));
 
-	if (!joins.length) return false;
+	if (!joins.length) {
+		// Member exists but has no teams — fall back to default permissions
+		// so they can still perform basic actions (create tasks, change status/priority)
+		const [category, key] = permPath.split(".") as [keyof TeamPermissions, string];
+		return (defaultPerms[category] as Record<string, boolean>)?.[key] === true;
+	}
 
 	const teamIds = joins.map((j) => j.teamId);
 

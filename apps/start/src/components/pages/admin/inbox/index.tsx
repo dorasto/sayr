@@ -24,6 +24,7 @@ import { markAllNotificationsReadAction } from "@/lib/fetches/notification";
 import { getTaskByIdForInbox } from "@/lib/serverFunctions/getTaskByIdForInbox";
 import type { WSMessage } from "@/lib/ws";
 import { TaskDetailCompact } from "@/components/tasks/task/task-detail-compact";
+import { getTaskFieldPermissions } from "@/components/tasks/shared/task-field-toolbar-types";
 import { NotificationList } from "./notification-list";
 
 export default function InboxPage() {
@@ -43,6 +44,7 @@ export default function InboxPage() {
     unreadCount,
     setUnreadCount,
     refreshNotifications,
+    permissionsByOrg,
   } = useInbox();
 
   const handleMarkAllRead = async () => {
@@ -358,6 +360,11 @@ export default function InboxPage() {
                   labels={labels}
                   categories={categories}
                   releases={releases}
+                  fieldPermissions={getTaskFieldPermissions(
+                    selectedTask,
+                    account.id,
+                    permissionsByOrg[selectedTask.organizationId],
+                  )}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground" />

@@ -840,7 +840,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -920,7 +920,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -992,7 +992,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1383,7 +1383,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
@@ -1463,7 +1463,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1487,7 +1487,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -1572,7 +1572,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1596,7 +1596,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 
 	const { org_id: orgId, wsClientId, id } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
 	if (!isAuthorized) {
 		return c.json(
@@ -1650,7 +1650,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -2021,7 +2021,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 	const { org_id: orgId, emails }: { org_id: string; emails: string[] } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to invite members." }, 401);
@@ -2460,7 +2460,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 
 	const { org_id: orgId, user_id: userId } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove members." }, 401);

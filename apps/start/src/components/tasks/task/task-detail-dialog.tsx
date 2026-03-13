@@ -16,6 +16,7 @@ import {
 import { motion } from "motion/react";
 import { useCallback, useState } from "react";
 import type { TaskDetailOrganization } from "../types";
+import type { FieldPermissions } from "../shared/task-field-toolbar-types";
 import { TaskDetailCompact } from "./task-detail-compact";
 
 // Collapsed matches the creator dialog's expanded size.
@@ -51,6 +52,8 @@ interface TaskDetailDialogProps {
   releases?: schema.releaseType[];
   /** Organization context for richer display (clipboard slug, member list, etc.) */
   organization?: TaskDetailOrganization;
+  /** Per-field editability flags for cross-org views */
+  fieldPermissions?: FieldPermissions;
 }
 
 export function TaskDetailDialog({
@@ -63,6 +66,7 @@ export function TaskDetailDialog({
   categories,
   releases = [],
   organization,
+  fieldPermissions,
 }: TaskDetailDialogProps) {
   const isMobile = useIsMobile();
   const [expand, setExpand] = useState(false);
@@ -148,6 +152,7 @@ export function TaskDetailDialog({
             categories={categories}
             releases={releases}
             organization={organization}
+            fieldPermissions={fieldPermissions}
             toolbarExtra={
               !isMobile ? (
                 <Button

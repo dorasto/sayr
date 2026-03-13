@@ -24,6 +24,8 @@ interface TaskEditableHeaderProps {
    categories: schema.categoryType[];
    organization?: TaskDetailOrganization;
    showContent?: ContentVisibility;
+   /** When provided, overrides the internal canEdit computation. */
+   canEdit?: boolean;
 }
 
 export function TaskEditableHeader({
@@ -34,6 +36,7 @@ export function TaskEditableHeader({
   categories,
   organization,
   showContent = "both",
+  canEdit: canEditOverride,
 }: TaskEditableHeaderProps) {
   const { account } = useLayoutData();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
@@ -80,31 +83,31 @@ export function TaskEditableHeader({
     setSavedDescription(task.description || undefined);
   }, [task.description]);
 
-  // Check if user can edit the task
-  // User can edit if they are the creator OR if they are an admin (administrator permission)
-  const canEdit = useMemo(() => {
-    if (!account?.id) return false;
+   // Check if user can edit the task
+   // When canEditOverride is provided (from parent with resolved permissions), use it directly.
+   // Otherwise fall back to optimistic logic: creator can edit, org members can edit (backend verifies).
+   const canEdit = useMemo(() => {
+      if (canEditOverride !== undefined) return canEditOverride;
 
-    // Check if user is the task creator
-    const isCreator = task.createdBy?.id === account.id;
-    if (isCreator) return true;
+      if (!account?.id) return false;
 
-    // Check if user is an organization admin
-    // Find the user's member record and their teams to check permissions
-    const member = organization && hasMembers(organization)
-      ? organization.members.find((m) => m.user?.id === account.id)
-      : undefined;
-    if (!member) return false;
+      // Check if user is the task creator
+      const isCreator = task.createdBy?.id === account.id;
+      if (isCreator) return true;
 
-    // For now, we check if the user has the administrator permission via their teams
-    // This would need to be expanded based on how team permissions are loaded
-    // For simplicity, we'll also check if they have editAny permission on tasks
-    // This requires the member to have teams loaded with permissions
-    // A simpler approach: check if they're the org owner (first member or specific role)
-    // Since we don't have direct access to team permissions here, we'll rely on
-    // the backend to verify permissions
-    return true; // Allow UI editing, backend will verify
-  }, [account?.id, task.createdBy?.id, organization]);
+      // Check if user is an assignee
+      const isAssignee = task.assignees?.some((a) => a.id === account.id) ?? false;
+      if (isAssignee) return true;
+
+      // Check if user is an organization member
+      const member = organization && hasMembers(organization)
+         ? organization.members.find((m) => m.user?.id === account.id)
+         : undefined;
+      if (!member) return false;
+
+      // Allow UI editing for org members, backend will verify granular permissions
+      return true;
+   }, [canEditOverride, account?.id, task.createdBy?.id, task.assignees, organization]);
 
   // Handle title blur (save on blur)
   const handleTitleBlur = useCallback(async () => {

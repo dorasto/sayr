@@ -9,12 +9,13 @@ import { Label } from "@repo/ui/components/label";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { IconLink } from "@tabler/icons-react";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import type { useToastAction } from "@/lib/util";
 import GlobalTaskAssignees from "../shared/assignee";
 import GlobalTaskGithubIssue from "../shared/github-issue";
 import GlobalTaskLabels from "../shared/label";
-import TaskFieldToolbar from "../shared/task-field-toolbar";
+import TaskFieldToolbar, { getTaskFieldPermissions } from "../shared/task-field-toolbar";
 import GlobalTimeline from "./timeline/root";
 import { Separator } from "@repo/ui/components/separator";
 import { TaskEditableHeader } from "./editable-header";
@@ -56,13 +57,16 @@ export function TaskContentSideContent({
   releases = [],
   canCreateLabel = false,
 }: TaskContentSideContentProps) {
-  const { setLabels } = useLayoutOrganization();
+  const { setLabels, permissions } = useLayoutOrganization();
+  const { account } = useLayoutData();
+  const fieldPerms = getTaskFieldPermissions(task, account?.id, permissions);
   return (
     <div className="flex flex-col gap-3 w-full">
       <div className="p-1 pt-3 flex flex-col gap-2 max-w-full md:max-w-1/2">
         <TaskFieldToolbar
           task={task}
           variant="sidebar"
+          fieldPermissions={fieldPerms}
           tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
@@ -99,7 +103,7 @@ export function TaskContentSideContent({
               className="bg-transparent p-1 h-auto"
               task={task}
               showChevron={false}
-              editable={true}
+              editable={fieldPerms.assignees ?? true}
               availableUsers={availableUsers}
               tasks={tasks}
               setTasks={setTasks}
@@ -125,7 +129,7 @@ export function TaskContentSideContent({
             <GlobalTaskLabels
               showLabel={false}
               task={task}
-              editable={true}
+              editable={fieldPerms.labels ?? true}
               availableLabels={labels}
               canCreateLabel={canCreateLabel}
               onLabelCreated={(newLabels) => {
@@ -177,12 +181,16 @@ export function TaskContentMobileContent({
   organization,
   releases,
 }: Omit<TaskContentSideContentProps, "wsClientId" | "runWithToast">) {
+  const { permissions } = useLayoutOrganization();
+  const { account } = useLayoutData();
+  const fieldPerms = getTaskFieldPermissions(task, account?.id, permissions);
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center flex-wrap gap-1 w-full overflow-x-auto py-1">
         <TaskFieldToolbar
           task={task}
           variant="compact"
+          fieldPermissions={fieldPerms}
           tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
@@ -239,6 +247,10 @@ export function TaskContentMain({
   categories,
   releases = [],
 }: TaskContentMainProps) {
+  const { permissions } = useLayoutOrganization();
+  const { account } = useLayoutData();
+  const fieldPerms = getTaskFieldPermissions(task, account?.id, permissions);
+
   // Wrapper function to match setSelectedTask signature
   const setSelectedTask = (t: schema.TaskWithLabels | null) => {
     if (t) setTask(t);
@@ -255,6 +267,7 @@ export function TaskContentMain({
           setSelectedTask={setSelectedTask}
           categories={categories}
           organization={organization}
+          canEdit={fieldPerms.category ?? true}
         />
         <TaskContextBanner
           task={task}

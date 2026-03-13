@@ -29,8 +29,8 @@ apiRouteAdminRelease.post("/create", async (c) => {
 
 	const { org_id: orgId, wsClientId, name, slug, description, status, targetDate, color, icon } = await c.req.json();
 
-	// Only org admins can create releases
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	// Only members with manageReleases can create releases
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create releases." }, 401);
@@ -149,8 +149,8 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 
 	const { org_id: orgId, wsClientId, release_id: releaseId, ...updates } = await c.req.json();
 
-	// Only org admins can update releases
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	// Only members with manageReleases can update releases
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to update releases." }, 401);
@@ -257,8 +257,8 @@ apiRouteAdminRelease.delete("/delete", async (c) => {
 
 	const { org_id: orgId, wsClientId, release_id: releaseId } = await c.req.json();
 
-	// Only org admins can delete releases
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	// Only members with manageReleases can delete releases
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to delete releases." }, 401);
@@ -321,8 +321,8 @@ apiRouteAdminRelease.post("/mark-released", async (c) => {
 
 	const { org_id: orgId, wsClientId, release_id: releaseId } = await c.req.json();
 
-	// Only org admins can mark releases as released
-	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.manageMembers");
+	// Only members with manageReleases can mark releases as released
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to mark releases as released." }, 401);

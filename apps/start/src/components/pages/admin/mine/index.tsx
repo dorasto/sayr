@@ -28,6 +28,7 @@ export default function MyTasksPage() {
 		categories,
 		setCategories,
 		releases,
+		permissionsByOrg,
 	} = useMyTasks();
 
 	useWebSocketSubscription({ ws });
@@ -226,6 +227,8 @@ export default function MyTasksPage() {
 			categories={categories}
 			releases={releases}
 			personal
+			permissionsByOrg={permissionsByOrg}
+			accountId={account.id}
 		/>
 		</div>
 	);

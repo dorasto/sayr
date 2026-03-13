@@ -1,4 +1,4 @@
-import type { schema } from "@repo/database";
+import type { schema, TeamPermissions } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { getNotifications, getUnreadNotificationCount } from "@/lib/fetches/notification";
@@ -23,6 +23,7 @@ interface InboxContextType {
 	hasMoreNotifications: boolean;
 	isLoadingMoreNotifications: boolean;
 	loadMoreNotifications: () => Promise<void>;
+	permissionsByOrg: Record<string, TeamPermissions>;
 }
 
 const InboxContext = createContext<InboxContextType | undefined>(undefined);
@@ -33,12 +34,14 @@ export function RootProviderInbox({
 	labels,
 	categories,
 	releases,
+	permissionsByOrg,
 }: {
 	children: ReactNode;
 	tasks: InboxContextType["tasks"];
 	labels: InboxContextType["labels"];
 	categories: InboxContextType["categories"];
 	releases: InboxContextType["releases"];
+	permissionsByOrg: InboxContextType["permissionsByOrg"];
 }) {
 	const { value: newTasks, setValue: setTasks } = useStateManagement("inbox-tasks", tasks, 30000);
 	const { value: newLabels, setValue: setLabels } = useStateManagement("inbox-labels", labels, 30000);
@@ -129,6 +132,7 @@ export function RootProviderInbox({
 				hasMoreNotifications,
 				isLoadingMoreNotifications,
 				loadMoreNotifications,
+				permissionsByOrg,
 			}}
 		>
 			{children}
