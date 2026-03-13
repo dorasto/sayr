@@ -178,6 +178,7 @@ export function LoginComponent({ isDialog = false }: { isDialog?: boolean }) {
 									onChange={(e) => setEmail(e.target.value)}
 									onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
 									autoComplete={"username webauthn"}
+									disabled
 								/>
 							</div>
 						) : (
