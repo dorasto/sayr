@@ -169,13 +169,16 @@ function SettingsHeader() {
 
 	// Account-level settings breadcrumbs
 	const isAccountSettings = pathname === "/settings";
+	const isSecuritySettings = pathname === "/settings/security";
 	const isConnectionsSettings = pathname === "/settings/connections";
 
 	const currentAccountPage = isAccountSettings
 		? settingsNavigation[0]
-		: isConnectionsSettings
+		: isSecuritySettings
 			? settingsNavigation[1]
-			: null;
+			: isConnectionsSettings
+				? settingsNavigation[2]
+				: null;
 
 	return (
 		<PageHeader>

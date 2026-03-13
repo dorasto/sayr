@@ -20,7 +20,7 @@ function getCookieDomain(url: string) {
 		return undefined;
 	}
 }
-export const Route = createFileRoute("/login/auth-check")({
+export const Route = createFileRoute("/auth/auth-check")({
 	server: {
 		handlers: {
 			GET: async ({ request }) => {
@@ -56,17 +56,17 @@ export const Route = createFileRoute("/login/auth-check")({
 				headers.append(
 					"Set-Cookie",
 					`login_origin=; Path=/; Max-Age=0; SameSite=Lax; domain=.${domain}`
-				);
+				)
 
 				headers.append(
 					"Set-Cookie",
 					"post_login_redirect=; Path=/; Max-Age=0; SameSite=Lax"
-				);
+				)
 
 				return new Response(null, {
 					status: 302,
 					headers,
-				});
+				})
 			},
 		},
 	},

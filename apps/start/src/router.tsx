@@ -42,7 +42,8 @@ export const getRouter = () => {
 						url.pathname.startsWith("/manifest.webmanifest") ||
 						url.pathname.startsWith("/invite") ||
 						// Skip if already rewritten to /orgs/ path (prevents double-rewrite loop)
-						url.pathname.startsWith("/orgs/")
+						url.pathname.startsWith("/orgs/") ||
+						url.pathname.startsWith("/auth/")
 					) {
 						return;
 					}

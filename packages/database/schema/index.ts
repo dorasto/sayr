@@ -1,4 +1,4 @@
-import type { account, session, user, verification } from "./auth";
+import type { account, session, two_factor, user, verification } from "./auth";
 import type { githubIssueType } from "./github_issue.schema";
 import type { labelType } from "./label.schema";
 import type { OrganizationMemberType, TeamPermissions } from "./member.schema";
@@ -204,6 +204,7 @@ export type userType = typeof user.$inferSelect;
 export type sessionType = typeof session.$inferSelect;
 export type accountType = typeof account.$inferSelect;
 export type verificationType = typeof verification.$inferSelect;
+export type twoFactorType = typeof two_factor.$inferInsert;
 
 export type BlockedUserWithDetails = blockedUserType & {
 	user: UserSummary;
