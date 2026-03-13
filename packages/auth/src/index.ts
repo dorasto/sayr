@@ -2,7 +2,7 @@ import * as schema from "@repo/database";
 import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, apiKey, genericOAuth } from "better-auth/plugins";
+import { admin, apiKey, genericOAuth, twoFactor } from "better-auth/plugins";
 import {
 	polar,
 	checkout,
@@ -75,6 +75,9 @@ const plugins: any[] = [
 			},
 		],
 	}),
+	twoFactor({
+		issuer: "sayr.io"
+	})
 ]
 if (polarBillingEnabled) {
 	if (!process.env.POLAR_PRODUCT_ID) {
@@ -107,11 +110,13 @@ if (polarBillingEnabled) {
 	);
 }
 export const auth = betterAuth({
+	appName: "sayr.io",
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: {
 			...schema.auth,
 			apikey: schema.schema.apikey,
+			twoFactor: schema.auth.two_factor
 		},
 	}),
 	trustedOrigins: [

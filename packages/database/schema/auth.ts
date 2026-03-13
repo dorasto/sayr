@@ -25,6 +25,14 @@ export const user = table("user", {
 	banned: v.boolean("banned"),
 	banReason: v.text("ban_reason"),
 	banExpires: v.timestamp("ban_expires"),
+	twoFactorEnabled: v.boolean("two_factor_enabled"),
+});
+
+export const two_factor = table("twoFactor", {
+	id: v.text("id").primaryKey(),
+	userId: v.text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	secret: v.text("secret"),
+	backupCodes: v.text("backup_codes"),
 });
 
 // --------------------

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { authClient, signInDoras, signInEmail } from "@repo/auth/client";
+import { authClient, signInDoras, signInEmail, signInEmailTwoFactor } from "@repo/auth/client";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -70,7 +70,12 @@ export function LoginComponent({ isDialog = false }: { isDialog?: boolean }) {
 			password
 		}).then(e => {
 			if (e.data) {
-				signInEmail();
+				//@ts-expect-error
+				if (e.data.twoFactorRedirect) {
+					signInEmailTwoFactor();
+				} else {
+					signInEmail();
+				}
 			}
 		})
 	};

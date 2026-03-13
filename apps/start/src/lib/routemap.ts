@@ -46,6 +46,15 @@ export const settingsNavigation = [
     matchType: "exact" as const,
   },
   {
+    title: "Security",
+    slug: "security",
+    url: "/settings/security",
+    icon: Icon.IconShieldCheck,
+    activeIcon: Icon.IconShieldCheck,
+    activeClass: "fill-white",
+    matchType: "exact" as const,
+  },
+  {
     title: "Connections",
     slug: "connections",
     url: "/settings/connections",
