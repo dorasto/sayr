@@ -324,6 +324,7 @@ function RouteComponent() {
 								<Switch
 									checked={passkeysEnabled}
 									onCheckedChange={setPasskeysEnabled}
+									disabled={true}
 								/>
 								<span className="text-sm text-muted-foreground">
 									{passkeysEnabled ? "Enabled" : "Disabled"}
