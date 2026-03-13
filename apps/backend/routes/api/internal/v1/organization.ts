@@ -840,7 +840,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -920,7 +920,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -992,7 +992,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1463,7 +1463,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1572,7 +1572,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -1650,7 +1650,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 			};
 
 			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data });
+			broadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
