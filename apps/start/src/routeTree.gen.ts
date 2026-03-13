@@ -13,6 +13,7 @@ import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
+import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
 import { Route as AuthSignupRouteImport } from './routes/auth/signup'
 import { Route as AuthPasswordResetRouteImport } from './routes/auth/password-reset'
@@ -81,6 +82,11 @@ const HealthRoute = HealthRouteImport.update({
 } as any)
 const adminRouteRoute = adminRouteRouteImport.update({
   id: '/(admin)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginIndexRoute = LoginIndexRouteImport.update({
+  id: '/login/',
+  path: '/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminIndexRoute = adminIndexRouteImport.update({
@@ -373,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/signup': typeof AuthSignupRoute
   '/': typeof adminIndexRoute
+  '/login/': typeof LoginIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
   '/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -422,6 +429,7 @@ export interface FileRoutesByTo {
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/signup': typeof AuthSignupRoute
   '/': typeof adminIndexRoute
+  '/login': typeof LoginIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/$orgId': typeof adminOrgIdIndexRoute
   '/console': typeof adminConsoleIndexRoute
@@ -475,6 +483,7 @@ export interface FileRoutesById {
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/signup': typeof AuthSignupRoute
   '/(admin)/': typeof adminIndexRoute
+  '/login/': typeof LoginIndexRoute
   '/(admin)/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
   '/(admin)/settings/connections': typeof adminSettingsConnectionsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -532,6 +541,7 @@ export interface FileRouteTypes {
     | '/auth/password-reset'
     | '/auth/signup'
     | '/'
+    | '/login/'
     | '/$orgId/tasks'
     | '/settings/connections'
     | '/api/auth/$'
@@ -581,6 +591,7 @@ export interface FileRouteTypes {
     | '/auth/password-reset'
     | '/auth/signup'
     | '/'
+    | '/login'
     | '/api/auth/$'
     | '/$orgId'
     | '/console'
@@ -633,6 +644,7 @@ export interface FileRouteTypes {
     | '/auth/password-reset'
     | '/auth/signup'
     | '/(admin)/'
+    | '/login/'
     | '/(admin)/$orgId/tasks'
     | '/(admin)/settings/connections'
     | '/api/auth/$'
@@ -684,6 +696,7 @@ export interface RootRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthPasswordResetRoute: typeof AuthPasswordResetRoute
   AuthSignupRoute: typeof AuthSignupRoute
+  LoginIndexRoute: typeof LoginIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   InviteOrgIdIndexRoute: typeof InviteOrgIdIndexRoute
 }
@@ -716,6 +729,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof adminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/': {
+      id: '/login/'
+      path: '/login'
+      fullPath: '/login/'
+      preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)/': {
@@ -1288,6 +1308,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthPasswordResetRoute: AuthPasswordResetRoute,
   AuthSignupRoute: AuthSignupRoute,
+  LoginIndexRoute: LoginIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   InviteOrgIdIndexRoute: InviteOrgIdIndexRoute,
 }
