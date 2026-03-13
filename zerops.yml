@@ -7,9 +7,10 @@ zerops:
         - pnpm i
         - pnpm -F marketing build
       deployFiles:
-        - apps/marketing/~dist
-        - apps/marketing/~package.json
-        - apps/marketing/~node_modules
+        - apps/marketing/dist
+        - apps/marketing/package.json
+        - apps/marketing/node_modules
+        - node_modules
     run:
       base: nodejs@20
       ports:
@@ -18,4 +19,4 @@ zerops:
       envVariables:
         PORT: 3000
         HOST: 0.0.0.0
-      start: node ./dist/server/entry.mjs
+      start: node apps/marketing/dist/server/entry.mjs
