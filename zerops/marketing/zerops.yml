@@ -19,3 +19,4 @@ zerops:
         PORT: 3000
         HOST: 0.0.0.0
       start: node ./dist/server/entry.mjs
+      # comment to trigger
