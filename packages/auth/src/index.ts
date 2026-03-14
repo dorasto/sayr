@@ -141,6 +141,11 @@ export const auth = betterAuth({
 			enabled: !isBarelocalhost,
 			domain: `.${rootUrl}`,
 		},
+		// Force __Secure- prefixed cookies in production so that session validation
+		// works behind reverse proxies that terminate TLS (e.g. Zerops, Coolify).
+		// Without this, Better Auth sees the internal http:// request and looks for
+		// non-prefixed cookie names, missing the __Secure- cookies the browser sends.
+		useSecureCookies: isProd,
 	},
 	user: {
 		additionalFields: {
