@@ -120,17 +120,17 @@ zerops:
     build:
       base: nodejs@22
       buildCommands:
-        # No compilation needed — just copy config files for deploy
-        - cp zerops/nginx/nginx.conf.template nginx.conf.template
+        # Copy config files; deploy the template as nginx.conf so siteConfigPath resolves at startup
+        - cp zerops/nginx/nginx.conf.template nginx.conf
         - cp zerops/nginx/proxy.conf proxy.conf
       deployFiles:
-        - nginx.conf.template
+        - nginx.conf
         - proxy.conf
     run:
       base: nginx@latest
       initCommands:
         # nginx@latest (official nginx image) includes envsubst via gettext-tiny
-        # Substitute domain at container start using the runtime env var
-        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template > /var/www/nginx.conf
+        # Substitute domain at container start using the runtime env var, rewriting nginx.conf in place
+        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf > /tmp/nginx.conf && mv /tmp/nginx.conf /var/www/nginx.conf
       # siteConfigPath replaces the default nginx config with ours (relative to /var/www)
       siteConfigPath: nginx.conf
