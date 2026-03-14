@@ -5,28 +5,24 @@ zerops:
   # ===============================
   - setup: marketing
     build:
-      base: nodejs@22
-      prepareCommands:
-        # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
-        - corepack enable && corepack prepare pnpm@latest --activate
+      base: nodejs@20
       buildCommands:
         - pnpm i
-        - pnpm -F marketing zerops:build
+        - pnpm -F marketing build
       deployFiles:
-        # Strip apps/marketing/ prefix so dist/ lands at container root
-        - apps/marketing/~dist
-        - apps/marketing/~package.json
-        # Do NOT deploy apps/marketing/node_modules — pnpm symlinks cause collision
+        - apps/marketing/dist
+        - apps/marketing/package.json
+        - apps/marketing/node_modules
         - node_modules
     run:
-      base: nodejs@22
+      base: nodejs@20
       ports:
         - port: 3000
           httpSupport: true
       envVariables:
         PORT: 3000
         HOST: 0.0.0.0
-      start: node dist/server/entry.mjs
+      start: node apps/marketing/dist/server/entry.mjs
 
   # ===============================
   # BACKEND (Hono on Bun)
@@ -139,8 +135,8 @@ zerops:
         # Install nginx and envsubst (from gettext-base) into the runtime
         - sudo apt-get update && sudo apt-get install -y --no-install-recommends nginx gettext-base && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
       initCommands:
-        # Extract the first nameserver from /etc/resolv.conf for nginx resolver directive
-        - "export NAMESERVER=$(grep -m1 '^nameserver' /etc/resolv.conf | awk '{print $2}') && envsubst '${VITE_ROOT_DOMAIN} ${NAMESERVER}' < /var/www/nginx.conf.template | sudo tee /etc/nginx/nginx.conf > /dev/null"
+        # Substitute VITE_ROOT_DOMAIN into the nginx config template
+        - "envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template | sudo tee /etc/nginx/nginx.conf > /dev/null"
         # Validate config before starting
         - sudo nginx -t
       start: sudo nginx -g 'daemon off;'
