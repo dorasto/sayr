@@ -5,7 +5,9 @@ events {
 }
 
 http {
-    resolver 127.0.0.1 valid=10s;
+    # Use systemd-resolved on Ubuntu for DNS resolution within Zerops private network.
+    # ipv6=off avoids AAAA lookup delays when IPv6 isn't routed.
+    resolver 127.0.0.53 valid=10s ipv6=off;
 
     # Gzip compression - uses chunked encoding, avoiding Content-Length mismatches
     gzip on;
@@ -21,20 +23,11 @@ http {
     }
 
     # ===============================
-    # UPSTREAMS
+    # NOTE: No upstream blocks — we use variables in proxy_pass
+    # so that DNS is resolved at request time, not at startup.
+    # This prevents "host not found" errors when other services
+    # haven't started yet.
     # ===============================
-
-    upstream start_upstream {
-        server start:3000;
-    }
-
-    upstream backend_upstream {
-        server backend:5468;
-    }
-
-    upstream marketing_upstream {
-        server marketing:3000;
-    }
 
     # ===============================
     # ROOT DOMAIN
@@ -56,13 +49,15 @@ http {
 
         # Root API -> backend
         location ^~ /api/ {
-            proxy_pass http://backend_upstream;
+            set $backend_upstream http://backend:5468;
+            proxy_pass $backend_upstream;
             include /var/www/proxy.conf;
         }
 
         # Everything else -> marketing
         location / {
-            proxy_pass http://marketing_upstream;
+            set $marketing_upstream http://marketing:3000;
+            proxy_pass $marketing_upstream;
             include /var/www/proxy.conf;
         }
     }
@@ -77,7 +72,8 @@ http {
 
         # WebSocket
         location ^~ /ws {
-            proxy_pass http://backend_upstream;
+            set $backend_upstream http://backend:5468;
+            proxy_pass $backend_upstream;
             include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
@@ -85,14 +81,16 @@ http {
 
         # Root -> /api/public
         location = / {
-            proxy_pass http://backend_upstream/api/public;
+            set $backend_upstream http://backend:5468;
+            proxy_pass $backend_upstream/api/public;
             include /var/www/proxy.conf;
         }
 
         # Everything else -> rewrite to /api/public/*
         location / {
+            set $backend_upstream http://backend:5468;
             rewrite ^/(.*)$ /api/public/$1 break;
-            proxy_pass http://backend_upstream;
+            proxy_pass $backend_upstream;
             include /var/www/proxy.conf;
         }
     }
@@ -107,31 +105,36 @@ http {
 
         # Auth API -> start
         location ^~ /api/auth {
-            proxy_pass http://start_upstream;
+            set $start_upstream http://start:3000;
+            proxy_pass $start_upstream;
             include /var/www/proxy.conf;
         }
 
         # Image preview -> start
         location ^~ /api/image-preview {
-            proxy_pass http://start_upstream;
+            set $start_upstream http://start:3000;
+            proxy_pass $start_upstream;
             include /var/www/proxy.conf;
         }
 
         # Traces -> start
         location ^~ /api/traces {
-            proxy_pass http://start_upstream;
+            set $start_upstream http://start:3000;
+            proxy_pass $start_upstream;
             include /var/www/proxy.conf;
         }
 
         # Admin API -> backend
         location ^~ /api/ {
-            proxy_pass http://backend_upstream;
+            set $backend_upstream http://backend:5468;
+            proxy_pass $backend_upstream;
             include /var/www/proxy.conf;
         }
 
         # Admin WebSocket -> backend
         location ^~ /ws {
-            proxy_pass http://backend_upstream;
+            set $backend_upstream http://backend:5468;
+            proxy_pass $backend_upstream;
             include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
@@ -139,7 +142,8 @@ http {
 
         # Everything else -> start app
         location / {
-            proxy_pass http://start_upstream;
+            set $start_upstream http://start:3000;
+            proxy_pass $start_upstream;
             include /var/www/proxy.conf;
         }
     }
@@ -154,31 +158,36 @@ http {
 
         # Auth API -> start
         location ^~ /api/auth {
-            proxy_pass http://start_upstream;
+            set $start_upstream http://start:3000;
+            proxy_pass $start_upstream;
             include /var/www/proxy.conf;
         }
 
         # Image preview -> start
         location ^~ /api/image-preview {
-            proxy_pass http://start_upstream;
+            set $start_upstream http://start:3000;
+            proxy_pass $start_upstream;
             include /var/www/proxy.conf;
         }
 
         # Traces -> start
         location ^~ /api/traces {
-            proxy_pass http://start_upstream;
+            set $start_upstream http://start:3000;
+            proxy_pass $start_upstream;
             include /var/www/proxy.conf;
         }
 
         # Other API -> backend
         location ^~ /api/ {
-            proxy_pass http://backend_upstream;
+            set $backend_upstream http://backend:5468;
+            proxy_pass $backend_upstream;
             include /var/www/proxy.conf;
         }
 
         # WebSocket -> backend
         location ^~ /ws {
-            proxy_pass http://backend_upstream;
+            set $backend_upstream http://backend:5468;
+            proxy_pass $backend_upstream;
             include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
@@ -186,7 +195,8 @@ http {
 
         # Everything else -> start
         location / {
-            proxy_pass http://start_upstream;
+            set $start_upstream http://start:3000;
+            proxy_pass $start_upstream;
             include /var/www/proxy.conf;
         }
     }
