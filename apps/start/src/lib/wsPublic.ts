@@ -87,7 +87,8 @@ const useWebSocketPublic = ({
 			webSocket?.close();
 			abortController.abort();
 		};
-	}, [setWSStatus, organization.id, handleMessage]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional — setWSStatus/handleMessage are stable refs; only re-connect when org changes
+	}, [organization.id]);
 	return ws;
 };
 

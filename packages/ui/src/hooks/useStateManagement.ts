@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <allow any> */
 import { type UseQueryResult, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 export interface UseStateManagementResult<T> {
 	value: T;
 	setValue: (newValue: T) => void;
@@ -57,14 +57,13 @@ export function useStateManagement<T>(
 		gcTime: gcTime || Infinity,
 	});
 
-	const { mutate: setValue } = useMutation<void, Error, T>({
-		mutationFn: async (newValue: T) => {
+	// biome-ignore lint/correctness/useExhaustiveDependencies: queryClient is stable, queryKey is memoized
+	const setValue = useCallback(
+		(newValue: T) => {
 			queryClient.setQueryData<T>(queryKey, newValue);
 		},
-		onError: (error) => {
-			console.error("Failed to set state:", error);
-		},
-	});
+		[queryClient, queryKey]
+	);
 
 	return {
 		value: value as T,
@@ -77,7 +76,8 @@ export function useStateManagementKey<T>(
 	gcTime?: number | undefined
 ): UseStateManagementResult<T> {
 	const queryClient = useQueryClient();
-	const queryKey = key;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: key array spread is intentional for stable reference
+	const queryKey = useMemo(() => key, [...key]);
 
 	// Check cache first - if data exists, use it; otherwise return defaultValue
 	const cachedData = queryClient.getQueryData<T>(queryKey);
@@ -95,14 +95,13 @@ export function useStateManagementKey<T>(
 		gcTime: gcTime || Infinity,
 	});
 
-	const { mutate: setValue } = useMutation<void, Error, T>({
-		mutationFn: async (newValue: T) => {
+	// biome-ignore lint/correctness/useExhaustiveDependencies: queryClient is stable, queryKey is memoized
+	const setValue = useCallback(
+		(newValue: T) => {
 			queryClient.setQueryData<T>(queryKey, newValue);
 		},
-		onError: (error) => {
-			console.error("Failed to set state:", error);
-		},
-	});
+		[queryClient, queryKey]
+	);
 
 	return {
 		value: value as T,
