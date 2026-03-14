@@ -6,6 +6,8 @@ zerops:
   - setup: marketing
     build:
       base: nodejs@22
+      prepareCommands:
+        - npm install -g pnpm
       buildCommands:
         - pnpm i
         - pnpm -F marketing zerops:build
@@ -33,7 +35,8 @@ zerops:
     build:
       base: bun@1.2
       prepareCommands:
-        - npm install -g pnpm
+        # bun@1.2 image has no npm — install pnpm via bun
+        - bun install -g pnpm
       buildCommands:
         - pnpm i
         - pnpm -F backend zerops:build
@@ -65,6 +68,8 @@ zerops:
   - setup: start
     build:
       base: nodejs@22
+      prepareCommands:
+        - npm install -g pnpm
       buildCommands:
         - pnpm i
         - pnpm -F start zerops:build
@@ -98,7 +103,8 @@ zerops:
     build:
       base: bun@1.2
       prepareCommands:
-        - npm install -g pnpm
+        # bun@1.2 image has no npm — install pnpm via bun
+        - bun install -g pnpm
       buildCommands:
         - pnpm i
         - pnpm -F worker zerops:build
@@ -130,10 +136,11 @@ zerops:
         - port: 80
           httpSupport: true
       prepareCommands:
-        - apk add --no-cache nginx gettext
+        # apk update required first — Alpine runtime images ship without a fetched index
+        - apk update && apk add --no-cache nginx gettext
       initCommands:
         # Substitute $VITE_ROOT_DOMAIN into nginx config template
-        - envsubst '${VITE_ROOT_DOMAIN}' < nginx.conf.template > /etc/nginx/nginx.conf
-        - cp proxy.conf /etc/nginx/proxy.conf
+        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template > /etc/nginx/nginx.conf
+        - cp /var/www/proxy.conf /etc/nginx/proxy.conf
         - nginx -t
       start: nginx -g 'daemon off;'
