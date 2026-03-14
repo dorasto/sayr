@@ -824,3 +824,10 @@ process.on("SIGTERM", () => {
 	}
 	process.exit(0);
 });
+
+// Alpine Linux fires run-parts /etc/periodic/15min which can send SIGHUP to
+// running processes (e.g. logrotate). Bun's default SIGHUP action is terminate,
+// which would kill the backend every 15 minutes. Ignore it instead.
+process.on("SIGHUP", () => {
+	console.log("[backend] SIGHUP received — ignoring (Alpine periodic cron)");
+});

@@ -8,6 +8,16 @@ import { getCookieValue } from "./util";
 // -----------------------------------------------------------------------------
 type SessionValue = Awaited<ReturnType<typeof auth.api.getSession>>;
 
+// Startup diagnostic: log env vars that control session cookie naming/signing
+console.log(
+	"[safeGetSession] init — APP_ENV:",
+	process.env.APP_ENV || "(not set)",
+	"| BETTER_AUTH_URL:",
+	process.env.BETTER_AUTH_URL || "(not set)",
+	"| BETTER_AUTH_SECRET set:",
+	!!process.env.BETTER_AUTH_SECRET,
+);
+
 const sessionCache = new Map<string, { value: SessionValue | null; expiresAt: number }>();
 
 function getSessionToken(headers: Headers): string {
@@ -26,6 +36,9 @@ function getSessionToken(headers: Headers): string {
 	const sessionCookie = cookies.find((c) => cookieNames.some((name) => c.startsWith(`${name}=`)));
 
 	if (!sessionCookie) {
+		// Log cookie names present (values masked) to diagnose mismatched cookie names
+		const presentNames = cookies.map((c) => c.split("=")[0]).join(", ");
+		console.warn("[safeGetSession] no session_token cookie found. Cookie names present:", presentNames || "(none)");
 		return "anonymous";
 	}
 
@@ -119,6 +132,9 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 	// ✅ 2. Serve from cache if available and valid
 	const cached = sessionCache.get(key);
 	if (cached && cached.expiresAt > now) {
+		if (cached.value === null) {
+			console.warn("[safeGetSession] serving cached null for token prefix:", key.slice(0, 8), "— expires in", Math.round((cached.expiresAt - now) / 1000), "s");
+		}
 		return cached.value;
 	}
 
@@ -129,9 +145,18 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 		// Fetch the real session
 		const session = (await Promise.race([auth.api.getSession({ headers }), timeoutPromise])) as SessionValue;
 
-		sessionCache.set(key, { value: session, expiresAt: now + ttl });
+		// Cache with full TTL if session found; shorter TTL if getSession returned null (e.g. expired/invalid token)
+		sessionCache.set(key, { value: session, expiresAt: now + (session ? ttl : 10_000) });
+		if (!session) {
+			console.warn("[safeGetSession] getSession returned null for token prefix:", key.slice(0, 8), "(cached 10s)");
+		}
 		return session;
-	} catch {
+	} catch (err) {
+		const isTimeout = err instanceof Error && err.message === "Timeout";
+		console.error(
+			`[safeGetSession] ${isTimeout ? "TIMEOUT" : "ERROR"} for token prefix ${key.slice(0, 8)}:`,
+			isTimeout ? `exceeded ${ms}ms` : err,
+		);
 		sessionCache.set(key, { value: null, expiresAt: now + 5_000 });
 		return null;
 	}

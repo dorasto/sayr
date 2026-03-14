@@ -61,6 +61,10 @@ zerops:
         # so those paths resolve at runtime where node_modules actually lives.
         - sudo mkdir -p /build/source && sudo ln -sf /var/www/node_modules /build/source/node_modules
       start: sh start.sh
+      healthCheck:
+        httpGet:
+          port: 5468
+          path: /api/health
 
   # ===============================
   # START (TanStack Start / Node SSR)
