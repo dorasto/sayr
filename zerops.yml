@@ -135,4 +135,5 @@ zerops:
         - sudo apk add --no-cache gettext
       initCommands:
         # Substitute VITE_ROOT_DOMAIN and write the result over the system nginx.conf
-        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template > /etc/nginx/nginx.conf
+        # sudo required — initCommands run as non-root but /etc/nginx/ is root-owned
+        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template | sudo tee /etc/nginx/nginx.conf > /dev/null
