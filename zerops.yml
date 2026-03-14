@@ -118,18 +118,19 @@ zerops:
   # ===============================
   - setup: nginx
     build:
-      base: alpine@3.20
-      prepareCommands:
-        # gettext provides envsubst for domain substitution at build time
-        - apk update && apk add --no-cache gettext
+      base: nodejs@22
       buildCommands:
-        # Substitute VITE_ROOT_DOMAIN at build time — build env has network + env vars
-        - envsubst '${VITE_ROOT_DOMAIN}' < zerops/nginx/nginx.conf.template > nginx.conf
+        # No compilation needed — just copy config files for deploy
+        - cp zerops/nginx/nginx.conf.template nginx.conf.template
         - cp zerops/nginx/proxy.conf proxy.conf
       deployFiles:
-        - nginx.conf
+        - nginx.conf.template
         - proxy.conf
     run:
       base: nginx@latest
+      initCommands:
+        # nginx@latest (official nginx image) includes envsubst via gettext-tiny
+        # Substitute domain at container start using the runtime env var
+        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template > /var/www/nginx.conf
       # siteConfigPath replaces the default nginx config with ours (relative to /var/www)
       siteConfigPath: nginx.conf
