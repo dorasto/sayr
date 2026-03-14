@@ -56,6 +56,10 @@ zerops:
           httpSupport: true
       initCommands:
         - chmod +x start.sh
+        # jsdom's bundled code resolves __dirname to the build-time path
+        # (/build/source/node_modules/...) for its CSS assets. Create a symlink
+        # so those paths resolve at runtime where node_modules actually lives.
+        - sudo mkdir -p /build/source && sudo ln -sf /var/www/node_modules /build/source/node_modules
       start: sh start.sh
 
   # ===============================
@@ -111,7 +115,13 @@ zerops:
         - node_modules
     run:
       base: bun@1.2
-      # No HTTP port - worker polls Redis queue
+      ports:
+        - port: 8080
+          httpSupport: true
+      healthCheck:
+        httpGet:
+          port: 8080
+          path: /
       start: bun run dist/index.js github
 
   # ===============================
@@ -143,6 +153,13 @@ zerops:
         # Validate config before starting
         - sudo nginx -t
       start: sudo nginx -g 'daemon off;'
+      # Gracefully reload nginx every minute to re-resolve upstream IPs.
+      # When backend/start/marketing redeploy and get new IPs, nginx picks
+      # them up automatically instead of 502-ing.
+      crontab:
+        - command: sudo nginx -s reload
+          timing: "* * * * *"
+          allContainers: true
       healthCheck:
         httpGet:
           port: 80
