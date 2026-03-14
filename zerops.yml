@@ -122,13 +122,17 @@ zerops:
     build:
       base: nodejs@22
       buildCommands:
-        # Copy config files for deploy
-        - cp zerops/nginx/nginx.conf.tmpl nginx.conf.tmpl
+        # Copy config files for deploy; keep original .template extension (plain text, not processed)
+        - cp zerops/nginx/nginx.conf.template nginx.conf.template
         - cp zerops/nginx/proxy.conf proxy.conf
       deployFiles:
-        - nginx.conf.tmpl
+        - nginx.conf.template
         - proxy.conf
     run:
       base: nginx@latest
-      # siteConfigPath must point to a .tmpl file; Zerops substitutes {{.Environment.VAR}} at startup
-      siteConfigPath: nginx.conf.tmpl
+      prepareCommands:
+        # Ensure envsubst is available (gettext is not included in the base nginx image)
+        - sudo apk add --no-cache gettext
+      initCommands:
+        # Substitute VITE_ROOT_DOMAIN and write the result over the system nginx.conf
+        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template > /etc/nginx/nginx.conf
