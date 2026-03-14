@@ -68,6 +68,8 @@ zerops:
   - setup: start
     build:
       base: nodejs@22
+      envVariables:
+        NODE_OPTIONS: --max-old-space-size=8192
       prepareCommands:
         # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
@@ -120,17 +122,13 @@ zerops:
     build:
       base: nodejs@22
       buildCommands:
-        # Copy config files; deploy the template as nginx.conf so siteConfigPath resolves at startup
-        - cp zerops/nginx/nginx.conf.template nginx.conf
+        # Copy config files for deploy
+        - cp zerops/nginx/nginx.conf.tmpl nginx.conf.tmpl
         - cp zerops/nginx/proxy.conf proxy.conf
       deployFiles:
-        - nginx.conf
+        - nginx.conf.tmpl
         - proxy.conf
     run:
       base: nginx@latest
-      initCommands:
-        # nginx@latest (official nginx image) includes envsubst via gettext-tiny
-        # Substitute domain at container start using the runtime env var, rewriting nginx.conf in place
-        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf > /tmp/nginx.conf && mv /tmp/nginx.conf /var/www/nginx.conf
-      # siteConfigPath replaces the default nginx config with ours (relative to /var/www)
-      siteConfigPath: nginx.conf
+      # siteConfigPath must point to a .tmpl file; Zerops substitutes {{.Environment.VAR}} at startup
+      siteConfigPath: nginx.conf.tmpl
