@@ -7,7 +7,8 @@ zerops:
     build:
       base: nodejs@22
       prepareCommands:
-        - npm install -g pnpm
+        # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
         - pnpm i
         - pnpm -F marketing zerops:build
@@ -15,8 +16,7 @@ zerops:
         # Strip apps/marketing/ prefix so dist/ lands at container root
         - apps/marketing/~dist
         - apps/marketing/~package.json
-        # Do NOT deploy apps/marketing/node_modules — it's all pnpm symlinks back
-        # into root node_modules, deploying both causes symlink collision on extract
+        # Do NOT deploy apps/marketing/node_modules — pnpm symlinks cause collision
         - node_modules
     run:
       base: nodejs@22
@@ -69,7 +69,8 @@ zerops:
     build:
       base: nodejs@22
       prepareCommands:
-        - npm install -g pnpm
+        # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
         - pnpm i
         - pnpm -F start zerops:build
@@ -85,7 +86,6 @@ zerops:
           httpSupport: true
       initCommands:
         # Replicate entrypoint.sh: replace build-time placeholders with runtime env values.
-        # Each line finds files containing the placeholder and replaces inline with sed.
         - grep -rl "___VITE_URL_ROOT___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_URL_ROOT___|${VITE_URL_ROOT}|g"
         - grep -rl "___VITE_PROJECT_NAME___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_PROJECT_NAME___|${VITE_PROJECT_NAME}|g"
         - grep -rl "___VITE_ROOT_DOMAIN___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_ROOT_DOMAIN___|${VITE_ROOT_DOMAIN}|g"
@@ -124,8 +124,19 @@ zerops:
   - setup: nginx
     build:
       base: alpine@3.20
+      prepareCommands:
+        # Install nginx + gettext (envsubst) at BUILD time — runtime Alpine has no network
+        - apk update && apk add --no-cache nginx gettext
       buildCommands:
         - echo "nginx config ready"
+      # Copy installed binaries into the runtime image
+      addToRunPrepare:
+        - /usr/sbin/nginx
+        - /usr/lib/nginx
+        - /etc/nginx
+        - /usr/bin/envsubst
+        - /lib
+        - /usr/lib/libpcre2-posix.so.3
       deployFiles:
         # Strip zerops/nginx/ prefix so files land at container root
         - zerops/nginx/~nginx.conf.template
@@ -135,9 +146,6 @@ zerops:
       ports:
         - port: 80
           httpSupport: true
-      prepareCommands:
-        # apk update required first — Alpine runtime images ship without a fetched index
-        - apk update && apk add --no-cache nginx gettext
       initCommands:
         # Substitute $VITE_ROOT_DOMAIN into nginx config template
         - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template > /etc/nginx/nginx.conf
