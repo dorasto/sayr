@@ -116,24 +116,37 @@ zerops:
       start: bun run dist/index.js github
 
   # ===============================
-  # NGINX (path-based reverse proxy)
+  # NGINX (subdomain-based reverse proxy)
   # ===============================
+  # IMPORTANT: This service must be created as "Ubuntu" type in the Zerops dashboard,
+  # NOT "Nginx Static". We need full control over the nginx process and config.
   - setup: nginx
     build:
-      base: nodejs@22
+      base: ubuntu@24.04
       buildCommands:
-        # Copy config files for deploy; keep original .template extension (plain text, not processed)
+        # Copy config files for deploy
         - cp zerops/nginx/nginx.conf.template nginx.conf.template
         - cp zerops/nginx/proxy.conf proxy.conf
       deployFiles:
         - nginx.conf.template
         - proxy.conf
     run:
-      base: nginx@latest
+      base: ubuntu@24.04
+      ports:
+        - port: 80
+          httpSupport: true
       prepareCommands:
-        # Ensure envsubst is available (gettext is not included in the base nginx image)
-        - sudo apk add --no-cache gettext
+        # Install nginx and envsubst (from gettext-base) into the runtime
+        - sudo apt-get update && sudo apt-get install -y --no-install-recommends nginx gettext-base && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
       initCommands:
-        # Substitute VITE_ROOT_DOMAIN and write the result over the system nginx.conf
-        # sudo required — initCommands run as non-root but /etc/nginx/ is root-owned
+        # Substitute VITE_ROOT_DOMAIN into the template and write the final nginx.conf
         - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template | sudo tee /etc/nginx/nginx.conf > /dev/null
+        # Copy proxy.conf to where nginx.conf.template expects it (include /var/www/proxy.conf)
+        # (already deployed to /var/www/proxy.conf by deployFiles — no copy needed)
+        # Validate config before starting
+        - sudo nginx -t
+      start: sudo nginx -g 'daemon off;'
+      healthCheck:
+        httpGet:
+          port: 80
+          path: /
