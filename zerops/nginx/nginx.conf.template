@@ -57,13 +57,13 @@ http {
         # Root API -> backend
         location ^~ /api/ {
             proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Everything else -> marketing
         location / {
             proxy_pass http://marketing_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
     }
 
@@ -78,7 +78,7 @@ http {
         # WebSocket
         location ^~ /ws {
             proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
         }
@@ -86,14 +86,14 @@ http {
         # Root -> /api/public
         location = / {
             proxy_pass http://backend_upstream/api/public;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Everything else -> rewrite to /api/public/*
         location / {
             rewrite ^/(.*)$ /api/public/$1 break;
             proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
     }
 
@@ -108,31 +108,31 @@ http {
         # Auth API -> start
         location ^~ /api/auth {
             proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Image preview -> start
         location ^~ /api/image-preview {
             proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Traces -> start
         location ^~ /api/traces {
             proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Admin API -> backend
         location ^~ /api/ {
             proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Admin WebSocket -> backend
         location ^~ /ws {
             proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
         }
@@ -140,7 +140,7 @@ http {
         # Everything else -> start app
         location / {
             proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
     }
 
@@ -155,31 +155,31 @@ http {
         # Auth API -> start
         location ^~ /api/auth {
             proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Image preview -> start
         location ^~ /api/image-preview {
             proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Traces -> start
         location ^~ /api/traces {
             proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # Other API -> backend
         location ^~ /api/ {
             proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
 
         # WebSocket -> backend
         location ^~ /ws {
             proxy_pass http://backend_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
         }
@@ -187,7 +187,7 @@ http {
         # Everything else -> start
         location / {
             proxy_pass http://start_upstream;
-            include /etc/nginx/proxy.conf;
+            include /var/www/proxy.conf;
         }
     }
 }

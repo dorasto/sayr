@@ -78,6 +78,8 @@ zerops:
         # Strip apps/start/ prefix so .output/ lands at container root
         - apps/start/~.output
         - apps/start/~package.json
+        # Startup script: placeholder replacement + Nitro manifest size patching
+        - apps/start/~zerops-start.sh
         - node_modules
     run:
       base: nodejs@22
@@ -85,15 +87,8 @@ zerops:
         - port: 3000
           httpSupport: true
       initCommands:
-        # Replicate entrypoint.sh: replace build-time placeholders with runtime env values.
-        - grep -rl "___VITE_URL_ROOT___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_URL_ROOT___|${VITE_URL_ROOT}|g"
-        - grep -rl "___VITE_PROJECT_NAME___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_PROJECT_NAME___|${VITE_PROJECT_NAME}|g"
-        - grep -rl "___VITE_ROOT_DOMAIN___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_ROOT_DOMAIN___|${VITE_ROOT_DOMAIN}|g"
-        - grep -rl "___VITE_GITHUB_APP_NAME___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_GITHUB_APP_NAME___|${VITE_GITHUB_APP_NAME}|g"
-        - grep -rl "___VITE_SAYR_FRONTEND_AXIOM_DATASET___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_SAYR_FRONTEND_AXIOM_DATASET___|${VITE_SAYR_FRONTEND_AXIOM_DATASET}|g"
-        - grep -rl "___VITE_SAYR_FRONTEND_AXIOM_TOKEN___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_SAYR_FRONTEND_AXIOM_TOKEN___|${VITE_SAYR_FRONTEND_AXIOM_TOKEN}|g"
-        - grep -rl "___VITE_KLIPY_API___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_KLIPY_API___|${VITE_KLIPY_API}|g"
-        - grep -rl "___VITE_APP_VERSION___" .output/ 2>/dev/null | xargs -r sed -i "s|___VITE_APP_VERSION___|${VITE_APP_VERSION}|g"
+        # Run placeholder replacement + Nitro asset manifest size patching
+        - chmod +x zerops-start.sh && sh zerops-start.sh
       start: node .output/server/index.mjs
 
   # ===============================
@@ -125,30 +120,16 @@ zerops:
     build:
       base: alpine@3.20
       prepareCommands:
-        # Install nginx + gettext (envsubst) at BUILD time — runtime Alpine has no network
-        - apk update && apk add --no-cache nginx gettext
+        # gettext provides envsubst for domain substitution at build time
+        - apk update && apk add --no-cache gettext
       buildCommands:
-        - echo "nginx config ready"
-      # Copy installed binaries into the runtime image
-      addToRunPrepare:
-        - /usr/sbin/nginx
-        - /usr/lib/nginx
-        - /etc/nginx
-        - /usr/bin/envsubst
-        - /lib
-        - /usr/lib/libpcre2-posix.so.3
+        # Substitute VITE_ROOT_DOMAIN at build time — build env has network + env vars
+        - envsubst '${VITE_ROOT_DOMAIN}' < zerops/nginx/nginx.conf.template > nginx.conf
+        - cp zerops/nginx/proxy.conf proxy.conf
       deployFiles:
-        # Strip zerops/nginx/ prefix so files land at container root
-        - zerops/nginx/~nginx.conf.template
-        - zerops/nginx/~proxy.conf
+        - nginx.conf
+        - proxy.conf
     run:
-      base: alpine@3.20
-      ports:
-        - port: 80
-          httpSupport: true
-      initCommands:
-        # Substitute $VITE_ROOT_DOMAIN into nginx config template
-        - envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template > /etc/nginx/nginx.conf
-        - cp /var/www/proxy.conf /etc/nginx/proxy.conf
-        - nginx -t
-      start: nginx -g 'daemon off;'
+      base: nginx@latest
+      # siteConfigPath replaces the default nginx config with ours (relative to /var/www)
+      siteConfigPath: nginx.conf
