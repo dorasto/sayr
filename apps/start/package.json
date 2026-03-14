@@ -11,6 +11,8 @@
     "internal:serve": "op run --env-file .env -- pnpm run serve",
     "start": "pnpm run .output/server/index.mjs",
     "internal:start": "op run --env-file .env -- pnpm run start",
+    "zerops:build": "vite build",
+    "zerops:start": "node .output/server/index.mjs",
     "test": "vitest run",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",

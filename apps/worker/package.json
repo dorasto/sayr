@@ -7,6 +7,8 @@
     "internal:dev": "op run --env-file .env -- bun run dev",
     "build": "bun build index.ts --target=bun --outdir ./dist",
     "start": "bun ./dist/index.js",
+    "zerops:build": "bun build index.ts --target=bun --outdir ./dist",
+    "zerops:start": "bun run dist/index.js github",
     "internal:start": "op run --env-file .env -- bun run start",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",

@@ -14,7 +14,9 @@
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "format": "biome format --write .",
-    "start": "node ./dist/server/entry.mjs"
+    "start": "node ./dist/server/entry.mjs",
+    "zerops:build": "astro build",
+    "zerops:start": "node ./dist/server/entry.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.1",
