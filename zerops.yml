@@ -13,7 +13,8 @@ zerops:
         # Strip apps/marketing/ prefix so dist/ lands at container root
         - apps/marketing/~dist
         - apps/marketing/~package.json
-        - apps/marketing/~node_modules
+        # Do NOT deploy apps/marketing/node_modules — it's all pnpm symlinks back
+        # into root node_modules, deploying both causes symlink collision on extract
         - node_modules
     run:
       base: nodejs@22
