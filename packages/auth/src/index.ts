@@ -116,6 +116,7 @@ if (polarBillingEnabled) {
 }
 export const auth = betterAuth({
 	appName: "sayr.io",
+	baseURL: process.env.BETTER_AUTH_URL || (isProd ? `https://${rootUrl}` : undefined),
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: {
