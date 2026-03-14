@@ -5,9 +5,9 @@ events {
 }
 
 http {
-    # Use systemd-resolved on Ubuntu for DNS resolution within Zerops private network.
+    # DNS resolver — substituted at runtime from /etc/resolv.conf by initCommands.
     # ipv6=off avoids AAAA lookup delays when IPv6 isn't routed.
-    resolver 127.0.0.53 valid=10s ipv6=off;
+    resolver ${NAMESERVER} valid=10s ipv6=off;
 
     # Gzip compression - uses chunked encoding, avoiding Content-Length mismatches
     gzip on;
@@ -28,6 +28,27 @@ http {
     # This prevents "host not found" errors when other services
     # haven't started yet.
     # ===============================
+
+    # ===============================
+    # HEALTH CHECK (default server)
+    # ===============================
+    # Responds to requests by IP / localhost (no Host header match).
+    # Used by Zerops health check which hits 127.0.0.1:80/healthz.
+
+    server {
+        listen 80 default_server;
+        server_name _;
+
+        location = /healthz {
+            access_log off;
+            return 200 'ok';
+        }
+
+        # Reject everything else on the default server
+        location / {
+            return 444;
+        }
+    }
 
     # ===============================
     # ROOT DOMAIN
