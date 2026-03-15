@@ -154,11 +154,11 @@ const useWebSocket = () => {
 			connectWebSocket();
 		}, 100);
 
-		// Watchdog interval: Check every 5s if we haven't received a message in 45s
+		// Watchdog interval: Check every 5s if we haven't received a message in 35s
 		const watchdogInterval = setInterval(() => {
 			if (webSocket && webSocket.readyState === WebSocket.OPEN) {
 				const timeSinceLastMessage = Date.now() - lastMessageTimestamp;
-				if (timeSinceLastMessage > 45000) {
+				if (timeSinceLastMessage > 35000) {
 					// console.warn(`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`);
 					// log.warn("WebSocket watchdog timeout", { timeSinceLastMessage });
 					webSocket.close(4000, "Watchdog timeout");

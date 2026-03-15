@@ -100,6 +100,8 @@ http {
             include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
         }
 
         # Root -> /api/public
@@ -154,6 +156,8 @@ http {
             include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
         }
 
         # Everything else -> start app
@@ -201,6 +205,8 @@ http {
             include /var/www/proxy.conf;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
         }
 
         # Everything else -> start

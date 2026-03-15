@@ -789,7 +789,7 @@ wsRoute.get(
 wsRoute.get("/health", (c) => c.json({ ok: true }));
 
 // ✅ Heartbeat interval
-// Send a PING every 30 seconds
+// Send a PING every 20 seconds
 // Close dead sockets after 60 seconds of no PONG
 setInterval(() => {
 	const now = Date.now();
@@ -813,7 +813,7 @@ setInterval(() => {
 			}
 		}
 	}
-}, 30_000);
+}, 20_000);
 
 process.on("SIGTERM", () => {
 	console.log("Closing all sockets for graceful shutdown...");
