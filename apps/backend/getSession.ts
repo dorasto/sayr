@@ -143,10 +143,7 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 
 	try {
 		// Fetch the real session
-		console.log("🚀 ~ safeGetSession ~ headers:", headers)
-		// const session = (await Promise.race([auth.api.getSession({ headers }), timeoutPromise])) as SessionValue;
-		const session = await auth.api.getSession({ headers });
-		console.log("🚀 ~ safeGetSession ~ session:", session)
+		const session = (await Promise.race([auth.api.getSession({ headers }), timeoutPromise])) as SessionValue;
 
 		// Cache with full TTL if session found; shorter TTL if getSession returned null (e.g. expired/invalid token)
 		sessionCache.set(key, { value: session, expiresAt: now + (session ? ttl : 10_000) });

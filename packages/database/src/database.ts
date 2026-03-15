@@ -5,51 +5,49 @@ import postgres from "postgres";
 import * as auth from "../schema/auth";
 import * as schema from "../schema/index";
 
-// const connectionString = process.env.DATABASE_URL;
-// // Create Postgres client
-// export const client = postgres(connectionString || "", {
-// 	connect_timeout: 100, // fail fast on bad conn
-// 	idle_timeout: 20, // recycle idle conn
-// 	max: 10, // max pool connections
-// });
-
-// // Merge schemas into one object
-// export const db = drizzle(client, {
-// 	schema: {
-// 		...auth,
-// 		...schema,
-// 	},
-// });
-
-// --- Types ---
+// --- Combined schema ---
 export const combinedSchema = {
 	...auth,
 	...schema,
 };
 
-// --- Global shared types ---
-type DrizzleClient = ReturnType<typeof drizzle<typeof combinedSchema>>;
 type PostgresClient = ReturnType<typeof postgres>;
 
-// --- Global declaration (TS) ---
+// Augment globalThis for dev/HMR singleton
 declare global {
 	// eslint-disable-next-line no-var
-	var _db: DrizzleClient | undefined;
-	// eslint-disable-next-line no-var
 	var _pgClient: PostgresClient | undefined;
+	// eslint-disable-next-line no-var
+	var _db: ReturnType<typeof drizzle> | undefined;
 }
+
+// Ensure this file is treated as a module for `declare global`
+export { };
+
+const g = globalThis as typeof globalThis & {
+	_pgClient?: PostgresClient;
+	_db?: ReturnType<typeof drizzle>;
+};
 
 // --- Create or reuse client ---
-if (!global._pgClient) {
-	global._pgClient = postgres(process.env.DATABASE_URL || "", {
-		connect_timeout: 100,
-		idle_timeout: 20,
-		max: 20,
+if (!g._pgClient) {
+	g._pgClient = postgres(process.env.DATABASE_URL || "", {
+		connect_timeout: 100, // fail fast on bad conn
+		idle_timeout: 20, // recycle idle conn
+		max: 20, // max pool connections
 	});
 }
-if (!global._db) {
-	global._db = drizzle(global._pgClient, { schema: combinedSchema });
+
+if (!g._db) {
+	g._db = drizzle(g._pgClient, {
+		schema: combinedSchema,
+	});
 }
 
-export const db = global._db;
-export const client = global._pgClient;
+// Non-undefined exports for consumers
+export const client = g._pgClient!;
+export const db = g._db!;
+
+// Helpful exported types
+export type DrizzleClient = typeof db;
+export type PgClient = typeof client;
