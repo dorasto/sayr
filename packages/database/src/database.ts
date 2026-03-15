@@ -39,11 +39,7 @@ if (!g._pgClient) {
 		connect_timeout: 100,
 		idle_timeout: 20,
 		max: 20,
-
-		// Log queries (you can wrap this in an env check if it's too noisy)
-		debug: (connection, query, parameters) => {
-			console.log("[db:query]", query, parameters);
-		},
+		prepare: false, // required for PgBouncer transaction-pooling mode
 
 		onnotice: (notice) => {
 			console.warn("[db:notice]", notice);
