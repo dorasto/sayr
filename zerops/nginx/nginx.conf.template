@@ -5,6 +5,10 @@ events {
 }
 
 http {
+    # Default proxy timeouts — WS location blocks override these with 3600s
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+
     # Gzip compression - uses chunked encoding, avoiding Content-Length mismatches
     gzip on;
     gzip_vary on;
