@@ -3,7 +3,7 @@ initTracing(`sayr-backend`);
 import type { auth } from "@repo/auth/index";
 import { db, schema } from "@repo/database";
 import { CronJob } from "cron";
-import { lt } from "drizzle-orm";
+import { lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
@@ -81,6 +81,17 @@ app.route("/ws", wsRoute);
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.route("/render", renderRoute);
 app.get("/api/health", (c) => c.text("OK"));
+app.get("/api/db-health", async (c) => {
+	try {
+		const start = Date.now();
+		await db.execute(sql`select 1`);
+		const ms = Date.now() - start;
+		return c.json({ ok: true, ms });
+	} catch (err) {
+		console.error("DB health check failed:", err);
+		return c.json({ ok: false, error: String(err) }, 500);
+	}
+});
 app.use("*", rootSpanPlugin());
 app.use("*", wideEventMiddleware());
 app.route("/api/webhook", webhookRoute);
