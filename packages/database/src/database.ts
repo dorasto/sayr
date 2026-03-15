@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 // Import schemas
@@ -12,42 +13,41 @@ export const combinedSchema = {
 };
 
 type PostgresClient = ReturnType<typeof postgres>;
+type DrizzleClient = PostgresJsDatabase<typeof combinedSchema>;
 
-// Augment globalThis for dev/HMR singleton
+// --- Global declaration (TS) ---
 declare global {
 	// eslint-disable-next-line no-var
 	var _pgClient: PostgresClient | undefined;
 	// eslint-disable-next-line no-var
-	var _db: ReturnType<typeof drizzle> | undefined;
+	var _db: DrizzleClient | undefined;
 }
 
-// Ensure this file is treated as a module for `declare global`
+// Make this file a module so `declare global` works
 export { };
 
 const g = globalThis as typeof globalThis & {
 	_pgClient?: PostgresClient;
-	_db?: ReturnType<typeof drizzle>;
+	_db?: DrizzleClient;
 };
 
 // --- Create or reuse client ---
 if (!g._pgClient) {
 	g._pgClient = postgres(process.env.DATABASE_URL || "", {
-		connect_timeout: 100, // fail fast on bad conn
-		idle_timeout: 20, // recycle idle conn
-		max: 20, // max pool connections
+		connect_timeout: 100,
+		idle_timeout: 20,
+		max: 20,
 	});
 }
 
 if (!g._db) {
 	g._db = drizzle(g._pgClient, {
 		schema: combinedSchema,
-	});
+	}) as DrizzleClient;
 }
 
-// Non-undefined exports for consumers
+// --- Exports ---
 export const client = g._pgClient!;
 export const db = g._db!;
 
-// Helpful exported types
-export type DrizzleClient = typeof db;
-export type PgClient = typeof client;
+export type { DrizzleClient, PostgresClient as PgClient };
