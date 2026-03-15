@@ -29,10 +29,14 @@ zerops:
   # ===============================
   - setup: backend
     build:
-      base: bun@1.3
+      base: nodejs@22
+      os: ubuntu
       prepareCommands:
-        # bun@1.2 image has no npm — install pnpm via bun
-        - bun install -g pnpm
+        # Install Bun and make it globally available
+        - curl -fsSL https://bun.sh/install | bash
+        - sudo ln -sf /root/.bun/bin/bun /usr/local/bin/bun
+        # Use corepack for pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
         - pnpm i
         - pnpm -F backend zerops:build
@@ -50,10 +54,15 @@ zerops:
         # workspace node_modules (resolved deps)
         - node_modules
     run:
-      base: bun@1.2
+      base: nodejs@22
+      os: ubuntu
       ports:
         - port: 5468
           httpSupport: true
+      prepareCommands:
+        # Install Bun on the Node.js runtime image and make it globally available
+        - curl -fsSL https://bun.sh/install | bash
+        - sudo ln -sf /root/.bun/bin/bun /usr/local/bin/bun
       initCommands:
         - chmod +x start.sh
         # jsdom's bundled code resolves __dirname to the build-time path
@@ -105,10 +114,14 @@ zerops:
   # ===============================
   - setup: worker
     build:
-      base: bun@1.2
+      base: nodejs@22
+      os: ubuntu
       prepareCommands:
-        # bun@1.2 image has no npm — install pnpm via bun
-        - bun install -g pnpm
+        # Install Bun and make it globally available
+        - curl -fsSL https://bun.sh/install | bash
+        - sudo ln -sf /root/.bun/bin/bun /usr/local/bin/bun
+        # Use corepack for pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
         - pnpm i
         - pnpm -F worker zerops:build
@@ -118,10 +131,15 @@ zerops:
         - apps/worker/~package.json
         - node_modules
     run:
-      base: bun@1.2
+      base: nodejs@22
+      os: ubuntu
       ports:
         - port: 8080
           httpSupport: true
+      prepareCommands:
+        # Install Bun on the Node.js runtime image and make it globally available
+        - curl -fsSL https://bun.sh/install | bash
+        - sudo ln -sf /root/.bun/bin/bun /usr/local/bin/bun
       healthCheck:
         httpGet:
           port: 8080
