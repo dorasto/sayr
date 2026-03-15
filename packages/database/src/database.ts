@@ -33,17 +33,48 @@ const g = globalThis as typeof globalThis & {
 
 // --- Create or reuse client ---
 if (!g._pgClient) {
+	console.log("[db] Creating new Postgres client");
+
 	g._pgClient = postgres(process.env.DATABASE_URL || "", {
 		connect_timeout: 100,
 		idle_timeout: 20,
 		max: 20,
+
+		// Log queries (you can wrap this in an env check if it's too noisy)
+		debug: (connection, query, parameters) => {
+			console.log("[db:query]", query, parameters);
+		},
+
+		onnotice: (notice) => {
+			console.warn("[db:notice]", notice);
+		},
 	});
+
+	// Optional: test connection once and log errors
+	const client = g._pgClient!;
+
+	(async () => {
+		try {
+			console.log("[db] Testing database connection...");
+			await client`select 1 as ok`;
+			console.log("[db] Database connection OK");
+		} catch (err) {
+			console.error("[db] Error during initial DB connection:", err);
+		}
+	})().catch((err) => {
+		console.error("[db] Unexpected error in DB init:", err);
+	});
+} else {
+	console.log("[db] Reusing existing Postgres client");
 }
 
 if (!g._db) {
+	console.log("[db] Creating Drizzle client");
 	g._db = drizzle(g._pgClient, {
 		schema: combinedSchema,
 	}) as DrizzleClient;
+} else {
+	console.log("[db] Reusing existing Drizzle client");
 }
 
 // --- Exports ---
