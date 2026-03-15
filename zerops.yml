@@ -32,8 +32,8 @@ zerops:
       base: nodejs@22
       os: ubuntu
       prepareCommands:
-        # Install Bun directly into /usr/local so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
         # Use corepack for pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
@@ -59,9 +59,8 @@ zerops:
         - port: 5468
           httpSupport: true
       prepareCommands:
-        # Install Bun directly into /usr/local so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
-      initCommands:
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
         - chmod +x start.sh
         # jsdom's bundled code resolves __dirname to the build-time path
         # (/build/source/node_modules/...) for its CSS assets. Create a symlink
@@ -115,8 +114,8 @@ zerops:
       base: nodejs@22
       os: ubuntu
       prepareCommands:
-        # Install Bun directly into /usr/local so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
         # Use corepack for pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
@@ -134,8 +133,8 @@ zerops:
         - port: 8080
           httpSupport: true
       prepareCommands:
-        # Install Bun directly into /usr/local so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
       healthCheck:
         httpGet:
           port: 8080
