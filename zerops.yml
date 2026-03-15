@@ -61,12 +61,12 @@ zerops:
       prepareCommands:
         # Install Bun then move it to /usr/local/bin so it's on PATH for all users
         - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
-        - chmod +x start.sh
+      initCommands:
         # jsdom's bundled code resolves __dirname to the build-time path
         # (/build/source/node_modules/...) for its CSS assets. Create a symlink
         # so those paths resolve at runtime where node_modules actually lives.
         - sudo mkdir -p /build/source && sudo ln -sf /var/www/node_modules /build/source/node_modules
-      start: sh start.sh
+      start: chmod +x start.sh && sh start.sh
       healthCheck:
         httpGet:
           port: 5468
