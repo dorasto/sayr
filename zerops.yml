@@ -29,7 +29,7 @@ zerops:
   # ===============================
   - setup: backend
     build:
-      base: bun@1.2
+      base: bun@1.3
       prepareCommands:
         # bun@1.2 image has no npm — install pnpm via bun
         - bun install -g pnpm
