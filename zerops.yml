@@ -157,13 +157,12 @@ zerops:
         # Validate config before starting
         - sudo nginx -t
       start: sudo nginx -g 'daemon off;'
-      # Gracefully reload nginx every minute to re-resolve upstream IPs.
-      # When backend/start/marketing redeploy and get new IPs, nginx picks
-      # them up automatically instead of 502-ing.
-      crontab:
-        - command: sudo nginx -s reload
-          timing: "* * * * *"
-          allContainers: true
+      # nginx reload crontab disabled for testing — static upstream IPs
+      # are cached at startup; re-enable if 502s appear after redeploys.
+      # crontab:
+      #   - command: sudo nginx -s reload
+      #     timing: "* * * * *"
+      #     allContainers: true
       healthCheck:
         httpGet:
           port: 80
