@@ -801,15 +801,19 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	await traceAsync(
 		"task.update.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			// const found = findClientByWsId(wsClientId);
+			const sseFound = findClientBysseId(wsClientId);
 			const data = {
 				type: "UPDATE_TASK" as WSBaseMessage["type"],
 				data: taskWithData,
 			};
 
-			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+			// broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+			sseBroadcast(orgId, "tasks", data, sseFound?.id);
+			sseBroadcast(orgId, `task:${taskId}`, data, sseFound?.id);
 			if (taskWithData?.visible === "public") {
-				broadcastPublic(orgId, { ...data }, found?.socket);
+				// broadcastPublic(orgId, { ...data }, found?.socket);
+				sseBroadcastPublic(orgId, { ...data }, sseFound?.id);
 			}
 
 			// If releaseId changed, broadcast release update as well
@@ -818,7 +822,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					type: "UPDATE_RELEASES" as WSBaseMessage["type"],
 					data: { taskId, releaseId: updates.releaseId },
 				};
-				broadcast(orgId, "releases", releaseData, found?.socket);
+				broadcast(orgId, "releases", releaseData, undefined);
 			}
 
 			const members = await getOrganizationMembers(orgId);
@@ -1607,15 +1611,19 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 		await traceAsync(
 			"task.labels.update.broadcast",
 			async () => {
-				const found = findClientByWsId(wsClientId);
+				// const found = findClientByWsId(wsClientId);
+				const sseFound = findClientBysseId(wsClientId);
 				const data = {
 					type: "UPDATE_TASK" as WSBaseMessage["type"],
 					data: taskWithData,
 				};
 
-				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+				// broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+				sseBroadcast(orgId, "tasks", data, sseFound?.id);
+				sseBroadcast(orgId, `task:${taskId}`, data, sseFound?.id);
 				if (taskWithData?.visible === "public") {
-					broadcastPublic(orgId, { ...data }, found?.socket);
+					// broadcastPublic(orgId, { ...data }, found?.socket);
+					sseBroadcastPublic(orgId, { ...data }, sseFound?.id);
 				}
 
 				const members = await getOrganizationMembers(orgId);
@@ -1788,15 +1796,19 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 		await traceAsync(
 			"task.assignees.update.broadcast",
 			async () => {
-				const found = findClientByWsId(wsClientId);
+				// const found = findClientByWsId(wsClientId);
+				const sseFound = findClientBysseId(wsClientId);
 				const data = {
 					type: "UPDATE_TASK" as WSBaseMessage["type"],
 					data: taskWithData,
 				};
 
-				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+				// broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+				sseBroadcast(orgId, "tasks", data, sseFound?.id);
+				sseBroadcast(orgId, `task:${taskId}`, data, sseFound?.id);
 				if (taskWithData?.visible === "public") {
-					broadcastPublic(orgId, { ...data }, found?.socket);
+					// broadcastPublic(orgId, { ...data }, found?.socket);
+					sseBroadcastPublic(orgId, { ...data }, sseFound?.id);
 				}
 
 				const members = await getOrganizationMembers(orgId);
@@ -2118,14 +2130,17 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	await traceAsync(
 		"task.comment.edit.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			// const found = findClientByWsId(wsClientId);
+			const sseFound = findClientBysseId(wsClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
 				data: { id: comment.taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${comment.taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data }, found?.socket);
+			// broadcastToRoom(orgId, `task:${comment.taskId}`, data, found?.socket, false);
+			sseBroadcast(orgId, `task:${comment.taskId}`, data, sseFound?.id);
+			// broadcastPublic(orgId, { ...data }, found?.socket);
+			sseBroadcastPublic(orgId, { ...data }, sseFound?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -2244,14 +2259,17 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 	await traceAsync(
 		"task.comment.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			// const found = findClientByWsId(wsClientId);
+			const sseFound = findClientBysseId(wsClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
 				data: { id: taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data }, found?.socket);
+			// broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			sseBroadcast(orgId, `task:${taskId}`, data, sseFound?.id);
+			// broadcastPublic(orgId, { ...data }, found?.socket);
+			sseBroadcastPublic(orgId, { ...data }, sseFound?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -2343,14 +2361,17 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 	await traceAsync(
 		"task.comment.visibility.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			// const found = findClientByWsId(wsClientId);
+			const sseFound = findClientBysseId(wsClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
 				data: { id: taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data }, found?.socket);
+			// broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			sseBroadcast(orgId, `task:${taskId}`, data, sseFound?.id);
+			// broadcastPublic(orgId, { ...data }, found?.socket);
+			sseBroadcastPublic(orgId, { ...data }, sseFound?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -2426,14 +2447,17 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	await traceAsync(
 		"task.comment.reaction.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			// const found = findClientByWsId(wsClientId);
+			const sseFound = findClientBysseId(wsClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
 				data: { id: taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data }, found?.socket);
+			// broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			sseBroadcast(orgId, `task:${taskId}`, data, sseFound?.id);
+			// broadcastPublic(orgId, { ...data }, found?.socket);
+			sseBroadcastPublic(orgId, { ...data }, sseFound?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -2905,7 +2929,8 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 	await traceAsync(
 		"task.vote.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			// const found = findClientByWsId(wsClientId);
+			const sseFound = findClientBysseId(wsClientId);
 			const data = {
 				type: "UPDATE_TASK_VOTE" as WSBaseMessage["type"],
 				data: {
@@ -2914,8 +2939,10 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 				},
 			};
 
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			// broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			sseBroadcast(orgId, `task:${taskId}`, data, sseFound?.id);
+			// broadcastPublic(orgId, { ...data });
+			sseBroadcastPublic(orgId, { ...data }, sseFound?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {

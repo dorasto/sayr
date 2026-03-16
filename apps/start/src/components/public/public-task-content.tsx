@@ -55,7 +55,7 @@ import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { PublicComments } from "./public-comments";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
@@ -76,7 +76,7 @@ export function PublicTaskContent({
   const { organization, categories, serverEvents } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   // const { stuck, stickyRef } = useSticky();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: wsClientId } = useStateManagement<string>("sse-clientId", "");
   const { data: session } = authClient.useSession();
 
   // Check if the logged-in user is a member of this organization
@@ -175,7 +175,7 @@ export function PublicTaskContent({
   };
 
   // WebSocket handlers for real-time updates on this task
-  const handlers: WSMessageHandler<WSMessage> = {
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_TASK: (msg) => {
       if (
         msg.scope === "PUBLIC" &&
@@ -207,7 +207,7 @@ export function PublicTaskContent({
       }
     },
   };
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers);
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
   useEffect(() => {
     if (!serverEvents.event) return;
     serverEvents.event.addEventListener("message", handleMessage);
@@ -217,8 +217,8 @@ export function PublicTaskContent({
   }, [serverEvents.event, handleMessage]);
   useEffect(() => {
     const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
-      if (msg.type === "WS_RECONNECTED") {
-        console.log("🟢 Global WS reconnected — refreshing data");
+      if (msg.type === "SSE_RECONNECTED") {
+        console.log("🟢 Global SSE reconnected — refreshing data");
         queryClient.invalidateQueries({
           queryKey: ["public-comments", task.id, task.organizationId],
         });

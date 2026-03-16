@@ -17,7 +17,6 @@ import {
 import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import {
-  useStateManagement,
   useStateManagementKey,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
@@ -53,17 +52,17 @@ import {
 import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
 export default function OrganizationTasksHomePage() {
-  const { ws, account } = useLayoutData();
+  const { serverEvents, account } = useLayoutData();
   const {
     organization,
     setOrganization,
@@ -91,7 +90,7 @@ export default function OrganizationTasksHomePage() {
 	const useMobile = useIsMobile();
 	const { canCreateResource, getLimitMessage } = usePlanLimits();
 
-	// Track which task is open in the dialog (for WS channel switching)
+	// Track which task is open in the dialog (for SSE channel switching)
 	const [activeDialogTaskId, setActiveDialogTaskId] = useState<string | null>(null);
 	const handleActiveDialogTaskChange = useCallback((taskId: string | null) => {
 		setActiveDialogTaskId(taskId);
@@ -99,7 +98,7 @@ export default function OrganizationTasksHomePage() {
 
 	// When a task dialog is open, subscribe to task-specific channel so we
 	// receive UPDATE_TASK_COMMENTS. When closed, fall back to the tasks list channel.
-	const wsChannel = activeDialogTaskId ? `task:${activeDialogTaskId}` : "tasks";
+	const sseChannel = activeDialogTaskId ? `task:${activeDialogTaskId}` : "tasks";
 
 	// Get categories and views from state management (for breadcrumb view switcher)
   const { value: stateCategories } = useStateManagementKey<
@@ -209,14 +208,14 @@ export default function OrganizationTasksHomePage() {
   // console.log('[OrganizationTasksHomePage] releases:', releases);
   // console.log('[OrganizationTasksHomePage] releases.length:', releases?.length ?? 'undefined');
 
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
-    channel: wsChannel,
+    channel: sseChannel,
     setOrganization: setOrganization,
   });
-  const handlers: WSMessageHandler<WSMessage> = {
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     CREATE_TASK: (msg) => {
       setTasks([...tasks, msg.data]);
     },
@@ -261,17 +260,17 @@ export default function OrganizationTasksHomePage() {
       }
     },
   };
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
     // onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
   });
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     // Cleanup on unmount or dependency change
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
 
   const availableUsers =
     organization?.members.map((member) => member.user) || [];
@@ -462,7 +461,7 @@ export default function OrganizationTasksHomePage() {
           <UnifiedTaskView
             tasks={tasks}
             setTasks={setTasks}
-            ws={ws}
+            serverEvents={serverEvents}
             availableUsers={availableUsers}
             availableLabels={labels}
             organization={organization}
