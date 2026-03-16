@@ -57,24 +57,6 @@ export function sseBroadcast(orgId: string, channel: string, message: unknown, e
 export function sseBroadcastPublic(orgId: string, message: Omit<any, "scope">, excludeId?: string) {
     const fullMsg = { ...message, scope: "PUBLIC" };
     sseBroadcast(orgId, "public", fullMsg, excludeId);
-    const key = `${orgId}:public`;
-    const clients = sseRooms.get(key);
-
-    if (!clients) return;
-
-    for (const client of [...clients]) {
-        if (excludeId && client.id === excludeId) continue;
-
-        try {
-            client.send(message);
-        } catch {
-            client.close();
-            clients.delete(client);
-            clientsById.delete(client.id);
-        }
-    }
-
-    if (clients.size === 0) sseRooms.delete(key);
 }
 
 sseRoute.get("/", async (c) => {
@@ -126,7 +108,6 @@ sseRoute.get("/", async (c) => {
             const client: SSEClient = { id: clientId, orgId: orgId || "public", channel, send, close };
 
             const key = `${orgId || "public"}:${channel}`;
-            console.log("🚀 ~ key:", key)
             if (!sseRooms.has(key)) sseRooms.set(key, new Set());
             sseRooms.get(key)!.add(client);
             clientsById.set(clientId, client);
@@ -147,7 +128,9 @@ sseRoute.get("/", async (c) => {
                 data: {
                     status: "connected",
                     authenticated,
-                    wsClientId: clientId,
+                    clientId: clientId,
+                    orgId: orgId,
+                    channel: channel
                 },
             });
         },
@@ -162,13 +145,6 @@ sseRoute.get("/", async (c) => {
             Connection: "keep-alive",
         },
     });
-});
-
-// testing broadcast
-sseRoute.post("/broadcast", async (c) => {
-    const { orgId, channel, message } = await c.req.json();
-    sseBroadcast(orgId, channel, message);
-    return c.json({ ok: true });
 });
 
 export default sseRoute;

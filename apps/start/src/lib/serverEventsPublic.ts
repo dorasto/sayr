@@ -5,21 +5,19 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect, useRef, useState } from "react";
+import { ServerEventMessage } from "./serverEvents";
 
 const API_URL =
     import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
 
-type SSEParams = {
-    orgId?: string;
-    channel?: string;
-};
-
-const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
+const useServerEventsPublic = ({
+    organization,
+    setOrganization,
+}: {
+    organization: schema.OrganizationWithMembers;
+    setOrganization: (newValue: schema.OrganizationWithMembers) => void;
+}) => {
     const [sse, setSse] = useState<EventSource | null>(null);
-    const [params, setParams] = useState<SSEParams>({
-        orgId: initialOrgId,
-        channel: initialChannel,
-    });
 
     const sseRef = useRef<EventSource | null>(null);
 
@@ -37,10 +35,6 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
     const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
     const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    const connect = (orgId?: string, channel?: string) => {
-        setParams({ orgId, channel });
-    };
-
     const disconnect = () => {
         sseRef.current?.close();
         sseRef.current = null;
@@ -49,8 +43,6 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
     };
 
     useEffect(() => {
-        const { orgId, channel } = params;
-
         const connectInternal = () => {
             if (sseRef.current) {
                 sseRef.current.close();
@@ -59,9 +51,7 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
 
             setStatus("Connecting");
 
-            const url = (orgId || channel) ? `${API_URL}/events?orgId=${encodeURIComponent(
-                orgId || ""
-            )}&channel=${encodeURIComponent(channel || "public")}` : `${API_URL}/events`;
+            const url = organization.id ? `${API_URL}/events?orgId=${encodeURIComponent(organization.id)}` : `${API_URL}/events`;
 
             const source = new EventSource(url);
             sseRef.current = source;
@@ -82,16 +72,13 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
 
                     switch (data.type) {
                         case "CONNECTION_STATUS": {
-                            if (data.data.authenticated) {
+                            if (data.data) {
                                 setStatus("Connected");
                                 setClientId(data.data.clientId);
-
                                 headlessToast.dismiss("sse-connection-status");
-
                                 if (disconnectTimeRef.current !== null) {
                                     if (reconnectTimerRef.current)
                                         clearTimeout(reconnectTimerRef.current);
-
                                     reconnectTimerRef.current = setTimeout(() => {
                                         sendWindowMessage(
                                             window,
@@ -104,7 +91,6 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
                             } else {
                                 disconnect();
                                 setStatus("Reconnecting");
-
                                 headlessToast.error({
                                     id: "sse-connection-status",
                                     title: "Connection failure",
@@ -120,16 +106,9 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
                             return;
                         }
 
-                        case "MEMBER_ACTIONS":
-                            if (data.data.action === "REMOVED") {
-                                headlessToast.info({
-                                    id: "org-member-removed",
-                                    title: "Removed from organization",
-                                    description:
-                                        "You have been removed from the organization. Redirecting...",
-                                });
-
-                                setTimeout(() => (window.location.href = "/"));
+                        case "UPDATE_ORG":
+                            if (data.data) {
+                                setOrganization({ ...organization, ...data.data });
                             }
                             return;
 
@@ -184,111 +163,12 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
 
             sseRef.current?.close();
         };
-    }, [params]);
+    }, [organization.id]);
 
     return {
         event: sse,
-        connect,
         disconnect,
     };
 };
 
-export default useServerEvents;
-
-// Base message type with optional metadata
-export type BaseMessage = {
-    scope: "INDIVIDUAL" | "CHANNEL" | "PUBLIC";
-    meta?: {
-        ts: number; // timestamp
-        channel?: string;
-        orgId?: string;
-    };
-};
-
-export type ServerEventMessage =
-    | (BaseMessage & {
-        type: "CONNECTION_STATUS";
-        data: { status: string; authenticated: boolean; clientId: string };
-    })
-    | (BaseMessage & {
-        type: "SERVER_MESSAGE" | "ERROR";
-        data: { message: string };
-    })
-    | (BaseMessage & {
-        type: "PING" | "PONG";
-    })
-    | (BaseMessage & {
-        type: "MESSAGE";
-        data: {
-            channel?: string;
-            text?: string;
-        };
-    })
-    | (BaseMessage & {
-        type: "SUBSCRIBED";
-        data: {
-            orgId: string;
-            channel: string;
-        };
-    })
-    | (BaseMessage & {
-        type: "UPDATE_ORG";
-        data: schema.organizationType;
-    })
-    | (BaseMessage & {
-        type: "UPDATE_CATEGORIES";
-        data: schema.categoryType[];
-    })
-    | (BaseMessage & {
-        type: "UPDATE_LABELS";
-        data: schema.labelType[];
-    })
-    | (BaseMessage & {
-        type: "UPDATE_VIEWS";
-        data: schema.savedViewType[];
-    })
-    | (BaseMessage & {
-        type: "UPDATE_ISSUE_TEMPLATES";
-        data: schema.issueTemplateWithRelations[];
-    })
-    | (BaseMessage & {
-        type: "UPDATE_RELEASES";
-        data: schema.releaseType[];
-    })
-    | (BaseMessage & {
-        type: "DELETE_RELEASE";
-        data: { releaseId: string };
-    })
-    | (BaseMessage & {
-        type: "CREATE_TASK";
-        data: schema.TaskWithLabels;
-    })
-    | (BaseMessage & {
-        type: "UPDATE_TASK";
-        data: schema.TaskWithLabels;
-    })
-    | (BaseMessage & {
-        type: "UPDATE_TASK_VOTE";
-        data: {
-            id: schema.TaskWithLabels["id"];
-            voteCount: schema.TaskWithLabels["voteCount"];
-        };
-    })
-    | (BaseMessage & {
-        type: "UPDATE_TASK_COMMENTS";
-        data: {
-            id: string;
-        };
-    })
-    | (BaseMessage & {
-        type: "MEMBER_ACTIONS";
-        data: { action: "ADDED" | "REMOVED"; orgId: string; userId: string };
-    })
-    | (BaseMessage & {
-        type: "NEW_NOTIFICATION";
-        data: schema.NotificationWithDetails;
-    })
-    | (BaseMessage & {
-        type: "NOTIFICATION_READ";
-        data: { id?: string; all?: boolean; organizationId?: string };
-    });
+export default useServerEventsPublic;

@@ -1,13 +1,11 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useContext, useEffect } from "react";
-import useServerEvents from "@/lib/serverEvents";
-import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import { WSMessage } from "@/lib/ws";
+import useServerEventsPublic from "@/lib/serverEventsPublic";
 
 interface ContextType {
 	organization: schema.OrganizationWithMembers;
-	serverEvents: ReturnType<typeof useServerEvents>;
+	serverEvents: ReturnType<typeof useServerEventsPublic>;
 	setOrganization: (newVaule: ContextType["organization"]) => void;
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: ContextType["tasks"]) => void;
@@ -37,25 +35,14 @@ export function PublicOrganizationProvider({
 	const { value: NewTasks, setValue: setTasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", []);
 	const { value: NewLabels, setValue: setLabels } = useStateManagement("labels", labels);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories);
-	const serverEvents = useServerEvents(organization.id);
+	const serverEvents = useServerEventsPublic({
+		organization,
+		setOrganization
+	});
 
 	useEffect(() => setLabels(labels), [labels, setLabels]);
 	useEffect(() => setCategories(categories), [categories, setCategories]);
-	const handlers: WSMessageHandler<WSMessage> = {
-		UPDATE_ORG: (msg) => {
-			setOrganization({ ...organization, ...msg.data });
-		},
-	};
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PublicOrganizationProvider]", { msg }),
-	});
-	useEffect(() => {
-		if (!serverEvents.event) return;
-		serverEvents.event.addEventListener("message", handleMessage);
-		return () => {
-			serverEvents.event?.removeEventListener("message", handleMessage);
-		};
-	}, [serverEvents.event, handleMessage]);
+
 	return (
 		<RootContext.Provider
 			value={{
