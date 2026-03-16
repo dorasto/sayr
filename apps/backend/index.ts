@@ -10,7 +10,7 @@ import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { apiRoute } from "./routes/api";
 import { webhookRoute } from "./routes/webhook";
-import { wsRoute } from "./routes/ws";
+// import { wsRoute } from "./routes/ws";
 import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
 import { rootSpanPlugin } from "@/tracing/index";
 import { renderRoute } from "./routes/render";
