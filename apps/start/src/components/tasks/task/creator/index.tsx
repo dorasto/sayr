@@ -113,7 +113,7 @@ export default function CreateIssueDialog({
   loading = false,
 }: Props) {
   const navigate = useNavigate();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { setValue: setMentionContext } =
     useStateManagement<MentionContext | null>("mentionContext", null);
   const { value: cachedCategories } = useStateManagementKey<
@@ -313,7 +313,7 @@ export default function CreateIssueDialog({
             visible,
             parentId: parentId || undefined,
           },
-          wsClientId,
+          sseClientId,
         ),
     );
     if (data?.success && data.data) {
@@ -422,7 +422,7 @@ export default function CreateIssueDialog({
           >
             <AdaptiveDialogHeader
               className={cn(!isMobile && "pb-0!")}
-              // className={cn("", visible === "private" && "bg-primary/15")}
+            // className={cn("", visible === "private" && "bg-primary/15")}
             >
               <AdaptiveDialogTitle asChild>
                 <div className="flex items-center gap-1 w-full">
@@ -490,7 +490,7 @@ export default function CreateIssueDialog({
                         className={cn(
                           "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 mb-0 flex items-center gap-2",
                           selectedTemplateId === "__none__" &&
-                            "bg-transparent hover:bg-accent hover:border-accent text-muted-foreground hover:text-foreground",
+                          "bg-transparent hover:bg-accent hover:border-accent text-muted-foreground hover:text-foreground",
                         )}
                       >
                         <IconTemplate className="h-4 w-4" />
@@ -498,8 +498,8 @@ export default function CreateIssueDialog({
                           {selectedTemplateId === "__none__"
                             ? "Template"
                             : issueTemplates.find(
-                                (t) => t.id === selectedTemplateId,
-                              )?.name || "Choose a template..."}
+                              (t) => t.id === selectedTemplateId,
+                            )?.name || "Choose a template..."}
                         </ComboBoxValue>
                       </ComboBoxTrigger>
                       <ComboBoxContent>

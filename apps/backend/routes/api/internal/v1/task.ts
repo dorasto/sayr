@@ -129,7 +129,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		title,
 		description,
 		status,
@@ -241,7 +241,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	await traceAsync(
 		"task.create.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "CREATE_TASK" as ServerEventBaseMessage["type"],
 				data: taskWithData,
@@ -257,7 +257,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						client.channel !== "tasks" &&
 						sseBroadcastIndividual(client, data, orgId)
 				);
@@ -273,7 +273,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			async () => {
 				const parentWithData = await getTaskById(orgId, parentId);
 				if (parentWithData) {
-					const found = findClientBysseId(wsClientId);
+					const found = findClientBysseId(sseClientId);
 					const parentUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: parentWithData };
 					sseBroadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.id, true);
 				}
@@ -368,7 +368,7 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		title,
 		description,
 		priority,
@@ -514,7 +514,7 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	await traceAsync(
 		"task.public_create.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "CREATE_TASK" as ServerEventBaseMessage["type"],
 				data: taskWithData,
@@ -528,7 +528,7 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						client.channel !== "tasks" &&
 						sseBroadcastIndividual(client, data, orgId)
 				);
@@ -545,7 +545,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, ...updates } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, ...updates } = await c.req.json();
 	const session = c.get("session");
 	const user = c.get("user");
 	const isSystemAccount = user?.role === "system";
@@ -791,7 +791,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	await traceAsync(
 		"task.update.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 				data: taskWithData,
@@ -816,7 +816,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 						sseBroadcastIndividual(client, data, orgId)
 				);
@@ -837,7 +837,7 @@ apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, parent_id: parentId } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, parent_id: parentId } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -864,7 +864,7 @@ apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
 			getTaskById(orgId, parentId),
 		]);
 
-		const found = findClientBysseId(wsClientId);
+		const found = findClientBysseId(sseClientId);
 		const taskUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: taskWithData };
 		const parentUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: parentWithData };
 
@@ -892,7 +892,7 @@ apiRouteAdminProjectTask.patch("/remove-parent", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -928,7 +928,7 @@ apiRouteAdminProjectTask.patch("/remove-parent", async (c) => {
 
 		// Refetch and broadcast
 		const taskWithData = await getTaskById(orgId, taskId);
-		const found = findClientBysseId(wsClientId);
+		const found = findClientBysseId(sseClientId);
 		const taskUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: taskWithData };
 		sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.id, true);
 
@@ -1000,7 +1000,7 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		source_task_id: sourceTaskId,
 		target_task_id: targetTaskId,
 		type,
@@ -1033,7 +1033,7 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 			getTaskById(orgId, targetTaskId),
 		]);
 
-		const found = findClientBysseId(wsClientId);
+		const found = findClientBysseId(sseClientId);
 		sseBroadcastToRoom(
 			orgId,
 			`tasks;task:${sourceTaskId}`,
@@ -1072,7 +1072,7 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		relation_id: relationId,
 		source_task_id: sourceTaskId,
 		target_task_id: targetTaskId,
@@ -1100,7 +1100,7 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 		}
 
 		// Broadcast updates for both tasks
-		const found = findClientBysseId(wsClientId);
+		const found = findClientBysseId(sseClientId);
 		let sourceWithData = null;
 		if (sourceTaskId) {
 			sourceWithData = await getTaskById(orgId, sourceTaskId);
@@ -1518,7 +1518,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, labels } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, labels } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -1597,7 +1597,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 		await traceAsync(
 			"task.labels.update.broadcast",
 			async () => {
-				const found = findClientBysseId(wsClientId);
+				const found = findClientBysseId(sseClientId);
 				const data = {
 					type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 					data: taskWithData,
@@ -1613,7 +1613,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 					const clients = findSSEClientsByUserId(member.userId);
 					clients.forEach(
 						(client) =>
-							client.id !== wsClientId &&
+							client.id !== sseClientId &&
 							!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 							sseBroadcastIndividual(client, data, orgId)
 					);
@@ -1642,7 +1642,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, assignees } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, assignees } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.assign");
@@ -1778,7 +1778,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 		await traceAsync(
 			"task.assignees.update.broadcast",
 			async () => {
-				const found = findClientBysseId(wsClientId);
+				const found = findClientBysseId(sseClientId);
 				const data = {
 					type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 					data: taskWithData,
@@ -1794,7 +1794,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 					const clients = findSSEClientsByUserId(member.userId);
 					clients.forEach(
 						(client) =>
-							client.id !== wsClientId &&
+							client.id !== sseClientId &&
 							!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 							sseBroadcastIndividual(client, data, orgId)
 					);
@@ -1823,7 +1823,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, createdBy: bodyCreatedBy, parentId } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, createdBy: bodyCreatedBy, parentId } = await c.req.json();
 	const session = c.get("session");
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -1987,7 +1987,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	await traceAsync(
 		"task.comment.create.broadcast",
 		async () => {
-			const seeFound = findClientBysseId(wsClientId)
+			const seeFound = findClientBysseId(sseClientId)
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
@@ -2002,7 +2002,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 						sseBroadcastIndividual(client, data, orgId)
@@ -2020,7 +2020,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, comment_id: commentId, content, visibility } = await c.req.json();
+	const { org_id: orgId, sseClientId, comment_id: commentId, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -2106,7 +2106,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	await traceAsync(
 		"task.comment.edit.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: comment.taskId },
@@ -2120,7 +2120,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${comment.taskId}` || client.channel === "tasks") &&
 						sseBroadcastIndividual(client, data, orgId)
@@ -2138,7 +2138,7 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, task_id: taskId, comment_id: commentId, wsClientId } = await c.req.json();
+	const { org_id: orgId, task_id: taskId, comment_id: commentId, sseClientId } = await c.req.json();
 	const session = c.get("session");
 
 	// Check if user is a member of the organization
@@ -2232,7 +2232,7 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 	await traceAsync(
 		"task.comment.delete.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
@@ -2246,7 +2246,7 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 						sseBroadcastIndividual(client, data, orgId)
@@ -2264,7 +2264,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, task_id: taskId, comment_id: commentId, visibility, wsClientId } = await c.req.json();
+	const { org_id: orgId, task_id: taskId, comment_id: commentId, visibility, sseClientId } = await c.req.json();
 	const session = c.get("session");
 
 	// Validate visibility value
@@ -2331,7 +2331,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 	await traceAsync(
 		"task.comment.visibility.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
@@ -2345,7 +2345,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 						sseBroadcastIndividual(client, data, orgId)
@@ -2361,7 +2361,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { orgId, taskId, wsClientId, comment_id: commentId, emoji } = await c.req.json();
+	const { orgId, taskId, sseClientId, comment_id: commentId, emoji } = await c.req.json();
 
 	const session = c.get("session");
 
@@ -2414,7 +2414,7 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	await traceAsync(
 		"task.comment.reaction.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
@@ -2428,7 +2428,7 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 						sseBroadcastIndividual(client, data, orgId)
@@ -2841,7 +2841,7 @@ apiRouteAdminProjectTask.get("/timeline/comments/replies", async (c) => {
 apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { orgId, taskId, wsClientId } = await c.req.json();
+	const { orgId, taskId, sseClientId } = await c.req.json();
 	const session = c.get("session");
 
 	// 2️⃣ Anonymous fingerprint (NO IP STORED)
@@ -2893,7 +2893,7 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 	await traceAsync(
 		"task.vote.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_TASK_VOTE" as ServerEventBaseMessage["type"],
 				data: {
@@ -2910,7 +2910,7 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 						sseBroadcastIndividual(client, data, orgId)

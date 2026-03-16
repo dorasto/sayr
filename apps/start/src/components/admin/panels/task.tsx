@@ -88,7 +88,7 @@ export function TaskPanelContent() {
     useLayoutOrganization();
   const { tasks, setTasks } = useLayoutTasks();
   const { runWithToast } = useToastAction();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
   const permissions = orgMatch?.context?.permissions;
   const canCreateLabel =
@@ -106,7 +106,7 @@ export function TaskPanelContent() {
       setTasks={setTasks}
       setSelectedTask={(t) => t && setTask(t)}
       availableUsers={availableUsers}
-      wsClientId={wsClientId}
+      sseClientId={sseClientId}
       runWithToast={runWithToast}
       categories={categories}
       releases={releases}

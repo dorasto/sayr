@@ -45,7 +45,7 @@ export function PublicTaskView({
   const { stuck, stickyRef } = useSticky();
   const isMobile = useIsMobile();
 
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { value: votes } = useStateManagementKey<
     {
       taskId: string;
@@ -117,9 +117,9 @@ export function PublicTaskView({
       tasks.map((t) =>
         t.id === taskId
           ? {
-              ...t,
-              voteCount: isVoted ? t.voteCount - 1 : t.voteCount + 1,
-            }
+            ...t,
+            voteCount: isVoted ? t.voteCount - 1 : t.voteCount + 1,
+          }
           : t,
       ),
     );
@@ -137,7 +137,7 @@ export function PublicTaskView({
     );
 
     try {
-      await CreateTaskVoteAction(organization.id, taskId, wsClientId);
+      await CreateTaskVoteAction(organization.id, taskId, sseClientId);
     } catch (error) {
       console.error(error);
       headlessToast.error({

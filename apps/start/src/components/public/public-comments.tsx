@@ -76,7 +76,7 @@ export function PublicComments({
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
   const { organization, categories } = usePublicOrganizationLayout();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
   const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(
     undefined,
@@ -331,7 +331,7 @@ export function PublicComments({
           taskId,
           commentId,
           emoji,
-          wsClientId,
+          sseClientId,
         );
       } catch {
         queryClient.setQueryData(queryKey, previousData);
@@ -342,7 +342,7 @@ export function PublicComments({
         });
       }
     },
-    [session?.user?.id, taskId, organizationId, queryClient, wsClientId],
+    [session?.user?.id, taskId, organizationId, queryClient, sseClientId],
   );
 
   const handleEditComment = useCallback(
@@ -354,7 +354,7 @@ export function PublicComments({
           commentId,
           content,
           "public",
-          wsClientId,
+          sseClientId,
         );
         if (result.success) {
           queryClient.invalidateQueries({
@@ -377,7 +377,7 @@ export function PublicComments({
         return false;
       }
     },
-    [organizationId, taskId, wsClientId, queryClient],
+    [organizationId, taskId, sseClientId, queryClient],
   );
 
   const handleDeleteComment = useCallback(
@@ -387,7 +387,7 @@ export function PublicComments({
           organizationId,
           taskId,
           commentId,
-          wsClientId,
+          sseClientId,
         );
         if (result.success) {
           queryClient.invalidateQueries({
@@ -421,7 +421,7 @@ export function PublicComments({
         return false;
       }
     },
-    [organizationId, taskId, wsClientId, queryClient],
+    [organizationId, taskId, sseClientId, queryClient],
   );
 
   const handleSubmitComment = useCallback(async () => {
@@ -434,7 +434,7 @@ export function PublicComments({
         taskId,
         commentContent,
         "public",
-        wsClientId,
+        sseClientId,
       );
       if (result.success) {
         setCommentContent(undefined);
@@ -462,7 +462,7 @@ export function PublicComments({
     isSubmitting,
     organizationId,
     taskId,
-    wsClientId,
+    sseClientId,
     queryClient,
   ]);
 

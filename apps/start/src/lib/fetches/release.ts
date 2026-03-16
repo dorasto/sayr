@@ -16,14 +16,14 @@ export async function createReleaseAction(
 		color?: string;
 		icon?: string;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.releaseType; error?: string }> {
 	console.info("Creating release", { orgId, name: data.name });
 	const result = await fetch(`${API_URL}/v1/admin/release/create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: orgId,
-			wsClientId,
+			sseClientId,
 			name: data.name,
 			slug: data.slug,
 			description: data.description,
@@ -63,13 +63,13 @@ export async function updateReleaseAction(
 		color?: string;
 		icon?: string;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.releaseType; error?: string }> {
 	console.info("Updating release", { orgId, releaseId });
 
 	const payload = {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		release_id: releaseId,
 		...(data.name !== undefined ? { name: data.name } : {}),
 		...(data.slug !== undefined ? { slug: data.slug } : {}),
@@ -106,7 +106,7 @@ export async function updateReleaseAction(
 export async function deleteReleaseAction(
 	orgId: string,
 	releaseId: string,
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; error?: string }> {
 	console.info("Deleting release", { orgId, releaseId });
 
@@ -114,7 +114,7 @@ export async function deleteReleaseAction(
 		method: "DELETE",
 		body: JSON.stringify({
 			org_id: orgId,
-			wsClientId,
+			sseClientId,
 			release_id: releaseId,
 		}),
 		headers: {
@@ -140,7 +140,7 @@ export async function deleteReleaseAction(
 export async function markReleaseAsReleasedAction(
 	orgId: string,
 	releaseId: string,
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: { release: schema.releaseType; updatedTaskCount: number }; error?: string }> {
 	console.info("Marking release as released", { orgId, releaseId });
 
@@ -148,7 +148,7 @@ export async function markReleaseAsReleasedAction(
 		method: "POST",
 		body: JSON.stringify({
 			org_id: orgId,
-			wsClientId,
+			sseClientId,
 			release_id: releaseId,
 		}),
 		headers: {

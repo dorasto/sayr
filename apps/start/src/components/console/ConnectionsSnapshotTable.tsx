@@ -12,8 +12,8 @@ export function ConnectionsSnapshotTable({
 }: {
 	snapshot: FirehoseClient[];
 	accounts:
-		| { users: UserWithRole[]; total: number; limit?: number; offset?: number }
-		| { users: never[]; total: number };
+	| { users: UserWithRole[]; total: number; limit?: number; offset?: number }
+	| { users: never[]; total: number };
 }) {
 	return (
 		<Card>
@@ -44,7 +44,7 @@ export function ConnectionsSnapshotTable({
 									| UserWithRole
 									| undefined;
 
-								return <ConnectionRow key={client.wsClientId} client={client} account={account} />;
+								return <ConnectionRow key={client.sseClientId} client={client} account={account} />;
 							})}
 					</TableBody>
 				</Table>

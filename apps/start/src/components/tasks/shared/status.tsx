@@ -53,14 +53,14 @@ export default function GlobalTaskStatus({
   className,
   compact = false,
 }: GlobalTaskStatusProps) {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
   const { execute } = useTaskFieldAction(
     task,
     tasks,
-    setSelectedTask ?? (() => {}),
-    setTasks ?? (() => {}),
-    wsClientId,
+    setSelectedTask ?? (() => { }),
+    setTasks ?? (() => { }),
+    sseClientId,
   );
 
   const handleStatusChange = (value: string | null) => {

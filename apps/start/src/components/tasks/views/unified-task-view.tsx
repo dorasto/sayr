@@ -111,7 +111,7 @@ export function UnifiedTaskView({
   const effectiveShowCompleted = forceShowCompleted || showCompletedTasks;
 
   const { runWithToast } = useToastAction();
-  const { value: wsClientId } = useStateManagement<string>("sse-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
   // Task open mode preference
   const taskOpenMode = useStore(userPreferencesStore, (s) => s.taskOpenMode);
@@ -239,7 +239,7 @@ export function UnifiedTaskView({
         await runWithToast(
           `update-task-${payload.field}`,
           payload.toastMessages,
-          () => updateTaskAction(orgId, payload.optimisticTask.id, payload.updateData, wsClientId),
+          () => updateTaskAction(orgId, payload.optimisticTask.id, payload.updateData, sseClientId),
         );
         break;
       }
@@ -277,12 +277,12 @@ export function UnifiedTaskView({
     }
     if (updates.assignees) {
       await dispatchPayload(
-        getAssigneeBulkUpdatePayload(task, updates.assignees.map((u) => u.id), availableUsers, wsClientId),
+        getAssigneeBulkUpdatePayload(task, updates.assignees.map((u) => u.id), availableUsers, sseClientId),
       );
     }
     if (updates.labels) {
       await dispatchPayload(
-        getLabelBulkUpdatePayload(task, updates.labels.map((l) => l.id), availableLabels, wsClientId),
+        getLabelBulkUpdatePayload(task, updates.labels.map((l) => l.id), availableLabels, sseClientId),
       );
     }
     if (updates.category !== undefined) {
@@ -292,7 +292,7 @@ export function UnifiedTaskView({
       await dispatchPayload(getReleaseUpdatePayload(task, updates.releaseId, releases));
     }
     if (updates.parentId !== undefined) {
-      await dispatchPayload(getParentUpdatePayload(task, updates.parentId, tasks, wsClientId));
+      await dispatchPayload(getParentUpdatePayload(task, updates.parentId, tasks, sseClientId));
     }
   };
 
@@ -303,7 +303,7 @@ export function UnifiedTaskView({
   ) => {
     const task = tasks.find((t) => t.id === sourceTaskId);
     if (!task) return;
-    await dispatchPayload(getRelationUpdatePayload(task, targetTaskId, type, tasks, wsClientId));
+    await dispatchPayload(getRelationUpdatePayload(task, targetTaskId, type, tasks, sseClientId));
   };
 
   // Bulk update handler - iterates over selected tasks in parallel
@@ -419,31 +419,31 @@ export function UnifiedTaskView({
         : undefined;
 
     return (
-    <UnifiedTaskItem
-      key={`${groupId}:${task.id}`}
-      viewMode={mode}
-      task={task}
-      columnId={columnId}
-      isSelected={mode === "list" ? selectedTasks.has(task.id) : undefined}
-      onSelect={
-        mode === "list"
-          ? (selected) => handleTaskSelect(task.id, selected)
-          : undefined
-      }
-      tasks={tasks}
-      setTasks={setTasks}
-      availableUsers={availableUsers}
-      availableLabels={availableLabels}
-      onTaskUpdate={handleTaskUpdate}
-      onTaskClick={taskOpenMode === "dialog" ? handleTaskClick : undefined}
-      onOpenInDialog={handleOpenInDialog}
-      onAddRelation={handleAddRelation}
-      categories={categories}
-      releases={releases}
-      compact={compact}
-      personal={personal}
-      fieldPermissions={fieldPerms}
-    />
+      <UnifiedTaskItem
+        key={`${groupId}:${task.id}`}
+        viewMode={mode}
+        task={task}
+        columnId={columnId}
+        isSelected={mode === "list" ? selectedTasks.has(task.id) : undefined}
+        onSelect={
+          mode === "list"
+            ? (selected) => handleTaskSelect(task.id, selected)
+            : undefined
+        }
+        tasks={tasks}
+        setTasks={setTasks}
+        availableUsers={availableUsers}
+        availableLabels={availableLabels}
+        onTaskUpdate={handleTaskUpdate}
+        onTaskClick={taskOpenMode === "dialog" ? handleTaskClick : undefined}
+        onOpenInDialog={handleOpenInDialog}
+        onAddRelation={handleAddRelation}
+        categories={categories}
+        releases={releases}
+        compact={compact}
+        personal={personal}
+        fieldPermissions={fieldPerms}
+      />
     );
   };
 
@@ -470,11 +470,11 @@ export function UnifiedTaskView({
     // Transform subGroups into GridBoard rows (if they exist)
     const gridRows: GridBoardRowData[] | undefined = hasKanbanSubGroups
       ? groupedTasks[0]?.subGroups?.map((sg) => ({
-          id: sg.id,
-          label: sg.label,
-          icon: sg.icon,
-          accentClassName: sg.accentClassName,
-        }))
+        id: sg.id,
+        label: sg.label,
+        icon: sg.icon,
+        accentClassName: sg.accentClassName,
+      }))
       : undefined;
 
     // Build a flat list of items with columnId and rowId for GridBoard
@@ -638,7 +638,7 @@ export function UnifiedTaskView({
 
       if (updates.assignees !== undefined) {
         await dispatchPayload(
-          getAssigneeBulkUpdatePayload(task, updates.assignees.map((u) => u.id), availableUsers, wsClientId),
+          getAssigneeBulkUpdatePayload(task, updates.assignees.map((u) => u.id), availableUsers, sseClientId),
         );
       }
 
@@ -655,24 +655,24 @@ export function UnifiedTaskView({
           : undefined;
 
       return (
-      <div className="opacity-90 rotate-2 scale-105">
-        <UnifiedTaskItem
-          viewMode="kanban"
-          task={item}
-          columnId={item.columnId}
-          tasks={tasks}
-          setTasks={setTasks}
-          availableUsers={availableUsers}
-          availableLabels={availableLabels}
-          onTaskUpdate={handleTaskUpdate}
-          onAddRelation={handleAddRelation}
-          categories={categories}
-          releases={releases}
-          compact={compact}
-          personal={personal}
-          fieldPermissions={dragFieldPerms}
-        />
-      </div>
+        <div className="opacity-90 rotate-2 scale-105">
+          <UnifiedTaskItem
+            viewMode="kanban"
+            task={item}
+            columnId={item.columnId}
+            tasks={tasks}
+            setTasks={setTasks}
+            availableUsers={availableUsers}
+            availableLabels={availableLabels}
+            onTaskUpdate={handleTaskUpdate}
+            onAddRelation={handleAddRelation}
+            categories={categories}
+            releases={releases}
+            compact={compact}
+            personal={personal}
+            fieldPermissions={dragFieldPerms}
+          />
+        </div>
       );
     };
 
@@ -741,8 +741,8 @@ export function UnifiedTaskView({
           <div className="py-1 flex flex-col gap-1">
             {subGroup.tasks.length > 0
               ? subGroup.tasks.map((task) =>
-                  renderTaskItem(task, group.id, "list"),
-                )
+                renderTaskItem(task, group.id, "list"),
+              )
               : renderEmptyGroup()}
           </div>
         )}

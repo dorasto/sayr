@@ -3,7 +3,10 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useRef } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import type { WSMessage } from "../lib/ws";
-import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandler";
+import {
+	useWSMessageHandler,
+	type WSMessageHandler,
+} from "./useWSMessageHandler";
 import useServerEvents from "@/lib/serverEvents";
 
 interface UseSSESubscriptionOptions {
@@ -52,7 +55,7 @@ export function useServerEventsSubscription({
 
 	const handleMessage = useWSMessageHandler<WSMessage>(handlers);
 
-	// connect / reconnect effect
+	// connect / reconnect effect (fixed)
 	useEffect(() => {
 		const se = serverEventsRef.current;
 		if (!se) return;
@@ -60,21 +63,24 @@ export function useServerEventsSubscription({
 		const currOrgId = orgId ?? null;
 		const currChannel = channel ?? null;
 
-		// get previous from persisted state
 		const prevOrgId = sseSubscribedState?.orgId ?? null;
 		const prevChannel = sseSubscribedState?.channel ?? null;
 
-		// skip if nothing changed
-		if (prevOrgId === currOrgId && prevChannel === currChannel) {
-			return;
-		}
+		// skip if unchanged
+		if (prevOrgId === currOrgId && prevChannel === currChannel) return;
 
-		// connect with new org/channel - serverEvents handles disconnect internally
 		se.connect(currOrgId ?? undefined, currChannel ?? undefined);
-		setSSESubscribedState({ orgId: currOrgId ?? undefined, channel: currChannel ?? undefined });
 
-		console.info("🔄 SSE Connected", { orgId: currOrgId, channel: currChannel });
-	}, [orgId, channel, sseSubscribedState, setSSESubscribedState]);
+		setSSESubscribedState({
+			orgId: currOrgId ?? undefined,
+			channel: currChannel ?? undefined,
+		});
+
+		console.info("🔄 SSE Connected", {
+			orgId: currOrgId,
+			channel: currChannel,
+		});
+	}, [orgId, channel, setSSESubscribedState]); // removed sseSubscribedState
 
 	// subscribe to SSE messages
 	useEffect(() => {
@@ -87,7 +93,7 @@ export function useServerEventsSubscription({
 		return () => {
 			evt.removeEventListener("message", handleMessage);
 		};
-	}, [handleMessage]);
+	}, [handleMessage, serverEventsRef.current?.event]);
 
 	return { sseSubscribedState };
 }

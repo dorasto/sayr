@@ -17,15 +17,15 @@ import { hasMembers, type TaskDetailOrganization } from "../types";
 type ContentVisibility = "title" | "description" | "both";
 
 interface TaskEditableHeaderProps {
-   task: schema.TaskWithLabels;
-   tasks: schema.TaskWithLabels[];
-   setTasks: (tasks: schema.TaskWithLabels[]) => void;
-   setSelectedTask: (task: schema.TaskWithLabels | null) => void;
-   categories: schema.categoryType[];
-   organization?: TaskDetailOrganization;
-   showContent?: ContentVisibility;
-   /** When provided, overrides the internal canEdit computation. */
-   canEdit?: boolean;
+  task: schema.TaskWithLabels;
+  tasks: schema.TaskWithLabels[];
+  setTasks: (tasks: schema.TaskWithLabels[]) => void;
+  setSelectedTask: (task: schema.TaskWithLabels | null) => void;
+  categories: schema.categoryType[];
+  organization?: TaskDetailOrganization;
+  showContent?: ContentVisibility;
+  /** When provided, overrides the internal canEdit computation. */
+  canEdit?: boolean;
 }
 
 export function TaskEditableHeader({
@@ -39,7 +39,7 @@ export function TaskEditableHeader({
   canEdit: canEditOverride,
 }: TaskEditableHeaderProps) {
   const { account } = useLayoutData();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
 
   // Extract org member users for MentionView rendering (when organization has members)
@@ -83,31 +83,31 @@ export function TaskEditableHeader({
     setSavedDescription(task.description || undefined);
   }, [task.description]);
 
-   // Check if user can edit the task
-   // When canEditOverride is provided (from parent with resolved permissions), use it directly.
-   // Otherwise fall back to optimistic logic: creator can edit, org members can edit (backend verifies).
-   const canEdit = useMemo(() => {
-      if (canEditOverride !== undefined) return canEditOverride;
+  // Check if user can edit the task
+  // When canEditOverride is provided (from parent with resolved permissions), use it directly.
+  // Otherwise fall back to optimistic logic: creator can edit, org members can edit (backend verifies).
+  const canEdit = useMemo(() => {
+    if (canEditOverride !== undefined) return canEditOverride;
 
-      if (!account?.id) return false;
+    if (!account?.id) return false;
 
-      // Check if user is the task creator
-      const isCreator = task.createdBy?.id === account.id;
-      if (isCreator) return true;
+    // Check if user is the task creator
+    const isCreator = task.createdBy?.id === account.id;
+    if (isCreator) return true;
 
-      // Check if user is an assignee
-      const isAssignee = task.assignees?.some((a) => a.id === account.id) ?? false;
-      if (isAssignee) return true;
+    // Check if user is an assignee
+    const isAssignee = task.assignees?.some((a) => a.id === account.id) ?? false;
+    if (isAssignee) return true;
 
-      // Check if user is an organization member
-      const member = organization && hasMembers(organization)
-         ? organization.members.find((m) => m.user?.id === account.id)
-         : undefined;
-      if (!member) return false;
+    // Check if user is an organization member
+    const member = organization && hasMembers(organization)
+      ? organization.members.find((m) => m.user?.id === account.id)
+      : undefined;
+    if (!member) return false;
 
-      // Allow UI editing for org members, backend will verify granular permissions
-      return true;
-   }, [canEditOverride, account?.id, task.createdBy?.id, task.assignees, organization]);
+    // Allow UI editing for org members, backend will verify granular permissions
+    return true;
+  }, [canEditOverride, account?.id, task.createdBy?.id, task.assignees, organization]);
 
   // Handle title blur (save on blur)
   const handleTitleBlur = useCallback(async () => {
@@ -142,7 +142,7 @@ export function TaskEditableHeader({
           task.organizationId,
           task.id,
           { title: currentText },
-          wsClientId,
+          sseClientId,
         ),
     );
 
@@ -171,7 +171,7 @@ export function TaskEditableHeader({
     task.title,
     task.organizationId,
     task.id,
-    wsClientId,
+    sseClientId,
     runWithToast,
     tasks,
     setTasks,
@@ -235,7 +235,7 @@ export function TaskEditableHeader({
               task.organizationId,
               task.id,
               { description: processedContent },
-              wsClientId,
+              sseClientId,
             ),
         );
 
@@ -264,7 +264,7 @@ export function TaskEditableHeader({
     [
       task.organizationId,
       task.id,
-      wsClientId,
+      sseClientId,
       runWithToast,
       tasks,
       setTasks,
@@ -309,7 +309,7 @@ export function TaskEditableHeader({
         ) : null}
 
         {task.description &&
-        (showContent === "description" || showContent === "both") ? (
+          (showContent === "description" || showContent === "both") ? (
           <div className="w-full min-w-full">
             <Editor
               defaultContent={task.description}

@@ -91,7 +91,7 @@ export function PublicTaskCreator() {
   const navigate = useNavigate();
   const { organization, labels, categories, issueTemplates } =
     usePublicOrganizationLayout();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -239,7 +239,7 @@ export function PublicTaskCreator() {
           templateId:
             selectedTemplateId !== "__none__" ? selectedTemplateId : undefined,
         },
-        wsClientId,
+        sseClientId,
       );
 
       if (result.success) {
@@ -285,7 +285,7 @@ export function PublicTaskCreator() {
     priority,
     selectedLabels,
     selectedCategory,
-    wsClientId,
+    sseClientId,
     resetForm,
     navigate,
   ]);
@@ -326,10 +326,10 @@ export function PublicTaskCreator() {
                   className={cn(
                     "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 flex items-center gap-2",
                     selectedTemplateId === "__none__" &&
-                      "bg-transparent hover:bg-accent hover:border-accent text-muted-foreground hover:text-foreground",
+                    "bg-transparent hover:bg-accent hover:border-accent text-muted-foreground hover:text-foreground",
                     templateRequired &&
-                      selectedTemplateId === "__none__" &&
-                      "border-destructive/50 text-destructive",
+                    selectedTemplateId === "__none__" &&
+                    "border-destructive/50 text-destructive",
                   )}
                 >
                   <IconTemplate className="h-4 w-4" />
@@ -339,7 +339,7 @@ export function PublicTaskCreator() {
                         ? "Choose a template (required)"
                         : "Template"
                       : issueTemplates.find((t) => t.id === selectedTemplateId)
-                          ?.name || "Template"}
+                        ?.name || "Template"}
                   </ComboBoxValue>
                 </ComboBoxTrigger>
                 <ComboBoxContent>
@@ -493,8 +493,8 @@ export function PublicTaskCreator() {
                     <ComboBoxValue placeholder="Category">
                       {selectedCategory
                         ? availableCategories.find(
-                            (c) => c.id === selectedCategory,
-                          )?.name || "Category"
+                          (c) => c.id === selectedCategory,
+                        )?.name || "Category"
                         : "Category"}
                     </ComboBoxValue>
                   </ComboBoxTrigger>

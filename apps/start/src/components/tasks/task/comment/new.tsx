@@ -19,28 +19,28 @@ type CommentVisibility = "internal" | "public";
 
 /** Check if ProseMirror doc JSON has more than one block-level content node */
 function isMultiline(doc: NodeJSON | undefined): boolean {
-	if (!doc?.content) return false;
-	if (doc.content.length > 1) return true;
-	const first = doc.content[0];
-	if (first?.content) {
-		return first.content.some((node) => node.type === "hardBreak");
-	}
-	return false;
+   if (!doc?.content) return false;
+   if (doc.content.length > 1) return true;
+   const first = doc.content[0];
+   if (first?.content) {
+      return first.content.some((node) => node.type === "hardBreak");
+   }
+   return false;
 }
 
 interface TaskNewCommentContentProps {
-  task: schema.TaskWithLabels;
-  onFinish?: () => void;
-  categories: schema.categoryType[];
-  tasks: schema.TaskWithLabels[];
+   task: schema.TaskWithLabels;
+   onFinish?: () => void;
+   categories: schema.categoryType[];
+   tasks: schema.TaskWithLabels[];
 }
 export function TaskNewCommentContent({
-  task,
-  onFinish,
-  categories,
-  tasks,
+   task,
+   onFinish,
+   categories,
+   tasks,
 }: TaskNewCommentContentProps) {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
    const { runWithToast, isFetching } = useToastAction();
    const [newComment, setNewComment] = useState<undefined | NodeJSON>(undefined);
    const [editorKey, setEditorKey] = useState(0);
@@ -48,55 +48,55 @@ export function TaskNewCommentContent({
    const commentText = extractTextContent(newComment);
    const disabled = isFetching || commentText.length === 0;
    const multiline = useMemo(() => isMultiline(newComment), [newComment]);
-  const handleSubmit = async () => {
-    if (!newComment || isFetching || commentText.length === 0) {
-      console.log(newComment);
-      headlessToast.error({
-        title: "Cannot submit empty comment",
-        description: "Please enter some text before submitting your comment.",
-        id: "create-task-comment",
-      });
-      return;
-    }
-    const updatedContent = await processUploads(
-      newComment,
-      visibility,
-      task.organizationId,
-      "create-task-comment",
-    );
-    const data = await runWithToast(
-      "create-task-comment",
-      {
-        loading: {
-          title: "Posting comment...",
-          description: "Your comment is being added to the task.",
-        },
-        success: {
-          title: "Comment added",
-          description: "Your comment was saved successfully.",
-        },
-        error: {
-          title: "Couldn't post comment",
-          description:
-            "The comment appears locally but could not be saved to the server. Please try again.",
-        },
-      },
-      () =>
-        CreateTaskCommentAction(
-          task.organizationId,
-          task.id,
-          updatedContent,
-          visibility,
-          wsClientId,
-        ),
-    );
+   const handleSubmit = async () => {
+      if (!newComment || isFetching || commentText.length === 0) {
+         console.log(newComment);
+         headlessToast.error({
+            title: "Cannot submit empty comment",
+            description: "Please enter some text before submitting your comment.",
+            id: "create-task-comment",
+         });
+         return;
+      }
+      const updatedContent = await processUploads(
+         newComment,
+         visibility,
+         task.organizationId,
+         "create-task-comment",
+      );
+      const data = await runWithToast(
+         "create-task-comment",
+         {
+            loading: {
+               title: "Posting comment...",
+               description: "Your comment is being added to the task.",
+            },
+            success: {
+               title: "Comment added",
+               description: "Your comment was saved successfully.",
+            },
+            error: {
+               title: "Couldn't post comment",
+               description:
+                  "The comment appears locally but could not be saved to the server. Please try again.",
+            },
+         },
+         () =>
+            CreateTaskCommentAction(
+               task.organizationId,
+               task.id,
+               updatedContent,
+               visibility,
+               sseClientId,
+            ),
+      );
 
-    if (data?.success && data.data && task && task.id === data.data.id) {
-      setNewComment(undefined);
-      setEditorKey((prev) => prev + 1);
-      onFinish?.();
-    }
-  };
+      if (data?.success && data.data && task && task.id === data.data.id) {
+         setNewComment(undefined);
+         setEditorKey((prev) => prev + 1);
+         onFinish?.();
+      }
+   };
    const actionButtons = (
       <ButtonGroup>
          <Button

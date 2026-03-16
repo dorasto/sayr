@@ -44,7 +44,7 @@ export const ConnectionRow = memo(function ConnectionRow({ client, account }: Co
 				<span className="truncate font-mono text-xs">{account?.name || client.clientId}</span>
 				{client.orgId === "__ADMIN__" && <Badge className="ml-2 bg-purple-600">ADMIN</Badge>}
 			</TableCell>
-			<TableCell className="font-mono text-xs">{client.wsClientId}</TableCell>
+			<TableCell className="font-mono text-xs">{client.sseClientId}</TableCell>
 			<TableCell>{client.orgId}</TableCell>
 			<TableCell>{JSON.stringify(parseChannel(client.channel), null, 4)}</TableCell>
 			<TableCell>{client.lastLatency ?? "-"}</TableCell>

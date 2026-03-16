@@ -27,7 +27,7 @@ apiRouteAdminRelease.post("/create", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, name, slug, description, status, targetDate, color, icon } = await c.req.json();
+	const { org_id: orgId, sseClientId, name, slug, description, status, targetDate, color, icon } = await c.req.json();
 
 	// Only members with manageReleases can create releases
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
@@ -126,7 +126,7 @@ apiRouteAdminRelease.post("/create", async (c) => {
 	await traceAsync(
 		"release.create.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"],
 				data: release,
@@ -147,7 +147,7 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, release_id: releaseId, ...updates } = await c.req.json();
+	const { org_id: orgId, sseClientId, release_id: releaseId, ...updates } = await c.req.json();
 
 	// Only members with manageReleases can update releases
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
@@ -234,7 +234,7 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 	await traceAsync(
 		"release.update.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"],
 				data: updatedRelease,
@@ -255,7 +255,7 @@ apiRouteAdminRelease.delete("/delete", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, release_id: releaseId } = await c.req.json();
+	const { org_id: orgId, sseClientId, release_id: releaseId } = await c.req.json();
 
 	// Only members with manageReleases can delete releases
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
@@ -291,7 +291,7 @@ apiRouteAdminRelease.delete("/delete", async (c) => {
 	await traceAsync(
 		"release.delete.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
 				type: "DELETE_RELEASE" as ServerEventBaseMessage["type"],
 				data: { releaseId },
@@ -319,7 +319,7 @@ apiRouteAdminRelease.post("/mark-released", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, release_id: releaseId } = await c.req.json();
+	const { org_id: orgId, sseClientId, release_id: releaseId } = await c.req.json();
 
 	// Only members with manageReleases can mark releases as released
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
@@ -416,7 +416,7 @@ apiRouteAdminRelease.post("/mark-released", async (c) => {
 	await traceAsync(
 		"release.mark_released.broadcast",
 		async () => {
-			const found = findClientBysseId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 
 			// Broadcast release update
 			const releaseData = {

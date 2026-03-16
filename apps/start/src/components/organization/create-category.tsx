@@ -35,7 +35,7 @@ export default function CreateCategory({
 	onCategoryClick,
 	settingsUI = false,
 }: Props) {
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const [name, setName] = useState(category?.name || "");
 	const [color, setColor] = useState({
 		hsla: category?.color || "#000000",
@@ -168,7 +168,7 @@ export default function CreateCategory({
 													color: color.hsla,
 													icon,
 												},
-												wsClientId
+												sseClientId
 											)
 									);
 									if (data?.success && data.data) {
@@ -220,7 +220,7 @@ export default function CreateCategory({
 													color: color.hsla,
 													icon,
 												},
-												wsClientId
+												sseClientId
 											)
 									);
 									if (data?.success && data.data) {
@@ -297,7 +297,7 @@ export default function CreateCategory({
 																	{
 																		id: category?.id,
 																	},
-																	wsClientId
+																	sseClientId
 																)
 														);
 

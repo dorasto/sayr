@@ -23,7 +23,7 @@ interface Props {
 }
 
 export function NewViewPopover({ organizationId, setViews, currentFilters, viewConfig }: Props) {
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const [name, setName] = useState("");
 	const [color, setColor] = useState({
 		hsla: "hsla(0, 0%, 100%, 1)",
@@ -62,7 +62,7 @@ export function NewViewPopover({ organizationId, setViews, currentFilters, viewC
 						// biome-ignore lint/suspicious/noExplicitAny: Casting to any for viewConfig
 						viewConfig: { ...viewConfig, color: color.hsla, icon } as any,
 					},
-					wsClientId
+					sseClientId
 				)
 		);
 

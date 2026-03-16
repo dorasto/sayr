@@ -230,7 +230,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
    const session = c.get("session");
 
    // 2. Parse request body
-   const { org_id: orgId, wsClientId, name, color } = await c.req.json();
+   const { org_id: orgId, sseClientId, name, color } = await c.req.json();
 
    // 3. Check permissions
    const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
@@ -259,7 +259,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
    }
 
    // 6. Broadcast updates (if real-time)
-   broadcast(orgId, "admin", { type: "CREATE_LABEL", data: label }, wsClientId);
+   broadcast(orgId, "admin", { type: "CREATE_LABEL", data: label }, sseClientId);
 
    // 7. Return success
    return c.json({ success: true, data: label });

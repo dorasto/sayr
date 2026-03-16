@@ -75,7 +75,7 @@ function ReleaseDetailPageContent() {
   >(undefined);
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const { runWithToast } = useToastAction();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { setValue: setMentionContext } =
     useStateManagement<MentionContext | null>("mentionContext", null);
   const isChartsPanelOpen = useStore(
@@ -229,7 +229,7 @@ function ReleaseDetailPageContent() {
               organization.id,
               release.id,
               { description: processedContent },
-              wsClientId,
+              sseClientId,
             ),
         );
 
@@ -241,7 +241,7 @@ function ReleaseDetailPageContent() {
         setIsSavingDescription(false);
       }
     },
-    [release, organization.id, wsClientId, runWithToast],
+    [release, organization.id, sseClientId, runWithToast],
   );
 
   // Check if description has unsaved changes
@@ -280,22 +280,22 @@ function ReleaseDetailPageContent() {
           },
         },
         () =>
-          updateReleaseAction(organization.id, release.id, updates, wsClientId),
+          updateReleaseAction(organization.id, release.id, updates, sseClientId),
       );
 
       if (result?.success && result.data) {
         setRelease((prev) =>
           prev
             ? {
-                ...prev,
-                status: result.data.status,
-                releasedAt: result.data.releasedAt,
-              }
+              ...prev,
+              status: result.data.status,
+              releasedAt: result.data.releasedAt,
+            }
             : null,
         );
       }
     },
-    [release, organization.id, wsClientId, runWithToast, setRelease],
+    [release, organization.id, sseClientId, runWithToast, setRelease],
   );
 
   // Handle target date update
@@ -328,7 +328,7 @@ function ReleaseDetailPageContent() {
             organization.id,
             release.id,
             { targetDate: date },
-            wsClientId,
+            sseClientId,
           ),
       );
 
@@ -336,14 +336,14 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-                ...prev,
-                targetDate: result.data.targetDate,
-              }
+              ...prev,
+              targetDate: result.data.targetDate,
+            }
             : null,
         );
       }
     },
-    [release, organization.id, wsClientId, runWithToast, setRelease],
+    [release, organization.id, sseClientId, runWithToast, setRelease],
   );
 
   // Handle released date update (admin only)
@@ -376,7 +376,7 @@ function ReleaseDetailPageContent() {
             organization.id,
             release.id,
             { releasedAt: date },
-            wsClientId,
+            sseClientId,
           ),
       );
 
@@ -384,14 +384,14 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-                ...prev,
-                releasedAt: result.data.releasedAt,
-              }
+              ...prev,
+              releasedAt: result.data.releasedAt,
+            }
             : null,
         );
       }
     },
-    [release, organization.id, wsClientId, runWithToast, setRelease],
+    [release, organization.id, sseClientId, runWithToast, setRelease],
   );
 
   // Handle name and slug update from header
@@ -416,22 +416,22 @@ function ReleaseDetailPageContent() {
           },
         },
         () =>
-          updateReleaseAction(organization.id, release.id, data, wsClientId),
+          updateReleaseAction(organization.id, release.id, data, sseClientId),
       );
 
       if (result?.success && result.data) {
         setRelease((prev) =>
           prev
             ? {
-                ...prev,
-                name: result.data.name,
-                slug: result.data.slug,
-              }
+              ...prev,
+              name: result.data.name,
+              slug: result.data.slug,
+            }
             : null,
         );
       }
     },
-    [release, organization.id, wsClientId, runWithToast, setRelease],
+    [release, organization.id, sseClientId, runWithToast, setRelease],
   );
 
   // Handle header update (includes icon and color)
@@ -461,7 +461,7 @@ function ReleaseDetailPageContent() {
           },
         },
         () =>
-          updateReleaseAction(organization.id, release.id, data, wsClientId),
+          updateReleaseAction(organization.id, release.id, data, sseClientId),
       );
 
       if (result?.success && result.data) {
@@ -469,17 +469,17 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-                ...prev,
-                name: result.data.name,
-                slug: result.data.slug,
-                icon: result.data.icon,
-                color: result.data.color,
-              }
+              ...prev,
+              name: result.data.name,
+              slug: result.data.slug,
+              icon: result.data.icon,
+              color: result.data.color,
+            }
             : null,
         );
       }
     },
-    [release, organization.id, wsClientId, runWithToast, setRelease],
+    [release, organization.id, sseClientId, runWithToast, setRelease],
   );
 
   // Calculate task statistics for the release

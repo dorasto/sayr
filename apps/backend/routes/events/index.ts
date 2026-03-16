@@ -73,9 +73,13 @@ export function sseBroadcastToRoom(
     }
 
     // send to all collected clients
+    const ts = Date.now();
     for (const client of targets) {
         try {
-            client.send(message);
+            const msg = typeof message === "object" && message !== null
+                ? { ...message, meta: { ts, orgId, ...((message as any).meta || {}) } }
+                : { data: message, meta: { ts, orgId } };
+            client.send(msg);
         } catch {
             client.close();
             const room = sseRooms.get(`${orgId}:${client.channel}`);
@@ -87,7 +91,7 @@ export function sseBroadcastToRoom(
     }
 }
 
-export function sseBroadcastPublic(orgId: string, message: Omit<any, "scope">, excludeId?: string) {
+export function sseBroadcastPublic(orgId: string, message: Omit<any, "scope" | "meta">, excludeId?: string) {
     const fullMsg = { ...message, scope: "PUBLIC" };
     sseBroadcastToRoom(orgId, "public", fullMsg, excludeId);
 }
@@ -97,11 +101,12 @@ export function sseBroadcastByUserId(
     excludeClientId: string,
     orgId: string,
     message: unknown,
-    excludeChannel = "admin"
+    excludeChannel?: string,
 ) {
+    const ts = Date.now();
     for (const client of clientsById.values()) {
         // must belong to that user
-        if (client.id !== userId) continue;
+        if (client.clientId !== userId) continue;
 
         // must belong to same org
         if (client.orgId !== orgId) continue;
@@ -114,9 +119,13 @@ export function sseBroadcastByUserId(
 
         // skip public channel
         if (client.channel === "public") continue;
+        console.log("🚀 ~ sseBroadcastByUserId ~ client:", client)
 
         try {
-            client.send(message);
+            const msg = typeof message === "object" && message !== null
+                ? { ...message, meta: { ts, orgId, ...((message as any).meta || {}) }, scope: "INDIVIDUAL" }
+                : { data: message, meta: { ts, orgId }, scope: "INDIVIDUAL" };
+            client.send(msg);
         } catch {
             client.close();
         }
@@ -252,15 +261,15 @@ sseRoute.get("/", async (c) => {
 
             c.req.raw.signal.addEventListener("abort", () => close());
 
+            const ts = Date.now();
             send({
                 type: "CONNECTION_STATUS",
                 data: {
                     status: "connected",
                     authenticated,
                     clientId: clientId,
-                    orgId: orgId,
-                    channel: channel
                 },
+                meta: { ts, orgId, channel },
             });
         },
 

@@ -58,14 +58,14 @@ export default function GlobalTaskCategory({
 	className,
 	compact = false,
 }: GlobalTaskCategoryProps) {
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
 	const { execute } = useTaskFieldAction(
 		task,
 		tasks,
-		setSelectedTask ?? (() => {}),
-		setTasks ?? (() => {}),
-		wsClientId,
+		setSelectedTask ?? (() => { }),
+		setTasks ?? (() => { }),
+		sseClientId,
 	);
 
 	const handleCategoryChange = (categoryId: string | null) => {

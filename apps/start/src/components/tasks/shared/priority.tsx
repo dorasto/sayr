@@ -50,15 +50,15 @@ export default function GlobalTaskPriority({
 	className,
 	compact = false,
 }: GlobalTaskPriorityProps) {
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const currentPriority = (task.priority ?? "none") || "none";
 
 	const { execute } = useTaskFieldAction(
 		task,
 		tasks,
-		setSelectedTask ?? (() => {}),
-		setTasks ?? (() => {}),
-		wsClientId,
+		setSelectedTask ?? (() => { }),
+		setTasks ?? (() => { }),
+		sseClientId,
 	);
 
 	const handlePriorityChange = (value: string | null) => {

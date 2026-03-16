@@ -35,7 +35,7 @@ export function useTaskFieldAction(
 	tasks: schema.TaskWithLabels[],
 	setTask: (t: schema.TaskWithLabels | null) => void,
 	setTasks: (t: schema.TaskWithLabels[]) => void,
-	wsClientId: string,
+	sseClientId: string,
 ) {
 	const { runWithToast } = useToastAction();
 
@@ -87,7 +87,7 @@ export function useTaskFieldAction(
 					const data = await runWithToast(
 						`update-task-${payload.field}`,
 						payload.toastMessages,
-						() => updateTaskAction(taskRef.current.organizationId, taskRef.current.id, payload.updateData, wsClientId),
+						() => updateTaskAction(taskRef.current.organizationId, taskRef.current.id, payload.updateData, sseClientId),
 					);
 
 					if (data?.success && data.data) {
@@ -157,7 +157,7 @@ export function useTaskFieldAction(
 				}
 			}
 		},
-		[setTask, setTasks, wsClientId, runWithToast, reconcile],
+		[setTask, setTasks, sseClientId, runWithToast, reconcile],
 	);
 
 	return { execute };

@@ -16,11 +16,11 @@ interface StatusBarProps {
 }
 
 export function StatusBar({ layout = "default", sidebarCollapsed = false, children }: StatusBarProps) {
-	const { value: wsStatus } = useStateManagement<string>("ws-status", "Disconnected");
+	const { value: wsStatus } = useStateManagement<string>("sse-status", "Disconnected");
 	const { value: wsSubscribedState } = useStateManagement<{
 		orgId: string;
 		channel: string;
-	} | null>("ws-subscribe-state", null);
+	} | null>("sse-subscribe-state", null);
 
 	// --- Status states ---
 	const states = {

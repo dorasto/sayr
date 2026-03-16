@@ -50,14 +50,14 @@ export default function GlobalTaskVisibility({
 	className,
 	compact = false,
 }: GlobalTaskVisibilityProps) {
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
 	const { execute } = useTaskFieldAction(
 		task,
 		tasks,
-		setSelectedTask ?? (() => {}),
-		setTasks ?? (() => {}),
-		wsClientId,
+		setSelectedTask ?? (() => { }),
+		setTasks ?? (() => { }),
+		sseClientId,
 	);
 
 	const handleVisibilityChange = (value: string | null) => {

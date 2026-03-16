@@ -15,22 +15,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { useInbox } from "@/contexts/ContextInbox";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import { markAllNotificationsReadAction } from "@/lib/fetches/notification";
 import { getTaskByIdForInbox } from "@/lib/serverFunctions/getTaskByIdForInbox";
-import type { WSMessage } from "@/lib/ws";
 import { TaskDetailCompact } from "@/components/tasks/task/task-detail-compact";
 import { getTaskFieldPermissions } from "@/components/tasks/shared/task-field-toolbar-types";
 import { NotificationList } from "./notification-list";
+import { ServerEventMessage } from "@/lib/serverEvents";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 export default function InboxPage() {
   const queryClient = useQueryClient();
   queryClient.removeQueries({ queryKey: ["organization"] });
-  const { ws, account } = useLayoutData();
+  const { serverEvents, account } = useLayoutData();
   const {
     tasks,
     setTasks,
@@ -60,7 +60,7 @@ export default function InboxPage() {
   const [selectedNotificationId, setSelectedNotificationId] = useState<
     string | null
   >(null);
-  useWebSocketSubscription({ ws });
+  useServerEventsSubscription({ serverEvents });
 
   // Get unique organizations from tasks for filtering
   const organizations = useMemo(() => {
@@ -104,7 +104,7 @@ export default function InboxPage() {
     [tasks, selectedNotificationId, account.id],
   );
 
-  const handlers: WSMessageHandler<WSMessage> = {
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_TASK: (msg) => {
       const org = organizations.find((e) => e.id === msg.data.organizationId);
 
@@ -131,8 +131,8 @@ export default function InboxPage() {
       if (isUserInList) {
         newTasks = taskExists
           ? tasks.map((task) =>
-              task.id === updatedTask.id ? updatedTask : task,
-            )
+            task.id === updatedTask.id ? updatedTask : task,
+          )
           : [...tasks, updatedTask];
       } else {
         newTasks = tasks.filter((task) => task.id !== updatedTask.id);
@@ -207,9 +207,9 @@ export default function InboxPage() {
         const updatedTasks = tasks.map((task) =>
           task.id === id && task.organizationId === msg.meta?.orgId
             ? {
-                ...task,
-                voteCount,
-              }
+              ...task,
+              voteCount,
+            }
             : task,
         );
         setTasks(updatedTasks);
@@ -265,17 +265,17 @@ export default function InboxPage() {
     },
   };
 
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
     // onUnhandled: (msg) => console.warn("[UNHANDLED MESSAGE InboxPage]", msg),
   });
 
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
 
   const isMobile = useIsMobile();
 

@@ -14,7 +14,7 @@ const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/i
  * - `status` (optional) - The status ID of the task, or `null` if not set.
  * - `priority` (optional) - The priority ID of the task, or `null` if not set.
  * - `labels` (optional) - Array of label IDs to assign to the task.
- * @param wsClientId - The WebSocket client ID (used for pushing live updates).
+ * @param sseClientId - The ServerEvent client ID (used for pushing live updates).
  * @returns A promise resolving to:
  * - `success` — Indicates whether the creation succeeded.
  * - `data` — The newly created task record (with labels, assignees, timelines, etc).
@@ -55,14 +55,14 @@ export async function createTaskAction(
 		visible?: "public" | "private";
 		parentId?: string | null;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	console.info("Creating task", { organizationId, title: data.title });
 	const result = await fetch(`${API_URL}/v1/admin/organization/task/create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
-			wsClientId,
+			sseClientId,
 			title: data.title,
 			description: data.description,
 			status: data.status,
@@ -103,13 +103,13 @@ export async function createPublicTaskAction(
 		category?: string | null;
 		templateId?: string | null;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	const result = await fetch(`${API_URL}/v1/admin/organization/task/public-create`, {
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
-			wsClientId,
+			sseClientId,
 			title: data.title,
 			description: data.description,
 			priority: data.priority,
@@ -145,7 +145,7 @@ export async function createPublicTaskAction(
  * - `status` (optional) - The new status ID, or `null` to remove it.
  * - `priority` (optional) - The new priority ID, or `null` to remove it.
  * - `category` (optional) - The new category ID, or `null` to remove it.
- * @param wsClientId - The WebSocket client ID (used for broadcasting real-time updates).
+ * @param sseClientId - The ServerEvent client ID (used for broadcasting real-time updates).
  * @returns A promise resolving to:
  * - `success` — Indicates whether the update succeeded.
  * - `data` — The updated task record (including labels, assignees, and timeline).
@@ -179,11 +179,11 @@ export async function updateTaskAction(
 		releaseId?: string | null;
 		visible?: "public" | "private";
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.TaskWithLabels; error?: string }> {
 	const payload = {
 		org_id: organizationId,
-		wsClientId,
+		sseClientId,
 		task_id: taskId,
 		// Merge only the fields passed in
 		...(data.title !== undefined ? { title: data.title } : {}),
@@ -227,7 +227,7 @@ export async function updateTaskAction(
  * @param organizationId - The ID of the organization the task belongs to.
  * @param taskId - The ID of the task being updated.
  * @param labels - Array of label IDs to assign to the task.
- * @param wsClientId - The WebSocket client ID (used for pushing live updates).
+ * @param sseClientId - The ServerEvent client ID (used for pushing live updates).
  * @returns A promise resolving to:
  * - `success` — Whether the update succeeded.
  * - `data` — The updated task record (with labels, assignees, and timeline).
@@ -248,7 +248,7 @@ export async function updateLabelToTaskAction(
 	organizationId: string,
 	taskId: string,
 	labels: string[],
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.TaskWithLabels;
@@ -257,7 +257,7 @@ export async function updateLabelToTaskAction(
 }> {
 	const payload = {
 		org_id: organizationId,
-		wsClientId,
+		sseClientId,
 		task_id: taskId,
 		labels: labels,
 	};
@@ -286,7 +286,7 @@ export async function updateLabelToTaskAction(
  * @param organizationId - The ID of the organization the task belongs to.
  * @param taskId - The ID of the task being updated.
  * @param assignees - Array of user IDs to assign to the task.
- * @param wsClientId - The WebSocket client ID (for pushing live updates).
+ * @param sseClientId - The ServerEvent client ID (for pushing live updates).
  * @returns A promise resolving to:
  * - `success` — Whether the update succeeded.
  * - `data` — The updated task record with new assignees.
@@ -307,7 +307,7 @@ export async function updateAssigneesToTaskAction(
 	organizationId: string,
 	taskId: string,
 	assignees: string[],
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.TaskWithLabels;
@@ -316,7 +316,7 @@ export async function updateAssigneesToTaskAction(
 }> {
 	const payload = {
 		org_id: organizationId,
-		wsClientId,
+		sseClientId,
 		task_id: taskId,
 		assignees: assignees,
 	};
@@ -345,7 +345,7 @@ export async function updateAssigneesToTaskAction(
  * @param organizationId - The ID of the organization.
  * @param taskId - The ID of the task to comment on.
  * @param content - The comment content as an array of content editor blocks.
- * @param wsClientId - The WebSocket client ID (used for broadcasting updates).
+ * @param sseClientId - The ServerEvent client ID (used for broadcasting updates).
  * @returns A promise resolving to:
  * - `success` — Whether the comment creation succeeded.
  * - `data` — Object containing the `id` of the new comment.
@@ -368,7 +368,7 @@ export async function CreateTaskCommentAction(
 	taskId: string,
 	content: NodeJSON | undefined,
 	visibility: schema.taskCommentType["visibility"],
-	wsClientId: string,
+	sseClientId: string,
 	parentId?: string | null
 ): Promise<{
 	success: boolean;
@@ -378,7 +378,7 @@ export async function CreateTaskCommentAction(
 }> {
 	const payload: Record<string, unknown> = {
 		org_id: organizationId,
-		wsClientId,
+		sseClientId,
 		task_id: taskId,
 		visibility: visibility,
 		content: content,
@@ -409,7 +409,7 @@ export async function UpdateTaskCommentAction(
 	commentId: string,
 	content: NodeJSON,
 	visibility: "internal" | "public",
-	wsClientId: string
+	sseClientId: string
 ) {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/edit-comment`, {
 		method: "PUT",
@@ -421,7 +421,7 @@ export async function UpdateTaskCommentAction(
 			comment_id: commentId,
 			content,
 			visibility,
-			wsClientId,
+			sseClientId,
 		}),
 	});
 	return res.json();
@@ -476,7 +476,7 @@ export async function FetchCommentRepliesAction(
  * @param taskId - The task ID.
  * @param commentId - The comment ID to react to.
  * @param emoji - The reaction emoji (e.g. 👍, ❤️, 🚀).
- * @param wsClientId - The WebSocket client ID of the sender.
+ * @param sseClientId - The ServerEvent client ID of the sender.
  *
  * @returns A promise resolving to:
  *  - `success` — Whether the request succeeded.
@@ -505,7 +505,7 @@ export async function CreateTaskReactionAction(
 	taskId: string,
 	commentId: string,
 	emoji: "👍" | "👎" | "😄" | "🎉" | "😕" | "❤️" | "🚀" | "👀",
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: {
@@ -531,7 +531,7 @@ export async function CreateTaskReactionAction(
 		taskId: taskId,
 		comment_id: commentId,
 		emoji,
-		wsClientId,
+		sseClientId,
 	};
 
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/create-reaction`, {
@@ -579,7 +579,7 @@ export async function CreateTaskReactionAction(
  *
  * @param organizationId - The organization ID.
  * @param taskId - The task ID to vote on.
- * @param wsClientId - The WebSocket client ID of the sender.
+ * @param sseClientId - The ServerEvent client ID of the sender.
  *
  * @returns A promise resolving to:
  *  - `success` — Whether the request succeeded.
@@ -609,7 +609,7 @@ export async function CreateTaskReactionAction(
 export async function CreateTaskVoteAction(
 	organizationId: string,
 	taskId: string,
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: {
@@ -622,7 +622,7 @@ export async function CreateTaskVoteAction(
 	const payload = {
 		orgId: organizationId,
 		taskId,
-		wsClientId,
+		sseClientId,
 	};
 
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/create-vote`, {
@@ -659,7 +659,7 @@ export async function CreateTaskVoteAction(
  * @param organizationId - The organization ID.
  * @param taskId - The task ID.
  * @param commentId - The comment ID to delete.
- * @param wsClientId - The WebSocket client ID of the sender.
+ * @param sseClientId - The ServerEvent client ID of the sender.
  *
  * @returns A promise resolving to:
  *  - `success` — Whether the deletion succeeded.
@@ -681,7 +681,7 @@ export async function DeleteTaskCommentAction(
 	organizationId: string,
 	taskId: string,
 	commentId: string,
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: { id: string };
@@ -691,7 +691,7 @@ export async function DeleteTaskCommentAction(
 		org_id: organizationId,
 		task_id: taskId,
 		comment_id: commentId,
-		wsClientId,
+		sseClientId,
 	};
 
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/delete-comment`, {
@@ -715,7 +715,7 @@ export async function DeleteTaskCommentAction(
  * @param taskId - The task ID.
  * @param commentId - The comment ID to update.
  * @param visibility - The new visibility setting ("public" or "internal").
- * @param wsClientId - The WebSocket client ID of the sender.
+ * @param sseClientId - The ServerEvent client ID of the sender.
  *
  * @returns A promise resolving to:
  *  - `success` — Whether the update succeeded.
@@ -739,7 +739,7 @@ export async function UpdateCommentVisibilityAction(
 	taskId: string,
 	commentId: string,
 	visibility: "public" | "internal",
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: { id: string; visibility: "public" | "internal" };
@@ -750,7 +750,7 @@ export async function UpdateCommentVisibilityAction(
 		task_id: taskId,
 		comment_id: commentId,
 		visibility,
-		wsClientId,
+		sseClientId,
 	};
 
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/update-comment-visibility`, {
@@ -775,7 +775,7 @@ export async function setTaskParentAction(
 	organizationId: string,
 	taskId: string,
 	parentId: string,
-	wsClientId: string,
+	sseClientId: string,
 ): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/set-parent`, {
 		method: "PATCH",
@@ -783,7 +783,7 @@ export async function setTaskParentAction(
 		credentials: "include",
 		body: JSON.stringify({
 			org_id: organizationId,
-			wsClientId,
+			sseClientId,
 			task_id: taskId,
 			parent_id: parentId,
 		}),
@@ -798,7 +798,7 @@ export async function setTaskParentAction(
 export async function removeTaskParentAction(
 	organizationId: string,
 	taskId: string,
-	wsClientId: string,
+	sseClientId: string,
 ): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/remove-parent`, {
 		method: "PATCH",
@@ -806,7 +806,7 @@ export async function removeTaskParentAction(
 		credentials: "include",
 		body: JSON.stringify({
 			org_id: organizationId,
-			wsClientId,
+			sseClientId,
 			task_id: taskId,
 		}),
 	});
@@ -843,7 +843,7 @@ export async function createTaskRelationAction(
 	sourceTaskId: string,
 	targetTaskId: string,
 	type: "related" | "blocking" | "duplicate",
-	wsClientId: string,
+	sseClientId: string,
 ): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/create-relation`, {
 		method: "POST",
@@ -851,7 +851,7 @@ export async function createTaskRelationAction(
 		credentials: "include",
 		body: JSON.stringify({
 			org_id: organizationId,
-			wsClientId,
+			sseClientId,
 			source_task_id: sourceTaskId,
 			target_task_id: targetTaskId,
 			type,
@@ -870,7 +870,7 @@ export async function removeTaskRelationAction(
 	relationId: string,
 	sourceTaskId: string,
 	targetTaskId: string,
-	wsClientId: string,
+	sseClientId: string,
 ): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/remove-relation`, {
 		method: "DELETE",
@@ -878,7 +878,7 @@ export async function removeTaskRelationAction(
 		credentials: "include",
 		body: JSON.stringify({
 			org_id: organizationId,
-			wsClientId,
+			sseClientId,
 			relation_id: relationId,
 			source_task_id: sourceTaskId,
 			target_task_id: targetTaskId,

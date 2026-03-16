@@ -20,14 +20,14 @@ import {
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
-	IconArrowsDiagonal,
-	IconArrowsDiagonalMinimize2,
-	IconDeviceFloppy,
-	IconLock,
-	IconPlus,
-	IconTemplate,
-	IconTrash,
-	IconX,
+  IconArrowsDiagonal,
+  IconArrowsDiagonalMinimize2,
+  IconDeviceFloppy,
+  IconLock,
+  IconPlus,
+  IconTemplate,
+  IconTrash,
+  IconX,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
@@ -90,18 +90,18 @@ interface Props {
 }
 
 export default function CreateIssueTemplate({
-	orgId,
-	setIssueTemplates,
-	template,
-	availableLabels,
-	availableCategories,
-	availableUsers,
-	releases = [],
-	mode = "create",
-	disabled = false,
-	disabledMessage,
+  orgId,
+  setIssueTemplates,
+  template,
+  availableLabels,
+  availableCategories,
+  availableUsers,
+  releases = [],
+  mode = "create",
+  disabled = false,
+  disabledMessage,
 }: Props) {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { setValue: setMentionContext } =
     useStateManagement<MentionContext | null>("mentionContext", null);
 
@@ -174,14 +174,14 @@ export default function CreateIssueTemplate({
       name !== template?.name ||
       titlePrefix !== (template?.titlePrefix || "") ||
       JSON.stringify(description) !==
-        JSON.stringify(template?.description || undefined) ||
+      JSON.stringify(template?.description || undefined) ||
       status !== (template?.status || undefined) ||
       priority !== (template?.priority || undefined) ||
       categoryId !== (template?.categoryId || "") ||
       JSON.stringify(labelIds.sort()) !==
-        JSON.stringify((template?.labels?.map((l) => l.id) || []).sort()) ||
+      JSON.stringify((template?.labels?.map((l) => l.id) || []).sort()) ||
       JSON.stringify(assigneeIds.sort()) !==
-        JSON.stringify((template?.assignees?.map((a) => a.id) || []).sort()) ||
+      JSON.stringify((template?.assignees?.map((a) => a.id) || []).sort()) ||
       visible !== ((template?.visible as "public" | "private") || undefined) ||
       releaseId !== (template?.releaseId || "")
     );
@@ -264,11 +264,11 @@ export default function CreateIssueTemplate({
       async () => {
         const updatedDescription = description
           ? await processUploads(
-              description,
-              "public",
-              orgId,
-              "create-issue-template",
-            )
+            description,
+            "public",
+            orgId,
+            "create-issue-template",
+          )
           : undefined;
 
         return createIssueTemplateAction(
@@ -285,7 +285,7 @@ export default function CreateIssueTemplate({
             visible: visible || undefined,
             releaseId: releaseId || undefined,
           },
-          wsClientId,
+          sseClientId,
         );
       },
     );
@@ -326,11 +326,11 @@ export default function CreateIssueTemplate({
       async () => {
         const updatedDescription = description
           ? await processUploads(
-              description,
-              "public",
-              orgId,
-              "edit-issue-template",
-            )
+            description,
+            "public",
+            orgId,
+            "edit-issue-template",
+          )
           : undefined;
 
         return editIssueTemplateAction(
@@ -348,7 +348,7 @@ export default function CreateIssueTemplate({
             visible: visible || undefined,
             releaseId: releaseId || undefined,
           },
-          wsClientId,
+          sseClientId,
         );
       },
     );
@@ -375,7 +375,7 @@ export default function CreateIssueTemplate({
           description: "An error occurred while deleting the template.",
         },
       },
-      () => deleteIssueTemplateAction(orgId, { id: template.id }, wsClientId),
+      () => deleteIssueTemplateAction(orgId, { id: template.id }, sseClientId),
     );
     if (data?.success && data.data) {
       setConfirmDeleteOpen(false);
@@ -383,57 +383,57 @@ export default function CreateIssueTemplate({
     }
   };
 
-	return (
-		<>
-			{!isEditMode && disabled ? (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<div
-							className={cn(
-								"w-full text-left rounded-lg bg-card transition-colors p-0 border-0 opacity-50 cursor-not-allowed",
-							)}
-						>
-							<Tile variant={"transparent"} className="md:w-full">
-								<TileHeader className="w-full text-left">
-									<TileTitle className="flex items-center gap-2 w-full">
-										<TileIcon>
-											<IconLock />
-										</TileIcon>
-										Create new template
-									</TileTitle>
-								</TileHeader>
-							</Tile>
-						</div>
-					</TooltipTrigger>
-					<TooltipContent>{disabledMessage || "Plan limit reached"}</TooltipContent>
-				</Tooltip>
-			) : (
-			<button
-				type="button"
-				onClick={() => setOpen(true)}
-				className={cn(
-					"w-full text-left rounded-lg bg-card hover:bg-accent transition-colors p-0 border-0 cursor-pointer",
-				)}
-			>
-				<Tile variant={"transparent"} className="md:w-full">
-					<TileHeader className="w-full text-left">
-						<TileTitle className="flex items-center gap-2 w-full">
-							<TileIcon>
-								{isEditMode ? <IconTemplate /> : <IconPlus />}
-							</TileIcon>
-							{template?.name || "Create new template"}
-						</TileTitle>
-						{isEditMode && (
-							<TileDescription>
-								<Label variant={"description"}>
-									Created on {formatDateCompact(template.createdAt as Date)}
-								</Label>
-							</TileDescription>
-						)}
-					</TileHeader>
-				</Tile>
-			</button>
-			)}
+  return (
+    <>
+      {!isEditMode && disabled ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={cn(
+                "w-full text-left rounded-lg bg-card transition-colors p-0 border-0 opacity-50 cursor-not-allowed",
+              )}
+            >
+              <Tile variant={"transparent"} className="md:w-full">
+                <TileHeader className="w-full text-left">
+                  <TileTitle className="flex items-center gap-2 w-full">
+                    <TileIcon>
+                      <IconLock />
+                    </TileIcon>
+                    Create new template
+                  </TileTitle>
+                </TileHeader>
+              </Tile>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>{disabledMessage || "Plan limit reached"}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            "w-full text-left rounded-lg bg-card hover:bg-accent transition-colors p-0 border-0 cursor-pointer",
+          )}
+        >
+          <Tile variant={"transparent"} className="md:w-full">
+            <TileHeader className="w-full text-left">
+              <TileTitle className="flex items-center gap-2 w-full">
+                <TileIcon>
+                  {isEditMode ? <IconTemplate /> : <IconPlus />}
+                </TileIcon>
+                {template?.name || "Create new template"}
+              </TileTitle>
+              {isEditMode && (
+                <TileDescription>
+                  <Label variant={"description"}>
+                    Created on {formatDateCompact(template.createdAt as Date)}
+                  </Label>
+                </TileDescription>
+              )}
+            </TileHeader>
+          </Tile>
+        </button>
+      )}
 
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
         <AdaptiveDialogContent

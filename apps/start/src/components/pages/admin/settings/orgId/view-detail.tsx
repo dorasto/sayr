@@ -98,7 +98,7 @@ export default function SettingsOrganizationViewDetailPage({
   const router = useRouter();
   const { isOverLimit: checkOverLimit, getLimitMessage } = usePlanLimits();
   const viewsOverLimit = checkOverLimit("savedViews");
-  const { value: wsClientId } = useStateManagement<string>(
+  const { value: sseClientId } = useStateManagement<string>(
     "ws-clientId",
     "",
     1,
@@ -188,7 +188,7 @@ export default function SettingsOrganizationViewDetailPage({
           slug,
           viewConfig,
         },
-        wsClientId,
+        sseClientId,
       );
       if (result.success) {
         headlessToast.success({ title: "View updated successfully" });
@@ -210,7 +210,7 @@ export default function SettingsOrganizationViewDetailPage({
         {
           id: view.id,
         },
-        wsClientId,
+        sseClientId,
       );
       if (result.success) {
         headlessToast.success({ title: "View deleted successfully" });
@@ -365,7 +365,7 @@ export default function SettingsOrganizationViewDetailPage({
                 className={cn(
                   "flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors",
                   viewConfig?.mode === "kanban" &&
-                    "border-primary/50 bg-accent",
+                  "border-primary/50 bg-accent",
                 )}
               >
                 <RadioGroupItem value={"kanban"} className="sr-only" />

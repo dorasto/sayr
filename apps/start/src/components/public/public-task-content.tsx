@@ -76,7 +76,7 @@ export function PublicTaskContent({
   const { organization, categories, serverEvents } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   // const { stuck, stickyRef } = useSticky();
-  const { value: wsClientId } = useStateManagement<string>("sse-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { data: session } = authClient.useSession();
 
   // Check if the logged-in user is a member of this organization
@@ -162,7 +162,7 @@ export function PublicTaskContent({
     setLocalVoteCount(isVoted ? localVoteCount - 1 : localVoteCount + 1);
 
     try {
-      await CreateTaskVoteAction(organization.id, task.id, wsClientId);
+      await CreateTaskVoteAction(organization.id, task.id, sseClientId);
     } catch (error) {
       console.error(error);
       headlessToast.error({
@@ -196,6 +196,7 @@ export function PublicTaskContent({
       }
     },
     UPDATE_TASK_COMMENTS: (msg) => {
+      console.log("🚀 ~ PublicTaskContent ~ msg:", msg)
       if (
         msg.scope === "PUBLIC" &&
         msg.meta?.orgId === organization.id &&

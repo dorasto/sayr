@@ -32,7 +32,7 @@ interface CreateReleaseDialogProps {
 
 export function CreateReleaseDialog({ open, onOpenChange, disabled = false, disabledMessage }: CreateReleaseDialogProps) {
 	const { organization, releases, setReleases } = useLayoutOrganization();
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
 
 	const [name, setName] = useState("");
@@ -75,7 +75,7 @@ export function CreateReleaseDialog({ open, onOpenChange, disabled = false, disa
 						icon,
 						status,
 					},
-					wsClientId
+					sseClientId
 				)
 		);
 

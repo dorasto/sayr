@@ -118,7 +118,7 @@ export function PublicCommentThreadBody({
 }) {
 	const { data: session } = authClient.useSession();
 	const queryClient = useQueryClient();
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
 	const {
 		data: repliesRaw,
@@ -148,11 +148,11 @@ export function PublicCommentThreadBody({
 			updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt ? String(r.updatedAt) : undefined,
 			createdBy: r.actor
 				? {
-						id: r.actor.id,
-						name: r.actor.name,
-						image: r.actor.image,
-						displayName: r.actor.displayName ?? null,
-					}
+					id: r.actor.id,
+					name: r.actor.name,
+					image: r.actor.image,
+					displayName: r.actor.displayName ?? null,
+				}
 				: null,
 			reactions: r.reactions as CommentData["reactions"],
 			parentId: r.parentId ?? parentComment.id,
@@ -214,7 +214,7 @@ export function PublicCommentThreadBody({
 					parentComment.taskId,
 					commentId,
 					emoji,
-					wsClientId,
+					sseClientId,
 				);
 			} catch {
 				queryClient.setQueryData(queryKey, previousData);
@@ -225,7 +225,7 @@ export function PublicCommentThreadBody({
 				});
 			}
 		},
-		[session?.user?.id, parentComment.id, parentComment.organizationId, parentComment.taskId, queryClient, wsClientId],
+		[session?.user?.id, parentComment.id, parentComment.organizationId, parentComment.taskId, queryClient, sseClientId],
 	);
 
 	return (
@@ -300,7 +300,7 @@ function PublicReplyInput({
 }) {
 	const { data: session } = authClient.useSession();
 	const queryClient = useQueryClient();
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const [content, setContent] = useState<undefined | NodeJSON>(undefined);
 	const [editorKey, setEditorKey] = useState(0);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -319,7 +319,7 @@ function PublicReplyInput({
 				parentComment.taskId,
 				content,
 				"public",
-				wsClientId,
+				sseClientId,
 				parentComment.id,
 			);
 			if (result.success) {
@@ -349,7 +349,7 @@ function PublicReplyInput({
 		} finally {
 			setIsSubmitting(false);
 		}
-	}, [content, isSubmitting, commentText, parentComment, wsClientId, queryClient, onReplyPosted]);
+	}, [content, isSubmitting, commentText, parentComment, sseClientId, queryClient, onReplyPosted]);
 
 	const displayName = session?.user?.name ?? "User";
 
