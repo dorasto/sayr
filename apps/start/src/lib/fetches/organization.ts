@@ -67,6 +67,7 @@ export interface OrdersResponse {
 export interface CreateOrganizationData {
 	name: string;
 	slug: string;
+	shortId?: string;
 	description?: string;
 }
 

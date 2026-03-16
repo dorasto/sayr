@@ -82,7 +82,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 		}
 	}
 
-	const { name, slug, description } = await c.req.json();
+	const { name, slug, description, shortId } = await c.req.json();
 
 	if (!name || !slug) {
 		await recordWideError({
@@ -93,6 +93,10 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 			contextData: { hasName: !!name, hasSlug: !!slug },
 		});
 		return c.json({ success: false, error: "Name and slug are required" }, 400);
+	}
+
+	if (shortId && !/^[A-Z]{1,3}$/.test(shortId)) {
+		return c.json({ success: false, error: "Short ID must be 1-3 uppercase letters" }, 400);
 	}
 
 	const existingOrg = await traceAsync(
@@ -126,6 +130,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 					id: orgId,
 					name,
 					slug,
+					shortId: shortId || "",
 					description: description || "",
 					createdBy: session.userId,
 				})
