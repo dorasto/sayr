@@ -3,24 +3,24 @@
 import { useLayoutData } from "@/components/generic/Context";
 import CreateCategory from "@/components/organization/create-category";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import type { schema } from "@repo/database";
 import { useEffect } from "react";
 
 export default function SettingsOrganizationCategoriesPage() {
-	const { ws } = useLayoutData();
+	const { serverEvents } = useLayoutData();
 	const { organization, setOrganization, categories, setCategories, setLabels, tasks } =
 		useLayoutOrganizationSettings();
-	useWebSocketSubscription({
-		ws,
+	useServerEventsSubscription({
+		serverEvents,
 		orgId: organization.id,
 		organization: organization,
 		channel: "admin",
 		setOrganization: setOrganization,
 	});
-	const handlers: WSMessageHandler<WSMessage> = {
+	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_LABELS: (msg) => {
 			if (msg.scope === "CHANNEL") {
 				setLabels(msg.data);
@@ -32,17 +32,15 @@ export default function SettingsOrganizationCategoriesPage() {
 			}
 		},
 	};
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE SettingsOrganizationCategoriesPage]", msg),
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
 	});
 	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleMessage);
-		// Cleanup on unmount or dependency change
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
 		return () => {
-			ws.removeEventListener("message", handleMessage);
+			serverEvents.event?.removeEventListener("message", handleMessage);
 		};
-	}, [ws, handleMessage]);
+	}, [serverEvents.event, handleMessage]);
 	if (!organization) {
 		return null;
 	}

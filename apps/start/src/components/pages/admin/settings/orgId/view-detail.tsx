@@ -3,7 +3,7 @@
 import { useLayoutData } from "@/components/generic/Context";
 import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
   useWSMessageHandler,
   WSMessageHandler,
@@ -12,7 +12,7 @@ import {
   deleteSavedViewAction,
   updateSavedViewAction,
 } from "@/lib/fetches/organization";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -85,10 +85,10 @@ export default function SettingsOrganizationViewDetailPage({
   viewId: string;
   initialView?: schema.savedViewType;
 }) {
-  const { ws } = useLayoutData();
+  const { serverEvents } = useLayoutData();
   const { organization, setOrganization, views, setViews, labels, categories, releases } = useLayoutOrganization();
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization?.id,
     organization: organization,
     channel: "admin",
@@ -109,7 +109,7 @@ export default function SettingsOrganizationViewDetailPage({
   // Fall back to contextView only if initialView is not available
   const view = initialView ?? contextView;
 
-  // Sync fresh initialView into the views cache so WebSocket updates have correct baseline
+  // Sync fresh initialView into the views cache so SSE updates have correct baseline
   const syncedViewIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (initialView && syncedViewIdRef.current !== initialView.id) {
@@ -149,7 +149,7 @@ export default function SettingsOrganizationViewDetailPage({
     }
   }, [view]);
 
-  const handlers: WSMessageHandler<WSMessage> = {
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_VIEWS: (msg) => {
       if (msg.scope === "CHANNEL") {
         setViews(msg.data);
@@ -157,7 +157,7 @@ export default function SettingsOrganizationViewDetailPage({
     },
   };
 
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
     onUnhandled: (msg) =>
       console.warn(
         "⚠️ [UNHANDLED MESSAGE SettingsOrganizationViewDetailPage]",
@@ -166,12 +166,12 @@ export default function SettingsOrganizationViewDetailPage({
   });
 
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
 
   if (!organization || !view) {
     return <div>View not found</div>;

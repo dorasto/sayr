@@ -61,7 +61,7 @@ export default function MyTasksPage() {
 		return Array.from(userMap.values()) as unknown as schema.userType[];
 	}, [tasks]);
 
-	// --- WebSocket Handlers ---
+	// --- SSE Handlers ---
 
 	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_TASK: (msg) => {

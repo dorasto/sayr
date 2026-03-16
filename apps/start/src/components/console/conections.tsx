@@ -3,9 +3,21 @@ import type { UserWithRole } from "better-auth/plugins";
 import { useEffect, useState } from "react";
 import { ConnectionsSnapshotTable } from "./ConnectionsSnapshotTable";
 import { useLayoutData } from "../generic/Context";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
-import type { FirehoseClient, WSMessage } from "@/lib/ws";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+
+export type FirehoseClient = {
+	sseClientId: string;
+	clientId: string;
+	orgId: string;
+	channel: string;
+	lastPong: number;
+	lastLatency: number;
+	lastMessageAt: number;
+	connectedAt: number;
+	authenticated: boolean;
+};
 
 interface Props {
 	accounts:
@@ -14,42 +26,26 @@ interface Props {
 }
 
 export default function AdminConnectionsPage({ accounts }: Props) {
-	const { account, ws } = useLayoutData();
-	useWebSocketSubscription({
+	const { account, serverEvents } = useLayoutData();
+	useServerEventsSubscription({
 		orgId: "__ADMIN__",
 		channel: "__CONNECTIONS__",
-		ws,
+		serverEvents,
 	});
 	const [snapshot, setSnapshot] = useState<FirehoseClient[]>([]);
 
-	const handlers: WSMessageHandler<WSMessage> = {
-		CONNECTIONS_SNAPSHOT: (msg) => {
+	const handlers: WSMessageHandler<ServerEventMessage> = {
+		CONNECTIONS_SNAPSHOT: (msg: ServerEventMessage & { data: FirehoseClient[] }) => {
 			setSnapshot(msg.data);
 		},
-	};
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers);
+	} as WSMessageHandler<ServerEventMessage>;
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
 
 	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleMessage);
-		return () => ws.removeEventListener("message", handleMessage);
-	}, [ws, handleMessage]);
-	// 🕒 Every 90 s send a "ping" or heartbeat
-	useEffect(() => {
-		if (!ws) return;
-
-		const sendHeartbeat = () => {
-			if (ws.readyState === WebSocket.OPEN) {
-				const message = JSON.stringify({
-					type: "CONNECTIONS_SNAPSHOT",
-				});
-				ws.send(message);
-				console.log("📡 Sent admin heartbeat");
-			}
-		};
-		const interval = setInterval(sendHeartbeat, 90_000);
-		return () => clearInterval(interval);
-	}, [ws]);
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		return () => serverEvents.event?.removeEventListener("message", handleMessage);
+	}, [serverEvents.event, handleMessage]);
 
 	return (
 		<div className="space-y-4">

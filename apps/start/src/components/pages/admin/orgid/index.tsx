@@ -35,16 +35,16 @@ import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Route as OrgIndexRoute } from "@/routes/(admin)/$orgId/index";
 export default function OrganizationHomePage() {
   const { tasks } = OrgIndexRoute.useLoaderData();
-  const { ws } = useLayoutData();
+  const { serverEvents } = useLayoutData();
   const {
     organization,
     setOrganization,
@@ -63,14 +63,14 @@ export default function OrganizationHomePage() {
     [tasks],
   );
 
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",
     setOrganization: setOrganization,
   });
-  const handlers: WSMessageHandler<WSMessage> = {
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_LABELS: (msg) => {
       if (msg.scope === "CHANNEL") {
         setLabels(msg.data);
@@ -87,17 +87,15 @@ export default function OrganizationHomePage() {
       }
     },
   };
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-    // onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE ORG PAGE]", msg),
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
   });
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
-    // Cleanup on unmount or dependency change
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
   // console.log("orghomepage organization:", organization);
   return (
     <div className="relative flex flex-col h-full">

@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@repo/ui/components/table";
 import type { UserWithRole } from "better-auth/plugins";
-import type { FirehoseClient } from "@/lib/ws";
+import type { FirehoseClient } from "./conections";
 import { ConnectionRow } from "./ConnectionRow";
 
 export function ConnectionsSnapshotTable({

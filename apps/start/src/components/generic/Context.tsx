@@ -25,7 +25,6 @@ export function RootProvider({
 }) {
 	const { value: Newaccount, setValue: setAccount } = useStateManagement("account", account);
 	const { value: NewOrganizations, setValue: setOrganizations } = useStateManagement("organizations", organizations);
-	// const ws = useWebSocket();
 	const serverEvents = useServerEvents();
 	// Sync props → state
 	useEffect(() => setAccount(account), [account, setAccount]);

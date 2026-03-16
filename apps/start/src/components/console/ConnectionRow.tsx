@@ -5,7 +5,7 @@ import { TableCell, TableRow } from "@repo/ui/components/table";
 import { parseChannel } from "@repo/util";
 import type { UserWithRole } from "better-auth/plugins";
 import { memo, useEffect, useState } from "react";
-import type { FirehoseClient } from "@/lib/ws";
+import type { FirehoseClient } from "./conections";
 
 function formatTime(ts: number) {
 	return new Date(ts).toLocaleTimeString();

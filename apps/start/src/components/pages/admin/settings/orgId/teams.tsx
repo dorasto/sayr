@@ -30,7 +30,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { deleteOrganizationTeamAction } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
 
@@ -39,13 +39,13 @@ export default function SettingsOrganizationPageTeams({
 }: {
   teams: schema.OrganizationTeamWithMembersType[];
 }) {
-  const { ws } = useLayoutData();
+  const { serverEvents } = useLayoutData();
   const { organization, setOrganization } = useLayoutOrganizationSettings();
   const { runWithToast, isFetching } = useToastAction();
   const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
 
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",

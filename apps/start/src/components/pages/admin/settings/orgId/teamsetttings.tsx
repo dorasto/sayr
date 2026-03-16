@@ -96,7 +96,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
   addOrganizationMemberToTeamAction,
   createOrganizationTeamAction,
@@ -113,7 +113,7 @@ export default function SettingsOrganizationPageTeamSettings({
   team?: schema.OrganizationTeamWithMembersType;
   isNew?: boolean;
 }) {
-  const { ws } = useLayoutData();
+  const { serverEvents } = useLayoutData();
   const { organization, setOrganization } = useLayoutOrganizationSettings();
   const navigate = useNavigate();
   const { runWithToast, isFetching } = useToastAction();
@@ -133,8 +133,8 @@ export default function SettingsOrganizationPageTeamSettings({
   const [tasksOpen, setTasksOpen] = useState(true);
   const [moderationOpen, setModerationOpen] = useState(true);
 
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",

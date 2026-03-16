@@ -36,7 +36,7 @@ import {
   LayoutReleaseProvider,
   useLayoutRelease,
 } from "@/contexts/ContextOrgRelease";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import {
   useWSMessageHandler,
@@ -51,7 +51,7 @@ import {
   releaseChartsStore,
 } from "@/lib/stores/release-charts-store";
 import { extractTextContent, useToastAction } from "@/lib/util";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Label } from "@repo/ui/components/label";
 import Loader from "@/components/Loader";
 
@@ -60,7 +60,7 @@ interface ReleaseDetailPageProps {
 }
 
 function ReleaseDetailPageContent() {
-  const { ws } = useLayoutData();
+  const { serverEvents } = useLayoutData();
   const { organization, setOrganization, categories, releases, setReleases } =
     useLayoutOrganization();
   const { release, setRelease } = useLayoutRelease();
@@ -98,8 +98,8 @@ function ReleaseDetailPageContent() {
     }
   }, [organization?.id, setMentionContext]);
 
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",
@@ -141,7 +141,7 @@ function ReleaseDetailPageContent() {
     void loadRelease();
   }, [release?.id, organization.id, setRelease]);
 
-  const handlers: WSMessageHandler<WSMessage> = {
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_RELEASES: (msg) => {
       if (msg.scope === "CHANNEL" && "data" in msg) {
         setReleases(msg.data);
@@ -182,18 +182,16 @@ function ReleaseDetailPageContent() {
     },
   };
 
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-    // onUnhandled: (msg) =>
-    //     console.warn("⚠️ [UNHANDLED MESSAGE ReleaseDetailPage]", msg),
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
   });
 
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
 
   const handleDescriptionSave = useCallback(
     async (content: NodeJSON | undefined) => {
@@ -675,7 +673,7 @@ function ReleaseDetailPageContent() {
           <UnifiedTaskView
             tasks={tasks}
             setTasks={setTasks}
-            ws={ws}
+            serverEvents={serverEvents}
             availableUsers={availableUsers}
             organization={organization}
             categories={categories}

@@ -5,9 +5,9 @@ import { PlanLimitBanner } from "@/components/generic/PlanLimitBanner";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
@@ -20,22 +20,22 @@ import { useEffect, useState } from "react";
 import { CreateReleaseDialog } from "./create-release-dialog";
 
 export default function OrganizationReleasesPage() {
-	const { ws } = useLayoutData();
+	const { serverEvents } = useLayoutData();
 	const { organization, setOrganization, releases, setReleases } = useLayoutOrganization();
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
 	const { canCreateResource, getLimitMessage } = usePlanLimits();
 	const canCreateRelease = canCreateResource("releases");
 	const releaseLimitMessage = getLimitMessage("releases");
 
-	useWebSocketSubscription({
-		ws,
+	useServerEventsSubscription({
+		serverEvents,
 		orgId: organization.id,
 		organization: organization,
 		channel: "admin",
 		setOrganization: setOrganization,
 	});
 
-	const handlers: WSMessageHandler<WSMessage> = {
+	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_RELEASES: (msg) => {
 			if (msg.scope === "CHANNEL") {
 				setReleases(msg.data);
@@ -43,17 +43,16 @@ export default function OrganizationReleasesPage() {
 		},
 	};
 
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationReleasesPage]", msg),
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
 	});
 
 	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleMessage);
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
 		return () => {
-			ws.removeEventListener("message", handleMessage);
+			serverEvents.event?.removeEventListener("message", handleMessage);
 		};
-	}, [ws, handleMessage]);
+	}, [serverEvents.event, handleMessage]);
 
 	if (!organization) {
 		return null;

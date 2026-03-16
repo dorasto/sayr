@@ -174,7 +174,7 @@ export function PublicTaskContent({
     }
   };
 
-  // WebSocket handlers for real-time updates on this task
+  // SSE handlers for real-time updates on this task
   const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_TASK: (msg) => {
       if (

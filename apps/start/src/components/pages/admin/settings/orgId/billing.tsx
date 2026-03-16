@@ -10,7 +10,7 @@ import { BillingPlanComparison } from "./billing/billing-plan-comparison";
 import { BillingSubscriptionDetails } from "./billing/billing-subscription-details";
 import { BillingOrderHistory } from "./billing/billing-order-history";
 import { BillingSeatManagement } from "./billing/billing-seat-management";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useLayoutData } from "@/components/generic/Context";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -23,7 +23,7 @@ const API_URL =
     ? "/backend-api/internal"
     : "/api/internal";
 export default function SettingsOrganizationBillingPage({ limits }: { limits: PlanLimits }) {
-  const { ws, account } = useLayoutData();
+  const { serverEvents, account } = useLayoutData();
   const { organization, setOrganization, views, issueTemplates, releases } =
     useLayoutOrganizationSettings();
   const memberCount =
@@ -79,8 +79,6 @@ export default function SettingsOrganizationBillingPage({ limits }: { limits: Pl
     return teamIds.size;
   }, [organization.members]);
 
-  // For pro plans, show the purchased seat count as the member limit
-  // instead of the hard cap from PlanLimits (1000).
   const memberLimit =
     organization.plan === "pro"
       ? (subscription?.seats ?? organization.seatCount ?? limits.members)
@@ -97,8 +95,8 @@ export default function SettingsOrganizationBillingPage({ limits }: { limits: Pl
     releases: { current: releases?.length ?? 0, limit: limits.releases },
   };
 
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",

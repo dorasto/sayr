@@ -181,7 +181,7 @@ export function UnifiedTaskView({
     void grouping;
   }, [grouping]);
 
-  // WebSocket Handlers
+  // SSE Handlers
   const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_TASK: (msg) => {
       const updatedTask = msg.data;

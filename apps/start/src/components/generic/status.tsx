@@ -76,11 +76,11 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 	if (layout === "sidebar") {
 		return (
 			<div className="border-t border-slate-700/70 px-3 py-2 bg-slate-900/70 backdrop-blur-sm text-gray-300 flex flex-col gap-1.5 text-xs">
-				{/* WebSocket */}
+				{/* SSE */}
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-1.5">
 						<span className={`inline-block w-2 h-2 rounded-full ${ws.color}`} />
-						<span className="text-gray-400">WebSocket:</span>
+						<span className="text-gray-400">SSE:</span>
 					</div>
 					<div className={`${ws.text} flex items-center gap-1 truncate font-medium`}>
 						{ws.icon}
@@ -161,7 +161,7 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 								<div className="flex flex-col gap-3">
 									<div className="flex items-center gap-3">
 										<Label variant={"subheading"} className="font-mono w-1/5">
-											Websocket:
+											SSE:
 										</Label>
 										<Label
 											variant={"default"}
@@ -209,7 +209,7 @@ export function StatusBar({ layout = "default", sidebarCollapsed = false, childr
 				<div className="flex items-center justify-between">
 					<span className="flex items-center gap-1.5">
 						<span className={`inline-block w-2 h-2 rounded-full ${ws.color}`} />
-						{wsSubscribedState ? <span className="text-sm text-gray-300">WebSocket:</span> : null}
+						{wsSubscribedState ? <span className="text-sm text-gray-300">SSE:</span> : null}
 					</span>
 					<span className={`${ws.text} flex items-center gap-1`}>
 						{ws.icon}

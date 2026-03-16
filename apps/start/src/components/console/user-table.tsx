@@ -90,7 +90,7 @@ import {
 } from "lucide-react";
 import { useCallback, useId, useRef, useState, useEffect } from "react";
 import { useLayoutData } from "../generic/Context";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
   consoleSetUserRoleAction,
   getConsoleUsers,
@@ -266,8 +266,8 @@ const columns: ColumnDef<ConsoleUser>[] = [
 ];
 
 export default function UserTable({ initialData }: UserTableProps) {
-  const { ws } = useLayoutData();
-  useWebSocketSubscription({ ws });
+  const { serverEvents } = useLayoutData();
+  useServerEventsSubscription({ serverEvents });
 
   const id = useId();
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});

@@ -2,7 +2,7 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useRef } from "react";
 import { useLayoutData } from "@/components/generic/Context";
-import type { WSMessage } from "../lib/ws";
+import type { ServerEventMessage } from "../lib/serverEvents";
 import {
 	useWSMessageHandler,
 	type WSMessageHandler,
@@ -39,7 +39,7 @@ export function useServerEventsSubscription({
 	const serverEventsRef = useRef(serverEvents);
 	serverEventsRef.current = serverEvents;
 
-	const handlers: WSMessageHandler<WSMessage> = {
+	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_ORG: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && organizations) {
 				setOrganizations(
@@ -53,7 +53,7 @@ export function useServerEventsSubscription({
 		},
 	};
 
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers);
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
 
 	// connect / reconnect effect (fixed)
 	useEffect(() => {
