@@ -36,7 +36,8 @@ import {
   getParentUpdatePayload,
   getRelationUpdatePayload,
 } from "../actions";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
+import useServerEvents from "@/lib/serverEvents";
 import { applyFilters } from "../filter/filter-config";
 import type { TaskGroup } from "../filter/types";
 import {
@@ -54,7 +55,7 @@ import { TaskDetailDialog } from "../task/task-detail-dialog";
 interface UnifiedTaskViewProps {
   tasks: schema.TaskWithLabels[];
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
-  ws: WebSocket | null;
+  serverEvents: ReturnType<typeof useServerEvents>;
   availableUsers: schema.userType[];
   availableLabels?: schema.labelType[];
   organization?: schema.OrganizationWithMembers;
@@ -68,7 +69,7 @@ interface UnifiedTaskViewProps {
   views?: schema.savedViewType[];
   /** Optional className override for the outermost wrapper div */
   className?: string;
-  /** Called when the dialog opens/closes a task, so the parent can switch WS channels */
+  /** Called when the dialog opens/closes a task, so the parent can switch SSE channels */
   onActiveDialogTaskChange?: (taskId: string | null) => void;
   /** Per-org permissions map for cross-org views (e.g. /mine). When provided with accountId, enables field-level gating. */
   permissionsByOrg?: Record<string, TeamPermissions>;
@@ -79,7 +80,7 @@ interface UnifiedTaskViewProps {
 export function UnifiedTaskView({
   tasks,
   setTasks,
-  ws,
+  serverEvents,
   availableUsers = [],
   availableLabels = [],
   organization,
@@ -110,7 +111,7 @@ export function UnifiedTaskView({
   const effectiveShowCompleted = forceShowCompleted || showCompletedTasks;
 
   const { runWithToast } = useToastAction();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: wsClientId } = useStateManagement<string>("sse-clientId", "");
 
   // Task open mode preference
   const taskOpenMode = useStore(userPreferencesStore, (s) => s.taskOpenMode);
@@ -130,7 +131,7 @@ export function UnifiedTaskView({
     [],
   );
 
-  // Notify parent when the active dialog task changes (for WS channel switching)
+  // Notify parent when the active dialog task changes (for SSE channel switching)
   useEffect(() => {
     onActiveDialogTaskChange?.(dialogTask?.id ?? null);
   }, [dialogTask?.id, onActiveDialogTaskChange]);
@@ -181,7 +182,7 @@ export function UnifiedTaskView({
   }, [grouping]);
 
   // WebSocket Handlers
-  const handlers: WSMessageHandler<WSMessage> = {
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_TASK: (msg) => {
       const updatedTask = msg.data;
       const updatedTasks = tasks.map((task) =>
@@ -191,18 +192,18 @@ export function UnifiedTaskView({
     },
   };
 
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
     // onUnhandled: (msg) =>
     //   console.warn("⚠️ [UNHANDLED MESSAGE UnifiedTaskView]", msg),
   });
 
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
 
   // Handlers
   const handleTaskSelect = useCallback(
