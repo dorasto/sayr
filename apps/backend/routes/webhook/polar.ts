@@ -4,7 +4,7 @@ import * as schema from "@repo/database";
 import { type TeamPermissions } from "@repo/database";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { Polar, validateEvent, Subscription, CustomerSeat } from "@repo/auth";
-import { broadcastByUserId } from "../ws";
+import { sseBroadcastByUserId } from "../events";
 
 const app = new Hono();
 
@@ -217,7 +217,7 @@ async function handleSubscriptionCanceled(data: Subscription) {
             .where(eq(schema.schema.member.id, member.id));
 
         // Notify each member of their seat status change
-        broadcastByUserId(member.userId, "", orgId, {
+        sseBroadcastByUserId(member.userId, "", orgId, {
             type: "MEMBER_ACTIONS",
             data: {
                 organizationId: orgId,
@@ -293,7 +293,7 @@ async function handleSeatRevoked(data: CustomerSeat) {
         org.id
     );
 
-    broadcastByUserId(user.id, "", org.id, {
+    sseBroadcastByUserId(user.id, "", org.id, {
         type: "MEMBER_ACTIONS",
         data: {
             organizationId: org.id,
@@ -383,7 +383,7 @@ async function handleSeatClaimed(data: CustomerSeat) {
         );
     }
 
-    broadcastByUserId(user.id, "", org.id, {
+    sseBroadcastByUserId(user.id, "", org.id, {
         type: "MEMBER_ACTIONS",
         data: {
             organizationId: org.id,

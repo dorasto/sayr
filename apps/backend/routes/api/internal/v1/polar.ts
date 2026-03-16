@@ -1,10 +1,9 @@
 import { Hono } from "hono";
-import { db, getOrganization, schema, type TeamPermissions } from "@repo/database";
+import { db, getOrganization, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { polarClient } from "@repo/auth";
 import { AppEnv } from "@/index";
 import { traceOrgPermissionCheck } from "@/util";
-import { broadcastByUserId } from "../../../ws";
 
 const app = new Hono<AppEnv>();
 const isProd = process.env.APP_ENV === "production";

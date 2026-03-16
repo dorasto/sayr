@@ -22,8 +22,6 @@ import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
 import { and, count, eq, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../../../ws";
-import type { WSBaseMessage } from "../../../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
@@ -31,6 +29,8 @@ import { Octokit } from "@octokit/rest";
 import { polarClient } from "@repo/auth";
 import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
 import { UseSend } from "usesend-js";
+import { findClientBysseId, sseBroadcastByUserId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
+import { ServerEventBaseMessage } from "@/routes/events/types";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 // Create a new organization
@@ -336,10 +336,10 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	await traceAsync(
 		"organization.update.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 
 			const dataMsg = {
-				type: "UPDATE_ORG" as WSBaseMessage["type"],
+				type: "UPDATE_ORG" as ServerEventBaseMessage["type"],
 				data: {
 					...result,
 					logo: result.logo
@@ -351,8 +351,8 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				},
 			};
 
-			broadcast(orgId, "admin", dataMsg, found?.socket);
-			broadcastPublic(orgId, {
+			sseBroadcastToRoom(orgId, "admin", dataMsg, found?.id);
+			sseBroadcastPublic(orgId, {
 				...dataMsg,
 				data: {
 					...dataMsg.data,
@@ -364,7 +364,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				await getOrganizationMembers(orgId);
 
 			members.forEach((member) => {
-				broadcastByUserId(
+				sseBroadcastByUserId(
 					member.userId,
 					"",
 					orgId,
@@ -587,28 +587,28 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	await traceAsync(
 		"label.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 
 			const publicVisibleLabels = labels.filter(
 				(label) => label.visible === "public"
 			);
 
 			const data = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: labels,
 			};
 
 			const publicData = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: publicVisibleLabels,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, publicData);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting label update" }
@@ -673,25 +673,25 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	await traceAsync(
 		"label.edit.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const publicVisibleLabels = labels.filter(
 				(label) => label.visible === "public"
 			);
 			const data = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: labels,
 			};
 			const publicData = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: publicVisibleLabels,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, publicData);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting label update" }
@@ -748,25 +748,25 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	await traceAsync(
 		"label.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const publicVisibleLabels = labels.filter(
 				(label) => label.visible === "public"
 			);
 			const data = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: labels,
 			};
 			const publicData = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: publicVisibleLabels,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, publicData);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting label update" }
@@ -833,18 +833,18 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	await traceAsync(
 		"category.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				type: "UPDATE_CATEGORIES" as ServerEventBaseMessage["type"],
 				data: categories,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting category update" }
@@ -913,18 +913,18 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	await traceAsync(
 		"category.edit.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				type: "UPDATE_CATEGORIES" as ServerEventBaseMessage["type"],
 				data: categories,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting category update" }
@@ -985,18 +985,18 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	await traceAsync(
 		"category.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				type: "UPDATE_CATEGORIES" as ServerEventBaseMessage["type"],
 				data: categories,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting category update" }
@@ -1136,17 +1136,17 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 	await traceAsync(
 		"issueTemplate.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				type: "UPDATE_ISSUE_TEMPLATES" as ServerEventBaseMessage["type"],
 				data: templates,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting issue template update" }
@@ -1285,17 +1285,17 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 	await traceAsync(
 		"issueTemplate.edit.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				type: "UPDATE_ISSUE_TEMPLATES" as ServerEventBaseMessage["type"],
 				data: templates,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting issue template update" }
@@ -1352,17 +1352,17 @@ apiRouteAdminOrganization.delete("/delete-issue-template", async (c) => {
 	await traceAsync(
 		"issueTemplate.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				type: "UPDATE_ISSUE_TEMPLATES" as ServerEventBaseMessage["type"],
 				data: templates,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting issue template update" }
@@ -1456,18 +1456,18 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	await traceAsync(
 		"savedView.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				type: "UPDATE_VIEWS" as ServerEventBaseMessage["type"],
 				data: views,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting view update" }
@@ -1565,18 +1565,18 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 	await traceAsync(
 		"savedView.update.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				type: "UPDATE_VIEWS" as ServerEventBaseMessage["type"],
 				data: views,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting view update" }
@@ -1643,18 +1643,18 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 	await traceAsync(
 		"savedView.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				type: "UPDATE_VIEWS" as ServerEventBaseMessage["type"],
 				data: views,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, wsClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting view update" }
@@ -2501,7 +2501,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 	await traceAsync(
 		"member.remove.broadcast",
 		async () => {
-			broadcastByUserId(userId, "", orgId, {
+			sseBroadcastByUserId(userId, "", orgId, {
 				type: "MEMBER_ACTIONS",
 				data: { orgId, userId, action: "REMOVED" },
 			});

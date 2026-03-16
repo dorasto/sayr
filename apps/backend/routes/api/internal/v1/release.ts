@@ -13,8 +13,8 @@ import {
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { broadcast, broadcastPublic, findClientByWsId } from "../../../ws";
-import type { WSBaseMessage } from "../../../ws/types";
+import { findClientBysseId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
+import { ServerEventBaseMessage } from "@/routes/events/types";
 import { enforceLimit, traceOrgPermissionCheck } from "@/util";
 import { eq } from "drizzle-orm";
 import { canCreateResource, getLimitReachedMessage } from "@repo/edition";
@@ -126,14 +126,14 @@ apiRouteAdminRelease.post("/create", async (c) => {
 	await traceAsync(
 		"release.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_RELEASES" as WSBaseMessage["type"],
+				type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"],
 				data: release,
 			};
 
-			broadcast(orgId, "releases", data, found?.socket);
-			broadcastPublic(orgId, { ...data });
+			sseBroadcastToRoom(orgId, "releases", data, found?.id);
+			sseBroadcastPublic(orgId, { ...data });
 		},
 		{ description: "Broadcasting new release to clients" }
 	);
@@ -234,14 +234,14 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 	await traceAsync(
 		"release.update.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "UPDATE_RELEASES" as WSBaseMessage["type"],
+				type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"],
 				data: updatedRelease,
 			};
 
-			broadcast(orgId, "releases", data, found?.socket);
-			broadcastPublic(orgId, { ...data });
+			sseBroadcastToRoom(orgId, "releases", data, found?.id);
+			sseBroadcastPublic(orgId, { ...data });
 		},
 		{ description: "Broadcasting updated release to clients" }
 	);
@@ -291,21 +291,21 @@ apiRouteAdminRelease.delete("/delete", async (c) => {
 	await traceAsync(
 		"release.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 			const data = {
-				type: "DELETE_RELEASE" as WSBaseMessage["type"],
+				type: "DELETE_RELEASE" as ServerEventBaseMessage["type"],
 				data: { releaseId },
 			};
 
-			broadcast(orgId, "releases", data, found?.socket);
-			broadcastPublic(orgId, { ...data });
+			sseBroadcastToRoom(orgId, "releases", data, found?.id);
+			sseBroadcastPublic(orgId, { ...data });
 
 			// Also broadcast task updates since their releaseId was nullified
 			const taskUpdateData = {
-				type: "UPDATE_TASK" as WSBaseMessage["type"],
+				type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 				data: { releaseId: null },
 			};
-			broadcast(orgId, "tasks", taskUpdateData, found?.socket);
+			sseBroadcastToRoom(orgId, "tasks", taskUpdateData, found?.id);
 		},
 		{ description: "Broadcasting release deletion to clients" }
 	);
@@ -416,23 +416,23 @@ apiRouteAdminRelease.post("/mark-released", async (c) => {
 	await traceAsync(
 		"release.mark_released.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(wsClientId);
 
 			// Broadcast release update
 			const releaseData = {
-				type: "UPDATE_RELEASES" as WSBaseMessage["type"],
+				type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"],
 				data: result.release,
 			};
-			broadcast(orgId, "releases", releaseData, found?.socket);
-			broadcastPublic(orgId, { ...releaseData });
+			sseBroadcastToRoom(orgId, "releases", releaseData, found?.id);
+			sseBroadcastPublic(orgId, { ...releaseData });
 
 			// Broadcast task updates for auto-closed tasks
 			if (result.updatedTaskIds.length > 0) {
 				const taskData = {
-					type: "UPDATE_TASK" as WSBaseMessage["type"],
+					type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 					data: { taskIds: result.updatedTaskIds, status: "done" },
 				};
-				broadcast(orgId, "tasks", taskData, found?.socket);
+				sseBroadcastToRoom(orgId, "tasks", taskData, found?.id);
 			}
 		},
 		{ description: "Broadcasting release and task updates to clients" }

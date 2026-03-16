@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { safeGetSession } from "@/getSession";
 import { safeGetOrganization } from "@/util";
+import { ServerEventBaseMessage } from "./types";
 
 export const sseRoute = new Hono();
 
@@ -10,6 +11,7 @@ type SSEClient = {
     channel: string;
     send: (msg: unknown) => void;
     close: () => void;
+    clientId: string; // logical user ID (can have multiple connections)
 };
 
 const sseRooms = new Map<string, Set<SSEClient>>();
@@ -33,30 +35,157 @@ function sseUnsubscribe(client: SSEClient) {
     }
 }
 
-export function sseBroadcast(orgId: string, channel: string, message: unknown, excludeId?: string) {
-    const key = `${orgId}:${channel}`;
-    const clients = sseRooms.get(key);
+export function sseBroadcastToRoom(
+    orgId: string,
+    channel: string,
+    message: unknown,
+    excludeId?: string,
+    includeParent = false
+) {
+    const seen = new Set<string>(); // track client.id
+    const targets: SSEClient[] = [];
 
-    if (!clients) return;
+    // helper: add all clients in a room (if not already added)
+    const addRoom = (roomKey?: string) => {
+        if (!roomKey) return;
 
-    for (const client of [...clients]) {
-        if (excludeId && client.id === excludeId) continue;
+        const clients = sseRooms.get(`${orgId}:${roomKey}`);
+        if (!clients) return;
+
+        for (const client of clients) {
+            if (excludeId && client.id === excludeId) continue;
+            if (seen.has(client.id)) continue;
+            seen.add(client.id);
+            targets.push(client);
+        }
+    };
+
+    const parts = channel.split(";");
+
+    // add each nested room
+    for (const part of parts) {
+        addRoom(part);
+    }
+
+    // optionally add root parent
+    if (includeParent && parts.length > 1) {
+        addRoom(parts[0]);
+    }
+
+    // send to all collected clients
+    for (const client of targets) {
+        try {
+            client.send(message);
+        } catch {
+            client.close();
+            const room = sseRooms.get(`${orgId}:${client.channel}`);
+            if (room) {
+                room.delete(client);
+                if (room.size === 0) sseRooms.delete(`${orgId}:${client.channel}`);
+            }
+        }
+    }
+}
+
+export function sseBroadcastPublic(orgId: string, message: Omit<any, "scope">, excludeId?: string) {
+    const fullMsg = { ...message, scope: "PUBLIC" };
+    sseBroadcastToRoom(orgId, "public", fullMsg, excludeId);
+}
+
+export function sseBroadcastByUserId(
+    userId: string,
+    excludeClientId: string,
+    orgId: string,
+    message: unknown,
+    excludeChannel = "admin"
+) {
+    for (const client of clientsById.values()) {
+        // must belong to that user
+        if (client.id !== userId) continue;
+
+        // must belong to same org
+        if (client.orgId !== orgId) continue;
+
+        // skip excluded client
+        if (client.id === excludeClientId) continue;
+
+        // skip excluded channels
+        if (client.channel === excludeChannel) continue;
+
+        // skip public channel
+        if (client.channel === "public") continue;
 
         try {
             client.send(message);
         } catch {
             client.close();
-            clients.delete(client);
-            clientsById.delete(client.id);
+        }
+    }
+}
+export function sseBroadcastIndividual(
+    client: SSEClient,
+    message: Omit<ServerEventBaseMessage, "scope">,
+    orgId?: string
+) {
+    if (!client) return;
+
+    // Fast-path templates (optional, matching WS behavior)
+    switch (message.type) {
+        case "PING":
+            client.send({ type: "PING", scope: "INDIVIDUAL" });
+            return;
+        case "DISCONNECTED":
+            client.send({ type: "DISCONNECTED", scope: "INDIVIDUAL" });
+            return;
+        case "WAITING_ROOM":
+            client.send({ type: "WAITING_ROOM", scope: "INDIVIDUAL" });
+            return;
+    }
+
+    const ts = Date.now();
+
+    // Fast-path for plain string data
+    if (typeof message.data === "string") {
+        const payload = {
+            type: message.type,
+            scope: "INDIVIDUAL",
+            data: message.data,
+            meta: { ts, orgId },
+        };
+
+        try {
+            client.send(payload);
+        } catch {
+            client.close();
+        }
+
+        return;
+    }
+
+    // General path for object data
+    const payload = {
+        ...message,
+        scope: "INDIVIDUAL",
+        meta: { ts, orgId, ...(message.meta || {}) },
+    };
+
+    try {
+        client.send(payload);
+    } catch {
+        client.close();
+    }
+}
+
+export function findSSEClientsByUserId(userId: string): SSEClient[] {
+    const results: SSEClient[] = [];
+
+    for (const client of clientsById.values()) {
+        if (client.clientId === userId) {
+            results.push(client);
         }
     }
 
-    if (clients.size === 0) sseRooms.delete(key);
-}
-
-export function sseBroadcastPublic(orgId: string, message: Omit<any, "scope">, excludeId?: string) {
-    const fullMsg = { ...message, scope: "PUBLIC" };
-    sseBroadcast(orgId, "public", fullMsg, excludeId);
+    return results;
 }
 
 sseRoute.get("/", async (c) => {
@@ -105,7 +234,7 @@ sseRoute.get("/", async (c) => {
                 sseUnsubscribe(client);
             };
 
-            const client: SSEClient = { id: clientId, orgId: orgId || "public", channel, send, close };
+            const client: SSEClient = { id: clientId, orgId: orgId || "public", channel, send, close, clientId: session?.user.id || "" };
 
             const key = `${orgId || "public"}:${channel}`;
             if (!sseRooms.has(key)) sseRooms.set(key, new Set());
