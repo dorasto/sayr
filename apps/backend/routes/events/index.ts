@@ -119,7 +119,6 @@ export function sseBroadcastByUserId(
 
         // skip public channel
         if (client.channel === "public") continue;
-        console.log("🚀 ~ sseBroadcastByUserId ~ client:", client)
 
         try {
             const msg = typeof message === "object" && message !== null
@@ -216,12 +215,13 @@ sseRoute.get("/", async (c) => {
         const org = await safeGetOrganization(orgId, session?.user.id || "");
         if (!org) {
             // block connection
-            return new Response(JSON.stringify({ error: "Unauthorized or org does not exist" }), { status: 403 });
+            return c.json({ error: "Unauthorized or org does not exist" }, 403);
         }
         authenticated = true;
     } else {
         // no org provided for non-public channel → block
-        return new Response(JSON.stringify({ error: "Organization required for this channel" }), { status: 400 });
+
+        return c.json({ error: "Organization required for this channel" }, 400);
     }
 
     const stream = new ReadableStream({
@@ -235,7 +235,6 @@ sseRoute.get("/", async (c) => {
             let heartbeat: NodeJS.Timeout;
 
             const close = () => {
-                console.log("close", client)
                 clearInterval(heartbeat);
                 try {
                     controller.close();
