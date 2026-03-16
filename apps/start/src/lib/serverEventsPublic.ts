@@ -27,7 +27,7 @@ const useServerEventsPublic = ({
     );
 
     const { setValue: setClientId } = useStateManagement<string>(
-        "ws-clientId",
+        "sse-clientId",
         ""
     );
 

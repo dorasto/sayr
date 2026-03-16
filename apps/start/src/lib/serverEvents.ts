@@ -29,7 +29,7 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
     );
 
     const { setValue: setClientId } = useStateManagement<string>(
-        "ws-clientId",
+        "sse-clientId",
         ""
     );
 

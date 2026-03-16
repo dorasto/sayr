@@ -4,12 +4,12 @@ import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutData } from "@/components/generic/Context";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect } from "react";
 import { markNotificationsReadByTaskAction } from "@/lib/fetches/notification";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 
 export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId/")({
 	component: RouteComponent,
@@ -38,7 +38,7 @@ function RouteComponent() {
 		}
 	}, [task.id]);
 
-	const handlers: WSMessageHandler<WSMessage> = {
+	const handlers: WSMessageHandler<ServerEventMessage> = {
 		CREATE_TASK: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
 				setTasks([...tasks, msg.data]);
@@ -88,7 +88,7 @@ function RouteComponent() {
 			}
 		},
 	};
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationProjectTaskHomePage]", { msg }),
 	});
 	useEffect(() => {
