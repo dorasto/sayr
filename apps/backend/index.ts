@@ -16,6 +16,7 @@ import { rootSpanPlugin } from "@/tracing/index";
 import { renderRoute } from "./routes/render";
 import { ensureBucketExists } from "@repo/storage";
 import { getEdition } from "@repo/edition";
+import sseRoute from "./routes/events";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -33,7 +34,7 @@ export type AppEnv = {
 const app = new Hono<AppEnv>();
 const edition = getEdition();
 if (edition === "community" || edition === "enterprise") {
-	ensureBucketExists();
+	// ensureBucketExists();
 }
 // -----------------------------------------------------------------------------
 // CORS
@@ -77,7 +78,8 @@ app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? 
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
-app.route("/ws", wsRoute);
+// app.route("/ws", wsRoute);
+app.route("/api/events", sseRoute)
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.route("/render", renderRoute);
 app.get("/api/health", (c) => c.text("OK"));

@@ -73,7 +73,7 @@ const baseApiUrl =
 export function PublicTaskContent({
   task: initialTask,
 }: PublicTaskContentProps) {
-  const { organization, categories, ws } = usePublicOrganizationLayout();
+  const { organization, categories, serverEvents } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   // const { stuck, stickyRef } = useSticky();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
@@ -209,12 +209,12 @@ export function PublicTaskContent({
   };
   const handleMessage = useWSMessageHandler<WSMessage>(handlers);
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
   useEffect(() => {
     const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
       if (msg.type === "WS_RECONNECTED") {
@@ -232,7 +232,7 @@ export function PublicTaskContent({
       <div className="md:col-span-1">
         <div
           className="flex flex-col gap-3 w-full sticky top-0 pt-3 self-start"
-          // ref={stickyRef}
+        // ref={stickyRef}
         >
           {/* Back button and member actions */}
           <div className="flex items-center gap-1 w-full justify-between">

@@ -6,7 +6,6 @@ import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { IconBrandGithub, IconBrandGithubFilled, IconMail } from "@tabler/icons-react";
 import { useLayoutData } from "@/components/generic/Context";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import type { DorasUserType, GithubUserType } from "@/types";
 import { schema } from "@repo/database";
 import { useToastAction } from "@/lib/util";
@@ -20,8 +19,7 @@ interface Props {
 export default function UserConnections({ email, githubUser, dorasUser }: Props) {
 	const connectedCount = (email ? 1 : 0) + (githubUser ? 1 : 0) + (dorasUser ? 1 : 0);
 	const canDisconnect = connectedCount >= 2;
-	const { ws, account } = useLayoutData();
-	useWebSocketSubscription({ ws });
+	const { account } = useLayoutData();
 	const { runWithToast } = useToastAction();
 	async function handleRequestPasswordEmail() {
 		await runWithToast(

@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { TaskContentMain } from "@/components/tasks/task/task-content";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { useLayoutData } from "@/components/generic/Context";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { WSMessage } from "@/lib/ws";
@@ -10,21 +9,22 @@ import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useEffect } from "react";
 import { markNotificationsReadByTaskAction } from "@/lib/fetches/notification";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId/")({
 	component: RouteComponent,
 });
 
 function RouteComponent() {
-	const { ws } = useLayoutData();
+	const { serverEvents } = useLayoutData();
 	const { tasks, setTasks } = useLayoutTasks();
 	const { task, setTask } = useLayoutTask();
 	const { organization, setOrganization, labels, categories, releases, setLabels, setViews, setCategories } =
 		useLayoutOrganization();
 
 	const availableUsers = organization?.members.map((member) => member.user) || [];
-	useWebSocketSubscription({
-		ws,
+	useServerEventsSubscription({
+		serverEvents,
 		orgId: organization.id,
 		organization: organization,
 		channel: `task:${task.id}`,
@@ -92,13 +92,12 @@ function RouteComponent() {
 		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE OrganizationProjectTaskHomePage]", { msg }),
 	});
 	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleMessage);
-		// Cleanup on unmount or dependency change
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
 		return () => {
-			ws.removeEventListener("message", handleMessage);
+			serverEvents.event?.removeEventListener("message", handleMessage);
 		};
-	}, [ws, handleMessage]);
+	}, [serverEvents.event, handleMessage]);
 	return (
 		<TaskContentMain
 			task={task}

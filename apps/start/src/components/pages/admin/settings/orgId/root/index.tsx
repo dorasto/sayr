@@ -27,7 +27,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import {
   updateOrganizationAction,
   uploadOrganizationBanner,
@@ -35,9 +34,10 @@ import {
 } from "@/lib/fetches/organization";
 import { handleFileValidation } from "@/lib/utils/file-validation";
 import { Label } from "@repo/ui/components/label";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 export default function SettingsOrganizationPage() {
-  const { ws } = useLayoutData();
+  const { serverEvents } = useLayoutData();
   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
   const { organization, setOrganization } = useLayoutOrganizationSettings();
 
@@ -86,8 +86,8 @@ export default function SettingsOrganizationPage() {
     multiple: false,
   });
 
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",

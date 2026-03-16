@@ -2,14 +2,14 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useCallback, useContext, useEffect } from "react";
 import { notificationActions } from "@/lib/stores/notification-store";
-import useWebSocket from "@/lib/ws";
+import useServerEvents from "@/lib/serverEvents";
 
 interface ContextType {
 	account: schema.userType;
 	setAccount: (newValue: ContextType["account"]) => void;
-	ws: WebSocket | null;
 	organizations: schema.OrganizationWithMembers[];
 	setOrganizations: (newVaule: ContextType["organizations"]) => void;
+	serverEvents: ReturnType<typeof useServerEvents>;
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);
@@ -25,7 +25,8 @@ export function RootProvider({
 }) {
 	const { value: Newaccount, setValue: setAccount } = useStateManagement("account", account);
 	const { value: NewOrganizations, setValue: setOrganizations } = useStateManagement("organizations", organizations);
-	const ws = useWebSocket();
+	// const ws = useWebSocket();
+	const serverEvents = useServerEvents();
 	// Sync props → state
 	useEffect(() => setAccount(account), [account, setAccount]);
 	useEffect(() => setOrganizations(organizations), [organizations, setOrganizations]);
@@ -59,16 +60,16 @@ export function RootProvider({
 	}, []);
 
 	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleNotificationWS);
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleNotificationWS);
 		return () => {
-			ws.removeEventListener("message", handleNotificationWS);
+			serverEvents.event?.removeEventListener("message", handleNotificationWS);
 		};
-	}, [ws, handleNotificationWS]);
+	}, [serverEvents.event, handleNotificationWS]);
 
 	return (
 		<RootContext.Provider
-			value={{ account: Newaccount, setAccount, ws, organizations: NewOrganizations, setOrganizations }}
+			value={{ account: Newaccount, setAccount, organizations: NewOrganizations, setOrganizations, serverEvents }}
 		>
 			{children}
 		</RootContext.Provider>

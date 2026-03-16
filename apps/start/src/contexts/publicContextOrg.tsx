@@ -1,11 +1,13 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useContext, useEffect } from "react";
-import useWebSocketPublic from "@/lib/wsPublic";
+import useServerEvents from "@/lib/serverEvents";
+import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { WSMessage } from "@/lib/ws";
 
 interface ContextType {
 	organization: schema.OrganizationWithMembers;
-	ws: WebSocket | null;
+	serverEvents: ReturnType<typeof useServerEvents>;
 	setOrganization: (newVaule: ContextType["organization"]) => void;
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: ContextType["tasks"]) => void;
@@ -35,16 +37,30 @@ export function PublicOrganizationProvider({
 	const { value: NewTasks, setValue: setTasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", []);
 	const { value: NewLabels, setValue: setLabels } = useStateManagement("labels", labels);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories);
-	const ws = useWebSocketPublic({ organization, setOrganization });
+	const serverEvents = useServerEvents(organization.id);
 
 	useEffect(() => setLabels(labels), [labels, setLabels]);
 	useEffect(() => setCategories(categories), [categories, setCategories]);
-
+	const handlers: WSMessageHandler<WSMessage> = {
+		UPDATE_ORG: (msg) => {
+			setOrganization({ ...organization, ...msg.data });
+		},
+	};
+	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+		onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PublicOrganizationProvider]", { msg }),
+	});
+	useEffect(() => {
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		return () => {
+			serverEvents.event?.removeEventListener("message", handleMessage);
+		};
+	}, [serverEvents.event, handleMessage]);
 	return (
 		<RootContext.Provider
 			value={{
 				organization: NewOrganization,
-				ws,
+				serverEvents,
 				setOrganization,
 				tasks: NewTasks,
 				setTasks,

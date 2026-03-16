@@ -48,6 +48,7 @@ import {
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
+import { findClientBysseId, sseBroadcast, sseBroadcastPublic } from "@/routes/events";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
@@ -422,9 +423,9 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	// (assignees, status, release, visibility, etc.) that the frontend never sends.
 	const template = templateId
 		? await traceAsync("task.public_create.load_template", () => getIssueTemplateById(templateId), {
-				description: "Loading issue template for public task creation",
-				data: { templateId },
-			})
+			description: "Loading issue template for public task creation",
+			data: { templateId },
+		})
 		: null;
 
 	// Validate the template belongs to this org
@@ -1987,7 +1988,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				.filter((id) => id !== taskId) // skip self-mentions
 				.map((mentionedTaskId) =>
 					addLogEventTask(mentionedTaskId, orgId, "task_mentioned", null, { sourceTaskId: taskId }, commentActorId ?? undefined).catch(
-						() => {} // never let timeline failures break comment creation
+						() => { } // never let timeline failures break comment creation
 					)
 				)
 		);
@@ -1996,15 +1997,16 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	await traceAsync(
 		"task.comment.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			// const found = findClientByWsId(wsClientId);
+			const seeFound = findClientBysseId(wsClientId)
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
 				data: { id: taskId },
 			};
-
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			sseBroadcast(orgId, `task:${taskId}`, data, seeFound?.id)
+			// broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
 			if (visibility === "public") {
-				broadcastPublic(orgId, { ...data }, found?.socket);
+				sseBroadcastPublic(orgId, { ...data }, seeFound?.id);
 			}
 
 			const members = await getOrganizationMembers(orgId);
