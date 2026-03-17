@@ -1,30 +1,27 @@
 # Caddy reverse proxy config for Zerops
 #
 # Key design decisions:
-#   - "dynamic a" upstreams with "versions ipv4": Caddy re-resolves DNS on every
-#     request. The "versions ipv4" restriction prevents Caddy from attempting IPv6
+#   - Single :80 server block with host matchers: env-var placeholders in site
+#     addresses prevent Caddy from resolving specificity, causing wildcard blocks
+#     to win over named ones. Using a single block with @host matchers is reliable.
+#   - "dynamic a" upstreams with "versions ipv4": re-resolves DNS on every request.
+#     The "versions ipv4" restriction prevents Caddy from attempting IPv6
 #     connections, which Zerops internal services do not listen on.
 #   - X-Forwarded-Proto hardcoded to "https": Zerops terminates TLS at the L7 balancer
 #     and hits this service over plain HTTP. Without this, Better Auth's __Secure-
 #     cookie validation would break.
 #   - No automatic HTTPS: Zerops handles all TLS/certificate management.
-#   - {$VITE_ROOT_DOMAIN} uses Caddy's env var syntax, equivalent to envsubst.
-#   - header_up and flush_interval are reverse_proxy subdirectives and must be
-#     inlined inside each reverse_proxy block — they cannot live in snippets.
 
 {
-	# Disable automatic HTTPS — Zerops L7 balancer handles TLS
 	auto_https off
-	# Disable the Caddy admin API endpoint (not needed in production)
 	admin off
 }
 
 # ===============================
 # HEALTH CHECK
 # ===============================
-# Runs on a separate port to avoid Caddy's "ambiguous site definition" error
-# when mixing a bare :80 block with named :80 virtual hosts.
-# zerops.yml healthCheck.httpGet.port must match this (8080).
+# Separate port to avoid "ambiguous site definition" with the :80 block.
+# zerops.yml healthCheck.httpGet.port must be 8080.
 
 :8080 {
 	handle /healthz {
@@ -34,263 +31,271 @@
 }
 
 # ===============================
-# ROOT DOMAIN
+# ALL HTTP TRAFFIC
 # ===============================
 
-{$VITE_ROOT_DOMAIN}:80, www.{$VITE_ROOT_DOMAIN}:80 {
+:80 {
 
-	# Redirect /admin/* -> admin subdomain
-	handle_path /admin* {
-		redir https://admin.{$VITE_ROOT_DOMAIN}{uri} 302
-	}
+	# ---- HOST MATCHERS ----
+	@root host {$VITE_ROOT_DOMAIN} www.{$VITE_ROOT_DOMAIN}
+	@api  host api.{$VITE_ROOT_DOMAIN}
+	@admin host admin.{$VITE_ROOT_DOMAIN}
+	# @wildcard is implicit: the final handle {} block catches everything else
 
-	# Redirect /login -> admin subdomain
-	handle /login {
-		redir https://admin.{$VITE_ROOT_DOMAIN}/login 302
-	}
+	# =============================
+	# ROOT DOMAIN
+	# =============================
 
-	# Root API -> backend
-	handle /api/* {
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
+	handle @root {
+		# Redirect /admin/* -> admin subdomain
+		handle_path /admin* {
+			redir https://admin.{$VITE_ROOT_DOMAIN}{uri} 302
+		}
+
+		# Redirect /login -> admin subdomain
+		handle /login {
+			redir https://admin.{$VITE_ROOT_DOMAIN}/login 302
+		}
+
+		# Root API -> backend
+		handle /api/* {
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
 			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
+		}
+
+		# Everything else -> marketing
+		handle {
+			reverse_proxy {
+				dynamic a marketing 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
 		}
 	}
 
-	# Everything else -> marketing
+	# =============================
+	# API SUBDOMAIN
+	# =============================
+
+	handle @api {
+		# /events -> backend /api/events
+		handle /events* {
+			rewrite * /api/events{path}
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
+		}
+
+		# WebSocket
+		handle /ws* {
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+				flush_interval -1
+			}
+		}
+
+		# Root -> backend /api/public
+		handle / {
+			rewrite * /api/public
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
+		}
+
+		# Everything else -> /api/public/*
+		handle {
+			rewrite * /api/public{uri}
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
+		}
+	}
+
+	# =============================
+	# ADMIN SUBDOMAIN
+	# =============================
+
+	handle @admin {
+		# Auth API -> start
+		handle /api/auth* {
+			reverse_proxy {
+				dynamic a start 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
+		}
+
+		# Image preview -> start
+		handle /api/image-preview* {
+			reverse_proxy {
+				dynamic a start 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
+		}
+
+		# Traces -> start
+		handle /api/traces* {
+			reverse_proxy {
+				dynamic a start 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
+		}
+
+		# WebSocket -> backend
+		handle /ws* {
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+				flush_interval -1
+			}
+		}
+
+		# All other API -> backend
+		handle /api/* {
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
+		}
+
+		# Everything else -> start
+		handle {
+			reverse_proxy {
+				dynamic a start 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+			}
+		}
+	}
+
+	# =============================
+	# WILDCARD SUBDOMAINS (org slugs etc.)
+	# =============================
+	# No host matcher needed — this handle{} catches any request not matched above.
+
 	handle {
-		reverse_proxy {
-			dynamic a marketing 3000 {
-				versions ipv4
+		# Auth API -> start
+		handle /api/auth* {
+			reverse_proxy {
+				dynamic a start 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
 			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
 		}
-	}
-}
 
-# ===============================
-# API SUBDOMAIN
-# ===============================
-
-api.{$VITE_ROOT_DOMAIN}:80 {
-
-	# /events -> backend /api/events
-	handle /events* {
-		rewrite * /api/events{path}
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
+		# Image preview -> start
+		handle /api/image-preview* {
+			reverse_proxy {
+				dynamic a start 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
 			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
 		}
-	}
 
-	# WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
-	handle /ws* {
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
+		# Traces -> start
+		handle /api/traces* {
+			reverse_proxy {
+				dynamic a start 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
 			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-			flush_interval -1
 		}
-	}
 
-	# Root -> backend /api/public
-	handle / {
-		rewrite * /api/public
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
+		# WebSocket -> backend
+		handle /ws* {
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
+				flush_interval -1
 			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
 		}
-	}
 
-	# Everything else -> rewrite to /api/public/*
-	handle {
-		rewrite * /api/public{uri}
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
+		# All other API -> backend
+		handle /api/* {
+			reverse_proxy {
+				dynamic a backend 5468 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
 			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
 		}
-	}
-}
 
-# ===============================
-# ADMIN SUBDOMAIN
-# ===============================
-
-admin.{$VITE_ROOT_DOMAIN}:80 {
-
-	# Auth API -> start
-	handle /api/auth* {
-		reverse_proxy {
-			dynamic a start 3000 {
-				versions ipv4
+		# Everything else -> start
+		handle {
+			reverse_proxy {
+				dynamic a start 3000 {
+					versions ipv4
+				}
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-Proto "https"
 			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-
-	# Image preview -> start
-	handle /api/image-preview* {
-		reverse_proxy {
-			dynamic a start 3000 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-
-	# Traces -> start
-	handle /api/traces* {
-		reverse_proxy {
-			dynamic a start 3000 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-
-	# Admin WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
-	handle /ws* {
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-			flush_interval -1
-		}
-	}
-
-	# All other API -> backend
-	handle /api/* {
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-
-	# Everything else -> start app
-	handle {
-		reverse_proxy {
-			dynamic a start 3000 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-}
-
-# ===============================
-# WILDCARD SUBDOMAINS (*.domain)
-# ===============================
-# Catches any subdomain not explicitly matched above (e.g. org slugs).
-# Named virtual hosts above take precedence over this wildcard.
-
-*.{$VITE_ROOT_DOMAIN}:80 {
-
-	# Auth API -> start
-	handle /api/auth* {
-		reverse_proxy {
-			dynamic a start 3000 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-
-	# Image preview -> start
-	handle /api/image-preview* {
-		reverse_proxy {
-			dynamic a start 3000 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-
-	# Traces -> start
-	handle /api/traces* {
-		reverse_proxy {
-			dynamic a start 3000 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-
-	# WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
-	handle /ws* {
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-			flush_interval -1
-		}
-	}
-
-	# All other API -> backend
-	handle /api/* {
-		reverse_proxy {
-			dynamic a backend 5468 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
-		}
-	}
-
-	# Everything else -> start
-	handle {
-		reverse_proxy {
-			dynamic a start 3000 {
-				versions ipv4
-			}
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-Proto "https"
 		}
 	}
 }
