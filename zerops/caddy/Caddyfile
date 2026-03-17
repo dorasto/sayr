@@ -40,7 +40,8 @@
 	@root host {$VITE_ROOT_DOMAIN} www.{$VITE_ROOT_DOMAIN}
 	@api  host api.{$VITE_ROOT_DOMAIN}
 	@admin host admin.{$VITE_ROOT_DOMAIN}
-	# @wildcard is implicit: the final handle {} block catches everything else
+	# wildcard: anything not matched by the three above
+	@wildcard not host {$VITE_ROOT_DOMAIN} www.{$VITE_ROOT_DOMAIN} api.{$VITE_ROOT_DOMAIN} admin.{$VITE_ROOT_DOMAIN}
 
 	# =============================
 	# ROOT DOMAIN
@@ -222,9 +223,8 @@
 	# =============================
 	# WILDCARD SUBDOMAINS (org slugs etc.)
 	# =============================
-	# No host matcher needed — this handle{} catches any request not matched above.
 
-	handle {
+	handle @wildcard {
 		# Auth API -> start
 		handle /api/auth* {
 			reverse_proxy {
