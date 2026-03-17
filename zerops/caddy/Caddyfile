@@ -1,10 +1,9 @@
 # Caddy reverse proxy config for Zerops
 #
 # Key design decisions:
-#   - "dynamic a" upstreams: Caddy re-resolves DNS on every request, so redeploying
-#     start/backend/marketing never requires restarting this service.
-#   - transport http { network tcp4 }: Zerops internal services only listen on IPv4.
-#     Without this, Caddy resolves AAAA records and attempts IPv6, which is refused.
+#   - "dynamic a" upstreams with "versions ipv4": Caddy re-resolves DNS on every
+#     request. The "versions ipv4" restriction prevents Caddy from attempting IPv6
+#     connections, which Zerops internal services do not listen on.
 #   - X-Forwarded-Proto hardcoded to "https": Zerops terminates TLS at the L7 balancer
 #     and hits this service over plain HTTP. Without this, Better Auth's __Secure-
 #     cookie validation would break.
@@ -53,9 +52,8 @@
 	# Root API -> backend
 	handle /api/* {
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -66,9 +64,8 @@
 	# Everything else -> marketing
 	handle {
 		reverse_proxy {
-			dynamic a marketing 3000
-			transport http {
-				network tcp4
+			dynamic a marketing 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -87,9 +84,8 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 	handle /events* {
 		rewrite * /api/events{path}
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -100,9 +96,8 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 	# WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
 	handle /ws* {
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -115,9 +110,8 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 	handle / {
 		rewrite * /api/public
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -129,9 +123,8 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 	handle {
 		rewrite * /api/public{uri}
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -149,9 +142,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Auth API -> start
 	handle /api/auth* {
 		reverse_proxy {
-			dynamic a start 3000
-			transport http {
-				network tcp4
+			dynamic a start 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -162,9 +154,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Image preview -> start
 	handle /api/image-preview* {
 		reverse_proxy {
-			dynamic a start 3000
-			transport http {
-				network tcp4
+			dynamic a start 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -175,9 +166,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Traces -> start
 	handle /api/traces* {
 		reverse_proxy {
-			dynamic a start 3000
-			transport http {
-				network tcp4
+			dynamic a start 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -188,9 +178,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Admin WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
 	handle /ws* {
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -202,9 +191,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# All other API -> backend
 	handle /api/* {
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -215,9 +203,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Everything else -> start app
 	handle {
 		reverse_proxy {
-			dynamic a start 3000
-			transport http {
-				network tcp4
+			dynamic a start 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -237,9 +224,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Auth API -> start
 	handle /api/auth* {
 		reverse_proxy {
-			dynamic a start 3000
-			transport http {
-				network tcp4
+			dynamic a start 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -250,9 +236,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Image preview -> start
 	handle /api/image-preview* {
 		reverse_proxy {
-			dynamic a start 3000
-			transport http {
-				network tcp4
+			dynamic a start 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -263,9 +248,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Traces -> start
 	handle /api/traces* {
 		reverse_proxy {
-			dynamic a start 3000
-			transport http {
-				network tcp4
+			dynamic a start 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -276,9 +260,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
 	handle /ws* {
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -290,9 +273,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# All other API -> backend
 	handle /api/* {
 		reverse_proxy {
-			dynamic a backend 5468
-			transport http {
-				network tcp4
+			dynamic a backend 5468 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -303,9 +285,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	# Everything else -> start
 	handle {
 		reverse_proxy {
-			dynamic a start 3000
-			transport http {
-				network tcp4
+			dynamic a start 3000 {
+				versions ipv4
 			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
