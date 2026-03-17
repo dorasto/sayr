@@ -3,10 +3,11 @@
 # Key design decisions:
 #   - "dynamic a" upstreams: Caddy re-resolves DNS on every request, so redeploying
 #     start/backend/marketing never requires restarting this service.
+#   - transport http { network tcp4 }: Zerops internal services only listen on IPv4.
+#     Without this, Caddy resolves AAAA records and attempts IPv6, which is refused.
 #   - X-Forwarded-Proto hardcoded to "https": Zerops terminates TLS at the L7 balancer
 #     and hits this service over plain HTTP. Without this, Better Auth's __Secure-
 #     cookie validation would break.
-#   - X-Forwarded-For is omitted: Caddy sets it automatically by default.
 #   - No automatic HTTPS: Zerops handles all TLS/certificate management.
 #   - {$VITE_ROOT_DOMAIN} uses Caddy's env var syntax, equivalent to envsubst.
 #   - header_up and flush_interval are reverse_proxy subdirectives and must be
@@ -53,6 +54,9 @@
 	handle /api/* {
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -63,6 +67,9 @@
 	handle {
 		reverse_proxy {
 			dynamic a marketing 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -81,6 +88,9 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 		rewrite * /api/events{path}
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -91,6 +101,9 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 	handle /ws* {
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -103,6 +116,9 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 		rewrite * /api/public
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -114,6 +130,9 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 		rewrite * /api/public{uri}
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -131,6 +150,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /api/auth* {
 		reverse_proxy {
 			dynamic a start 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -141,6 +163,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /api/image-preview* {
 		reverse_proxy {
 			dynamic a start 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -151,6 +176,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /api/traces* {
 		reverse_proxy {
 			dynamic a start 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -161,6 +189,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /ws* {
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -172,6 +203,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /api/* {
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -182,6 +216,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle {
 		reverse_proxy {
 			dynamic a start 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -201,6 +238,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /api/auth* {
 		reverse_proxy {
 			dynamic a start 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -211,6 +251,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /api/image-preview* {
 		reverse_proxy {
 			dynamic a start 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -221,6 +264,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /api/traces* {
 		reverse_proxy {
 			dynamic a start 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -231,6 +277,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /ws* {
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -242,6 +291,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle /api/* {
 		reverse_proxy {
 			dynamic a backend 5468
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
@@ -252,6 +304,9 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 	handle {
 		reverse_proxy {
 			dynamic a start 3000
+			transport http {
+				network tcp4
+			}
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Proto "https"
