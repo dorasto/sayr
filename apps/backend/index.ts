@@ -17,6 +17,7 @@ import { renderRoute } from "./routes/render";
 import { ensureBucketExists } from "@repo/storage";
 import { getEdition } from "@repo/edition";
 import sseRoute from "./routes/events";
+import { safeGetSession } from "./getSession";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -34,7 +35,7 @@ export type AppEnv = {
 const app = new Hono<AppEnv>();
 const edition = getEdition();
 if (edition === "community" || edition === "enterprise") {
-	// ensureBucketExists();
+	ensureBucketExists();
 }
 // -----------------------------------------------------------------------------
 // CORS
@@ -85,6 +86,13 @@ app.route("/render", renderRoute);
 app.get("/api/health", (c) => c.text("OK"));
 app.get("/api/db-health", async (c) => {
 	try {
+		const session = await safeGetSession(c.req.raw.headers);
+		if (!session?.session || !session?.user?.id) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+		if (session.user.role !== "admin") {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
 		const start = Date.now();
 		await db.execute(sql`select 1`);
 		const ms = Date.now() - start;
