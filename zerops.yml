@@ -150,6 +150,7 @@ zerops:
   - setup: nginx
     build:
       base: ubuntu@24.04
+
       buildCommands:
         # Copy Caddyfile for deploy
         - cp zerops/caddy/Caddyfile Caddyfile
@@ -157,6 +158,8 @@ zerops:
         - Caddyfile
     run:
       base: ubuntu@24.04
+      envVariables:
+        VITE_ROOT_DOMAIN: "sayr.dev"
       ports:
         - port: 80
           httpSupport: true
