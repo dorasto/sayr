@@ -455,13 +455,13 @@
 
         /* ---------------- WEBSOCKET ---------------- */
 
-        if (org.wsUrl) {
-            Sayr.ws(org.wsUrl, {
-                [Sayr.WS_EVENTS.UPDATE_TASK]: (t) => {
+        if (org.eventsUrl) {
+            Sayr.sse(org.eventsUrl, {
+                [Sayr.EVENTS.UPDATE_TASK]: (t) => {
                     if (t.id === TASK_ID) renderTask(t);
                 },
 
-                [Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS]: (p) => {
+                [Sayr.EVENTS.UPDATE_TASK_COMMENTS]: (p) => {
                     if (p.id !== TASK_ID) return;
                     page = 1;
                     hasMore = true;
@@ -469,7 +469,7 @@
                     fetchComments();
                 },
 
-                [Sayr.WS_EVENTS.UPDATE_TASK_VOTE]: (p) => {
+                [Sayr.EVENTS.UPDATE_TASK_VOTE]: (p) => {
                     if (p.id !== TASK_ID) return;
                     const badge = taskMetaEl.querySelector(".badge.votes");
                     if (badge) badge.textContent = `Votes: ${p.voteCount}`;

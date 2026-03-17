@@ -318,9 +318,9 @@
          * WebSocket (SDK)
          * ---------------------------- */
 
-        if (org.wsUrl) {
-            Sayr.ws(org.wsUrl, {
-                [Sayr.WS_EVENTS.UPDATE_ORG]: (data) => {
+        if (org.eventsUrl) {
+            Sayr.sse(org.eventsUrl, {
+                [Sayr.EVENTS.UPDATE_ORG]: (data) => {
                     // If WS payload is partial, merge safely:
                     setOrgUI({
                         ...org,
@@ -328,9 +328,9 @@
                     });
                 },
 
-                [Sayr.WS_EVENTS.CREATE_TASK]: loadTasks,
-                [Sayr.WS_EVENTS.UPDATE_TASK]: loadTasks,
-                [Sayr.WS_EVENTS.UPDATE_TASK_VOTE]: loadTasks,
+                [Sayr.EVENTS.CREATE_TASK]: loadTasks,
+                [Sayr.EVENTS.UPDATE_TASK]: loadTasks,
+                [Sayr.EVENTS.UPDATE_TASK_VOTE]: loadTasks,
             });
         }
     </script>
