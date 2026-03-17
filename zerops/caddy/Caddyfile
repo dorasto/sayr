@@ -8,28 +8,14 @@
 #     cookie validation would break.
 #   - No automatic HTTPS: Zerops handles all TLS/certificate management.
 #   - {$VITE_ROOT_DOMAIN} uses Caddy's env var syntax, equivalent to envsubst.
+#   - header_up and flush_interval are reverse_proxy subdirectives and must be
+#     inlined inside each reverse_proxy block — they cannot live in snippets.
 
 {
 	# Disable automatic HTTPS — Zerops L7 balancer handles TLS
 	auto_https off
 	# Disable the Caddy admin API endpoint (not needed in production)
 	admin off
-}
-
-# ===============================
-# COMMON SNIPPETS
-# ===============================
-
-(proxy_headers) {
-	header_up Host {host}
-	header_up X-Real-IP {remote_host}
-	header_up X-Forwarded-For {remote_host}
-	# Zerops terminates TLS at the edge — hardcode https so __Secure- cookies work
-	header_up X-Forwarded-Proto "https"
-}
-
-(ws_timeouts) {
-	flush_interval -1
 }
 
 # ===============================
@@ -65,17 +51,23 @@
 
 	# Root API -> backend
 	handle /api/* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
 	# Everything else -> marketing
 	handle {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a marketing 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 }
@@ -86,39 +78,51 @@
 
 api.{$VITE_ROOT_DOMAIN}:80 {
 
-	# /events -> backend /api/events (path rewrite: strip /events, prepend /api/events)
+	# /events -> backend /api/events
 	handle /events* {
 		rewrite * /api/events{path}
-		import proxy_headers
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
-	# WebSocket -> backend (extended timeouts)
+	# WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
 	handle /ws* {
-		import proxy_headers
-		import ws_timeouts
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
+			flush_interval -1
 		}
 	}
 
 	# Root -> backend /api/public
 	handle / {
 		rewrite * /api/public
-		import proxy_headers
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
 	# Everything else -> rewrite to /api/public/*
 	handle {
 		rewrite * /api/public{uri}
-		import proxy_headers
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 }
@@ -131,50 +135,68 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 
 	# Auth API -> start
 	handle /api/auth* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a start 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
 	# Image preview -> start
 	handle /api/image-preview* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a start 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
 	# Traces -> start
 	handle /api/traces* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a start 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
-	# Admin WebSocket -> backend (extended timeouts)
+	# Admin WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
 	handle /ws* {
-		import proxy_headers
-		import ws_timeouts
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
+			flush_interval -1
 		}
 	}
 
 	# All other API -> backend
 	handle /api/* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
 	# Everything else -> start app
 	handle {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a start 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 }
@@ -189,50 +211,68 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 
 	# Auth API -> start
 	handle /api/auth* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a start 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
 	# Image preview -> start
 	handle /api/image-preview* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a start 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
 	# Traces -> start
 	handle /api/traces* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a start 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
-	# WebSocket -> backend (extended timeouts)
+	# WebSocket -> backend (flush_interval -1 enables streaming/WS passthrough)
 	handle /ws* {
-		import proxy_headers
-		import ws_timeouts
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
+			flush_interval -1
 		}
 	}
 
 	# All other API -> backend
 	handle /api/* {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a backend 5468
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 
 	# Everything else -> start
 	handle {
-		import proxy_headers
 		reverse_proxy {
 			dynamic a start 3000
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto "https"
 		}
 	}
 }
