@@ -20,18 +20,17 @@
 }
 
 # ===============================
-# HEALTH CHECK (default / IP access)
+# HEALTH CHECK
 # ===============================
-# Zerops health check hits 127.0.0.1:80/healthz — this catches requests
-# that arrive without a matching virtual host (i.e. by IP).
+# Runs on a separate port to avoid Caddy's "ambiguous site definition" error
+# when mixing a bare :80 block with named :80 virtual hosts.
+# zerops.yml healthCheck.httpGet.port must match this (8080).
 
-:80 {
+:8080 {
 	handle /healthz {
 		respond "ok" 200
 	}
-
-	# Reject everything else that doesn't match a named virtual host
-	respond 444
+	respond 404
 }
 
 # ===============================

@@ -169,5 +169,5 @@ zerops:
       start: sudo caddy run --config /var/www/Caddyfile --adapter caddyfile
       healthCheck:
         httpGet:
-          port: 80
+          port: 8080
           path: /healthz
