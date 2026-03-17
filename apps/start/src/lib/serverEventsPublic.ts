@@ -129,6 +129,7 @@ const useServerEventsPublic = ({
                 setSse(null);
                 setClientId("");
                 setStatus("Reconnecting");
+                connectInternal();
 
                 if (!toastTimerRef.current) {
                     toastTimerRef.current = setTimeout(() => {
