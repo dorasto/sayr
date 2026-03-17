@@ -142,40 +142,31 @@ zerops:
       start: bun run dist/index.js github
 
   # ===============================
-  # NGINX (subdomain-based reverse proxy)
+  # NGINX (Caddy reverse proxy — service kept as "nginx" to avoid reconfiguring domains)
   # ===============================
-  # IMPORTANT: This service must be created as "Ubuntu" type in the Zerops dashboard,
-  # NOT "Nginx Static". We need full control over the nginx process and config.
+  # IMPORTANT: This service must be created as "Ubuntu" type in the Zerops dashboard.
+  # Caddy re-resolves DNS on every request via "dynamic a" upstreams, so redeploying
+  # start/backend/marketing never requires restarting this service.
   - setup: nginx
     build:
       base: ubuntu@24.04
       buildCommands:
-        # Copy config files for deploy
-        - cp zerops/nginx/nginx.conf.template nginx.conf.template
-        - cp zerops/nginx/proxy.conf proxy.conf
+        # Copy Caddyfile for deploy
+        - cp zerops/caddy/Caddyfile Caddyfile
       deployFiles:
-        - nginx.conf.template
-        - proxy.conf
+        - Caddyfile
     run:
       base: ubuntu@24.04
       ports:
         - port: 80
           httpSupport: true
       prepareCommands:
-        # Install nginx and envsubst (from gettext-base) into the runtime
-        - sudo apt-get update && sudo apt-get install -y --no-install-recommends nginx gettext-base && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
-      initCommands:
-        # Substitute VITE_ROOT_DOMAIN into the nginx config template
-        - "envsubst '${VITE_ROOT_DOMAIN}' < /var/www/nginx.conf.template | sudo tee /etc/nginx/nginx.conf > /dev/null"
-        # Validate config before starting
-        - sudo nginx -t
-      start: sudo nginx -g 'daemon off;'
-      # nginx reload crontab disabled for testing — static upstream IPs
-      # are cached at startup; re-enable if 502s appear after redeploys.
-      # crontab:
-      #   - command: sudo nginx -s reload
-      #     timing: "* * * * *"
-      #     allContainers: true
+        # Install Caddy from the official apt repository
+        - sudo apt-get update && sudo apt-get install -y --no-install-recommends debian-keyring debian-archive-keyring apt-transport-https curl
+        - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+        - sudo apt-get update && sudo apt-get install -y caddy && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
+      start: caddy run --config /var/www/Caddyfile --adapter caddyfile
       healthCheck:
         httpGet:
           port: 80

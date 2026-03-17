@@ -1,0 +1,238 @@
+# Caddy reverse proxy config for Zerops
+#
+# Key design decisions:
+#   - "dynamic a" upstreams: Caddy re-resolves DNS on every request, so redeploying
+#     start/backend/marketing never requires restarting this service.
+#   - X-Forwarded-Proto hardcoded to "https": Zerops terminates TLS at the L7 balancer
+#     and hits this service over plain HTTP. Without this, Better Auth's __Secure-
+#     cookie validation would break.
+#   - No automatic HTTPS: Zerops handles all TLS/certificate management.
+#   - {$VITE_ROOT_DOMAIN} uses Caddy's env var syntax, equivalent to envsubst.
+
+{
+	# Disable automatic HTTPS — Zerops L7 balancer handles TLS
+	auto_https off
+	# Disable the Caddy admin API endpoint (not needed in production)
+	admin off
+}
+
+# ===============================
+# COMMON SNIPPETS
+# ===============================
+
+(proxy_headers) {
+	header_up Host {host}
+	header_up X-Real-IP {remote_host}
+	header_up X-Forwarded-For {remote_host}
+	# Zerops terminates TLS at the edge — hardcode https so __Secure- cookies work
+	header_up X-Forwarded-Proto "https"
+}
+
+(ws_timeouts) {
+	flush_interval -1
+}
+
+# ===============================
+# HEALTH CHECK (default / IP access)
+# ===============================
+# Zerops health check hits 127.0.0.1:80/healthz — this catches requests
+# that arrive without a matching virtual host (i.e. by IP).
+
+:80 {
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# Reject everything else that doesn't match a named virtual host
+	respond 444
+}
+
+# ===============================
+# ROOT DOMAIN
+# ===============================
+
+{$VITE_ROOT_DOMAIN}:80, www.{$VITE_ROOT_DOMAIN}:80 {
+
+	# Redirect /admin/* -> admin subdomain
+	handle_path /admin* {
+		redir https://admin.{$VITE_ROOT_DOMAIN}{uri} 302
+	}
+
+	# Redirect /login -> admin subdomain
+	handle /login {
+		redir https://admin.{$VITE_ROOT_DOMAIN}/login 302
+	}
+
+	# Root API -> backend
+	handle /api/* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+
+	# Everything else -> marketing
+	handle {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a marketing 3000
+		}
+	}
+}
+
+# ===============================
+# API SUBDOMAIN
+# ===============================
+
+api.{$VITE_ROOT_DOMAIN}:80 {
+
+	# /events -> backend /api/events (path rewrite: strip /events, prepend /api/events)
+	handle /events* {
+		rewrite * /api/events{path}
+		import proxy_headers
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+
+	# WebSocket -> backend (extended timeouts)
+	handle /ws* {
+		import proxy_headers
+		import ws_timeouts
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+
+	# Root -> backend /api/public
+	handle / {
+		rewrite * /api/public
+		import proxy_headers
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+
+	# Everything else -> rewrite to /api/public/*
+	handle {
+		rewrite * /api/public{uri}
+		import proxy_headers
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+}
+
+# ===============================
+# ADMIN SUBDOMAIN
+# ===============================
+
+admin.{$VITE_ROOT_DOMAIN}:80 {
+
+	# Auth API -> start
+	handle /api/auth* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a start 3000
+		}
+	}
+
+	# Image preview -> start
+	handle /api/image-preview* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a start 3000
+		}
+	}
+
+	# Traces -> start
+	handle /api/traces* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a start 3000
+		}
+	}
+
+	# Admin WebSocket -> backend (extended timeouts)
+	handle /ws* {
+		import proxy_headers
+		import ws_timeouts
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+
+	# All other API -> backend
+	handle /api/* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+
+	# Everything else -> start app
+	handle {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a start 3000
+		}
+	}
+}
+
+# ===============================
+# WILDCARD SUBDOMAINS (*.domain)
+# ===============================
+# Catches any subdomain not explicitly matched above (e.g. org slugs).
+# Named virtual hosts above take precedence over this wildcard.
+
+*.{$VITE_ROOT_DOMAIN}:80 {
+
+	# Auth API -> start
+	handle /api/auth* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a start 3000
+		}
+	}
+
+	# Image preview -> start
+	handle /api/image-preview* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a start 3000
+		}
+	}
+
+	# Traces -> start
+	handle /api/traces* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a start 3000
+		}
+	}
+
+	# WebSocket -> backend (extended timeouts)
+	handle /ws* {
+		import proxy_headers
+		import ws_timeouts
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+
+	# All other API -> backend
+	handle /api/* {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a backend 5468
+		}
+	}
+
+	# Everything else -> start
+	handle {
+		import proxy_headers
+		reverse_proxy {
+			dynamic a start 3000
+		}
+	}
+}
