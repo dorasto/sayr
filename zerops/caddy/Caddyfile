@@ -1,9 +1,11 @@
 # Caddy reverse proxy config for Zerops
 #
 # Key design decisions:
-#   - Separate named virtual host blocks per domain/subdomain: Caddy expands
-#     env-var placeholders in site addresses at startup, so named blocks like
-#     {$VITE_ROOT_DOMAIN}:80 correctly win over the bare :80 catch-all.
+#   - Named virtual host blocks WITHOUT explicit :80 suffix. Setting http_port 80
+#     in the global block makes all plain-http named blocks bind to port 80, while
+#     the bare :80 catch-all remains the only block with an explicit port. This
+#     avoids the "ambiguous site definition: :80" error that occurs when multiple
+#     blocks all carry an explicit :80 suffix.
 #   - "dynamic a" upstreams with "versions ipv4": re-resolves DNS on every request.
 #     The "versions ipv4" restriction prevents Caddy from attempting IPv6
 #     connections, which Zerops internal services do not listen on.
@@ -15,12 +17,13 @@
 {
 	auto_https off
 	admin off
+	http_port 80
 }
 
 # ===============================
 # HEALTH CHECK
 # ===============================
-# Separate port to avoid "ambiguous site definition" with the :80 blocks.
+# Separate port to avoid conflict with the :80 blocks.
 # zerops.yml healthCheck.httpGet.port must be 8080.
 
 :8080 {
@@ -34,7 +37,7 @@
 # ROOT DOMAIN  →  marketing
 # ===============================
 
-{$VITE_ROOT_DOMAIN}:80, www.{$VITE_ROOT_DOMAIN}:80 {
+{$VITE_ROOT_DOMAIN}, www.{$VITE_ROOT_DOMAIN} {
 
 	# Redirect /admin/* -> admin subdomain
 	handle_path /admin* {
@@ -75,7 +78,7 @@
 # API SUBDOMAIN  →  backend
 # ===============================
 
-api.{$VITE_ROOT_DOMAIN}:80 {
+api.{$VITE_ROOT_DOMAIN} {
 
 	# /events -> backend /api/events
 	handle /events* {
@@ -134,7 +137,7 @@ api.{$VITE_ROOT_DOMAIN}:80 {
 # ADMIN SUBDOMAIN  →  start
 # ===============================
 
-admin.{$VITE_ROOT_DOMAIN}:80 {
+admin.{$VITE_ROOT_DOMAIN} {
 
 	# Auth API -> start
 	handle /api/auth* {
@@ -213,7 +216,8 @@ admin.{$VITE_ROOT_DOMAIN}:80 {
 # ===============================
 # WILDCARD CATCH-ALL (org slugs)  →  start
 # ===============================
-# Named blocks above take priority; this catches all remaining subdomains.
+# Named blocks above are more specific and take priority.
+# This bare :80 catches all remaining subdomains (org slugs etc.)
 
 :80 {
 
