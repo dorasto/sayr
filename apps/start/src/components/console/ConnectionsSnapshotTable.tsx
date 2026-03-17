@@ -1,20 +1,30 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@repo/ui/components/table";
-import type { UserWithRole } from "better-auth/plugins";
-import type { FirehoseClient } from "./conections";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle
+} from "@repo/ui/components/card";
+import {
+	Table,
+	TableBody,
+	TableHead,
+	TableHeader,
+	TableRow
+} from "@repo/ui/components/table";
+import type { ConnectionType } from "./conections";
 import { ConnectionRow } from "./ConnectionRow";
 
 export function ConnectionsSnapshotTable({
-	snapshot,
-	accounts,
+	snapshot
 }: {
-	snapshot: FirehoseClient[];
-	accounts:
-	| { users: UserWithRole[]; total: number; limit?: number; offset?: number }
-	| { users: never[]; total: number };
+	snapshot: ConnectionType[];
 }) {
+	const sorted = snapshot
+		.slice()
+		.sort((a, b) => (b.connectedAt || 0) - (a.connectedAt || 0));
+
 	return (
 		<Card>
 			<CardHeader>
@@ -25,27 +35,25 @@ export function ConnectionsSnapshotTable({
 					<TableHeader>
 						<TableRow>
 							<TableHead>User</TableHead>
-							<TableHead>WS Client ID</TableHead>
+							<TableHead>User ID</TableHead>
+							<TableHead>SSE Client ID</TableHead>
 							<TableHead>Org</TableHead>
 							<TableHead>Channel</TableHead>
-							<TableHead>Latency</TableHead>
-							<TableHead>Last Pong</TableHead>
-							<TableHead>Last Message</TableHead>
 							<TableHead>Connected For</TableHead>
 							<TableHead>Auth</TableHead>
+							<TableHead>Ref</TableHead>
 						</TableRow>
 					</TableHeader>
-					<TableBody>
-						{snapshot
-							.slice()
-							.sort((a, b) => (b.connectedAt || 0) - (a.connectedAt || 0))
-							.map((client) => {
-								const account = accounts.users.find((e) => e.id === client.clientId) as
-									| UserWithRole
-									| undefined;
 
-								return <ConnectionRow key={client.sseClientId} client={client} account={account} />;
-							})}
+					<TableBody>
+						{sorted.map(client => {
+							return (
+								<ConnectionRow
+									key={client.sseClientId}
+									client={client}
+								/>
+							);
+						})}
 					</TableBody>
 				</Table>
 			</CardContent>

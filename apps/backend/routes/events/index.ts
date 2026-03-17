@@ -1,17 +1,26 @@
 import { Hono } from "hono";
 import { safeGetSession } from "@/getSession";
-import { safeGetOrganization } from "@/util";
+import { safeGetOrganization, traceOrgPermissionCheck } from "@/util";
 import { ServerEventBaseMessage } from "./types";
+import { auth as authSchema, db } from "@repo/database";
+import { eq, inArray } from "drizzle-orm";
+import { ensureCdnUrl } from "@repo/util";
 
 export const sseRoute = new Hono();
 
 type SSEClient = {
-    id: string;
+    id: string; // unique connection ID
     orgId: string;
     channel: string;
     send: (msg: unknown) => void;
     close: () => void;
+
     clientId: string; // logical user ID (can have multiple connections)
+    authenticated: boolean;
+    connectedAt: number; // timestamp (Date.now())
+
+    // Added fields
+    ref?: string;
 };
 
 const sseRooms = new Map<string, Set<SSEClient>>();
@@ -108,9 +117,6 @@ export function sseBroadcastByUserId(
         // must belong to that user
         if (client.clientId !== userId) continue;
 
-        // must belong to same org
-        if (client.orgId !== orgId) continue;
-
         // skip excluded client
         if (client.id === excludeClientId) continue;
 
@@ -199,7 +205,8 @@ export function findSSEClientsByUserId(userId: string): SSEClient[] {
 sseRoute.get("/", async (c) => {
     let orgId = c.req.query("orgId");
     let channel = c.req.query("channel");
-    const clientId = crypto.randomUUID();
+    let ref = c.req.query("ref");
+    const id = crypto.randomUUID();
 
     const session = await safeGetSession(c.req.raw.headers);
 
@@ -210,6 +217,9 @@ sseRoute.get("/", async (c) => {
         // public channel allowed for everyone
         channel = "public";
         authenticated = !!session?.session; // authenticated if user logged in
+        if (authenticated) {
+            channel = "user";
+        }
     } else if (orgId) {
         // Non-public channel → must be a valid org and user member
         const org = await safeGetOrganization(orgId, session?.user.id || "");
@@ -242,12 +252,12 @@ sseRoute.get("/", async (c) => {
                 sseUnsubscribe(client);
             };
 
-            const client: SSEClient = { id: clientId, orgId: orgId || "public", channel, send, close, clientId: session?.user.id || "" };
+            const client: SSEClient = { id: id, orgId: orgId || "", channel, send, close, clientId: session?.user.id || "", authenticated, connectedAt: Date.now(), ref: ref };
 
-            const key = `${orgId || "public"}:${channel}`;
+            const key = `${orgId || ""}:${channel}`;
             if (!sseRooms.has(key)) sseRooms.set(key, new Set());
             sseRooms.get(key)!.add(client);
-            clientsById.set(clientId, client);
+            clientsById.set(id, client);
 
             // heartbeat ping
             heartbeat = setInterval(() => {
@@ -266,7 +276,7 @@ sseRoute.get("/", async (c) => {
                 data: {
                     status: "connected",
                     authenticated,
-                    clientId: clientId,
+                    clientId: id,
                 },
                 meta: { ts, orgId, channel },
             });
@@ -284,4 +294,70 @@ sseRoute.get("/", async (c) => {
     });
 });
 
+sseRoute.get("/connections", async (c) => {
+    const session = await safeGetSession(c.req.raw.headers);
+
+    if (!session?.session || !session?.user?.id) {
+        return c.json({ error: "Unauthorized" }, 401);
+    }
+    if (session.user.role !== "admin") {
+        return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const userTable = authSchema.user;
+
+    const snapshot: Array<{
+        sseClientId: string;
+        clientId: string;
+        orgId: string;
+        channel: string;
+        connectedAt: number;
+        authenticated: boolean;
+        account?: {
+            name: string;
+            image: string;
+            role: string;
+        }
+        ref?: string;
+    }> = [];
+
+    const clientIds = [...new Set([...clientsById.values()].map(c => c.clientId).filter(Boolean))];
+    const usersById = new Map<string, { name: string; image: string; role: string }>();
+
+    if (clientIds.length > 0) {
+        const users = await db
+            .select({
+                id: userTable.id,
+                name: userTable.name,
+                image: userTable.image,
+                role: userTable.role
+            })
+            .from(userTable)
+            .where(inArray(userTable.id, clientIds));
+
+        for (const user of users) {
+            usersById.set(user.id, {
+                name: user.name || user.id,
+                image: ensureCdnUrl(user.image || "") || "",
+                role: user.role || ""
+            });
+        }
+    }
+
+    for (const client of clientsById.values()) {
+        const account = client.clientId ? usersById.get(client.clientId) : undefined;
+        snapshot.push({
+            sseClientId: client.id,
+            clientId: client.clientId,
+            orgId: client.orgId,
+            channel: client.channel,
+            connectedAt: client.connectedAt,
+            authenticated: client.authenticated,
+            account,
+            ref: client.ref,
+        });
+    }
+
+    return c.json({ success: true, data: snapshot });
+});
 export default sseRoute;
