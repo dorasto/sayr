@@ -2,14 +2,15 @@
 
 Public JavaScript & TypeScript SDK for **Sayr.io**.  
 Provides **read‑only access** to Sayr organizations, tasks, comments, and
-real‑time updates via WebSockets.
+real‑time updates via **SSE (Server‑Sent Events)**.
 
-- ✅ REST + WebSocket
-- ✅ Browser‑safe
-- ✅ TypeScript‑first
-- ✅ Zero runtime dependencies
-- ✅ Versioned API (`v1`)
-- ✅ Consistent `ApiResult<T>` responses
+- ✅ REST + ServerEvents  
+- ✅ Browser‑safe  
+- ✅ TypeScript‑first  
+- ✅ Zero runtime dependencies  
+- ✅ Versioned API (`v1`)  
+- ✅ Consistent `ApiResult<T>` responses  
+- ✅ Real‑time public updates via **SSE**
 
 > React hooks are available via the **`@sayrio/public/react`** sub‑path export.
 
@@ -21,7 +22,7 @@ real‑time updates via WebSockets.
 npm install @sayrio/public
 ```
 
-or
+or:
 
 ```bash
 pnpm add @sayrio/public
@@ -68,7 +69,7 @@ if (!res.success) {
 console.log(res.data.name);
 ```
 
-You can also use the versioned API explicitly:
+Explicit versioned API:
 
 ```ts
 const res = await Sayr.v1.org.get("acme");
@@ -189,15 +190,11 @@ authenticated user.
 > Authentication is required  
 > Set a token using `Sayr.client.setToken(...)`.
 
----
-
 ### Set Token
 
 ```ts
 Sayr.client.setToken("********");
 ```
-
----
 
 ### Fetch Current User
 
@@ -208,8 +205,6 @@ if (res.success) {
   console.log(res.data.email);
 }
 ```
-
----
 
 ### List Your Organizations
 
@@ -223,22 +218,22 @@ if (res.success) {
 
 ---
 
-## Real‑Time Updates (WebSocket)
+# Real‑Time Updates (SSE)
 
-Subscribe to public real‑time events using WebSockets:
+Subscribe to public real‑time events using **Server‑Sent Events**:
 
 ```ts
-Sayr.ws(org.wsUrl, {
-  [Sayr.WS_EVENTS.UPDATE_TASK]: (data) => {
+Sayr.sse(org.eventsUrl, {
+  [Sayr.EVENTS.UPDATE_TASK]: (data) => {
     console.log("Task updated", data);
   },
 });
 ```
 
-### WebSocket Features
+### SSE Features
 
-- Automatic reconnection
-- Heartbeat support (PING / PONG)
+- Automatic reconnection (native in browsers)
+- Lightweight, one‑way streaming
 - Typed event constants
 - Public‑safe payloads only
 
@@ -255,18 +250,23 @@ Sayr.ws(org.wsUrl, {
   if (res.success) {
     console.log(res.data);
   }
+
+  // SSE Example
+  Sayr.sse("https://example.com/events", {
+    UPDATE_TASK: (data) => console.log("Task updated", data),
+  });
 </script>
 ```
 
 ---
 
-## API Overview
+# API Overview
 
-### `Sayr.org` (latest)
+## `Sayr.org` (latest)
 
 Alias for `Sayr.v1.org`.
 
-#### Organization
+### Organization
 
 | Method      | Description                 |
 | ----------- | --------------------------- |
@@ -274,7 +274,7 @@ Alias for `Sayr.v1.org`.
 
 ---
 
-#### Tasks
+### Tasks
 
 | Method                     | Description            |
 | -------------------------- | ---------------------- |
@@ -283,7 +283,7 @@ Alias for `Sayr.v1.org`.
 
 ---
 
-#### Comments
+### Comments
 
 | Method                                | Description              |
 | ------------------------------------- | ------------------------ |
@@ -291,7 +291,7 @@ Alias for `Sayr.v1.org`.
 
 ---
 
-#### Labels
+### Labels
 
 | Method              | Description              |
 | ------------------- | ------------------------ |
@@ -299,7 +299,7 @@ Alias for `Sayr.v1.org`.
 
 ---
 
-#### Categories
+### Categories
 
 | Method                          | Description     |
 | ------------------------------- | --------------- |
@@ -307,7 +307,7 @@ Alias for `Sayr.v1.org`.
 
 ---
 
-### `Sayr.me`
+## `Sayr.me`
 
 Authenticated user endpoints.
 
@@ -318,12 +318,14 @@ Authenticated user endpoints.
 
 ---
 
-### `Sayr.ws(url, handlers)`
+# Real‑Time API
 
-Create a WebSocket connection for public events:
+## `Sayr.sse(url, handlers)`
+
+Create an SSE connection for public events:
 
 ```ts
-const conn = Sayr.ws(wsUrl, {
+const conn = Sayr.sse(eventsUrl, {
   UPDATE_TASK: () => {},
 });
 
@@ -332,15 +334,15 @@ conn.close();
 
 ---
 
-### `WS_EVENTS`
+## `EVENTS`
 
-Typed WebSocket event constants:
+Typed SSE event constants:
 
 ```ts
-Sayr.WS_EVENTS.CREATE_TASK;
-Sayr.WS_EVENTS.UPDATE_TASK;
-Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS;
-Sayr.WS_EVENTS.ERROR;
+Sayr.EVENTS.CREATE_TASK;
+Sayr.EVENTS.UPDATE_TASK;
+Sayr.EVENTS.UPDATE_TASK_COMMENTS;
+Sayr.EVENTS.ERROR;
 ```
 
 ---
@@ -375,5 +377,3 @@ import {
 ```
 
 See **`@sayrio/public/react` README** for full hook documentation.
-
----

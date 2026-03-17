@@ -8,6 +8,8 @@ import v1 from "./api/v1";
 ──────────────────────────── */
 import { ws } from "./ws";
 import { WS_EVENTS } from "./ws/types";
+import { sse } from "./events";
+import { ServerEvent_EVENTS } from "./events/types";
 
 /* ────────────────────────────
    Client config
@@ -35,12 +37,12 @@ export const SayrV1 = v1;
 /**
  * Create a WebSocket connection for public real‑time updates.
  */
-export const SayrWS = ws;
+export const SayrSSE = sse;
 
 /**
  * Typed WebSocket event constants.
  */
-export const SayrWSEvents = WS_EVENTS;
+export const SayrServerEvents = ServerEvent_EVENTS;
 
 /**
  * Global client configuration helpers.
@@ -86,12 +88,12 @@ const Sayr: {
    /**
     * WebSocket helper for real‑time updates.
     */
-   ws: typeof ws;
+   sse: typeof sse;
 
    /**
     * WebSocket event constants.
     */
-   WS_EVENTS: typeof WS_EVENTS;
+   EVENTS: typeof ServerEvent_EVENTS;
 } = {
    // client configuration
    client: SayrClient,
@@ -102,8 +104,8 @@ const Sayr: {
    me: v1.me,
 
    // realtime
-   ws,
-   WS_EVENTS
+   sse,
+   EVENTS: ServerEvent_EVENTS
 };
 
 export default Sayr;
@@ -113,4 +115,5 @@ export default Sayr;
 ──────────────────────────── */
 export * from "./types";
 export * from "./shared";
-export * from "./ws/types";
+// export * from "./ws/types";
+export * from "./events/types";

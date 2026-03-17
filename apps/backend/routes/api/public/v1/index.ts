@@ -98,7 +98,7 @@ const OrganizationSchema = createSelectSchema(schema.organization)
 	.extend({
 		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-		eventUrl: z.string(),
+		eventsUrl: z.string(),
 		members: z.array(OrganizationMemberSchema),
 	});
 apiPublicRouteV1.get(
@@ -171,7 +171,7 @@ apiPublicRouteV1.get(
 			successResponse({
 				...publicOrg,
 				members: sanitizedMembers,
-				eventUrl: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/events?orgId=${publicOrg.id}&ref=publicApi`,
+				eventsUrl: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/events?orgId=${publicOrg.id}&ref=publicApi`,
 			})
 		);
 	}
@@ -992,7 +992,7 @@ apiPublicRouteV1.get(
 								createdAt: member.user.createdAt,
 							},
 						})),
-						eventUrl: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/events?orgId=${publicOrg.id}&ref=publicApi`,
+						eventsUrl: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/events?orgId=${publicOrg.id}&ref=publicApi`,
 					};
 				})
 			)

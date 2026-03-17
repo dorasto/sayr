@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Task } from "../types";
-import { useSayrWS } from "./useSayrWS";
+import { useSayrSSE } from "./useSayrSSE";
 import Sayr from "..";
 
-export function useTasks(
-    slug?: string,
-    wsUrl?: string,
-) {
+export function useTasks(slug?: string, eventsUrl?: string) {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -43,15 +40,16 @@ export function useTasks(
         fetchTasks();
     }, [fetchTasks]);
 
-    useSayrWS(wsUrl, {
-        [Sayr.WS_EVENTS.CREATE_TASK]: fetchTasks,
-        [Sayr.WS_EVENTS.UPDATE_TASK]: fetchTasks,
+    // SSE instead of WebSockets
+    useSayrSSE(eventsUrl, {
+        [Sayr.EVENTS.CREATE_TASK]: fetchTasks,
+        [Sayr.EVENTS.UPDATE_TASK]: fetchTasks
     });
 
     return {
         tasks,
         loading,
         error,
-        refetch: fetchTasks,
+        refetch: fetchTasks
     };
 }

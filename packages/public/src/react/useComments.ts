@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Comment } from "../types";
-import { useSayrWS } from "./useSayrWS";
+import { useSayrSSE } from "./useSayrSSE";
 import Sayr from "..";
 
 export function useComments(
     slug?: string,
     shortId?: number,
-    wsUrl?: string,
+    eventsUrl?: string
 ) {
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(false);
@@ -26,10 +26,7 @@ export function useComments(
         setLoading(true);
         setError(null);
 
-        const res = await Sayr.org.comments.list(
-            slug,
-            shortId,
-        );
+        const res = await Sayr.org.comments.list(slug, shortId);
 
         if (!mountedRef.current) return;
 
@@ -47,14 +44,15 @@ export function useComments(
         fetchComments();
     }, [fetchComments]);
 
-    useSayrWS(wsUrl, {
-        [Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS]: fetchComments,
+    // SSE instead of WebSockets
+    useSayrSSE(eventsUrl, {
+        [Sayr.EVENTS.UPDATE_TASK_COMMENTS]: fetchComments
     });
 
     return {
         comments,
         loading,
         error,
-        refetch: fetchComments,
+        refetch: fetchComments
     };
 }
