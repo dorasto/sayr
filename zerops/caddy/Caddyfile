@@ -81,8 +81,8 @@ http://{$VITE_ROOT_DOMAIN}, http://www.{$VITE_ROOT_DOMAIN} {
 http://api.{$VITE_ROOT_DOMAIN} {
 
 	# /events -> backend /api/events
-	handle /events* {
-		rewrite * /api/events{path}
+	handle /events {
+		rewrite * /api/events
 		reverse_proxy {
 			dynamic a backend 5468 {
 				versions ipv4
@@ -94,7 +94,7 @@ http://api.{$VITE_ROOT_DOMAIN} {
 	}
 
 	# WebSocket
-	handle /ws* {
+	handle /ws {
 		reverse_proxy {
 			dynamic a backend 5468 {
 				versions ipv4
