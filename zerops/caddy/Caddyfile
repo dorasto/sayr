@@ -37,7 +37,7 @@
 # ROOT DOMAIN  →  marketing
 # ===============================
 
-{$VITE_ROOT_DOMAIN}, www.{$VITE_ROOT_DOMAIN} {
+http://{$VITE_ROOT_DOMAIN}, http://www.{$VITE_ROOT_DOMAIN} {
 
 	# Redirect /admin/* -> admin subdomain
 	handle_path /admin* {
@@ -78,7 +78,7 @@
 # API SUBDOMAIN  →  backend
 # ===============================
 
-api.{$VITE_ROOT_DOMAIN} {
+http://api.{$VITE_ROOT_DOMAIN} {
 
 	# /events -> backend /api/events
 	handle /events* {
@@ -137,7 +137,7 @@ api.{$VITE_ROOT_DOMAIN} {
 # ADMIN SUBDOMAIN  →  start
 # ===============================
 
-admin.{$VITE_ROOT_DOMAIN} {
+http://admin.{$VITE_ROOT_DOMAIN} {
 
 	# Auth API -> start
 	handle /api/auth* {
