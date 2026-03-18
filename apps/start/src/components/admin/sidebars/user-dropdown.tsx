@@ -18,7 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { IconUserCog } from "@tabler/icons-react";
+import {
+  IconNotification,
+  IconSettings,
+  IconUserCog,
+} from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import {
   Bell,
@@ -89,37 +93,30 @@ export default function UserDropdown() {
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuGroup>
               <Link to={"/settings"} className="w-full">
                 <DropdownMenuItem>
-                  <IconUserCog />
+                  <IconSettings />
                   Account settings
                 </DropdownMenuItem>
               </Link>
             </DropdownMenuGroup>
             <DropdownMenuGroup>
-              {editionRaw === "cloud" && (
+              <Link to={"/inbox"} className="w-full">
                 <DropdownMenuItem>
-                  <CreditCard />
-                  Billing
-                </DropdownMenuItem>
-              )}
-              <Link to={"/mine"} search={{ tab: "inbox" }} className="w-full">
-                <DropdownMenuItem>
-                  <Bell />
+                  <IconNotification />
                   Notifications
                 </DropdownMenuItem>
               </Link>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
               {theme === "dark" ? <Sun /> : <Moon />}
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={async () => {
                 await authClient.signOut();
