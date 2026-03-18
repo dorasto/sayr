@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@repo/ui/components/button";
 import { SidebarContext } from "@repo/ui/components/doras-ui/sidebar";
 import { Label } from "@repo/ui/components/label";
@@ -48,7 +46,7 @@ interface Props {
   className?: string;
 }
 export function Wrapper({ children, className }: Props) {
-	const { isTaskPage, isReleasePage } = useAdminRoute();
+  const { isTaskPage, isReleasePage } = useAdminRoute();
   const isMobile = useIsMobile();
 
   return (
@@ -62,7 +60,7 @@ export function Wrapper({ children, className }: Props) {
         <div
           className={cn(
             "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent",
-						(isTaskPage || isReleasePage) && "pt-0 pr-0",
+            (isTaskPage || isReleasePage) && "pt-0 pr-0",
             isMobile && "p-0",
             className,
           )}
@@ -115,7 +113,7 @@ export function SubWrapper({
           className={cn(
             "",
             blur
-              ? "sticky top-0 z-50 w-full md:h-7 backdrop-blur bg-linear-to-b from-background from-5% via-background/30 via-30% to-background/0 flex items-center px-3 pt-3"
+              ? "sticky top-0 z-50 w-full md:h-7 bg-linear-to-b from-background from-5% via-background/80 via-30% to-background/0 flex items-center px-3 pt-3"
               : "",
           )}
         >
