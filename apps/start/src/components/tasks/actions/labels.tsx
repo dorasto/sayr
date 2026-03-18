@@ -48,7 +48,7 @@ export function getLabelUpdatePayload(
 	task: schema.TaskWithLabels,
 	labelId: string,
 	orgLabels: schema.labelType[],
-	wsClientId: string,
+	sseClientId: string,
 ): MultiFieldUpdatePayload {
 	const currentLabelIds = new Set((task.labels || []).map((l) => l.id));
 	const isActive = currentLabelIds.has(labelId);
@@ -66,7 +66,7 @@ export function getLabelUpdatePayload(
 	return {
 		kind: "multi",
 		actionId: "update-task-labels",
-		apiFn: () => updateLabelToTaskAction(task.organizationId, task.id, newLabelIds, wsClientId),
+		apiFn: () => updateLabelToTaskAction(task.organizationId, task.id, newLabelIds, sseClientId),
 		optimisticTask: { ...task, labels: newLabels },
 		toastMessages: {
 			loading: { title: "Updating labels..." },
@@ -93,14 +93,14 @@ export function getLabelBulkUpdatePayload(
 	task: schema.TaskWithLabels,
 	values: string[],
 	availableLabels: schema.labelType[],
-	wsClientId: string,
+	sseClientId: string,
 ): MultiFieldUpdatePayload {
 	const newLabels = availableLabels.filter((label) => values.includes(label.id));
 
 	return {
 		kind: "multi",
 		actionId: "update-task-labels",
-		apiFn: () => updateLabelToTaskAction(task.organizationId, task.id, values, wsClientId),
+		apiFn: () => updateLabelToTaskAction(task.organizationId, task.id, values, sseClientId),
 		optimisticTask: {
 			...task,
 			labels: newLabels,

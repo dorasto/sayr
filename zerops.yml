@@ -1,0 +1,176 @@
+# see https://docs.zerops.io/zerops-yml/specification for full reference
+zerops:
+  # ===============================
+  # MARKETING (Astro SSR)
+  # ===============================
+  - setup: marketing
+    build:
+      base: nodejs@20
+      buildCommands:
+        - pnpm i
+        - pnpm -F marketing build
+      deployFiles:
+        - apps/marketing/dist
+        - apps/marketing/package.json
+        - apps/marketing/node_modules
+        - node_modules
+    run:
+      base: nodejs@20
+      ports:
+        - port: 3000
+          httpSupport: true
+      envVariables:
+        PORT: 3000
+        HOST: 0.0.0.0
+      start: node apps/marketing/dist/server/entry.mjs
+
+  # ===============================
+  # BACKEND (Hono on Bun)
+  # ===============================
+  - setup: backend
+    build:
+      base: nodejs@22
+      os: ubuntu
+      prepareCommands:
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
+        # Use corepack for pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
+      buildCommands:
+        - pnpm i
+        - pnpm -F backend zerops:build
+      deployFiles:
+        # compiled backend bundle -> dist/
+        - apps/backend/~dist
+        # migration runner (compiled standalone JS) -> migrate.js
+        - packages/database/~migrate.js
+        # SQL migration files -> drizzle/
+        - packages/database/~drizzle
+        # startup script -> start.sh
+        - apps/backend/~start.sh
+        # package.json -> package.json
+        - apps/backend/~package.json
+        # workspace node_modules (resolved deps)
+        - node_modules
+    run:
+      base: nodejs@22
+      os: ubuntu
+      ports:
+        - port: 5468
+          httpSupport: true
+      prepareCommands:
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
+      initCommands:
+        # jsdom's bundled code resolves __dirname to the build-time path
+        # (/build/source/node_modules/...) for its CSS assets. Create a symlink
+        # so those paths resolve at runtime where node_modules actually lives.
+        - sudo mkdir -p /build/source && sudo ln -sf /var/www/node_modules /build/source/node_modules
+      start: chmod +x start.sh && sh start.sh
+      healthCheck:
+        httpGet:
+          port: 5468
+          path: /api/health
+
+  # ===============================
+  # START (TanStack Start / Node SSR)
+  # ===============================
+  - setup: start
+    build:
+      base: nodejs@22
+      envVariables:
+        NODE_OPTIONS: --max-old-space-size=8192
+        # These VITE_* / define vars are baked into the bundle at build time (see vite.config.ts)
+        APP_ENV: production
+        SAYR_EDITION: cloud
+      prepareCommands:
+        # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
+      buildCommands:
+        - pnpm i
+        - pnpm -F start zerops:build
+      deployFiles:
+        # Strip apps/start/ prefix so .output/ lands at container root
+        - apps/start/~.output
+        - apps/start/~package.json
+        # Startup script: placeholder replacement + Nitro manifest size patching
+        - apps/start/~zerops-start.sh
+        - node_modules
+    run:
+      base: nodejs@22
+      ports:
+        - port: 3000
+          httpSupport: true
+      initCommands:
+        # Run placeholder replacement + Nitro asset manifest size patching
+        - chmod +x zerops-start.sh && sh zerops-start.sh
+      start: node .output/server/index.mjs
+
+  # ===============================
+  # WORKER (Bun background job processor)
+  # ===============================
+  - setup: worker
+    build:
+      base: nodejs@22
+      os: ubuntu
+      prepareCommands:
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
+        # Use corepack for pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
+      buildCommands:
+        - pnpm i
+        - pnpm -F worker zerops:build
+      deployFiles:
+        # Strip apps/worker/ prefix so dist/ lands at container root
+        - apps/worker/~dist
+        - apps/worker/~package.json
+        - node_modules
+    run:
+      base: nodejs@22
+      os: ubuntu
+      ports:
+        - port: 8080
+          httpSupport: true
+      prepareCommands:
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
+      healthCheck:
+        httpGet:
+          port: 8080
+          path: /
+      start: bun run dist/index.js github
+
+  # ===============================
+  # NGINX (Caddy reverse proxy — service kept as "nginx" to avoid reconfiguring domains)
+  # ===============================
+  # IMPORTANT: This service must be created as "Ubuntu" type in the Zerops dashboard.
+  # Caddy re-resolves DNS on every request via "dynamic a" upstreams, so redeploying
+  # start/backend/marketing never requires restarting this service.
+  - setup: nginx
+    build:
+      base: ubuntu@24.04
+
+      buildCommands:
+        # Copy Caddyfile for deploy
+        - cp zerops/caddy/Caddyfile Caddyfile
+      deployFiles:
+        - Caddyfile
+    run:
+      base: ubuntu@24.04
+      envVariables:
+        VITE_ROOT_DOMAIN: "sayr.io"
+      ports:
+        - port: 80
+          httpSupport: true
+      prepareCommands:
+        # Install Caddy from the official apt repository
+        - sudo apt-get update && sudo apt-get install -y --no-install-recommends debian-keyring debian-archive-keyring apt-transport-https curl
+        - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+        - sudo apt-get update && sudo apt-get install -y caddy && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
+      start: sudo -E caddy run --config /var/www/Caddyfile --adapter caddyfile
+      healthCheck:
+        httpGet:
+          port: 8080
+          path: /healthz

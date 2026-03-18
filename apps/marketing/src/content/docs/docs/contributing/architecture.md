@@ -182,7 +182,7 @@ import { generateSlug, formatDate, ensureCdnUrl } from "@repo/util";
    └─► apps/backend /ws (upgradeWebSocket)
 
 2. Server accepts connection
-   ├─► Generate wsClientId (unique per connection)
+   ├─► Generate sseClientId (unique per connection)
    ├─► Create connection metadata entry (wsClients)
    │     ├─► connectedAt
    │     ├─► heartbeat state (lastPing / lastPong / latency)
@@ -194,7 +194,7 @@ import { generateSlug, formatDate, ensureCdnUrl } from "@repo/util";
 3. Server sends connection status
    └─► CONNECTION_STATUS
        ├─► authenticated: true | false
-       └─► wsClientId
+       └─► sseClientId
 
 4. Initial server‑side subscription (best‑effort)
    ├─► If `orgId` query param is present

@@ -12,8 +12,8 @@ import { ensureCdnUrl } from "@repo/util";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { broadcastByUserId } from "../../../ws";
 import type { WSBaseMessage } from "@/routes/ws/types";
+import { sseBroadcastByUserId } from "@/routes/events";
 
 export const apiRouteAdminNotification = new Hono<AppEnv>();
 
@@ -102,7 +102,7 @@ apiRouteAdminNotification.patch("/:id/read", async (c) => {
 	}
 
 	// Broadcast to user's other tabs/sessions
-	broadcastByUserId(session.userId, "", "", {
+	sseBroadcastByUserId(session.userId, "", "", {
 		type: "NOTIFICATION_READ" as WSBaseMessage["type"],
 		data: { id: notificationId },
 		meta: { ts: Date.now() },
@@ -133,7 +133,7 @@ apiRouteAdminNotification.patch("/read-all", async (c) => {
 	);
 
 	// Broadcast to user's other tabs/sessions
-	broadcastByUserId(session.userId, "", "", {
+	sseBroadcastByUserId(session.userId, "", "", {
 		type: "NOTIFICATION_READ" as WSBaseMessage["type"],
 		data: { all: true, organizationId },
 		meta: { ts: Date.now() },
@@ -164,7 +164,7 @@ apiRouteAdminNotification.patch("/read-by-task/:taskId", async (c) => {
 
 	if (markedCount > 0) {
 		// Broadcast to user's other tabs/sessions
-		broadcastByUserId(session.userId, "", "", {
+		sseBroadcastByUserId(session.userId, "", "", {
 			type: "NOTIFICATION_READ" as WSBaseMessage["type"],
 			data: { taskId, count: markedCount },
 			meta: { ts: Date.now() },
@@ -226,7 +226,7 @@ apiRouteAdminNotification.patch("/:id/unread", async (c) => {
 	}
 
 	// Broadcast to user's other tabs/sessions
-	broadcastByUserId(session.userId, "", "", {
+	sseBroadcastByUserId(session.userId, "", "", {
 		type: "NOTIFICATION_UNREAD" as WSBaseMessage["type"],
 		data: { id: notificationId },
 		meta: { ts: Date.now() },

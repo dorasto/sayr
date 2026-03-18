@@ -5,21 +5,21 @@ import { IconUser } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import {
 	useWSMessageHandler,
 	type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { Separator } from "@repo/ui/components/separator";
 import { TaskFilterDropdown } from "@/components/tasks/filter";
 import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 
 export default function MyTasksPage() {
 	const queryClient = useQueryClient();
 	queryClient.removeQueries({ queryKey: ["organization"] });
-	const { ws, account } = useLayoutData();
+	const { serverEvents, account } = useLayoutData();
 	const {
 		tasks,
 		setTasks,
@@ -31,7 +31,7 @@ export default function MyTasksPage() {
 		permissionsByOrg,
 	} = useMyTasks();
 
-	useWebSocketSubscription({ ws });
+	useServerEventsSubscription({ serverEvents });
 
 	// Get unique organizations from tasks for WS handlers
 	const organizations = useMemo(() => {
@@ -61,9 +61,9 @@ export default function MyTasksPage() {
 		return Array.from(userMap.values()) as unknown as schema.userType[];
 	}, [tasks]);
 
-	// --- WebSocket Handlers ---
+	// --- SSE Handlers ---
 
-	const handlers: WSMessageHandler<WSMessage> = {
+	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_TASK: (msg) => {
 			const org = organizations.find((e) => e.id === msg.data.organizationId);
 
@@ -90,8 +90,8 @@ export default function MyTasksPage() {
 			if (isUserInList) {
 				newTasks = taskExists
 					? tasks.map((task) =>
-							task.id === updatedTask.id ? updatedTask : task,
-						)
+						task.id === updatedTask.id ? updatedTask : task,
+					)
 					: [...tasks, updatedTask];
 			} else {
 				newTasks = tasks.filter((task) => task.id !== updatedTask.id);
@@ -181,15 +181,15 @@ export default function MyTasksPage() {
 		},
 	};
 
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {});
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 
 	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleMessage);
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
 		return () => {
-			ws.removeEventListener("message", handleMessage);
+			serverEvents.event?.removeEventListener("message", handleMessage);
 		};
-	}, [ws, handleMessage]);
+	}, [serverEvents.event, handleMessage]);
 
 	return (
 		<div className="relative flex flex-col h-full max-h-full overflow-hidden">
@@ -199,17 +199,17 @@ export default function MyTasksPage() {
 					title="My Tasks"
 				/>
 				<PageHeader.Toolbar
-			left={
-				<>
-					<TaskFilterDropdown
-							tasks={tasks}
-							labels={labels}
-							availableUsers={availableUsers}
-							categories={categories}
-							releases={releases}
-						/>
-					</>
-				}
+					left={
+						<>
+							<TaskFilterDropdown
+								tasks={tasks}
+								labels={labels}
+								availableUsers={availableUsers}
+								categories={categories}
+								releases={releases}
+							/>
+						</>
+					}
 					right={
 						<>
 							<Separator orientation="vertical" className="h-5" />
@@ -218,18 +218,18 @@ export default function MyTasksPage() {
 					}
 				/>
 			</PageHeader>
-		<UnifiedTaskView
-			tasks={tasks}
-			setTasks={setTasks}
-			ws={ws}
-			availableUsers={availableUsers}
-			availableLabels={labels}
-			categories={categories}
-			releases={releases}
-			personal
-			permissionsByOrg={permissionsByOrg}
-			accountId={account.id}
-		/>
+			<UnifiedTaskView
+				tasks={tasks}
+				setTasks={setTasks}
+				serverEvents={serverEvents}
+				availableUsers={availableUsers}
+				availableLabels={labels}
+				categories={categories}
+				releases={releases}
+				personal
+				permissionsByOrg={permissionsByOrg}
+				accountId={account.id}
+			/>
 		</div>
 	);
 }

@@ -62,7 +62,7 @@ export function getRelationUpdatePayload(
 	targetTaskId: string,
 	type: RelationType,
 	tasks: schema.TaskWithLabels[],
-	wsClientId: string,
+	sseClientId: string,
 ): RelationFieldUpdatePayload {
 	const targetTask = tasks.find((t) => t.id === targetTaskId);
 	const shortIdLabel = targetTask ? `#${targetTask.shortId}` : targetTaskId;
@@ -70,7 +70,7 @@ export function getRelationUpdatePayload(
 	return {
 		kind: "relation",
 		actionId: "add-relation",
-		apiFn: () => createTaskRelationAction(task.organizationId, task.id, targetTaskId, type, wsClientId),
+		apiFn: () => createTaskRelationAction(task.organizationId, task.id, targetTaskId, type, sseClientId),
 		toastMessages: {
 			loading: { title: "Adding relation..." },
 			success: { title: "Relation added", description: `${type} ${shortIdLabel}` },

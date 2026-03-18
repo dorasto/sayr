@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { BlockedUsersSheet } from "./blocked-users";
 
 export default function Preferences() {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { organization, setOrganization } = useLayoutOrganizationSettings();
 
   /** Merged settings — existing orgs without a `settings` column get safe defaults. */
@@ -77,7 +77,7 @@ export default function Preferences() {
             description: organization.description || undefined,
             settings: updatedSettings,
           },
-          wsClientId,
+          sseClientId,
         );
 
         if (result.success) {
@@ -106,7 +106,7 @@ export default function Preferences() {
         headlessToast.error({ title: "Failed to update preference" });
       }
     },
-    [organization, settings, wsClientId, setOrganization],
+    [organization, settings, sseClientId, setOrganization],
   );
 
   const handleFieldToggle = useCallback(
@@ -135,7 +135,7 @@ export default function Preferences() {
             description: organization.description || undefined,
             settings: updatedSettings,
           },
-          wsClientId,
+          sseClientId,
         );
 
         if (result.success) {
@@ -162,7 +162,7 @@ export default function Preferences() {
         headlessToast.error({ title: "Failed to update preference" });
       }
     },
-    [organization, settings, wsClientId, setOrganization],
+    [organization, settings, sseClientId, setOrganization],
   );
 
   const publicActionsDisabled = !settings.publicActions;

@@ -1,4 +1,3 @@
-"use client";
 import {
   Sidebar,
   SidebarContent,
@@ -95,7 +94,7 @@ export function PrimarySidebar() {
             })}
             {!isMobile && (
               <SidebarMenuItem
-                className="min-w-0 min-h-auto max-w-fit size-7! aspect-square!"
+                className="min-w-0 min-h-auto max-w-fit size-7! aspect-square! m-auto"
                 hideWhenCollapsed
               >
                 <SidebarMenuButton
@@ -103,7 +102,21 @@ export function PrimarySidebar() {
                   tooltip={"Search"}
                   icon={<IconSearch className="size-4!" />}
                   onClick={() => commandActions.open()}
-                  className="h-7! w-7! flex items-center justify-center"
+                  className="aspect-square! flex items-center justify-center"
+                />
+              </SidebarMenuItem>
+            )}
+            {!isMobile && (
+              <SidebarMenuItem
+                className="min-w-0 min-h-auto max-w-fit size-7! aspect-square! m-auto text-primary! transition-all"
+                hideWhenCollapsed
+              >
+                <SidebarMenuButton
+                  size="small"
+                  tooltip={"Create"}
+                  icon={<IconPlus className="size-4!" />}
+                  onClick={() => commandActions.openCreateTaskDialog()}
+                  className="aspect-square! flex items-center justify-center transition-all"
                 />
               </SidebarMenuItem>
             )}

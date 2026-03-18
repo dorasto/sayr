@@ -154,5 +154,6 @@ headlessToast.info = (options: Omit<HeadlessToastOptions, "variant">) =>
   headlessToast({ variant: "info", ...options });
 headlessToast.loading = (options: Omit<HeadlessToastOptions, "variant">) =>
   headlessToast({ variant: "loading", ...options });
+headlessToast.dismiss = (id?: string | number) => sonnerToast.dismiss(id);
 
 export type { HeadlessToastOptions as ToastOptions };

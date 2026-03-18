@@ -1,11 +1,11 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useContext, useEffect } from "react";
-import useWebSocketPublic from "@/lib/wsPublic";
+import useServerEventsPublic from "@/lib/serverEventsPublic";
 
 interface ContextType {
 	organization: schema.OrganizationWithMembers;
-	ws: WebSocket | null;
+	serverEvents: ReturnType<typeof useServerEventsPublic>;
 	setOrganization: (newVaule: ContextType["organization"]) => void;
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: ContextType["tasks"]) => void;
@@ -35,7 +35,10 @@ export function PublicOrganizationProvider({
 	const { value: NewTasks, setValue: setTasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", []);
 	const { value: NewLabels, setValue: setLabels } = useStateManagement("labels", labels);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories);
-	const ws = useWebSocketPublic({ organization, setOrganization });
+	const serverEvents = useServerEventsPublic({
+		organization,
+		setOrganization
+	});
 
 	useEffect(() => setLabels(labels), [labels, setLabels]);
 	useEffect(() => setCategories(categories), [categories, setCategories]);
@@ -44,7 +47,7 @@ export function PublicOrganizationProvider({
 		<RootContext.Provider
 			value={{
 				organization: NewOrganization,
-				ws,
+				serverEvents,
 				setOrganization,
 				tasks: NewTasks,
 				setTasks,

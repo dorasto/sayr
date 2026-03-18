@@ -3,19 +3,21 @@ initTracing(`sayr-backend`);
 import type { auth } from "@repo/auth/index";
 import { db, schema } from "@repo/database";
 import { CronJob } from "cron";
-import { lt } from "drizzle-orm";
+import { lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { apiRoute } from "./routes/api";
 import { webhookRoute } from "./routes/webhook";
-import { wsRoute } from "./routes/ws";
+// import { wsRoute } from "./routes/ws";
 import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
 import { rootSpanPlugin } from "@/tracing/index";
 import { renderRoute } from "./routes/render";
 import { ensureBucketExists } from "@repo/storage";
 import { getEdition } from "@repo/edition";
+import sseRoute from "./routes/events";
+import { safeGetSession } from "./getSession";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -77,10 +79,29 @@ app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? 
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
-app.route("/ws", wsRoute);
+// app.route("/ws", wsRoute);
+app.route("/api/events", sseRoute)
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.route("/render", renderRoute);
 app.get("/api/health", (c) => c.text("OK"));
+app.get("/api/db-health", async (c) => {
+	try {
+		const session = await safeGetSession(c.req.raw.headers);
+		if (!session?.session || !session?.user?.id) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+		if (session.user.role !== "admin") {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+		const start = Date.now();
+		await db.execute(sql`select 1`);
+		const ms = Date.now() - start;
+		return c.json({ ok: true, ms });
+	} catch (err) {
+		console.error("DB health check failed:", err);
+		return c.json({ ok: false, error: String(err) }, 500);
+	}
+});
 app.use("*", rootSpanPlugin());
 app.use("*", wideEventMiddleware());
 app.route("/api/webhook", webhookRoute);

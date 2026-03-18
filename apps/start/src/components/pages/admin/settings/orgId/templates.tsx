@@ -5,13 +5,13 @@ import { PlanLimitBanner } from "@/components/generic/PlanLimitBanner";
 import CreateIssueTemplate from "@/components/organization/create-issue-template";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { usePlanLimitsFromData } from "@/hooks/usePlanLimits";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { useEffect } from "react";
 
 export default function SettingsOrganizationTemplatesPage() {
-	const { ws } = useLayoutData();
+	const { serverEvents } = useLayoutData();
 	const { organization, setOrganization, setIssueTemplates, issueTemplates, labels, categories, releases, views } =
 		useLayoutOrganizationSettings();
 
@@ -26,30 +26,29 @@ export default function SettingsOrganizationTemplatesPage() {
 	const templatesOverLimit = isOverLimit("issueTemplates");
 	const templateLimitMessage = getLimitMessage("issueTemplates");
 
-	useWebSocketSubscription({
-		ws,
+	useServerEventsSubscription({
+		serverEvents,
 		orgId: organization.id,
 		organization: organization,
 		channel: "admin",
 		setOrganization: setOrganization,
 	});
-	const handlers: WSMessageHandler<WSMessage> = {
+	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_ISSUE_TEMPLATES: (msg) => {
 			if (msg.scope === "CHANNEL") {
 				setIssueTemplates(msg.data);
 			}
 		},
 	};
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE SettingsOrganizationTemplatesPage]", msg),
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
 	});
 	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleMessage);
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
 		return () => {
-			ws.removeEventListener("message", handleMessage);
+			serverEvents.event?.removeEventListener("message", handleMessage);
 		};
-	}, [ws, handleMessage]);
+	}, [serverEvents.event, handleMessage]);
 	if (!organization) {
 		return null;
 	}

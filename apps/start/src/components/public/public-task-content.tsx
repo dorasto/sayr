@@ -55,7 +55,7 @@ import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { PublicComments } from "./public-comments";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
@@ -73,10 +73,10 @@ const baseApiUrl =
 export function PublicTaskContent({
   task: initialTask,
 }: PublicTaskContentProps) {
-  const { organization, categories, ws } = usePublicOrganizationLayout();
+  const { organization, categories, serverEvents } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   // const { stuck, stickyRef } = useSticky();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { data: session } = authClient.useSession();
 
   // Check if the logged-in user is a member of this organization
@@ -162,7 +162,7 @@ export function PublicTaskContent({
     setLocalVoteCount(isVoted ? localVoteCount - 1 : localVoteCount + 1);
 
     try {
-      await CreateTaskVoteAction(organization.id, task.id, wsClientId);
+      await CreateTaskVoteAction(organization.id, task.id, sseClientId);
     } catch (error) {
       console.error(error);
       headlessToast.error({
@@ -174,8 +174,8 @@ export function PublicTaskContent({
     }
   };
 
-  // WebSocket handlers for real-time updates on this task
-  const handlers: WSMessageHandler<WSMessage> = {
+  // SSE handlers for real-time updates on this task
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     UPDATE_TASK: (msg) => {
       if (
         msg.scope === "PUBLIC" &&
@@ -196,6 +196,7 @@ export function PublicTaskContent({
       }
     },
     UPDATE_TASK_COMMENTS: (msg) => {
+      console.log("🚀 ~ PublicTaskContent ~ msg:", msg)
       if (
         msg.scope === "PUBLIC" &&
         msg.meta?.orgId === organization.id &&
@@ -207,18 +208,18 @@ export function PublicTaskContent({
       }
     },
   };
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers);
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
   useEffect(() => {
     const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
-      if (msg.type === "WS_RECONNECTED") {
-        console.log("🟢 Global WS reconnected — refreshing data");
+      if (msg.type === "SSE_RECONNECTED") {
+        console.log("🟢 Global SSE reconnected — refreshing data");
         queryClient.invalidateQueries({
           queryKey: ["public-comments", task.id, task.organizationId],
         });
@@ -232,7 +233,7 @@ export function PublicTaskContent({
       <div className="md:col-span-1">
         <div
           className="flex flex-col gap-3 w-full sticky top-0 pt-3 self-start"
-          // ref={stickyRef}
+        // ref={stickyRef}
         >
           {/* Back button and member actions */}
           <div className="flex items-center gap-1 w-full justify-between">

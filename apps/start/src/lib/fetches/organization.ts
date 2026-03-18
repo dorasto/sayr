@@ -67,6 +67,7 @@ export interface OrdersResponse {
 export interface CreateOrganizationData {
 	name: string;
 	slug: string;
+	shortId?: string;
 	description?: string;
 }
 
@@ -113,13 +114,13 @@ export async function createOrganizationAction(data: CreateOrganizationData): Pr
  *
  * @param organizationId - The ID of the organization to update.
  * @param data - The properties of the organization to update.
- * @param wsClientId - The WebSocket client ID (used to push broadcast updates).
+ * @param sseClientId - The ServerEvent client ID (used to push broadcast updates).
  * @returns A promise resolving to the update result.
  */
 export async function updateOrganizationAction(
 	organizationId: string,
 	data: UpdateOrganizationData,
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.organizationType;
@@ -130,7 +131,7 @@ export async function updateOrganizationAction(
 		method: "POST",
 		body: JSON.stringify({
 			org_id: organizationId,
-			wsClientId,
+			sseClientId,
 			data: data,
 		}),
 		headers: {
@@ -435,7 +436,7 @@ export async function unassignOrganizationMemberSeatAction(
  *
  * @param organizationId - The ID of the organization the labels belong to.
  * @param data - The label properties (name, color, visible).
- * @param wsClientId - The WebSocket client ID (for broadcasting updates).
+ * @param sseClientId - The ServerEvent client ID (for broadcasting updates).
  */
 export async function createLabelAction(
 	organizationId: string,
@@ -444,14 +445,14 @@ export async function createLabelAction(
 		color: string;
 		visible?: "public" | "private";
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		name: data.name,
 		color: data.color,
 		visible: data.visible,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/create-label`, {
@@ -477,7 +478,7 @@ export async function createLabelAction(
  *
  * @param organizationId - The ID of the organization the labels belong to.
  * @param data - The label properties to update (id, name, color, visible).
- * @param wsClientId - The WebSocket client ID (for broadcasting updates).
+ * @param sseClientId - The ServerEvent client ID (for broadcasting updates).
  */
 export async function editLabelAction(
 	organizationId: string,
@@ -487,7 +488,7 @@ export async function editLabelAction(
 		color: string;
 		visible?: "public" | "private";
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -495,7 +496,7 @@ export async function editLabelAction(
 		name: data.name,
 		color: data.color,
 		visible: data.visible,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/edit-label`, {
@@ -521,19 +522,19 @@ export async function editLabelAction(
  *
  * @param organizationId - The ID of the organization the labels belong to.
  * @param data - The label properties for deletion (id).
- * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @param sseClientId - The ServerEvent client ID (for pushing changes).
  */
 export async function deleteLabelAction(
 	organizationId: string,
 	data: {
 		id: string;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.labelType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		id: data.id,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/delete-label`, {
@@ -559,7 +560,7 @@ export async function deleteLabelAction(
  *
  * @param organizationId - The ID of the organization the views belong to.
  * @param data - The view properties (name, slug, logo, value, viewConfig).
- * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @param sseClientId - The ServerEvent client ID (for pushing changes).
  */
 export async function createSavedViewAction(
 	organizationId: string,
@@ -570,7 +571,7 @@ export async function createSavedViewAction(
 		value?: string;
 		viewConfig: schema.savedViewType["viewConfig"];
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -579,7 +580,7 @@ export async function createSavedViewAction(
 		logo: data.logo,
 		value: data.value,
 		viewConfig: data.viewConfig,
-		wsClientId,
+		sseClientId,
 	};
 	const result = await fetch(`${API_URL}/v1/admin/organization/create-view`, {
 		method: "POST",
@@ -604,7 +605,7 @@ export async function createSavedViewAction(
  *
  * @param organizationId - The ID of the organization the views belong to.
  * @param data - The view properties to update.
- * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @param sseClientId - The ServerEvent client ID (for pushing changes).
  */
 export async function updateSavedViewAction(
 	organizationId: string,
@@ -616,7 +617,7 @@ export async function updateSavedViewAction(
 		value?: string;
 		viewConfig?: schema.savedViewType["viewConfig"];
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -626,7 +627,7 @@ export async function updateSavedViewAction(
 		logo: data.logo,
 		value: data.value,
 		viewConfig: data.viewConfig,
-		wsClientId,
+		sseClientId,
 	};
 	const result = await fetch(`${API_URL}/v1/admin/organization/update-view`, {
 		method: "PATCH",
@@ -651,19 +652,19 @@ export async function updateSavedViewAction(
  *
  * @param organizationId - The ID of the organization the views belong to.
  * @param data - The view properties for deletion (id).
- * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @param sseClientId - The ServerEvent client ID (for pushing changes).
  */
 export async function deleteSavedViewAction(
 	organizationId: string,
 	data: {
 		id: string;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.savedViewType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		id: data.id,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/delete-view`, {
@@ -689,7 +690,7 @@ export async function deleteSavedViewAction(
  *
  * @param organizationId - The ID of the organization the categories belong to.
  * @param data - The category properties (name, color, icon).
- * @param wsClientId - The WebSocket client ID (for broadcasting updates).
+ * @param sseClientId - The ServerEvent client ID (for broadcasting updates).
  */
 export async function createCategoryAction(
 	organizationId: string,
@@ -698,14 +699,14 @@ export async function createCategoryAction(
 		color: string;
 		icon: string;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		name: data.name,
 		color: data.color,
 		icon: data.icon,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/create-category`, {
@@ -731,7 +732,7 @@ export async function createCategoryAction(
  *
  * @param organizationId - The ID of the organization the categories belong to.
  * @param data - The category properties to update (id, name, color, icon).
- * @param wsClientId - The WebSocket client ID (used for pushing updates).
+ * @param sseClientId - The ServerEvent client ID (used for pushing updates).
  */
 export async function editCategoryAction(
 	organizationId: string,
@@ -741,7 +742,7 @@ export async function editCategoryAction(
 		color: string;
 		icon: string;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
@@ -749,7 +750,7 @@ export async function editCategoryAction(
 		name: data.name,
 		color: data.color,
 		icon: data.icon,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/edit-category`, {
@@ -775,19 +776,19 @@ export async function editCategoryAction(
  *
  * @param organizationId - The ID of the organization the categories belong to.
  * @param data - The category properties for deletion (id).
- * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @param sseClientId - The ServerEvent client ID (for pushing changes).
  */
 export async function deleteCategoryAction(
 	organizationId: string,
 	data: {
 		id: string;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{ success: boolean; data: schema.categoryType[]; error?: string }> {
 	const payload = {
 		org_id: organizationId,
 		id: data.id,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/delete-category`, {
@@ -1354,7 +1355,7 @@ export async function removeOrganizationMemberFromTeamAction(
  *
  * @param organizationId - The ID of the organization the templates belong to.
  * @param data - The template properties.
- * @param wsClientId - The WebSocket client ID (for broadcasting updates).
+ * @param sseClientId - The ServerEvent client ID (for broadcasting updates).
  */
 export async function createIssueTemplateAction(
 	organizationId: string,
@@ -1370,7 +1371,7 @@ export async function createIssueTemplateAction(
 		releaseId?: string;
 		visible?: "public" | "private";
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.issueTemplateWithRelations[];
@@ -1388,7 +1389,7 @@ export async function createIssueTemplateAction(
 		assigneeIds: data.assigneeIds,
 		releaseId: data.releaseId,
 		visible: data.visible,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/create-issue-template`, {
@@ -1414,7 +1415,7 @@ export async function createIssueTemplateAction(
  *
  * @param organizationId - The ID of the organization the templates belong to.
  * @param data - The template properties to update.
- * @param wsClientId - The WebSocket client ID (for broadcasting updates).
+ * @param sseClientId - The ServerEvent client ID (for broadcasting updates).
  */
 export async function editIssueTemplateAction(
 	organizationId: string,
@@ -1431,7 +1432,7 @@ export async function editIssueTemplateAction(
 		releaseId?: string;
 		visible?: "public" | "private";
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.issueTemplateWithRelations[];
@@ -1450,7 +1451,7 @@ export async function editIssueTemplateAction(
 		assigneeIds: data.assigneeIds,
 		releaseId: data.releaseId,
 		visible: data.visible,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/edit-issue-template`, {
@@ -1476,14 +1477,14 @@ export async function editIssueTemplateAction(
  *
  * @param organizationId - The ID of the organization the templates belong to.
  * @param data - The template properties for deletion (id).
- * @param wsClientId - The WebSocket client ID (for pushing changes).
+ * @param sseClientId - The ServerEvent client ID (for pushing changes).
  */
 export async function deleteIssueTemplateAction(
 	organizationId: string,
 	data: {
 		id: string;
 	},
-	wsClientId: string
+	sseClientId: string
 ): Promise<{
 	success: boolean;
 	data: schema.issueTemplateWithRelations[];
@@ -1492,7 +1493,7 @@ export async function deleteIssueTemplateAction(
 	const payload = {
 		org_id: organizationId,
 		id: data.id,
-		wsClientId,
+		sseClientId,
 	};
 
 	const result = await fetch(`${API_URL}/v1/admin/organization/delete-issue-template`, {

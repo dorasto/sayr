@@ -1,60 +1,105 @@
 "use client";
-import type { UserWithRole } from "better-auth/plugins";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { ConnectionsSnapshotTable } from "./ConnectionsSnapshotTable";
-import { useLayoutData } from "../generic/Context";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
-import type { FirehoseClient, WSMessage } from "@/lib/ws";
-import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { Button } from "@repo/ui/components/button";
 
-interface Props {
-	accounts:
-		| { users: UserWithRole[]; total: number; limit?: number; offset?: number }
-		| { users: never[]; total: number };
-}
-
-export default function AdminConnectionsPage({ accounts }: Props) {
-	const { account, ws } = useLayoutData();
-	useWebSocketSubscription({
-		orgId: "__ADMIN__",
-		channel: "__CONNECTIONS__",
-		ws,
-	});
-	const [snapshot, setSnapshot] = useState<FirehoseClient[]>([]);
-
-	const handlers: WSMessageHandler<WSMessage> = {
-		CONNECTIONS_SNAPSHOT: (msg) => {
-			setSnapshot(msg.data);
-		},
+export type ConnectionType = {
+	sseClientId: string;
+	clientId: string;
+	orgId: string;
+	channel: string;
+	connectedAt: number;
+	authenticated: boolean;
+	account?: {
+		name: string;
+		image: string;
+		role: string;
 	};
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers);
+	ref?: string;
+};
 
-	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleMessage);
-		return () => ws.removeEventListener("message", handleMessage);
-	}, [ws, handleMessage]);
-	// 🕒 Every 90 s send a "ping" or heartbeat
-	useEffect(() => {
-		if (!ws) return;
+const API_URL =
+	import.meta.env.VITE_APP_ENV === "development"
+		? "/backend-api"
+		: "/api";
 
-		const sendHeartbeat = () => {
-			if (ws.readyState === WebSocket.OPEN) {
-				const message = JSON.stringify({
-					type: "CONNECTIONS_SNAPSHOT",
-				});
-				ws.send(message);
-				console.log("📡 Sent admin heartbeat");
+export default function AdminConnectionsPage() {
+	const [snapshot, setSnapshot] = useState<ConnectionType[]>([]);
+	const [refreshIn, setRefreshIn] = useState(60);
+	const refreshInterval = 60; // seconds
+
+	async function getConnections() {
+		try {
+			const response = await fetch(`${API_URL}/events/connections`, {
+				method: "GET",
+				credentials: "include"
+			});
+
+			if (!response.ok) {
+				const error =
+					(await response.json().catch(() => null)) || {
+						error: "Failed to fetch connections"
+					};
+				throw new Error(error.error || "Failed to fetch connections");
 			}
-		};
-		const interval = setInterval(sendHeartbeat, 90_000);
-		return () => clearInterval(interval);
-	}, [ws]);
+
+			const result = await response.json();
+			return { success: true, data: result.data as ConnectionType[] };
+		} catch (error) {
+			console.error("getConnections error:", error);
+			return {
+				success: false,
+				data: [] as ConnectionType[],
+				error: (error as Error).message
+			};
+		}
+	}
+
+	// Load immediately on first render
+	const refreshNow = () => {
+		getConnections().then(res => {
+			if (res.success) setSnapshot(res.data);
+		});
+		setRefreshIn(refreshInterval);
+	};
+
+	useEffect(() => {
+		refreshNow();
+	}, []);
+
+	// Countdown + auto-refresh every 60s
+	useEffect(() => {
+		const id = setInterval(() => {
+			setRefreshIn(prev => {
+				if (prev <= 1) {
+					refreshNow();
+					return refreshInterval;
+				}
+				return prev - 1;
+			});
+		}, 1000);
+
+		return () => clearInterval(id);
+	}, []);
 
 	return (
 		<div className="space-y-4">
-			<h1 className="text-2xl font-bold">👋 Welcome, {account.name}</h1>
-			<ConnectionsSnapshotTable snapshot={snapshot} accounts={accounts} />
+			<div className="flex items-center justify-end">
+				<div className="flex items-center gap-3">
+					<span className="text-sm text-muted-foreground">
+						Refreshing in {refreshIn}s
+					</span>
+
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={refreshNow}
+					>
+						Refresh now
+					</Button>
+				</div>
+			</div>
+			<ConnectionsSnapshotTable snapshot={snapshot} />
 		</div>
 	);
 }

@@ -18,6 +18,8 @@ const useWebSocket = () => {
 	const { setValue: setWSClientId } = useStateManagement<string>("ws-clientId", "");
 	const disconnectTimeRef = useRef<number | null>(null);
 	const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional empty deps — setWSStatus/setWSClientId are now stable useCallback refs; effect must only run once on mount
 	useEffect(() => {
 		const abortController = new AbortController();
 		const connectWebSocket = () => {
@@ -31,6 +33,11 @@ const useWebSocket = () => {
 			webSocket.onopen = () => {
 				// console.info("WebSocket connection established");
 				lastMessageTimestamp = Date.now();
+				// Cancel any pending "connection failure" toast
+				if (toastTimerRef.current) {
+					clearTimeout(toastTimerRef.current);
+					toastTimerRef.current = null;
+				}
 				setWs(webSocket);
 			};
 				webSocket.addEventListener(
@@ -40,21 +47,20 @@ const useWebSocket = () => {
 						try {
 							const data: WSMessage = JSON.parse(event.data);
 							switch (data.type) {
-								case "CONNECTION_STATUS":
-								if (data.data.authenticated) {
-									setWSStatus("Connected");
-									setWSClientId(data.data.wsClientId);
-									// console.info("WebSocket authenticated", {
-									// 	wsClientId: data.data.wsClientId,
-									// });
-										// ✅ After reconnect — broadcast if stable for 2 sec
-										if (disconnectTimeRef.current !== null) {
-											if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-											reconnectTimerRef.current = setTimeout(() => {
-												sendWindowMessage(window, { type: "WS_RECONNECTED" }, "*");
-												disconnectTimeRef.current = null;
-											}, 2000);
-										}
+							case "CONNECTION_STATUS":
+							if (data.data.authenticated) {
+								setWSStatus("Connected");
+								setWSClientId(data.data.wsClientId);
+								// Dismiss any lingering connection failure toast on successful auth
+								headlessToast.dismiss("ws-connection-status");
+								// ✅ After reconnect — broadcast if stable for 2 sec
+									if (disconnectTimeRef.current !== null) {
+										if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+										reconnectTimerRef.current = setTimeout(() => {
+											sendWindowMessage(window, { type: "WS_RECONNECTED" }, "*");
+											disconnectTimeRef.current = null;
+										}, 2000);
+									}
 								} else {
 									webSocket?.close();
 									webSocket = null;
@@ -106,50 +112,41 @@ const useWebSocket = () => {
 					},
 					{ signal: abortController.signal }
 				);
-			webSocket.onclose = (event) => {
-				webSocket = null;
-				// console.info("WebSocket disconnected", {
-				// 	code: event.code,
-				// 	reason: event.reason,
-				// 	wasClean: event.wasClean,
-				// });
-				disconnectTimeRef.current = Date.now();
-					setWs(null);
-					setWSClientId("");
-					setWSStatus("Reconnecting");
+		webSocket.onclose = () => {
+			webSocket = null;
+			disconnectTimeRef.current = Date.now();
+				setWs(null);
+				setWSClientId("");
+				setWSStatus("Reconnecting");
+				// Delay the error toast — cancel if reconnection succeeds within 5s
+				if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+				toastTimerRef.current = setTimeout(() => {
+					toastTimerRef.current = null;
 					headlessToast.error({
 						id: "ws-connection-status",
 						title: "Connection failure",
 						description: "There appears to be a connection problem. ",
-						duration: Infinity, // Make it persistent
+						duration: Infinity,
 						action: {
 							label: "Reload",
 							onClick: () => window.location.reload(),
 						},
 					});
-					connectWebSocket();
-				};
+				}, 5000);
+				connectWebSocket();
+			};
 
-			webSocket.onerror = (error) => {
-				// console.error("WebSocket error", { error });
-				if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-						webSocket.close();
-					}
-					webSocket = null;
-					setWs(null);
-					setWSClientId("");
-					setWSStatus("Disconnected");
-					headlessToast.error({
-						id: "ws-connection-status",
-						title: "Connection failure",
-						description: "There appears to be a connection problem. ",
-						action: {
-							label: "Reload",
-							onClick: () => window.location.reload(),
-						},
-						duration: Infinity, // Make it persistent
-					});
-				};
+		webSocket.onerror = () => {
+			// console.error("WebSocket error", { error });
+			if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+					webSocket.close();
+				}
+				webSocket = null;
+				setWs(null);
+				setWSClientId("");
+				setWSStatus("Disconnected");
+				// onclose always fires after onerror — toast is handled there with a delay
+			};
 			}
 		};
 
@@ -157,11 +154,11 @@ const useWebSocket = () => {
 			connectWebSocket();
 		}, 100);
 
-		// Watchdog interval: Check every 5s if we haven't received a message in 45s
+		// Watchdog interval: Check every 5s if we haven't received a message in 25s
 		const watchdogInterval = setInterval(() => {
 			if (webSocket && webSocket.readyState === WebSocket.OPEN) {
 				const timeSinceLastMessage = Date.now() - lastMessageTimestamp;
-				if (timeSinceLastMessage > 45000) {
+				if (timeSinceLastMessage > 25000) {
 					// console.warn(`⚠️ No messages for ${timeSinceLastMessage}ms. Force closing.`);
 					// log.warn("WebSocket watchdog timeout", { timeSinceLastMessage });
 					webSocket.close(4000, "Watchdog timeout");
@@ -186,12 +183,13 @@ const useWebSocket = () => {
 			// console.log("Clearing WebSocket on unmount.");
 			clearTimeout(timeoutId);
 			clearInterval(watchdogInterval);
+			if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
 			window.removeEventListener("online", handleOnline);
 			window.removeEventListener("offline", handleOffline);
 			webSocket?.close();
 			abortController.abort();
 		};
-	}, [setWSStatus, setWSClientId]);
+	}, []);
 	return ws;
 };
 

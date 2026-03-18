@@ -1,55 +1,80 @@
 import { drizzle } from "drizzle-orm/postgres-js";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 // Import schemas
 import * as auth from "../schema/auth";
 import * as schema from "../schema/index";
 
-// const connectionString = process.env.DATABASE_URL;
-// // Create Postgres client
-// export const client = postgres(connectionString || "", {
-// 	connect_timeout: 100, // fail fast on bad conn
-// 	idle_timeout: 20, // recycle idle conn
-// 	max: 10, // max pool connections
-// });
-
-// // Merge schemas into one object
-// export const db = drizzle(client, {
-// 	schema: {
-// 		...auth,
-// 		...schema,
-// 	},
-// });
-
-// --- Types ---
+// --- Combined schema ---
 export const combinedSchema = {
 	...auth,
 	...schema,
 };
 
-// --- Global shared types ---
-type DrizzleClient = ReturnType<typeof drizzle<typeof combinedSchema>>;
 type PostgresClient = ReturnType<typeof postgres>;
+type DrizzleClient = PostgresJsDatabase<typeof combinedSchema>;
 
 // --- Global declaration (TS) ---
 declare global {
 	// eslint-disable-next-line no-var
-	var _db: DrizzleClient | undefined;
-	// eslint-disable-next-line no-var
 	var _pgClient: PostgresClient | undefined;
+	// eslint-disable-next-line no-var
+	var _db: DrizzleClient | undefined;
 }
 
+// Make this file a module so `declare global` works
+export { };
+
+const g = globalThis as typeof globalThis & {
+	_pgClient?: PostgresClient;
+	_db?: DrizzleClient;
+};
+
 // --- Create or reuse client ---
-if (!global._pgClient) {
-	global._pgClient = postgres(process.env.DATABASE_URL || "", {
+if (!g._pgClient) {
+	console.log("[db] Creating new Postgres client");
+
+	g._pgClient = postgres(process.env.DATABASE_URL || "", {
 		connect_timeout: 100,
 		idle_timeout: 20,
 		max: 20,
+		prepare: false, // required for PgBouncer transaction-pooling mode
+
+		onnotice: (notice) => {
+			console.warn("[db:notice]", notice);
+		},
 	});
-}
-if (!global._db) {
-	global._db = drizzle(global._pgClient, { schema: combinedSchema });
+
+	// Optional: test connection once and log errors
+	const client = g._pgClient!;
+
+	(async () => {
+		try {
+			console.log("[db] Testing database connection...");
+			await client`select 1 as ok`;
+			console.log("[db] Database connection OK");
+		} catch (err) {
+			console.error("[db] Error during initial DB connection:", err);
+		}
+	})().catch((err) => {
+		console.error("[db] Unexpected error in DB init:", err);
+	});
+} else {
+	console.log("[db] Reusing existing Postgres client");
 }
 
-export const db = global._db;
-export const client = global._pgClient;
+if (!g._db) {
+	console.log("[db] Creating Drizzle client");
+	g._db = drizzle(g._pgClient, {
+		schema: combinedSchema,
+	}) as DrizzleClient;
+} else {
+	console.log("[db] Reusing existing Drizzle client");
+}
+
+// --- Exports ---
+export const client = g._pgClient!;
+export const db = g._db!;
+
+export type { DrizzleClient, PostgresClient as PgClient };

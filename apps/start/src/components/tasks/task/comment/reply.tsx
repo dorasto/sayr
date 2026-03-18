@@ -49,7 +49,7 @@ export function CommentReplyInput({
 }: CommentReplyInputProps) {
   const queryClient = useQueryClient();
   const { account } = useLayoutData();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
   const [content, setContent] = useState<undefined | NodeJSON>(undefined);
   const [editorKey, setEditorKey] = useState(0);
@@ -97,7 +97,7 @@ export function CommentReplyInput({
           parentComment.taskId ?? "",
           updatedContent,
           parentComment.visibility,
-          wsClientId,
+          sseClientId,
           parentComment.id,
         ),
     );

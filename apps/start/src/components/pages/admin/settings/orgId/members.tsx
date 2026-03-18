@@ -62,7 +62,7 @@ import {
 import { useMemo, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
   addOrganizationMemberToTeamAction,
   deleteOrganizationMemberAction,
@@ -78,10 +78,10 @@ export default function SettingsOrganizationPageMembers({
   invites: schema.inviteType[];
   teams: schema.OrganizationTeamType[];
 }) {
-  const { ws, account } = useLayoutData();
+  const { serverEvents, account } = useLayoutData();
   const { organization, setOrganization } = useLayoutOrganizationSettings();
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",

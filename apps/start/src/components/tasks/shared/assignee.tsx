@@ -68,14 +68,14 @@ export default function GlobalTaskAssignees({
 	compact = false,
 	maxCompactAvatars = 3,
 }: GlobalTaskAssigneesProps) {
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
 	const { execute } = useTaskFieldAction(
 		task,
 		tasks,
-		setSelectedTask ?? (() => {}),
-		setTasks ?? (() => {}),
-		wsClientId,
+		setSelectedTask ?? (() => { }),
+		setTasks ?? (() => { }),
+		sseClientId,
 	);
 
 	// Get current selected assignee IDs
@@ -83,7 +83,7 @@ export default function GlobalTaskAssignees({
 
 	const handleAssigneesChange = (values: string[]) => {
 		onChange?.(values);
-		execute(getAssigneeBulkUpdatePayload(task, values, availableUsers, wsClientId));
+		execute(getAssigneeBulkUpdatePayload(task, values, availableUsers, sseClientId));
 	};
 
 	// Build options from the action system

@@ -5,9 +5,9 @@ React bindings for the **Sayr Public SDK**.
 These hooks provide a thin, idiomatic React layer on top of
 `@sayrio/public`, handling:
 
-- loading & error state
-- automatic cleanup
-- real‑time updates via WebSockets
+- loading & error state  
+- automatic cleanup  
+- real‑time updates via **SSE (Server‑Sent Events)**
 
 > The core SDK is framework‑agnostic.  
 > These hooks are **optional helpers** for React applications.
@@ -22,7 +22,7 @@ Install the core SDK (React hooks are included):
 npm install @sayrio/public
 ```
 
-or
+or:
 
 ```bash
 pnpm add @sayrio/public
@@ -45,6 +45,8 @@ All hooks are **read‑only** and safe to use in the browser.
 ---
 
 ## Hooks
+
+---
 
 ### `useOrg(slug)`
 
@@ -75,18 +77,16 @@ function OrgHeader() {
 
 ---
 
-### `useTasks(slug, wsUrl?)`
+### `useTasks(slug, eventsUrl?)`
 
-Fetches and subscribes to tasks for an organization.
-
-If a WebSocket URL is provided, the hook will automatically
-refresh when relevant events occur.
+Fetches tasks for an organization and subscribes to
+real‑time updates if an SSE `eventsUrl` is provided.
 
 ```tsx
 import { useTasks } from "@sayrio/public/react";
 
-function TaskList({ slug, wsUrl }) {
-  const { data: tasks, loading } = useTasks(slug, wsUrl);
+function TaskList({ slug, eventsUrl }) {
+  const { data: tasks, loading } = useTasks(slug, eventsUrl);
 
   if (loading) return <span>Loading…</span>;
 
@@ -112,18 +112,18 @@ function TaskList({ slug, wsUrl }) {
 
 ---
 
-### `useComments(slug, shortId, wsUrl?)`
+### `useComments(slug, shortId, eventsUrl?)`
 
 Fetches and subscribes to comments for a specific task.
 
 ```tsx
 import { useComments } from "@sayrio/public/react";
 
-function Comments({ slug, task, wsUrl }) {
+function Comments({ slug, task, eventsUrl }) {
   const { data: comments, loading } = useComments(
     slug,
     task.shortId,
-    wsUrl
+    eventsUrl
   );
 
   if (loading) return <span>Loading…</span>;
@@ -150,15 +150,15 @@ function Comments({ slug, task, wsUrl }) {
 
 ---
 
-## Real‑Time Updates
+## Real‑Time Updates (SSE)
 
-When a `wsUrl` is provided:
+When an `eventsUrl` is provided:
 
-- hooks automatically open a WebSocket connection
+- hooks automatically open an **SSE connection**
 - relevant events trigger a refresh
 - connections are cleaned up on unmount
 
-You do **not** need to manually manage WebSockets.
+You do **not** need to manually manage SSE.
 
 ---
 
@@ -199,9 +199,9 @@ import type {
 
 ## When *not* to use these hooks
 
-- You need SSR / SSG
-- You use TanStack Query or SWR
-- You want full cache control
+- You need SSR / SSG  
+- You use TanStack Query or SWR  
+- You want full cache control  
 
 In those cases, use the core SDK:
 

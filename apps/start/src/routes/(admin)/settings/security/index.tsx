@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutData } from "@/components/generic/Context";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
 	Tile,
 	TileAction,
@@ -100,9 +100,9 @@ export const Route = createFileRoute("/(admin)/settings/security/")({
 
 function RouteComponent() {
 	const { email, backupCodes } = Route.useLoaderData();
-	const { ws, account } = useLayoutData();
+	const { serverEvents, account } = useLayoutData();
 	const { data: session } = authClient.useSession();
-	useWebSocketSubscription({ ws });
+	useServerEventsSubscription({ serverEvents });
 
 	const [twoFactorEnabled, setTwoFactorEnabled] = useState(account.twoFactorEnabled || false);
 	const hasCredential = !!email;

@@ -1,8 +1,8 @@
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { WSMessage } from "@/lib/ws";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { IconSettings, IconStack2 } from "@tabler/icons-react";
@@ -10,18 +10,18 @@ import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 export default function SettingsOrganizationViewsPage() {
-	const { ws } = useLayoutData();
+	const { serverEvents } = useLayoutData();
 	const { organization, setOrganization, views, setViews } = useLayoutOrganizationSettings();
 
-	useWebSocketSubscription({
-		ws,
+	useServerEventsSubscription({
+		serverEvents,
 		orgId: organization.id,
 		organization: organization,
 		channel: "admin",
 		setOrganization: setOrganization,
 	});
 
-	const handlers: WSMessageHandler<WSMessage> = {
+	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_VIEWS: (msg) => {
 			if (msg.scope === "CHANNEL") {
 				setViews(msg.data);
@@ -29,17 +29,16 @@ export default function SettingsOrganizationViewsPage() {
 		},
 	};
 
-	const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
-		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE SettingsOrganizationViewsPage]", msg),
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
 	});
 
 	useEffect(() => {
-		if (!ws) return;
-		ws.addEventListener("message", handleMessage);
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
 		return () => {
-			ws.removeEventListener("message", handleMessage);
+			serverEvents.event?.removeEventListener("message", handleMessage);
 		};
-	}, [ws, handleMessage]);
+	}, [serverEvents.event, handleMessage]);
 
 	if (!organization) {
 		return null;

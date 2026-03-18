@@ -31,7 +31,7 @@ export function TaskEditCommentContent({
 	onFinish,
 	onCancel,
 }: TaskEditCommentContentProps) {
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { runWithToast, isFetching } = useToastAction();
 
 	// Preload editor with current comment content + visibility
@@ -74,7 +74,7 @@ export function TaskEditCommentContent({
 			},
 			// Your custom action to update the comment — similar to CreateTaskCommentAction
 			() =>
-				UpdateTaskCommentAction(task.organizationId, task.id, comment.id, processed, comment.visibility, wsClientId)
+				UpdateTaskCommentAction(task.organizationId, task.id, comment.id, processed, comment.visibility, sseClientId)
 		);
 		if (data?.success && data.data && task && task.id === data.data.id) {
 			setEditorKey((prev) => prev + 1);

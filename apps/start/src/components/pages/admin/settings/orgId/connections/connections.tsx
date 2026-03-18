@@ -10,7 +10,6 @@ import { IconCircleFilled, IconPlus } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { connections } from "./connections-data";
 import {
   Tooltip,
@@ -18,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
 import { Label } from "@repo/ui/components/label";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 interface ConnectionsPageProps {
   connectionStatus?: Record<string, { connected: boolean; detail?: string }>;
@@ -26,10 +26,10 @@ interface ConnectionsPageProps {
 export default function SettingsOrganizationConnectionsPage({
   connectionStatus,
 }: ConnectionsPageProps) {
-  const { ws } = useLayoutData();
+  const { serverEvents } = useLayoutData();
   const { organization, setOrganization } = useLayoutOrganizationSettings();
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",
@@ -44,7 +44,10 @@ export default function SettingsOrganizationConnectionsPage({
         const status = connectionStatus?.[connection.id];
         return (
           <Link
-            to={`/settings/org/${organization.id}/connections/${connection.id}`}
+            to={`/settings/org/$orgId/connections/github`}
+            params={{
+              orgId: organization.id
+            }}
             key={connection.id}
             className="h-full w-full"
           >

@@ -82,7 +82,7 @@ function InlineCreateLabelForm({
   searchValue: string;
   onCreated: (newLabels: schema.labelType[]) => void;
 }) {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
 
   const [name, setName] = useState(searchValue);
@@ -119,7 +119,7 @@ function InlineCreateLabelForm({
             color: color.hsla,
             visible,
           },
-          wsClientId,
+          sseClientId,
         ),
     );
 
@@ -229,7 +229,7 @@ export default function GlobalTaskLabels({
   setTasks,
   setSelectedTask,
 }: GlobalTaskLabelsProps) {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
   // Get current selected label IDs
   const currentLabelIds = task.labels?.map((label) => label.id) || [];
@@ -238,15 +238,15 @@ export default function GlobalTaskLabels({
   const { execute } = useTaskFieldAction(
     task,
     tasks,
-    setSelectedTask ?? (() => {}),
-    setTasks ?? (() => {}),
-    wsClientId,
+    setSelectedTask ?? (() => { }),
+    setTasks ?? (() => { }),
+    sseClientId,
   );
 
   const handleLabelsChange = (values: string[]) => {
     onLabelsChange?.(values);
     execute(
-      getLabelBulkUpdatePayload(task, values, availableLabels, wsClientId),
+      getLabelBulkUpdatePayload(task, values, availableLabels, sseClientId),
     );
   };
 

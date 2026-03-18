@@ -578,6 +578,9 @@ wsRoute.get(
 				lastMessageAt: 0,
 				offenceCount: 0,
 			});
+			// Schedule first ping after one interval
+			const wsClientMeta = wsClients.get(ws.raw)!;
+			wsClientMeta.pingTimer = setTimeout(() => schedulePing(ws.raw), PING_INTERVAL);
 			const orgId = c.req.query("orgId");
 
 			if (!sessionData) {
@@ -773,11 +776,15 @@ wsRoute.get(
 
 		onClose: (_, ws) => {
 			broadcastIndividual(ws.raw, { type: "DISCONNECTED" });
+			const wsClient = wsClients.get(ws.raw);
+			if (wsClient?.pingTimer) clearTimeout(wsClient.pingTimer);
 			unsubscribe(ws.raw);
 			wsClients.delete(ws.raw);
 			console.log("Connection closed");
 		},
 		onError(_, ws) {
+			const wsClient = wsClients.get(ws.raw);
+			if (wsClient?.pingTimer) clearTimeout(wsClient.pingTimer);
 			unsubscribe(ws.raw);
 			ws.close();
 			wsClients.delete(ws.raw);
@@ -788,39 +795,61 @@ wsRoute.get(
 
 wsRoute.get("/health", (c) => c.json({ ok: true }));
 
-// ✅ Heartbeat interval
-// Send a PING every 30 seconds
-// Close dead sockets after 60 seconds of no PONG
-setInterval(() => {
+// ✅ Per-client ping scheduler
+// Each client gets its own setTimeout chain — no global event loop drift,
+// no double-pings on hot-reload.
+// Ping interval: 10s. Dead socket threshold: 45s (4 missed pings).
+const PING_INTERVAL = 10_000;
+const DEAD_SOCKET_THRESHOLD = 45_000;
+
+function schedulePing(socket: ServerWebSocket) {
+	const wsClient = wsClients.get(socket);
+	// Guard: client may have been removed by onClose/onError before timer fires
+	if (!wsClient) return;
+
 	const now = Date.now();
-	for (const [socket, wsClient] of wsClients) {
-		if (now - wsClient.lastPong > 60_000) {
-			console.log("Closing dead socket", wsClient);
-			socket.close();
-			unsubscribe(socket);
-			wsClients.delete(socket);
-		} else {
-			try {
-				const pingTs = Date.now();
-				wsClient.lastPing = pingTs;
-				socket.send(
-					`{"type":"PING","scope":"INDIVIDUAL","meta":{"ts":${pingTs},"lastLatency":${wsClient.lastLatency}}}`
-				);
-			} catch {
-				console.log("Failed to ping, closing", wsClient);
-				socket.close();
-				unsubscribe(socket);
-			}
-		}
+	if (now - wsClient.lastPong > DEAD_SOCKET_THRESHOLD) {
+		console.log("Closing dead socket (no pong)", wsClient.id);
+		socket.close();
+		unsubscribe(socket);
+		wsClients.delete(socket);
+		return;
 	}
-}, 30_000);
+
+	try {
+		const pingTs = Date.now();
+		wsClient.lastPing = pingTs;
+		socket.send(
+			`{"type":"PING","scope":"INDIVIDUAL","meta":{"ts":${pingTs},"lastLatency":${wsClient.lastLatency}}}`
+		);
+	} catch {
+		console.log("Failed to ping, closing", wsClient.id);
+		socket.close();
+		unsubscribe(socket);
+		wsClients.delete(socket);
+		return;
+	}
+
+	// Schedule next ping only if client is still tracked
+	if (wsClients.has(socket)) {
+		wsClient.pingTimer = setTimeout(() => schedulePing(socket), PING_INTERVAL);
+	}
+}
 
 process.on("SIGTERM", () => {
 	console.log("Closing all sockets for graceful shutdown...");
-	for (const ws of wsClients.keys()) {
+	for (const [ws, wsClient] of wsClients) {
+		if (wsClient.pingTimer) clearTimeout(wsClient.pingTimer);
 		try {
 			ws.close();
 		} catch {}
 	}
 	process.exit(0);
+});
+
+// Alpine Linux fires run-parts /etc/periodic/15min which can send SIGHUP to
+// running processes (e.g. logrotate). Bun's default SIGHUP action is terminate,
+// which would kill the backend every 15 minutes. Ignore it instead.
+process.on("SIGHUP", () => {
+	console.log("[backend] SIGHUP received — ignoring (Alpine periodic cron)");
 });

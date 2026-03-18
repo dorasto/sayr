@@ -133,6 +133,16 @@ async function main() {
 		process.exit(1);
 	}
 
+	// Minimal health check server for Zerops
+	const HEALTH_PORT = Number.parseInt(process.env.HEALTH_PORT || "8080");
+	Bun.serve({
+		port: HEALTH_PORT,
+		fetch() {
+			return new Response("ok", { status: 200 });
+		},
+	});
+	console.log(`🩺 Health check listening on :${HEALTH_PORT}`);
+
 	initTracing(`sayr-worker-${groupArg}`);
 	await workerLoop(groupArg);
 }

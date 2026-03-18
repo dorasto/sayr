@@ -1,0 +1,227 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    # Default proxy timeouts — WS location blocks override these with 3600s
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+
+    # Gzip compression - uses chunked encoding, avoiding Content-Length mismatches
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml application/javascript application/json application/xml+rss application/atom+xml image/svg+xml;
+
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        ''      close;
+    }
+
+    # ===============================
+    # UPSTREAMS
+    # ===============================
+
+    upstream start_upstream {
+        server start:3000;
+    }
+
+    upstream backend_upstream {
+        server backend:5468;
+    }
+
+    upstream marketing_upstream {
+        server marketing:3000;
+    }
+
+    # ===============================
+    # HEALTH CHECK (default server)
+    # ===============================
+    # Responds to requests by IP / localhost (no Host header match).
+    # Used by Zerops health check which hits 127.0.0.1:80/healthz.
+
+    server {
+        listen 80 default_server;
+        server_name _;
+
+        location = /healthz {
+            access_log off;
+            return 200 'ok';
+        }
+
+        # Reject everything else on the default server
+        location / {
+            return 444;
+        }
+    }
+
+    # ===============================
+    # ROOT DOMAIN
+    # ===============================
+
+    server {
+        listen 80;
+        server_name ${VITE_ROOT_DOMAIN} www.${VITE_ROOT_DOMAIN};
+
+        # Redirect /admin -> admin subdomain
+        location ^~ /admin {
+            return 302 https://admin.${VITE_ROOT_DOMAIN}$request_uri;
+        }
+
+        # Redirect /login -> admin subdomain
+        location = /login {
+            return 302 https://admin.${VITE_ROOT_DOMAIN}/login;
+        }
+
+        # Root API -> backend
+        location ^~ /api/ {
+            proxy_pass http://backend_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # Everything else -> marketing
+        location / {
+            proxy_pass http://marketing_upstream;
+            include /var/www/proxy.conf;
+        }
+    }
+
+    # ===============================
+    # API SUBDOMAIN
+    # ===============================
+
+    server {
+        listen 80;
+        server_name api.${VITE_ROOT_DOMAIN};
+
+        location ^~ /events {
+            proxy_pass http://backend_upstream/api;
+            include /etc/nginx/proxy.conf;
+        }
+
+        # WebSocket
+        location ^~ /ws {
+            proxy_pass http://backend_upstream;
+            include /var/www/proxy.conf;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
+        }
+
+        # Root -> /api/public
+        location = / {
+            proxy_pass http://backend_upstream/api/public;
+            include /var/www/proxy.conf;
+        }
+
+        # Everything else -> rewrite to /api/public/*
+        location / {
+            rewrite ^/(.*)$ /api/public/$1 break;
+            proxy_pass http://backend_upstream;
+            include /var/www/proxy.conf;
+        }
+    }
+
+    # ===============================
+    # ADMIN SUBDOMAIN
+    # ===============================
+
+    server {
+        listen 80;
+        server_name admin.${VITE_ROOT_DOMAIN};
+
+        # Auth API -> start
+        location ^~ /api/auth {
+            proxy_pass http://start_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # Image preview -> start
+        location ^~ /api/image-preview {
+            proxy_pass http://start_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # Traces -> start
+        location ^~ /api/traces {
+            proxy_pass http://start_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # Admin API -> backend
+        location ^~ /api/ {
+            proxy_pass http://backend_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # Admin WebSocket -> backend
+        location ^~ /ws {
+            proxy_pass http://backend_upstream;
+            include /var/www/proxy.conf;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
+        }
+
+        # Everything else -> start app
+        location / {
+            proxy_pass http://start_upstream;
+            include /var/www/proxy.conf;
+        }
+    }
+
+    # ===============================
+    # WILDCARD SUBDOMAINS (*.domain)
+    # ===============================
+
+    server {
+        listen 80;
+        server_name ~^(?<sub>.+)\.${VITE_ROOT_DOMAIN}$;
+
+        # Auth API -> start
+        location ^~ /api/auth {
+            proxy_pass http://start_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # Image preview -> start
+        location ^~ /api/image-preview {
+            proxy_pass http://start_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # Traces -> start
+        location ^~ /api/traces {
+            proxy_pass http://start_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # Other API -> backend
+        location ^~ /api/ {
+            proxy_pass http://backend_upstream;
+            include /var/www/proxy.conf;
+        }
+
+        # WebSocket -> backend
+        location ^~ /ws {
+            proxy_pass http://backend_upstream;
+            include /var/www/proxy.conf;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
+        }
+
+        # Everything else -> start
+        location / {
+            proxy_pass http://start_upstream;
+            include /var/www/proxy.conf;
+        }
+    }
+}

@@ -15,9 +15,9 @@ import {
   useWSMessageHandler,
   WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import { WSMessage } from "@/lib/ws";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 const baseApiUrl =
   import.meta.env.VITE_APP_ENV === "development"
     ? "/backend-api/internal"
@@ -28,7 +28,7 @@ export default function PublicOrgHomePage() {
 
   const lastTaskIdsRef = useRef<string>("");
   const {
-    ws,
+    serverEvents,
     organization,
     setTasks,
     categories,
@@ -126,7 +126,7 @@ export default function PublicOrgHomePage() {
       setTasks(nextTasks);
     }
   }, [tasksData, setTasks]);
-  const handlers: WSMessageHandler<WSMessage> = {
+  const handlers: WSMessageHandler<ServerEventMessage> = {
     CREATE_TASK: (msg) => {
       if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
         queryClient.invalidateQueries({
@@ -145,9 +145,9 @@ export default function PublicOrgHomePage() {
         const updatedTasks = tasks.map((task) =>
           task.id === id
             ? {
-                ...task,
-                voteCount,
-              }
+              ...task,
+              voteCount,
+            }
             : task,
         );
         setTasks(updatedTasks);
@@ -169,17 +169,17 @@ export default function PublicOrgHomePage() {
       }
     },
   };
-  const handleMessage = useWSMessageHandler<WSMessage>(handlers, {
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
     // onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PublicOrgHomePage]", { msg }),
   });
   useEffect(() => {
-    if (!ws) return;
-    ws.addEventListener("message", handleMessage);
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
     // Cleanup on unmount or dependency change
     return () => {
-      ws.removeEventListener("message", handleMessage);
+      serverEvents.event?.removeEventListener("message", handleMessage);
     };
-  }, [ws, handleMessage]);
+  }, [serverEvents.event, handleMessage]);
   const pageLoading = tasksLoading || sessionPending || votesLoading;
 
   return (

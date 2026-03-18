@@ -202,7 +202,7 @@ apiRouteAdminProjectTask.post("/bookmark", async (c) => {
    const session = c.get("session");
 
    // 1. Parse request
-   const { org_id: orgId, task_id: taskId, wsClientId } = await c.req.json();
+   const { org_id: orgId, task_id: taskId, sseClientId } = await c.req.json();
 
    // 2. Validate session
    if (!session?.userId) {
@@ -287,12 +287,12 @@ const API_URL = import.meta.env.VITE_APP_ENV === "development"
  *
  * @param organizationId - The organization the task belongs to
  * @param taskId - The task to bookmark/unbookmark
- * @param wsClientId - WebSocket client ID for real-time updates
+ * @param sseClientId - WebSocket client ID for real-time updates
  * @returns Promise with success status and bookmark state
  *
  * @example
  * ```ts
- * const result = await toggleBookmarkAction("org_123", "task_456", wsClientId);
+ * const result = await toggleBookmarkAction("org_123", "task_456", sseClientId);
  * if (result.success) {
  *   console.log("Bookmarked:", result.data.isBookmarked);
  * }
@@ -301,14 +301,14 @@ const API_URL = import.meta.env.VITE_APP_ENV === "development"
 export async function toggleBookmarkAction(
    organizationId: string,
    taskId: string,
-   wsClientId: string
+   sseClientId: string
 ): Promise<{ success: boolean; data?: { taskId: string; isBookmarked: boolean }; error?: string }> {
    const result = await fetch(`${API_URL}/admin/organization/task/bookmark`, {
       method: "POST",
       body: JSON.stringify({
          org_id: organizationId,
          task_id: taskId,
-         wsClientId,
+         sseClientId,
       }),
       headers: {
          "Content-Type": "application/json",
@@ -352,7 +352,7 @@ export function BookmarkButton({
 }: BookmarkButtonProps) {
    // 1. Hooks first
    const [isBookmarked, setIsBookmarked] = useState(initialBookmarked);
-   const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
    const { runWithToast, isFetching } = useToastAction();
 
    // 2. Handlers
@@ -368,7 +368,7 @@ export function BookmarkButton({
             },
             error: { title: "Failed to update bookmark" },
          },
-         () => toggleBookmarkAction(organizationId, taskId, wsClientId)
+         () => toggleBookmarkAction(organizationId, taskId, sseClientId)
       );
 
       if (result?.success && result.data) {
@@ -499,7 +499,7 @@ await recordWideError({
 ### Broadcast to channel
 
 ```typescript
-broadcast(orgId, "tasks", { type: "UPDATE_TASK", data: task }, wsClientId);
+broadcast(orgId, "tasks", { type: "UPDATE_TASK", data: task }, sseClientId);
 ```
 
 ### Toast with loading state

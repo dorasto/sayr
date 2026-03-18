@@ -25,8 +25,8 @@ import { PageHeader } from "@/components/generic/PageHeader";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { useMyTasks } from "@/contexts/ContextMine";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 // Priority order for sorting tasks
 const priorityOrder: Record<string, number> = {
@@ -38,9 +38,11 @@ const priorityOrder: Record<string, number> = {
 };
 
 export default function AdminHomePage() {
-  const { account, organizations, ws } = useLayoutData();
+  const { serverEvents, account, organizations } = useLayoutData();
   const { tasks } = useMyTasks();
-  useWebSocketSubscription({ ws });
+  useServerEventsSubscription({
+    serverEvents,
+  });
 
   // Filter open tasks
   const openTasks = tasks.filter(
@@ -217,7 +219,7 @@ function PriorityTaskItem({ task }: PriorityTaskItemProps) {
         className={cn(
           "flex flex-col gap-1.5 p-3 rounded-lg border bg-card hover:bg-accent transition-colors",
           task.priority === "urgent" &&
-            "border-destructive/30 bg-destructive/5 hover:bg-destructive/10",
+          "border-destructive/30 bg-destructive/5 hover:bg-destructive/10",
         )}
       >
         {/* Header row: Org + Task ID + Status/Priority */}

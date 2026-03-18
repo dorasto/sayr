@@ -54,7 +54,7 @@ export default function CreateLabel({
   onLabelClick,
   settingsUI = false,
 }: Props) {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const [name, setName] = useState(label?.name || "");
   const [color, setColor] = useState({
     hsla: label?.color || "#F59E0B",
@@ -221,7 +221,7 @@ export default function CreateLabel({
                         color: color.hsla,
                         visible,
                       },
-                      wsClientId,
+                      sseClientId,
                     ),
                 );
                 if (data?.success && data.data) {
@@ -275,7 +275,7 @@ export default function CreateLabel({
                           color: color.hsla,
                           visible,
                         },
-                        wsClientId,
+                        sseClientId,
                       ),
                   );
                   if (data?.success && data.data) {
@@ -306,7 +306,7 @@ export default function CreateLabel({
                     className={cn(
                       "h-full",
                       settingsUI &&
-                        "opacity-0 group-hover/group:opacity-100 transition-all",
+                      "opacity-0 group-hover/group:opacity-100 transition-all",
                     )}
                   >
                     <IconTrash />
@@ -353,7 +353,7 @@ export default function CreateLabel({
                               {
                                 id: label?.id,
                               },
-                              wsClientId,
+                              sseClientId,
                             ),
                         );
                         if (data?.success && data.data) {

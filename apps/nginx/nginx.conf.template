@@ -101,6 +101,11 @@ http {
         listen 80;
         server_name api.${VITE_ROOT_DOMAIN};
 
+        location ^~ /events {
+            proxy_pass http://backend_upstream/api;
+            include /etc/nginx/proxy.conf;
+        }
+
         # WebSocket
         location ^~ /ws {
             proxy_pass http://backend_upstream;

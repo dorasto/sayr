@@ -36,7 +36,7 @@ export default function CreateRelease({
 	taskCount = 0,
 	settingsUI = false,
 }: Props) {
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const [name, setName] = useState(release?.name || "");
 	const [slug, setSlug] = useState(release?.slug || "");
 	const [color, setColor] = useState({
@@ -200,7 +200,7 @@ export default function CreateRelease({
 													icon,
 													status: "planned",
 												},
-												wsClientId
+												sseClientId
 											)
 									);
 									if (result?.success && result.data) {
@@ -256,7 +256,7 @@ export default function CreateRelease({
 													icon,
 													status,
 												},
-												wsClientId
+												sseClientId
 											)
 									);
 									if (result?.success && result.data) {
@@ -322,7 +322,7 @@ export default function CreateRelease({
 																		description: "An error occurred.",
 																	},
 																},
-																() => markReleaseAsReleasedAction(orgId, release.id, wsClientId)
+																() => markReleaseAsReleasedAction(orgId, release.id, sseClientId)
 															);
 															if (result?.success && result.data) {
 																setReleases([result.data.release]);
@@ -390,7 +390,7 @@ export default function CreateRelease({
 																	description: "An error occurred.",
 																},
 															},
-															() => deleteReleaseAction(orgId, release.id, wsClientId)
+															() => deleteReleaseAction(orgId, release.id, sseClientId)
 														);
 														if (result?.success) {
 															// Remove release from list

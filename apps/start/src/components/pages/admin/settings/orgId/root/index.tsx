@@ -27,7 +27,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
 import {
   updateOrganizationAction,
   uploadOrganizationBanner,
@@ -35,10 +34,11 @@ import {
 } from "@/lib/fetches/organization";
 import { handleFileValidation } from "@/lib/utils/file-validation";
 import { Label } from "@repo/ui/components/label";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 export default function SettingsOrganizationPage() {
-  const { ws } = useLayoutData();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { serverEvents } = useLayoutData();
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { organization, setOrganization } = useLayoutOrganizationSettings();
 
   // Name state
@@ -86,8 +86,8 @@ export default function SettingsOrganizationPage() {
     multiple: false,
   });
 
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",
@@ -170,7 +170,7 @@ export default function SettingsOrganizationPage() {
               bannerImg: organization.bannerImg || undefined,
               description: organization.description || undefined,
             },
-            wsClientId,
+            sseClientId,
           );
 
           if (updateResult.success) {
@@ -198,7 +198,7 @@ export default function SettingsOrganizationPage() {
         }
       }
     },
-    [organization, wsClientId, setOrganization, cropSrc],
+    [organization, sseClientId, setOrganization, cropSrc],
   );
 
   const handleBannerCropComplete = useCallback(
@@ -229,7 +229,7 @@ export default function SettingsOrganizationPage() {
               bannerImg: uploadResult.image,
               description: organization.description || undefined,
             },
-            wsClientId,
+            sseClientId,
           );
 
           if (updateResult.success) {
@@ -257,7 +257,7 @@ export default function SettingsOrganizationPage() {
         }
       }
     },
-    [organization, wsClientId, setOrganization, bannerCropSrc],
+    [organization, sseClientId, setOrganization, bannerCropSrc],
   );
 
   const handleNameSave = useCallback(async () => {
@@ -275,7 +275,7 @@ export default function SettingsOrganizationPage() {
           bannerImg: organization.bannerImg || undefined,
           description: organization.description || undefined,
         },
-        wsClientId,
+        sseClientId,
       );
 
       if (result.success) {
@@ -294,7 +294,7 @@ export default function SettingsOrganizationPage() {
     } finally {
       setIsNameSaving(false);
     }
-  }, [name, organization, wsClientId, setOrganization]);
+  }, [name, organization, sseClientId, setOrganization]);
 
   const handleSlugSave = useCallback(async () => {
     if (slug === organization.slug) return;
@@ -311,7 +311,7 @@ export default function SettingsOrganizationPage() {
           bannerImg: organization.bannerImg || undefined,
           description: organization.description || undefined,
         },
-        wsClientId,
+        sseClientId,
       );
 
       if (result.success) {
@@ -330,7 +330,7 @@ export default function SettingsOrganizationPage() {
     } finally {
       setIsSlugSaving(false);
     }
-  }, [slug, organization, wsClientId, setOrganization]);
+  }, [slug, organization, sseClientId, setOrganization]);
 
   const handleShortIdSave = useCallback(async () => {
     if (orgShortId === organization.slug) return;
@@ -347,7 +347,7 @@ export default function SettingsOrganizationPage() {
           bannerImg: organization.bannerImg || undefined,
           description: organization.description || undefined,
         },
-        wsClientId,
+        sseClientId,
       );
 
       if (result.success) {
@@ -368,7 +368,7 @@ export default function SettingsOrganizationPage() {
     } finally {
       setisOrgShortIdSaving(false);
     }
-  }, [orgShortId, organization, wsClientId, setOrganization]);
+  }, [orgShortId, organization, sseClientId, setOrganization]);
 
   const handleDescriptionSave = useCallback(async () => {
     if (description === organization.description) return;
@@ -385,7 +385,7 @@ export default function SettingsOrganizationPage() {
           bannerImg: organization.bannerImg || undefined,
           description: description || undefined,
         },
-        wsClientId,
+        sseClientId,
       );
 
       if (result.success) {
@@ -406,7 +406,7 @@ export default function SettingsOrganizationPage() {
     } finally {
       setIsDescriptionSaving(false);
     }
-  }, [description, organization, wsClientId, setOrganization]);
+  }, [description, organization, sseClientId, setOrganization]);
 
   if (!organization) {
     return null;

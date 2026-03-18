@@ -321,19 +321,19 @@ function CommentActionsMenu({
 }
 
 export function TimelineComment({
-	item,
-	availableUsers,
-	categories,
-	tasks,
-	showSeparator = true,
-	organization,
-	onReply,
-	isReply,
-	footer,
-	blockedUserIds,
+  item,
+  availableUsers,
+  categories,
+  tasks,
+  showSeparator = true,
+  organization,
+  onReply,
+  isReply,
+  footer,
+  blockedUserIds,
 }: TimelineItemProps & { showSeparator?: boolean; onReply?: () => void; isReply?: boolean; footer?: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { runWithToast, isFetching } = useToastAction();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -421,7 +421,7 @@ export function TimelineComment({
           item.id,
           processed,
           item.visibility,
-          wsClientId,
+          sseClientId,
         ),
     );
 
@@ -462,7 +462,7 @@ export function TimelineComment({
           item.organizationId,
           task.id,
           item.id,
-          wsClientId,
+          sseClientId,
         ),
     );
 
@@ -501,7 +501,7 @@ export function TimelineComment({
           task.id,
           item.id,
           newVisibility,
-          wsClientId,
+          sseClientId,
         ),
     );
 
@@ -601,7 +601,7 @@ export function TimelineComment({
             item.taskId,
             commentId,
             emoji,
-            wsClientId,
+            sseClientId,
           );
         } catch {
           queryClient.setQueryData(replyQueryKey, previousData);
@@ -642,7 +642,7 @@ export function TimelineComment({
             item.taskId,
             commentId,
             emoji,
-            wsClientId,
+            sseClientId,
           );
         } catch {
           queryClient.setQueryData(queryKey, previousData);
@@ -654,7 +654,7 @@ export function TimelineComment({
         }
       }
     },
-    [account?.id, item.taskId, item.organizationId, item.parentId, isReply, queryClient, wsClientId],
+    [account?.id, item.taskId, item.organizationId, item.parentId, isReply, queryClient, sseClientId],
   );
 
   return (
@@ -701,8 +701,8 @@ export function TimelineComment({
                 existingReactions={
                   account?.id
                     ? (Object.entries(item.reactions?.reactions ?? {})
-                        .filter(([, data]) => data.users.includes(account.id))
-                        .map(([emoji]) => emoji) as ReactionEmoji[])
+                      .filter(([, data]) => data.users.includes(account.id))
+                      .map(([emoji]) => emoji) as ReactionEmoji[])
                     : []
                 }
               />

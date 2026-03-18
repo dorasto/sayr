@@ -51,7 +51,7 @@ export interface Organization {
     createdAt: string;
     updatedAt: string;
     members: OrganizationMember[];
-    wsUrl: string;
+    eventsUrl: string;
 }
 
 /* =======================

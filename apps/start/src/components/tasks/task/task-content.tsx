@@ -33,10 +33,10 @@ interface TaskContentSideContentProps {
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
   availableUsers?: schema.userType[];
-  wsClientId: string;
+  sseClientId: string;
   runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-    ? T
-    : never;
+  ? T
+  : never;
   categories: schema.categoryType[];
   releases: schema.releaseType[];
   organization: schema.OrganizationWithMembers;
@@ -51,7 +51,7 @@ export function TaskContentSideContent({
   setTasks,
   setSelectedTask,
   availableUsers = [],
-  wsClientId,
+  sseClientId,
   runWithToast,
   categories,
   releases = [],
@@ -147,7 +147,7 @@ export function TaskContentSideContent({
         tasks={tasks}
         setTasks={setTasks}
         setSelectedTask={setSelectedTask}
-        wsClientId={wsClientId}
+        sseClientId={sseClientId}
         runWithToast={runWithToast}
       />
       <TaskSubtasksSection
@@ -155,7 +155,7 @@ export function TaskContentSideContent({
         tasks={tasks}
         setTasks={setTasks}
         setSelectedTask={setSelectedTask}
-        wsClientId={wsClientId}
+        sseClientId={sseClientId}
         runWithToast={runWithToast}
       />
       <TaskRelationsSection
@@ -163,7 +163,7 @@ export function TaskContentSideContent({
         tasks={tasks}
         setTasks={setTasks}
         setSelectedTask={setSelectedTask}
-        wsClientId={wsClientId}
+        sseClientId={sseClientId}
         runWithToast={runWithToast}
       />
     </div>
@@ -180,7 +180,7 @@ export function TaskContentMobileContent({
   categories,
   organization,
   releases,
-}: Omit<TaskContentSideContentProps, "wsClientId" | "runWithToast">) {
+}: Omit<TaskContentSideContentProps, "sseClientId" | "runWithToast">) {
   const { permissions } = useLayoutOrganization();
   const { account } = useLayoutData();
   const fieldPerms = getTaskFieldPermissions(task, account?.id, permissions);

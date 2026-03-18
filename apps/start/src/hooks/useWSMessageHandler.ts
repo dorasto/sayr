@@ -5,7 +5,7 @@ export type WSMessageHandler<T extends { type: string }> = {
 };
 
 /**
- * Stable WebSocket message handler hook.
+ * Stable SSE message handler hook.
  * - Keeps `handleMessage` reference stable
  * - Internally updates refs for `handlers`, `onEach`, `onUnhandled`
  */

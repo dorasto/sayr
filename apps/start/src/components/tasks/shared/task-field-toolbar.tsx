@@ -90,7 +90,7 @@ export default function TaskFieldToolbar({
   setSelectedTask,
   variant = "creator",
 }: TaskFieldToolbarProps) {
-  const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const style = VARIANT_STYLES[variant];
 
   // Resolve the ordered field list into normalized configs
@@ -227,11 +227,11 @@ export default function TaskFieldToolbar({
       ...(style.useCustomTrigger
         ? {}
         : {
-            showLabel: fieldShowLabel,
-            showChevron: fieldShowChevron,
-            compact: fieldCompact,
-            className: fieldClassName || undefined,
-          }),
+          showLabel: fieldShowLabel,
+          showChevron: fieldShowChevron,
+          compact: fieldCompact,
+          className: fieldClassName || undefined,
+        }),
     };
   };
 
@@ -270,9 +270,9 @@ export default function TaskFieldToolbar({
         onLabelsChange={onChange?.labels}
         {...(style.useCustomTrigger
           ? {
-              customTrigger: creatorLabelsTrigger(cfg, selectedLabels),
-              customChildren: true,
-            }
+            customTrigger: creatorLabelsTrigger(cfg, selectedLabels),
+            customChildren: true,
+          }
           : {})}
       />
     ),
@@ -328,11 +328,11 @@ export default function TaskFieldToolbar({
             : {})}
           {...(isOverflowTriggered
             ? {
-                open: true,
-                setOpen: (open: boolean) => {
-                  if (!open) setOverflowOpenField(null);
-                },
-              }
+              open: true,
+              setOpen: (open: boolean) => {
+                if (!open) setOverflowOpenField(null);
+              },
+            }
             : {})}
         />
       );
@@ -346,10 +346,10 @@ export default function TaskFieldToolbar({
           task={task}
           editable={editable}
           organizationId={task.organizationId}
-          wsClientId={wsClientId}
+          sseClientId={sseClientId}
           tasks={tasks}
-          setTasks={setTasks ?? (() => {})}
-          setSelectedTask={setSelectedTask ?? (() => {})}
+          setTasks={setTasks ?? (() => { })}
+          setSelectedTask={setSelectedTask ?? (() => { })}
           compact={fieldCompact}
           iconOnly={isIconOnly}
           className={cn(

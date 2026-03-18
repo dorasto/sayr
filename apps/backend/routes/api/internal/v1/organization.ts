@@ -22,8 +22,6 @@ import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
 import { and, count, eq, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { broadcast, broadcastByUserId, broadcastPublic, findClientByWsId } from "../../../ws";
-import type { WSBaseMessage } from "../../../ws/types";
 import { apiRouteAdminProjectTask } from "./task";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
@@ -31,6 +29,8 @@ import { Octokit } from "@octokit/rest";
 import { polarClient } from "@repo/auth";
 import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
 import { UseSend } from "usesend-js";
+import { findClientBysseId, sseBroadcastByUserId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
+import { ServerEventBaseMessage } from "@/routes/events/types";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 // Create a new organization
@@ -82,7 +82,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 		}
 	}
 
-	const { name, slug, description } = await c.req.json();
+	const { name, slug, description, shortId } = await c.req.json();
 
 	if (!name || !slug) {
 		await recordWideError({
@@ -93,6 +93,10 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 			contextData: { hasName: !!name, hasSlug: !!slug },
 		});
 		return c.json({ success: false, error: "Name and slug are required" }, 400);
+	}
+
+	if (shortId && !/^[A-Z]{1,3}$/.test(shortId)) {
+		return c.json({ success: false, error: "Short ID must be 1-3 uppercase letters" }, 400);
 	}
 
 	const existingOrg = await traceAsync(
@@ -126,6 +130,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 					id: orgId,
 					name,
 					slug,
+					shortId: shortId || "",
 					description: description || "",
 					createdBy: session.userId,
 				})
@@ -217,7 +222,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, data } = await c.req.json();
+	const { org_id: orgId, sseClientId, data } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(
 		session?.userId ?? "",
@@ -336,10 +341,10 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 	await traceAsync(
 		"organization.update.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 
 			const dataMsg = {
-				type: "UPDATE_ORG" as WSBaseMessage["type"],
+				type: "UPDATE_ORG" as ServerEventBaseMessage["type"],
 				data: {
 					...result,
 					logo: result.logo
@@ -351,8 +356,8 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				},
 			};
 
-			broadcast(orgId, "admin", dataMsg, found?.socket);
-			broadcastPublic(orgId, {
+			sseBroadcastToRoom(orgId, "admin", dataMsg, found?.id);
+			sseBroadcastPublic(orgId, {
 				...dataMsg,
 				data: {
 					...dataMsg.data,
@@ -364,7 +369,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				await getOrganizationMembers(orgId);
 
 			members.forEach((member) => {
-				broadcastByUserId(
+				sseBroadcastByUserId(
 					member.userId,
 					"",
 					orgId,
@@ -530,7 +535,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 	const body = await c.req.json();
-	const { org_id: orgId, wsClientId, name, color } = body;
+	const { org_id: orgId, sseClientId, name, color } = body;
 	let { visible } = body as {
 		visible?: "public" | "private";
 	};
@@ -587,28 +592,28 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	await traceAsync(
 		"label.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 
 			const publicVisibleLabels = labels.filter(
 				(label) => label.visible === "public"
 			);
 
 			const data = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: labels,
 			};
 
 			const publicData = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: publicVisibleLabels,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, publicData);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting label update" }
@@ -626,7 +631,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, id, name, color, visible } = await c.req.json();
+	const { org_id: orgId, sseClientId, id, name, color, visible } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
@@ -673,25 +678,25 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 	await traceAsync(
 		"label.edit.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const publicVisibleLabels = labels.filter(
 				(label) => label.visible === "public"
 			);
 			const data = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: labels,
 			};
 			const publicData = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: publicVisibleLabels,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, publicData);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting label update" }
@@ -709,7 +714,7 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, id } = await c.req.json();
+	const { org_id: orgId, sseClientId, id } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageLabels");
 
@@ -748,25 +753,25 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 	await traceAsync(
 		"label.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const publicVisibleLabels = labels.filter(
 				(label) => label.visible === "public"
 			);
 			const data = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: labels,
 			};
 			const publicData = {
-				type: "UPDATE_LABELS" as WSBaseMessage["type"],
+				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: publicVisibleLabels,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, publicData);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, publicData);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting label update" }
@@ -785,7 +790,7 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, name, color, icon } = await c.req.json();
+	const { org_id: orgId, sseClientId, name, color, icon } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageCategories");
 
@@ -833,18 +838,18 @@ apiRouteAdminOrganization.post("/create-category", async (c) => {
 	await traceAsync(
 		"category.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				type: "UPDATE_CATEGORIES" as ServerEventBaseMessage["type"],
 				data: categories,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting category update" }
@@ -862,7 +867,7 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, id, name, color, icon } = await c.req.json();
+	const { org_id: orgId, sseClientId, id, name, color, icon } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageCategories");
 
@@ -913,18 +918,18 @@ apiRouteAdminOrganization.patch("/edit-category", async (c) => {
 	await traceAsync(
 		"category.edit.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				type: "UPDATE_CATEGORIES" as ServerEventBaseMessage["type"],
 				data: categories,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting category update" }
@@ -942,7 +947,7 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, id } = await c.req.json();
+	const { org_id: orgId, sseClientId, id } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageCategories");
 
@@ -985,18 +990,18 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 	await traceAsync(
 		"category.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_CATEGORIES" as WSBaseMessage["type"],
+				type: "UPDATE_CATEGORIES" as ServerEventBaseMessage["type"],
 				data: categories,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting category update" }
@@ -1017,7 +1022,7 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		name,
 		titlePrefix,
 		description,
@@ -1136,17 +1141,17 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 	await traceAsync(
 		"issueTemplate.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				type: "UPDATE_ISSUE_TEMPLATES" as ServerEventBaseMessage["type"],
 				data: templates,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting issue template update" }
@@ -1166,7 +1171,7 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		id,
 		name,
 		titlePrefix,
@@ -1285,17 +1290,17 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 	await traceAsync(
 		"issueTemplate.edit.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				type: "UPDATE_ISSUE_TEMPLATES" as ServerEventBaseMessage["type"],
 				data: templates,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting issue template update" }
@@ -1313,7 +1318,7 @@ apiRouteAdminOrganization.delete("/delete-issue-template", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, id } = await c.req.json();
+	const { org_id: orgId, sseClientId, id } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
@@ -1352,17 +1357,17 @@ apiRouteAdminOrganization.delete("/delete-issue-template", async (c) => {
 	await traceAsync(
 		"issueTemplate.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_ISSUE_TEMPLATES" as WSBaseMessage["type"],
+				type: "UPDATE_ISSUE_TEMPLATES" as ServerEventBaseMessage["type"],
 				data: templates,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting issue template update" }
@@ -1381,7 +1386,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, name, value, logo, slug, viewConfig } = await c.req.json();
+	const { org_id: orgId, sseClientId, name, value, logo, slug, viewConfig } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
@@ -1456,18 +1461,18 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 	await traceAsync(
 		"savedView.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				type: "UPDATE_VIEWS" as ServerEventBaseMessage["type"],
 				data: views,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting view update" }
@@ -1485,7 +1490,7 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
+	const { org_id: orgId, sseClientId, id, name, value, viewConfig, logo, slug } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
@@ -1565,18 +1570,18 @@ apiRouteAdminOrganization.patch("/update-view", async (c) => {
 	await traceAsync(
 		"savedView.update.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				type: "UPDATE_VIEWS" as ServerEventBaseMessage["type"],
 				data: views,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting view update" }
@@ -1594,7 +1599,7 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 
-	const { org_id: orgId, wsClientId, id } = await c.req.json();
+	const { org_id: orgId, sseClientId, id } = await c.req.json();
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageViews");
 
@@ -1643,18 +1648,18 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 	await traceAsync(
 		"savedView.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_VIEWS" as WSBaseMessage["type"],
+				type: "UPDATE_VIEWS" as ServerEventBaseMessage["type"],
 				data: views,
 			};
 
-			broadcast(orgId, "admin", data, found?.socket);
-			broadcastPublic(orgId, data);
+			sseBroadcastToRoom(orgId, "admin", data, found?.id);
+			sseBroadcastPublic(orgId, data);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				broadcastByUserId(member.userId, wsClientId, orgId, data);
+				sseBroadcastByUserId(member.userId, sseClientId, orgId, data);
 			});
 		},
 		{ description: "Broadcasting view update" }
@@ -2501,7 +2506,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 	await traceAsync(
 		"member.remove.broadcast",
 		async () => {
-			broadcastByUserId(userId, "", orgId, {
+			sseBroadcastByUserId(userId, "", orgId, {
 				type: "MEMBER_ACTIONS",
 				data: { orgId, userId, action: "REMOVED" },
 			});

@@ -104,3 +104,38 @@ export const setUserRole = createServerFn({ method: "POST" })
 		});
 		return result;
 	});
+
+export type FirehoseClient = {
+	sseClientId: string;
+	clientId: string;
+	orgId: string;
+	channel: string;
+	lastPong: number;
+	lastLatency: number;
+	lastMessageAt: number;
+	connectedAt: number;
+	authenticated: boolean;
+};
+
+const BASE_URL = import.meta.env.VITE_API_URL || "";
+
+export const getConnections = createServerFn({ method: "GET" }).handler(async () => {
+	const headers = getRequestHeaders();
+
+	try {
+		const response = await fetch(`${BASE_URL}/events/connections`, {
+			headers: new Headers(headers),
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: "Failed to fetch connections" }));
+			throw new Error(error.error || "Failed to fetch connections");
+		}
+
+		const result = await response.json();
+		return result as { success: true; data: FirehoseClient[] };
+	} catch (error) {
+		console.error("getConnections error:", error);
+		return { success: false, data: [] as FirehoseClient[], error: (error as Error).message };
+	}
+});

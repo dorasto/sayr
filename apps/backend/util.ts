@@ -29,16 +29,19 @@ export async function getOrganization(orgId: string, userId: string): Promise<{ 
 }
 
 export async function safeGetOrganization(orgId: string, userId: string, ms = 5000) {
-	const controller = new AbortController();
-	const timer = setTimeout(() => controller.abort(), ms);
+	const timeoutPromise = new Promise<null>((_, reject) =>
+		setTimeout(() => reject(new Error("Timeout")), ms)
+	);
 
 	try {
-		return await getOrganization(orgId, userId);
+		return await Promise.race([getOrganization(orgId, userId), timeoutPromise]);
 	} catch (err) {
-		console.warn("DB timeout / error in getOrganization", err);
+		const isTimeout = err instanceof Error && err.message === "Timeout";
+		console.warn(
+			`[safeGetOrganization] ${isTimeout ? "TIMEOUT" : "ERROR"} for org=${orgId} user=${userId}:`,
+			isTimeout ? `exceeded ${ms}ms` : err,
+		);
 		return null;
-	} finally {
-		clearTimeout(timer);
 	}
 }
 

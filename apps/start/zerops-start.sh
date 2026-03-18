@@ -1,0 +1,60 @@
+#!/bin/sh
+set -e
+
+OUTPUT_DIR="/var/www/.output"
+MANIFEST="$OUTPUT_DIR/server/index.mjs"
+
+# Replace build-time placeholders with runtime env var values.
+replace_env() {
+    var_name=$1
+    placeholder=$2
+    value=$(eval echo \$$var_name)
+
+    if [ -n "$value" ]; then
+        echo "Replacing $placeholder -> $value"
+        grep -rl "$placeholder" "$OUTPUT_DIR/" 2>/dev/null | while read -r file; do
+            sed -i "s|$placeholder|$value|g" "$file"
+        done
+    fi
+}
+
+replace_env "VITE_URL_ROOT" "___VITE_URL_ROOT___"
+replace_env "VITE_PROJECT_NAME" "___VITE_PROJECT_NAME___"
+replace_env "VITE_ROOT_DOMAIN" "___VITE_ROOT_DOMAIN___"
+replace_env "VITE_GITHUB_APP_NAME" "___VITE_GITHUB_APP_NAME___"
+replace_env "VITE_SAYR_FRONTEND_AXIOM_DATASET" "___VITE_SAYR_FRONTEND_AXIOM_DATASET___"
+replace_env "VITE_SAYR_FRONTEND_AXIOM_TOKEN" "___VITE_SAYR_FRONTEND_AXIOM_TOKEN___"
+replace_env "VITE_KLIPY_API" "___VITE_KLIPY_API___"
+replace_env "VITE_APP_VERSION" "___VITE_APP_VERSION___"
+
+# Patch Nitro's asset manifest in index.mjs to reflect post-sed file sizes.
+# Without this, Nitro sends stale Content-Length headers -> NS_ERROR_NET_PARTIAL_TRANSFER.
+echo "Patching Nitro asset manifest sizes..."
+patched=0
+sed_script=""
+
+for file in "$OUTPUT_DIR/public/assets/"*.js "$OUTPUT_DIR/public/assets/"*.css; do
+    [ -f "$file" ] || continue
+    filename=$(basename "$file")
+    actual_size=$(wc -c < "$file")
+
+    size_line=$(grep -A 10 "$filename" "$MANIFEST" 2>/dev/null | grep '"size"' | head -1)
+    [ -z "$size_line" ] && continue
+
+    old_size=$(echo "$size_line" | sed 's/[^0-9]//g')
+    [ -z "$old_size" ] && continue
+    [ "$old_size" -eq "$actual_size" ] 2>/dev/null && continue
+
+    actual_hex=$(printf '%x' "$actual_size")
+    old_hex=$(printf '%x' "$old_size")
+    echo "  ${filename}: size ${old_size} -> ${actual_size} (0x${old_hex} -> 0x${actual_hex})"
+    patched=$((patched + 1))
+
+    sed_script="${sed_script}/${filename}/,/^[[:space:]]*}/ { s/\"size\": *${old_size}/\"size\": ${actual_size}/; s/\"${old_hex}-/\"${actual_hex}-/; }
+"
+done
+
+if [ "$patched" -gt 0 ] && [ -n "$sed_script" ]; then
+    printf '%s' "$sed_script" | sed -i -f /dev/stdin "$MANIFEST"
+fi
+echo "Asset manifest patched ($patched files updated)."

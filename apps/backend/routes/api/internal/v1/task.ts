@@ -34,20 +34,11 @@ import { getInstallationToken } from "@repo/util/github/auth";
 import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import type { WSBaseMessage } from "@/routes/ws/types";
-// import { enqueueJob } from "@/queue";
-import {
-	broadcast,
-	broadcastByUserId,
-	broadcastIndividual,
-	broadcastPublic,
-	broadcastToRoom,
-	findClientByWsId,
-	findClientsByUserId,
-} from "../../../ws";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
+import { findClientBysseId, sseBroadcastToRoom, sseBroadcastPublic, sseBroadcastIndividual, findSSEClientsByUserId, sseBroadcastByUserId } from "@/routes/events";
+import type { ServerEventBaseMessage } from "@/routes/events/types";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
@@ -77,8 +68,8 @@ async function notifyAssignees(params: {
 
 		// Broadcast to each recipient via WebSocket
 		for (const notif of notifications) {
-			broadcastByUserId(notif.userId, "", params.orgId, {
-				type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+			sseBroadcastByUserId(notif.userId, "", params.orgId, {
+				type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
 				data: notif,
 				meta: { ts: Date.now() },
 			});
@@ -118,8 +109,8 @@ async function notifyMentions(params: {
 			});
 
 			if (notif) {
-				broadcastByUserId(notif.userId, "", params.orgId, {
-					type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+				sseBroadcastByUserId(notif.userId, "", params.orgId, {
+					type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
 					data: notif,
 					meta: { ts: Date.now() },
 				});
@@ -138,7 +129,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		title,
 		description,
 		status,
@@ -250,25 +241,25 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	await traceAsync(
 		"task.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "CREATE_TASK" as WSBaseMessage["type"],
+				type: "CREATE_TASK" as ServerEventBaseMessage["type"],
 				data: taskWithData,
 			};
 
-			broadcast(orgId, `tasks`, data, found?.socket);
+			sseBroadcastToRoom(orgId, `tasks`, data, found?.id);
 			if (taskWithData?.visible === "public") {
-				broadcastPublic(orgId, { ...data, data: data }, found?.socket);
+				sseBroadcastPublic(orgId, { ...data, data: data }, found?.id);
 			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						client.channel !== "tasks" &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -282,9 +273,9 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			async () => {
 				const parentWithData = await getTaskById(orgId, parentId);
 				if (parentWithData) {
-					const found = findClientByWsId(wsClientId);
-					const parentUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: parentWithData };
-					broadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.socket, true);
+					const found = findClientBysseId(sseClientId);
+					const parentUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: parentWithData };
+					sseBroadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.id, true);
 				}
 			},
 			{ description: "Broadcasting parent task update for new subtask", data: { parentId } },
@@ -377,7 +368,7 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		title,
 		description,
 		priority,
@@ -422,9 +413,9 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	// (assignees, status, release, visibility, etc.) that the frontend never sends.
 	const template = templateId
 		? await traceAsync("task.public_create.load_template", () => getIssueTemplateById(templateId), {
-				description: "Loading issue template for public task creation",
-				data: { templateId },
-			})
+			description: "Loading issue template for public task creation",
+			data: { templateId },
+		})
 		: null;
 
 	// Validate the template belongs to this org
@@ -523,23 +514,23 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	await traceAsync(
 		"task.public_create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "CREATE_TASK" as WSBaseMessage["type"],
+				type: "CREATE_TASK" as ServerEventBaseMessage["type"],
 				data: taskWithData,
 			};
 
-			broadcast(orgId, "tasks", data, found?.socket);
-			broadcastPublic(orgId, { ...data, data: data }, found?.socket);
+			sseBroadcastToRoom(orgId, "tasks", data, found?.id);
+			sseBroadcastPublic(orgId, { ...data, data: data }, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						client.channel !== "tasks" &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -554,7 +545,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, ...updates } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, ...updates } = await c.req.json();
 	const session = c.get("session");
 	const user = c.get("user");
 	const isSystemAccount = user?.role === "system";
@@ -800,34 +791,34 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	await traceAsync(
 		"task.update.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_TASK" as WSBaseMessage["type"],
+				type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 				data: taskWithData,
 			};
 
-			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
 			if (taskWithData?.visible === "public") {
-				broadcastPublic(orgId, { ...data }, found?.socket);
+				sseBroadcastPublic(orgId, { ...data }, found?.id);
 			}
 
 			// If releaseId changed, broadcast release update as well
 			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
 				const releaseData = {
-					type: "UPDATE_RELEASES" as WSBaseMessage["type"],
+					type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"],
 					data: { taskId, releaseId: updates.releaseId },
 				};
-				broadcast(orgId, "releases", releaseData, found?.socket);
+				sseBroadcastToRoom(orgId, "releases", releaseData, found?.id);
 			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -846,7 +837,7 @@ apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, parent_id: parentId } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, parent_id: parentId } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -873,12 +864,12 @@ apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
 			getTaskById(orgId, parentId),
 		]);
 
-		const found = findClientByWsId(wsClientId);
-		const taskUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-		const parentUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: parentWithData };
+		const found = findClientBysseId(sseClientId);
+		const taskUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: taskWithData };
+		const parentUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: parentWithData };
 
-		broadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.socket, true);
-		broadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.socket, true);
+		sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.id, true);
+		sseBroadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.id, true);
 
 		return c.json({ success: true, data: taskWithData });
 	} catch (err) {
@@ -901,7 +892,7 @@ apiRouteAdminProjectTask.patch("/remove-parent", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -937,14 +928,14 @@ apiRouteAdminProjectTask.patch("/remove-parent", async (c) => {
 
 		// Refetch and broadcast
 		const taskWithData = await getTaskById(orgId, taskId);
-		const found = findClientByWsId(wsClientId);
-		const taskUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: taskWithData };
-		broadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.socket, true);
+		const found = findClientBysseId(sseClientId);
+		const taskUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: taskWithData };
+		sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.id, true);
 
 		if (oldParentId) {
 			const parentWithData = await getTaskById(orgId, oldParentId);
-			const parentUpdate = { type: "UPDATE_TASK" as WSBaseMessage["type"], data: parentWithData };
-			broadcastToRoom(orgId, `tasks;task:${oldParentId}`, parentUpdate, found?.socket, true);
+			const parentUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: parentWithData };
+			sseBroadcastToRoom(orgId, `tasks;task:${oldParentId}`, parentUpdate, found?.id, true);
 		}
 
 		return c.json({ success: true, data: taskWithData });
@@ -1009,7 +1000,7 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		source_task_id: sourceTaskId,
 		target_task_id: targetTaskId,
 		type,
@@ -1042,19 +1033,19 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 			getTaskById(orgId, targetTaskId),
 		]);
 
-		const found = findClientByWsId(wsClientId);
-		broadcastToRoom(
+		const found = findClientBysseId(sseClientId);
+		sseBroadcastToRoom(
 			orgId,
 			`tasks;task:${sourceTaskId}`,
-			{ type: "UPDATE_TASK" as WSBaseMessage["type"], data: sourceWithData },
-			found?.socket,
+			{ type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: sourceWithData },
+			found?.id,
 			true,
 		);
-		broadcastToRoom(
+		sseBroadcastToRoom(
 			orgId,
 			`tasks;task:${targetTaskId}`,
-			{ type: "UPDATE_TASK" as WSBaseMessage["type"], data: targetWithData },
-			found?.socket,
+			{ type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: targetWithData },
+			found?.id,
 			true,
 		);
 
@@ -1081,7 +1072,7 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 
 	const {
 		org_id: orgId,
-		wsClientId,
+		sseClientId,
 		relation_id: relationId,
 		source_task_id: sourceTaskId,
 		target_task_id: targetTaskId,
@@ -1109,25 +1100,25 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 		}
 
 		// Broadcast updates for both tasks
-		const found = findClientByWsId(wsClientId);
+		const found = findClientBysseId(sseClientId);
 		let sourceWithData = null;
 		if (sourceTaskId) {
 			sourceWithData = await getTaskById(orgId, sourceTaskId);
-			broadcastToRoom(
+			sseBroadcastToRoom(
 				orgId,
 				`tasks;task:${sourceTaskId}`,
-				{ type: "UPDATE_TASK" as WSBaseMessage["type"], data: sourceWithData },
-				found?.socket,
+				{ type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: sourceWithData },
+				found?.id,
 				true,
 			);
 		}
 		if (targetTaskId) {
 			const targetWithData = await getTaskById(orgId, targetTaskId);
-			broadcastToRoom(
+			sseBroadcastToRoom(
 				orgId,
 				`tasks;task:${targetTaskId}`,
-				{ type: "UPDATE_TASK" as WSBaseMessage["type"], data: targetWithData },
-				found?.socket,
+				{ type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: targetWithData },
+				found?.id,
 				true,
 			);
 		}
@@ -1364,22 +1355,22 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 		async () => {
 			const taskWithData = await getTaskById(orgId, taskId);
 			const data = {
-				type: "UPDATE_TASK" as WSBaseMessage["type"],
+				type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 				data: taskWithData,
 			};
 
-			broadcastToRoom(orgId, `tasks;task:${taskId}`, data, undefined, true);
+			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, undefined, true);
 			if (taskWithData?.visible === "public") {
-				broadcastPublic(orgId, { ...data });
+				sseBroadcastPublic(orgId, { ...data });
 			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -1483,11 +1474,11 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 			const taskWithData = await getTaskById(orgId, taskId);
 
 			const message = {
-				type: "UPDATE_TASK" as WSBaseMessage["type"],
+				type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 				data: taskWithData,
 			};
 
-			broadcastToRoom(
+			sseBroadcastToRoom(
 				orgId,
 				`tasks;task:${taskId}`,
 				message,
@@ -1496,20 +1487,20 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 			);
 
 			if (taskWithData?.visible === "public") {
-				broadcastPublic(orgId, { ...message });
+				sseBroadcastPublic(orgId, { ...message });
 			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
 						!(
 							client.channel === `task:${taskId}` ||
 							client.channel === "tasks"
 						) &&
-						broadcastIndividual(
-							client.socket,
+						sseBroadcastIndividual(
+							client,
 							message,
 							orgId
 						)
@@ -1527,7 +1518,7 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, labels } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, labels } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -1606,25 +1597,25 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 		await traceAsync(
 			"task.labels.update.broadcast",
 			async () => {
-				const found = findClientByWsId(wsClientId);
+				const found = findClientBysseId(sseClientId);
 				const data = {
-					type: "UPDATE_TASK" as WSBaseMessage["type"],
+					type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 					data: taskWithData,
 				};
 
-				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+				sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
 				if (taskWithData?.visible === "public") {
-					broadcastPublic(orgId, { ...data }, found?.socket);
+					sseBroadcastPublic(orgId, { ...data }, found?.id);
 				}
 
 				const members = await getOrganizationMembers(orgId);
 				members.forEach((member) => {
-					const clients = findClientsByUserId(member.userId);
+					const clients = findSSEClientsByUserId(member.userId);
 					clients.forEach(
 						(client) =>
-							client.wsClientId !== wsClientId &&
+							client.id !== sseClientId &&
 							!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-							broadcastIndividual(client.socket, data, orgId)
+							sseBroadcastIndividual(client, data, orgId)
 					);
 				});
 			},
@@ -1651,7 +1642,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, task_id: taskId, assignees } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, assignees } = await c.req.json();
 	const session = c.get("session");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.assign");
@@ -1720,8 +1711,8 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 							type: "assignee_added",
 						}).then((notif) => {
 							if (notif && notif.userId !== session?.userId) {
-								broadcastByUserId(notif.userId, "", orgId, {
-									type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+								sseBroadcastByUserId(notif.userId, "", orgId, {
+									type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
 									data: notif,
 									meta: { ts: Date.now() },
 								});
@@ -1752,8 +1743,8 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 							type: "assignee_removed",
 						}).then((notif) => {
 							if (notif && notif.userId !== session?.userId) {
-								broadcastByUserId(notif.userId, "", orgId, {
-									type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+								sseBroadcastByUserId(notif.userId, "", orgId, {
+									type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
 									data: notif,
 									meta: { ts: Date.now() },
 								});
@@ -1787,25 +1778,25 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 		await traceAsync(
 			"task.assignees.update.broadcast",
 			async () => {
-				const found = findClientByWsId(wsClientId);
+				const found = findClientBysseId(sseClientId);
 				const data = {
-					type: "UPDATE_TASK" as WSBaseMessage["type"],
+					type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
 					data: taskWithData,
 				};
 
-				broadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.socket, true);
+				sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
 				if (taskWithData?.visible === "public") {
-					broadcastPublic(orgId, { ...data }, found?.socket);
+					sseBroadcastPublic(orgId, { ...data }, found?.id);
 				}
 
 				const members = await getOrganizationMembers(orgId);
 				members.forEach((member) => {
-					const clients = findClientsByUserId(member.userId);
+					const clients = findSSEClientsByUserId(member.userId);
 					clients.forEach(
 						(client) =>
-							client.wsClientId !== wsClientId &&
+							client.id !== sseClientId &&
 							!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-							broadcastIndividual(client.socket, data, orgId)
+							sseBroadcastIndividual(client, data, orgId)
 					);
 				});
 			},
@@ -1832,7 +1823,7 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { org_id: orgId, wsClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, createdBy: bodyCreatedBy, parentId } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, createdBy: bodyCreatedBy, parentId } = await c.req.json();
 	const session = c.get("session");
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -1966,8 +1957,8 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 					type: "mention",
 				});
 				if (notif) {
-					broadcastByUserId(notif.userId, "", orgId, {
-						type: "NEW_NOTIFICATION" as WSBaseMessage["type"],
+					sseBroadcastByUserId(notif.userId, "", orgId, {
+						type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
 						data: notif,
 						meta: { ts: Date.now() },
 					});
@@ -1987,7 +1978,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				.filter((id) => id !== taskId) // skip self-mentions
 				.map((mentionedTaskId) =>
 					addLogEventTask(mentionedTaskId, orgId, "task_mentioned", null, { sourceTaskId: taskId }, commentActorId ?? undefined).catch(
-						() => {} // never let timeline failures break comment creation
+						() => { } // never let timeline failures break comment creation
 					)
 				)
 		);
@@ -1996,26 +1987,25 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	await traceAsync(
 		"task.comment.create.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const seeFound = findClientBysseId(sseClientId)
 			const data = {
-				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
 			};
-
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
+			sseBroadcastToRoom(orgId, `task:${taskId}`, data, seeFound?.id)
 			if (visibility === "public") {
-				broadcastPublic(orgId, { ...data }, found?.socket);
+				sseBroadcastPublic(orgId, { ...data }, seeFound?.id);
 			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -2030,7 +2020,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, wsClientId, comment_id: commentId, content, visibility } = await c.req.json();
+	const { org_id: orgId, sseClientId, comment_id: commentId, content, visibility } = await c.req.json();
 	const session = c.get("session");
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -2116,24 +2106,24 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 	await traceAsync(
 		"task.comment.edit.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: comment.taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${comment.taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data }, found?.socket);
+			sseBroadcastToRoom(orgId, `task:${comment.taskId}`, data, found?.id, false);
+			sseBroadcastPublic(orgId, { ...data }, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${comment.taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -2148,7 +2138,7 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, task_id: taskId, comment_id: commentId, wsClientId } = await c.req.json();
+	const { org_id: orgId, task_id: taskId, comment_id: commentId, sseClientId } = await c.req.json();
 	const session = c.get("session");
 
 	// Check if user is a member of the organization
@@ -2242,24 +2232,24 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 	await traceAsync(
 		"task.comment.delete.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data }, found?.socket);
+			sseBroadcastToRoom(orgId, `task:${taskId}`, data, found?.id, false);
+			sseBroadcastPublic(orgId, { ...data }, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -2274,7 +2264,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, task_id: taskId, comment_id: commentId, visibility, wsClientId } = await c.req.json();
+	const { org_id: orgId, task_id: taskId, comment_id: commentId, visibility, sseClientId } = await c.req.json();
 	const session = c.get("session");
 
 	// Validate visibility value
@@ -2341,24 +2331,24 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 	await traceAsync(
 		"task.comment.visibility.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data }, found?.socket);
+			sseBroadcastToRoom(orgId, `task:${taskId}`, data, found?.id, false);
+			sseBroadcastPublic(orgId, { ...data }, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -2371,7 +2361,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { orgId, taskId, wsClientId, comment_id: commentId, emoji } = await c.req.json();
+	const { orgId, taskId, sseClientId, comment_id: commentId, emoji } = await c.req.json();
 
 	const session = c.get("session");
 
@@ -2424,24 +2414,24 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 	await traceAsync(
 		"task.comment.reaction.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_TASK_COMMENTS" as WSBaseMessage["type"],
+				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
 			};
 
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data }, found?.socket);
+			sseBroadcastToRoom(orgId, `task:${taskId}`, data, found?.id, false);
+			sseBroadcastPublic(orgId, { ...data }, found?.id);
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -2851,7 +2841,7 @@ apiRouteAdminProjectTask.get("/timeline/comments/replies", async (c) => {
 apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { orgId, taskId, wsClientId } = await c.req.json();
+	const { orgId, taskId, sseClientId } = await c.req.json();
 	const session = c.get("session");
 
 	// 2️⃣ Anonymous fingerprint (NO IP STORED)
@@ -2903,27 +2893,27 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 	await traceAsync(
 		"task.vote.broadcast",
 		async () => {
-			const found = findClientByWsId(wsClientId);
+			const found = findClientBysseId(sseClientId);
 			const data = {
-				type: "UPDATE_TASK_VOTE" as WSBaseMessage["type"],
+				type: "UPDATE_TASK_VOTE" as ServerEventBaseMessage["type"],
 				data: {
 					id: taskId,
 					voteCount: updatedTask?.voteCount ?? 0,
 				},
 			};
 
-			broadcastToRoom(orgId, `task:${taskId}`, data, found?.socket, false);
-			broadcastPublic(orgId, { ...data });
+			sseBroadcastToRoom(orgId, `task:${taskId}`, data, found?.id, false);
+			sseBroadcastPublic(orgId, { ...data });
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
-				const clients = findClientsByUserId(member.userId);
+				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.wsClientId !== wsClientId &&
+						client.id !== sseClientId &&
 						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						broadcastIndividual(client.socket, data, orgId)
+						sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},

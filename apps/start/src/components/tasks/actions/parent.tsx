@@ -52,7 +52,7 @@ export function getParentUpdatePayload(
 	task: schema.TaskWithLabels,
 	newParentId: string | null,
 	tasks: schema.TaskWithLabels[],
-	wsClientId: string,
+	sseClientId: string,
 ): ParentFieldUpdatePayload {
 	if (newParentId === null) {
 		// Remove parent
@@ -60,7 +60,7 @@ export function getParentUpdatePayload(
 			kind: "parent",
 			operation: "remove",
 			actionId: "remove-parent",
-			apiFn: () => removeTaskParentAction(task.organizationId, task.id, wsClientId),
+			apiFn: () => removeTaskParentAction(task.organizationId, task.id, sseClientId),
 			optimisticTask: { ...task, parentId: null, parent: null },
 			toastMessages: {
 				loading: { title: "Removing parent..." },
@@ -76,7 +76,7 @@ export function getParentUpdatePayload(
 		kind: "parent",
 		operation: "set",
 		actionId: "set-parent",
-		apiFn: () => setTaskParentAction(task.organizationId, task.id, newParentId, wsClientId),
+		apiFn: () => setTaskParentAction(task.organizationId, task.id, newParentId, sseClientId),
 		optimisticTask: {
 			...task,
 			parentId: newParentId,

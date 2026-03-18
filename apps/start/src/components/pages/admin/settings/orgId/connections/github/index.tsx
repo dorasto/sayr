@@ -65,7 +65,7 @@ import {
 import { useToastAction } from "@/lib/util";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLayoutData } from "@/components/generic/Context";
-import { useWebSocketSubscription } from "@/hooks/useWebSocketSubscription";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 export type githubConnections = Array<{
   installation: {
@@ -113,10 +113,10 @@ export default function SettingsOrganizationConnectionsGitHubPage({
   repositories,
   isLoading,
 }: Props) {
-  const { ws } = useLayoutData();
+  const { serverEvents } = useLayoutData();
   const { organization, setOrganization } = useLayoutOrganizationSettings();
-  useWebSocketSubscription({
-    ws,
+  useServerEventsSubscription({
+    serverEvents,
     orgId: organization.id,
     organization: organization,
     channel: "admin",

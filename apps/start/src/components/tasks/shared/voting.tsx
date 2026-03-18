@@ -22,7 +22,7 @@ interface TaskVotingProps {
   editable?: boolean;
   className?: string;
   organizationId: string;
-  wsClientId: string;
+  sseClientId: string;
   tasks: schema.TaskWithLabels[];
   setTasks: (tasks: schema.TaskWithLabels[]) => void;
   setSelectedTask: (task: schema.TaskWithLabels | null) => void;
@@ -37,7 +37,7 @@ export function TaskVoting({
   editable = false,
   className,
   organizationId,
-  wsClientId,
+  sseClientId,
   tasks,
   setTasks,
   setSelectedTask,
@@ -91,7 +91,7 @@ export function TaskVoting({
   const hasVoted = voteData?.some((v) => v.taskId === task.id);
 
   const handleVote = async () => {
-    if (organizationId && editable && wsClientId) {
+    if (organizationId && editable && sseClientId) {
       try {
         const data = await runWithToast(
           "update-task-vote",
@@ -111,18 +111,18 @@ export function TaskVoting({
                 "Your vote is showing, but we couldn't save it to the server. Please try again.",
             },
           },
-          () => CreateTaskVoteAction(organizationId, task.id, wsClientId),
+          () => CreateTaskVoteAction(organizationId, task.id, sseClientId),
         );
         if (data?.success && data.data) {
           // Update successful, you might want to trigger a refresh or update state here
           console.log("Vote updated successfully:", data.data);
           const updatedTasks = tasks.map((task) =>
             task.id === data.data.taskId &&
-            task.organizationId === organizationId
+              task.organizationId === organizationId
               ? {
-                  ...task,
-                  voteCount: data.data.voteCount,
-                }
+                ...task,
+                voteCount: data.data.voteCount,
+              }
               : task,
           );
           setTasks(updatedTasks);

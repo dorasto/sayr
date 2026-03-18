@@ -113,9 +113,9 @@ export function useTaskCommands() {
 	const { organization, labels: orgLabels, categories, releases } = useLayoutOrganization();
 	const { task, setTask } = useLayoutTask();
 	const { tasks, setTasks } = useLayoutTasks();
-	const { value: wsClientId } = useStateManagement<string>("ws-clientId", "");
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 
-	const { execute } = useTaskFieldAction(task, tasks, setTask, setTasks, wsClientId);
+	const { execute } = useTaskFieldAction(task, tasks, setTask, setTasks, sseClientId);
 
 	const commands: CommandMap = useMemo(() => {
 		const orgId = organization.id;
@@ -187,7 +187,7 @@ export function useTaskCommands() {
 			new Set((task.assignees || []).map((a) => a.id)),
 			task.id,
 			"assignee",
-			(userId) => getAssigneeUpdatePayload(task, userId, members, wsClientId),
+			(userId) => getAssigneeUpdatePayload(task, userId, members, sseClientId),
 			execute,
 		);
 
@@ -196,7 +196,7 @@ export function useTaskCommands() {
 			new Set((task.labels || []).map((l) => l.id)),
 			task.id,
 			"label",
-			(labelId) => getLabelUpdatePayload(task, labelId, orgLabels, wsClientId),
+			(labelId) => getLabelUpdatePayload(task, labelId, orgLabels, sseClientId),
 			execute,
 		);
 
@@ -204,13 +204,13 @@ export function useTaskCommands() {
 		const parentItems: CommandItem[] = hasSubtasks
 			? []
 			: buildSingleSelectItems(
-					getParentOptions(task, tasks),
-					task.parentId ?? null,
-					task.id,
-					"parent",
-					(value) => getParentUpdatePayload(task, value, tasks, wsClientId),
-					execute,
-				);
+				getParentOptions(task, tasks),
+				task.parentId ?? null,
+				task.id,
+				"parent",
+				(value) => getParentUpdatePayload(task, value, tasks, sseClientId),
+				execute,
+			);
 
 		// --- Relation type items (drill into sub-views) ---
 		const relationTypes = getRelationTypeOptions();
@@ -234,7 +234,7 @@ export function useTaskCommands() {
 				id: `task-relation-${task.id}-${type}-${opt.id}`,
 				label: opt.label,
 				icon: opt.icon,
-				action: () => execute(getRelationUpdatePayload(task, opt.value, type, tasks, wsClientId)),
+				action: () => execute(getRelationUpdatePayload(task, opt.value, type, tasks, sseClientId)),
 				closeOnSelect: true,
 				keywords: opt.keywords,
 			}));
@@ -382,7 +382,7 @@ export function useTaskCommands() {
 		releases,
 		orgLabels,
 		execute,
-		wsClientId,
+		sseClientId,
 	]);
 
 	useRegisterCommands("task-commands", commands);

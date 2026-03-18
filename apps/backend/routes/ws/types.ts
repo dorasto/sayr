@@ -58,4 +58,5 @@ export type wsClientsType = {
 	lastPong: number; // ✅ last pong received from heartbeat
 	lastPing: number; // ✅ last ping sent for heartbeat
 	lastLatency: number; // ✅ last measured RTT
+	pingTimer?: ReturnType<typeof setTimeout>; // ✅ per-client ping timer handle
 };

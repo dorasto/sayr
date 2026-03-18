@@ -57,10 +57,10 @@ interface HierarchySectionProps {
   tasks: schema.TaskWithLabels[];
   setTasks: (newValue: schema.TaskWithLabels[]) => void;
   setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
-  wsClientId: string;
+  sseClientId: string;
   runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-    ? T
-    : never;
+  ? T
+  : never;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -72,7 +72,7 @@ export function TaskParentSection({
   tasks,
   setTasks,
   setSelectedTask,
-  wsClientId,
+  sseClientId,
   runWithToast,
 }: HierarchySectionProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -116,7 +116,7 @@ export function TaskParentSection({
           task.organizationId,
           task.id,
           parentTask.id,
-          wsClientId,
+          sseClientId,
         ),
     );
 
@@ -155,7 +155,7 @@ export function TaskParentSection({
           description: "Could not remove parent. Please try again.",
         },
       },
-      () => removeTaskParentAction(task.organizationId, task.id, wsClientId),
+      () => removeTaskParentAction(task.organizationId, task.id, sseClientId),
     );
 
     if (data?.success && data.data) {
@@ -241,7 +241,7 @@ export function TaskSubtasksSection({
   tasks,
   setTasks,
   setSelectedTask,
-  wsClientId,
+  sseClientId,
   runWithToast,
 }: HierarchySectionProps) {
   const [subtasks, setSubtasks] = useState<schema.SubtaskSummary[]>([]);
@@ -307,7 +307,7 @@ export function TaskSubtasksSection({
           task.organizationId,
           childTask.id,
           task.id,
-          wsClientId,
+          sseClientId,
         ),
     );
 
@@ -355,7 +355,7 @@ export function TaskSubtasksSection({
           description: "Could not remove subtask. Please try again.",
         },
       },
-      () => removeTaskParentAction(task.organizationId, subtaskId, wsClientId),
+      () => removeTaskParentAction(task.organizationId, subtaskId, sseClientId),
     );
 
     if (data?.success) {
@@ -507,7 +507,7 @@ export function TaskRelationsSection({
   tasks,
   setTasks,
   setSelectedTask,
-  wsClientId,
+  sseClientId,
   runWithToast,
 }: HierarchySectionProps) {
   const relations = task.relations ?? [];
@@ -543,7 +543,7 @@ export function TaskRelationsSection({
           task.id,
           targetTask.id,
           type,
-          wsClientId,
+          sseClientId,
         ),
     );
 
@@ -591,7 +591,7 @@ export function TaskRelationsSection({
           relation.id,
           sourceTaskId,
           targetTaskId,
-          wsClientId,
+          sseClientId,
         ),
     );
 
