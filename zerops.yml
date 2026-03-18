@@ -159,7 +159,7 @@ zerops:
     run:
       base: ubuntu@24.04
       envVariables:
-        VITE_ROOT_DOMAIN: "sayr.dev"
+        VITE_ROOT_DOMAIN: "sayr.io"
       ports:
         - port: 80
           httpSupport: true
