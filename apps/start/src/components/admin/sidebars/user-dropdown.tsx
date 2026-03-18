@@ -132,7 +132,10 @@ export default function UserDropdown() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Sayr {import.meta.env.VITE_APP_VERSION ?? "localhost"} · {editionLabel}
+              {editionLabel === "Cloud"
+                ? "Sayr Cloud"
+                : `Sayr ${import.meta.env.VITE_APP_VERSION ?? "localhost"} ·{" "}
+              ${editionLabel}`}
             </DropdownMenuLabel>
           </DropdownMenuContent>
         </DropdownMenu>

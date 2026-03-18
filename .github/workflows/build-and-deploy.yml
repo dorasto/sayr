@@ -27,14 +27,6 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
-        edition: [cloud, ce]
-        exclude:
-          # Marketing site is cloud-only
-          - app: marketing
-            edition: ce
-          # CE edition is amd64-only to reduce build costs
-          - platform: linux/arm64
-            edition: ce
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,19 +45,7 @@ jobs:
             echo "dockerfile=./apps/marketing/Dockerfile" >> $GITHUB_OUTPUT
           fi
 
-          # Image suffix: CE images get -ce- prefix
-          if [[ "${{ matrix.edition }}" == "ce" ]]; then
-            echo "image_suffix=-ce-${{ matrix.app }}" >> $GITHUB_OUTPUT
-          else
-            echo "image_suffix=-${{ matrix.app }}" >> $GITHUB_OUTPUT
-          fi
-
-          # Edition build arg
-          if [[ "${{ matrix.edition }}" == "ce" ]]; then
-            echo "edition_baked=community" >> $GITHUB_OUTPUT
-          else
-            echo "edition_baked=cloud" >> $GITHUB_OUTPUT
-          fi
+          echo "image_suffix=-ce-${{ matrix.app }}" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Builder
         uses: useblacksmith/setup-docker-builder@v1
@@ -100,7 +80,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            SAYR_EDITION_BAKED=${{ steps.config.outputs.edition_baked }}
+            SAYR_EDITION_BAKED=community
             ${{ matrix.app == 'marketing' && format('PUBLIC_CAP_API_ENDPOINT={0}', secrets.PUBLIC_CAP_API_ENDPOINT) || '' }}
             ${{ matrix.app == 'start' && format('VITE_APP_VERSION={0}', inputs.version) || '' }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }},push-by-digest=true,name-canonical=true,push=true
@@ -114,7 +94,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.edition }}-${{ matrix.app }}-${{ strategy.job-index }}
+          name: digests-${{ matrix.app }}-${{ strategy.job-index }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -129,24 +109,11 @@ jobs:
       fail-fast: false
       matrix:
         app: [start, backend, worker, marketing]
-        edition: [cloud, ce]
-        exclude:
-          - app: marketing
-            edition: ce
     steps:
-      - name: Determine Docker Config
-        id: config
-        run: |
-          if [[ "${{ matrix.edition }}" == "ce" ]]; then
-            echo "image_suffix=-ce-${{ matrix.app }}" >> $GITHUB_OUTPUT
-          else
-            echo "image_suffix=-${{ matrix.app }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          pattern: digests-${{ matrix.edition }}-${{ matrix.app }}-*
+          pattern: digests-${{ matrix.app }}-*
           merge-multiple: true
           path: /tmp/digests
 
@@ -164,7 +131,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ce-${{ matrix.app }}
           tags: |
             type=raw,value=latest
             type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
@@ -176,16 +143,8 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}@sha256:%s ' *)
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ce-${{ matrix.app }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:latest
-
-  deploy:
-    needs: [merge-manifest]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Coolify deployment
-        run: |
-          curl --request GET '${{secrets.SAYR_DEPLOY}}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_ROOT_API_KEY }}'
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ce-${{ matrix.app }}:latest

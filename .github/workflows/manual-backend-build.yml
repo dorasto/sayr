@@ -30,7 +30,7 @@ jobs:
         run: |
           if [[ "${{ matrix.app }}" == "backend" ]]; then
             echo "dockerfile=./apps/backend/Dockerfile" >> $GITHUB_OUTPUT
-            echo "image_suffix=-backend" >> $GITHUB_OUTPUT
+            echo "image_suffix=-ce-backend" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up Docker Builder
@@ -61,6 +61,8 @@ jobs:
           file: ${{ steps.config.outputs.dockerfile }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SAYR_EDITION_BAKED=community
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
@@ -88,13 +90,6 @@ jobs:
       matrix:
         app: [backend]
     steps:
-      - name: Determine Docker Config
-        id: config
-        run: |
-          if [[ "${{ matrix.app }}" == "backend" ]]; then
-            echo "image_suffix=-backend" >> $GITHUB_OUTPUT
-          fi
-
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -116,7 +111,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ce-backend
           tags: |
             type=raw,value=latest
 
@@ -124,11 +119,8 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}@sha256:%s ' *)
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ce-backend@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ steps.config.outputs.image_suffix }}:latest
-  #       id: deployment
-  #       run: |
-  #         curl --request GET '${{secrets.SAYR_DEPLOY}}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_ROOT_API_KEY }}'
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ce-backend:latest
