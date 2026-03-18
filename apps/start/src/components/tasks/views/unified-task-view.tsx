@@ -152,25 +152,6 @@ export function UnifiedTaskView({
     return applyFilters(tasks, filters);
   }, [tasks, filters]);
 
-  const filteredTaskIds = useMemo(() => {
-    return filteredTasks.map((t) => t.id);
-  }, [filteredTasks]);
-
-  const {
-    selectedSet: selectedTasks,
-    selectedCount,
-    toggleTask,
-    selectAll,
-    deselectAll,
-    isAllSelected,
-    isIndeterminate,
-  } = useTaskSelection(filteredTaskIds);
-
-  // Resolve selected task objects for the bulk action bar
-  const selectedTaskData = useMemo(() => {
-    return tasks.filter((t) => selectedTasks.has(t.id));
-  }, [tasks, selectedTasks]);
-
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     new Set(),
   );
@@ -204,21 +185,6 @@ export function UnifiedTaskView({
       serverEvents.event?.removeEventListener("message", handleMessage);
     };
   }, [serverEvents.event, handleMessage]);
-
-  // Handlers
-  const handleTaskSelect = useCallback(
-    (taskId: string, selected: boolean) => {
-      toggleTask(taskId, selected);
-    },
-    [toggleTask],
-  );
-
-  // Clear selection on unmount
-  useEffect(() => {
-    return () => {
-      deselectAll();
-    };
-  }, [deselectAll]);
 
   const handleToggleSection = (groupId: string) => {
     const newCollapsed = new Set(collapsedSections);
@@ -393,6 +359,55 @@ export function UnifiedTaskView({
     categories,
     releases,
   ]);
+
+  // Compute the IDs of tasks that are actually visible (non-collapsed groups,
+  // completed tasks filtered out per showCompletedTasks). This is what
+  // "select all" should be scoped to.
+  const visibleTaskIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const group of groupedTasks) {
+      if (collapsedSections.has(group.id)) continue;
+      if (group.subGroups) {
+        for (const subGroup of group.subGroups) {
+          if (collapsedSections.has(subGroup.id)) continue;
+          for (const task of subGroup.tasks) ids.push(task.id);
+        }
+      } else {
+        for (const task of group.tasks) ids.push(task.id);
+      }
+    }
+    return ids;
+  }, [groupedTasks, collapsedSections]);
+
+  const {
+    selectedSet: selectedTasks,
+    selectedCount,
+    toggleTask,
+    selectAll,
+    deselectAll,
+    isAllSelected,
+    isIndeterminate,
+  } = useTaskSelection(visibleTaskIds);
+
+  // Resolve selected task objects for the bulk action bar
+  const selectedTaskData = useMemo(() => {
+    return tasks.filter((t) => selectedTasks.has(t.id));
+  }, [tasks, selectedTasks]);
+
+  // Handlers
+  const handleTaskSelect = useCallback(
+    (taskId: string, selected: boolean) => {
+      toggleTask(taskId, selected);
+    },
+    [toggleTask],
+  );
+
+  // Clear selection on unmount
+  useEffect(() => {
+    return () => {
+      deselectAll();
+    };
+  }, [deselectAll]);
 
   // Check if we have sub-groups for kanban view
   const hasKanbanSubGroups =
@@ -820,7 +835,7 @@ export function UnifiedTaskView({
           selectedTasks={selectedTaskData}
           visible={selectedCount > 0 && viewMode === "list"}
           onDeselectAll={deselectAll}
-          onSelectAll={() => selectAll(filteredTaskIds)}
+          onSelectAll={() => selectAll(visibleTaskIds)}
           isAllSelected={isAllSelected}
           isIndeterminate={isIndeterminate}
           onBulkUpdate={handleBulkUpdate}
