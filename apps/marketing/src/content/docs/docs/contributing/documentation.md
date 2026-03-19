@@ -41,14 +41,26 @@ apps/marketing/
 │   │       └── docs/           # All documentation pages
 │   │           ├── index.md    # Homepage (/docs)
 │   │           ├── quick-start.md
+│   │           ├── features/
+│   │           │   ├── tasks.md
+│   │           │   ├── labels.md
+│   │           │   ├── categories.md
+│   │           │   ├── templates.md
+│   │           │   ├── subtasks.md
+│   │           │   ├── task-relations.md
+│   │           │   ├── views.md
+│   │           │   ├── visibility.md
+│   │           │   ├── releases.md
+│   │           │   └── public-pages.md
+│   │           ├── organizations/
+│   │           │   ├── members-and-teams.md
+│   │           │   └── github.md
 │   │           ├── api/
 │   │           │   ├── overview.md
-│   │           │   ├── ws.mdx
-│   │           │   └── reference.mdx
-│   │           ├── guides/
-│   │           │   └── visibility.md
+│   │           │   └── reference-v1.mdx
 │   │           ├── self-hosting/
-│   │           │   └── railway.md
+│   │           │   ├── get-started.md
+│   │           │   └── editions.md
 │   │           └── contributing/
 │   │               ├── local-development.mdx
 │   │               ├── architecture.md
@@ -67,7 +79,7 @@ Files map to URLs as follows:
 | `docs/index.md` | `/docs` |
 | `docs/quick-start.md` | `/docs/quick-start` |
 | `docs/api/overview.md` | `/docs/api/overview` |
-| `docs/guides/visibility.md` | `/docs/guides/visibility` |
+| `docs/features/visibility.md` | `/docs/features/visibility` |
 
 ## Creating a New Page
 
@@ -75,7 +87,8 @@ Files map to URLs as follows:
 
 | Content Type | Location | Example |
 |--------------|----------|---------|
-| User guides | `docs/guides/` | Feature tutorials, how-tos |
+| Product features | `docs/features/` | Task management, releases, visibility |
+| Organization settings | `docs/organizations/` | Members & teams, GitHub integration |
 | API documentation | `docs/api/` | Endpoints, WebSocket events |
 | Self-hosting | `docs/self-hosting/` | Deployment guides |
 | Contributing | `docs/contributing/` | Developer documentation |
@@ -263,19 +276,16 @@ starlightSidebarTopics([
             ],
          },
          {
-            label: "Guides",
-            autogenerate: { directory: "/docs/guides" },
+            label: "Features",
+            autogenerate: { directory: "/docs/features" },
+            collapsed: true,
+         },
+         {
+            label: "Organizations",
+            autogenerate: { directory: "/docs/organizations" },
+            collapsed: true,
          },
          // ...
-      ],
-   },
-   {
-      label: "Contributing",
-      link: "/docs/contributing/local-development/",
-      icon: "github",
-      id: "contributing",
-      items: [
-         // Contributing navigation items...
       ],
    },
 ]),

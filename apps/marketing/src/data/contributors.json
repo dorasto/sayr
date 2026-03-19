@@ -65,17 +65,6 @@
     },
     "contributors": []
   },
-  "src/content/docs/docs/organizations/Connections/github.md": {
-    "author": {
-      "name": "Tommy Lundy",
-      "email": "tommerty@doras.to",
-      "commits": 1,
-      "github": "tommerty",
-      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
-      "profile_url": "https://github.com/tommerty"
-    },
-    "contributors": []
-  },
   "src/content/docs/docs/knowledge-base/index.md": {
     "author": {
       "name": "Tommy Lundy",
@@ -92,50 +81,6 @@
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
       "commits": 2,
-      "github": "tommerty",
-      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
-      "profile_url": "https://github.com/tommerty"
-    },
-    "contributors": []
-  },
-  "src/content/docs/docs/guides/visibility.md": {
-    "author": {
-      "name": "Tommy Lundy",
-      "email": "tommerty@doras.to",
-      "commits": 2,
-      "github": "tommerty",
-      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
-      "profile_url": "https://github.com/tommerty"
-    },
-    "contributors": []
-  },
-  "src/content/docs/docs/guides/views.md": {
-    "author": {
-      "name": "Tommy Lundy",
-      "email": "tommerty@doras.to",
-      "commits": 1,
-      "github": "tommerty",
-      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
-      "profile_url": "https://github.com/tommerty"
-    },
-    "contributors": []
-  },
-  "src/content/docs/docs/guides/releases.md": {
-    "author": {
-      "name": "Tommy Lundy",
-      "email": "tommerty@doras.to",
-      "commits": 1,
-      "github": "tommerty",
-      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
-      "profile_url": "https://github.com/tommerty"
-    },
-    "contributors": []
-  },
-  "src/content/docs/docs/guides/public-pages.md": {
-    "author": {
-      "name": "Tommy Lundy",
-      "email": "tommerty@doras.to",
-      "commits": 1,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
@@ -201,16 +146,16 @@
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
-      "commits": 1,
+      "commits": 2,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
     },
     "contributors": [
       {
-        "name": "trent-001",
-        "email": "trent@doras.to",
-        "commits": 3,
+        "name": "Trent",
+        "email": "64388078+trent-001@users.noreply.github.com",
+        "commits": 2,
         "github": "trent-001",
         "avatar_url": "https://avatars.githubusercontent.com/u/64388078?v=4",
         "profile_url": "https://github.com/trent-001"
@@ -221,16 +166,16 @@
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
-      "commits": 1,
+      "commits": 2,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
     },
     "contributors": [
       {
-        "name": "trent-001",
-        "email": "trent@doras.to",
-        "commits": 2,
+        "name": "Trent",
+        "email": "64388078+trent-001@users.noreply.github.com",
+        "commits": 1,
         "github": "trent-001",
         "avatar_url": "https://avatars.githubusercontent.com/u/64388078?v=4",
         "profile_url": "https://github.com/trent-001"
@@ -263,16 +208,16 @@
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
-      "commits": 2,
+      "commits": 3,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
     },
     "contributors": [
       {
-        "name": "trent-001",
-        "email": "trent@doras.to",
-        "commits": 2,
+        "name": "Trent",
+        "email": "64388078+trent-001@users.noreply.github.com",
+        "commits": 1,
         "github": "trent-001",
         "avatar_url": "https://avatars.githubusercontent.com/u/64388078?v=4",
         "profile_url": "https://github.com/trent-001"
