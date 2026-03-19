@@ -8,7 +8,8 @@ import { and, eq } from "drizzle-orm";
 import { createTraceAsync, maskEmail } from "@repo/opentelemetry/trace";
 import { Scalar } from "@scalar/hono-api-reference";
 import { traceOrgPermissionCheck } from "@/util";
-
+import crypto from "node:crypto";
+import { deleteObjectByKey, getObjectBuffer } from "@repo/storage";
 // Main API router
 export const apiRoute = new Hono<AppEnv>();
 apiRoute.use("*", async (c, next) => {
@@ -185,3 +186,36 @@ apiRoute.get("/github/org-check", async (c) => {
 });
 
 apiRoute.route("/internal/v1", internalApiV1);
+
+apiRoute.get("/gdpr/export/download", async (c) => {
+	const token = c.req.query("token");
+	const key = c.req.query("key");
+
+	if (!token || !key) {
+		return new Response("Missing parameters", { status: 400 });
+	}
+
+	const expected = crypto
+		.createHash("sha256")
+		.update(key + process.env.FILE_SALT)
+		.digest("hex");
+
+	if (token !== expected) {
+		return new Response("Invalid or expired token", { status: 403 });
+	}
+
+	const buffer = await getObjectBuffer(key);
+	if (!buffer) {
+		return new Response("File not found", { status: 404 });
+	}
+
+	await deleteObjectByKey(key);
+
+	return new Response(new Uint8Array(buffer), {
+		status: 200,
+		headers: {
+			"Content-Type": "application/json",
+			"Content-Disposition": "attachment; filename=gdpr-export.json"
+		}
+	});
+});

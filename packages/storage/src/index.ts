@@ -8,8 +8,11 @@ import {
 	type DeleteObjectsCommandOutput,
 	CreateBucketCommand,
 	PutBucketPolicyCommand,
+	ListObjectsV2Command,
+	GetObjectCommand
 } from "@aws-sdk/client-s3";
 import { lookup as mimeLookup } from "mime-types";
+import { ensureCdnUrl } from "@repo/util";
 const BUCKET = process.env.STORAGE_BUCKET || "";
 if (!BUCKET) {
 	throw new Error("STORAGE_BUCKET is not set");
@@ -213,6 +216,114 @@ export async function removeObjects(
 				Objects: objectNames.map((Key) => ({ Key })),
 				Quiet: false,
 			},
+		})
+	);
+}
+
+/**
+ * Lists all objects stored inside a user's folder.
+ *
+ * Supports:
+ * - files/{userId}/
+ * - files/{privateId}/{userId}/
+ *
+ * @param userId - The ID of the user whose folder should be listed.
+ * @param privateId - Optional org private ID. When provided, files are listed from
+ *   `files/{privateId}/{userId}/`. When omitted, files are listed from
+ *   `files/{userId}/`.
+ *
+ * @returns A promise resolving to an array of CDN-ready URLs for each file.
+ *
+ * @example
+ * ```ts
+ * const urls = await listUserFiles("abc123");
+ * console.log(urls);
+ * // → ["https://cdn.example.com/files/abc123/img1.png", ...]
+ * ```
+ */
+export async function listUserFiles(
+	userId: string,
+	privateId?: string
+): Promise<string[]> {
+	const prefix = privateId
+		? `files/${privateId}/${userId}/`
+		: `files/${userId}/`;
+
+	const res = await s3Client.send(
+		new ListObjectsV2Command({
+			Bucket: BUCKET,
+			Prefix: prefix
+		})
+	);
+
+	const contents = res.Contents || [];
+
+	return contents
+		.map((obj) => obj.Key || "")
+		.filter(Boolean)
+		.map((key) => ensureCdnUrl(key));
+}
+
+export async function listAllUserFiles(
+	userId: string,
+	privateIds: string[]
+): Promise<string[]> {
+	const results: string[] = [];
+
+	// 1. User‑only folder
+	const base = await listUserFiles(userId);
+	results.push(...base);
+
+	// 2. All org private folders
+	for (const pid of privateIds) {
+		const orgFiles = await listUserFiles(userId, pid);
+		results.push(...orgFiles);
+	}
+
+	return results;
+}
+
+
+export async function uploadGdprExport(
+	userId: string,
+	jsonData: any,
+): Promise<string> {
+	const timestamp = Date.now();
+	const randomHash = crypto.randomBytes(32).toString("hex");
+	const fileName = `${randomHash}.json`;
+	const key = `gdpr_exports/${userId}/${timestamp}/${fileName}`;
+	const body = Buffer.from(JSON.stringify(jsonData, null, 2));
+	await s3Client.send(
+		new PutObjectCommand({
+			Bucket: BUCKET,
+			Key: key,
+			Body: body,
+			ContentType: "application/json",
+			Metadata: {
+				userId,
+			}
+		})
+	);
+	return key;
+}
+
+export async function getObjectBuffer(key: string): Promise<Buffer | null> {
+	const res = await s3Client.send(
+		new GetObjectCommand({
+			Bucket: BUCKET,
+			Key: key
+		})
+	);
+
+	if (!res.Body) return null;
+	return Buffer.from(await res.Body.transformToByteArray());
+}
+
+export async function deleteObjectByKey(key: string): Promise<void> {
+	await s3Client.send(
+		new DeleteObjectCommand({
+			Bucket: BUCKET,
+			Key: key
 		})
 	);
 }

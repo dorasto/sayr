@@ -3,6 +3,7 @@ import path from "node:path";
 import Redis from "ioredis";
 import type { DeafultJob } from "./groups/default";
 import type { GithubJob } from "./groups/github";
+import type { MainJob } from "./groups/main";
 
 // -----------------------
 // Environment
@@ -32,6 +33,7 @@ const FILE_DIR = path.join(ROOT_DIR, ".queues");
 export interface JobGroups {
 	default: DeafultJob;
 	github: GithubJob;
+	main: MainJob;
 }
 
 export type AnyJob = JobGroups[keyof JobGroups];

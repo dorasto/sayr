@@ -1,9 +1,8 @@
 import { initTracing } from "@repo/opentelemetry";
 initTracing(`sayr-backend`);
 import type { auth } from "@repo/auth/index";
-import { db, schema } from "@repo/database";
-import { CronJob } from "cron";
-import { lt, sql } from "drizzle-orm";
+import { db } from "@repo/database";
+import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
@@ -75,7 +74,6 @@ app.use("*", async (c, next) => {
 });
 app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
 app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
-
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
@@ -184,21 +182,6 @@ export function routeExists(method: string, urlPath: string): boolean {
 	}
 	return false;
 }
-// Delete invites whose expiresAt is older than 24 hours ago
-new CronJob(
-	"0 0 * * *",
-	async () => {
-		try {
-			const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-			await db.delete(schema.invite).where(lt(schema.invite.expiresAt, cutoffDate));
-			console.log("Expired invites older than 24 hours deleted");
-		} catch (err) {
-			console.error("Error deleting expired invites:", err);
-		}
-	},
-	null,
-	true
-);
 
 // -----------------------------------------------------------------------------
 // Server export (for Bun)

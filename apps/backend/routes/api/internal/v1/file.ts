@@ -3,7 +3,7 @@ import { db } from "@repo/database";
 import { removeObject, uploadObject } from "@repo/storage";
 import {
 	ensureCdnUrl,
-	extractPrivateIdFromUrl,
+	extractIdsFromUrl,
 	getFileNameFromUrl,
 } from "@repo/util";
 import { eq } from "drizzle-orm";
@@ -91,7 +91,7 @@ apiRouteFile.put("/", async (c) => {
 	// Public upload
 	// -------------------------------------------------------------------------
 	if (privacyHeader === "public" || typeof privacyHeader !== "string") {
-		const url = await performUpload("files", false);
+		const url = await performUpload(`files/${session?.userId}`, false);
 		return c.json({ success: true, url });
 	}
 
@@ -103,7 +103,7 @@ apiRouteFile.put("/", async (c) => {
 	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
 
 	if (!isAuthorized) {
-		const url = await performUpload("files", false);
+		const url = await performUpload(`files/${session?.userId}`, false);
 		return c.json({ success: true, url });
 	}
 
@@ -125,7 +125,7 @@ apiRouteFile.put("/", async (c) => {
 	);
 
 	if (!organization) {
-		const url = await performUpload("files", false);
+		const url = await performUpload(`files/${session?.userId}`, false);
 		return c.json({ success: true, url });
 	}
 
@@ -133,7 +133,7 @@ apiRouteFile.put("/", async (c) => {
 	// Private upload
 	// -------------------------------------------------------------------------
 	const url = await performUpload(
-		`files/${organization.privateId}`,
+		`files/${organization.privateId}/${session?.userId}`,
 		true
 	);
 
@@ -174,13 +174,13 @@ apiRouteFile.delete("/", async (c) => {
 		);
 	}
 
-	const { hasPrivateId, privateId } =
-		extractPrivateIdFromUrl(url);
+	const { hasPrivateId, privateId, userId } =
+		extractIdsFromUrl(url);
 	const fileName = getFileNameFromUrl(url);
 
 	const storagePath = hasPrivateId
-		? `files/${privateId}/${fileName}`
-		: `files/${fileName}`;
+		? `files/${privateId}/${userId}/${fileName}`
+		: `files/${userId}/${fileName}`;
 
 	await traceAsync(
 		"file.delete.storage",

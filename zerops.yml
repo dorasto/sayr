@@ -109,7 +109,39 @@ zerops:
   # ===============================
   # WORKER (Bun background job processor)
   # ===============================
-  - setup: worker
+  - setup: worker-main
+    build:
+      base: nodejs@22
+      os: ubuntu
+      prepareCommands:
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
+        # Use corepack for pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
+      buildCommands:
+        - pnpm i
+        - pnpm -F worker zerops:build
+      deployFiles:
+        # Strip apps/worker/ prefix so dist/ lands at container root
+        - apps/worker/~dist
+        - apps/worker/~package.json
+        - node_modules
+    run:
+      base: nodejs@22
+      os: ubuntu
+      ports:
+        - port: 8080
+          httpSupport: true
+      prepareCommands:
+        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
+        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
+      healthCheck:
+        httpGet:
+          port: 8080
+          path: /
+      start: bun run dist/index.js main
+
+  - setup: worker-github
     build:
       base: nodejs@22
       os: ubuntu

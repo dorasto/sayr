@@ -1,10 +1,11 @@
 import { auth, db, getUsersByIds } from "@repo/database";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
+import { enqueue } from "@repo/queue";
 
 export const apiRouteAdminUser = new Hono<AppEnv>();
 
@@ -233,4 +234,30 @@ apiRouteAdminUser.put("/profile-picture", async (c) => {
 		});
 		return c.json({ success: false, error: "Failed to update profile picture" }, 500);
 	}
+});
+
+apiRouteAdminUser.get("/export", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const traceContext = getTraceContext();
+
+	await traceAsync("enqueue_gdpr_export", () =>
+		enqueue("main", {
+			type: "gdpr_export",
+			traceContext,
+			payload: {
+				userId: session.userId
+			}
+		})
+	);
+
+	return c.json({
+		success: true,
+		message: "Your data export has started. You will be notified when it is ready."
+	});
 });
