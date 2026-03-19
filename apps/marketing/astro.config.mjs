@@ -91,11 +91,6 @@ export default defineConfig({
                 collapsed: true,
               },
               {
-                label: "Guides",
-                autogenerate: { directory: "/docs/guides" },
-                collapsed: true,
-              },
-              {
                 label: "Organizations",
                 autogenerate: { directory: "/docs/organizations" },
                 collapsed: true,

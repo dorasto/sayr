@@ -64,7 +64,7 @@ This lets you route tasks to the right repositories automatically. For example:
 - `Documentation` category → syncs with `my-org/docs`
 - All tasks (no category filter) → syncs with `my-org/app`
 
-See [GitHub Integration](/docs/organizations/connections/github) for setup instructions.
+See [GitHub Integration](/docs/organizations/github) for setup instructions.
 
 ## Editing and Deleting Categories
 

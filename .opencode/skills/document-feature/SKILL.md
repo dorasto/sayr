@@ -34,21 +34,19 @@ Docs live in `apps/marketing/src/content/docs/docs/` with this organization:
 
 | New content type | Where it goes |
 |---|---|
-| Core feature (what a thing is and how to use it) | `features/` |
-| How-to workflow or guide (combining multiple features) | `guides/` |
+| Product feature (what a thing is and how to use it) | `features/` |
 | Organization settings or management page | `organizations/` |
-| Third-party integration | `organizations/Connections/` |
+| Third-party integration | `organizations/` |
 | Self-hosting or deployment | `self-hosting/` |
 | FAQ or troubleshooting | `knowledge-base/` |
 
 ## Sidebar configuration
 
-The sidebar in `apps/marketing/astro.config.mjs` uses `autogenerate` for all sections — **Features**, **Guides**, **Organizations**, **Self Hosting**, and **Contributing**. Files added to the correct directory automatically appear in the right section.
+The sidebar in `apps/marketing/astro.config.mjs` uses `autogenerate` for all sections — **Features**, **Organizations**, **Self Hosting**, and **Contributing**. Files added to the correct directory automatically appear in the right section.
 
 | Section | Directory |
 |---|---|
 | Features | `docs/features/` |
-| Guides | `docs/guides/` |
 | Organizations | `docs/organizations/` |
 | Self Hosting | `docs/self-hosting/` |
 | Contributing | `docs/contributing/` |

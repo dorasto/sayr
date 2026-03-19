@@ -36,16 +36,16 @@ hero:
 | [Issue Templates](/docs/features/templates) | Standardize submissions with pre-filled task forms |
 | [Subtasks](/docs/features/subtasks) | Break large tasks into smaller, trackable pieces |
 | [Task Relations](/docs/features/task-relations) | Express dependencies and blockers between tasks |
-| [Views & Grouping](/docs/guides/views) | Customize how your task list is displayed |
-| [Visibility Controls](/docs/guides/visibility) | Control what your community can see |
-| [Releases](/docs/guides/releases) | Track milestones and version releases |
-| [Public Pages](/docs/guides/public-pages) | Let your community see your roadmap and submit feedback |
+| [Views & Grouping](/docs/features/views) | Customize how your task list is displayed |
+| [Visibility Controls](/docs/features/visibility) | Control what your community can see |
+| [Releases](/docs/features/releases) | Track milestones and version releases |
+| [Public Pages](/docs/features/public-pages) | Let your community see your roadmap and submit feedback |
 
 ### Organization Management
 | Page | Description |
 |------|-------------|
 | [Members & Teams](/docs/organizations/members-and-teams) | Invite members, create teams, and configure permissions |
-| [GitHub Integration](/docs/organizations/connections/github) | Connect repositories and sync issues with Sayr tasks |
+| [GitHub Integration](/docs/organizations/github) | Connect repositories and sync issues with Sayr tasks |
 
 ### Self-Hosting
 | Page | Description |

@@ -92,7 +92,7 @@ Team members responsible for the task. Tasks can have multiple assignees. Each a
 
 ### Release
 
-Link the task to a specific release or milestone. This is how you track which tasks are shipping in each version. See [Releases](/docs/guides/releases).
+Link the task to a specific release or milestone. This is how you track which tasks are shipping in each version. See [Releases](/docs/features/releases).
 
 ### Visibility
 
@@ -103,7 +103,7 @@ Control whether the task is visible to the public or only to organization member
 | **Public** | Anyone visiting `{your-org}.sayr.io` |
 | **Private** | Only authenticated organization members |
 
-See [Visibility Controls](/docs/guides/visibility) for full details.
+See [Visibility Controls](/docs/features/visibility) for full details.
 
 ## Editing a Task
 
@@ -170,7 +170,7 @@ Comments support the same rich-text editor as descriptions, including @mentions 
 
 Organization members can post **internal** comments (only visible to members) or **public** comments (visible on the public board too). Public users can only post public comments.
 
-See [Public Pages](/docs/guides/public-pages) for more on how comments appear to external visitors.
+See [Public Pages](/docs/features/public-pages) for more on how comments appear to external visitors.
 
 ## Voting
 
