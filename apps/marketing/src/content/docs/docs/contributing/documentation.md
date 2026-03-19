@@ -2,7 +2,7 @@
 title: Writing Documentation
 description: How to contribute to Sayr's documentation
 sidebar:
-   order: 6
+   order: 7
 ---
 
 Contributing to Sayr's documentation is one of the easiest ways to help the project. You can edit docs directly on GitHub without cloning the repository or setting up a local environment.
@@ -41,19 +41,30 @@ apps/marketing/
 │   │       └── docs/           # All documentation pages
 │   │           ├── index.md    # Homepage (/docs)
 │   │           ├── quick-start.md
-│   │           ├── features/
+│   │           ├── tasks/
 │   │           │   ├── tasks.md
-│   │           │   ├── labels.md
-│   │           │   ├── categories.md
-│   │           │   ├── templates.md
 │   │           │   ├── subtasks.md
 │   │           │   ├── task-relations.md
+│   │           │   └── templates.md
+│   │           ├── organize/
+│   │           │   ├── labels.md
+│   │           │   ├── categories.md
 │   │           │   ├── views.md
-│   │           │   ├── visibility.md
-│   │           │   ├── releases.md
+│   │           │   └── releases.md
+│   │           ├── visibility/
+│   │           │   ├── overview.md
 │   │           │   └── public-pages.md
+│   │           ├── account/
+│   │           │   ├── my-tasks.md
+│   │           │   ├── notifications.md
+│   │           │   ├── account-settings.md
+│   │           │   └── security.md
 │   │           ├── organizations/
+│   │           │   ├── overview.md
 │   │           │   ├── members-and-teams.md
+│   │           │   ├── preferences.md
+│   │           │   └── billing.md
+│   │           ├── integrations/
 │   │           │   └── github.md
 │   │           ├── api/
 │   │           │   ├── overview.md
@@ -79,7 +90,7 @@ Files map to URLs as follows:
 | `docs/index.md` | `/docs` |
 | `docs/quick-start.md` | `/docs/quick-start` |
 | `docs/api/overview.md` | `/docs/api/overview` |
-| `docs/features/visibility.md` | `/docs/features/visibility` |
+| `docs/visibility/overview.md` | `/docs/visibility/overview` |
 
 ## Creating a New Page
 
@@ -87,8 +98,12 @@ Files map to URLs as follows:
 
 | Content Type | Location | Example |
 |--------------|----------|---------|
-| Product features | `docs/features/` | Task management, releases, visibility |
-| Organization settings | `docs/organizations/` | Members & teams, GitHub integration |
+| Task management | `docs/tasks/` | Tasks, subtasks, relations, templates |
+| Organize & workflow | `docs/organize/` | Labels, categories, views, releases |
+| Visibility & public pages | `docs/visibility/` | Visibility controls, public board |
+| Account features | `docs/account/` | My tasks, notifications, settings, security |
+| Organization settings | `docs/organizations/` | Members & teams, preferences, billing |
+| Integrations | `docs/integrations/` | GitHub, and future integrations |
 | API documentation | `docs/api/` | Endpoints, WebSocket events |
 | Self-hosting | `docs/self-hosting/` | Deployment guides |
 | Contributing | `docs/contributing/` | Developer documentation |
@@ -275,11 +290,26 @@ starlightSidebarTopics([
                { label: "Quick Start", slug: "docs/quick-start" },
             ],
          },
-         {
-            label: "Features",
-            autogenerate: { directory: "/docs/features" },
-            collapsed: true,
-         },
+          {
+             label: "Tasks",
+             autogenerate: { directory: "/docs/tasks" },
+             collapsed: true,
+          },
+          {
+             label: "Organize",
+             autogenerate: { directory: "/docs/organize" },
+             collapsed: true,
+          },
+          {
+             label: "Visibility & Pages",
+             autogenerate: { directory: "/docs/visibility" },
+             collapsed: true,
+          },
+          {
+             label: "Account",
+             autogenerate: { directory: "/docs/account" },
+             collapsed: true,
+          },
          {
             label: "Organizations",
             autogenerate: { directory: "/docs/organizations" },

@@ -19,7 +19,7 @@ Tasks are the fundamental building block of every Sayr organization. Each task r
 
 ### From a Template
 
-If your organization has [issue templates](/docs/features/templates) set up, click the dropdown arrow next to **New Task** to pick a template. The template pre-fills fields like title prefix, description, labels, and category.
+If your organization has [issue templates](/docs/tasks/templates) set up, click the dropdown arrow next to **New Task** to pick a template. The template pre-fills fields like title prefix, description, labels, and category.
 
 ### From the Public Board
 
@@ -75,7 +75,7 @@ Color-coded tags for categorizing tasks. A task can have multiple labels. Common
 - Area: `frontend`, `backend`, `docs`
 - Team: `design`, `engineering`
 
-Labels are created and managed separately. See [Labels](/docs/features/labels).
+Labels are created and managed separately. See [Labels](/docs/organize/labels).
 
 ### Category
 
@@ -84,7 +84,7 @@ A single category that groups related tasks. Categories are used for:
 - Organizing tasks into sections visible on the public board
 - Routing tasks to the correct GitHub repository when syncing
 
-See [Categories](/docs/features/categories).
+See [Categories](/docs/organize/categories).
 
 ### Assignees
 
@@ -92,7 +92,7 @@ Team members responsible for the task. Tasks can have multiple assignees. Each a
 
 ### Release
 
-Link the task to a specific release or milestone. This is how you track which tasks are shipping in each version. See [Releases](/docs/features/releases).
+Link the task to a specific release or milestone. This is how you track which tasks are shipping in each version. See [Releases](/docs/organize/releases).
 
 ### Visibility
 
@@ -103,7 +103,7 @@ Control whether the task is visible to the public or only to organization member
 | **Public** | Anyone visiting `{your-org}.sayr.io` |
 | **Private** | Only authenticated organization members |
 
-See [Visibility Controls](/docs/features/visibility) for full details.
+See [Visibility Controls](/docs/visibility/overview) for full details.
 
 ## Editing a Task
 
@@ -140,7 +140,7 @@ The timeline is visible at the bottom of every task detail view, giving you a fu
 
 Tasks can be organized into parent-child hierarchies. A **subtask** is a task that belongs to a parent task.
 
-See [Subtasks](/docs/features/subtasks) for full details.
+See [Subtasks](/docs/tasks/subtasks) for full details.
 
 ## Task Relations
 
@@ -150,7 +150,7 @@ Tasks can be linked to each other to express dependencies:
 - **Depends on** — This task cannot start until another is done
 - **Related to** — These tasks are related but independent
 
-See [Task Relations](/docs/features/task-relations) for full details.
+See [Task Relations](/docs/tasks/task-relations) for full details.
 
 ## Comments
 
@@ -164,7 +164,7 @@ Comments support the same rich-text editor as descriptions, including @mentions 
 
 Organization members can post **internal** comments (only visible to members) or **public** comments (visible on the public board too). Public users can only post public comments.
 
-See [Public Pages](/docs/features/public-pages) for more on how comments appear to external visitors.
+See [Public Pages](/docs/visibility/public-pages) for more on how comments appear to external visitors.
 
 ## Voting
 

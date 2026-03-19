@@ -2,7 +2,7 @@
 title: Security
 description: Protect your Sayr account with two-factor authentication, passkeys, and active session management
 sidebar:
-   order: 13
+   order: 4
 ---
 
 Sayr's security settings let you add multiple layers of protection to your account. Navigate to **Settings > Security** to manage them.

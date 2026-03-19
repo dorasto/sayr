@@ -2,7 +2,7 @@
 title: Releases
 description: Organize tasks into milestones and track progress toward version goals
 sidebar:
-   order: 9
+   order: 4
 ---
 
 Releases help you group tasks into meaningful milestones, versions, or deliverables. Track what's shipping in v1.0, what's planned for Q2, or organize work by any time-based or goal-based grouping that makes sense for your team.

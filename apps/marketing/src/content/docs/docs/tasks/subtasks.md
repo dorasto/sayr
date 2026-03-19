@@ -2,7 +2,7 @@
 title: Subtasks
 description: Break down large tasks into smaller, trackable pieces with parent-child task hierarchies
 sidebar:
-   order: 5
+   order: 2
 ---
 
 Subtasks let you break large tasks into smaller, independently trackable units. A parent task can have multiple subtasks, and each subtask is a fully functional task in its own right — with its own status, priority, assignees, labels, and timeline.
@@ -84,7 +84,7 @@ Use **subtasks** when:
 - You want to track granular progress within a single deliverable
 - The sub-items would clutter the main task list
 
-Use **task relations** ([Relations](/docs/features/task-relations)) when:
+Use **task relations** ([Relations](/docs/tasks/task-relations)) when:
 - Two tasks are independent but related or dependent
 - You want to express that one task blocks another
 - Tasks may be worked on by different teams

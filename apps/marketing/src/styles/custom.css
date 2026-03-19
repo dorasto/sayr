@@ -24,6 +24,10 @@
     --accent: var(--sl-color-gray-4);
     --secondary: var(--sl-color-gray-3);
     --foreground: var(--sl-color-white);
+    --sl-text-h1: 1.75rem;
+    --sl-text-h2: 1.5rem;
+    --sl-text-h3: 1.25rem;
+    --sl-text-h4: 1rem;
 }
 
 /* Map CSS vars to Tailwind color utilities */
@@ -61,6 +65,10 @@
 
 .right-sidebar-container {
     width: calc(var(--sl-sidebar-width) + 5%);
+}
+.right-sidebar {
+    @apply border-0;
+    @apply pt-20;
 }
 .sl-container {
     margin-left: 0 !important;
@@ -170,4 +178,19 @@
     font-size: 0.875em;
     font-family:
         ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.sidebar-pane,
+.header {
+    border: 0;
+}
+.starlight-sidebar-topics {
+    @apply bg-background p-2 rounded-xl border-0;
+}
+.starlight-sidebar-topics::after {
+    display: none;
+}
+
+.site-title {
+    color: var(--foreground);
 }

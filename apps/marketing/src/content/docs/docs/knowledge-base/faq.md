@@ -40,7 +40,7 @@ Organization admins can invite you via email, or you can request access if the o
 - **Public tasks** are visible to anyone viewing your organization's public board
 - **Private tasks** are only visible to organization members
 
-Learn more in our [Visibility guide](/docs/features/visibility).
+Learn more in our [Visibility guide](/docs/visibility/overview).
 
 ### Can I import tasks from other tools?
 

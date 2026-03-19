@@ -2,7 +2,7 @@
 title: Notifications & Inbox
 description: Stay on top of task activity with Sayr's notification system and cross-organization inbox
 sidebar:
-   order: 11
+   order: 2
 ---
 
 Sayr's inbox gives you a single place to see every notification that's relevant to you, regardless of which organization the activity happened in. Notifications persist until you archive or delete them.

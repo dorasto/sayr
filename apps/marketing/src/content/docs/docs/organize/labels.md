@@ -2,7 +2,7 @@
 title: Labels
 description: Create and manage color-coded labels to categorize and filter your tasks
 sidebar:
-   order: 2
+   order: 1
 ---
 
 Labels are color-coded tags that help you categorize, filter, and visually organize tasks. Unlike categories (which group tasks into sections), labels let you apply multiple tags to a single task for cross-cutting concerns like task type, affected area, or team.

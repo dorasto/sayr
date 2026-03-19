@@ -86,13 +86,33 @@ export default defineConfig({
                 ],
               },
               {
-                label: "Features",
-                autogenerate: { directory: "/docs/features" },
+                label: "Tasks",
+                autogenerate: { directory: "/docs/tasks" },
+                collapsed: true,
+              },
+              {
+                label: "Organize",
+                autogenerate: { directory: "/docs/organize" },
+                collapsed: true,
+              },
+              {
+                label: "Visibility & Pages",
+                autogenerate: { directory: "/docs/visibility" },
+                collapsed: true,
+              },
+              {
+                label: "Account",
+                autogenerate: { directory: "/docs/account" },
                 collapsed: true,
               },
               {
                 label: "Organizations",
                 autogenerate: { directory: "/docs/organizations" },
+                collapsed: true,
+              },
+              {
+                label: "Integrations",
+                autogenerate: { directory: "/docs/integrations" },
                 collapsed: true,
               },
 

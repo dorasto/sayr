@@ -2,7 +2,7 @@
 title: Edition & Plan Limits
 description: How the edition detection, plan limits, and resource gating system works across backend and frontend
 sidebar:
-   order: 6
+   order: 8
 ---
 
 This guide explains the internal architecture of Sayr's edition and plan limit system. It covers the `@repo/edition` package, frontend hooks, backend enforcement patterns, and how to add limits to new resources.

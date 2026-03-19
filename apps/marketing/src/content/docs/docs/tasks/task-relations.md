@@ -2,7 +2,7 @@
 title: Task Relations
 description: Link tasks together to express dependencies, blockers, and related work
 sidebar:
-   order: 6
+   order: 3
 ---
 
 Task relations let you express how tasks are connected to each other. Rather than scattering notes about dependencies in descriptions or comments, you can create structured links between tasks that your whole team can see at a glance.
@@ -53,7 +53,7 @@ Use **task relations** when:
 - You want to model dependencies across different teams or projects
 - The tasks have their own timelines, assignees, and releases
 
-Use **subtasks** ([Subtasks](/docs/features/subtasks)) when:
+Use **subtasks** ([Subtasks](/docs/tasks/subtasks)) when:
 - A task is clearly a component or step within a larger task
 - You want a progress indicator (e.g., 3/5 subtasks complete)
 - The sub-items shouldn't appear in the main task list independently

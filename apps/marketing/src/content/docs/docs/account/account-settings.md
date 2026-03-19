@@ -2,7 +2,7 @@
 title: Account Settings
 description: Manage your profile, display name, avatar, and personal preferences in Sayr
 sidebar:
-   order: 12
+   order: 3
 ---
 
 Account settings are personal to you — they apply across all organizations you belong to. Navigate to **Settings** in the left sidebar to access them.
@@ -56,7 +56,7 @@ Doras is the OAuth provider used by Sayr Cloud. If Doras OAuth is enabled on you
 
 If your account was created with an email address, the email connection is shown here. You can request a password reset link from this panel.
 
-If you signed up via OAuth (GitHub or Doras) and don't yet have a password set, you cannot enable two-factor authentication until you set one. See [Security](/docs/features/security) for details.
+If you signed up via OAuth (GitHub or Doras) and don't yet have a password set, you cannot enable two-factor authentication until you set one. See [Security](/docs/account/security) for details.
 
 ## Account Across Organizations
 

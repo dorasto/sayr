@@ -2,7 +2,7 @@
 title: My Tasks
 description: See all tasks assigned to you across every organization in one place
 sidebar:
-   order: 14
+   order: 1
 ---
 
 **My Tasks** is a cross-organization view that shows every task assigned to you, regardless of which organization it belongs to. If you are a member of multiple organizations, all your assigned tasks appear together in a single list.
@@ -37,7 +37,7 @@ My Tasks supports the same view modes and grouping options as the organization t
 - **Sub-group by** — Add a second level of grouping
 - **Show completed** — Toggle whether Done and Canceled tasks are included
 
-See [Task Views](/docs/features/views) for full details on view configuration.
+See [Task Views](/docs/organize/views) for full details on view configuration.
 
 ## Real-Time Updates
 

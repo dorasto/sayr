@@ -2,7 +2,8 @@
 title: Visibility Controls
 description: Learn how to manage public and private content in Sayr
 sidebar:
-   order: 8
+   label: Overview
+   order: 1
 ---
 
 One of Sayr's core features is granular visibility control. Every piece of content — tasks, comments, labels, and timeline entries — can be independently set to public or private, giving you precise control over what your community sees.

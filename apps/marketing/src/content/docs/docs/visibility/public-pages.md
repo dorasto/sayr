@@ -2,7 +2,7 @@
 title: Public Pages
 description: Share your roadmap, collect feedback, and let the community vote on tasks
 sidebar:
-   order: 10
+   order: 2
 ---
 
 Every organization in Sayr gets its own public-facing pages. Share your roadmap, collect votes on what to build next, and give your community a place to leave feedback. Visitors can browse everything without signing in.
@@ -96,7 +96,7 @@ Only content marked as **public** shows up on these pages. Tasks are private by 
 
 Members can post both **internal** comments (team-only) and **public** comments. Non-member users can only post public comments.
 
-See the [Visibility Controls](/docs/features/visibility) guide for more detail.
+See the [Visibility Controls](/docs/visibility/overview) guide for more detail.
 
 ## Why Use Public Pages
 

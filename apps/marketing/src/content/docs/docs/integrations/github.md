@@ -1,8 +1,8 @@
 ---
-title: GitHub Integration
+title: GitHub
 description: Connect your Sayr organization to GitHub for two-way task and issue syncing
 sidebar:
-   order: 4
+   order: 1
 ---
 
 Sayr integrates directly with GitHub so your tasks and issues stay in sync across both platforms. You can connect one or more GitHub organizations (or personal accounts) to a Sayr organization, choose which repositories Sayr can access, and configure automatic two-way syncing between Sayr tasks and GitHub issues.

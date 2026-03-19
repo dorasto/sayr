@@ -2,7 +2,7 @@
 title: Preferences & Moderation
 description: Configure your organization's behavior — public page, task submission rules, and user moderation
 sidebar:
-   order: 3
+   order: 2
 ---
 
 The **Preferences** section of your organization settings controls how the public board behaves and what actions members and visitors can take. Navigate to **Settings > Organization > Preferences** to manage them.

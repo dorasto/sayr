@@ -1,5 +1,5 @@
 ---
-title: Sayr Documentation
+title: Sayr.io
 description: Documentation for Sayr.io - Transparent, collaborative project management
 sidebar:
    label: Introduction
@@ -10,11 +10,13 @@ hero:
       - text: Get Started
         link: /docs/quick-start
         icon: right-arrow
-      - text: View on GitHub
+      - text: GitHub
         link: https://github.com/dorasto/sayr
         icon: external
-        variant: minimal
+        
 ---
+
+![img](https://cdn.doras.to/doras/assets/c7375a64-aed1-48e4-9973-cb4e73337eec/f4e68156-ea22-48d1-bd90-99b655939d59.png)
 
 ## Key Features
 
@@ -27,27 +29,35 @@ hero:
 
 ## Browse by Topic
 
-### Core Features
+### Tasks
 | Page | Description |
 |------|-------------|
-| [Tasks](/docs/features/tasks) | Create, edit, and manage tasks — the core unit of your workflow |
-| [Labels](/docs/features/labels) | Color-coded tags for categorizing and filtering tasks |
-| [Categories](/docs/features/categories) | Organize tasks into groups and route them to GitHub repositories |
-| [Issue Templates](/docs/features/templates) | Standardize submissions with pre-filled task forms |
-| [Subtasks](/docs/features/subtasks) | Break large tasks into smaller, trackable pieces |
-| [Task Relations](/docs/features/task-relations) | Express dependencies and blockers between tasks |
-| [Views & Grouping](/docs/features/views) | Customize how your task list is displayed |
-| [Visibility Controls](/docs/features/visibility) | Control what your community can see |
-| [Releases](/docs/features/releases) | Track milestones and version releases |
-| [Public Pages](/docs/features/public-pages) | Let your community see your roadmap and submit feedback |
-| [My Tasks](/docs/features/my-tasks) | See all tasks assigned to you across every organization |
-| [Notifications & Inbox](/docs/features/notifications) | Stay on top of task activity in real time |
+| [Tasks](/docs/tasks/tasks) | Create, edit, and manage tasks — the core unit of your workflow |
+| [Subtasks](/docs/tasks/subtasks) | Break large tasks into smaller, trackable pieces |
+| [Task Relations](/docs/tasks/task-relations) | Express dependencies and blockers between tasks |
+| [Issue Templates](/docs/tasks/templates) | Standardize submissions with pre-filled task forms |
+
+### Organize
+| Page | Description |
+|------|-------------|
+| [Labels](/docs/organize/labels) | Color-coded tags for categorizing and filtering tasks |
+| [Categories](/docs/organize/categories) | Organize tasks into groups and route them to GitHub repositories |
+| [Views & Grouping](/docs/organize/views) | Customize how your task list is displayed |
+| [Releases](/docs/organize/releases) | Track milestones and version releases |
+
+### Visibility & Pages
+| Page | Description |
+|------|-------------|
+| [Visibility Controls](/docs/visibility/overview) | Control what your community can see |
+| [Public Pages](/docs/visibility/public-pages) | Let your community see your roadmap and submit feedback |
 
 ### Account & Security
 | Page | Description |
 |------|-------------|
-| [Account Settings](/docs/features/account-settings) | Manage your profile, avatar, and connected accounts |
-| [Security](/docs/features/security) | Set up two-factor authentication, passkeys, and manage sessions |
+| [My Tasks](/docs/account/my-tasks) | See all tasks assigned to you across every organization |
+| [Notifications & Inbox](/docs/account/notifications) | Stay on top of task activity in real time |
+| [Account Settings](/docs/account/account-settings) | Manage your profile, avatar, and connected accounts |
+| [Security](/docs/account/security) | Set up two-factor authentication, passkeys, and manage sessions |
 
 ### Organization Management
 | Page | Description |
@@ -55,8 +65,12 @@ hero:
 | [Overview](/docs/organizations/overview) | Create an organization, configure its name, slug, short ID, logo, and banner |
 | [Members & Teams](/docs/organizations/members-and-teams) | Invite members, create teams, and configure permissions |
 | [Preferences & Moderation](/docs/organizations/preferences) | Control the public board, task submission rules, and blocked users |
-| [GitHub Integration](/docs/organizations/github) | Connect repositories and sync issues with Sayr tasks |
 | [Billing](/docs/organizations/billing) | Manage your Sayr Cloud plan, seats, and subscription (Cloud only) |
+
+### Integrations
+| Page | Description |
+|------|-------------|
+| [GitHub](/docs/integrations/github) | Connect repositories and sync issues with Sayr tasks |
 
 ### Self-Hosting
 | Page | Description |

@@ -2,7 +2,7 @@
 title: Categories
 description: Organize tasks into categories for clearer structure and targeted GitHub sync routing
 sidebar:
-   order: 3
+   order: 2
 ---
 
 Categories are named groups that organize your tasks into distinct sections. Unlike labels (which can stack on a task), a task belongs to one category at a time. Categories are visible on the public board as a sidebar filter, and they also power GitHub sync routing.

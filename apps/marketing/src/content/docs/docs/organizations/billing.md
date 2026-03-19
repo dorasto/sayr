@@ -2,7 +2,7 @@
 title: Billing
 description: Manage your Sayr Cloud plan, seats, and subscription
 sidebar:
-   order: 5
+   order: 4
 ---
 
 :::note[Cloud Only]
