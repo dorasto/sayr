@@ -114,13 +114,13 @@ export default function OrganizationHomePage() {
             {organization.name}
           </span>
           <span className="text-xs text-muted-foreground">
-            {organization.slug}.sayr.io
+            {organization.slug}.{import.meta.env.VITE_ROOT_DOMAIN}
           </span>
         </PageHeader.Identity>
       </PageHeader>
       <SubWrapper
         title={organization.name}
-        description={`${organization.slug}.sayr.io`}
+        description={`${organization.slug}.${import.meta.env.VITE_ROOT_DOMAIN}`}
         icon={
           <Avatar className="rounded-lg size-[52px]">
             <AvatarImage

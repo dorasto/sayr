@@ -64,7 +64,7 @@ function RouteComponent() {
 		<div className="flex items-center justify-center h-full">
 			<SubWrapper
 				title={`Join ${organization?.name}`}
-				description={`You have been invited to join ${organization?.slug}.sayr.io. `}
+				description={`You have been invited to join ${organization?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}. `}
 				className="bg-card p-3 md:p-3 rounded-lg"
 				icon={
 					<Avatar>
