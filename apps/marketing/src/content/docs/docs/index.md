@@ -52,8 +52,11 @@ hero:
 ### Organization Management
 | Page | Description |
 |------|-------------|
+| [Overview](/docs/organizations/overview) | Create an organization, configure its name, slug, short ID, logo, and banner |
 | [Members & Teams](/docs/organizations/members-and-teams) | Invite members, create teams, and configure permissions |
+| [Preferences & Moderation](/docs/organizations/preferences) | Control the public board, task submission rules, and blocked users |
 | [GitHub Integration](/docs/organizations/github) | Connect repositories and sync issues with Sayr tasks |
+| [Billing](/docs/organizations/billing) | Manage your Sayr Cloud plan, seats, and subscription (Cloud only) |
 
 ### Self-Hosting
 | Page | Description |
