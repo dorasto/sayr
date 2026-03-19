@@ -2,7 +2,7 @@
 title: Members, Teams & Permissions
 description: Invite members, organize them into teams, and control what they can do with granular permissions
 sidebar:
-   order: 1
+   order: 3
 ---
 
 Every Sayr organization has members and teams. Members are the people who work in your organization. Teams group members together and define what they are allowed to do through a granular permission system.
