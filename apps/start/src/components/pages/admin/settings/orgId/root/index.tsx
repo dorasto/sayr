@@ -497,7 +497,7 @@ export default function SettingsOrganizationPage() {
               onChange={(e) => setSlug(e.target.value)}
             />
             <InputGroupAddon align="inline-end">
-              <InputGroupText>.sayr.io</InputGroupText>
+              <InputGroupText>.{import.meta.env.VITE_ROOT_DOMAIN}</InputGroupText>
               <Separator orientation="vertical" className="h-3" />
               <InputGroupButton
                 variant="ghost"

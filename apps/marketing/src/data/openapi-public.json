@@ -133,7 +133,10 @@
                                                         }
                                                     ]
                                                 },
-                                                "wsUrl": {
+                                                "shortId": {
+                                                    "type": "string"
+                                                },
+                                                "eventsUrl": {
                                                     "type": "string"
                                                 },
                                                 "members": {
@@ -205,7 +208,8 @@
                                                 "createdAt",
                                                 "updatedAt",
                                                 "plan",
-                                                "wsUrl",
+                                                "shortId",
+                                                "eventsUrl",
                                                 "members"
                                             ]
                                         }
@@ -694,6 +698,16 @@
                                                         "minimum": -2147483648,
                                                         "maximum": 2147483647
                                                     },
+                                                    "parentId": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
                                                     "descriptionHtml": {
                                                         "type": "string"
                                                     },
@@ -716,6 +730,7 @@
                                                     "category",
                                                     "releaseId",
                                                     "voteCount",
+                                                    "parentId",
                                                     "descriptionHtml",
                                                     "descriptionMarkdown"
                                                 ]
@@ -1014,6 +1029,16 @@
                                                     "minimum": -2147483648,
                                                     "maximum": 2147483647
                                                 },
+                                                "parentId": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
                                                 "descriptionHtml": {
                                                     "type": "string"
                                                 },
@@ -1036,6 +1061,7 @@
                                                 "category",
                                                 "releaseId",
                                                 "voteCount",
+                                                "parentId",
                                                 "descriptionHtml",
                                                 "descriptionMarkdown"
                                             ]
@@ -1716,7 +1742,10 @@
                                                             }
                                                         ]
                                                     },
-                                                    "wsUrl": {
+                                                    "shortId": {
+                                                        "type": "string"
+                                                    },
+                                                    "eventsUrl": {
                                                         "type": "string"
                                                     },
                                                     "members": {
@@ -1788,7 +1817,8 @@
                                                     "createdAt",
                                                     "updatedAt",
                                                     "plan",
-                                                    "wsUrl",
+                                                    "shortId",
+                                                    "eventsUrl",
                                                     "members"
                                                 ]
                                             }
