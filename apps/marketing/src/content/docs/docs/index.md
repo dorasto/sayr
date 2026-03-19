@@ -18,7 +18,7 @@ hero:
 
 ## Key Features
 
-- **Granular Visibility Controls**: Every task, comment, and label can be set to public or private
+- **Granular Visibility Controls**: Every task, comment, label, and timeline entry can be set to public or private
 - **Real-time Collaboration**: WebSocket-powered live updates across all connected clients
 - **GitHub Integration**: Sync issues and pull requests with your Sayr tasks bidirectionally
 - **Rich Text Editing**: Full-featured block editor for task descriptions and comments
@@ -40,6 +40,14 @@ hero:
 | [Visibility Controls](/docs/features/visibility) | Control what your community can see |
 | [Releases](/docs/features/releases) | Track milestones and version releases |
 | [Public Pages](/docs/features/public-pages) | Let your community see your roadmap and submit feedback |
+| [My Tasks](/docs/features/my-tasks) | See all tasks assigned to you across every organization |
+| [Notifications & Inbox](/docs/features/notifications) | Stay on top of task activity in real time |
+
+### Account & Security
+| Page | Description |
+|------|-------------|
+| [Account Settings](/docs/features/account-settings) | Manage your profile, avatar, and connected accounts |
+| [Security](/docs/features/security) | Set up two-factor authentication, passkeys, and manage sessions |
 
 ### Organization Management
 | Page | Description |
