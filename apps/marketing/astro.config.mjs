@@ -86,13 +86,18 @@ export default defineConfig({
                 ],
               },
               {
-                label: "Organizations",
-                autogenerate: { directory: "/docs/organizations" },
+                label: "Features",
+                autogenerate: { directory: "/docs/features" },
                 collapsed: true,
               },
               {
                 label: "Guides",
                 autogenerate: { directory: "/docs/guides" },
+                collapsed: true,
+              },
+              {
+                label: "Organizations",
+                autogenerate: { directory: "/docs/organizations" },
                 collapsed: true,
               },
               {

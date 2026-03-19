@@ -20,11 +20,50 @@ I will:
 ## Documentation structure
 
 Docs live in `apps/marketing/src/content/docs/docs/` with this organization:
-- `index.md` - Main documentation landing page
+- `index.md` - Main documentation landing page (includes a "Browse by Topic" table)
 - `quick-start.md` - Getting started guide
-- `guides/*.md` - Feature guides and how-tos
-- `api/*.md` - API documentation (auto-generated from OpenAPI where possible)
+- `features/*.md` - Core product features (tasks, labels, categories, templates, subtasks, relations)
+- `guides/*.md` - Feature guides and workflow how-tos (visibility, views, releases, public pages)
+- `organizations/*.md` - Organization management (members, teams, integrations)
+- `organizations/Connections/*.md` - Third-party integrations (GitHub)
+- `api/*.md` - API documentation
 - `self-hosting/*.md` - Deployment and self-hosting guides
+- `knowledge-base/*.md` - FAQ and troubleshooting
+
+## Choosing the right section
+
+| New content type | Where it goes |
+|---|---|
+| Core feature (what a thing is and how to use it) | `features/` |
+| How-to workflow or guide (combining multiple features) | `guides/` |
+| Organization settings or management page | `organizations/` |
+| Third-party integration | `organizations/Connections/` |
+| Self-hosting or deployment | `self-hosting/` |
+| FAQ or troubleshooting | `knowledge-base/` |
+
+## Sidebar configuration
+
+The sidebar in `apps/marketing/astro.config.mjs` uses `autogenerate` for all sections — **Features**, **Guides**, **Organizations**, **Self Hosting**, and **Contributing**. Files added to the correct directory automatically appear in the right section.
+
+| Section | Directory |
+|---|---|
+| Features | `docs/features/` |
+| Guides | `docs/guides/` |
+| Organizations | `docs/organizations/` |
+| Self Hosting | `docs/self-hosting/` |
+| Contributing | `docs/contributing/` |
+
+Control the order and label of each page using the `sidebar` frontmatter:
+
+```md
+---
+title: Your Feature
+description: Brief description
+sidebar:
+   order: 7
+   label: Custom Label   # optional — defaults to title
+---
+```
 
 ## Frontmatter format
 
@@ -34,6 +73,8 @@ Every documentation file must include this frontmatter:
 ---
 title: Feature Name
 description: Brief description of what this page covers (used in SEO)
+sidebar:
+   order: N
 ---
 ```
 
@@ -45,6 +86,7 @@ description: Brief description of what this page covers (used in SEO)
 4. **Add tables for comparisons** - Use markdown tables to compare options or settings
 5. **Link related docs** - Cross-reference other relevant documentation pages
 6. **Keep it concise** - Users want quick answers, not walls of text
+7. **Update `index.md`** - When adding a new page, add it to the Browse by Topic table in `docs/index.md`
 
 ## When to use me
 
@@ -60,50 +102,36 @@ Tell me:
 1. **Feature name** - What is the feature called?
 2. **What it does** - Brief description of functionality
 3. **New or update** - Is this new documentation or updating existing?
-4. **Target section** - Where should this live? (guides, api, self-hosting, etc.)
-
-## Sidebar configuration
-
-If creating a new page, I'll update `apps/marketing/astro.config.mjs` to add it to the sidebar:
-
-```js
-sidebar: [
-  {
-    label: "Guides",
-    items: [
-      { label: "Your Feature", slug: "docs/guides/your-feature" },
-    ],
-  },
-]
-```
+4. **Target section** - Where should this live? (features, guides, organizations, self-hosting, etc.)
 
 ## Example output
 
-For a feature like "Task Filtering", I would create `apps/marketing/src/content/docs/docs/guides/task-filtering.md`:
+For a new core feature like "Notifications", I would create `apps/marketing/src/content/docs/docs/features/notifications.md`:
 
 ```md
 ---
-title: Task Filtering
-description: Learn how to filter and find tasks in Sayr
+title: Notifications
+description: Stay informed when tasks you care about are updated
+sidebar:
+   order: 7
 ---
 
-# Task Filtering
+# Notifications
 
-Quickly find the tasks you need with Sayr's powerful filtering system.
+Sayr sends you notifications when things change on tasks you're involved with.
 
-## Quick Filters
+## When You're Notified
 
-Use the filter bar above your task list to filter by:
-- **Status**: Backlog, Todo, In Progress, Done, Canceled
-- **Priority**: None, Low, Medium, High, Urgent
-- **Assignee**: Filter to specific team members
-- **Labels**: Filter by one or more labels
+- You're assigned to a task
+- A task you created or are assigned to changes status or priority
+- Someone @mentions you in a comment
+- A comment is posted on a task you're watching
 
-## Combining Filters
+## Managing Notifications
 
-Filters can be combined. For example, show all "High priority" tasks that are "In Progress" and assigned to you.
-
-## Saving Filter Presets
-
-Save commonly used filter combinations for quick access...
+...
 ```
+
+Then add it to the Browse by Topic table in `docs/index.md`.
+
+The page will appear automatically in the **Features** sidebar section because `autogenerate` scans `docs/features/`. The `sidebar.order: 7` frontmatter controls its position.

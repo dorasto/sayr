@@ -17,7 +17,7 @@ Yes! Sayr is fully open source. You can view the code, contribute, or self-host 
 
 ### Can I self-host Sayr?
 
-Absolutely. See our [Self-Hosting guides](/docs/self-hosting/railway) for deployment instructions.
+Absolutely. See our [Self-Hosting guide](/docs/self-hosting/get-started) for deployment instructions.
 
 ---
 

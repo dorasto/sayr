@@ -36,5 +36,5 @@ Navigate to Organization Settings > Members to invite collaborators.
 ## Next Steps
 
 - Learn about [visibility controls](/docs/guides/visibility)
-- Set up [GitHub integration](/docs/guides/github-integration)
+- Set up [GitHub integration](/docs/organizations/connections/github)
 - Explore the [API reference](/docs/api/overview)

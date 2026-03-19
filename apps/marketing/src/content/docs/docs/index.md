@@ -18,8 +18,37 @@ hero:
 
 ## Key Features
 
-- **Granular Visibility Controls**: Every task, comment, and timeline entry can be set to public or private
-- **Real-time Collaboration**: WebSocket-powered live updates
-- **GitHub Integration**: Sync issues and pull requests with your Sayr tasks
-- **Rich Text Editing**: Full-featured block editor for task descriptions
-- **Organization-based**: Multi-tenant architecture with subdomain routing
+- **Granular Visibility Controls**: Every task, comment, and label can be set to public or private
+- **Real-time Collaboration**: WebSocket-powered live updates across all connected clients
+- **GitHub Integration**: Sync issues and pull requests with your Sayr tasks bidirectionally
+- **Rich Text Editing**: Full-featured block editor for task descriptions and comments
+- **Public Pages**: Share your roadmap, collect votes, and accept community feedback at `{your-org}.sayr.io`
+- **Flexible Organization**: Labels, categories, releases, and saved views keep your workspace organized
+
+## Browse by Topic
+
+### Core Features
+| Page | Description |
+|------|-------------|
+| [Tasks](/docs/features/tasks) | Create, edit, and manage tasks — the core unit of your workflow |
+| [Labels](/docs/features/labels) | Color-coded tags for categorizing and filtering tasks |
+| [Categories](/docs/features/categories) | Organize tasks into groups and route them to GitHub repositories |
+| [Issue Templates](/docs/features/templates) | Standardize submissions with pre-filled task forms |
+| [Subtasks](/docs/features/subtasks) | Break large tasks into smaller, trackable pieces |
+| [Task Relations](/docs/features/task-relations) | Express dependencies and blockers between tasks |
+| [Views & Grouping](/docs/guides/views) | Customize how your task list is displayed |
+| [Visibility Controls](/docs/guides/visibility) | Control what your community can see |
+| [Releases](/docs/guides/releases) | Track milestones and version releases |
+| [Public Pages](/docs/guides/public-pages) | Let your community see your roadmap and submit feedback |
+
+### Organization Management
+| Page | Description |
+|------|-------------|
+| [Members & Teams](/docs/organizations/members-and-teams) | Invite members, create teams, and configure permissions |
+| [GitHub Integration](/docs/organizations/connections/github) | Connect repositories and sync issues with Sayr tasks |
+
+### Self-Hosting
+| Page | Description |
+|------|-------------|
+| [Get Started](/docs/self-hosting/get-started) | Deploy Sayr on your own infrastructure |
+| [Editions](/docs/self-hosting/editions) | Community, Cloud, and Enterprise differences explained |

@@ -1,6 +1,8 @@
 ---
 title: Task Views
 description: Learn how to organize and visualize your tasks with customizable views in Sayr
+sidebar:
+   order: 2
 ---
 
 Sayr provides flexible ways to view and organize your tasks. Whether you prefer a kanban board or a structured list, you can customize exactly how your tasks are displayed.
