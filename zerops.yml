@@ -109,7 +109,7 @@ zerops:
   # ===============================
   # WORKER (Bun background job processor)
   # ===============================
-  - setup: worker-main
+  - setup: workermain
     build:
       base: nodejs@22
       os: ubuntu
@@ -141,7 +141,7 @@ zerops:
           path: /
       start: bun run dist/index.js main
 
-  - setup: worker-github
+  - setup: workergithub
     build:
       base: nodejs@22
       os: ubuntu
