@@ -5,7 +5,7 @@ import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { enqueue } from "@repo/queue";
+import { enqueue, getRedis } from "@repo/queue";
 
 export const apiRouteAdminUser = new Hono<AppEnv>();
 
@@ -239,10 +239,36 @@ apiRouteAdminUser.put("/profile-picture", async (c) => {
 apiRouteAdminUser.get("/export", async (c) => {
 	const traceAsync = createTraceAsync();
 	const session = c.get("session");
-
 	if (!session?.userId) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
+	if (!process.env.REDIS_UR) {
+		return c.json(
+			{
+				success: false,
+				message: "You can only request a data export once per day.",
+			},
+			429
+		);
+	}
+	const redis = getRedis();
+	const userId = session.userId;
+	const key = `gdpr_export:${userId}`;
+
+	// check if already requested within 24h
+	const exists = await redis.get(key);
+	if (exists) {
+		return c.json(
+			{
+				success: false,
+				message: "You can only request a data export once per day.",
+			},
+			429
+		);
+	}
+
+	// set limiter key for 24 hours
+	await redis.set(key, "1", "EX", 60 * 60 * 24);
 
 	const traceContext = getTraceContext();
 
@@ -251,13 +277,14 @@ apiRouteAdminUser.get("/export", async (c) => {
 			type: "gdpr_export",
 			traceContext,
 			payload: {
-				userId: session.userId
-			}
+				userId: userId,
+			},
 		})
 	);
 
 	return c.json({
 		success: true,
-		message: "Your data export has started. You will be notified when it is ready."
+		message:
+			"Your data export has started. You will be notified when it is ready.",
 	});
 });

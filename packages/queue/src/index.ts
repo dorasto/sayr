@@ -44,7 +44,7 @@ export type AnyJob = JobGroups[keyof JobGroups];
 
 let redis: Redis | null = null;
 
-function getRedis(): Redis {
+export function getRedis(): Redis {
 	if (redis) return redis;
 
 	redis = new Redis(REDIS_URL, {
