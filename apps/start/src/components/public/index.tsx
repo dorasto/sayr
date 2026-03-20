@@ -31,6 +31,7 @@ export default function PublicOrgHomePage() {
     serverEvents,
     organization,
     setTasks,
+    setAllTasks,
     categories,
     setLabels,
     setCategories,
@@ -124,8 +125,14 @@ export default function PublicOrgHomePage() {
     if (nextIds !== lastTaskIdsRef.current) {
       lastTaskIdsRef.current = nextIds;
       setTasks(nextTasks);
+
+      // Keep allTasks (used for sidebar counts) updated only when no category filter is applied
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get("category")) {
+        setAllTasks(nextTasks);
+      }
     }
-  }, [tasksData, setTasks]);
+  }, [tasksData, setTasks, setAllTasks]);
   const handlers: WSMessageHandler<ServerEventMessage> = {
     CREATE_TASK: (msg) => {
       if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {

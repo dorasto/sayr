@@ -9,6 +9,9 @@ interface ContextType {
 	setOrganization: (newVaule: ContextType["organization"]) => void;
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: ContextType["tasks"]) => void;
+	/** Unfiltered task list — used for sidebar counts so they don't change when a category filter is active */
+	allTasks: schema.TaskWithLabels[];
+	setAllTasks: (newValue: ContextType["allTasks"]) => void;
 	labels: schema.labelType[];
 	setLabels: (newValue: ContextType["labels"]) => void;
 	categories: schema.categoryType[];
@@ -33,6 +36,7 @@ export function PublicOrganizationProvider({
 }) {
 	const { value: NewOrganization, setValue: setOrganization } = useStateManagement("organization", organization);
 	const { value: NewTasks, setValue: setTasks } = useStateManagement<schema.TaskWithLabels[]>("tasks", []);
+	const { value: NewAllTasks, setValue: setAllTasks } = useStateManagement<schema.TaskWithLabels[]>("allTasks", []);
 	const { value: NewLabels, setValue: setLabels } = useStateManagement("labels", labels);
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories);
 	const serverEvents = useServerEventsPublic({
@@ -51,6 +55,8 @@ export function PublicOrganizationProvider({
 				setOrganization,
 				tasks: NewTasks,
 				setTasks,
+				allTasks: NewAllTasks,
+				setAllTasks,
 				labels: NewLabels,
 				setLabels,
 				categories: NewCategories,

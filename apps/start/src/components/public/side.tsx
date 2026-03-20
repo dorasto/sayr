@@ -36,7 +36,7 @@ import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 
 export default function PublicTaskSide() {
   const queryClient = useQueryClient();
-  const { organization, tasks, categories } = usePublicOrganizationLayout();
+  const { organization, tasks, allTasks, categories } = usePublicOrganizationLayout();
   const { stuck, stickyRef } = useSticky();
   const isMobile = useIsMobile();
   const {
@@ -93,8 +93,8 @@ export default function PublicTaskSide() {
     operator: "AND",
   });
 
-  // Filter out done and canceled tasks to get open issues count
-  const opentaskCount = tasks.filter(
+  // Filter out done and canceled tasks to get open issues count (uses unfiltered allTasks)
+  const opentaskCount = allTasks.filter(
     (task) => task.status !== "done" && task.status !== "canceled",
   ).length;
   // Check if no filters are active (showing all open tasks)
@@ -193,7 +193,7 @@ export default function PublicTaskSide() {
             const isActive =
               (slug && categorySlug === slug) ||
               serializeFilters(filters) === serializeFilters(categoryFilter);
-            const categoryTaskCount = tasks.filter(
+            const categoryTaskCount = allTasks.filter(
               (task) => task.category === category.id,
             ).length;
 
