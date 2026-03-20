@@ -13,6 +13,7 @@ const EDITION_CAPABILITIES: Record<Edition, EditionCapabilities> = {
 		axiomTelemetryEnabled: true,
 		marketingSiteEnabled: true,
 		multiTenantEnabled: true,
+		clickhouseEnabled: true,
 	},
 	community: {
 		maxOrganizations: 1,
@@ -21,6 +22,7 @@ const EDITION_CAPABILITIES: Record<Edition, EditionCapabilities> = {
 		axiomTelemetryEnabled: false,
 		marketingSiteEnabled: false,
 		multiTenantEnabled: false,
+		clickhouseEnabled: false,
 	},
 	enterprise: {
 		// Enterprise defaults -- will be configurable via license key metadata
@@ -30,6 +32,7 @@ const EDITION_CAPABILITIES: Record<Edition, EditionCapabilities> = {
 		axiomTelemetryEnabled: false,
 		marketingSiteEnabled: false,
 		multiTenantEnabled: false,
+		clickhouseEnabled: false,
 	},
 };
 

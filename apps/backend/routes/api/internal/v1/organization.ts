@@ -28,6 +28,7 @@ import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, trac
 import { Octokit } from "@octokit/rest";
 import { polarClient } from "@repo/auth";
 import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
+import { emitEvent } from "@/clickhouse";
 import { UseSend } from "usesend-js";
 import { findClientBysseId, sseBroadcastByUserId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
 import { ServerEventBaseMessage } from "@/routes/events/types";
@@ -206,6 +207,13 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 		{ description: "Bootstrapping admin team", data: { organization: { id: orgId } } }
 	);
 
+	emitEvent({
+		event_type: "org.created",
+		actor_id: session.userId,
+		target_id: orgId,
+		org_id: orgId,
+	});
+
 	return c.json({
 		success: true,
 		data: {
@@ -380,6 +388,14 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		},
 		{ description: "Broadcasting organization update" }
 	);
+
+	emitEvent({
+		event_type: "org.settings_changed",
+		actor_id: session?.userId ?? "",
+		target_id: orgId,
+		org_id: orgId,
+		metadata: { fields: Object.keys(data) },
+	});
 
 	return c.json({
 		success: true,
@@ -2425,6 +2441,15 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		}
 	});
 
+	for (const invite of invites) {
+		emitEvent({
+			event_type: "member.invited",
+			actor_id: session?.userId ?? "",
+			target_id: invite.email ?? "",
+			org_id: orgId,
+		});
+	}
+
 	return c.json({
 		success: true,
 		invites,
@@ -2757,6 +2782,13 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 			seatId: member?.seatAssignedId,
 		});
 	}
+
+	emitEvent({
+		event_type: "member.removed",
+		actor_id: session?.userId ?? "",
+		target_id: userId,
+		org_id: orgId,
+	});
 
 	await traceAsync(
 		"member.remove.broadcast",

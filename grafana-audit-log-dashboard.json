@@ -1,0 +1,819 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfghpmqy37ksgd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Events",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": true,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfghpmqy37ksgd"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "rawSql": "SELECT\n  toStartOfInterval(created_at, INTERVAL 1 hour) AS time,\n  splitByChar('.', event_type)[1] AS category,\n  count() AS count\nFROM db.platform_events\nWHERE created_at >= toDateTime64($__fromTime, 3)\n  AND created_at <= toDateTime64($__toTime, 3)\n  AND org_id IN (${org_id:singlequote})\n  AND event_type IN (${event_type:singlequote})\n  AND actor_id IN (${actor_id:singlequote})\nGROUP BY time, category\nORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "Event Volume Over Time",
+      "description": "Total events per hour, stacked by top-level category (user, org, member, task)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfghpmqy37ksgd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["sum"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfghpmqy37ksgd"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "rawSql": "SELECT\n  event_type,\n  count() AS count\nFROM db.platform_events\nWHERE created_at >= toDateTime64($__fromTime, 3)\n  AND created_at <= toDateTime64($__toTime, 3)\n  AND org_id IN (${org_id:singlequote})\n  AND event_type IN (${event_type:singlequote})\n  AND actor_id IN (${actor_id:singlequote})\nGROUP BY event_type\nORDER BY count DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Event Breakdown",
+      "description": "Distribution of events by type in the selected time range",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfghpmqy37ksgd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlYlRd"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfghpmqy37ksgd"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "rawSql": "SELECT\n  actor_id,\n  count() AS events\nFROM db.platform_events\nWHERE created_at >= toDateTime64($__fromTime, 3)\n  AND created_at <= toDateTime64($__toTime, 3)\n  AND actor_id != ''\n  AND org_id IN (${org_id:singlequote})\n  AND event_type IN (${event_type:singlequote})\n  AND actor_id IN (${actor_id:singlequote})\nGROUP BY actor_id\nORDER BY events DESC\nLIMIT 15",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Active Users",
+      "description": "Users with the most events in the selected time range (by actor_id)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfghpmqy37ksgd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Events",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": true,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfghpmqy37ksgd"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "rawSql": "SELECT\n  toStartOfInterval(created_at, INTERVAL 1 hour) AS time,\n  org_id,\n  count() AS count\nFROM db.platform_events\nWHERE created_at >= toDateTime64($__fromTime, 3)\n  AND created_at <= toDateTime64($__toTime, 3)\n  AND org_id != ''\n  AND org_id IN (${org_id:singlequote})\n  AND event_type IN (${event_type:singlequote})\n  AND actor_id IN (${actor_id:singlequote})\nGROUP BY time, org_id\nORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "Activity by Organization",
+      "description": "Event volume per organization over time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfghpmqy37ksgd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "barRadius": 0.05,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfghpmqy37ksgd"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "rawSql": "SELECT\n  multiIf(\n    event_type = 'task.created', '1. Created',\n    event_type = 'task.status_changed' AND JSONExtractString(metadata, 'to') = 'todo', '2. Todo',\n    event_type = 'task.status_changed' AND JSONExtractString(metadata, 'to') = 'in-progress', '3. In Progress',\n    event_type = 'task.status_changed' AND JSONExtractString(metadata, 'to') = 'done', '4. Done',\n    event_type = 'task.status_changed' AND JSONExtractString(metadata, 'to') = 'canceled', '5. Canceled',\n    NULL\n  ) AS stage,\n  count() AS count\nFROM db.platform_events\nWHERE created_at >= toDateTime64($__fromTime, 3)\n  AND created_at <= toDateTime64($__toTime, 3)\n  AND event_type IN ('task.created', 'task.status_changed')\n  AND org_id IN (${org_id:singlequote})\n  AND actor_id IN (${actor_id:singlequote})\n  AND stage IS NOT NULL\nGROUP BY stage\nORDER BY stage ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "Task Lifecycle Funnel",
+      "description": "How many tasks moved through each status stage in the selected time range",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfghpmqy37ksgd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "event_type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "actor_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "target_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "org_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": true,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": ["count"],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfghpmqy37ksgd"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "rawSql": "SELECT\n  formatDateTime(created_at, '%Y-%m-%d %H:%M:%S') AS time,\n  event_type,\n  actor_id,\n  target_id,\n  org_id,\n  metadata\nFROM db.platform_events\nWHERE created_at >= toDateTime64($__fromTime, 3)\n  AND created_at <= toDateTime64($__toTime, 3)\n  AND org_id IN (${org_id:singlequote})\n  AND event_type IN (${event_type:singlequote})\n  AND actor_id IN (${actor_id:singlequote})\nORDER BY created_at DESC\nLIMIT 200",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent Events",
+      "description": "Latest 200 audit log entries in the selected time range",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfghpmqy37ksgd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Events",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": true,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfghpmqy37ksgd"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "rawSql": "SELECT\n  toStartOfInterval(created_at, INTERVAL 1 hour) AS time,\n  replaceOne(event_type, 'task.github_', '') AS action,\n  count() AS count\nFROM db.platform_events\nWHERE created_at >= toDateTime64($__fromTime, 3)\n  AND created_at <= toDateTime64($__toTime, 3)\n  AND event_type LIKE 'task.github_%'\n  AND org_id IN (${org_id:singlequote})\n  AND actor_id IN (${actor_id:singlequote})\nGROUP BY time, action\nORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "GitHub Integration Activity",
+      "description": "PR links, merges, commit refs, and branch links over time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfghpmqy37ksgd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Events",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": true,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfghpmqy37ksgd"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "rawSql": "SELECT\n  toStartOfInterval(created_at, INTERVAL 1 hour) AS time,\n  replaceOne(event_type, 'member.', '') AS action,\n  count() AS count\nFROM db.platform_events\nWHERE created_at >= toDateTime64($__fromTime, 3)\n  AND created_at <= toDateTime64($__toTime, 3)\n  AND event_type LIKE 'member.%'\n  AND org_id IN (${org_id:singlequote})\n  AND actor_id IN (${actor_id:singlequote})\nGROUP BY time, action\nORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "Member Activity",
+      "description": "Member invites, joins, and removals over time",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": ["sayr", "audit"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "cfghpmqy37ksgd"
+        },
+        "definition": "SELECT DISTINCT org_id FROM db.platform_events WHERE org_id != '' ORDER BY org_id",
+        "includeAll": true,
+        "multi": true,
+        "name": "org_id",
+        "label": "Organization",
+        "query": "SELECT DISTINCT org_id FROM db.platform_events WHERE org_id != '' ORDER BY org_id",
+        "refresh": 2,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "cfghpmqy37ksgd"
+        },
+        "definition": "SELECT DISTINCT event_type FROM db.platform_events ORDER BY event_type",
+        "includeAll": true,
+        "multi": true,
+        "name": "event_type",
+        "label": "Event Type",
+        "query": "SELECT DISTINCT event_type FROM db.platform_events ORDER BY event_type",
+        "refresh": 2,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "cfghpmqy37ksgd"
+        },
+        "definition": "SELECT DISTINCT actor_id FROM db.platform_events WHERE actor_id != '' ORDER BY actor_id",
+        "includeAll": true,
+        "multi": true,
+        "name": "actor_id",
+        "label": "Actor",
+        "query": "SELECT DISTINCT actor_id FROM db.platform_events WHERE actor_id != '' ORDER BY actor_id",
+        "refresh": 2,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Sayr - Audit Log",
+  "version": 0,
+  "weekStart": ""
+}

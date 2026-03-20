@@ -16,10 +16,12 @@
     "format": "biome format --write ."
   },
   "dependencies": {
+    "@clickhouse/client": "^1.18.2",
     "@repo/database": "workspace:*",
+    "@repo/edition": "workspace:*",
     "@repo/opentelemetry": "workspace:*",
-    "@repo/util": "workspace:*",
     "@repo/storage": "workspace:*",
+    "@repo/util": "workspace:*",
     "cron": "^4.3.4",
     "markdown-it": "^14.1.0",
     "prosemirror-markdown": "^1.13.2",
