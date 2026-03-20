@@ -1,6 +1,4 @@
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
-import { PublicTaskCreator } from "./public-task-creator";
-import PublicTaskSide from "./side";
 import { PublicTaskView } from "./task-view";
 import {
   useStateManagementFetch,
@@ -16,7 +14,6 @@ import {
   WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 const baseApiUrl =
   import.meta.env.VITE_APP_ENV === "development"
@@ -185,77 +182,20 @@ export default function PublicOrgHomePage() {
   const pageLoading = tasksLoading || sessionPending || votesLoading;
 
   return (
-    <div className="flex flex-col gap-3 relative">
-      <div className="relative rounded-2xl overflow-hidden bg-secondary">
-        <div
-          className={cn(
-            "aspect-32/9 w-full bg-secondary/30",
-            !organization.bannerImg && "bg-background aspect-auto h-20",
-          )}
-        >
-          {organization.bannerImg && (
-            <img
-              width={1260}
-              height={540}
-              className="w-full h-full object-cover"
-              src={organization.bannerImg}
-              alt={organization.name}
-            />
-          )}
+    <div className="max-w-3xl mx-auto px-4 py-6">
+      {pageLoading ? (
+        <div className="flex h-48 w-full items-center justify-center">
+          <IconLoader2 className="animate-spin text-muted-foreground" />
         </div>
-        <div
-          className={cn(
-            "absolute bottom-0 left-0 w-full bg-linear-to-t from-background via-background/70 to-transparent pt-24",
-            !organization.bannerImg && "bg-background pt-0",
-          )}
-        >
-          <div className="flex items-end gap-4">
-            {organization.logo ? (
-              <img
-                height={80}
-                width={80}
-                className="rounded-xl"
-                src={organization.logo}
-                alt={organization.name}
-                loading="lazy"
-              />
-            ) : (
-              <div className="h-20 w-20 rounded-xl border shadow-sm bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">
-                {organization.name.substring(0, 2)}
-              </div>
-            )}
-            <div>
-              <h1 className="text-3xl font-bold">{organization.name}</h1>
-              <p className="text-muted-foreground font-medium max-w-prose line-clamp-2">
-                {organization.description}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {pageLoading ? (
-          <div className="col-span-full flex h-48 w-full items-center justify-center">
-            <IconLoader2 className="animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <>
-            <div className="md:col-span-1 ">
-              <PublicTaskSide />
-            </div>
-            <div className="md:col-span-3 flex flex-col gap-3">
-              <PublicTaskView
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                fetchNextPage={fetchNextPage}
-                hasNextPage={hasNextPage}
-                isFetchingNextPage={isFetchingNextPage}
-              />
-            </div>
-          </>
-        )}
-      </div>
+      ) : (
+        <PublicTaskView
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          fetchNextPage={fetchNextPage}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import {
 	getLabels,
 	getOrganizationPublic,
 	getTaskByShortId,
+	getReleases,
+	getReleaseBySlug,
 	schema,
 	auth as authSchema,
 	getOrganizations,
@@ -999,3 +1001,84 @@ apiPublicRouteV1.get(
 		);
 	}
 );
+
+/**
+ * GET /organization/:org_slug/releases
+ * Returns all releases for an org (non-archived first, archived last).
+ */
+apiPublicRouteV1.get("/organization/:org_slug/releases", async (c) => {
+	const { org_slug } = c.req.param();
+
+	const org = await getOrganizationPublic(org_slug);
+	if (!org) {
+		return c.json(errorResponse("Organization not found"), 404);
+	}
+
+	if (!org.settings?.enablePublicPage) {
+		return c.json(errorResponse("Organization not available"), 403);
+	}
+
+	const releases = await getReleases(org.id);
+
+	// Sort: non-archived first (preserving existing order), archived last
+	const sorted = [
+		...releases.filter((r) => r.status !== "archived"),
+		...releases.filter((r) => r.status === "archived"),
+	];
+
+	return c.json(successResponse(sorted));
+});
+
+/**
+ * GET /organization/:org_slug/releases/:release_slug
+ * Returns a single release with its public tasks.
+ */
+apiPublicRouteV1.get("/organization/:org_slug/releases/:release_slug", async (c) => {
+	const { org_slug, release_slug } = c.req.param();
+
+	const org = await getOrganizationPublic(org_slug);
+	if (!org) {
+		return c.json(errorResponse("Organization not found"), 404);
+	}
+
+	if (!org.settings?.enablePublicPage) {
+		return c.json(errorResponse("Organization not available"), 403);
+	}
+
+	const release = await getReleaseBySlug(org.id, release_slug);
+	if (!release) {
+		return c.json(errorResponse("Release not found"), 404);
+	}
+
+	// Fetch tasks for this release, public visibility only
+	const tasks = await db.query.task.findMany({
+		where: (t, { and, eq }) => and(eq(t.releaseId, release.id), eq(t.visible, "public")),
+		with: {
+			labels: {
+				with: {
+					label: true,
+				},
+			},
+			assignees: {
+				with: {
+					user: {
+						columns: userSummaryColumns,
+					},
+				},
+			},
+		},
+	});
+
+	const tasksWithLabels = tasks.map((task) => ({
+		...task,
+		labels: task.labels.map((l) => l.label),
+		assignees: task.assignees.map((a) => a.user),
+	}));
+
+	return c.json(
+		successResponse({
+			...release,
+			tasks: tasksWithLabels,
+		})
+	);
+});

@@ -1,49 +1,39 @@
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@repo/ui/components/avatar";
-import {
-  Tile,
-  TileDescription,
-  TileHeader,
-  TileIcon,
-  TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+} from "@repo/ui/components/doras-ui/sidebar";
+import TasqIcon from "@repo/ui/components/brand-icon";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues, generateSlug } from "@repo/util";
-import { IconStack2, IconUser } from "@tabler/icons-react";
-
+import { IconRocket, IconStack2 } from "@tabler/icons-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import {
   useTaskViewManager,
   type FilterState,
 } from "@/hooks/useTaskViewManager";
-import { useSticky } from "@/hooks/use-sticky";
 import { serializeFilters } from "@/components/tasks/filter";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { Button } from "@repo/ui/components/button";
-import LoginDialog from "../auth/login";
-import { authClient } from "@repo/auth/client";
-import { Skeleton } from "@repo/ui/components/skeleton";
-import { Separator } from "@repo/ui/components/separator";
-import TasqIcon from "@repo/ui/components/brand-icon";
-import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { UserSettingsDialog } from "@/components/settings/user-settings-dialog";
-import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 
 const baseApiUrl =
   import.meta.env.VITE_APP_ENV === "development"
     ? "/backend-api/internal"
     : "/api/internal";
 
-export default function PublicTaskSide() {
+export default function PublicSidebar() {
+  const sidebarId = "public-sidebar";
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { organization, categories } = usePublicOrganizationLayout();
-  const { stuck, stickyRef } = useSticky();
-  const isMobile = useIsMobile();
   const {
     filters,
     viewSlug: selectedViewSlug,
@@ -52,6 +42,10 @@ export default function PublicTaskSide() {
     applyFilter,
     setCategoryFilter,
   } = useTaskViewManager();
+
+  const rawPathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathname =
+    rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 
   // Fetch sidebar counts independently — never affected by pagination or active filters
   const {
@@ -78,7 +72,7 @@ export default function PublicTaskSide() {
   const getCategoryCount = (categoryId: string) =>
     countsData?.categories.find((c) => c.id === categoryId)?.count ?? 0;
 
-  // Helper to create category filter
+  // Helper to build a category filter state
   const createCategoryFilter = (categoryId: string): FilterState => ({
     groups: [
       {
@@ -97,224 +91,199 @@ export default function PublicTaskSide() {
     operator: "AND",
   });
 
-  // Check if no filters are active (showing all open tasks)
   const isAllTasksActive =
     filters.groups.length === 0 && !selectedViewSlug && !categorySlug;
-  const { data: session, isPending } = authClient.useSession();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Derive the base tasks path and releases path from the current org slug in the URL
+  const orgSlugMatch = pathname.match(/^\/orgs\/([^/]+)/);
+  const orgSlug = orgSlugMatch?.[1] ?? "";
+  const tasksPath = `/orgs/${orgSlug}`;
+  const releasesPath = `/orgs/${orgSlug}/releases`;
+
+  const isOnTasks = pathname === tasksPath || pathname === `${tasksPath}/`;
+  const isOnReleases = pathname.startsWith(releasesPath);
+
+  const handleTasksClick = () => {
+    clearView();
+    setTimeout(() => {
+      queryClient.invalidateQueries({
+        queryKey: ["org-tasks", organization.id],
+      });
+    }, 100);
+  };
+
+  const handleCategoryClick = (category: { id: string; name: string }) => {
+    const slug = generateSlug(category.name);
+    const categoryFilter = createCategoryFilter(category.id);
+    const isActive =
+      isOnTasks &&
+      ((slug && categorySlug === slug) ||
+        serializeFilters(filters) === serializeFilters(categoryFilter));
+
+    if (!isOnTasks) {
+      // Navigate to tasks page with the category query param
+      navigate({
+        to: tasksPath,
+        search: slug ? { category: slug } : undefined,
+      });
+      return;
+    }
+
+    // Already on tasks page — toggle filter
+    if (isActive) {
+      clearView();
+    } else {
+      if (slug) {
+        setCategoryFilter(slug);
+      } else {
+        applyFilter(categoryFilter);
+      }
+    }
+    setTimeout(() => {
+      queryClient.invalidateQueries({
+        queryKey: ["org-tasks", organization.id],
+      });
+    }, 100);
+  };
+
   return (
-    <div
-      className="flex flex-col gap-3 w-full sticky top-0 pt-3 self-start"
-      ref={stickyRef}
-    >
-      {isPending
-        ? null
-        : !session && (
-            <LoginDialog
-              trigger={
-                <Button variant={"primary"} className="justify-start w-fit">
-                  Sign in
-                </Button>
-              }
-            />
-          )}
-      <div className="flex flex-col gap-0 bg-card rounded-xl">
-        <div
-          className={cn(
-            "grid transition-all duration-300 ease-out",
-            stuck && !isMobile
-              ? "grid-rows-[1fr]"
-              : "grid-rows-[0fr] invisible",
-          )}
-        >
-          <div className="overflow-hidden min-h-0">
-            <Tile className="bg-card md:w-full cursor-pointer select-none">
-              <TileHeader className="w-full">
-                <div className="flex flex-row gap-3 w-full">
-                  <TileTitle className="flex items-center gap-2 w-full">
-                    <TileIcon className=" bg-transparent">
-                      <Avatar className="size-6! rounded-md">
-                        <AvatarImage
-                          src={organization.logo || ""}
-                          alt={organization.name}
-                        />
-                        <AvatarFallback className="rounded-md uppercase text-xs">
-                          <IconUser className="size-6! transition-all" />
-                        </AvatarFallback>
-                      </Avatar>
-                    </TileIcon>
-                    <span className="line-clamp-1">{organization.name}</span>
-                  </TileTitle>
-                </div>
-              </TileHeader>
-            </Tile>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1 p-1">
-          <Tile
-            className={cn(
-              "bg-card md:w-full cursor-pointer select-none",
-              isAllTasksActive ? "bg-accent" : "bg-card hover:bg-accent",
-            )}
-            onClick={() => {
-              (clearView(),
-                setTimeout(() => {
-                  queryClient.invalidateQueries({
-                    queryKey: ["org-tasks", organization.id],
-                  });
-                }, 100));
-            }}
-          >
-            <TileHeader className="w-full">
-              <div className="flex flex-row gap-3 w-full">
-                <TileTitle className="flex items-center gap-2">
-                  <TileIcon
-                    className={cn(
-                      isAllTasksActive
-                        ? "text-foreground bg-muted-foreground/20"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    <IconStack2 />
-                  </TileIcon>
-                  Open
-                </TileTitle>
-                <TileDescription className="ml-auto">
-                  {openTaskCount}
-                </TileDescription>
-              </div>
-            </TileHeader>
-          </Tile>
-
-          {categories.map((category) => {
-            const categoryFilter = createCategoryFilter(category.id);
-            const slug = generateSlug(category.name);
-            const isActive =
-              (slug && categorySlug === slug) ||
-              serializeFilters(filters) === serializeFilters(categoryFilter);
-            const categoryTaskCount = getCategoryCount(category.id);
-
-            return (
-              <Tile
-                className={cn(
-                  "bg-card md:w-full cursor-pointer select-none",
-                  isActive ? "bg-accent" : "bg-card hover:bg-accent",
-                )}
-                key={category.id}
-                onClick={() => {
-                  if (isActive) {
-                    clearView();
-                    setTimeout(() => {
-                      queryClient.invalidateQueries({
-                        queryKey: ["org-tasks", organization.id],
-                      });
-                    }, 100);
-                  } else {
-                    if (slug) {
-                      setCategoryFilter(slug);
-                      setTimeout(() => {
-                        queryClient.invalidateQueries({
-                          queryKey: ["org-tasks", organization.id],
-                        });
-                      }, 100);
-                    } else {
-                      setTimeout(() => {
-                        queryClient.invalidateQueries({
-                          queryKey: ["org-tasks", organization.id],
-                        });
-                      }, 100);
-                      applyFilter(categoryFilter);
-                    }
-                  }
-                }}
+    <Sidebar id={sidebarId} collapsible keyboardShortcut="b">
+      <SidebarContent className="pt-2">
+        <SidebarGroup>
+          <SidebarMenu className="gap-0.5">
+            {/* Tasks */}
+            <SidebarMenuItem
+              className="min-h-auto"
+              isActive={isOnTasks && isAllTasksActive}
+            >
+              <Link
+                to={tasksPath}
+                className="w-full"
+                onClick={handleTasksClick}
               >
-                <TileHeader className="w-full">
-                  <div className="flex flex-row gap-3 w-full">
-                    <TileTitle className="flex items-center gap-2">
-                      <TileIcon
-                        style={{
-                          background: isActive
-                            ? `hsla(${extractHslValues(category.color || "#cccccc")}, 0.1)`
-                            : undefined,
-                        }}
-                      >
-                        <RenderIcon
-                          iconName={category.icon || "IconCircleFilled"}
-                          color={category.color || undefined}
-                          button
-                          focus={isActive}
-                          className={cn(
-                            "size-4! [&_svg]:size-3! border-0 ",
-                            !isActive && "text-muted-foreground",
-                          )}
-                        />
-                      </TileIcon>
-                      {category.name}
-                    </TileTitle>
-                    <TileDescription className="ml-auto">
-                      {categoryTaskCount}
-                    </TileDescription>
-                  </div>
-                </TileHeader>
-              </Tile>
-            );
-          })}
-          <Separator />
-          {isPending ? (
-            <Skeleton className="h-10 w-24 rounded-lg" />
-          ) : (
-            session && (
-              <>
-                <Tile
-                  className="bg-card md:w-full cursor-pointer select-none hover:bg-accent"
-                  onClick={() => setSettingsOpen(true)}
+                <SidebarMenuButton
+                  size="small"
+                  tooltip="Tasks"
+                  icon={<IconStack2 size={16} />}
+                  isActive={isOnTasks && isAllTasksActive}
                 >
-                  <TileHeader className="w-full">
-                    <div className="flex flex-row gap-3 w-full">
-                      <TileTitle className="flex items-center gap-2 w-full">
-                        <TileIcon className="size-6! bg-transparent">
-                          <Avatar className="size-4! rounded-md">
-                            <AvatarImage
-                              src={session.user.image || ""}
-                              alt={session.user.name || ""}
-                            />
-                            <AvatarFallback className="rounded-md uppercase text-xs">
-                              <IconUser className="size-6! transition-all" />
-                            </AvatarFallback>
-                          </Avatar>
-                        </TileIcon>
-                        <span className="line-clamp-1">
-                          {session.user.name}
-                        </span>
-                      </TileTitle>
-                    </div>
-                  </TileHeader>
-                </Tile>
-                <UserSettingsDialog
-                  isOpen={settingsOpen}
-                  onOpenChange={setSettingsOpen}
-                  user={session.user}
-                />
-              </>
-            )
-          )}
-          <Tile className="bg-card md:w-full cursor-pointer select-none hover:bg-accent">
-            <TileHeader className="w-full">
-              <div className="flex flex-row gap-3 w-full">
-                <TileTitle className="flex items-center gap-2 w-full">
-                  <TileIcon className="size-6! bg-transparent">
-                    <TasqIcon className="size-4! transition-all" />
-                  </TileIcon>
-                  <span className="line-clamp-1 text-xs">
-                    Powered by Sayr.io
+                  <span>Tasks</span>
+                </SidebarMenuButton>
+              </Link>
+              {isOnTasks && isAllTasksActive && openTaskCount > 0 && (
+                <SidebarMenuSub className="h-auto max-h-none">
+                  <span className="text-xs text-muted-foreground">
+                    {openTaskCount}
                   </span>
-                </TileTitle>
-              </div>
-            </TileHeader>
-          </Tile>
-        </div>
-      </div>
-    </div>
+                </SidebarMenuSub>
+              )}
+            </SidebarMenuItem>
+
+            {/* Releases */}
+            <SidebarMenuItem className="min-h-auto" isActive={isOnReleases}>
+              <Link to={releasesPath} className="w-full">
+                <SidebarMenuButton
+                  size="small"
+                  tooltip="Releases"
+                  icon={<IconRocket size={16} />}
+                  isActive={isOnReleases}
+                >
+                  <span>Releases</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Categories — collapsible, using SidebarMenuButton size="small" for consistent sizing */}
+        {categories.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Categories</SidebarGroupLabel>
+            <SidebarMenu className="gap-0.5">
+              {categories.map((category) => {
+                const slug = generateSlug(category.name);
+                const categoryFilter = createCategoryFilter(category.id);
+                const isActive =
+                  isOnTasks &&
+                  ((slug && categorySlug === slug) ||
+                    serializeFilters(filters) ===
+                      serializeFilters(categoryFilter));
+                const count = getCategoryCount(category.id);
+
+                return (
+                  <SidebarMenuItem
+                    key={category.id}
+                    className="min-h-auto"
+                    isActive={!!isActive}
+                  >
+                    <SidebarMenuButton
+                      size="small"
+                      tooltip={category.name}
+                      isActive={!!isActive}
+                      onClick={() => handleCategoryClick(category)}
+                      icon={
+                        <span
+                          className={cn(
+                            "flex size-4 shrink-0 items-center justify-center rounded",
+                            isActive && "opacity-100",
+                          )}
+                          style={{
+                            background: isActive
+                              ? `hsla(${extractHslValues(category.color || "#cccccc")}, 0.15)`
+                              : undefined,
+                          }}
+                        >
+                          <RenderIcon
+                            iconName={category.icon || "IconCircleFilled"}
+                            color={category.color || undefined}
+                            button
+                            focus={!!isActive}
+                            className={cn(
+                              "size-4! [&_svg]:size-3! border-0",
+                              !isActive && "text-muted-foreground",
+                            )}
+                          />
+                        </span>
+                      }
+                    >
+                      <span className="truncate flex-1">{category.name}</span>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub className="h-auto max-h-none">
+                      <span className="text-xs text-muted-foreground">
+                        {count}
+                      </span>
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu className="gap-0.5">
+          {/* Branding */}
+          <SidebarMenuItem className="min-h-auto">
+            <a
+              href="https://sayr.io"
+              target="_blank"
+              rel="noreferrer"
+              className="w-full"
+            >
+              <SidebarMenuButton
+                size="small"
+                tooltip="Powered by Sayr.io"
+                icon={<TasqIcon className="size-4! transition-all" />}
+              >
+                <span className="text-xs text-muted-foreground">
+                  Powered by Sayr.io
+                </span>
+              </SidebarMenuButton>
+            </a>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
   );
 }

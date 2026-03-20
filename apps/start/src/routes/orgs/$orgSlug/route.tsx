@@ -1,5 +1,6 @@
-import { SubWrapper } from "@/components/generic/wrapper";
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
+import PublicNavigation from "@/components/public/navigation";
+import PublicSidebar from "@/components/public/side";
 import { db, getIssueTemplates, getLabels, getOrganizationPublic } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { Button } from "@repo/ui/components/button";
@@ -15,10 +16,7 @@ const TTL = 1000 * 60 * 60; // 1 hour
 async function getSystemOrgSlug() {
 	const now = Date.now();
 
-	if (
-		cachedSystemOrgSlug !== undefined &&
-		now - lastFetch < TTL
-	) {
+	if (cachedSystemOrgSlug !== undefined && now - lastFetch < TTL) {
 		return cachedSystemOrgSlug;
 	}
 
@@ -28,7 +26,6 @@ async function getSystemOrgSlug() {
 	});
 
 	if (!org?.slug) {
-		// Do NOT cache failures
 		return null;
 	}
 
@@ -38,18 +35,17 @@ async function getSystemOrgSlug() {
 	return cachedSystemOrgSlug;
 }
 
-export const fetchSystemOrgSlug = createServerFn({ method: "GET" })
-	.handler(async () => {
-		const { multiTenantEnabled } = getEditionCapabilities();
+export const fetchSystemOrgSlug = createServerFn({ method: "GET" }).handler(async () => {
+	const { multiTenantEnabled } = getEditionCapabilities();
 
-		// If multi-tenant is enabled, never send a systemSlug
-		if (multiTenantEnabled) {
-			return { systemSlug: null };
-		}
+	if (multiTenantEnabled) {
+		return { systemSlug: null };
+	}
 
-		const systemSlug = await getSystemOrgSlug();
-		return { systemSlug };
-	});
+	const systemSlug = await getSystemOrgSlug();
+	return { systemSlug };
+});
+
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
@@ -91,22 +87,12 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 		if (!loaderData?.organization?.settings?.enablePublicPage) {
 			return {
 				meta: [{ title: "Organization Not Available" }],
-				links: [
-					{
-						rel: "icon",
-						href: "/icon.svg",
-						type: "image/svg+xml",
-					},
-				],
+				links: [{ rel: "icon", href: "/icon.svg", type: "image/svg+xml" }],
 			};
 		}
 
 		return {
-			meta: [
-				{
-					title: `${loaderData.organization.name} | Sayr.io`,
-				},
-			],
+			meta: [{ title: `${loaderData.organization.name} | Sayr.io` }],
 		};
 	},
 	component: PublicLayout,
@@ -126,15 +112,13 @@ function PublicLayout() {
 			categories={categories}
 			issueTemplates={issueTemplates}
 		>
-			<div className="relative flex h-dvh flex-col overflow-hidden">
-				<div className="relative min-h-0 flex-1 overflow-y-auto">
-					<SubWrapper
-						className="relative mx-auto max-w-6xl p-4!"
-						blur={false}
-						top={false}
-					>
+			<div className="flex h-dvh flex-col overflow-hidden">
+				<PublicNavigation />
+				<div className="flex min-h-0 flex-1 overflow-hidden">
+					<PublicSidebar />
+					<div className="min-h-0 flex-1 overflow-y-auto" id="public-scroll-container">
 						<Outlet />
-					</SubWrapper>
+					</div>
 				</div>
 			</div>
 		</PublicOrganizationProvider>
@@ -145,20 +129,16 @@ function OrganizationUnavailable() {
 	return (
 		<div className="via-surface to-surface flex h-screen items-center bg-[conic-gradient(at_bottom_left,var(--tw-gradient-stops))] from-primary">
 			<div className="mx-auto max-w-xl text-center text-white">
-				<h1 className="text-5xl font-black">
-					Organization Not Available
-				</h1>
+				<h1 className="text-5xl font-black">Organization Not Available</h1>
 
 				<p className="mb-7 mt-3">
-					Sorry, this organization could not be found or isn’t available right
-					now. It might have been removed or the link is incorrect.
+					Sorry, this organization could not be found or isn't available right now. It might have been removed or
+					the link is incorrect.
 				</p>
 
 				<div className="flex items-center justify-center gap-3">
 					<a href="/">
-						<Button className="border-surface-100! text-surface-100 w-full p-4 font-bold">
-							Back home
-						</Button>
+						<Button className="border-surface-100! text-surface-100 w-full p-4 font-bold">Back home</Button>
 					</a>
 
 					<a href="https://doras.to/discord">
@@ -174,31 +154,17 @@ function OrganizationUnavailable() {
 
 function PublicLayoutPending() {
 	return (
-		<div className="relative flex h-dvh flex-col overflow-hidden">
-			<div className="relative min-h-0 flex-1 overflow-y-auto">
-				<SubWrapper
-					className="relative mx-auto max-w-6xl p-4!"
-					blur={false}
-					top={false}
-				>
-					<div className="space-y-4">
-						<Skeleton className="h-48 w-full rounded-lg" />
-
-						<div className="flex items-center gap-4">
-							<Skeleton className="h-16 w-16 rounded-full" />
-							<div className="space-y-2">
-								<Skeleton className="h-8 w-48" />
-								<Skeleton className="h-4 w-32" />
-							</div>
-						</div>
-
-						<div className="mt-8 space-y-4">
-							<Skeleton className="h-10 w-full" />
-							<Skeleton className="h-10 w-full" />
-							<Skeleton className="h-10 w-full" />
-						</div>
+		<div className="flex h-dvh flex-col overflow-hidden">
+			<div className="bg-sidebar h-11 w-full shrink-0" />
+			<div className="flex min-h-0 flex-1 overflow-hidden">
+				<div className="bg-sidebar w-52 shrink-0" />
+				<div className="flex-1 p-6">
+					<div className="mx-auto max-w-3xl space-y-4">
+						<Skeleton className="h-10 w-full" />
+						<Skeleton className="h-10 w-full" />
+						<Skeleton className="h-10 w-full" />
 					</div>
-				</SubWrapper>
+				</div>
 			</div>
 		</div>
 	);

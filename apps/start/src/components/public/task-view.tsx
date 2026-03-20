@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { PublicTaskItem } from "./task-item";
 import {
@@ -18,16 +18,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@repo/ui/components/dropdown-menu";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@repo/ui/components/input-group";
-import { SearchIcon } from "lucide-react";
-import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { IconFilter2, IconLoader2 } from "@tabler/icons-react";
-import { useSticky } from "@/hooks/use-sticky";
-import { cn } from "@/lib/utils";
 import { SortOption } from ".";
 import { PublicTaskCreator } from "./public-task-creator";
 
@@ -48,8 +39,6 @@ export function PublicTaskView({
     usePublicOrganizationLayout();
 
   const queryClient = useQueryClient();
-  const { stuck, stickyRef } = useSticky();
-  const isMobile = useIsMobile();
 
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { value: votes } = useStateManagementKey<
@@ -59,55 +48,8 @@ export function PublicTaskView({
       count: number;
     }[]
   >(["votes", organization.id], []);
-  const didMountRef = useRef(false);
   // Sentinel ref for infinite scroll
   const sentinelRef = useRef<HTMLDivElement>(null);
-
-  // Instant typing state
-  const [searchInput, setSearchInput] = useState(() => {
-    if (typeof window === "undefined") return "";
-    const params = new URLSearchParams(window.location.search);
-    return params.get("search") ?? "";
-  });
-
-  // Debounced value (used for URL + refetch)
-  const [debouncedSearch, setDebouncedSearch] = useState(searchInput);
-
-  // Wait until user stops typing
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearch(searchInput);
-    }, 400);
-
-    return () => clearTimeout(timeout);
-  }, [searchInput]);
-
-  // Sync URL + refetch only after debounce
-  useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-
-    if (debouncedSearch) {
-      params.set("search", debouncedSearch);
-    } else {
-      params.delete("search");
-    }
-
-    const query = params.toString();
-    const newUrl = query
-      ? `${window.location.pathname}?${query}`
-      : window.location.pathname;
-
-    window.history.replaceState(null, "", newUrl);
-
-    queryClient.invalidateQueries({
-      queryKey: ["org-tasks", organization.id],
-    });
-  }, [debouncedSearch, organization.id, queryClient]);
 
   // Infinite scroll: trigger fetchNextPage when sentinel enters the scroll container.
   // The layout uses an inner overflow-y-auto div as the scroll root (not window),
@@ -207,65 +149,45 @@ export function PublicTaskView({
 
   return (
     <div className="flex flex-col gap-2">
-      <div
-        className="sticky top-0 z-50 pt-3 bg-background/95 backdrop-blur -mx-3 px-3"
-        ref={stickyRef}
-      >
-        <div
-          className={cn(
-            "bg-card p-3 rounded-lg flex w-full items-center shadow-xl",
-            stuck && "rounded-b-none border-b",
-          )}
-        >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="primary" size="sm">
-                <IconFilter2 />
-                {!isMobile && (
-                  <span className="truncate">{getSortLabel(sortBy)}</span>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup
-                value={sortBy}
-                onValueChange={(v) => {
-                  setSortBy(v as SortOption);
-                  setTimeout(() => {
-                    queryClient.invalidateQueries({
-                      queryKey: ["org-tasks", organization.id],
-                    });
-                  }, 100);
-                }}
-              >
-                <DropdownMenuRadioItem value="mostPopular">
-                  Most popular
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="newest">
-                  Newest
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="trending">
-                  Trending
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <InputGroup className="bg-accent rounded-lg border-transparent focus-within:bg-secondary transition-all focus-within:text-foreground placeholder:text-muted-foreground hover:bg-secondary max-w-48 h-9 ml-auto">
-            <InputGroupInput
-              placeholder="Search..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
-        </div>
+      {/* Toolbar: sort */}
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <IconFilter2 />
+              <span className="truncate">{getSortLabel(sortBy)}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup
+              value={sortBy}
+              onValueChange={(v) => {
+                setSortBy(v as SortOption);
+                setTimeout(() => {
+                  queryClient.invalidateQueries({
+                    queryKey: ["org-tasks", organization.id],
+                  });
+                }, 100);
+              }}
+            >
+              <DropdownMenuRadioItem value="mostPopular">
+                Most popular
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="newest">
+                Newest
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="trending">
+                Trending
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
       <PublicTaskCreator />
+
       {tasks.length === 0 ? (
         <div className="text-muted-foreground p-4 text-center border rounded-lg bg-card/50 border-dashed">
           No public tasks found matching your criteria.

@@ -39,6 +39,7 @@ import { Route as adminOrgIdIndexRouteImport } from './routes/(admin)/$orgId/ind
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
 import { Route as adminOrgIdTasksRouteRouteImport } from './routes/(admin)/$orgId/tasks/route'
+import { Route as OrgsOrgSlugReleasesIndexRouteImport } from './routes/orgs/$orgSlug/releases/index'
 import { Route as OrgsOrgSlugShortIdIndexRouteImport } from './routes/orgs/$orgSlug/$shortId/index'
 import { Route as adminSettingsSecurityIndexRouteImport } from './routes/(admin)/settings/security/index'
 import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(admin)/settings/connections/index'
@@ -50,6 +51,7 @@ import { Route as adminConsoleUsersUserIdRouteImport } from './routes/(admin)/co
 import { Route as adminOrgIdReleasesReleaseSlugRouteImport } from './routes/(admin)/$orgId/releases/$releaseSlug'
 import { Route as adminSettingsOrgOrgIdRouteRouteImport } from './routes/(admin)/settings/org/$orgId/route'
 import { Route as adminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/route'
+import { Route as OrgsOrgSlugReleasesReleaseSlugIndexRouteImport } from './routes/orgs/$orgSlug/releases/$releaseSlug/index'
 import { Route as adminSettingsOrgOrgIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/index'
 import { Route as adminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/index'
 import { Route as adminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/index'
@@ -215,6 +217,12 @@ const adminOrgIdTasksRouteRoute = adminOrgIdTasksRouteRouteImport.update({
   path: '/tasks',
   getParentRoute: () => adminOrgIdRouteRoute,
 } as any)
+const OrgsOrgSlugReleasesIndexRoute =
+  OrgsOrgSlugReleasesIndexRouteImport.update({
+    id: '/releases/',
+    path: '/releases/',
+    getParentRoute: () => OrgsOrgSlugRouteRoute,
+  } as any)
 const OrgsOrgSlugShortIdIndexRoute = OrgsOrgSlugShortIdIndexRouteImport.update({
   id: '/$shortId/',
   path: '/$shortId/',
@@ -275,6 +283,12 @@ const adminOrgIdTasksTaskShortIdRouteRoute =
     id: '/$taskShortId',
     path: '/$taskShortId',
     getParentRoute: () => adminOrgIdTasksRouteRoute,
+  } as any)
+const OrgsOrgSlugReleasesReleaseSlugIndexRoute =
+  OrgsOrgSlugReleasesReleaseSlugIndexRouteImport.update({
+    id: '/releases/$releaseSlug/',
+    path: '/releases/$releaseSlug/',
+    getParentRoute: () => OrgsOrgSlugRouteRoute,
   } as any)
 const adminSettingsOrgOrgIdIndexRoute =
   adminSettingsOrgOrgIdIndexRouteImport.update({
@@ -402,8 +416,10 @@ export interface FileRoutesByFullPath {
   '/settings/connections/': typeof adminSettingsConnectionsIndexRoute
   '/settings/security/': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/releases/': typeof OrgsOrgSlugReleasesIndexRoute
   '/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
+  '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
   '/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
@@ -448,8 +464,10 @@ export interface FileRoutesByTo {
   '/settings/connections': typeof adminSettingsConnectionsIndexRoute
   '/settings/security': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/releases': typeof OrgsOrgSlugReleasesIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
+  '/orgs/$orgSlug/releases/$releaseSlug': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
   '/settings/org/$orgId/billing': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
@@ -506,8 +524,10 @@ export interface FileRoutesById {
   '/(admin)/settings/connections/': typeof adminSettingsConnectionsIndexRoute
   '/(admin)/settings/security/': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/releases/': typeof OrgsOrgSlugReleasesIndexRoute
   '/(admin)/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
+  '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/(admin)/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
   '/(admin)/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/(admin)/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
@@ -564,8 +584,10 @@ export interface FileRouteTypes {
     | '/settings/connections/'
     | '/settings/security/'
     | '/orgs/$orgSlug/$shortId/'
+    | '/orgs/$orgSlug/releases/'
     | '/$orgId/tasks/$taskShortId/'
     | '/settings/org/$orgId/'
+    | '/orgs/$orgSlug/releases/$releaseSlug/'
     | '/settings/org/$orgId/teams/new'
     | '/settings/org/$orgId/billing/'
     | '/settings/org/$orgId/categories/'
@@ -610,8 +632,10 @@ export interface FileRouteTypes {
     | '/settings/connections'
     | '/settings/security'
     | '/orgs/$orgSlug/$shortId'
+    | '/orgs/$orgSlug/releases'
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
+    | '/orgs/$orgSlug/releases/$releaseSlug'
     | '/settings/org/$orgId/teams/new'
     | '/settings/org/$orgId/billing'
     | '/settings/org/$orgId/categories'
@@ -667,8 +691,10 @@ export interface FileRouteTypes {
     | '/(admin)/settings/connections/'
     | '/(admin)/settings/security/'
     | '/orgs/$orgSlug/$shortId/'
+    | '/orgs/$orgSlug/releases/'
     | '/(admin)/$orgId/tasks/$taskShortId/'
     | '/(admin)/settings/org/$orgId/'
+    | '/orgs/$orgSlug/releases/$releaseSlug/'
     | '/(admin)/settings/org/$orgId/teams/new'
     | '/(admin)/settings/org/$orgId/billing/'
     | '/(admin)/settings/org/$orgId/categories/'
@@ -913,6 +939,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdTasksRouteRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
+    '/orgs/$orgSlug/releases/': {
+      id: '/orgs/$orgSlug/releases/'
+      path: '/releases'
+      fullPath: '/orgs/$orgSlug/releases/'
+      preLoaderRoute: typeof OrgsOrgSlugReleasesIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
     '/orgs/$orgSlug/$shortId/': {
       id: '/orgs/$orgSlug/$shortId/'
       path: '/$shortId'
@@ -989,6 +1022,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$orgId/tasks/$taskShortId'
       preLoaderRoute: typeof adminOrgIdTasksTaskShortIdRouteRouteImport
       parentRoute: typeof adminOrgIdTasksRouteRoute
+    }
+    '/orgs/$orgSlug/releases/$releaseSlug/': {
+      id: '/orgs/$orgSlug/releases/$releaseSlug/'
+      path: '/releases/$releaseSlug'
+      fullPath: '/orgs/$orgSlug/releases/$releaseSlug/'
+      preLoaderRoute: typeof OrgsOrgSlugReleasesReleaseSlugIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
     }
     '/(admin)/settings/org/$orgId/': {
       id: '/(admin)/settings/org/$orgId/'
@@ -1285,11 +1325,16 @@ const adminRouteRouteWithChildren = adminRouteRoute._addFileChildren(
 interface OrgsOrgSlugRouteRouteChildren {
   OrgsOrgSlugIndexRoute: typeof OrgsOrgSlugIndexRoute
   OrgsOrgSlugShortIdIndexRoute: typeof OrgsOrgSlugShortIdIndexRoute
+  OrgsOrgSlugReleasesIndexRoute: typeof OrgsOrgSlugReleasesIndexRoute
+  OrgsOrgSlugReleasesReleaseSlugIndexRoute: typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
 }
 
 const OrgsOrgSlugRouteRouteChildren: OrgsOrgSlugRouteRouteChildren = {
   OrgsOrgSlugIndexRoute: OrgsOrgSlugIndexRoute,
   OrgsOrgSlugShortIdIndexRoute: OrgsOrgSlugShortIdIndexRoute,
+  OrgsOrgSlugReleasesIndexRoute: OrgsOrgSlugReleasesIndexRoute,
+  OrgsOrgSlugReleasesReleaseSlugIndexRoute:
+    OrgsOrgSlugReleasesReleaseSlugIndexRoute,
 }
 
 const OrgsOrgSlugRouteRouteWithChildren =
