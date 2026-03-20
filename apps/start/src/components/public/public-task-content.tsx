@@ -73,7 +73,8 @@ const baseApiUrl =
 export function PublicTaskContent({
   task: initialTask,
 }: PublicTaskContentProps) {
-  const { organization, categories, serverEvents } = usePublicOrganizationLayout();
+  const { organization, categories, serverEvents } =
+    usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   // const { stuck, stickyRef } = useSticky();
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
@@ -196,7 +197,7 @@ export function PublicTaskContent({
       }
     },
     UPDATE_TASK_COMMENTS: (msg) => {
-      console.log("🚀 ~ PublicTaskContent ~ msg:", msg)
+      console.log("🚀 ~ PublicTaskContent ~ msg:", msg);
       if (
         msg.scope === "PUBLIC" &&
         msg.meta?.orgId === organization.id &&
@@ -233,7 +234,7 @@ export function PublicTaskContent({
       <div className="md:col-span-1">
         <div
           className="flex flex-col gap-3 w-full sticky top-0 pt-3 self-start"
-        // ref={stickyRef}
+          // ref={stickyRef}
         >
           {/* Back button and member actions */}
           <div className="flex items-center gap-1 w-full justify-between">
@@ -395,21 +396,33 @@ export function PublicTaskContent({
                 <Tile className="bg-card md:w-full select-none">
                   <TileHeader className="w-full">
                     <div className="flex flex-row gap-3 w-full">
-                      <TileTitle className="flex items-center gap-2">
+                      <TileTitle className="flex items-start gap-2">
                         <TileIcon>
                           <IconTag className="size-4 text-muted-foreground" />
                         </TileIcon>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {task.labels.map((label, i) => (
-                            <span key={label.id} className="flex items-center gap-1.5">
+                            <span
+                              key={label.id}
+                              className="flex items-center gap-1.5 border rounded-full px-1 pr-2"
+                              style={{
+                                borderColor: label.color || "var(--border)",
+                                backgroundColor: label.color
+                                  ? `hsla(${extractHslValues(label.color)}, 0.1)`
+                                  : undefined,
+                              }}
+                            >
                               <IconCircleFilled
-                                size={8}
-                                style={{ color: label.color || "var(--muted-foreground)" }}
+                                size={12}
+                                style={{
+                                  color:
+                                    label.color || "var(--muted-foreground)",
+                                }}
                               />
                               <span>{label.name}</span>
-                              {i < task.labels.length - 1 && (
+                              {/*{i < task.labels.length - 1 && (
                                 <span className="text-muted-foreground">·</span>
-                              )}
+                              )}*/}
                             </span>
                           ))}
                         </div>
@@ -451,7 +464,11 @@ export function PublicTaskContent({
           </>
         )}
         {/* Comments */}
-        <PublicComments taskId={task.id} organizationId={task.organizationId} taskStatus={task.status} />
+        <PublicComments
+          taskId={task.id}
+          organizationId={task.organizationId}
+          taskStatus={task.status}
+        />
       </div>
     </div>
   );
