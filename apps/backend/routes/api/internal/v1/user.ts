@@ -243,7 +243,7 @@ apiRouteAdminUser.get("/export", async (c) => {
 	if (!session?.userId) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
-	if (!process.env.REDIS_UR) {
+	if (!process.env.REDIS_URL) {
 		return c.json(
 			{
 				success: false,
