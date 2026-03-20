@@ -1,8 +1,7 @@
 import { getOrganizationPublic, getReleases } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
-import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArchive, IconChevronDown } from "@tabler/icons-react";
+import { IconArchive, IconChevronDown, IconRocket } from "@tabler/icons-react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -12,6 +11,17 @@ import {
 } from "@/components/releases/config";
 import type { schema } from "@repo/database";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { Button } from "@repo/ui/components/button";
+import {
+  Tile,
+  TileAction,
+  TileHeader,
+  TileIcon,
+  TileTitle,
+  TileDescription,
+} from "@repo/ui/components/doras-ui/tile";
+import RenderIcon from "@/components/generic/RenderIcon";
+import { extractTaskText } from "@repo/util";
 
 const fetchPublicReleases = createServerFn({ method: "GET" })
   .inputValidator((data: { slug: string }) => data)
@@ -57,53 +67,32 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/")({
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "";
   const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return d
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    })
+    .toUpperCase();
 }
 
-function ReleaseDateLabel({ release }: { release: schema.releaseType }) {
-  if (release.status === "released" && release.releasedAt) {
-    return (
-      <span className="text-xs text-muted-foreground">
-        Released {formatDate(release.releasedAt)}
-      </span>
-    );
-  }
-  if (release.targetDate) {
-    return (
-      <span className="text-xs text-muted-foreground">
-        Target {formatDate(release.targetDate)}
-      </span>
-    );
-  }
-  const cfg = getReleaseStatusConfig(release.status);
-  return (
-    <span className="text-xs text-muted-foreground">
-      {cfg?.label ?? release.status}
-    </span>
-  );
-}
+type FilterTab = "all" | schema.releaseType["status"];
+
+const FILTER_TABS: Array<{ key: FilterTab; label: string }> = [
+  { key: "all", label: "All Releases" },
+  { key: "planned", label: "Planned" },
+  { key: "in-progress", label: "In Progress" },
+  { key: "released", label: "Released" },
+  { key: "archived", label: "Archived" },
+];
 
 function ReleasesListPage() {
   const { releases } = Route.useLoaderData();
   const params = Route.useParams();
   const orgSlug = params.orgSlug;
 
+  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
   const [archivedOpen, setArchivedOpen] = useState(false);
-
-  const nonArchived = releases.filter((r) => r.status !== "archived");
-  const archived = releases.filter((r) => r.status === "archived");
-
-  // Group non-archived by status in display order
-  const grouped = RELEASE_STATUS_ORDER.filter((s) => s !== "archived")
-    .map((status) => ({
-      status,
-      releases: nonArchived.filter((r) => r.status === status),
-    }))
-    .filter((g) => g.releases.length > 0);
 
   if (releases.length === 0) {
     return (
@@ -113,117 +102,237 @@ function ReleasesListPage() {
     );
   }
 
-  return (
-    <SubWrapper title="Releases" top={false}>
-      <div className="space-y-8">
-        {grouped.map(({ status, releases: groupReleases }) => {
-        const cfg = getReleaseStatusConfig(
-          status as schema.releaseType["status"],
-        );
-        return (
-          <section key={status}>
-            <div className="flex items-center gap-2 mb-3">
-              <span
-                className={cn(
-                  "flex items-center gap-1.5 text-sm font-semibold",
-                  cfg?.className,
-                )}
-              >
-                {cfg?.icon("h-4 w-4")}
-                {cfg?.label}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                ({groupReleases.length})
-              </span>
-            </div>
-            <div className="space-y-2">
-              {groupReleases.map((release) => (
-                <ReleaseCard
-                  key={release.id}
-                  release={release}
-                  orgSlug={orgSlug}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+  const visibleTabs = FILTER_TABS.filter(({ key }) => {
+    if (key === "all") return true;
+    return releases.some((r) => r.status === key);
+  });
 
-      {archived.length > 0 && (
-        <section>
-          <button
+  const filtered =
+    activeFilter === "all"
+      ? releases
+      : releases.filter((r) => r.status === activeFilter);
+
+  const nonArchived = filtered.filter((r) => r.status !== "archived");
+  const archived = filtered.filter((r) => r.status === "archived");
+
+  // Group non-archived by status in display order
+  const grouped = RELEASE_STATUS_ORDER.filter((s) => s !== "archived")
+    .map((status) => ({
+      status,
+      releases: nonArchived.filter((r) => r.status === status),
+    }))
+    .filter((g) => g.releases.length > 0);
+
+  return (
+    <SubWrapper title="Releases" top={false} className="md:pt-6">
+      {/* Filter tabs */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {visibleTabs.map(({ key, label }) => (
+          <Button
+            key={key}
             type="button"
-            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-3"
-            onClick={() => setArchivedOpen((v) => !v)}
+            onClick={() => setActiveFilter(key)}
+            variant="primary"
+            className={cn(
+              activeFilter === key
+                ? "bg-primary text-primary-foreground hover:bg-primary/80"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+            // className={cn(
+            //   "px-4 py-1.5 rounded-full text-sm border transition-colors",
+            //   activeFilter === key
+            //     ? "bg-foreground text-background border-foreground"
+            //     : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/40",
+            // )}
           >
-            <IconArchive className="h-4 w-4" />
-            Archived
-            <span className="text-xs text-muted-foreground">
-              ({archived.length})
-            </span>
-            <IconChevronDown
-              className={cn(
-                "h-3 w-3 transition-transform",
-                archivedOpen && "rotate-180",
-              )}
-            />
-          </button>
-          {archivedOpen && (
-            <div className="space-y-2 opacity-60">
-              {archived.map((release) => (
-                <ReleaseCard
-                  key={release.id}
-                  release={release}
-                  orgSlug={orgSlug}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Timeline */}
+      <div className="space-y-10">
+        {grouped.map(({ status, releases: groupReleases }) => {
+          const cfg = getReleaseStatusConfig(
+            status as schema.releaseType["status"],
+          );
+          return (
+            <section key={status}>
+              <div className="space-y-4">
+                {groupReleases.map((release) => (
+                  <TimelineRow
+                    key={release.id}
+                    release={release}
+                    orgSlug={orgSlug}
+                    statusLabel={cfg?.label ?? status}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        })}
+
+        {archived.length > 0 && (
+          <section>
+            <button
+              type="button"
+              className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-4"
+              onClick={() => setArchivedOpen((v) => !v)}
+            >
+              <IconArchive className="h-4 w-4" />
+              Archived
+              <span className="text-xs">({archived.length})</span>
+              <IconChevronDown
+                className={cn(
+                  "h-3 w-3 transition-transform",
+                  archivedOpen && "rotate-180",
+                )}
+              />
+            </button>
+            {archivedOpen && (
+              <div className="space-y-4 opacity-60">
+                {archived.map((release) => (
+                  <TimelineRow
+                    key={release.id}
+                    release={release}
+                    orgSlug={orgSlug}
+                    statusLabel="Archived"
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </SubWrapper>
   );
 }
 
-function ReleaseCard({
+function TimelineRow({
   release,
   orgSlug,
+  statusLabel,
 }: {
   release: schema.releaseType;
   orgSlug: string;
+  statusLabel: string;
 }) {
   const cfg = getReleaseStatusConfig(release.status);
 
+  const dateValue =
+    release.status === "released" && release.releasedAt
+      ? release.releasedAt
+      : (release.targetDate ?? "");
+
+  const descriptionPreview = extractTaskText(release.description);
+
   return (
-    <Link
-      to={`/orgs/${orgSlug}/releases/${release.slug}`}
-      className="flex items-center gap-4 rounded-xl border bg-card px-4 py-3 hover:bg-accent/50 transition-colors group"
-    >
-      {/* Status icon with color */}
-      <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-        style={{ background: release.color ? `${release.color}20` : undefined }}
-      >
-        <span style={{ color: release.color || cfg?.color }}>
-          {cfg?.icon("h-4 w-4")}
+    <div className="flex gap-4 md:gap-8 items-stretch">
+      {/* Left: date + status label */}
+      <div className="hidden md:flex flex-col items-end justify-start pt-4 w-28 shrink-0 gap-0.5">
+        <span
+          className={cn(
+            "text-[10px] font-semibold uppercase tracking-widest",
+            cfg?.className,
+          )}
+        >
+          {statusLabel}
         </span>
-      </span>
-
-      {/* Name + description */}
-      <div className="flex flex-1 flex-col gap-0.5 min-w-0">
-        <span className="font-semibold text-sm group-hover:text-foreground">
-          {release.name}
-        </span>
+        {dateValue && (
+          <span className="text-[11px] text-muted-foreground">
+            {formatDate(dateValue)}
+          </span>
+        )}
       </div>
 
-      {/* Date + status */}
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <ReleaseDateLabel release={release} />
-        <Badge variant="outline" className={cn("text-xs", cfg?.badgeClassName)}>
-          {cfg?.label}
-        </Badge>
+      {/* Divider line */}
+      <div className="hidden md:flex flex-col items-center pt-4">
+        <div
+          className="w-px flex-1 bg-border"
+          style={{
+            borderLeft: `2px solid ${cfg?.color ?? "hsl(var(--border))"}`,
+            opacity: 0.35,
+          }}
+        />
       </div>
-    </Link>
+
+      {/* Card */}
+      <div className="flex-1 min-w-0">
+        <Tile
+          asChild
+          className="md:w-full hover:bg-secondary cursor-pointer p-6 rounded-xl"
+        >
+          <Link
+            to="/orgs/$orgSlug/releases/$releaseSlug"
+            params={{ orgSlug, releaseSlug: release.slug }}
+          >
+            <TileHeader className="items-start">
+              <TileIcon
+                className="h-7 w-7 rounded-xl bg-transparent p-0 flex items-center justify-center"
+                style={{
+                  // background: cfg?.color ? `${cfg.color}20` : undefined,
+                  background: release.color ? `${release.color}20` : undefined,
+                  color:
+                    release.color && release.color !== "hsla(0, 0%, 0%, 1)"
+                      ? release.color
+                      : cfg?.color,
+                }}
+              >
+                {release.icon ? (
+                  <RenderIcon
+                    iconName={release.icon}
+                    color={release.color || "#ffffff"}
+                    button
+                    className={cn("size-5! [&_svg]:size-4! border-0")}
+                  />
+                ) : (
+                  <div
+                    className="size-8 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: release.color || "#cccccc",
+                    }}
+                  >
+                    <IconRocket className="size-4 text-white" />
+                  </div>
+                )}
+              </TileIcon>
+              <TileTitle className="text-xl">{release.name}</TileTitle>
+              <TileDescription>{descriptionPreview}</TileDescription>
+              {/* Mobile: show status + date inline */}
+              <TileDescription className="flex md:hidden items-center gap-2 mt-0.5">
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold uppercase tracking-widest",
+                    cfg?.className,
+                  )}
+                >
+                  {statusLabel}
+                </span>
+                {dateValue && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {formatDate(dateValue)}
+                  </span>
+                )}
+              </TileDescription>
+            </TileHeader>
+            {/* Status icon top-right */}
+            {/*<TileAction>
+              <TileIcon
+                className="h-7 w-7 rounded-full bg-transparent p-0 flex items-center justify-center"
+                style={{
+                  background: cfg?.color ? `${cfg.color}20` : undefined,
+                  color:
+                    release.color && release.color !== "hsla(0, 0%, 0%, 1)"
+                      ? release.color
+                      : cfg?.color,
+                }}
+              >
+                {cfg?.icon("h-4 w-4")}
+              </TileIcon>
+            </TileAction>*/}
+          </Link>
+        </Tile>
+      </div>
+    </div>
   );
 }
