@@ -20,6 +20,7 @@ import {
     TileIcon,
     TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
+import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { useToastAction } from "@/lib/util";
@@ -27,20 +28,24 @@ import { transferOrganizationByUserId, deleteOrganizationAction } from "@/lib/fe
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { IconCrown, IconUser, IconUserPlus, IconAlertTriangle, IconTrash } from "@tabler/icons-react";
-import { cn } from "@repo/ui/lib/utils";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 
 
 export default function Danger() {
     const { account } = useLayoutData();
-    const { organization, setOrganization } = useLayoutOrganizationSettings();
+    const { organization } = useLayoutOrganizationSettings();
     const { runWithToast } = useToastAction();
     const [selectedMember, setSelectedMember] = useState<(typeof organization.members)[0] | null>(null);
+    const [confirmInput, setConfirmInput] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     const isCreator = account?.id === organization?.createdBy;
     const isFreePlan = !organization.plan || organization.plan === "free";
+
+    // Members that can receive ownership (exclude the current user)
+    const transferableMembers = organization.members.filter((m) => m.userId !== account?.id);
 
     if (!isCreator || !organization) {
         return null;
@@ -69,12 +74,12 @@ export default function Danger() {
         );
 
         if (result?.success) {
-            setOrganization({
-                ...organization,
-                createdBy: selectedMember.userId,
-            });
             setSelectedMember(null);
+            setConfirmInput("");
             setDialogOpen(false);
+            // Redirect to root — the current user is no longer the owner so
+            // this settings section would be hidden and local state would be stale.
+            window.location.href = "/";
         }
     };
 
@@ -117,7 +122,16 @@ export default function Danger() {
                             </TileDescription>
                         </TileHeader>
                         <TileAction>
-                            <AdaptiveDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                            <AdaptiveDialog
+                                open={dialogOpen}
+                                onOpenChange={(open) => {
+                                    setDialogOpen(open);
+                                    if (!open) {
+                                        setSelectedMember(null);
+                                        setConfirmInput("");
+                                    }
+                                }}
+                            >
                                 <AdaptiveDialogTrigger asChild>
                                     <Button variant="primary" size={"sm"}>
                                         <IconCrown />
@@ -137,13 +151,10 @@ export default function Danger() {
                                             </AdaptiveDialogHeader>
                                             <AdaptiveDialogBody className="max-h-[300px] overflow-y-auto">
                                                 <div className="flex flex-col gap-2">
-                                                    {organization.members.map((member) => (
+                                                    {transferableMembers.map((member) => (
                                                         <Tile
                                                             key={member.id}
-                                                            className={cn(
-                                                                "w-full hover:bg-accent cursor-pointer",
-                                                                member.userId === account?.id && "opacity-50 pointer-events-none",
-                                                            )}
+                                                            className="w-full hover:bg-accent cursor-pointer"
                                                             onClick={() => setSelectedMember(member)}
                                                         >
                                                             <TileHeader className="w-full">
@@ -161,7 +172,6 @@ export default function Danger() {
                                                                 </TileIcon>
                                                                 <TileTitle className="text-sm">
                                                                     {member.user.name}
-                                                                    {member.userId === account?.id && " (you)"}
                                                                 </TileTitle>
                                                                 <TileDescription className="text-xs">
                                                                     {member.user.email}
@@ -169,7 +179,7 @@ export default function Danger() {
                                                             </TileHeader>
                                                         </Tile>
                                                     ))}
-                                                    {organization.members.length === 0 && (
+                                                    {transferableMembers.length === 0 && (
                                                         <div className="flex flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
                                                             <IconUserPlus className="size-8" />
                                                             <Label variant={"description"}>
@@ -235,12 +245,26 @@ export default function Danger() {
                                                         </TileDescription>
                                                     </TileHeader>
                                                 </Tile>
+                                                <div className="flex flex-col gap-2">
+                                                    <Label className="text-sm text-muted-foreground">
+                                                        Type <span className="font-semibold text-foreground">{organization.name}</span> to confirm
+                                                    </Label>
+                                                    <Input
+                                                        value={confirmInput}
+                                                        onChange={(e) => setConfirmInput(e.target.value)}
+                                                        placeholder={organization.name}
+                                                    />
+                                                </div>
                                             </AdaptiveDialogBody>
                                             <AdaptiveDialogFooter>
-                                                <Button variant={"outline"} onClick={() => setSelectedMember(null)}>
+                                                <Button variant={"outline"} onClick={() => { setSelectedMember(null); setConfirmInput(""); }}>
                                                     Back
                                                 </Button>
-                                                <Button variant={"destructive"} onClick={handleTransferOwnership}>
+                                                <Button
+                                                    variant={"destructive"}
+                                                    onClick={handleTransferOwnership}
+                                                    disabled={confirmInput !== organization.name}
+                                                >
                                                     <IconCrown className="size-4" />
                                                     Transfer Ownership
                                                 </Button>
