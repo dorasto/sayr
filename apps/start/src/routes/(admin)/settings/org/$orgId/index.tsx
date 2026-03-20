@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import SettingsOrganizationPage from "@/components/pages/admin/settings/orgId/root";
 import Preferences from "@/components/pages/admin/settings/orgId/root/preferences";
 import { SubWrapper } from "@/components/generic/wrapper";
+import Danger from "@/components/pages/admin/settings/orgId/root/danger";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/")({
   component: RouteComponent,
@@ -19,6 +20,7 @@ function RouteComponent() {
         <Label variant={"heading"}>Preferences</Label>
         <Preferences />
       </div>
+      <Danger />
     </SubWrapper>
   );
 }

@@ -2016,6 +2016,53 @@ apiRouteAdminOrganization.patch(
 		});
 	}
 );
+apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
+
+	return traceAsync(
+		"organization.transferOwnership",
+		async () => {
+			const { org_id: orgId, newOwnerId }: { org_id: string; newOwnerId: string } =
+				await c.req.json();
+
+			const [orgOwner] = await db
+				.select({ createdBy: schema.organization.createdBy })
+				.from(schema.organization)
+				.where(
+					and(
+						eq(schema.organization.id, orgId),
+						eq(schema.organization.createdBy, session?.userId)
+					)
+				)
+				.limit(1);
+
+			if (!orgOwner) {
+				return c.json(
+					{ success: false, error: "You don't have permission to transfer ownership." },
+					401
+				);
+			}
+
+			await db
+				.update(schema.organization)
+				.set({ createdBy: newOwnerId, updatedAt: new Date() })
+				.where(and(
+					eq(schema.organization.id, orgId),
+					eq(schema.organization.createdBy, session?.userId)
+				));
+
+			return c.json({ success: true });
+		},
+		{
+			description: "Transferring organization ownership",
+			data: { actorId: session?.userId },
+			onSuccess: () => ({
+				outcome: "ownership_transferred",
+			}),
+		}
+	);
+});
 
 // team member routes
 
