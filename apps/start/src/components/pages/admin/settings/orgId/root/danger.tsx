@@ -23,12 +23,13 @@ import {
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { useToastAction } from "@/lib/util";
-import { transferOrganizationByUserId } from "@/lib/fetches/organization";
+import { transferOrganizationByUserId, deleteOrganizationAction } from "@/lib/fetches/organization";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { IconCrown, IconUser, IconUserPlus, IconAlertTriangle } from "@tabler/icons-react";
+import { IconCrown, IconUser, IconUserPlus, IconAlertTriangle, IconTrash } from "@tabler/icons-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+
 
 export default function Danger() {
     const { account } = useLayoutData();
@@ -36,8 +37,10 @@ export default function Danger() {
     const { runWithToast } = useToastAction();
     const [selectedMember, setSelectedMember] = useState<(typeof organization.members)[0] | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     const isCreator = account?.id === organization?.createdBy;
+    const isFreePlan = !organization.plan || organization.plan === "free";
 
     if (!isCreator || !organization) {
         return null;
@@ -72,6 +75,32 @@ export default function Danger() {
             });
             setSelectedMember(null);
             setDialogOpen(false);
+        }
+    };
+
+    const handleDeleteOrganization = async () => {
+        const result = await runWithToast(
+            "delete-organization",
+            {
+                loading: {
+                    title: "Deleting organization...",
+                    description: "Please wait while we delete this organization.",
+                },
+                success: {
+                    title: "Organization deleted",
+                    description: "The organization has been deleted.",
+                },
+                error: {
+                    title: "Failed to delete organization",
+                    description: "An error occurred.",
+                },
+            },
+            () => deleteOrganizationAction(organization.id),
+        );
+
+        if (result?.success) {
+            setDeleteDialogOpen(false);
+            window.location.href = "/";
         }
     };
 
@@ -218,6 +247,67 @@ export default function Danger() {
                                             </AdaptiveDialogFooter>
                                         </>
                                     )}
+                                </AdaptiveDialogContent>
+                            </AdaptiveDialog>
+                        </TileAction>
+                    </Tile>
+                </div>
+
+                <div className="bg-card rounded-lg flex flex-col">
+                    <Tile className="md:w-full" variant={"transparent"}>
+                        <TileHeader className="md:w-full">
+                            <TileTitle className="text-sm">Delete organization</TileTitle>
+                            <TileDescription className="text-xs leading-normal!">
+                                {isFreePlan
+                                    ? "Permanently delete this organization and all its data"
+                                    : `You must downgrade to the free plan before deleting`}
+                            </TileDescription>
+                        </TileHeader>
+                        <TileAction>
+                            <AdaptiveDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                                <AdaptiveDialogTrigger asChild>
+                                    <Button variant="destructive" size={"sm"} disabled={!isFreePlan}>
+                                        <IconTrash />
+                                        Delete
+                                    </Button>
+                                </AdaptiveDialogTrigger>
+                                <AdaptiveDialogContent>
+                                    <AdaptiveDialogHeader className="bg-card">
+                                        <AdaptiveDialogTitle asChild>
+                                            <Label variant={"heading"}>Delete Organization</Label>
+                                        </AdaptiveDialogTitle>
+                                        <AdaptiveDialogDescription>
+                                            Are you sure you want to delete {organization.name}? This action cannot be undone.
+                                        </AdaptiveDialogDescription>
+                                    </AdaptiveDialogHeader>
+                                    <AdaptiveDialogBody className="flex flex-col gap-4">
+                                        <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                                            <IconAlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+                                            <div className="flex flex-col gap-1">
+                                                <Label className="text-destructive font-medium">
+                                                    This will permanently delete:
+                                                </Label>
+                                                <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                                                    <li>All tasks and comments</li>
+                                                    <li>All team members and their data</li>
+                                                    <li>All labels, categories, and views</li>
+                                                    <li>All organization files and attachments</li>
+                                                </ul>
+                                                <Label className="text-sm mt-2 font-medium text-destructive">
+                                                    This action is irreversible.
+                                                </Label>
+                                            </div>
+                                        </div>
+                                    </AdaptiveDialogBody>
+                                    <AdaptiveDialogFooter>
+                                        <AdaptiveDialogClose asChild>
+                                            <Button variant={"outline"}>Cancel</Button>
+                                        </AdaptiveDialogClose>
+                                        <Button variant={"destructive"} onClick={handleDeleteOrganization}>
+                                            <IconTrash className="size-4" />
+                                            Delete Organization
+                                        </Button>
+                                    </AdaptiveDialogFooter>
                                 </AdaptiveDialogContent>
                             </AdaptiveDialog>
                         </TileAction>

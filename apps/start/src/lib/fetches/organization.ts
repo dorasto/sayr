@@ -1632,3 +1632,22 @@ export async function transferOrganizationByUserId(
 
 	return res.json();
 }
+
+export async function deleteOrganizationAction(
+	organizationId: string
+): Promise<{ success: boolean; error?: string }> {
+	const res = await fetch(
+		`${API_URL}/v1/admin/organization/delete`,
+		{
+			method: "DELETE",
+			credentials: "include",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				org_id: organizationId,
+			}),
+		}
+	);
+	return res.json();
+}
