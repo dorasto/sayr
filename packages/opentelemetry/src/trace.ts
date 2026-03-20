@@ -70,6 +70,42 @@ function setSafeAttribute(
 	span.setAttribute(key, JSON.stringify(value));
 }
 
+/**
+ * Creates an async tracing helper that wraps an operation in an OpenTelemetry
+ * span. The returned function starts a span, runs the provided async callback,
+ * attaches optional metadata, and records success or failure details.
+ *
+ * @example
+ * const traceAsync = createTraceAsync();
+ *
+ * // Example: wrapping a fake user-processing operation
+ * const result = await traceAsync(
+ *   "user.process",
+ *   async () => {
+ *     // Simulate database work
+ *     await new Promise((r) => setTimeout(r, 100));
+ *
+ *     const users = ["alice", "bob", "charlie"];
+ *     const processed = users.map((u) => u.toUpperCase());
+ *
+ *     return { processed, count: processed.length };
+ *   },
+ *   {
+ *     description: "Processing user records",
+ *     data: { source: "demo", batchSize: 3 },
+ *     onSuccess: (result) => ({
+ *       outcome: "processed_successfully",
+ *       data: { processedCount: result.count },
+ *     }),
+ *   }
+ * );
+ *
+ * console.log(result);
+ * // {
+ * //   processed: ["ALICE", "BOB", "CHARLIE"],
+ * //   count: 3
+ * // }
+ */
 export function createTraceAsync(): TraceAsync {
 	const tracer = getTracer();
 

@@ -1,0 +1,229 @@
+
+import { useState } from "react";
+import { Button } from "@repo/ui/components/button";
+import {
+    AdaptiveDialog,
+    AdaptiveDialogBody,
+    AdaptiveDialogClose,
+    AdaptiveDialogContent,
+    AdaptiveDialogDescription,
+    AdaptiveDialogFooter,
+    AdaptiveDialogHeader,
+    AdaptiveDialogTitle,
+    AdaptiveDialogTrigger,
+} from "@repo/ui/components/adaptive-dialog";
+import {
+    Tile,
+    TileAction,
+    TileDescription,
+    TileHeader,
+    TileIcon,
+    TileTitle,
+} from "@repo/ui/components/doras-ui/tile";
+import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
+import { useToastAction } from "@/lib/util";
+import { transferOrganizationByUserId } from "@/lib/fetches/organization";
+import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { IconCrown, IconUser, IconUserPlus, IconAlertTriangle } from "@tabler/icons-react";
+import { cn } from "@repo/ui/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+
+export default function Danger() {
+    const { account } = useLayoutData();
+    const { organization, setOrganization } = useLayoutOrganizationSettings();
+    const { runWithToast } = useToastAction();
+    const [selectedMember, setSelectedMember] = useState<(typeof organization.members)[0] | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    const isCreator = account?.id === organization?.createdBy;
+
+    if (!isCreator || !organization) {
+        return null;
+    }
+
+    const handleTransferOwnership = async () => {
+        if (!selectedMember) return;
+
+        const result = await runWithToast(
+            "transfer-ownership",
+            {
+                loading: {
+                    title: "Transferring ownership...",
+                    description: "Please wait while we transfer ownership.",
+                },
+                success: {
+                    title: "Ownership transferred",
+                    description: "The organization ownership has been transferred.",
+                },
+                error: {
+                    title: "Failed to transfer ownership",
+                    description: "An error occurred while transferring ownership.",
+                },
+            },
+            () => transferOrganizationByUserId(organization.id, selectedMember.userId),
+        );
+
+        if (result?.success) {
+            setOrganization({
+                ...organization,
+                createdBy: selectedMember.userId,
+            });
+            setSelectedMember(null);
+            setDialogOpen(false);
+        }
+    };
+
+    return (
+        <>
+            <Separator />
+            <div className="flex flex-col gap-3">
+                <div className="bg-card rounded-lg flex flex-col">
+                    <Tile className="md:w-full" variant={"transparent"}>
+                        <TileHeader className="md:w-full">
+                            <TileTitle className="text-sm">Transfer ownership</TileTitle>
+                            <TileDescription className="text-xs leading-normal!">
+                                Transfer ownership of this organization to another member
+                            </TileDescription>
+                        </TileHeader>
+                        <TileAction>
+                            <AdaptiveDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                                <AdaptiveDialogTrigger asChild>
+                                    <Button variant="primary" size={"sm"}>
+                                        <IconCrown />
+                                        Transfer
+                                    </Button>
+                                </AdaptiveDialogTrigger>
+                                <AdaptiveDialogContent>
+                                    {!selectedMember ? (
+                                        <>
+                                            <AdaptiveDialogHeader className="bg-card">
+                                                <AdaptiveDialogTitle asChild>
+                                                    <Label variant={"heading"}>Transfer Ownership</Label>
+                                                </AdaptiveDialogTitle>
+                                                <AdaptiveDialogDescription>
+                                                    Select a member to transfer ownership to
+                                                </AdaptiveDialogDescription>
+                                            </AdaptiveDialogHeader>
+                                            <AdaptiveDialogBody className="max-h-[300px] overflow-y-auto">
+                                                <div className="flex flex-col gap-2">
+                                                    {organization.members.map((member) => (
+                                                        <Tile
+                                                            key={member.id}
+                                                            className={cn(
+                                                                "w-full hover:bg-accent cursor-pointer",
+                                                                member.userId === account?.id && "opacity-50 pointer-events-none",
+                                                            )}
+                                                            onClick={() => setSelectedMember(member)}
+                                                        >
+                                                            <TileHeader className="w-full">
+                                                                <TileIcon className="bg-transparent">
+                                                                    <Avatar className="h-8 w-8 rounded-md">
+                                                                        <AvatarImage
+                                                                            src={member.user.image || ""}
+                                                                            alt={member.user.name}
+                                                                            className="rounded-none"
+                                                                        />
+                                                                        <AvatarFallback className="rounded-md uppercase text-xs">
+                                                                            <IconUser className="size-4" />
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                </TileIcon>
+                                                                <TileTitle className="text-sm">
+                                                                    {member.user.name}
+                                                                    {member.userId === account?.id && " (you)"}
+                                                                </TileTitle>
+                                                                <TileDescription className="text-xs">
+                                                                    {member.user.email}
+                                                                </TileDescription>
+                                                            </TileHeader>
+                                                        </Tile>
+                                                    ))}
+                                                    {organization.members.length === 0 && (
+                                                        <div className="flex flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
+                                                            <IconUserPlus className="size-8" />
+                                                            <Label variant={"description"}>
+                                                                No members found to transfer ownership to
+                                                            </Label>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </AdaptiveDialogBody>
+                                            <AdaptiveDialogFooter>
+                                                <AdaptiveDialogClose asChild>
+                                                    <Button variant={"outline"}>Cancel</Button>
+                                                </AdaptiveDialogClose>
+                                            </AdaptiveDialogFooter>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <AdaptiveDialogHeader className="bg-card">
+                                                <AdaptiveDialogTitle asChild>
+                                                    <Label variant={"heading"}>Confirm Transfer</Label>
+                                                </AdaptiveDialogTitle>
+                                                <AdaptiveDialogDescription>
+                                                    Are you sure you want to transfer ownership to {selectedMember.user.name}?
+                                                </AdaptiveDialogDescription>
+                                            </AdaptiveDialogHeader>
+                                            <AdaptiveDialogBody className="flex flex-col gap-4">
+                                                <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                                                    <IconAlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+                                                    <div className="flex flex-col gap-1">
+                                                        <Label className="text-destructive font-medium">
+                                                            This action gives {selectedMember.user.name} full control:
+                                                        </Label>
+                                                        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                                                            <li>Access to all organization data and settings</li>
+                                                            <li>Billing and subscription management</li>
+                                                            <li>Ability to delete the organization</li>
+                                                            <li>Transfer or remove your ownership</li>
+                                                        </ul>
+                                                        <Label className="text-sm mt-2">
+                                                            You will lose owner privileges and become a regular member.
+                                                        </Label>
+                                                    </div>
+                                                </div>
+                                                <Tile className="w-full" variant="outline">
+                                                    <TileHeader className="w-full">
+                                                        <TileIcon className="bg-transparent">
+                                                            <Avatar className="h-8 w-8 rounded-md">
+                                                                <AvatarImage
+                                                                    src={selectedMember.user.image || ""}
+                                                                    alt={selectedMember.user.name}
+                                                                    className="rounded-none"
+                                                                />
+                                                                <AvatarFallback className="rounded-md uppercase text-xs">
+                                                                    <IconUser className="size-4" />
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                        </TileIcon>
+                                                        <TileTitle className="text-sm">
+                                                            {selectedMember.user.name}
+                                                        </TileTitle>
+                                                        <TileDescription className="text-xs">
+                                                            {selectedMember.user.email}
+                                                        </TileDescription>
+                                                    </TileHeader>
+                                                </Tile>
+                                            </AdaptiveDialogBody>
+                                            <AdaptiveDialogFooter>
+                                                <Button variant={"outline"} onClick={() => setSelectedMember(null)}>
+                                                    Back
+                                                </Button>
+                                                <Button variant={"destructive"} onClick={handleTransferOwnership}>
+                                                    <IconCrown className="size-4" />
+                                                    Transfer Ownership
+                                                </Button>
+                                            </AdaptiveDialogFooter>
+                                        </>
+                                    )}
+                                </AdaptiveDialogContent>
+                            </AdaptiveDialog>
+                        </TileAction>
+                    </Tile>
+                </div>
+            </div>
+        </>
+    );
+}

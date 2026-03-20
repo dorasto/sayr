@@ -19,7 +19,7 @@ import {
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
-import { and, count, eq, ne } from "drizzle-orm";
+import { and, count, eq, ilike, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { apiRouteAdminProjectTask } from "./task";
@@ -2016,6 +2016,128 @@ apiRouteAdminOrganization.patch(
 		});
 	}
 );
+apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	return traceAsync(
+		"organization.transferOwnership",
+		async () => {
+			const { org_id: orgId, newOwnerId }: { org_id: string; newOwnerId: string } =
+				await c.req.json();
+
+			const [orgOwner] = await db
+				.select({ createdBy: schema.organization.createdBy })
+				.from(schema.organization)
+				.where(
+					and(
+						eq(schema.organization.id, orgId),
+						eq(schema.organization.createdBy, session?.userId)
+					)
+				)
+				.limit(1);
+
+			if (!orgOwner) {
+				return c.json(
+					{ success: false, error: "You don't have permission to transfer ownership." },
+					401
+				);
+			}
+
+			// Find the Admin team - first try by name (case-insensitive), fallback to isSystem
+			let adminTeam = await db.query.team.findFirst({
+				where: (t) =>
+					and(eq(t.organizationId, orgId), ilike(t.name, "%admin%")),
+			});
+
+			if (!adminTeam) {
+				adminTeam = await db.query.team.findFirst({
+					where: (t) =>
+						and(eq(t.organizationId, orgId), eq(t.isSystem, true)),
+				});
+			}
+
+			if (!adminTeam) {
+				await recordWideError({
+					name: "organization.transferOwnership.admin_team_not_found",
+					error: new Error("Admin team not found"),
+					code: "ADMIN_TEAM_NOT_FOUND",
+					message: "Could not find the Admin team for this organization",
+					contextData: { orgId },
+				});
+				return c.json({ success: false, error: "Admin team not found" }, 500);
+			}
+
+			// Get the current owner's member record
+			const [currentOwnerMember] = await db
+				.select()
+				.from(schema.member)
+				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, session?.userId || "")))
+				.limit(1);
+
+			// Get the new owner's member record
+			const [newOwnerMember] = await db
+				.select()
+				.from(schema.member)
+				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, newOwnerId)))
+				.limit(1);
+
+			if (!newOwnerMember) {
+				return c.json({ success: false, error: "New owner is not a member of this organization" }, 400);
+			}
+
+			// Remove current owner from the admin team
+			if (currentOwnerMember) {
+				await db
+					.delete(schema.memberTeam)
+					.where(and(
+						eq(schema.memberTeam.teamId, adminTeam.id),
+						eq(schema.memberTeam.memberId, currentOwnerMember.id)
+					));
+			}
+
+			// Add new owner to the admin team
+			const [memberTeam] = await db
+				.insert(schema.memberTeam)
+				.values({
+					id: crypto.randomUUID(),
+					teamId: adminTeam.id,
+					memberId: newOwnerMember.id,
+				})
+				.returning();
+
+			if (!memberTeam) {
+				await recordWideError({
+					name: "organization.transferOwnership.add_to_admin_failed",
+					error: new Error("Failed to add new owner to admin team"),
+					code: "ADMIN_TEAM_ADD_FAILED",
+					message: "Failed to add new owner to admin team",
+					contextData: { orgId, newOwnerId },
+				});
+				return c.json({ success: false, error: "Failed to add new owner to admin team" }, 500);
+			}
+
+			// Update organization createdBy to the new owner
+			await db
+				.update(schema.organization)
+				.set({ createdBy: newOwnerId, updatedAt: new Date() })
+				.where(and(
+					eq(schema.organization.id, orgId),
+					eq(schema.organization.createdBy, session?.userId)
+				));
+
+			return c.json({ success: true });
+		},
+		{
+			description: "Transferring organization ownership",
+			data: { actorId: session?.userId },
+			onSuccess: () => ({
+				outcome: "ownership_transferred",
+			}),
+		}
+	);
+});
 
 // team member routes
 
