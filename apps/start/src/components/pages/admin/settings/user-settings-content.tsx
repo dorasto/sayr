@@ -335,7 +335,7 @@ export function UserSettingsContent({
                   <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                     <li>Transfer ownership of any organizations you own</li>
                     <li>You will lose access to all organizations you are a member of</li>
-                    <li>All your tasks, comments, and data will be permanently deleted</li>
+                    <li>All your assets will be permanently deleted</li>
                   </ul>
                 </div>
               </div>

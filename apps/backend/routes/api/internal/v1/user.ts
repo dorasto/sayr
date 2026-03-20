@@ -1,6 +1,6 @@
 import { auth, db, getUsersByIds, schema } from "@repo/database";
 import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
-import { removeObject, uploadObject } from "@repo/storage";
+import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -334,11 +334,23 @@ apiRouteAdminUser.delete("/delete", async (c) => {
 					.update(schema.taskCommentHistory)
 					.set({ editedBy: null })
 					.where(eq(schema.taskCommentHistory.editedBy, userId));
-				// Delete the user
+				await traceAsync(
+					"user.delete.s3_files",
+					async () => {
+						try {
+							await deleteFolder(`profile/${userId}/`);
+							await deleteFolder(`files/${userId}/`);
+						} catch (err) {
+							console.error("Failed to delete user S3 files:", err);
+						}
+					},
+					{ description: "Deleting user S3 files", data: { userId } }
+				);
+
 				await db.delete(auth.user).where(eq(auth.user.id, userId));
 			},
 			{
-				description: "Deleting user account and reassigning ownership",
+				description: "Deleting user account and cleaning up related data",
 				data: { userId },
 			}
 		);
