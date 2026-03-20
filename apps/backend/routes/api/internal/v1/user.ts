@@ -1,4 +1,4 @@
-import { auth, db, getUsersByIds } from "@repo/database";
+import { auth, db, getUsersByIds, schema } from "@repo/database";
 import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { enqueue, getRedis } from "@repo/queue";
+import { auth as betterAuth } from "@repo/auth";
 
 export const apiRouteAdminUser = new Hono<AppEnv>();
 
@@ -287,4 +288,71 @@ apiRouteAdminUser.get("/export", async (c) => {
 		message:
 			"Your data export has started. You will be notified when it is ready.",
 	});
+});
+
+apiRouteAdminUser.delete("/delete", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const userId = session.userId;
+
+	const [orgOwned] = await db
+		.select({ id: schema.organization.id })
+		.from(schema.organization)
+		.where(eq(schema.organization.createdBy, userId))
+		.limit(1);
+
+	if (orgOwned) {
+		return c.json(
+			{
+				success: false,
+				error:
+					"You cannot delete your account while you own organizations. Transfer ownership or delete your organizations first.",
+			},
+			400
+		);
+	}
+
+	try {
+		await traceAsync(
+			"user.delete",
+			async () => {
+				await db
+					.update(schema.taskTimeline)
+					.set({ actorId: null })
+					.where(eq(schema.taskTimeline.actorId, userId));
+				await db
+					.update(schema.taskComment)
+					.set({ createdBy: null })
+					.where(eq(schema.taskComment.createdBy, userId));
+				await db
+					.update(schema.taskCommentHistory)
+					.set({ editedBy: null })
+					.where(eq(schema.taskCommentHistory.editedBy, userId));
+				// Delete the user
+				await db.delete(auth.user).where(eq(auth.user.id, userId));
+			},
+			{
+				description: "Deleting user account and reassigning ownership",
+				data: { userId },
+			}
+		);
+
+		return c.json({ success: true });
+	} catch (err) {
+		console.error(err);
+		await recordWideError({
+			name: "user.delete.failed",
+			error: err,
+			code: "USER_DELETE_FAILED",
+			message: "Failed to delete user account",
+			contextData: { userId },
+		});
+		return c.json({ success: false, error: "Failed to delete account" }, 500);
+	}
 });

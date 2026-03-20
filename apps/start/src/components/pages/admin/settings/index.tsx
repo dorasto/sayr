@@ -14,7 +14,7 @@ export type { UserSettingsContentProps } from "./user-settings-content";
  * Pulls account data from useLayoutData() and handles cache invalidation.
  */
 export default function UserSettings() {
-	const { serverEvents, account, setAccount } = useLayoutData();
+	const { serverEvents, account, setAccount, organizations } = useLayoutData();
 	const router = useRouter();
 	useServerEventsSubscription({
 		serverEvents,
@@ -30,6 +30,7 @@ export default function UserSettings() {
 	return (
 		<UserSettingsContent
 			account={account}
+			organizations={organizations}
 			onAccountUpdated={handleAccountUpdated}
 		/>
 	);

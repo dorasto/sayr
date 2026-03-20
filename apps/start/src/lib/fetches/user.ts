@@ -104,3 +104,18 @@ export async function uploadUserProfilePicture(
 		return { success: false, error: "Profile picture upload failed" };
 	}
 }
+
+export async function deleteUserAction(): Promise<{
+	success: boolean;
+	error?: string;
+}> {
+	const res = await fetch(`${API_URL}/v1/admin/user/delete`, {
+		method: "DELETE",
+		credentials: "include",
+		headers: {
+			"Content-Type": "application/json",
+		},
+	});
+
+	return res.json();
+}
