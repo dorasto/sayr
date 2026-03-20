@@ -17,7 +17,7 @@ Yes! Sayr is fully open source. You can view the code, contribute, or self-host 
 
 ### Can I self-host Sayr?
 
-Absolutely. See our [Self-Hosting guides](/docs/self-hosting/railway) for deployment instructions.
+Absolutely. See our [Self-Hosting guide](/docs/self-hosting/get-started) for deployment instructions.
 
 ---
 
@@ -40,7 +40,7 @@ Organization admins can invite you via email, or you can request access if the o
 - **Public tasks** are visible to anyone viewing your organization's public board
 - **Private tasks** are only visible to organization members
 
-Learn more in our [Visibility guide](/docs/guides/visibility).
+Learn more in our [Visibility guide](/docs/visibility/overview).
 
 ### Can I import tasks from other tools?
 
