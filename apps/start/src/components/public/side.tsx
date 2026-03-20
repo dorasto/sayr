@@ -1,9 +1,13 @@
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@repo/ui/components/collapsible";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -12,8 +16,9 @@ import {
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues, generateSlug } from "@repo/util";
-import { IconRocket, IconStack2 } from "@tabler/icons-react";
+import { IconChevronRight, IconRocket, IconStack2 } from "@tabler/icons-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import {
@@ -103,6 +108,8 @@ export default function PublicSidebar() {
   const isOnTasks = pathname === tasksPath || pathname === `${tasksPath}/`;
   const isOnReleases = pathname.startsWith(releasesPath);
 
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
+
   const handleTasksClick = () => {
     clearView();
     setTimeout(() => {
@@ -151,33 +158,149 @@ export default function PublicSidebar() {
       <SidebarContent className="pt-2">
         <SidebarGroup>
           <SidebarMenu className="gap-0.5">
-            {/* Tasks */}
-            <SidebarMenuItem
-              className="min-h-auto"
-              isActive={isOnTasks && isAllTasksActive}
-            >
-              <Link
-                to={tasksPath}
-                className="w-full"
-                onClick={handleTasksClick}
+            {/* Tasks — collapsible when categories exist */}
+            {categories.length > 0 ? (
+              <Collapsible
+                open={categoriesOpen}
+                onOpenChange={setCategoriesOpen}
+                className="flex flex-col gap-0.5"
               >
-                <SidebarMenuButton
-                  size="small"
-                  tooltip="Tasks"
-                  icon={<IconStack2 size={16} />}
+                <SidebarMenuItem
+                  className="min-h-auto group/coltrig"
                   isActive={isOnTasks && isAllTasksActive}
                 >
-                  <span>Tasks</span>
-                </SidebarMenuButton>
-              </Link>
-              {isOnTasks && isAllTasksActive && openTaskCount > 0 && (
-                <SidebarMenuSub className="h-auto max-h-none">
-                  <span className="text-xs text-muted-foreground">
-                    {openTaskCount}
-                  </span>
-                </SidebarMenuSub>
-              )}
-            </SidebarMenuItem>
+                  <Link
+                    to={tasksPath}
+                    className="w-full"
+                    onClick={handleTasksClick}
+                  >
+                    <SidebarMenuButton
+                      size="small"
+                      tooltip="Tasks"
+                      isActive={isOnTasks && isAllTasksActive}
+                      icon={
+                        <CollapsibleTrigger asChild>
+                          {/** biome-ignore lint/a11y/noStaticElementInteractions: required for toggle */}
+                          {/** biome-ignore lint/a11y/useKeyWithClickEvents: required for toggle */}
+                          <div
+                            className="h-4 w-4 flex items-center justify-center"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCategoriesOpen((prev) => !prev);
+                            }}
+                          >
+                            <IconChevronRight
+                              size={16}
+                              className={cn(
+                                "transition-transform duration-200 text-muted-foreground group-hover/coltrig:text-sidebar-foreground",
+                                categoriesOpen && "rotate-90",
+                              )}
+                            />
+                          </div>
+                        </CollapsibleTrigger>
+                      }
+                    >
+                      <span>Tasks</span>
+                    </SidebarMenuButton>
+                  </Link>
+                  {openTaskCount > 0 && (
+                    <SidebarMenuSub className="h-auto max-h-none">
+                      <span className="text-xs text-muted-foreground">
+                        {openTaskCount}
+                      </span>
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+
+                <CollapsibleContent className="flex flex-col gap-0.5 ml-2 pl-2 border-l">
+                  {categories.map((category) => {
+                    const slug = generateSlug(category.name);
+                    const categoryFilter = createCategoryFilter(category.id);
+                    const isActive =
+                      isOnTasks &&
+                      ((slug && categorySlug === slug) ||
+                        serializeFilters(filters) ===
+                          serializeFilters(categoryFilter));
+                    const count = getCategoryCount(category.id);
+
+                    return (
+                      <SidebarMenuItem
+                        key={category.id}
+                        className="min-h-auto"
+                        isActive={!!isActive}
+                      >
+                        <SidebarMenuButton
+                          size="small"
+                          tooltip={category.name}
+                          isActive={!!isActive}
+                          onClick={() => handleCategoryClick(category)}
+                          icon={
+                            <span
+                              className={cn(
+                                "flex size-4 shrink-0 items-center justify-center rounded",
+                                isActive && "opacity-100",
+                              )}
+                              style={{
+                                background: isActive
+                                  ? `hsla(${extractHslValues(category.color || "#cccccc")}, 0.15)`
+                                  : undefined,
+                              }}
+                            >
+                              <RenderIcon
+                                iconName={category.icon || "IconCircleFilled"}
+                                color={category.color || undefined}
+                                button
+                                focus={!!isActive}
+                                className={cn(
+                                  "size-4! [&_svg]:size-3! border-0",
+                                  !isActive && "text-muted-foreground",
+                                )}
+                              />
+                            </span>
+                          }
+                        >
+                          <span className="truncate flex-1">{category.name}</span>
+                        </SidebarMenuButton>
+                        <SidebarMenuSub className="h-auto max-h-none">
+                          <span className="text-xs text-muted-foreground">
+                            {count}
+                          </span>
+                        </SidebarMenuSub>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              /* No categories — plain Tasks item */
+              <SidebarMenuItem
+                className="min-h-auto"
+                isActive={isOnTasks && isAllTasksActive}
+              >
+                <Link
+                  to={tasksPath}
+                  className="w-full"
+                  onClick={handleTasksClick}
+                >
+                  <SidebarMenuButton
+                    size="small"
+                    tooltip="Tasks"
+                    icon={<IconStack2 size={16} />}
+                    isActive={isOnTasks && isAllTasksActive}
+                  >
+                    <span>Tasks</span>
+                  </SidebarMenuButton>
+                </Link>
+                {openTaskCount > 0 && (
+                  <SidebarMenuSub className="h-auto max-h-none">
+                    <span className="text-xs text-muted-foreground">
+                      {openTaskCount}
+                    </span>
+                  </SidebarMenuSub>
+                )}
+              </SidebarMenuItem>
+            )}
 
             {/* Releases */}
             <SidebarMenuItem className="min-h-auto" isActive={isOnReleases}>
@@ -194,71 +317,6 @@ export default function PublicSidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-
-        {/* Categories — collapsible, using SidebarMenuButton size="small" for consistent sizing */}
-        {categories.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Categories</SidebarGroupLabel>
-            <SidebarMenu className="gap-0.5">
-              {categories.map((category) => {
-                const slug = generateSlug(category.name);
-                const categoryFilter = createCategoryFilter(category.id);
-                const isActive =
-                  isOnTasks &&
-                  ((slug && categorySlug === slug) ||
-                    serializeFilters(filters) ===
-                      serializeFilters(categoryFilter));
-                const count = getCategoryCount(category.id);
-
-                return (
-                  <SidebarMenuItem
-                    key={category.id}
-                    className="min-h-auto"
-                    isActive={!!isActive}
-                  >
-                    <SidebarMenuButton
-                      size="small"
-                      tooltip={category.name}
-                      isActive={!!isActive}
-                      onClick={() => handleCategoryClick(category)}
-                      icon={
-                        <span
-                          className={cn(
-                            "flex size-4 shrink-0 items-center justify-center rounded",
-                            isActive && "opacity-100",
-                          )}
-                          style={{
-                            background: isActive
-                              ? `hsla(${extractHslValues(category.color || "#cccccc")}, 0.15)`
-                              : undefined,
-                          }}
-                        >
-                          <RenderIcon
-                            iconName={category.icon || "IconCircleFilled"}
-                            color={category.color || undefined}
-                            button
-                            focus={!!isActive}
-                            className={cn(
-                              "size-4! [&_svg]:size-3! border-0",
-                              !isActive && "text-muted-foreground",
-                            )}
-                          />
-                        </span>
-                      }
-                    >
-                      <span className="truncate flex-1">{category.name}</span>
-                    </SidebarMenuButton>
-                    <SidebarMenuSub className="h-auto max-h-none">
-                      <span className="text-xs text-muted-foreground">
-                        {count}
-                      </span>
-                    </SidebarMenuSub>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
       </SidebarContent>
 
       <SidebarFooter>
