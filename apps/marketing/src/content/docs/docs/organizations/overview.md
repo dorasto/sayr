@@ -80,6 +80,8 @@ A short description that appears beneath your organization name on the public bo
 
 Edit the **Description** field and click **Save**.
 
-## Deleting an Organization
+## Danger Zone
 
-Organization deletion is not yet available via the UI. To request deletion of a Sayr Cloud organization, contact support. For self-hosted instances, organizations can be removed directly from the database.
+Sensitive actions — transferring ownership and permanently deleting an organization — are available to the organization owner in **Settings > Organization > Danger Zone**.
+
+See [Danger Zone](/docs/organizations/danger-zone) for full details on both actions.
