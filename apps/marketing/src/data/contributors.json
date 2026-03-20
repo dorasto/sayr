@@ -32,6 +32,72 @@
     },
     "contributors": []
   },
+  "src/content/docs/docs/visibility/public-pages.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 2,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/visibility/overview.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/tasks/templates.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/tasks/tasks.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/tasks/task-relations.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/tasks/subtasks.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
   "src/content/docs/docs/self-hosting/get-started.md": {
     "author": {
       "name": "Tommy Lundy",
@@ -44,6 +110,50 @@
     "contributors": []
   },
   "src/content/docs/docs/self-hosting/editions.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/organize/views.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 2,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/organize/releases.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 2,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/organize/labels.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/organize/categories.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
@@ -69,7 +179,7 @@
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
-      "commits": 1,
+      "commits": 2,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
@@ -81,6 +191,17 @@
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
       "commits": 2,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/organizations/danger-zone.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
@@ -120,11 +241,22 @@
     },
     "contributors": []
   },
+  "src/content/docs/docs/integrations/github.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 2,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
   "src/content/docs/docs/contributing/schema-types.mdx": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
-      "commits": 1,
+      "commits": 2,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
@@ -146,7 +278,7 @@
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
-      "commits": 1,
+      "commits": 2,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
@@ -298,6 +430,50 @@
     ]
   },
   "src/content/docs/docs/api/overview.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 2,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/account/security.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/account/notifications.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/account/my-tasks.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 1,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/account/account-settings.md": {
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",

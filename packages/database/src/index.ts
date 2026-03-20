@@ -80,13 +80,13 @@ export async function hasOrgPermission(userId: string, orgId: string, permPath: 
 	}
 
 	// Organization creator = full access
-	const org = await db
+	const [org] = await db
 		.select({ createdBy: organization.createdBy })
 		.from(organization)
-		.where(eq(organization.id, orgId))
+		.where(and(eq(organization.id, orgId), eq(organization.createdBy, userId)))
 		.limit(1);
 
-	if (org[0]?.createdBy === userId) {
+	if (org?.createdBy === userId) {
 		return true;
 	}
 

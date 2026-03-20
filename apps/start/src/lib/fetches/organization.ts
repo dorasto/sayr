@@ -1603,3 +1603,51 @@ export async function getOrderInvoice(
 
 	return res.json();
 }
+
+/**
+ * Transfers organization ownership to another user.
+ *
+ * @param organizationId - The ID of the organization.
+ * @param newOwnerId - The user ID of the new owner.
+ * @returns Whether the transfer succeeded.
+ */
+export async function transferOrganizationByUserId(
+	organizationId: string,
+	newOwnerId: string
+): Promise<{ success: boolean; error?: string }> {
+	const res = await fetch(
+		`${API_URL}/v1/admin/organization/transfer-ownership`,
+		{
+			method: "POST",
+			credentials: "include",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				org_id: organizationId,
+				newOwnerId,
+			}),
+		}
+	);
+
+	return res.json();
+}
+
+export async function deleteOrganizationAction(
+	organizationId: string
+): Promise<{ success: boolean; error?: string }> {
+	const res = await fetch(
+		`${API_URL}/v1/admin/organization/delete`,
+		{
+			method: "DELETE",
+			credentials: "include",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				org_id: organizationId,
+			}),
+		}
+	);
+	return res.json();
+}

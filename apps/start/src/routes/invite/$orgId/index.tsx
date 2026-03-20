@@ -5,6 +5,7 @@ import { db, getOrganizationPublicById, type schema } from "@repo/database";
 import { getAccess } from "@/getAccess";
 import { InvitationActions } from "@/components/invitation";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { or } from "drizzle-orm";
 
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
 	const { account } = await getAccess();
@@ -22,7 +23,7 @@ const fetchInvite = createServerFn({ method: "GET" })
 					eq(invites.organizationId, data.orgId),
 					eq(invites.inviteCode, data.code),
 					eq(invites.status, "pending"),
-					eq(invites.userId, data.account.id)
+					or(eq(invites.userId, data.account.id), eq(invites.email, data.account.email))
 				),
 		});
 		const organization = await getOrganizationPublicById(data.orgId);

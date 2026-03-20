@@ -1,10 +1,12 @@
-import { auth, db, getUsersByIds } from "@repo/database";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { removeObject, uploadObject } from "@repo/storage";
+import { auth, db, getUsersByIds, schema } from "@repo/database";
+import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
+import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
+import { enqueue, getRedis } from "@repo/queue";
+import { auth as betterAuth } from "@repo/auth";
 
 export const apiRouteAdminUser = new Hono<AppEnv>();
 
@@ -232,5 +234,137 @@ apiRouteAdminUser.put("/profile-picture", async (c) => {
 			contextData: { userId: session.userId },
 		});
 		return c.json({ success: false, error: "Failed to update profile picture" }, 500);
+	}
+});
+
+apiRouteAdminUser.get("/export", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+	if (!process.env.REDIS_UR) {
+		return c.json(
+			{
+				success: false,
+				message: "You can only request a data export once per day.",
+			},
+			429
+		);
+	}
+	const redis = getRedis();
+	const userId = session.userId;
+	const key = `gdpr_export:${userId}`;
+
+	// check if already requested within 24h
+	const exists = await redis.get(key);
+	if (exists) {
+		return c.json(
+			{
+				success: false,
+				message: "You can only request a data export once per day.",
+			},
+			429
+		);
+	}
+
+	// set limiter key for 24 hours
+	await redis.set(key, "1", "EX", 60 * 60 * 24);
+
+	const traceContext = getTraceContext();
+
+	await traceAsync("enqueue_gdpr_export", () =>
+		enqueue("main", {
+			type: "gdpr_export",
+			traceContext,
+			payload: {
+				userId: userId,
+			},
+		})
+	);
+
+	return c.json({
+		success: true,
+		message:
+			"Your data export has started. You will be notified when it is ready.",
+	});
+});
+
+apiRouteAdminUser.delete("/delete", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const userId = session.userId;
+
+	const [orgOwned] = await db
+		.select({ id: schema.organization.id })
+		.from(schema.organization)
+		.where(eq(schema.organization.createdBy, userId))
+		.limit(1);
+
+	if (orgOwned) {
+		return c.json(
+			{
+				success: false,
+				error:
+					"You cannot delete your account while you own organizations. Transfer ownership or delete your organizations first.",
+			},
+			400
+		);
+	}
+
+	try {
+		await traceAsync(
+			"user.delete",
+			async () => {
+				await db
+					.update(schema.taskTimeline)
+					.set({ actorId: null })
+					.where(eq(schema.taskTimeline.actorId, userId));
+				await db
+					.update(schema.taskComment)
+					.set({ createdBy: null })
+					.where(eq(schema.taskComment.createdBy, userId));
+				await db
+					.update(schema.taskCommentHistory)
+					.set({ editedBy: null })
+					.where(eq(schema.taskCommentHistory.editedBy, userId));
+				await traceAsync(
+					"user.delete.s3_files",
+					async () => {
+						try {
+							await deleteFolder(`profile/${userId}/`);
+							await deleteFolder(`files/${userId}/`);
+						} catch (err) {
+							console.error("Failed to delete user S3 files:", err);
+						}
+					},
+					{ description: "Deleting user S3 files", data: { userId } }
+				);
+
+				await db.delete(auth.user).where(eq(auth.user.id, userId));
+			},
+			{
+				description: "Deleting user account and cleaning up related data",
+				data: { userId },
+			}
+		);
+
+		return c.json({ success: true });
+	} catch (err) {
+		console.error(err);
+		await recordWideError({
+			name: "user.delete.failed",
+			error: err,
+			code: "USER_DELETE_FAILED",
+			message: "Failed to delete user account",
+			contextData: { userId },
+		});
+		return c.json({ success: false, error: "Failed to delete account" }, 500);
 	}
 });

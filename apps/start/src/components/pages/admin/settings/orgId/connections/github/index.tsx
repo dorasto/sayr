@@ -351,120 +351,120 @@ function TaskSyncSection({
 
       <div className="bg-card rounded-lg flex flex-col">
         {repositories.map((repo) => {
-           const connection = githubConnections.find(
+          const connection = githubConnections.find(
             (c) => c.installation.installationId === repo.installationId,
           );
           const ownerLogin = connection?.githubInfo.account.login;
           const ownerAvatar = connection?.githubInfo.account.avatar_url;
 
           return (
-          <DropdownMenu key={repo.id}>
-            <DropdownMenuTrigger asChild>
-              <Tile variant="transparent" className="hover:bg-accent w-full!">
-                <TileHeader>
-                  <TileIcon className="bg-transparent">
-                    <Avatar className="h-10 w-10 rounded-md">
-                      <AvatarImage
-                        src={ownerAvatar || ""}
-                        alt={ownerLogin || repo.repoName}
+            <DropdownMenu key={repo.id}>
+              <DropdownMenuTrigger asChild>
+                <Tile variant="transparent" className="hover:bg-accent w-full!">
+                  <TileHeader>
+                    <TileIcon className="bg-transparent">
+                      <Avatar className="h-10 w-10 rounded-md">
+                        <AvatarImage
+                          src={ownerAvatar || ""}
+                          alt={ownerLogin || repo.repoName}
+                        />
+                        <AvatarFallback>
+                          <IconBrandGithub className="h-6 w-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                    </TileIcon>
+                    <TileTitle>{ownerLogin ? `${ownerLogin}/${repo.repoName}` : repo.repoName}</TileTitle>
+
+                    <TileDescription>
+                      {categories.find((e) => e.id === repo.categoryId)?.name ||
+                        "All categories"}{" "}
+                      – {formatDateTime(new Date(repo.createdAt))}
+                    </TileDescription>
+                  </TileHeader>
+
+                  <TileAction>
+                    <Button
+                      variant="accent"
+                      size="sm"
+                      className="bg-transparent rounded-lg"
+                    >
+                      <IconCircleFilled
+                        className={
+                          repo.enabled ? "text-success" : "text-muted-foreground"
+                        }
                       />
-                      <AvatarFallback>
-                        <IconBrandGithub className="h-6 w-6" />
-                      </AvatarFallback>
-                    </Avatar>
-                  </TileIcon>
-                  <TileTitle>{ownerLogin ? `${ownerLogin}/${repo.repoName}` : repo.repoName}</TileTitle>
+                      {repo.enabled ? "Enabled" : "Disabled"}
+                    </Button>
+                  </TileAction>
+                </Tile>
+              </DropdownMenuTrigger>
 
-                  <TileDescription>
-                    {categories.find((e) => e.id === repo.categoryId)?.name ||
-                      "All categories"}{" "}
-                    – {formatDateTime(new Date(repo.createdAt))}
-                  </TileDescription>
-                </TileHeader>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={async () => {
+                    const nextState = !repo.enabled;
 
-                <TileAction>
-                  <Button
-                    variant="accent"
-                    size="sm"
-                    className="bg-transparent rounded-lg"
-                  >
-                    <IconCircleFilled
-                      className={
-                        repo.enabled ? "text-success" : "text-muted-foreground"
-                      }
-                    />
-                    {repo.enabled ? "Enabled" : "Disabled"}
-                  </Button>
-                </TileAction>
-              </Tile>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={async () => {
-                  const nextState = !repo.enabled;
-
-                  await runWithToast(
-                    "toggle-github-sync",
-                    {
-                      loading: {
-                        title: nextState
-                          ? "Enabling sync..."
-                          : "Disabling sync...",
+                    await runWithToast(
+                      "toggle-github-sync",
+                      {
+                        loading: {
+                          title: nextState
+                            ? "Enabling sync..."
+                            : "Disabling sync...",
+                        },
+                        success: {
+                          title: nextState ? "Sync enabled" : "Sync disabled",
+                        },
+                        error: {
+                          title: "Failed to update sync status",
+                        },
                       },
-                      success: {
-                        title: nextState ? "Sync enabled" : "Sync disabled",
-                      },
-                      error: {
-                        title: "Failed to update sync status",
-                      },
-                    },
-                    () =>
-                      toggleGithubSyncConnectionAction(
+                      () =>
+                        toggleGithubSyncConnectionAction(
+                          organization.id,
+                          repo.id,
+                          nextState,
+                        ),
+                    );
+
+                    queryClient.invalidateQueries({
+                      queryKey: [
+                        "organization",
                         organization.id,
-                        repo.id,
-                        nextState,
-                      ),
-                  );
+                        "connections",
+                        "github",
+                      ],
+                    });
+                  }}
+                >
+                  <IconCircleFilled
+                    className={
+                      repo.enabled ? "text-success" : "text-muted-foreground"
+                    }
+                  />
+                  {repo.enabled ? "Enabled" : "Disabled"}
+                </DropdownMenuItem>
 
-                  queryClient.invalidateQueries({
-                    queryKey: [
-                      "organization",
-                      organization.id,
-                      "connections",
-                      "github",
-                    ],
-                  });
-                }}
-              >
-                <IconCircleFilled
-                  className={
-                    repo.enabled ? "text-success" : "text-muted-foreground"
-                  }
-                />
-                {repo.enabled ? "Enabled" : "Disabled"}
-              </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setEditingId(repo.id);
+                    setOpen(true);
+                  }}
+                >
+                  <IconSettings />
+                  Edit
+                </DropdownMenuItem>
 
-              <DropdownMenuItem
-                onClick={() => {
-                  setEditingId(repo.id);
-                  setOpen(true);
-                }}
-              >
-                <IconSettings />
-                Edit
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={() => {
-                  setDeleteId(repo.id);
-                }}
-              >
-                <IconX />
-                Remove
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setDeleteId(repo.id);
+                  }}
+                >
+                  <IconX />
+                  Remove
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         })}
 

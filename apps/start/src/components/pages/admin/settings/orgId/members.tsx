@@ -1,5 +1,3 @@
-"use client";
-
 import type { schema } from "@repo/database";
 import {
   AdaptiveDialog,
@@ -70,6 +68,12 @@ import {
   removeOrganizationMemberFromTeamAction,
 } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
 
 export default function SettingsOrganizationPageMembers({
   invites,
@@ -207,9 +211,9 @@ export default function SettingsOrganizationPageMembers({
             members: organization.members.map((m) =>
               m.id === memberId
                 ? {
-                  ...m,
-                  teams: (m.teams || []).filter((t) => t.teamId !== teamId),
-                }
+                    ...m,
+                    teams: (m.teams || []).filter((t) => t.teamId !== teamId),
+                  }
                 : m,
             ),
           });
@@ -246,21 +250,21 @@ export default function SettingsOrganizationPageMembers({
               members: organization.members.map((m) =>
                 m.id === memberId
                   ? {
-                    ...m,
-                    teams: [
-                      ...(m.teams || []),
-                      {
-                        id: result.data?.id || `${memberId}-${teamId}`,
-                        memberId,
-                        teamId,
-                        team: {
-                          id: teamData.id,
-                          name: teamData.name,
-                          permissions: teamData.permissions,
+                      ...m,
+                      teams: [
+                        ...(m.teams || []),
+                        {
+                          id: result.data?.id || `${memberId}-${teamId}`,
+                          memberId,
+                          teamId,
+                          team: {
+                            id: teamData.id,
+                            name: teamData.name,
+                            permissions: teamData.permissions,
+                          },
                         },
-                      },
-                    ],
-                  }
+                      ],
+                    }
                   : m,
               ),
             });
@@ -323,6 +327,21 @@ export default function SettingsOrganizationPageMembers({
                   </TileIcon>
                   <TileTitle>
                     {member.user.name}{" "}
+                    {!isInvite && organization.createdBy === member.userId && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge
+                            variant="default"
+                            className="gap-1 text-xs aspect-square! p-1 bg-transparent hover:bg-transparent"
+                          >
+                            <IconCrown className="size-3 shrink-0" />
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Owner of this organization
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                     {!isInvite && !hasSeat && (
                       <Badge
                         variant="outline"
@@ -426,7 +445,10 @@ export default function SettingsOrganizationPageMembers({
                 </DropdownMenuSub>
               )}
               <DropdownMenuItem
-                disabled={organization.createdBy === member.userId || member.userId === account?.id}
+                disabled={
+                  organization.createdBy === member.userId ||
+                  member.userId === account?.id
+                }
                 onClick={async () => {
                   if (member.userId === account?.id) {
                     alert("You cannot remove yourself from the organization.");
@@ -464,7 +486,8 @@ export default function SettingsOrganizationPageMembers({
       })}
       <Separator />
       <AdaptiveDialog open={open} onOpenChange={setOpen}>
-        {organization.members.filter((m) => m.seatAssigned,).length >= (organization.seatCount ?? 0) ? (
+        {organization.members.filter((m) => m.seatAssigned).length >=
+        (organization.seatCount ?? 0) ? (
           <Tile
             variant="outline"
             className="md:w-full border-destructive/30 bg-destructive/5"

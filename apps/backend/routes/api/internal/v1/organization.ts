@@ -16,10 +16,10 @@ import {
 	type TeamPermissions, auth
 } from "@repo/database";
 
-import { removeObject, uploadObject } from "@repo/storage";
+import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
-import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
-import { and, count, eq, ne } from "drizzle-orm";
+import { getInstallationDetailsWithRepos, createAppJWT } from "@repo/util/github/auth";
+import { and, count, eq, ilike, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { apiRouteAdminProjectTask } from "./task";
@@ -2016,6 +2016,261 @@ apiRouteAdminOrganization.patch(
 		});
 	}
 );
+apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	return traceAsync(
+		"organization.transferOwnership",
+		async () => {
+			const { org_id: orgId, newOwnerId }: { org_id: string; newOwnerId: string } =
+				await c.req.json();
+
+			const [orgOwner] = await db
+				.select({ createdBy: schema.organization.createdBy })
+				.from(schema.organization)
+				.where(
+					and(
+						eq(schema.organization.id, orgId),
+						eq(schema.organization.createdBy, session?.userId)
+					)
+				)
+				.limit(1);
+
+			if (!orgOwner) {
+				return c.json(
+					{ success: false, error: "You don't have permission to transfer ownership." },
+					401
+				);
+			}
+
+			// Find the Admin team - first try by name (case-insensitive), fallback to isSystem
+			let adminTeam = await db.query.team.findFirst({
+				where: (t) =>
+					and(eq(t.organizationId, orgId), ilike(t.name, "%admin%")),
+			});
+
+			if (!adminTeam) {
+				adminTeam = await db.query.team.findFirst({
+					where: (t) =>
+						and(eq(t.organizationId, orgId), eq(t.isSystem, true)),
+				});
+			}
+
+			if (!adminTeam) {
+				await recordWideError({
+					name: "organization.transferOwnership.admin_team_not_found",
+					error: new Error("Admin team not found"),
+					code: "ADMIN_TEAM_NOT_FOUND",
+					message: "Could not find the Admin team for this organization",
+					contextData: { orgId },
+				});
+				return c.json({ success: false, error: "Admin team not found" }, 500);
+			}
+
+			// Get the current owner's member record
+			const [currentOwnerMember] = await db
+				.select()
+				.from(schema.member)
+				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, session?.userId || "")))
+				.limit(1);
+
+			// Get the new owner's member record
+			const [newOwnerMember] = await db
+				.select()
+				.from(schema.member)
+				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, newOwnerId)))
+				.limit(1);
+
+			if (!newOwnerMember) {
+				return c.json({ success: false, error: "New owner is not a member of this organization" }, 400);
+			}
+
+			// Remove current owner from the admin team
+			if (currentOwnerMember) {
+				await db
+					.delete(schema.memberTeam)
+					.where(and(
+						eq(schema.memberTeam.teamId, adminTeam.id),
+						eq(schema.memberTeam.memberId, currentOwnerMember.id)
+					));
+			}
+
+			// Add new owner to the admin team
+			const [memberTeam] = await db
+				.insert(schema.memberTeam)
+				.values({
+					id: crypto.randomUUID(),
+					teamId: adminTeam.id,
+					memberId: newOwnerMember.id,
+				})
+				.returning();
+
+			if (!memberTeam) {
+				await recordWideError({
+					name: "organization.transferOwnership.add_to_admin_failed",
+					error: new Error("Failed to add new owner to admin team"),
+					code: "ADMIN_TEAM_ADD_FAILED",
+					message: "Failed to add new owner to admin team",
+					contextData: { orgId, newOwnerId },
+				});
+				return c.json({ success: false, error: "Failed to add new owner to admin team" }, 500);
+			}
+
+			// Update organization createdBy to the new owner
+			await db
+				.update(schema.organization)
+				.set({ createdBy: newOwnerId, updatedAt: new Date() })
+				.where(and(
+					eq(schema.organization.id, orgId),
+					eq(schema.organization.createdBy, session?.userId)
+				));
+
+			return c.json({ success: true });
+		},
+		{
+			description: "Transferring organization ownership",
+			data: { actorId: session?.userId },
+			onSuccess: () => ({
+				outcome: "ownership_transferred",
+			}),
+		}
+	);
+});
+
+apiRouteAdminOrganization.delete("/delete", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	return traceAsync(
+		"organization.delete",
+		async () => {
+			const { org_id: orgId }: { org_id: string } = await c.req.json();
+
+			const [org] = await db
+				.select()
+				.from(schema.organization)
+				.where(
+					and(
+						eq(schema.organization.id, orgId),
+						eq(schema.organization.createdBy, session?.userId)
+					)
+				)
+				.limit(1);
+
+			if (!org) {
+				return c.json(
+					{ success: false, error: "You don't have permission to delete this organization." },
+					401
+				);
+			}
+
+			if (org.plan && org.plan !== "free") {
+				return c.json(
+					{
+						success: false,
+						error: `Cannot delete a ${org.plan} organization. Please downgrade to the free plan first.`,
+					},
+					400
+				);
+			}
+
+			await traceAsync(
+				"organization.delete.s3_files",
+				async () => {
+					try {
+						await deleteFolder(`organization/${orgId}/`);
+
+						if (org.privateId) {
+							await deleteFolder(`files/${org.privateId}/`);
+
+							const members = await db
+								.select({ userId: schema.member.userId })
+								.from(schema.member)
+								.where(eq(schema.member.organizationId, orgId));
+
+							for (const member of members) {
+								await deleteFolder(`files/${org.privateId}/${member.userId}/`);
+							}
+						}
+					} catch (err) {
+						console.error("Failed to delete org S3 folder:", err);
+					}
+				},
+				{ description: "Deleting S3 folder", data: { orgId } }
+			);
+
+			await traceAsync(
+				"organization.delete.github_installations",
+				async () => {
+					try {
+						const installations = await db
+							.select()
+							.from(schema.githubInstallationOrg)
+							.where(eq(schema.githubInstallationOrg.organizationId, orgId));
+
+						const appOctokit = new Octokit({ auth: createAppJWT() });
+
+						for (const installation of installations) {
+							const otherOrgsUsingInstallation = await db
+								.select()
+								.from(schema.githubInstallationOrg)
+								.where(
+									and(
+										eq(schema.githubInstallationOrg.installationId, installation.installationId),
+										ne(schema.githubInstallationOrg.organizationId, orgId)
+									)
+								)
+								.limit(1);
+
+							if (otherOrgsUsingInstallation.length === 0) {
+								try {
+									await appOctokit.request(
+										"DELETE /app/installations/{installation_id}",
+										{
+											installation_id: installation.installationId,
+										}
+									);
+								} catch (err) {
+									console.error(
+										`Failed to uninstall GitHub app installation ${installation.installationId}:`,
+										err
+									);
+								}
+							}
+						}
+
+						await db
+							.delete(schema.githubRepository)
+							.where(eq(schema.githubRepository.organizationId, orgId));
+
+						await db
+							.delete(schema.githubInstallationOrg)
+							.where(eq(schema.githubInstallationOrg.organizationId, orgId));
+					} catch (err) {
+						console.error("Failed to delete GitHub installations:", err);
+					}
+				},
+				{ description: "Unlinking GitHub installations", data: { orgId } }
+			);
+
+			await db
+				.delete(schema.organization)
+				.where(eq(schema.organization.id, orgId));
+
+			return c.json({ success: true });
+		},
+		{
+			description: "Deleting organization",
+			data: { actorId: session?.userId },
+			onSuccess: () => ({
+				outcome: "organization_deleted",
+			}),
+		}
+	);
+});
 
 // team member routes
 
@@ -2975,10 +3230,7 @@ apiRouteAdminOrganization.post(
 		const orgId = c.req.param("orgId");
 
 		if (!session?.userId) {
-			return c.json(
-				{ success: false, error: "Unauthorized." },
-				401
-			);
+			return c.json({ success: false, error: "Unauthorized." }, 401);
 		}
 
 		const isAuthorized = await traceOrgPermissionCheck(
@@ -2991,13 +3243,12 @@ apiRouteAdminOrganization.post(
 			return c.json(
 				{
 					success: false,
-					error: "You don't have permission to unlink installations.",
+					error:
+						"You don't have permission to unlink installations."
 				},
 				401
 			);
 		}
-
-		/* ================= VALIDATE BODY ================= */
 
 		const body = await c.req.json().catch(() => null);
 		const installationId = Number(body?.installationId);
@@ -3045,7 +3296,7 @@ apiRouteAdminOrganization.post(
 			return c.json(
 				{
 					success: false,
-					error: "Failed to unlink installation.",
+					error: "Failed to unlink installation."
 				},
 				500
 			);

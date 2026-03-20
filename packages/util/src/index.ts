@@ -1,28 +1,47 @@
 /**
  * Extracts the private ID (orgKey) if present in a Sayr file URL.
  */
-export function extractPrivateIdFromUrl(url?: string): {
+export function extractIdsFromUrl(url?: string): {
 	hasPrivateId: boolean;
 	privateId: string | null;
+	userId: string | null;
 } {
-	if (!url) return { hasPrivateId: false, privateId: null };
+	if (!url) {
+		return { hasPrivateId: false, privateId: null, userId: null };
+	}
 
 	try {
 		const parsed = new URL(url);
 		const parts = parsed.pathname.split("/").filter(Boolean);
+
+		// Remove filename if the last part ends with a dot extension
+		const last = parts[parts.length - 1];
+		if (last && last.includes(".")) {
+			parts.pop();
+		}
+
 		const filesIndex = parts.indexOf("files");
-		if (filesIndex === -1) return { hasPrivateId: false, privateId: null };
+		if (filesIndex === -1) {
+			return { hasPrivateId: false, privateId: null, userId: null };
+		}
 
 		const afterFiles = parts.slice(filesIndex + 1);
 
-		if (afterFiles.length > 1) {
-			const privateId = afterFiles[0];
-			if (privateId) return { hasPrivateId: true, privateId };
+		if (afterFiles.length === 1) {
+			return { hasPrivateId: false, privateId: null, userId: afterFiles[0] || null };
 		}
 
-		return { hasPrivateId: false, privateId: null };
+		if (afterFiles.length >= 2) {
+			return {
+				hasPrivateId: true,
+				privateId: afterFiles[0] || null,
+				userId: afterFiles[1] || null
+			};
+		}
+
+		return { hasPrivateId: false, privateId: null, userId: null };
 	} catch {
-		return { hasPrivateId: false, privateId: null };
+		return { hasPrivateId: false, privateId: null, userId: null };
 	}
 }
 

@@ -34,6 +34,35 @@ export async function updateUserAction(data: UpdateUserData): Promise<{
 }
 
 /**
+ * Request a GDPR data export for the current user.
+ * The export is processed asynchronously and the user will receive an email
+ * with a one-time download link when it is ready.
+ *
+ * @returns A promise resolving to the request result.
+ */
+export async function requestDataExport(): Promise<{
+	success: boolean;
+	message?: string;
+	error?: string;
+}> {
+	try {
+		const result = await fetch(`${API_URL}/v1/admin/user/export`, {
+			method: "GET",
+			credentials: "include",
+		}).then(async (e) => await e.json());
+
+		if (!result.success) {
+			console.error("Failed to request data export", { error: result.error });
+		}
+
+		return result;
+	} catch (error) {
+		console.error("Failed to request data export", { error });
+		return { success: false, error: "Failed to request data export" };
+	}
+}
+
+/**
  * Upload the current user's profile picture.
  *
  * @param file - The image file to upload.
@@ -74,4 +103,19 @@ export async function uploadUserProfilePicture(
 		console.error("Failed to upload profile picture", { error });
 		return { success: false, error: "Profile picture upload failed" };
 	}
+}
+
+export async function deleteUserAction(): Promise<{
+	success: boolean;
+	error?: string;
+}> {
+	const res = await fetch(`${API_URL}/v1/admin/user/delete`, {
+		method: "DELETE",
+		credentials: "include",
+		headers: {
+			"Content-Type": "application/json",
+		},
+	});
+
+	return res.json();
 }

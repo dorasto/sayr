@@ -23,6 +23,7 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { ImageCrop } from "@repo/ui/components/image-crop";
+import { IconTrash, IconAlertTriangle } from "@tabler/icons-react";
 import { Input } from "@repo/ui/components/input";
 import {
   InputGroup,
@@ -35,7 +36,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconCheck, IconPhoto } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { updateUserAction, uploadUserProfilePicture } from "@/lib/fetches/user";
+import { updateUserAction, uploadUserProfilePicture, deleteUserAction } from "@/lib/fetches/user";
 import { handleFileValidation } from "@/lib/utils/file-validation";
 import { useTheme } from "@/components/theme-provider";
 import { DarkModeToggle } from "@/components/dark-mode-toggle";
@@ -45,6 +46,7 @@ import {
   userPreferencesStore,
   userPreferencesActions,
 } from "@/lib/stores/user-preferences-store";
+import { Button } from "@repo/ui/components/button";
 
 /**
  * Props for the standalone UserSettingsContent component.
@@ -57,7 +59,9 @@ export interface UserSettingsContentProps {
     displayName: string | null;
     email: string;
     image: string | null;
+    id: string;
   };
+  organizations?: Array<{ id: string; name: string; createdBy: string | null }>;
   onAccountUpdated: () => void;
 }
 
@@ -67,8 +71,10 @@ export interface UserSettingsContentProps {
  */
 export function UserSettingsContent({
   account,
+  organizations = [],
   onAccountUpdated,
 }: UserSettingsContentProps) {
+  const ownsOrgs = organizations.some((org) => org.createdBy === account.id);
   // Display name state - default to displayName if set, otherwise use name
   const [displayName, setDisplayName] = useState(
     account.displayName || account.name,
@@ -289,6 +295,69 @@ export function UserSettingsContent({
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction disabled>Send</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </TileAction>
+      </Tile>
+
+      <Tile className="md:w-full border border-destructive/20">
+        <TileHeader>
+          <TileTitle className="text-destructive">Delete account</TileTitle>
+          <TileDescription className="text-xs">
+            {ownsOrgs
+              ? "You must transfer or delete organizations you own before deleting your account"
+              : "Permanently delete your account and all associated data"}
+          </TileDescription>
+        </TileHeader>
+        <TileAction>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={ownsOrgs}>
+                <IconTrash className="size-4" />
+                Delete account
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete your account and all your data.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                <IconAlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-1">
+                  <Label className="text-destructive font-medium">
+                    Before you delete your account:
+                  </Label>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                    <li>Transfer ownership of any organizations you own</li>
+                    <li>You will lose access to all organizations you are a member of</li>
+                    <li>All your assets will be permanently deleted</li>
+                  </ul>
+                </div>
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={async () => {
+                    const result = await deleteUserAction();
+                    if (result.success) {
+                      window.location.href = "/";
+                    } else {
+                      headlessToast.error({
+                        title: "Failed to delete account",
+                        description: result.error,
+                      });
+                    }
+                  }}
+                >
+                  <IconTrash className="size-4" />
+                  Delete account
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
