@@ -2,6 +2,46 @@ import UserTable from "@/components/console/user-table";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { getConsoleUsersServer } from "@/lib/serverFunctions/getConsoleData";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState } from "react";
+import { Button } from "@repo/ui/components/button";
+
+const isCloud = import.meta.env.VITE_SAYR_EDITION === "cloud";
+
+function SnapshotTriggerButton() {
+	const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+	const trigger = async () => {
+		setState("loading");
+		try {
+	const base = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
+		const res = await fetch(`${base}/v1/admin/snapshots/trigger`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify({}),
+			});
+			const json = await res.json();
+			setState(json.success ? "done" : "error");
+		} catch {
+			setState("error");
+		}
+		setTimeout(() => setState("idle"), 3000);
+	};
+
+	return (
+		<Button
+			variant="outline"
+			size="sm"
+			onClick={trigger}
+			disabled={state === "loading"}
+		>
+			{state === "loading" && "Snapshotting..."}
+			{state === "done" && "Snapshot saved!"}
+			{state === "error" && "Failed — retry?"}
+			{state === "idle" && "Trigger snapshot"}
+		</Button>
+	);
+}
 
 export const Route = createFileRoute("/(admin)/console/")({
 	loader: async ({ context }) => {
@@ -31,8 +71,13 @@ function RouteComponent() {
 	}
 	const { users, pagination } = Route.useLoaderData();
 	return (
-		<SubWrapper title="Users" description={`${pagination.totalItems} users`}>
+		<SubWrapper
+			title="Users"
+			description={`${pagination.totalItems} users`}
+			topContent={isCloud ? <SnapshotTriggerButton /> : undefined}
+		>
 			<UserTable initialData={{ users, pagination }} />
 		</SubWrapper>
 	);
 }
+

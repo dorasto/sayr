@@ -39,6 +39,7 @@ import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccess
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
 import { findClientBysseId, sseBroadcastToRoom, sseBroadcastPublic, sseBroadcastIndividual, findSSEClientsByUserId, sseBroadcastByUserId } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
+import { emitEvent, type PlatformEventType } from "@/clickhouse";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
@@ -357,6 +358,14 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		}
 	);
 
+	emitEvent({
+		event_type: "task.created",
+		actor_id: session?.userId ?? "",
+		target_id: task.id,
+		org_id: orgId,
+		metadata: { status, priority, source: "member" },
+	});
+
 	return c.json({ success: true, data: taskWithData });
 });
 
@@ -536,6 +545,14 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 		},
 		{ description: "Broadcasting new public task to clients" }
 	);
+
+	emitEvent({
+		event_type: "task.created",
+		actor_id: session?.userId ?? "",
+		target_id: task.id,
+		org_id: orgId,
+		metadata: { status: resolvedStatus, priority: resolvedPriority, source: "public" },
+	});
 
 	return c.json({ success: true, data: taskWithData });
 });
@@ -784,6 +801,71 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		}
 	);
 
+	// Emit ClickHouse analytics events for each field change
+	if (updates.status && updates.status !== existingTask.status) {
+		emitEvent({
+			event_type: "task.status_changed",
+			actor_id: userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { from: existingTask.status, to: updates.status },
+		});
+	}
+	if (updates.priority && updates.priority !== existingTask.priority) {
+		emitEvent({
+			event_type: "task.priority_changed",
+			actor_id: userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { from: existingTask.priority, to: updates.priority },
+		});
+	}
+	if (updates.category && updates.category !== existingTask.category) {
+		emitEvent({
+			event_type: "task.category_changed",
+			actor_id: userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { from: existingTask.category, to: updates.category },
+		});
+	}
+	if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
+		emitEvent({
+			event_type: "task.release_changed",
+			actor_id: userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { from: existingTask.releaseId, to: updates.releaseId },
+		});
+	}
+	if (updates.title && updates.title !== existingTask.title) {
+		emitEvent({
+			event_type: "task.updated",
+			actor_id: userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { field: "title" },
+		});
+	}
+	if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
+		emitEvent({
+			event_type: "task.updated",
+			actor_id: userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { field: "description" },
+		});
+	}
+	if (updates.visible !== undefined && updates.visible !== existingTask.visible) {
+		emitEvent({
+			event_type: "task.updated",
+			actor_id: userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { field: "visible" },
+		});
+	}
+
 	const taskWithData = await traceAsync("task.update.refetch", () => getTaskById(orgId, taskId), {
 		description: "Refetching updated task data",
 	});
@@ -871,6 +953,9 @@ apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
 		sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.id, true);
 		sseBroadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.id, true);
 
+		emitEvent({ event_type: "task.parent_set", actor_id: session?.userId ?? "", target_id: taskId, org_id: orgId, metadata: { parentId } });
+		emitEvent({ event_type: "task.subtask_added", actor_id: session?.userId ?? "", target_id: parentId, org_id: orgId, metadata: { subtaskId: taskId } });
+
 		return c.json({ success: true, data: taskWithData });
 	} catch (err) {
 		await recordWideError({
@@ -936,6 +1021,11 @@ apiRouteAdminProjectTask.patch("/remove-parent", async (c) => {
 			const parentWithData = await getTaskById(orgId, oldParentId);
 			const parentUpdate = { type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: parentWithData };
 			sseBroadcastToRoom(orgId, `tasks;task:${oldParentId}`, parentUpdate, found?.id, true);
+		}
+
+		emitEvent({ event_type: "task.parent_removed", actor_id: session?.userId ?? "", target_id: taskId, org_id: orgId, metadata: { oldParentId: oldParentId ?? null } });
+		if (oldParentId) {
+			emitEvent({ event_type: "task.subtask_removed", actor_id: session?.userId ?? "", target_id: oldParentId, org_id: orgId, metadata: { subtaskId: taskId } });
 		}
 
 		return c.json({ success: true, data: taskWithData });
@@ -1049,6 +1139,9 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 			true,
 		);
 
+		emitEvent({ event_type: "task.relation_added", actor_id: session?.userId ?? "", target_id: sourceTaskId, org_id: orgId, metadata: { relatedTaskId: targetTaskId, type } });
+		emitEvent({ event_type: "task.relation_added", actor_id: session?.userId ?? "", target_id: targetTaskId, org_id: orgId, metadata: { relatedTaskId: sourceTaskId, type } });
+
 		return c.json({ success: true, data: sourceWithData });
 	} catch (err) {
 		await recordWideError({
@@ -1121,6 +1214,13 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 				found?.id,
 				true,
 			);
+		}
+
+		if (sourceTaskId) {
+			emitEvent({ event_type: "task.relation_removed", actor_id: session?.userId ?? "", target_id: sourceTaskId, org_id: orgId, metadata: { relatedTaskId: targetTaskId ?? null, relationId } });
+		}
+		if (targetTaskId) {
+			emitEvent({ event_type: "task.relation_removed", actor_id: session?.userId ?? "", target_id: targetTaskId, org_id: orgId, metadata: { relatedTaskId: sourceTaskId ?? null, relationId } });
 		}
 
 		return c.json({ success: true, data: sourceWithData });
@@ -1510,6 +1610,20 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 		{ description: "Broadcasting task activity to clients" }
 	);
 
+	// --------------------
+	// ClickHouse analytics (GitHub activity types)
+	// --------------------
+	const githubEventMap: Record<string, PlatformEventType> = {
+		github_pr_linked: "task.github_pr_linked",
+		github_pr_merged: "task.github_pr_merged",
+		github_commit_ref: "task.github_commit_ref",
+		github_branch_linked: "task.github_branch_linked",
+	};
+	const chEventType = githubEventMap[type];
+	if (chEventType) {
+		emitEvent({ event_type: chEventType, actor_id: createdBy || "", target_id: taskId, org_id: orgId });
+	}
+
 	return c.json({ success: true, data: activity });
 });
 
@@ -1589,6 +1703,30 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 				}),
 			}
 		);
+
+		// Emit ClickHouse analytics events for label changes
+		for (const labelId of incomingLabelIds) {
+			if (!currentLabelIds.includes(labelId)) {
+				emitEvent({
+					event_type: "task.label_added",
+					actor_id: session?.userId ?? "",
+					target_id: taskId,
+					org_id: orgId,
+					metadata: { labelId },
+				});
+			}
+		}
+		for (const labelId of currentLabelIds) {
+			if (!incomingLabelIds.includes(labelId)) {
+				emitEvent({
+					event_type: "task.label_removed",
+					actor_id: session?.userId ?? "",
+					target_id: taskId,
+					org_id: orgId,
+					metadata: { labelId },
+				});
+			}
+		}
 
 		const taskWithData = await traceAsync("task.labels.update.refetch", () => getTaskById(orgId, taskId), {
 			description: "Refetching updated task data",
@@ -1770,6 +1908,30 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 				}),
 			}
 		);
+
+		// Emit ClickHouse analytics events for assignee changes
+		for (const userId of incomingAssigneeIds) {
+			if (!currentAssigneeIds.includes(userId)) {
+				emitEvent({
+					event_type: "task.assignee_added",
+					actor_id: session?.userId ?? "",
+					target_id: taskId,
+					org_id: orgId,
+					metadata: { userId },
+				});
+			}
+		}
+		for (const userId of currentAssigneeIds) {
+			if (!incomingAssigneeIds.includes(userId)) {
+				emitEvent({
+					event_type: "task.assignee_removed",
+					actor_id: session?.userId ?? "",
+					target_id: taskId,
+					org_id: orgId,
+					metadata: { userId },
+				});
+			}
+		}
 
 		const taskWithData = await traceAsync("task.assignees.update.refetch", () => getTaskById(orgId, taskId), {
 			description: "Refetching updated task data",

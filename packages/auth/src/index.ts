@@ -237,6 +237,34 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				after: async (user) => {
+					// Emit user.registered event to ClickHouse (cloud only, fire-and-forget)
+					if (getEditionCapabilities().clickhouseEnabled) {
+						const chUrl = process.env.CLICKHOUSE_URL;
+						const chUser = process.env.CLICKHOUSE_USER;
+						const chPassword = process.env.CLICKHOUSE_PASSWORD;
+						const chDb = process.env.CLICKHOUSE_DB;
+						if (chUrl && chUser && chPassword && chDb) {
+							const row = JSON.stringify({
+								event_type: "user.registered",
+								actor_id: user.id,
+								target_id: user.id,
+								org_id: "",
+								metadata: "{}",
+							});
+							fetch(`${chUrl}/?database=${chDb}&query=${encodeURIComponent(`INSERT INTO platform_events FORMAT JSONEachRow`)}`, {
+								method: "POST",
+								headers: {
+									"X-ClickHouse-User": chUser,
+									"X-ClickHouse-Key": chPassword,
+									"Content-Type": "application/json",
+								},
+								body: row,
+							}).catch((err) => {
+								console.error("[clickhouse] Failed to emit user.registered:", err);
+							});
+						}
+					}
+
 					// On self-hosted editions, automatically promote the first user to platform admin
 					if (!isSelfHosted()) return;
 

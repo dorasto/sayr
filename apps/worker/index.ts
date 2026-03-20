@@ -15,8 +15,10 @@ import { withTraceContext } from "@repo/opentelemetry/trace";
 import { initTracing } from "@repo/opentelemetry";
 
 import { CronJob } from "cron";
-import { db, schema } from "@repo/database";
-import { lt } from "drizzle-orm";
+import { db, schema, auth } from "@repo/database";
+import { lt, eq, sql } from "drizzle-orm";
+import { isCloud } from "@repo/edition";
+import { insertSnapshots, type SnapshotRow } from "./clickhouse";
 
 /* ============================================================
    Environment
@@ -65,6 +67,78 @@ function initMainCronJobs() {
 		null,
 		true,
 	);
+
+	// Daily platform snapshots to ClickHouse (1am UTC, cloud only)
+	if (isCloud()) {
+		new CronJob(
+			"0 1 * * *",
+			async () => {
+				try {
+					const snapshotDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+					const [
+						usersTotal,
+						orgsTotal,
+						orgsFree,
+						orgsPro,
+						membersTotal,
+						membersSeated,
+						tasksTotal,
+					] = await Promise.all([
+						db.select({ count: sql<number>`count(*)` }).from(auth.user),
+						db
+							.select({ count: sql<number>`count(*)` })
+							.from(schema.organization)
+							.where(eq(schema.organization.isSystemOrg, false)),
+						db
+							.select({ count: sql<number>`count(*)` })
+							.from(schema.organization)
+							.where(
+								sql`${schema.organization.isSystemOrg} = false AND ${schema.organization.plan} = 'free'`,
+							),
+						db
+							.select({ count: sql<number>`count(*)` })
+							.from(schema.organization)
+							.where(
+								sql`${schema.organization.isSystemOrg} = false AND ${schema.organization.plan} = 'pro'`,
+							),
+						db.select({ count: sql<number>`count(*)` }).from(schema.member),
+						db
+							.select({ count: sql<number>`count(*)` })
+							.from(schema.member)
+							.where(eq(schema.member.seatAssigned, true)),
+						db.select({ count: sql<number>`count(*)` }).from(schema.task),
+					]);
+
+					const rows: SnapshotRow[] = [
+						{ snapshot_date: snapshotDate, metric: "users.total", value: Number(usersTotal[0]?.count ?? 0) },
+						{ snapshot_date: snapshotDate, metric: "orgs.total", value: Number(orgsTotal[0]?.count ?? 0) },
+						{ snapshot_date: snapshotDate, metric: "orgs.plan.free", value: Number(orgsFree[0]?.count ?? 0) },
+						{ snapshot_date: snapshotDate, metric: "orgs.plan.pro", value: Number(orgsPro[0]?.count ?? 0) },
+						{ snapshot_date: snapshotDate, metric: "members.total", value: Number(membersTotal[0]?.count ?? 0) },
+						{
+							snapshot_date: snapshotDate,
+							metric: "members.seat_assigned",
+							value: Number(membersSeated[0]?.count ?? 0),
+						},
+						{ snapshot_date: snapshotDate, metric: "tasks.total", value: Number(tasksTotal[0]?.count ?? 0) },
+					];
+
+					const ok = await insertSnapshots(rows);
+					if (ok) {
+						console.log(`📊 Platform snapshot inserted for ${snapshotDate} (${rows.length} metrics)`);
+					} else {
+						console.warn("⚠️ Platform snapshot insertion returned false (ClickHouse may be disabled)");
+					}
+				} catch (err) {
+					console.error("❌ Cron error inserting platform snapshots:", err);
+				}
+			},
+			null,
+			true,
+		);
+		console.log("📊 Platform snapshot cron scheduled (daily at 1am UTC)");
+	}
 }
 
 /* ============================================================

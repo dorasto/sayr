@@ -38,6 +38,8 @@ export interface EditionCapabilities {
 	marketingSiteEnabled: boolean;
 	/** Whether multi-tenant public org resolution is enabled (vs system org only). */
 	multiTenantEnabled: boolean;
+	/** Whether ClickHouse analytics/audit logging is enabled. */
+	clickhouseEnabled: boolean;
 }
 
 /**
