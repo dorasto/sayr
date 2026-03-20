@@ -20,7 +20,6 @@ import {
 } from "@/hooks/useTaskViewManager";
 import { useSticky } from "@/hooks/use-sticky";
 import { serializeFilters } from "@/components/tasks/filter";
-import { type PriorityKey } from "@/components/tasks/shared";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { Button } from "@repo/ui/components/button";
@@ -33,10 +32,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { UserSettingsDialog } from "@/components/settings/user-settings-dialog";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
+import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
+
+const baseApiUrl =
+  import.meta.env.VITE_APP_ENV === "development"
+    ? "/backend-api/internal"
+    : "/api/internal";
 
 export default function PublicTaskSide() {
   const queryClient = useQueryClient();
-  const { organization, tasks, allTasks, categories } = usePublicOrganizationLayout();
+  const { organization, categories } = usePublicOrganizationLayout();
   const { stuck, stickyRef } = useSticky();
   const isMobile = useIsMobile();
   const {
@@ -47,32 +52,31 @@ export default function PublicTaskSide() {
     applyFilter,
     setCategoryFilter,
   } = useTaskViewManager();
-  // Prebuilt priority views
-  const priorityViews: Array<{ key: PriorityKey; label: string }> = [
-    { key: "urgent", label: "Urgent" },
-    { key: "high", label: "High Priority" },
-    { key: "medium", label: "Medium Priority" },
-    { key: "low", label: "Low Priority" },
-  ];
 
-  // Helper to create priority filter
-  const createPriorityFilter = (priority: PriorityKey): FilterState => ({
-    groups: [
-      {
-        id: `priority-${priority}-group`,
-        operator: "AND",
-        conditions: [
-          {
-            id: `priority-any-${priority}`,
-            field: "priority",
-            operator: "any",
-            value: priority,
-          },
-        ],
+  // Fetch sidebar counts independently — never affected by pagination or active filters
+  const {
+    value: { data: countsData },
+  } = useStateManagementFetch<{
+    open: number;
+    categories: { id: string | null; count: number }[];
+  }>({
+    key: ["org-task-counts", organization.id],
+    fetch: {
+      url: `${baseApiUrl}/v1/admin/organization/task/tasks/counts?org_id=${organization.id}`,
+      custom: async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to fetch task counts");
+        const json = await res.json();
+        return json.data;
       },
-    ],
-    operator: "AND",
+    },
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: false,
   });
+
+  const openTaskCount = countsData?.open ?? 0;
+  const getCategoryCount = (categoryId: string) =>
+    countsData?.categories.find((c) => c.id === categoryId)?.count ?? 0;
 
   // Helper to create category filter
   const createCategoryFilter = (categoryId: string): FilterState => ({
@@ -93,10 +97,6 @@ export default function PublicTaskSide() {
     operator: "AND",
   });
 
-  // Filter out done and canceled tasks to get open issues count (uses unfiltered allTasks)
-  const opentaskCount = allTasks.filter(
-    (task) => task.status !== "done" && task.status !== "canceled",
-  ).length;
   // Check if no filters are active (showing all open tasks)
   const isAllTasksActive =
     filters.groups.length === 0 && !selectedViewSlug && !categorySlug;
@@ -132,8 +132,8 @@ export default function PublicTaskSide() {
               <TileHeader className="w-full">
                 <div className="flex flex-row gap-3 w-full">
                   <TileTitle className="flex items-center gap-2 w-full">
-                    <TileIcon className="size-6!">
-                      <Avatar className="size-4! rounded-md">
+                    <TileIcon className=" bg-transparent">
+                      <Avatar className="size-6! rounded-md">
                         <AvatarImage
                           src={organization.logo || ""}
                           alt={organization.name}
@@ -181,7 +181,7 @@ export default function PublicTaskSide() {
                   Open
                 </TileTitle>
                 <TileDescription className="ml-auto">
-                  {opentaskCount}
+                  {openTaskCount}
                 </TileDescription>
               </div>
             </TileHeader>
@@ -193,9 +193,7 @@ export default function PublicTaskSide() {
             const isActive =
               (slug && categorySlug === slug) ||
               serializeFilters(filters) === serializeFilters(categoryFilter);
-            const categoryTaskCount = allTasks.filter(
-              (task) => task.category === category.id,
-            ).length;
+            const categoryTaskCount = getCategoryCount(category.id);
 
             return (
               <Tile

@@ -31,7 +31,6 @@ export default function PublicOrgHomePage() {
     serverEvents,
     organization,
     setTasks,
-    setAllTasks,
     categories,
     setLabels,
     setCategories,
@@ -71,7 +70,7 @@ export default function PublicOrgHomePage() {
     refetchOnWindowFocus: false,
   });
   const {
-    value: { isLoading: tasksLoading, data: tasksData },
+    value: { isLoading: tasksLoading, data: tasksData, fetchNextPage, hasNextPage, isFetchingNextPage },
   } = useStateManagementInfiniteFetch<{
     data: schema.TaskWithLabels[];
     pagination: {
@@ -85,7 +84,7 @@ export default function PublicOrgHomePage() {
 
       custom: async (url, page) => {
         const pageParam = page ?? 1;
-        const queryString = window.location.search; // Returns:'?q=123'
+        const queryString = window.location.search;
         const params = new URLSearchParams(queryString);
         const category = categories.find(
           (c) => generateSlug(c.name) === params.get("category"),
@@ -95,7 +94,9 @@ export default function PublicOrgHomePage() {
         const categoryParam = categoryId
           ? `category_id=${encodeURIComponent(categoryId)}`
           : "";
-        const fullUrl = `${url}&page=${pageParam}&sortBy=${sortBy}${categoryParam ? `&${categoryParam}` : ""}${search ? `&q=${search}` : ""}`;
+        // When a search is active, include closed tasks so users can find done/canceled items
+        const includeClosedParam = search ? "&include_closed=true" : "";
+        const fullUrl = `${url}&page=${pageParam}&sortBy=${sortBy}${categoryParam ? `&${categoryParam}` : ""}${search ? `&q=${search}` : ""}${includeClosedParam}`;
 
         const res = await fetch(fullUrl);
         if (!res.ok) {
@@ -125,14 +126,8 @@ export default function PublicOrgHomePage() {
     if (nextIds !== lastTaskIdsRef.current) {
       lastTaskIdsRef.current = nextIds;
       setTasks(nextTasks);
-
-      // Keep allTasks (used for sidebar counts) updated only when no category filter is applied
-      const params = new URLSearchParams(window.location.search);
-      if (!params.get("category")) {
-        setAllTasks(nextTasks);
-      }
     }
-  }, [tasksData, setTasks, setAllTasks]);
+  }, [tasksData, setTasks]);
   const handlers: WSMessageHandler<ServerEventMessage> = {
     CREATE_TASK: (msg) => {
       if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
@@ -250,7 +245,13 @@ export default function PublicOrgHomePage() {
               <PublicTaskSide />
             </div>
             <div className="md:col-span-3 flex flex-col gap-3">
-              <PublicTaskView sortBy={sortBy} setSortBy={setSortBy} />
+              <PublicTaskView
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                fetchNextPage={fetchNextPage}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+              />
             </div>
           </>
         )}

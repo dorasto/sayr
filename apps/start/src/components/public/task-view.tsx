@@ -25,7 +25,7 @@ import {
 } from "@repo/ui/components/input-group";
 import { SearchIcon } from "lucide-react";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { IconFilter2 } from "@tabler/icons-react";
+import { IconFilter2, IconLoader2 } from "@tabler/icons-react";
 import { useSticky } from "@/hooks/use-sticky";
 import { cn } from "@/lib/utils";
 import { SortOption } from ".";
@@ -34,9 +34,15 @@ import { PublicTaskCreator } from "./public-task-creator";
 export function PublicTaskView({
   sortBy,
   setSortBy,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
 }: {
   sortBy: SortOption;
   setSortBy: (value: SortOption) => void;
+  fetchNextPage: () => void;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
 }) {
   const { tasks, categories, setTasks, organization } =
     usePublicOrganizationLayout();
@@ -54,6 +60,9 @@ export function PublicTaskView({
     }[]
   >(["votes", organization.id], []);
   const didMountRef = useRef(false);
+  // Sentinel ref for infinite scroll
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   // Instant typing state
   const [searchInput, setSearchInput] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -100,6 +109,42 @@ export function PublicTaskView({
     });
   }, [debouncedSearch, organization.id, queryClient]);
 
+  // Infinite scroll: trigger fetchNextPage when sentinel enters the scroll container.
+  // The layout uses an inner overflow-y-auto div as the scroll root (not window),
+  // so we walk up the DOM to find it and pass it as the IntersectionObserver root.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const getScrollParent = (el: HTMLElement): HTMLElement | null => {
+      let parent = el.parentElement;
+      while (parent) {
+        const { overflow, overflowY } = getComputedStyle(parent);
+        if (/auto|scroll/.test(overflow + overflowY)) return parent;
+        parent = parent.parentElement;
+      }
+      return null;
+    };
+
+    const scrollParent = getScrollParent(sentinel);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      {
+        root: scrollParent,
+        rootMargin: "0px 0px 300px 0px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
   const handleVote = async (taskId: string) => {
     const votesKey = ["votes", organization.id];
     const previousVotes = queryClient.getQueryData<
@@ -117,9 +162,9 @@ export function PublicTaskView({
       tasks.map((t) =>
         t.id === taskId
           ? {
-            ...t,
-            voteCount: isVoted ? t.voteCount - 1 : t.voteCount + 1,
-          }
+              ...t,
+              voteCount: isVoted ? t.voteCount - 1 : t.voteCount + 1,
+            }
           : t,
       ),
     );
@@ -239,6 +284,13 @@ export function PublicTaskView({
               />
             );
           })}
+        </div>
+      )}
+      {/* Infinite scroll sentinel — always rendered so the observer stays attached */}
+      <div ref={sentinelRef} className="h-px" />
+      {isFetchingNextPage && (
+        <div className="flex justify-center py-4">
+          <IconLoader2 className="animate-spin text-muted-foreground size-5" />
         </div>
       )}
     </div>
