@@ -10,7 +10,7 @@ import {
 import { getEditionCapabilities } from "@repo/edition";
 import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 let cachedSystemOrgSlug: string | null | undefined = undefined;
@@ -113,6 +113,9 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
 function PublicLayout() {
   const { organization, labels, categories, issueTemplates } =
     Route.useLoaderData();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Release detail pages manage their own internal scroll via PanelWrapper
+  const isReleasePage = /\/releases\/[^/]+/.test(pathname);
 
   if (!organization?.settings?.enablePublicPage) {
     return <OrganizationUnavailable />;
@@ -132,7 +135,10 @@ function PublicLayout() {
           <div className="flex-1 min-h-0 w-full">
             <div className="flex flex-1 h-full w-full transition-all pb-2 pt-0 pr-2">
               <div
-                className="h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent"
+                className={isReleasePage
+                  ? "h-full w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent overflow-hidden"
+                  : "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent"
+                }
                 id="public-scroll-container"
               >
                 <Outlet />
