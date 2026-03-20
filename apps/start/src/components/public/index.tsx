@@ -15,6 +15,7 @@ import {
 } from "@/hooks/useWSMessageHandler";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ServerEventMessage } from "@/lib/serverEvents";
+import { SubWrapper } from "@/components/generic/wrapper";
 const baseApiUrl =
   import.meta.env.VITE_APP_ENV === "development"
     ? "/backend-api/internal"
@@ -182,7 +183,7 @@ export default function PublicOrgHomePage() {
   const pageLoading = tasksLoading || sessionPending || votesLoading;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <SubWrapper top={false}>
       {pageLoading ? (
         <div className="flex h-48 w-full items-center justify-center">
           <IconLoader2 className="animate-spin text-muted-foreground" />
@@ -196,6 +197,6 @@ export default function PublicOrgHomePage() {
           isFetchingNextPage={isFetchingNextPage}
         />
       )}
-    </div>
+    </SubWrapper>
   );
 }

@@ -2,13 +2,13 @@ import { getOrganizationPublic, getReleaseBySlug } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowLeft } from "@tabler/icons-react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getReleaseStatusConfig } from "@/components/releases/config";
 import { statusConfig } from "@/components/tasks/shared/config";
 import { db, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
+import { SubWrapper } from "@/components/generic/wrapper";
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgSlug: string; releaseSlug: string }) => data)
@@ -84,16 +84,9 @@ function ReleaseDetailPage() {
 
 	if (!release) {
 		return (
-			<div className="max-w-3xl mx-auto px-4 py-12 text-center">
+			<SubWrapper backButton={`/orgs/${orgSlug}/releases`} backButtonText="Releases">
 				<p className="text-muted-foreground">Release not found.</p>
-				<Link
-					to={`/orgs/${orgSlug}/releases`}
-					className="mt-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-				>
-					<IconArrowLeft className="h-3.5 w-3.5" />
-					Back to releases
-				</Link>
-			</div>
+			</SubWrapper>
 		);
 	}
 
@@ -106,46 +99,24 @@ function ReleaseDetailPage() {
 	})).filter((g) => g.tasks.length > 0);
 
 	return (
-		<div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-			{/* Breadcrumb */}
-			<div>
-				<Link
-					to={`/orgs/${orgSlug}/releases`}
-					className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-				>
-					<IconArrowLeft className="h-3.5 w-3.5" />
-					Releases
-				</Link>
-			</div>
-
-			{/* Release header */}
-			<div className="flex items-start gap-4">
-				<span
-					className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-					style={{ background: release.color ? `${release.color}20` : undefined }}
-				>
-					<span style={{ color: release.color || cfg?.color }}>
-						{cfg?.icon("h-5 w-5")}
-					</span>
-				</span>
-				<div className="flex flex-col gap-1 min-w-0">
-					<div className="flex items-center gap-2 flex-wrap">
-						<h1 className="text-2xl font-bold">{release.name}</h1>
-						<Badge variant="outline" className={cn("text-xs", cfg?.badgeClassName)}>
-							{cfg?.label}
-						</Badge>
-					</div>
-					<div className="flex items-center gap-3 text-sm text-muted-foreground">
-						{release.targetDate && release.status !== "released" && (
-							<span>Target: {formatDate(release.targetDate)}</span>
-						)}
-						{release.releasedAt && (
-							<span>Released: {formatDate(release.releasedAt)}</span>
-						)}
-					</div>
+		<SubWrapper
+			backButton={`/orgs/${orgSlug}/releases`}
+			backButtonText="Releases"
+			title={release.name}
+			descriptionRender={
+				<div className="flex items-center gap-2 flex-wrap mt-1">
+					<Badge variant="outline" className={cn("text-xs", cfg?.badgeClassName)}>
+						{cfg?.label}
+					</Badge>
+					{release.targetDate && release.status !== "released" && (
+						<span className="text-xs text-muted-foreground">Target: {formatDate(release.targetDate)}</span>
+					)}
+					{release.releasedAt && (
+						<span className="text-xs text-muted-foreground">Released: {formatDate(release.releasedAt)}</span>
+					)}
 				</div>
-			</div>
-
+			}
+		>
 			{/* Tasks */}
 			{tasks.length === 0 ? (
 				<div className="rounded-xl border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
@@ -174,7 +145,7 @@ function ReleaseDetailPage() {
 					})}
 				</div>
 			)}
-		</div>
+		</SubWrapper>
 	);
 }
 

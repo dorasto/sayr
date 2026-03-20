@@ -1,4 +1,5 @@
 import { PublicTaskContent } from "@/components/public/public-task-content";
+import { SubWrapper } from "@/components/generic/wrapper";
 import { getOrganizationPublic, getTaskByShortId } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { createFileRoute } from "@tanstack/react-router";
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 
 function RouteComponent() {
 	const { task } = Route.useLoaderData();
+	const { orgSlug } = Route.useParams();
 
 	if (!task) {
 		return (
@@ -39,7 +41,7 @@ function RouteComponent() {
 					<h1 className="text-5xl font-black">Task Not Available</h1>
 
 					<p className="mb-7 mt-3">
-						Sorry, this task could not be found or isn’t publicly available.
+						Sorry, this task could not be found or isn't publicly available.
 						It may have been removed, or the link is incorrect.
 					</p>
 
@@ -61,7 +63,9 @@ function RouteComponent() {
 			<title>
 				#{task.shortId} - {task.title}
 			</title>
-			<PublicTaskContent task={task} />
+			<SubWrapper backButton={`/orgs/${orgSlug}`} backButtonText="Back">
+				<PublicTaskContent task={task} />
+			</SubWrapper>
 		</>
 	);
 }

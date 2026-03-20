@@ -4,8 +4,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@repo/ui/components/avatar";
-import { Button } from "@repo/ui/components/button";
-import TasqIcon from "@repo/ui/components/brand-icon";
 import {
   Tile,
   TileHeader,
@@ -29,20 +27,13 @@ import {
   getDisplayName,
 } from "@repo/util";
 import {
-  IconArrowLeft,
-  IconArrowRight,
-  IconCalendar,
   IconChevronUp,
   IconCircleFilled,
-  IconDashboard,
-  IconHash,
-  IconLock,
-  IconProgress,
   IconTag,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { lazy, useState, useEffect, useMemo, Suspense } from "react";
+import { lazy, useState, useEffect, Suspense } from "react";
 import { authClient } from "@repo/auth/client";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
@@ -50,7 +41,6 @@ import RenderIcon from "@/components/generic/RenderIcon";
 
 import { CreateTaskVoteAction } from "@/lib/fetches/task";
 import { headlessToast } from "@repo/ui/components/headless-toast";
-import { useSticky } from "@/hooks/use-sticky";
 import {
   useWSMessageHandler,
   type WSMessageHandler,
@@ -76,15 +66,8 @@ export function PublicTaskContent({
   const { organization, categories, serverEvents } =
     usePublicOrganizationLayout();
   const queryClient = useQueryClient();
-  // const { stuck, stickyRef } = useSticky();
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { data: session } = authClient.useSession();
-
-  // Check if the logged-in user is a member of this organization
-  const isOrgMember = useMemo(() => {
-    if (!session?.user?.id) return false;
-    return organization.members.some((m) => m.user.id === session.user.id);
-  }, [session?.user?.id, organization.members]);
 
   // Local task state so WS updates can mutate it in real-time
   const [task, setTask] = useState(initialTask);
@@ -232,44 +215,7 @@ export function PublicTaskContent({
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       {/* Sidebar */}
       <div className="md:col-span-1">
-        <div
-          className="flex flex-col gap-3 w-full sticky top-0 pt-3 self-start"
-          // ref={stickyRef}
-        >
-          {/* Back button and member actions */}
-          <div className="flex items-center gap-1 w-full justify-between">
-            <Link
-              to=".."
-              params={{ orgSlug: organization.slug }}
-              className="w-fit"
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <IconArrowLeft className="size-4" />
-                Back
-              </Button>
-            </Link>
-            {isOrgMember && (
-              <a
-                href={`${import.meta.env.VITE_URL_ROOT}/${organization.id}/tasks/${task.shortId}`}
-                className="w-fit"
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 text-muted-foreground hover:text-foreground"
-                  tooltipText="Open this issue on the admin portal"
-                >
-                  Open internally
-                  <IconLock className="size-4" />
-                </Button>
-              </a>
-            )}
-          </div>
-
+        <div className="flex flex-col gap-3 w-full sticky top-0 self-start">
           {/* Metadata card */}
           <div className="flex flex-col gap-0 bg-card rounded-xl">
             <div className="flex flex-col gap-1 p-1">
