@@ -327,3 +327,31 @@ export async function deleteObjectByKey(key: string): Promise<void> {
 		})
 	);
 }
+
+export async function deleteFolder(prefix: string): Promise<void> {
+	let continuationToken: string | undefined;
+
+	do {
+		const res = await s3Client.send(
+			new ListObjectsV2Command({
+				Bucket: BUCKET,
+				Prefix: prefix,
+				ContinuationToken: continuationToken,
+			})
+		);
+
+		if (res.Contents && res.Contents.length > 0) {
+			await s3Client.send(
+				new DeleteObjectsCommand({
+					Bucket: BUCKET,
+					Delete: {
+						Objects: res.Contents.map((obj) => ({ Key: obj.Key! })),
+						Quiet: true,
+					},
+				})
+			);
+		}
+
+		continuationToken = res.NextContinuationToken;
+	} while (continuationToken);
+}

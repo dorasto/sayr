@@ -16,9 +16,9 @@ import {
 	type TeamPermissions, auth
 } from "@repo/database";
 
-import { removeObject, uploadObject } from "@repo/storage";
+import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
-import { getInstallationDetailsWithRepos } from "@repo/util/github/auth";
+import { getInstallationDetailsWithRepos, createAppJWT } from "@repo/util/github/auth";
 import { and, count, eq, ilike, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
@@ -2139,6 +2139,126 @@ apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
 	);
 });
 
+apiRouteAdminOrganization.delete("/delete", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	return traceAsync(
+		"organization.delete",
+		async () => {
+			const { org_id: orgId }: { org_id: string } = await c.req.json();
+
+			const [org] = await db
+				.select()
+				.from(schema.organization)
+				.where(
+					and(
+						eq(schema.organization.id, orgId),
+						eq(schema.organization.createdBy, session?.userId)
+					)
+				)
+				.limit(1);
+
+			if (!org) {
+				return c.json(
+					{ success: false, error: "You don't have permission to delete this organization." },
+					401
+				);
+			}
+
+			if (org.plan && org.plan !== "free") {
+				return c.json(
+					{
+						success: false,
+						error: `Cannot delete a ${org.plan} organization. Please downgrade to the free plan first.`,
+					},
+					400
+				);
+			}
+
+			await traceAsync(
+				"organization.delete.s3_files",
+				async () => {
+					try {
+						await deleteFolder(`organization/${orgId}/`);
+					} catch (err) {
+						console.error("Failed to delete org S3 folder:", err);
+					}
+				},
+				{ description: "Deleting S3 folder", data: { orgId } }
+			);
+
+			await traceAsync(
+				"organization.delete.github_installations",
+				async () => {
+					try {
+						const installations = await db
+							.select()
+							.from(schema.githubInstallationOrg)
+							.where(eq(schema.githubInstallationOrg.organizationId, orgId));
+
+						const appOctokit = new Octokit({ auth: createAppJWT() });
+
+						for (const installation of installations) {
+							const otherOrgsUsingInstallation = await db
+								.select()
+								.from(schema.githubInstallationOrg)
+								.where(
+									and(
+										eq(schema.githubInstallationOrg.installationId, installation.installationId),
+										ne(schema.githubInstallationOrg.organizationId, orgId)
+									)
+								)
+								.limit(1);
+
+							if (otherOrgsUsingInstallation.length === 0) {
+								try {
+									await appOctokit.request(
+										"DELETE /app/installations/{installation_id}",
+										{
+											installation_id: installation.installationId,
+										}
+									);
+								} catch (err) {
+									console.error(
+										`Failed to uninstall GitHub app installation ${installation.installationId}:`,
+										err
+									);
+								}
+							}
+						}
+
+						await db
+							.delete(schema.githubRepository)
+							.where(eq(schema.githubRepository.organizationId, orgId));
+
+						await db
+							.delete(schema.githubInstallationOrg)
+							.where(eq(schema.githubInstallationOrg.organizationId, orgId));
+					} catch (err) {
+						console.error("Failed to delete GitHub installations:", err);
+					}
+				},
+				{ description: "Unlinking GitHub installations", data: { orgId } }
+			);
+
+			await db
+				.delete(schema.organization)
+				.where(eq(schema.organization.id, orgId));
+
+			return c.json({ success: true });
+		},
+		{
+			description: "Deleting organization",
+			data: { actorId: session?.userId },
+			onSuccess: () => ({
+				outcome: "organization_deleted",
+			}),
+		}
+	);
+});
+
 // team member routes
 
 apiRouteAdminOrganization.post("/member", async (c) => {
@@ -3097,10 +3217,7 @@ apiRouteAdminOrganization.post(
 		const orgId = c.req.param("orgId");
 
 		if (!session?.userId) {
-			return c.json(
-				{ success: false, error: "Unauthorized." },
-				401
-			);
+			return c.json({ success: false, error: "Unauthorized." }, 401);
 		}
 
 		const isAuthorized = await traceOrgPermissionCheck(
@@ -3113,13 +3230,12 @@ apiRouteAdminOrganization.post(
 			return c.json(
 				{
 					success: false,
-					error: "You don't have permission to unlink installations.",
+					error:
+						"You don't have permission to unlink installations."
 				},
 				401
 			);
 		}
-
-		/* ================= VALIDATE BODY ================= */
 
 		const body = await c.req.json().catch(() => null);
 		const installationId = Number(body?.installationId);
@@ -3167,7 +3283,7 @@ apiRouteAdminOrganization.post(
 			return c.json(
 				{
 					success: false,
-					error: "Failed to unlink installation.",
+					error: "Failed to unlink installation."
 				},
 				500
 			);

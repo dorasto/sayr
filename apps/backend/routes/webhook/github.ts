@@ -583,7 +583,7 @@ export function extractSayrKeywords(text: string): KeywordMatch[] {
 
   const matches: KeywordMatch[] = [];
 
-  for (;;) {
+  for (; ;) {
     const result = regex.exec(text);
     if (result === null) break;
 
