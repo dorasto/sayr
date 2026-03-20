@@ -2182,6 +2182,19 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 				async () => {
 					try {
 						await deleteFolder(`organization/${orgId}/`);
+
+						if (org.privateId) {
+							await deleteFolder(`files/${org.privateId}/`);
+
+							const members = await db
+								.select({ userId: schema.member.userId })
+								.from(schema.member)
+								.where(eq(schema.member.organizationId, orgId));
+
+							for (const member of members) {
+								await deleteFolder(`files/${org.privateId}/${member.userId}/`);
+							}
+						}
 					} catch (err) {
 						console.error("Failed to delete org S3 folder:", err);
 					}

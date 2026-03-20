@@ -291,7 +291,7 @@ export default function Danger() {
                                                     <li>All tasks and comments</li>
                                                     <li>All team members and their data</li>
                                                     <li>All labels, categories, and views</li>
-                                                    <li>All organization files and attachments</li>
+                                                    <li>All uploaded files including organization assets and member attachments</li>
                                                 </ul>
                                                 <Label className="text-sm mt-2 font-medium text-destructive">
                                                     This action is irreversible.
