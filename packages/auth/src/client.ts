@@ -65,7 +65,7 @@ export const signInDoras = async () => {
 	});
 };
 
-export const singInGithub = async () => {
+export const signInGithub = async () => {
 	const found = await authClient.getSession();
 	if (found.data) {
 		window.location.href = "/";
