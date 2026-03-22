@@ -3,6 +3,7 @@ import UserDetail from "@/components/console/user-detail";
 import { getConsoleUserServer } from "@/lib/serverFunctions/getConsoleData";
 import type { ConsoleUserDetail } from "@/lib/fetches/console";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/console/users/$userId")({
 	loader: async ({ params, context }) => {
@@ -20,6 +21,13 @@ export const Route = createFileRoute("/(admin)/console/users/$userId")({
 		}
 		return result;
 	},
+	head: ({ loaderData }) => ({
+		meta: seo({
+			title: (loaderData as ConsoleUserDetail | undefined)?.user?.name
+				? `${(loaderData as ConsoleUserDetail).user.displayName || (loaderData as ConsoleUserDetail).user.name} · Console`
+				: "Console",
+		}),
+	}),
 	component: RouteComponent,
 });
 

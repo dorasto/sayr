@@ -7,11 +7,18 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@repo/ui/components/input
 import { IconShieldCheck, IconKey } from "@tabler/icons-react";
 import { getAccess } from "@/getAccess";
 import { createServerFn } from "@tanstack/react-start";
+import { seo, getOgImageUrl } from "@/seo";
 const checkAuth = createServerFn({ method: "GET" }).handler(async () => {
 	const { account } = await getAccess();
 	return { account };
 });
 export const Route = createFileRoute("/auth/2fa")({
+	head: () => ({
+		meta: seo({
+			title: "Two-factor authentication",
+			image: getOgImageUrl({ type: "simple", title: "Two-factor authentication" }),
+		}),
+	}),
 	beforeLoad: async () => {
 		const { account } = await checkAuth();
 		if (account) {

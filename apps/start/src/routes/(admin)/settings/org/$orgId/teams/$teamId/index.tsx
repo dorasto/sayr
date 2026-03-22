@@ -3,6 +3,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import SettingsOrganizationPageTeamSettings from "@/components/pages/admin/settings/orgId/teamsetttings";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { seo } from "@/seo";
 
 /**
  * Fetch a single team and its members for the given org/team IDs.
@@ -42,6 +43,11 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId/teams/$teamId
 			},
 		});
 	},
+	head: ({ loaderData }) => ({
+		meta: seo({
+			title: loaderData?.team?.name ? `${loaderData.team.name} · Teams · Settings` : "Teams · Settings",
+		}),
+	}),
 	component: RouteComponent,
 });
 

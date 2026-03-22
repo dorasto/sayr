@@ -6,6 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import { getUserInfoDoras, getUserInfoGithub } from "@/lib/fetches/connections";
 import type { DorasUserType, GithubUserType } from "@/types";
+import { seo } from "@/seo";
 
 export const getConnections = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType }) => data)
@@ -56,6 +57,7 @@ export const getConnections = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/(admin)/settings/connections/")({
+	head: () => ({ meta: seo({ title: "Connections · Settings" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/login" });

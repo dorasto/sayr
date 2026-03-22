@@ -4,6 +4,7 @@ import { db, schema } from "@repo/database";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
+import { seo } from "@/seo";
 
 const fetchView = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgId: string; viewId: string }) => data)
@@ -26,6 +27,11 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId/views/$viewId
 			},
 		});
 	},
+	head: ({ loaderData }) => ({
+		meta: seo({
+			title: loaderData?.view?.name ? `${loaderData.view.name} · Views · Settings` : "Views · Settings",
+		}),
+	}),
 	component: RouteComponent,
 });
 

@@ -4,6 +4,7 @@ import { getConsoleUsersServer } from "@/lib/serverFunctions/getConsoleData";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@repo/ui/components/button";
+import { seo } from "@/seo";
 
 const isCloud = import.meta.env.VITE_SAYR_EDITION === "cloud";
 
@@ -44,6 +45,7 @@ function SnapshotTriggerButton() {
 }
 
 export const Route = createFileRoute("/(admin)/console/")({
+	head: () => ({ meta: seo({ title: "Users · Console" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/login" });

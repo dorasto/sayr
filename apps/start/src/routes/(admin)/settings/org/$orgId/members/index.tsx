@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import SettingsOrganizationPageTeam from "@/components/pages/admin/settings/orgId/members";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { seo } from "@/seo";
 
 const fetchMembersData = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgId: string }) => data)
@@ -22,6 +23,7 @@ const fetchMembersData = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/members/")({
+	head: () => ({ meta: seo({ title: "Members · Settings" }) }),
 	loader: async ({ params }) => {
 		return await fetchMembersData({
 			data: {

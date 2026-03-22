@@ -1,8 +1,10 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { RootProviderMyTasks } from "@/contexts/ContextMine";
 import { getMyTasks } from "../mine/route";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/home")({
+	head: () => ({ meta: seo({ title: "Home" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/login" });

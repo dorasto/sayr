@@ -4,7 +4,7 @@ import { useOrgCommands } from "@/hooks/commands/useOrgCommands";
 import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
 import { createServerFn } from "@tanstack/react-start";
 import { getOrgPermissions, type schema } from "@repo/database";
-import { seo } from "@/seo";
+import { seo, getOgImageUrl } from "@/seo";
 import { PermissionError } from "@repo/util";
 
 /**
@@ -94,6 +94,11 @@ export const Route = createFileRoute("/(admin)/$orgId")({
 	head: ({ loaderData }) => ({
 		meta: seo({
 			title: `${loaderData?.organization.name || "Organization"}`,
+			image: getOgImageUrl({
+				type: "simple",
+				title: loaderData?.organization.name,
+				logo: loaderData?.organization.logo || undefined,
+			}),
 		}),
 	}),
 });

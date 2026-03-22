@@ -13,6 +13,7 @@ import {
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { PermissionError } from "@repo/util";
+import { seo } from "@/seo";
 
 export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType; orgId: string; permissions: schema.TeamPermissions }) => data)
@@ -119,6 +120,11 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 		}
 		return org
 	},
+	head: ({ loaderData }) => ({
+		meta: seo({
+			title: loaderData?.organization?.name ? `${loaderData.organization.name} · Settings` : "Settings",
+		}),
+	}),
 	component: RouteComponent,
 });
 

@@ -15,8 +15,10 @@ import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useState } from "react";
 import { requestDataExport } from "@/lib/fetches/user";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/settings/")({
+  head: () => ({ meta: seo({ title: "Settings" }) }),
   component: RouteComponent,
 });
 

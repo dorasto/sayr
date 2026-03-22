@@ -1,8 +1,10 @@
 import SettingsOrganizationCategoriesPage from "@/components/pages/admin/settings/orgId/categories";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { createFileRoute } from "@tanstack/react-router";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/categories/")({
+	head: () => ({ meta: seo({ title: "Categories · Settings" }) }),
 	component: RouteComponent,
 });
 

@@ -3,10 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import SettingsOrganizationConnectionsPage from "@/components/pages/admin/settings/orgId/connections/connections";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { IconPlug } from "@tabler/icons-react";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute(
   "/(admin)/settings/org/$orgId/connections/",
 )({
+  head: () => ({ meta: seo({ title: "Connections · Settings" }) }),
   component: RouteComponent,
 });
 

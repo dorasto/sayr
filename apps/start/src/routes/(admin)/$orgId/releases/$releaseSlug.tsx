@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { getReleaseBySlug, type schema } from "@repo/database";
+import { getReleaseBySlug, getOrganization, type schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
-import { seo } from "@/seo";
+import { seo, getOgImageUrl } from "@/seo";
 import ReleaseDetailPage from "@/components/pages/admin/orgid/releases/release-slug";
 
 export const getAdminOrganizationRelease = createServerFn({ method: "GET" })
@@ -10,7 +10,7 @@ export const getAdminOrganizationRelease = createServerFn({ method: "GET" })
       data,
   )
   .handler(async ({ data }) => {
-    const { orgId, releaseSlug } = data;
+    const { account, orgId, releaseSlug } = data;
     try {
       if (!orgId || !releaseSlug) {
         throw redirect({ to: "/" });
@@ -21,7 +21,8 @@ export const getAdminOrganizationRelease = createServerFn({ method: "GET" })
           to: `/${orgId}/settings/org/${orgId}/releases` as string,
         });
       }
-      return { release };
+      const org = await getOrganization(orgId, account.id);
+      return { release, orgName: org?.name || null, orgLogo: org?.logo || null };
     } catch (error) {
       console.error("Error fetching release:", error);
       if (error && typeof error === "object" && "redirect" in error) {
@@ -48,6 +49,11 @@ export const Route = createFileRoute("/(admin)/$orgId/releases/$releaseSlug")({
   head: ({ loaderData }) => ({
     meta: seo({
       title: loaderData?.release?.name || "Release",
+      image: getOgImageUrl({
+        title: loaderData?.release?.name || "Release",
+        meta: loaderData?.orgName || undefined,
+        logo: loaderData?.orgLogo || undefined,
+      }),
     }),
   }),
 });
