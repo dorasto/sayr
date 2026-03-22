@@ -163,6 +163,17 @@ http://admin.{$VITE_ROOT_DOMAIN} {
 		}
 	}
 
+	handle /api/og* {
+		reverse_proxy {
+			dynamic a start 3000 {
+				versions ipv4
+			}
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-Proto "https"
+		}
+	}
+
 	# Traces -> start
 	handle /api/traces* {
 		reverse_proxy {
@@ -235,6 +246,17 @@ http://admin.{$VITE_ROOT_DOMAIN} {
 
 	# Image preview -> start
 	handle /api/image-preview* {
+		reverse_proxy {
+			dynamic a start 3000 {
+				versions ipv4
+			}
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-Proto "https"
+		}
+	}
+
+	handle /api/og* {
 		reverse_proxy {
 			dynamic a start 3000 {
 				versions ipv4

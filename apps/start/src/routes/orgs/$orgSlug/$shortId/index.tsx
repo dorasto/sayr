@@ -2,7 +2,7 @@ import { PublicTaskContent } from "@/components/public/public-task-content";
 import { getOrganizationPublic, getTaskByShortId } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getOgImageUrl, seo } from "@/seo";
 import {
@@ -31,6 +31,12 @@ const fetchPublicTask = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
   loader: async ({ params, context }) => {
     const slug = context?.systemSlug || params.orgSlug;
+    if (Number.isNaN(Number(params.shortId))) {
+      throw redirect({
+        to: "/orgs/$orgSlug",
+        params: { orgSlug: slug }
+      })
+    }
     return await fetchPublicTask({
       data: {
         slug: slug,
@@ -46,11 +52,11 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
         : "Task Not Available",
       image: loaderData?.task
         ? getOgImageUrl({
-            title: loaderData.task.title || undefined,
-            subtitle: `#${loaderData.task.shortId}`,
-            meta: loaderData.org?.name || undefined,
-            logo: loaderData.org?.logo || undefined,
-          })
+          title: loaderData.task.title || undefined,
+          subtitle: `#${loaderData.task.shortId}`,
+          meta: loaderData.org?.name || undefined,
+          logo: loaderData.org?.logo || undefined,
+        })
         : undefined,
     }),
   }),
@@ -88,7 +94,7 @@ function RouteComponent() {
     <div className="flex flex-col h-full">
       {/* Top bar */}
       <div className="flex items-center justify-between h-11 shrink-0 border-b px-3">
-        <Link to={`/orgs/${orgSlug}`}>
+        <Link to={`/orgs/$orgSlug`} params={{ orgSlug: orgSlug }}>
           <Button
             variant="ghost"
             className="w-fit text-xs p-1 h-auto rounded-lg"
