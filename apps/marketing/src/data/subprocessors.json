@@ -1,24 +1,27 @@
 {
-  "lastUpdated": "2026-02-22",
+  "lastUpdated": "2026-03-22",
   "subprocessors": [
     {
-      "name": "Hetzner Online GmbH",
-      "purpose": "Cloud infrastructure, compute, Redis, S3-compatible object storage",
-      "dataProcessed": "All user data, application data, uploaded files",
-      "location": "EU (Germany, Finland)",
-      "website": "https://hetzner.com",
-      "dpaUrl": "https://docs.hetzner.com/general/general-terms-and-conditions/data-privacy-faq/"
-    },
-    {
       "name": "Zerops",
-      "purpose": "Managed PostgreSQL database hosting",
-      "dataProcessed": "All application data stored in the database",
+      "type": "Infrastructure",
+      "purpose": "Primary cloud hosting platform — application compute (backend, frontend, marketing, workers), managed PostgreSQL database, Redis",
+      "dataProcessed": "All user data, application data, database contents",
       "location": "EU (Czechia)",
       "website": "https://zerops.io",
       "dpaUrl": "https://docs.google.com/document/d/e/2PACX-1vShf30OdwdQDQgasDJIx39jpcC9KJ5bMQVM2POUrGN0CIN0X60TTpeDv6XqoW9w64JcmKhjJ5A_Q7--/pub"
     },
     {
+      "name": "Hetzner Online GmbH",
+      "type": "Infrastructure",
+      "purpose": "S3-compatible object storage and internal administrative tooling (Grafana, observability infrastructure)",
+      "dataProcessed": "User-uploaded files, internal metrics and observability data",
+      "location": "EU (Germany, Finland)",
+      "website": "https://hetzner.com",
+      "dpaUrl": "https://docs.hetzner.com/general/general-terms-and-conditions/data-privacy-faq/"
+    },
+    {
       "name": "Bunny CDN (BunnyWay d.o.o.)",
+      "type": "Infrastructure",
       "purpose": "Content delivery network for static assets and user-uploaded files",
       "dataProcessed": "Cached static assets, user-uploaded files, request metadata",
       "location": "EU (Slovenia)",
@@ -27,6 +30,7 @@
     },
     {
       "name": "Cloudflare, Inc.",
+      "type": "Infrastructure",
       "purpose": "DNS management, DDoS protection, traffic proxying",
       "dataProcessed": "Network request metadata, IP addresses",
       "location": "United States",
@@ -35,14 +39,34 @@
     },
     {
       "name": "GitHub, Inc. (Microsoft)",
-      "purpose": "OAuth authentication provider",
-      "dataProcessed": "User profile information, email address, authentication tokens",
+      "type": "Integrations",
+      "purpose": "OAuth authentication provider and GitHub App integration for linking repositories, syncing issues and pull requests, and posting comments",
+      "dataProcessed": "User profile information, email address, authentication tokens, repository metadata, issue and pull request data, webhook payloads",
       "location": "United States",
       "website": "https://github.com",
       "dpaUrl": "https://github.com/customer-terms/github-data-protection-agreement"
     },
     {
+      "name": "Discord, Inc.",
+      "type": "Integrations",
+      "purpose": "OAuth authentication provider",
+      "dataProcessed": "User profile information, email address, authentication tokens",
+      "location": "United States",
+      "website": "https://discord.com",
+      "dpaUrl": "https://discord.com/privacy"
+    },
+    {
+      "name": "Slack Technologies (Salesforce, Inc.)",
+      "type": "Integrations",
+      "purpose": "OAuth authentication provider",
+      "dataProcessed": "User profile information, email address, authentication tokens",
+      "location": "United States",
+      "website": "https://slack.com",
+      "dpaUrl": "https://slack.com/gdpr"
+    },
+    {
       "name": "Doras (Doras Media Limited)",
+      "type": "Integrations",
       "purpose": "OAuth authentication provider",
       "dataProcessed": "User profile information, email address, authentication tokens",
       "location": "EU (Germany, Finland)",
@@ -50,7 +74,17 @@
       "dpaUrl": null
     },
     {
+      "name": "Polar Software Inc.",
+      "type": "Payments",
+      "purpose": "Payment processing (Merchant of Record)",
+      "dataProcessed": "Billing information, payment details, email addresses",
+      "location": "EU (Sweden)",
+      "website": "https://polar.sh",
+      "dpaUrl": "https://polar.sh/legal/privacy"
+    },
+    {
       "name": "UseSend",
+      "type": "Email",
       "purpose": "Transactional email delivery",
       "dataProcessed": "Email addresses, email content",
       "location": "United States",
@@ -59,6 +93,7 @@
     },
     {
       "name": "PostHog, Inc. (EU)",
+      "type": "Analytics & Observability",
       "purpose": "Product analytics",
       "dataProcessed": "Usage events, anonymized user behavior data",
       "location": "EU (Germany)",
@@ -67,6 +102,7 @@
     },
     {
       "name": "Axiom, Inc.",
+      "type": "Analytics & Observability",
       "purpose": "Log management and observability",
       "dataProcessed": "Application logs, which may contain user identifiers and request metadata",
       "location": "United States",
@@ -74,12 +110,13 @@
       "dpaUrl": "https://axiom.co/privacy"
     },
     {
-      "name": "Polar Software Inc.",
-      "purpose": "Payment processing (Merchant of Record)",
-      "dataProcessed": "Billing information, payment details, email addresses",
-      "location": "EU (Sweden)",
-      "website": "https://polar.sh",
-      "dpaUrl": "https://polar.sh/legal/privacy"
+      "name": "ClickHouse, Inc.",
+      "type": "Analytics & Observability",
+      "purpose": "Analytics event store — captures platform events and aggregate metrics for internal reporting",
+      "dataProcessed": "User IDs, organisation IDs, event types and timestamps, aggregate platform metrics",
+      "location": "EU (Czechia)",
+      "website": "https://clickhouse.com",
+      "dpaUrl": "https://clickhouse.com/legal/privacy-policy"
     }
   ]
 }

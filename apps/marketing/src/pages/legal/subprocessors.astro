@@ -23,33 +23,44 @@ const { lastUpdated, subprocessors } = subprocessorsData;
 				<thead class="bg-muted/50 text-muted-foreground">
 					<tr>
 						<th class="px-4 py-3 font-medium">Subprocessor</th>
+						<th class="px-4 py-3 font-medium whitespace-nowrap">Type</th>
 						<th class="px-4 py-3 font-medium">Purpose</th>
 						<th class="px-4 py-3 font-medium">Data Processed</th>
 						<th class="px-4 py-3 font-medium">Location</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-border">
-					{subprocessors.map((sp) => (
-						<tr class="text-foreground">
-							<td class="px-4 py-3 font-medium">
-								<a href={sp.website} target="_blank" rel="noopener noreferrer" class="hover:underline">
-									{sp.name}
-								</a>
-								{sp.dpaUrl && (
-									<a
-										href={sp.dpaUrl}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="block text-xs text-muted-foreground hover:underline mt-0.5"
-									>
-										DPA / Privacy
+					{subprocessors.map((sp, i) => (
+						<>
+							{(i === 0 || sp.type !== subprocessors[i - 1].type) && (
+								<tr class="bg-muted/30">
+									<td colspan={5} class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+										{sp.type}
+									</td>
+								</tr>
+							)}
+							<tr class="text-foreground">
+								<td class="px-4 py-3 font-medium">
+									<a href={sp.website} target="_blank" rel="noopener noreferrer" class="hover:underline">
+										{sp.name}
 									</a>
-								)}
-							</td>
-							<td class="px-4 py-3 text-muted-foreground">{sp.purpose}</td>
-							<td class="px-4 py-3 text-muted-foreground">{sp.dataProcessed}</td>
-							<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">{sp.location}</td>
-						</tr>
+									{sp.dpaUrl && (
+										<a
+											href={sp.dpaUrl}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="block text-xs text-muted-foreground hover:underline mt-0.5"
+										>
+											DPA / Privacy
+										</a>
+									)}
+								</td>
+								<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">{sp.type}</td>
+								<td class="px-4 py-3 text-muted-foreground">{sp.purpose}</td>
+								<td class="px-4 py-3 text-muted-foreground">{sp.dataProcessed}</td>
+								<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">{sp.location}</td>
+							</tr>
+						</>
 					))}
 				</tbody>
 			</table>
