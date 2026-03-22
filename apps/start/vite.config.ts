@@ -16,18 +16,6 @@ const config = defineConfig({
   build: {
     minify: false,
     sourcemap: true,
-    rollupOptions: {
-      external: (id) => /^(@resvg\/resvg-js|sharp|satori)/.test(id),
-    },
-  },
-  // Prevent Vite from trying to bundle native .node binaries (e.g. @resvg/resvg-js)
-  // These are server-only and must be loaded by Node/Bun at runtime, not bundled by esbuild.
-  optimizeDeps: {
-    exclude: ["@resvg/resvg-js", "satori", "sharp"],
-  },
-  ssr: {
-    external: ["@resvg/resvg-js", "satori", "sharp"],
-    noExternal: [],
   },
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
@@ -67,28 +55,6 @@ const config = defineConfig({
     devtools(),
     !isDev &&
     nitro({
-      // Treat native-binary packages as external in Nitro's server bundle.
-      // These contain .node files that Rollup cannot parse — they must be
-      // resolved at runtime by Node, not bundled.
-      traceDeps: ["@resvg/resvg-js", "satori"],
-      rollupConfig: {
-        plugins: [
-          // Intercept .node native binary imports before any other plugin
-          // (e.g. nitro:externals, rollup-plugin-inject) tries to parse them.
-          // @resvg/resvg-js/js-binding.js does static require() calls for
-          // platform-specific sub-packages (@resvg/resvg-js-linux-x64-musl etc.)
-          // that resolve to raw ELF binaries — marking them external here
-          // prevents Rollup from attempting to parse the binary as JavaScript.
-          {
-            name: "native-node-externals",
-            resolveId(id: string) {
-              if (id.endsWith(".node") || /^@resvg\/resvg-js/.test(id)) {
-                return { id, external: true };
-              }
-            },
-          },
-        ],
-      },
       // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],

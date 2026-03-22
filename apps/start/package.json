@@ -26,7 +26,6 @@
     "@repo/opentelemetry": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/util": "workspace:*",
-    "@resvg/resvg-js": "^2.6.2",
     "@shikijs/types": "^3.13.0",
     "@tabler/icons-react": "^3.34.1",
     "@tailwindcss/vite": "^4.1.17",

@@ -1,4 +1,3 @@
-import { Resvg } from "@resvg/resvg-js";
 import { createFileRoute } from "@tanstack/react-router";
 import satori from "satori";
 import React from "react";
@@ -546,10 +545,9 @@ async function generateOgImage(params: {
 		],
 	});
 
-	const resvg = new Resvg(svg, { fitTo: { mode: "width", value: 1200 } });
-	const png = resvg.render().asPng();
+	const png = await sharp(Buffer.from(svg)).png().toBuffer();
 
-	return new Response(png.buffer as ArrayBuffer, {
+	return new Response(png, {
 		status: 200,
 		headers: {
 			"Content-Type": "image/png",
