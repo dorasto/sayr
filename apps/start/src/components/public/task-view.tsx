@@ -17,10 +17,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuItem,
 } from "@repo/ui/components/dropdown-menu";
 import { IconFilter2, IconLoader2 } from "@tabler/icons-react";
 import { SortOption } from ".";
 import { PublicTaskCreator } from "./public-task-creator";
+import { useTaskViewManager } from "@/hooks/useTaskViewManager";
+import { generateSlug } from "@repo/util";
+import { cn } from "@repo/ui/lib/utils";
+import RenderIcon from "@/components/generic/RenderIcon";
 
 export function PublicTaskView({
   sortBy,
@@ -39,6 +44,8 @@ export function PublicTaskView({
     usePublicOrganizationLayout();
 
   const queryClient = useQueryClient();
+
+  const { categorySlug, setCategoryFilter, clearView } = useTaskViewManager();
 
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { value: votes } = useStateManagementKey<
@@ -147,9 +154,28 @@ export function PublicTaskView({
     }
   };
 
+  const activeCategoryName = categorySlug
+    ? categories.find((c) => generateSlug(c.name) === categorySlug)?.name
+    : null;
+
+  const handleCategorySelect = (categoryId: string | null) => {
+    if (categoryId === null) {
+      clearView();
+    } else {
+      const category = categories.find((c) => c.id === categoryId);
+      if (category) {
+        const slug = generateSlug(category.name);
+        setCategoryFilter(slug);
+      }
+    }
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ["org-tasks", organization.id] });
+    }, 100);
+  };
+
   return (
     <div className="flex flex-col gap-2">
-      {/* Toolbar: sort */}
+      {/* Toolbar: sort + category */}
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -184,6 +210,51 @@ export function PublicTaskView({
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {categories.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={activeCategoryName ? "secondary" : "outline"}
+                size="sm"
+                className={cn(activeCategoryName && "font-medium")}
+              >
+                <span className="truncate">{activeCategoryName ?? "Category"}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-48">
+              <DropdownMenuLabel>Filter by category</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => handleCategorySelect(null)}
+                className={cn(!categorySlug && "font-medium")}
+              >
+                All categories
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {categories.map((category) => {
+                const slug = generateSlug(category.name);
+                const isActive = categorySlug === slug;
+                return (
+                  <DropdownMenuItem
+                    key={category.id}
+                    onClick={() => handleCategorySelect(category.id)}
+                    className={cn(isActive && "font-medium")}
+                  >
+                    <RenderIcon
+                      iconName={category.icon || "IconCircleFilled"}
+                      color={category.color || undefined}
+                      button
+                      focus={isActive}
+                      className="size-4! [&_svg]:size-3! border-0 shrink-0"
+                    />
+                    <span className="truncate">{category.name}</span>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <PublicTaskCreator />
@@ -218,3 +289,4 @@ export function PublicTaskView({
     </div>
   );
 }
+

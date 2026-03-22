@@ -1,6 +1,5 @@
 import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
 import PublicNavigation from "@/components/public/navigation";
-import PublicSidebar from "@/components/public/side";
 import {
   db,
   getIssueTemplates,
@@ -10,7 +9,11 @@ import {
 import { getEditionCapabilities } from "@repo/edition";
 import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
-import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  useRouterState,
+} from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 let cachedSystemOrgSlug: string | null | undefined = undefined;
@@ -114,8 +117,9 @@ function PublicLayout() {
   const { organization, labels, categories, issueTemplates } =
     Route.useLoaderData();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Release detail pages manage their own internal scroll via PanelWrapper
-  const isReleasePage = /\/releases\/[^/]+/.test(pathname);
+  // Detail pages (release detail, task shortId) manage their own internal scroll via PanelWrapper
+  const isPanelPage =
+    /\/releases\/[^/]+/.test(pathname) || /\/orgs\/[^/]+\/\d+/.test(pathname);
 
   if (!organization?.settings?.enablePublicPage) {
     return <OrganizationUnavailable />;
@@ -128,16 +132,16 @@ function PublicLayout() {
       categories={categories}
       issueTemplates={issueTemplates}
     >
-      <div className="flex h-dvh flex-col overflow-hidden bg-sidebar">
+      <div className="flex h-dvh flex-col overflow-hidden bg-background max-w-7xl mx-auto">
         <PublicNavigation />
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <PublicSidebar />
           <div className="flex-1 min-h-0 w-full">
-            <div className="flex flex-1 h-full w-full transition-all pb-2 pt-0 pr-2">
+            <div className="flex flex-1 h-full w-full transition-all pb-2 pt-0 pr-2 pl-2">
               <div
-                className={isReleasePage
-                  ? "h-full w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent overflow-hidden"
-                  : "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent"
+                className={
+                  isPanelPage
+                    ? "h-full w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent overflow-hidden"
+                    : "h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent"
                 }
                 id="public-scroll-container"
               >
@@ -185,9 +189,8 @@ function PublicLayoutPending() {
     <div className="flex h-dvh flex-col overflow-hidden bg-sidebar">
       <div className="bg-sidebar h-11 w-full shrink-0" />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="bg-sidebar w-52 shrink-0" />
         <div className="flex-1 min-h-0 w-full">
-          <div className="flex flex-1 h-full w-full pb-2 pt-2 pr-2">
+          <div className="flex flex-1 h-full w-full pb-2 pt-2 pr-2 pl-2">
             <div className="h-full w-full rounded-2xl bg-background border dark:border-transparent p-6">
               <div className="mx-auto max-w-3xl space-y-4">
                 <Skeleton className="h-10 w-full" />
