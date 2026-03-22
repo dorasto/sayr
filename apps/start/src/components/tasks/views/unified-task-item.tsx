@@ -1,5 +1,3 @@
-"use client";
-
 import type { schema } from "@repo/database";
 import {
   Avatar,
@@ -36,6 +34,8 @@ import {
   IconExternalLink,
   IconGitBranch,
   IconLink,
+  IconLock,
+  IconLockFilled,
   IconRocket,
   IconTag,
   IconUser,
@@ -57,21 +57,21 @@ import { InlineLabel } from "../shared/inlinelabel";
 import { Input } from "@repo/ui/components/input";
 import { releaseStatusConfig } from "@/components/releases/config";
 import {
-	getStatusOptions,
-	getPriorityOptions,
-	getAssigneeOptionsFromUsers,
-	getLabelOptions,
-	getCategoryOptions,
-	getReleaseOptions,
-	getParentOptions,
-	getRelationTypeOptions,
-	getRelationTargetOptions,
+  getStatusOptions,
+  getPriorityOptions,
+  getAssigneeOptionsFromUsers,
+  getLabelOptions,
+  getCategoryOptions,
+  getReleaseOptions,
+  getParentOptions,
+  getRelationTypeOptions,
+  getRelationTargetOptions,
 } from "../actions";
 import {
-	AssigneeAvatarTrigger,
-	CategoryBadgeButton,
-	ReleaseBadgeButton,
-	TaskLabelsInline,
+  AssigneeAvatarTrigger,
+  CategoryBadgeButton,
+  ReleaseBadgeButton,
+  TaskLabelsInline,
 } from "./unified-task-item-parts";
 
 interface UnifiedTaskItemProps {
@@ -383,41 +383,41 @@ export function UnifiedTaskItem({
         {/* Right section with metadata */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="relative flex flex-wrap grow shrink-0 items-center gap-2 whitespace-nowrap">
-						{/* Category */}
-						<CategoryBadgeButton
-							categoryId={task.category}
-							categories={categories}
-							onClick={handleCategoryClick}
-						/>
+            {/* Category */}
+            <CategoryBadgeButton
+              categoryId={task.category}
+              categories={categories}
+              onClick={handleCategoryClick}
+            />
 
-						{/* Labels */}
-						<TaskLabelsInline
-							labels={task.labels || []}
-							maxVisible={2}
-							className="hidden sm:flex h-5 gap-1 max-w-[300px] overflow-x-auto"
-							overflowStyle="count"
-						/>
+            {/* Labels */}
+            <TaskLabelsInline
+              labels={task.labels || []}
+              maxVisible={2}
+              className="hidden sm:flex h-5 gap-1 max-w-[300px] overflow-x-auto"
+              overflowStyle="count"
+            />
 
-						{/* Assignees */}
-						<GlobalTaskAssignees
-							task={task}
-							editable={fieldPermissions?.assignees ?? true}
-							availableUsers={availableUsers}
-							onChange={handleAssigneeChange}
-							tasks={tasks}
-							setTasks={setTasks}
-							open={assigneePopoverOpen}
-							setOpen={handleAssigneePopoverChange}
-							side="left"
-							customTrigger={
-								<AssigneeAvatarTrigger assignees={task.assignees || []} />
-							}
-						/>
-					</div>
-				</div>
-			</div>
-		</Link>
-	);
+            {/* Assignees */}
+            <GlobalTaskAssignees
+              task={task}
+              editable={fieldPermissions?.assignees ?? true}
+              availableUsers={availableUsers}
+              onChange={handleAssigneeChange}
+              tasks={tasks}
+              setTasks={setTasks}
+              open={assigneePopoverOpen}
+              setOpen={handleAssigneePopoverChange}
+              side="left"
+              customTrigger={
+                <AssigneeAvatarTrigger assignees={task.assignees || []} />
+              }
+            />
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
 
   const renderListContent = () => (
     <Link
@@ -522,7 +522,12 @@ export function UnifiedTaskItem({
               </Link>
             )}
             {/* Title */}
-            <p className="truncate cursor-pointer text-sm text-foreground w-fit">
+            <p className="truncate cursor-pointer text-sm text-foreground w-fit flex items-center">
+              {task.visible === "private" && (
+                <span className="text-primary">
+                  <IconLock className="size-3.5 mr-1" />
+                </span>
+              )}
               {parentTask ? (
                 <span>
                   {task.title}
@@ -547,43 +552,43 @@ export function UnifiedTaskItem({
                 total={subtaskProgress.total}
               />
             )}
-						{/* Organization (personal/cross-org mode) */}
+            {/* Organization (personal/cross-org mode) */}
 
-						{/* Category */}
-						<CategoryBadgeButton
-							categoryId={task.category}
-							categories={categories}
-							onClick={handleCategoryClick}
-						/>
-						{/* Release */}
-						<ReleaseBadgeButton
-							releaseId={task.releaseId}
-							releases={releases}
-							onClick={handleReleaseClick}
-						/>
-						{/* Labels */}
-						<TaskLabelsInline
-							labels={task.labels || []}
-							maxVisible={2}
-							className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto"
-							labelClassName="max-w-20"
-							overflowStyle="dots"
-						/>
-						{/* Assignees */}
-						<GlobalTaskAssignees
-							task={task}
-							editable={fieldPermissions?.assignees ?? true}
-							availableUsers={availableUsers}
-							onChange={handleAssigneeChange}
-							tasks={tasks}
-							setTasks={setTasks}
-							open={assigneePopoverOpen}
-							setOpen={handleAssigneePopoverChange}
-							side="left"
-							customTrigger={
-								<AssigneeAvatarTrigger assignees={task.assignees || []} />
-							}
-						/>
+            {/* Category */}
+            <CategoryBadgeButton
+              categoryId={task.category}
+              categories={categories}
+              onClick={handleCategoryClick}
+            />
+            {/* Release */}
+            <ReleaseBadgeButton
+              releaseId={task.releaseId}
+              releases={releases}
+              onClick={handleReleaseClick}
+            />
+            {/* Labels */}
+            <TaskLabelsInline
+              labels={task.labels || []}
+              maxVisible={2}
+              className="hidden sm:flex h-5 gap-1 max-w-[400px] overflow-x-auto"
+              labelClassName="max-w-20"
+              overflowStyle="dots"
+            />
+            {/* Assignees */}
+            <GlobalTaskAssignees
+              task={task}
+              editable={fieldPermissions?.assignees ?? true}
+              availableUsers={availableUsers}
+              onChange={handleAssigneeChange}
+              tasks={tasks}
+              setTasks={setTasks}
+              open={assigneePopoverOpen}
+              setOpen={handleAssigneePopoverChange}
+              side="left"
+              customTrigger={
+                <AssigneeAvatarTrigger assignees={task.assignees || []} />
+              }
+            />
             <span className="text-xs text-muted-foreground truncate hidden xl:flex">
               {formatDateCompact(task.createdAt as Date)}
             </span>
@@ -669,49 +674,49 @@ export function UnifiedTaskItem({
         )}
       </div>
 
-		{task.labels && task.labels.length > 0 && (
-			<TaskLabelsInline
-				labels={task.labels}
-				maxVisible={3}
-				className="flex flex-wrap gap-1 mt-1"
-				labelClassName="max-w-[100px]"
-				overflowStyle="count"
-			/>
-		)}
+      {task.labels && task.labels.length > 0 && (
+        <TaskLabelsInline
+          labels={task.labels}
+          maxVisible={3}
+          className="flex flex-wrap gap-1 mt-1"
+          labelClassName="max-w-[100px]"
+          overflowStyle="count"
+        />
+      )}
 
-		<div className="flex items-center justify-between mt-auto pt-2">
-			<div className="flex items-center gap-1">
-				{subtaskProgress && (
-					<SubtaskProgressBadge
-						completed={subtaskProgress.completed}
-						total={subtaskProgress.total}
-					/>
-				)}
-				<CategoryBadgeButton
-					categoryId={task.category}
-					categories={categories}
-					onClick={handleCategoryClick}
-				/>
-				<ReleaseBadgeButton
-					releaseId={task.releaseId}
-					releases={releases}
-					onClick={handleReleaseClick}
-				/>
-			</div>
-			<GlobalTaskAssignees
-				task={task}
-				editable={fieldPermissions?.assignees ?? true}
-				availableUsers={availableUsers}
-							onChange={handleAssigneeChange}
-							tasks={tasks}
-							setTasks={setTasks}
-							open={assigneePopoverOpen}
-							setOpen={handleAssigneePopoverChange}
-							side="left"
-							customTrigger={
-								<AssigneeAvatarTrigger assignees={task.assignees || []} />
-							}
-			/>
+      <div className="flex items-center justify-between mt-auto pt-2">
+        <div className="flex items-center gap-1">
+          {subtaskProgress && (
+            <SubtaskProgressBadge
+              completed={subtaskProgress.completed}
+              total={subtaskProgress.total}
+            />
+          )}
+          <CategoryBadgeButton
+            categoryId={task.category}
+            categories={categories}
+            onClick={handleCategoryClick}
+          />
+          <ReleaseBadgeButton
+            releaseId={task.releaseId}
+            releases={releases}
+            onClick={handleReleaseClick}
+          />
+        </div>
+        <GlobalTaskAssignees
+          task={task}
+          editable={fieldPermissions?.assignees ?? true}
+          availableUsers={availableUsers}
+          onChange={handleAssigneeChange}
+          tasks={tasks}
+          setTasks={setTasks}
+          open={assigneePopoverOpen}
+          setOpen={handleAssigneePopoverChange}
+          side="left"
+          customTrigger={
+            <AssigneeAvatarTrigger assignees={task.assignees || []} />
+          }
+        />
       </div>
     </Link>
   );
@@ -731,10 +736,7 @@ export function UnifiedTaskItem({
     () => getCategoryOptions(categories),
     [categories],
   );
-  const releaseOptions = useMemo(
-    () => getReleaseOptions(releases),
-    [releases],
-  );
+  const releaseOptions = useMemo(() => getReleaseOptions(releases), [releases]);
   const parentOptions = useMemo(
     () => getParentOptions(task, tasks),
     [task, tasks],
@@ -790,240 +792,29 @@ export function UnifiedTaskItem({
 
       {/* Priority */}
       {(fieldPermissions?.priority ?? true) && (
-      <ContextMenuSub>
-        <ContextMenuSubTrigger className="gap-3 w-full">
-          {priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)} Priority
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-44">
-          <ContextMenuLabel>Set Priority</ContextMenuLabel>
-          <ContextMenuSeparator />
-          <ContextMenuRadioGroup
-            value={task.priority || "none"}
-            onValueChange={(value) => {
-              onTaskUpdate?.(task.id, { priority: (value === "none" ? null : value) as typeof task.priority });
-            }}
-          >
-            {priorityOptions.map((opt) => (
-              <ContextMenuRadioItem key={opt.id} value={opt.id} showDot={false}>
-                <div className="flex items-center gap-2">
-                  {opt.icon}
-                  <span>{opt.label}</span>
-                </div>
-              </ContextMenuRadioItem>
-            ))}
-          </ContextMenuRadioGroup>
-        </ContextMenuSubContent>
-      </ContextMenuSub>
-      )}
-
-      {/* Status */}
-      {(fieldPermissions?.status ?? true) && (
-      <ContextMenuSub>
-        <ContextMenuSubTrigger className="gap-3 w-full">
-          {status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)} Status
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-44">
-          <ContextMenuLabel>Set Status</ContextMenuLabel>
-          <ContextMenuSeparator />
-          <ContextMenuRadioGroup
-            value={task.status || "backlog"}
-            onValueChange={(value) => {
-              onTaskUpdate?.(task.id, { status: value as typeof task.status });
-            }}
-          >
-            {statusOptions.map((opt) => (
-              <ContextMenuRadioItem key={opt.id} value={opt.id} showDot={false}>
-                <div className="flex items-center gap-2">
-                  {opt.icon}
-                  <span>{opt.label}</span>
-                </div>
-              </ContextMenuRadioItem>
-            ))}
-          </ContextMenuRadioGroup>
-        </ContextMenuSubContent>
-      </ContextMenuSub>
-      )}
-
-      {/* Assignees */}
-      {(fieldPermissions?.assignees ?? true) && (
-      <ContextMenuSub>
-        <ContextMenuSubTrigger className="gap-3 w-full">
-          <IconUser className="size-3.5" />
-          Assigned
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
-          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
-            <Input
-              variant={"ghost"}
-              className="w-full p-3 border-b rounded-none"
-              placeholder="Search users..."
-              value={assigneeSearch}
-              onChange={(e) => setAssigneeSearch(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-            />
-          </div>
-          {assigneeOptions.length > 0 ? (
-            assigneeOptions
-              .filter((opt) =>
-                opt.label.toLowerCase().includes(assigneeSearch.toLowerCase()),
-              )
-              .sort((a, b) => {
-                const aAssigned = task.assignees?.some((x) => x.id === a.id) ?? false;
-                const bAssigned = task.assignees?.some((x) => x.id === b.id) ?? false;
-                return Number(bAssigned) - Number(aAssigned);
-              })
-              .map((opt) => {
-                const isAssigned = task.assignees?.some((x) => x.id === opt.id) ?? false;
-                return (
-                  <ContextMenuCheckboxItem
-                    key={opt.id}
-                    checked={isAssigned}
-                    side="right"
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      const currentIds = task.assignees?.map((a) => a.id) || [];
-                      const newIds = isAssigned
-                        ? currentIds.filter((id) => id !== opt.id)
-                        : [...currentIds, opt.id];
-                      const newAssignees = availableUsers
-                        .filter((u) => newIds.includes(u.id))
-                        .map((u) => ({ id: u.id, name: u.name, image: u.image }));
-                      onTaskUpdate?.(task.id, { assignees: newAssignees });
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage
-                          src={opt.metadata?.image || undefined}
-                          alt={opt.label}
-                        />
-                        <AvatarFallback className="text-xs">
-                          {opt.label
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{opt.label}</span>
-                    </div>
-                  </ContextMenuCheckboxItem>
-                );
-              })
-          ) : (
-            <ContextMenuItem disabled>No users available</ContextMenuItem>
-          )}
-        </ContextMenuSubContent>
-      </ContextMenuSub>
-      )}
-
-      {/* Labels */}
-      {(fieldPermissions?.labels ?? true) && (
-      <ContextMenuSub>
-        <ContextMenuSubTrigger className="gap-3 w-full">
-          <IconTag className="size-3.5" />
-          Labels
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
-          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
-            <Input
-              variant={"ghost"}
-              className="w-full p-3 border-b rounded-none"
-              placeholder="Search labels..."
-              value={labelSearch}
-              onChange={(e) => setLabelSearch(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-            />
-          </div>
-          {labelOptions.length > 0 ? (
-            labelOptions
-              .filter((opt) =>
-                opt.label.toLowerCase().includes(labelSearch.toLowerCase()),
-              )
-              .sort((a, b) => {
-                const aApplied = task.labels?.some((l) => l.id === a.id) ?? false;
-                const bApplied = task.labels?.some((l) => l.id === b.id) ?? false;
-                return Number(bApplied) - Number(aApplied);
-              })
-              .map((opt) => {
-                const isApplied = task.labels?.some((l) => l.id === opt.id) ?? false;
-                return (
-                  <ContextMenuCheckboxItem
-                    key={opt.id}
-                    checked={isApplied}
-                    side="right"
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      const currentIds = task.labels?.map((l) => l.id) || [];
-                      const newIds = isApplied
-                        ? currentIds.filter((id) => id !== opt.id)
-                        : [...currentIds, opt.id];
-                      const newLabels = availableLabels.filter((l) =>
-                        newIds.includes(l.id),
-                      );
-                      onTaskUpdate?.(task.id, { labels: newLabels });
-                    }}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <IconCircleFilled
-                        className="h-3 w-3 shrink-0"
-                        style={{ color: opt.metadata?.color || "var(--foreground)" }}
-                      />
-                      <span className="text-sm truncate">{opt.label}</span>
-                    </div>
-                  </ContextMenuCheckboxItem>
-                );
-              })
-          ) : (
-            <ContextMenuItem disabled>No labels available</ContextMenuItem>
-          )}
-        </ContextMenuSubContent>
-      </ContextMenuSub>
-      )}
-
-      {/* Category */}
-      {(fieldPermissions?.category ?? true) && (
-      <ContextMenuSub>
-        <ContextMenuSubTrigger className="gap-3 w-full">
-          <IconCategory className="size-3.5" />
-          Category
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
-          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
-            <Input
-              variant={"ghost"}
-              className="w-full p-3 border-b rounded-none"
-              placeholder="Search categories..."
-              value={categorySearch}
-              onChange={(e) => setCategorySearch(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-            />
-          </div>
-          <ContextMenuRadioGroup
-            value={task.category || "none"}
-            onValueChange={(value) =>
-              onTaskUpdate?.(task.id, { category: value === "none" ? null : value })
-            }
-          >
-            {categoryOptions
-              .filter((opt) =>
-                opt.label.toLowerCase().includes(categorySearch.toLowerCase()),
-              )
-              .sort((a, b) => {
-                // Keep "No Category" at top, then sort selected first
-                if (a.id === "none") return -1;
-                if (b.id === "none") return 1;
-                const aSelected = task.category === a.id;
-                const bSelected = task.category === b.id;
-                return Number(bSelected) - Number(aSelected);
-              })
-              .map((opt) => (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            {priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)}{" "}
+            Priority
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-44">
+            <ContextMenuLabel>Set Priority</ContextMenuLabel>
+            <ContextMenuSeparator />
+            <ContextMenuRadioGroup
+              value={task.priority || "none"}
+              onValueChange={(value) => {
+                onTaskUpdate?.(task.id, {
+                  priority: (value === "none"
+                    ? null
+                    : value) as typeof task.priority,
+                });
+              }}
+            >
+              {priorityOptions.map((opt) => (
                 <ContextMenuRadioItem
                   key={opt.id}
-                  value={opt.value ?? "none"}
+                  value={opt.id}
                   showDot={false}
-                  onSelect={(e) => e.preventDefault()}
                 >
                   <div className="flex items-center gap-2">
                     {opt.icon}
@@ -1031,147 +822,407 @@ export function UnifiedTaskItem({
                   </div>
                 </ContextMenuRadioItem>
               ))}
-          </ContextMenuRadioGroup>
-        </ContextMenuSubContent>
-      </ContextMenuSub>
+            </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
       )}
 
-      {/* Release */}
-      {(fieldPermissions?.release ?? true) && (
-      <ContextMenuSub>
-        <ContextMenuSubTrigger className="gap-3 w-full">
-          <IconRocket className="size-3.5" />
-          Release
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-72 max-h-60 overflow-y-auto pt-0">
-          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
-            <Input
-              variant={"ghost"}
-              className="w-full p-3 border-b rounded-none"
-              placeholder="Search releases..."
-              value={releaseSearch}
-              onChange={(e) => setReleaseSearch(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-            />
-          </div>
-          <ContextMenuRadioGroup
-            value={task.releaseId || "none"}
-            onValueChange={(value) =>
-              onTaskUpdate?.(task.id, { releaseId: value === "none" ? null : value })
-            }
-          >
-            {releaseOptions
-              .filter((opt) =>
-                opt.label.toLowerCase().includes(releaseSearch.toLowerCase()),
-              )
-              .sort((a, b) => {
-                // Keep "No Release" at top, then sort selected first
-                if (a.id === "none") return -1;
-                if (b.id === "none") return 1;
-                const aSelected = task.releaseId === a.id;
-                const bSelected = task.releaseId === b.id;
-                return Number(bSelected) - Number(aSelected);
-              })
-              .map((opt) => {
-                const meta = opt.metadata;
-                return (
+      {/* Status */}
+      {(fieldPermissions?.status ?? true) && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            {status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)} Status
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-44">
+            <ContextMenuLabel>Set Status</ContextMenuLabel>
+            <ContextMenuSeparator />
+            <ContextMenuRadioGroup
+              value={task.status || "backlog"}
+              onValueChange={(value) => {
+                onTaskUpdate?.(task.id, {
+                  status: value as typeof task.status,
+                });
+              }}
+            >
+              {statusOptions.map((opt) => (
+                <ContextMenuRadioItem
+                  key={opt.id}
+                  value={opt.id}
+                  showDot={false}
+                >
+                  <div className="flex items-center gap-2">
+                    {opt.icon}
+                    <span>{opt.label}</span>
+                  </div>
+                </ContextMenuRadioItem>
+              ))}
+            </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      )}
+
+      {/* Assignees */}
+      {(fieldPermissions?.assignees ?? true) && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconUser className="size-3.5" />
+            Assigned
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
+            <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+              <Input
+                variant={"ghost"}
+                className="w-full p-3 border-b rounded-none"
+                placeholder="Search users..."
+                value={assigneeSearch}
+                onChange={(e) => setAssigneeSearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+            {assigneeOptions.length > 0 ? (
+              assigneeOptions
+                .filter((opt) =>
+                  opt.label
+                    .toLowerCase()
+                    .includes(assigneeSearch.toLowerCase()),
+                )
+                .sort((a, b) => {
+                  const aAssigned =
+                    task.assignees?.some((x) => x.id === a.id) ?? false;
+                  const bAssigned =
+                    task.assignees?.some((x) => x.id === b.id) ?? false;
+                  return Number(bAssigned) - Number(aAssigned);
+                })
+                .map((opt) => {
+                  const isAssigned =
+                    task.assignees?.some((x) => x.id === opt.id) ?? false;
+                  return (
+                    <ContextMenuCheckboxItem
+                      key={opt.id}
+                      checked={isAssigned}
+                      side="right"
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        const currentIds =
+                          task.assignees?.map((a) => a.id) || [];
+                        const newIds = isAssigned
+                          ? currentIds.filter((id) => id !== opt.id)
+                          : [...currentIds, opt.id];
+                        const newAssignees = availableUsers
+                          .filter((u) => newIds.includes(u.id))
+                          .map((u) => ({
+                            id: u.id,
+                            name: u.name,
+                            image: u.image,
+                          }));
+                        onTaskUpdate?.(task.id, { assignees: newAssignees });
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage
+                            src={opt.metadata?.image || undefined}
+                            alt={opt.label}
+                          />
+                          <AvatarFallback className="text-xs">
+                            {opt.label
+                              .split(" ")
+                              .map((n: string) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{opt.label}</span>
+                      </div>
+                    </ContextMenuCheckboxItem>
+                  );
+                })
+            ) : (
+              <ContextMenuItem disabled>No users available</ContextMenuItem>
+            )}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      )}
+
+      {/* Labels */}
+      {(fieldPermissions?.labels ?? true) && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconTag className="size-3.5" />
+            Labels
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
+            <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+              <Input
+                variant={"ghost"}
+                className="w-full p-3 border-b rounded-none"
+                placeholder="Search labels..."
+                value={labelSearch}
+                onChange={(e) => setLabelSearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+            {labelOptions.length > 0 ? (
+              labelOptions
+                .filter((opt) =>
+                  opt.label.toLowerCase().includes(labelSearch.toLowerCase()),
+                )
+                .sort((a, b) => {
+                  const aApplied =
+                    task.labels?.some((l) => l.id === a.id) ?? false;
+                  const bApplied =
+                    task.labels?.some((l) => l.id === b.id) ?? false;
+                  return Number(bApplied) - Number(aApplied);
+                })
+                .map((opt) => {
+                  const isApplied =
+                    task.labels?.some((l) => l.id === opt.id) ?? false;
+                  return (
+                    <ContextMenuCheckboxItem
+                      key={opt.id}
+                      checked={isApplied}
+                      side="right"
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        const currentIds = task.labels?.map((l) => l.id) || [];
+                        const newIds = isApplied
+                          ? currentIds.filter((id) => id !== opt.id)
+                          : [...currentIds, opt.id];
+                        const newLabels = availableLabels.filter((l) =>
+                          newIds.includes(l.id),
+                        );
+                        onTaskUpdate?.(task.id, { labels: newLabels });
+                      }}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <IconCircleFilled
+                          className="h-3 w-3 shrink-0"
+                          style={{
+                            color: opt.metadata?.color || "var(--foreground)",
+                          }}
+                        />
+                        <span className="text-sm truncate">{opt.label}</span>
+                      </div>
+                    </ContextMenuCheckboxItem>
+                  );
+                })
+            ) : (
+              <ContextMenuItem disabled>No labels available</ContextMenuItem>
+            )}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      )}
+
+      {/* Category */}
+      {(fieldPermissions?.category ?? true) && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconCategory className="size-3.5" />
+            Category
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-52 max-h-60 overflow-y-auto pt-0">
+            <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+              <Input
+                variant={"ghost"}
+                className="w-full p-3 border-b rounded-none"
+                placeholder="Search categories..."
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+            <ContextMenuRadioGroup
+              value={task.category || "none"}
+              onValueChange={(value) =>
+                onTaskUpdate?.(task.id, {
+                  category: value === "none" ? null : value,
+                })
+              }
+            >
+              {categoryOptions
+                .filter((opt) =>
+                  opt.label
+                    .toLowerCase()
+                    .includes(categorySearch.toLowerCase()),
+                )
+                .sort((a, b) => {
+                  // Keep "No Category" at top, then sort selected first
+                  if (a.id === "none") return -1;
+                  if (b.id === "none") return 1;
+                  const aSelected = task.category === a.id;
+                  const bSelected = task.category === b.id;
+                  return Number(bSelected) - Number(aSelected);
+                })
+                .map((opt) => (
                   <ContextMenuRadioItem
                     key={opt.id}
                     value={opt.value ?? "none"}
                     showDot={false}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    <div className="flex items-center gap-2 w-full truncate">
+                    <div className="flex items-center gap-2">
                       {opt.icon}
-                      <span className="truncate">{opt.label}</span>
-                      {meta && (
-                        <div className="flex items-center gap-1 ml-auto">
-                          <Badge className="rounded-lg text-xs cursor-pointer gap-1.5 truncate max-w-20 bg-secondary pointer-events-none">
-                            {meta.slug}
-                          </Badge>
-                          <Badge
-                            className={cn(
-                              "border rounded-lg text-xs cursor-pointer gap-1.5 shrink-0",
-                              releaseStatusConfig[meta.status as keyof typeof releaseStatusConfig]?.badgeClassName,
-                            )}
-                          >
-                            {releaseStatusConfig[meta.status as keyof typeof releaseStatusConfig]?.icon("w-3 h-3")}
-                            {releaseStatusConfig[meta.status as keyof typeof releaseStatusConfig]?.label}
-                          </Badge>
-                        </div>
-                      )}
+                      <span>{opt.label}</span>
                     </div>
                   </ContextMenuRadioItem>
-                );
-              })}
-          </ContextMenuRadioGroup>
-        </ContextMenuSubContent>
-      </ContextMenuSub>
+                ))}
+            </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      )}
+
+      {/* Release */}
+      {(fieldPermissions?.release ?? true) && (
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconRocket className="size-3.5" />
+            Release
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-72 max-h-60 overflow-y-auto pt-0">
+            <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+              <Input
+                variant={"ghost"}
+                className="w-full p-3 border-b rounded-none"
+                placeholder="Search releases..."
+                value={releaseSearch}
+                onChange={(e) => setReleaseSearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+            <ContextMenuRadioGroup
+              value={task.releaseId || "none"}
+              onValueChange={(value) =>
+                onTaskUpdate?.(task.id, {
+                  releaseId: value === "none" ? null : value,
+                })
+              }
+            >
+              {releaseOptions
+                .filter((opt) =>
+                  opt.label.toLowerCase().includes(releaseSearch.toLowerCase()),
+                )
+                .sort((a, b) => {
+                  // Keep "No Release" at top, then sort selected first
+                  if (a.id === "none") return -1;
+                  if (b.id === "none") return 1;
+                  const aSelected = task.releaseId === a.id;
+                  const bSelected = task.releaseId === b.id;
+                  return Number(bSelected) - Number(aSelected);
+                })
+                .map((opt) => {
+                  const meta = opt.metadata;
+                  return (
+                    <ContextMenuRadioItem
+                      key={opt.id}
+                      value={opt.value ?? "none"}
+                      showDot={false}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <div className="flex items-center gap-2 w-full truncate">
+                        {opt.icon}
+                        <span className="truncate">{opt.label}</span>
+                        {meta && (
+                          <div className="flex items-center gap-1 ml-auto">
+                            <Badge className="rounded-lg text-xs cursor-pointer gap-1.5 truncate max-w-20 bg-secondary pointer-events-none">
+                              {meta.slug}
+                            </Badge>
+                            <Badge
+                              className={cn(
+                                "border rounded-lg text-xs cursor-pointer gap-1.5 shrink-0",
+                                releaseStatusConfig[
+                                  meta.status as keyof typeof releaseStatusConfig
+                                ]?.badgeClassName,
+                              )}
+                            >
+                              {releaseStatusConfig[
+                                meta.status as keyof typeof releaseStatusConfig
+                              ]?.icon("w-3 h-3")}
+                              {
+                                releaseStatusConfig[
+                                  meta.status as keyof typeof releaseStatusConfig
+                                ]?.label
+                              }
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </ContextMenuRadioItem>
+                  );
+                })}
+            </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
       )}
 
       {(fieldPermissions?.parent ?? true) && <ContextMenuSeparator />}
 
       {/* Parent task */}
       {(fieldPermissions?.parent ?? true) && (
-      <ContextMenuSub>
-        <ContextMenuSubTrigger className="gap-3 w-full">
-          <IconGitBranch className="size-3.5" /> Parent task
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
-          <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
-            <Input
-              variant={"ghost"}
-              className="w-full p-3 border-b rounded-none"
-              placeholder="Search tasks..."
-              value={parentSearch}
-              onChange={(e) => setParentSearch(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-            />
-          </div>
-          <ContextMenuRadioGroup
-            value={task.parentId || "none"}
-            onValueChange={(value) => {
-              if (value === "none") {
-                onTaskUpdate?.(task.id, { parentId: null, parent: null });
-              } else {
-                const selectedParent = tasks.find((t) => t.id === value);
-                if (selectedParent) {
-                  onTaskUpdate?.(task.id, {
-                    parentId: selectedParent.id,
-                    parent: {
-                      id: selectedParent.id,
-                      shortId: selectedParent.shortId,
-                      title: selectedParent.title,
-                      status: selectedParent.status,
-                    },
-                  });
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="gap-3 w-full">
+            <IconGitBranch className="size-3.5" /> Parent task
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+            <div className="sticky top-0 bg-card z-999999999 w-full mb-1">
+              <Input
+                variant={"ghost"}
+                className="w-full p-3 border-b rounded-none"
+                placeholder="Search tasks..."
+                value={parentSearch}
+                onChange={(e) => setParentSearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+            <ContextMenuRadioGroup
+              value={task.parentId || "none"}
+              onValueChange={(value) => {
+                if (value === "none") {
+                  onTaskUpdate?.(task.id, { parentId: null, parent: null });
+                } else {
+                  const selectedParent = tasks.find((t) => t.id === value);
+                  if (selectedParent) {
+                    onTaskUpdate?.(task.id, {
+                      parentId: selectedParent.id,
+                      parent: {
+                        id: selectedParent.id,
+                        shortId: selectedParent.shortId,
+                        title: selectedParent.title,
+                        status: selectedParent.status,
+                      },
+                    });
+                  }
                 }
-              }
-            }}
-          >
-            {parentOptions
-              .filter((opt) =>
-                parentSearch === "" ||
-                opt.label.toLowerCase().includes(parentSearch.toLowerCase()) ||
-                (opt.keywords || "").includes(parentSearch),
-              )
-              .slice(0, 21) // 1 for "No Parent" + 20 tasks
-              .map((opt) => (
-                <ContextMenuRadioItem
-                  key={opt.id}
-                  value={opt.value ?? "none"}
-                  showDot={false}
-                  className={opt.id === "none" ? "text-muted-foreground" : undefined}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    {opt.icon}
-                    <span className="truncate">{opt.label}</span>
-                  </div>
-                </ContextMenuRadioItem>
-              ))}
-          </ContextMenuRadioGroup>
-        </ContextMenuSubContent>
-      </ContextMenuSub>
+              }}
+            >
+              {parentOptions
+                .filter(
+                  (opt) =>
+                    parentSearch === "" ||
+                    opt.label
+                      .toLowerCase()
+                      .includes(parentSearch.toLowerCase()) ||
+                    (opt.keywords || "").includes(parentSearch),
+                )
+                .slice(0, 21) // 1 for "No Parent" + 20 tasks
+                .map((opt) => (
+                  <ContextMenuRadioItem
+                    key={opt.id}
+                    value={opt.value ?? "none"}
+                    showDot={false}
+                    className={
+                      opt.id === "none" ? "text-muted-foreground" : undefined
+                    }
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      {opt.icon}
+                      <span className="truncate">{opt.label}</span>
+                    </div>
+                  </ContextMenuRadioItem>
+                ))}
+            </ContextMenuRadioGroup>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
       )}
 
       {/* Relations */}
@@ -1182,7 +1233,9 @@ export function UnifiedTaskItem({
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-44">
             {relationTypeOptions.map((relType) => {
-              const [search, setSearch] = relationSearchState[relType.value] || ["", () => {}];
+              const [search, setSearch] = relationSearchState[
+                relType.value
+              ] || ["", () => {}];
               return (
                 <ContextMenuSub key={relType.id}>
                   <ContextMenuSubTrigger className="gap-3 w-full">
@@ -1200,17 +1253,22 @@ export function UnifiedTaskItem({
                       />
                     </div>
                     {relationTargetOptions
-                      .filter((opt) =>
-                        search === "" ||
-                        opt.label.toLowerCase().includes(search.toLowerCase()) ||
-                        (opt.keywords || "").includes(search),
+                      .filter(
+                        (opt) =>
+                          search === "" ||
+                          opt.label
+                            .toLowerCase()
+                            .includes(search.toLowerCase()) ||
+                          (opt.keywords || "").includes(search),
                       )
                       .slice(0, 20)
                       .map((opt) => (
                         <ContextMenuItem
                           key={opt.id}
                           className="gap-2"
-                          onSelect={() => onAddRelation(task.id, opt.id, relType.value)}
+                          onSelect={() =>
+                            onAddRelation(task.id, opt.id, relType.value)
+                          }
                         >
                           <div className="flex items-center gap-2 truncate">
                             {opt.icon}
