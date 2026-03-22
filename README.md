@@ -1,218 +1,226 @@
-# 🚀 Sayr.io
+# Sayr.io
 
-A modern, transparent, and collaborative **project management platform** designed for teams who value openness and efficiency. Bridge internal workflows with public collaboration.
+**Project management your users can see.**
+
+Sayr is an open-source project management platform with a built-in public-facing portal. Your team works internally while users submit feedback, vote on features, and track progress — all from the same tool.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15.4+-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.1+-blue?logo=react)](https://react.dev/)
-[![Hono](https://img.shields.io/badge/Hono-4.8+-orange)](https://hono.dev/)
+[![TanStack Start](https://img.shields.io/badge/TanStack_Start-1.x-red)](https://tanstack.com/start)
+[![React](https://img.shields.io/badge/React-19.2+-blue?logo=react)](https://react.dev/)
+[![Hono](https://img.shields.io/badge/Hono-4.10+-orange)](https://hono.dev/)
 [![Bun](https://img.shields.io/badge/Bun-runtime-pink?logo=bun)](https://bun.sh/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
 
-## ✨ Features
+## The Problem
 
-### 🔐 Authentication & Authorization
-- **OAuth Integration** with [GitHub](https://github.com) and [Doras.to](https://doras.to)
-- **Role-Based Access Control** with distinct permissions for external users vs. organization members
-- **Session Management** powered by [Better Auth](https://www.better-auth.com/)
+Teams juggle a project management tool and a separate customer feedback tool — duplicated work, stale updates, and users who never know what's happening.
 
-### 📋 Task Management
-- **Organizations & Teams**
-- **Rich Task Properties**
-- **Visibility Controls**
-- **Status Workflows**
-- **Priority Levels**
-- **Custom Labels**
+Sayr replaces both with one board, two views: your team sees everything, the public sees only what you allow.
 
-### 💬 Collaboration
-- **Threaded Comments** - Public and internal discussions on a unified timeline
-- **Task Timeline** - Full activity history for tracking changes
-- **Real-Time Updates** - WebSocket support for live notifications
-- **File Uploads** - Secure object storage with MinIO/S3-compatible backends
-
-### 🎨 Modern UI
-- **Responsive Design** - With adaptive layouts
-- **Rich Components** - Built on [Shadcn/ui](https://ui.shadcn.com) with Radix primitives
-- **Block Editor** - [BlockNote](https://www.blocknotejs.org/) rich text editing
-
-### 🔗 Integrations
-- **GitHub Integration** — Link repositories, issues, and more
 ---
 
-## 🛠️ Tech Stack
+## Features
+
+### Task Management
+- Tasks with statuses: Backlog, Todo, In Progress, Done, Canceled
+- 5 priority levels: Urgent, High, Medium, Low, None
+- Multiple assignees per task
+- **Subtasks** — one level deep
+- **Task relations** — Blocks, Depends on, Related to
+- **Labels** — color-coded, multiple per task, with own visibility settings
+- **Categories** — group tasks and route to GitHub repositories
+- **Releases** — milestones/versions with progress charts, assignee workload, and priority distribution
+- **Saved views** — filtered/grouped views persisted per organization
+- **Issue templates** — pre-fill title, description, labels, assignees, category, priority, status, release, and visibility
+- Kanban and list views
+- Bulk operations (status changes, label assignment)
+- Full audit timeline — every change recorded
+
+### Visibility System
+The core differentiator. Every item carries its own public/private toggle: tasks, comments (public vs. internal), labels, and timeline entries. Changes take effect immediately.
+
+### Public Portal
+- Each organization gets a dedicated subdomain (`{org}.sayr.io` on cloud, or your own domain when self-hosting)
+- Live task board showing public tasks with sorting (Most Popular, Newest, Trending)
+- User voting on tasks (real-time counts)
+- Public task submission by signed-in visitors, optionally from a template
+- Public comments with reactions; member badge distinguishes official responses
+- Real-time updates via WebSocket
+- Organization branding (banner, logo, name, description)
+
+### GitHub Integration
+- Connect one or more GitHub organizations via GitHub App
+- Bidirectional task ↔ issue sync, per repository, optionally scoped by category
+- Keyword references in commits and PRs: `Ref #N`, `Fixes #N`, `Closes #N`, `Resolves #N`
+- Commit and PR lifecycle tracking appear on the task timeline
+- Comment syncing from GitHub to Sayr
+- Respects repository visibility (private repo activity stays internal)
+
+### Collaboration & Real-Time
+- Rich text editor (ProseKit) with headings, lists, code blocks, images, and @mentions
+- Threaded comments with edit history and emoji reactions
+- WebSocket broadcasting for all create/update/delete events
+- Notifications and inbox
+- My Tasks — cross-organization view of all assigned work
+
+### Account & Security
+- GitHub OAuth login
+- Email + password authentication
+- **Two-factor authentication** (TOTP + backup codes)
+- **Passkeys** — Face ID, Touch ID, Windows Hello, hardware security keys (WebAuthn)
+- Active session management — view and revoke individual sessions
+
+### Organization Management
+- Members and teams with granular per-permission controls
+- Permission categories: Organization, Content Settings, Tasks, Moderation
+- "Most permissive wins" model across team memberships
+- Blocked users list
+
+### API
+- REST API with OpenAPI spec (served via Scalar)
+- Bearer token authentication
+- Rate limiting: 100 req/min authenticated, 10 req/min unauthenticated
+
+---
+
+## Editions
+
+Sayr ships in three editions. Docker images are edition-locked at build time.
+
+| | Community | Cloud | Enterprise |
+|---|---|---|---|
+| **For** | Free self-hosting | Hosted sayr.io | Licensed self-hosting |
+| **Organizations** | 1 | Unlimited | Unlimited |
+| **Members** | Unlimited | Free: 5 / Pro: unlimited | Unlimited |
+| **Releases** | Unlimited | Free: 0 / Pro: unlimited | Unlimited |
+| **Saved views** | Unlimited | Free: 3 / Pro: unlimited | Unlimited |
+| **Issue templates** | Unlimited | Free: 3 / Pro: unlimited | Unlimited |
+| **Teams** | Unlimited | Free: 1 / Pro: unlimited | Unlimited |
+| **Availability** | Now | Now | Coming soon |
+
+Community Edition images are published at `ghcr.io/dorasto/sayr-ce-*`.
+
+---
+
+## Tech Stack
 
 ### Frontend
 | Technology | Purpose |
 |------------|---------|
-| [Next.js](https://nextjs.org/) | React framework with App Router & Turbopack |
-| [React](https://react.dev/) | UI library with Server Components |
-| [TailwindCSS](https://tailwindcss.com/) | Utility-first CSS framework |
-| [Shadcn/ui](https://ui.shadcn.com/) | Accessible component library |
+| [TanStack Start](https://tanstack.com/start) | Full-stack React framework (SSR + server functions) |
+| [React](https://react.dev/) | UI library |
+| [TanStack Router](https://tanstack.com/router) | Type-safe file-based routing |
 | [TanStack Query](https://tanstack.com/query) | Server state management |
-| [TanStack Store](https://tanstack.com/store) | Store management |
-| [BlockNote](https://blocknotejs.org/) | Block-based rich text editor |
+| [Tailwind CSS](https://tailwindcss.com/) | Utility-first CSS |
+| [Shadcn/ui](https://ui.shadcn.com/) | Accessible component library (Radix primitives) |
+| [ProseKit](https://prosekit.dev/) | Block-based rich text editor (ProseMirror) |
+| [Vite](https://vite.dev/) | Build tool |
 
 ### Backend
 | Technology | Purpose |
 |------------|---------|
 | [Bun](https://bun.sh/) | JavaScript runtime |
-| [Hono](https://hono.dev/) | Lightweight web framework |
+| [Hono](https://hono.dev/) | Lightweight web framework (REST + WebSocket) |
 | [Drizzle ORM](https://orm.drizzle.team/) | TypeScript ORM |
 | [PostgreSQL](https://www.postgresql.org/) | Primary database |
-| [Redis](https://redis.io/) | Caching and queues (via ioredis) |
+| [Redis](https://redis.io/) | Job queue and caching |
 | [MinIO](https://min.io/) | S3-compatible object storage |
+| [Zod](https://zod.dev/) | Validation |
 
-### Authentication
+### Infrastructure & Tooling
 | Technology | Purpose |
 |------------|---------|
-| [Better Auth](https://www.better-auth.com/) | Authentication library |
-
-### Infrastructure
-| Technology | Purpose |
-|------------|---------|
-| [Turborepo](https://turbo.build/repo) | Monorepo build system |
-| [pnpm](https://pnpm.io/) | Fast, disk-efficient package manager |
+| [Turborepo](https://turbo.build/repo) | Monorepo build orchestration |
+| [pnpm](https://pnpm.io/) | Package manager |
 | [Biome](https://biomejs.dev/) | Linting and formatting |
+| [TypeScript](https://www.typescriptlang.org/) | Type-safe JavaScript throughout |
 | [Docker](https://www.docker.com/) | Containerization |
-| [TypeScript](https://www.typescriptlang.org/) | Type-safe JavaScript |
+| [Nginx](https://nginx.org/) | Reverse proxy and subdomain routing |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 sayr/
 ├── apps/
-│   ├── backend/          # Hono API server (Bun runtime)
-│   │   ├── routes/       # API, webhook, and WebSocket routes
-│   │   └── public/       # Static files
-│   └── web/              # Next.js frontend
-│       └── src/
-│           ├── app/      # App Router pages
-│           ├── components/
-│           ├── hooks/
-│           └── lib/
-├── packages/
-│   ├── auth/             # Better Auth configuration
-│   ├── database/         # Drizzle ORM schema & functions
-│   │   ├── schema/       # Database table definitions
-│   │   └── src/functions/# CRUD operations
-│   ├── storage/          # MinIO client for file uploads
-│   ├── ui/               # Shared UI components (Shadcn/ui)
-│   │   └── src/
-│   │       ├── components/
-│   │       ├── hooks/
-│   │       └── lib/
-│   ├── util/             # Shared utility functions
-│   └── typescript-config/# Shared TypeScript configurations
-├── biome.json            # Linting & formatting config
-├── turbo.json            # Turborepo task definitions
-├── docker-compose.yml    # Docker services
-└── pnpm-workspace.yaml   # Workspace configuration
+│   ├── backend/          # Hono API server (Bun runtime, port 5468)
+│   ├── marketing/        # Astro marketing site + Starlight docs (port 3001)
+│   ├── nginx/            # Nginx reverse-proxy config
+│   ├── start/            # TanStack Start frontend (port 3000)
+│   ├── traefik/          # Traefik TLS termination config
+│   └── worker/           # Background job processor (GitHub webhooks, cron)
+└── packages/
+    ├── auth/             # Better Auth configuration
+    ├── database/         # Drizzle ORM schemas and CRUD functions
+    ├── edition/          # Edition detection, capabilities, and plan limits
+    ├── opentelemetry/    # Tracing and observability utilities
+    ├── queue/            # Job queue abstraction (Redis or file-based)
+    ├── storage/          # MinIO/S3 client with obfuscated filenames
+    ├── ui/               # Shared Shadcn/ui component library
+    ├── util/             # Shared utilities (slugs, date formatting, CDN URLs)
+    └── typescript-config/# Shared TypeScript configurations
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- **Node.js** 22+ (LTS recommended)
-- **Bun** 1.0+ (for backend development)
+- **Bun** 1.2+
+- **Node.js** 22+ (LTS)
 - **pnpm** 10.6+ (`npm install -g pnpm`)
 - **PostgreSQL** 15+
+- **Redis** (required for the job queue in production)
 - **Docker** (optional, for containerized development)
 
-## 📜 Available Commands
+### Available Commands
 
-### Root Commands
+#### Root
 
 | Command | Description |
 |---------|-------------|
 | `pnpm dev` | Start all apps in development mode |
 | `pnpm build` | Build all apps for production |
-| `pnpm start` | Start production servers |
 | `pnpm lint` | Run Biome linting |
 | `pnpm lint:fix` | Fix linting issues |
 | `pnpm format-write` | Format code with Biome |
-| `pnpm check-types` | Run TypeScript type checking |
-| `pnpm clean` | Clean build artifacts and node_modules |
+| `pnpm check-types` | TypeScript type checking |
 
-### Docker Commands
-
-| Command | Description |
-|---------|-------------|
-| `pnpm docker` | Stop, clean, and rebuild Docker containers |
-| `pnpm docker:build` | Build Docker images |
-
-### Database Commands (in `packages/database`)
+#### Per App/Package
 
 | Command | Description |
 |---------|-------------|
-| `pnpm db:push` | Push schema changes to database |
-| `pnpm db:studio` | Open Drizzle Studio for database management |
+| `pnpm -F backend dev` | Backend only |
+| `pnpm -F start dev` | Frontend only |
+| `pnpm -F marketing dev` | Marketing site only |
+| `pnpm -F worker dev` | Worker only |
+| `pnpm -F @repo/database generate` | Generate database schema |
+| `pnpm -F @repo/database migrate` | Apply schema migrations |
+| `pnpm -F @repo/database db:studio` | Open Drizzle Studio |
+| `pnpm -F start test` | Run tests (Vitest) |
 
 ---
 
-## 🐳 Docker Deployment
-
-1. **Build and start services**
-   ```bash
-   docker-compose up --build -d
-   ```
-
-2. **Access the application**
-   - Web app: http://localhost:3000
-
-3. **Stop services**
-   ```bash
-   docker-compose down
-   ```
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how you can help:
+## Contributing
 
 ### Development Workflow
 
-1. **Fork the repository**
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Make your changes following the code style guidelines below
+4. Push and open a Pull Request
 
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
+### Code Style
 
-3. **Make your changes**
-   - Follow the existing code style
-   - Use TypeScript for type safety
-   - Write meaningful commit messages
-
-4. **Check types**
-   ```bash
-   pnpm check-types
-   ```
-
-5. **Commit your changes**
-   ```bash
-   git commit -m "feat: add amazing feature"
-   ```
-
-6. **Push and create a Pull Request**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-
-### Code Style Guidelines
-
-- **Formatting**: Biome with tabs, indent width 3, line width 120
-- **Imports**: Absolute imports for workspace packages (`@repo/*`), relative for local files
-- **TypeScript**: Strict mode enabled; avoid `any`, prefer explicit types
-- **Naming**: camelCase for variables/functions, PascalCase for components/types
+- **Indentation**: Tabs, width 3
+- **Line width**: 120 characters
 - **Quotes**: Double quotes, semicolons always
+- **Imports**: Use `@repo/*` for workspace packages, `@/` for local app imports
+- **TypeScript**: Strict mode, avoid `any`, use `import type` for type-only imports
+- **Naming**: camelCase for variables/functions, PascalCase for components/types
 
 ### Commit Convention
 
@@ -221,24 +229,24 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `feat:` — New features
 - `fix:` — Bug fixes
 - `docs:` — Documentation changes
-- `style:` — Code style changes (formatting, etc.)
+- `style:` — Formatting only
 - `refactor:` — Code refactoring
-- `test:` — Adding or updating tests
-- `chore:` — Maintenance tasks
-
+- `test:` — Tests
+- `chore:` — Maintenance
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- [Turborepo](https://turbo.build/repo) for the amazing monorepo tooling
-- [Shadcn/ui](https://ui.shadcn.com/) for beautiful, accessible components
-- [Better Auth](https://www.better-auth.com/) for simplified authentication
+- [Turborepo](https://turbo.build/repo) for monorepo tooling
+- [Shadcn/ui](https://ui.shadcn.com/) for accessible components
+- [Better Auth](https://www.better-auth.com/) for authentication
 - [Drizzle ORM](https://orm.drizzle.team/) for type-safe database operations
-- [Hono](https://hono.dev/) for the lightweight and fast web framework
+- [Hono](https://hono.dev/) for the fast, lightweight web framework
+- [TanStack](https://tanstack.com/) for the excellent full-stack toolkit
 
 ---
 
 <p align="center">
-  Made with ❤️ by the Doras team
+  Made with care by <a href="https://doras.to">Doras Media Ltd</a>
 </p>
