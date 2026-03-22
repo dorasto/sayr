@@ -64,6 +64,8 @@ export const FEATURES: FeatureMeta[] = [
     docs: [
       { label: "Public pages overview", href: "/docs/visibility/public-pages" },
     ],
+    headerImage:
+      "https://cdn.doras.to/doras/assets/c7375a64-aed1-48e4-9973-cb4e73337eec/022efab1-7ab5-4712-a7eb-3831c60b8e20.png",
   },
   {
     slug: "visibility",

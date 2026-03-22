@@ -90,6 +90,17 @@ const {
 
     <!-- MDX Content -->
     <section class="px-6 pb-24">
+        {
+            headerImage && (
+                <div class="max-w-(--breakpoint-md) mx-auto">
+                    <img
+                        src={headerImage}
+                        alt=""
+                        class="w-full mb-8 aspect-video object-cover object-top rounded-2xl shadow-xl"
+                    />
+                </div>
+            )
+        }
         <div class="max-w-(--breakpoint-md) mx-auto">
             <div
                 class="prose prose-neutral dark:prose-invert max-w-none
