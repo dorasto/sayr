@@ -27,6 +27,7 @@ const {
     related,
     headerImage,
     icon: Icon,
+    docs,
 } = meta;
 ---
 
@@ -107,6 +108,36 @@ const {
             >
                 <Content />
             </div>
+            {
+                docs && docs.length > 0 && (
+                    <div class="mt-8 inline-flex flex-wrap items-center justify-center gap-2">
+                        <span class="text-xs text-muted-foreground">
+                            Learn more from the docs:
+                        </span>
+                        {docs.map((d) => (
+                            <a
+                                href={d.href}
+                                class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded-full px-3 py-1 transition-colors hover:border-border/80 bg-card"
+                            >
+                                {d.label}
+                                <svg
+                                    class="size-2.5 opacity-50"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2.5"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M9 5l7 7-7 7"
+                                    />
+                                </svg>
+                            </a>
+                        ))}
+                    </div>
+                )
+            }
 
             {
                 related && related.length > 0 && (

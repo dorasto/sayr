@@ -12,19 +12,6 @@ For some teams, using a hosted SaaS product for project management is a non-star
 
 Sayr is built with self-hosting as a first-class concern. The same codebase that runs `sayr.io` is the same codebase you deploy yourself.
 
-## Editions
-
-Sayr has three editions:
-
-### Community
-Free, open source, and self-hosted. Single organisation per instance. Everything included except enterprise-specific features. This is the right choice for most self-hosters — an indie developer running it for their project, a small team that wants full data control.
-
-### Enterprise
-A licensed self-hosted edition for organisations that need multi-organisation support, priority support, and access to enterprise-specific capabilities. Contact us for licensing.
-
-### Cloud
-Hosted at `sayr.io` by the Sayr team. No setup required, Free and Pro tiers available. If you don't want to manage infrastructure, this is the fastest path to getting started.
-
 <Callout label="Open source">
    The full Sayr source code is available on GitHub at github.com/dorasto/sayr. Every line of the backend, frontend, and worker is public. Fork it, inspect it, contribute to it.
 </Callout>
@@ -37,18 +24,6 @@ Hosted at `sayr.io` by the Sayr team. No setup required, Free and Pro tiers avai
 - **S3-compatible storage** — for file uploads (MinIO works, as does any S3-compatible provider)
 - A domain with DNS control (for your subdomain portal at `{org}.yourdomain.com`)
 
-Full deployment instructions, environment variable references, and upgrade guides are in the [self-hosting docs](/docs/self-hosting/get-started).
-
-## Authentication providers
-
-Self-hosted Sayr supports the following OAuth providers — all opt-in via environment variables:
-
-- **GitHub** — `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
-- **Doras** — `DORAS_CLIENT_ID` / `DORAS_CLIENT_SECRET`
-- **Discord** — `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`
-- **Slack** — `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET`
-
-Email and password authentication is always available without any configuration.
 
 ## How it works
 

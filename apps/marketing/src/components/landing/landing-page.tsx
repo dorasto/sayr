@@ -8,6 +8,7 @@ import { OpenSourceHighlight } from "./sections/open-source-highlight";
 import { EUHighlight } from "./sections/eu-highlight";
 import { PricingCards } from "./sections/pricing-cards";
 import { FAQAccordion } from "./sections/faq-accordion";
+import { FeatureLinks } from "./sections/feature-links";
 import { CTASection } from "./sections/cta-section";
 
 export default function LandingPage() {
@@ -23,6 +24,7 @@ export default function LandingPage() {
 			<EUHighlight />
 			<PricingCards />
 			<FAQAccordion />
+			<FeatureLinks />
 			<CTASection />
 		</div>
 	);

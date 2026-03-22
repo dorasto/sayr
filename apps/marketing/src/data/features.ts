@@ -30,6 +30,11 @@ import {
   IconServer,
 } from "@tabler/icons-react";
 
+export interface DocLink {
+  label: string;
+  href: string;
+}
+
 export interface FeatureMeta {
   slug: string;
   title: string;
@@ -40,6 +45,8 @@ export interface FeatureMeta {
   heroSubcopy: string;
   description: string;
   related?: string[];
+  /** Links to relevant documentation pages shown on the feature page. */
+  docs?: DocLink[];
 }
 
 export const FEATURES: FeatureMeta[] = [
@@ -48,13 +55,15 @@ export const FEATURES: FeatureMeta[] = [
     title: "Public Portal",
     navDesc: "Live public board for your users",
     icon: IconLayoutBoard,
-
     heroHeadline: "Your roadmap, live for the world to see",
     heroSubcopy:
       "Give your users a real-time window into what you're working on. The public portal surfaces the tasks you choose to share — by status, category, or release — without exposing anything internal.",
     description:
       "A live public board that lets users see your roadmap, submit feedback, and vote on what matters most — all without giving them access to your internal workspace.",
     related: ["visibility", "voting", "tasks"],
+    docs: [
+      { label: "Public pages overview", href: "/docs/visibility/public-pages" },
+    ],
   },
   {
     slug: "visibility",
@@ -67,6 +76,7 @@ export const FEATURES: FeatureMeta[] = [
     description:
       "Per-item visibility controls let you decide exactly what users see on your public portal — individual tasks, labels, comments, and timeline events can each be public or private.",
     related: ["public-portal", "tasks", "github"],
+    docs: [{ label: "Visibility overview", href: "/docs/visibility/overview" }],
   },
   {
     slug: "github",
@@ -79,6 +89,7 @@ export const FEATURES: FeatureMeta[] = [
     description:
       "Two-way GitHub sync links Sayr tasks to issues, branches, and pull requests. Automate status transitions on merge and keep your public portal in sync with your actual releases.",
     related: ["tasks", "visibility", "public-portal"],
+    docs: [{ label: "GitHub integration", href: "/docs/integrations/github" }],
   },
   {
     slug: "tasks",
@@ -91,6 +102,7 @@ export const FEATURES: FeatureMeta[] = [
     description:
       "Full-featured project management with statuses, priorities, assignees, labels, categories, releases, and multiple views — built to work alongside a live public portal.",
     related: ["github", "visibility", "voting"],
+    docs: [{ label: "Tasks", href: "/docs/tasks/tasks" }],
   },
   {
     slug: "voting",
@@ -103,6 +115,7 @@ export const FEATURES: FeatureMeta[] = [
     description:
       "Public voting lets your users upvote tasks and features, giving your team a clear signal of what to prioritize next without any manual aggregation.",
     related: ["public-portal", "visibility", "tasks"],
+    docs: [{ label: "Public pages", href: "/docs/visibility/public-pages" }],
   },
   {
     slug: "self-hosting",
@@ -115,6 +128,7 @@ export const FEATURES: FeatureMeta[] = [
     description:
       "Self-host Sayr on your own infrastructure with Docker Compose. Community edition is free and open; Enterprise adds SSO, advanced audit logs, and SLA-backed support.",
     related: ["visibility", "tasks", "github"],
+    docs: [{ label: "Get started", href: "/docs/self-hosting/get-started" }],
   },
 ];
 
