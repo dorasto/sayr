@@ -1,0 +1,156 @@
+---
+import { getEntry, render } from "astro:content";
+import Layout from "@/layouts/Layout.astro";
+import RelatedFeatures from "@/components/features/RelatedFeatures.astro";
+import { getFeature } from "@/data/features";
+import { FeatureIcon } from "@/components/features/FeatureIcon";
+import { ArrowUpRight } from "lucide-react";
+
+const { slug } = Astro.params;
+const entry = await getEntry("features", slug!);
+
+if (!entry) {
+    return Astro.redirect("/404", 302);
+}
+
+const meta = getFeature(slug!);
+if (!meta) {
+    return Astro.redirect("/404", 302);
+}
+
+const { Content } = await render(entry);
+const {
+    title,
+    description,
+    heroHeadline,
+    heroSubcopy,
+    related,
+    headerImage,
+    icon: Icon,
+} = meta;
+---
+
+<Layout title={`${title} - Sayr`} description={description}>
+    <!-- Hero -->
+    <section class="pt-16 pb-16 px-6 relative overflow-hidden">
+        <div class="absolute inset-0 pointer-events-none">
+            <div
+                class="absolute top-0 left-1/2 -translate-x-1/2 w-200 h-100 bg-primary/5 rounded-full blur-[120px]"
+            >
+            </div>
+        </div>
+        <div class="relative z-10 max-w-(--breakpoint-md) mx-auto text-center">
+            <a
+                href="/#features"
+                class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6 rounded-full border border-border bg-card px-3 py-1.5 mb-16"
+            >
+                <svg
+                    class="size-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15 19l-7-7 7-7"></path>
+                </svg>
+                All features
+            </a>
+            <div>
+                <div
+                    class="mb-6 inline-flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+                >
+                    <FeatureIcon icon={Icon} size={32} />
+                </div>
+                <h1
+                    class="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-6 leading-tight"
+                >
+                    {heroHeadline}
+                </h1>
+            </div>
+
+            <p
+                class="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+            >
+                {heroSubcopy}
+            </p>
+            <div class="flex items-center justify-center gap-4 flex-wrap">
+                <a
+                    href="/login"
+                    class="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors"
+                >
+                    Get started <ArrowUpRight className="size-4" client:load />
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- MDX Content -->
+    <section class="px-6 pb-24">
+        <div class="max-w-(--breakpoint-md) mx-auto">
+            <div
+                class="prose prose-neutral dark:prose-invert max-w-none
+            prose-headings:font-semibold prose-headings:tracking-tight
+            prose-h2:text-3xl prose-h2:mt-20 prose-h2:mb-5 prose-h2:pt-8 prose-h2:border-border first:prose-h2:pt-0
+            prose-h3:text-xl prose-h3:mt-10 prose-h3:mb-3
+            prose-p:text-muted-foreground prose-p:leading-relaxed prose-p:text-base prose-p:my-4
+            prose-ul:my-6 prose-ul:space-y-2 prose-ul:list-disc prose-ul:pl-6 [&_ul]:list-disc [&_ul]:pl-6
+            prose-ol:my-6 prose-ol:space-y-2 prose-ol:list-decimal prose-ol:pl-6 [&_ol]:list-decimal [&_ol]:pl-6
+            prose-li:text-muted-foreground prose-li:leading-relaxed
+            prose-strong:text-foreground prose-strong:font-semibold
+            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+            prose-code:text-primary prose-code:bg-primary/10 prose-code:rounded prose-code:px-1.5 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
+            prose-hr:border-border prose-hr:my-16
+            [&>*+h2]:mt-20 [&>*+h2]:pt-8 [&>*+h2]:pb-3 [&>*+h3]:mt-3 [&>*+h3]:pt-3 [&>*+h3]:pb-3 [&>*+h2]:border-border"
+            >
+                <Content />
+            </div>
+
+            {
+                related && related.length > 0 && (
+                    <RelatedFeatures slugs={related} />
+                )
+            }
+
+            <!-- Bottom CTA -->
+            <div
+                class="mt-16 rounded-2xl border border-border bg-card p-8 text-center relative overflow-hidden"
+            >
+                <div
+                    class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"
+                >
+                </div>
+                <div class="relative z-10">
+                    <h3 class="text-2xl font-semibold tracking-tight mb-3">
+                        Ready to get started?
+                    </h3>
+                    <p class="text-muted-foreground mb-6 max-w-md mx-auto">
+                        Join teams using Sayr to manage work internally and
+                        share progress with their users.
+                    </p>
+                    <div
+                        class="flex items-center justify-center gap-4 flex-wrap"
+                    >
+                        <a
+                            href="/login"
+                            class="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors"
+                        >
+                            Get started <ArrowUpRight
+                                className="size-4"
+                                client:load
+                            />
+                        </a>
+                        <a
+                            href="/pricing"
+                            class="inline-flex items-center gap-2 rounded-full border border-border px-6 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
+                        >
+                            View pricing
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</Layout>

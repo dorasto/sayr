@@ -1,0 +1,59 @@
+---
+title: Self-Hosting
+---
+
+import ComparisonCallout from "@/components/features/ComparisonCallout.astro";
+import FeatureStep from "@/components/features/FeatureStep.astro";
+import Callout from "@/components/features/Callout.astro";
+
+## Why self-host?
+
+For some teams, using a hosted SaaS product for project management is a non-starter. Your organisation might have data residency requirements, a security policy that prohibits third-party data processors, or simply a preference for owning your own stack.
+
+Sayr is built with self-hosting as a first-class concern. The same codebase that runs `sayr.io` is the same codebase you deploy yourself.
+
+## Editions
+
+Sayr has three editions:
+
+### Community
+Free, open source, and self-hosted. Single organisation per instance. Everything included except enterprise-specific features. This is the right choice for most self-hosters — an indie developer running it for their project, a small team that wants full data control.
+
+### Enterprise
+A licensed self-hosted edition for organisations that need multi-organisation support, priority support, and access to enterprise-specific capabilities. Contact us for licensing.
+
+### Cloud
+Hosted at `sayr.io` by the Sayr team. No setup required, Free and Pro tiers available. If you don't want to manage infrastructure, this is the fastest path to getting started.
+
+<Callout label="Open source">
+   The full Sayr source code is available on GitHub at github.com/dorasto/sayr. Every line of the backend, frontend, and worker is public. Fork it, inspect it, contribute to it.
+</Callout>
+
+## What you need to deploy
+
+- **Docker** — all services are containerised
+- **PostgreSQL** — your primary database
+- **Redis** — for the job queue
+- **S3-compatible storage** — for file uploads (MinIO works, as does any S3-compatible provider)
+- A domain with DNS control (for your subdomain portal at `{org}.yourdomain.com`)
+
+Full deployment instructions, environment variable references, and upgrade guides are in the [self-hosting docs](/docs/self-hosting/get-started).
+
+## Authentication providers
+
+Self-hosted Sayr supports the following OAuth providers — all opt-in via environment variables:
+
+- **GitHub** — `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+- **Doras** — `DORAS_CLIENT_ID` / `DORAS_CLIENT_SECRET`
+- **Discord** — `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`
+- **Slack** — `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET`
+
+Email and password authentication is always available without any configuration.
+
+## How it works
+
+<FeatureStep number="01" title="Pull the Docker images" description="All Sayr services are published as Docker images. Use the provided docker-compose.yml as your starting point and configure via environment variables." />
+
+<FeatureStep number="02" title="Point at your database and storage" description="Set your PostgreSQL connection string, Redis URL, and S3-compatible storage credentials. Run the database migrations and the schema is ready." />
+
+<FeatureStep number="03" title="Configure your domain and OAuth" description="Set your base domain and configure whichever OAuth providers you want to offer. Your public portal will be accessible at {org-slug}.yourdomain.com automatically." />

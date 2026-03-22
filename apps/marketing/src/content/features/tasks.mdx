@@ -1,0 +1,76 @@
+---
+title: Task Management
+---
+
+import ComparisonCallout from "@/components/features/ComparisonCallout.astro";
+import FeatureStep from "@/components/features/FeatureStep.astro";
+import Callout from "@/components/features/Callout.astro";
+
+## Tasks are the core unit
+
+Everything in Sayr starts with a task. A task has a title, a rich-text description, a status, a priority, assignees, labels, a category, a release, and a visibility setting. Each of these is independently editable inline — no save button, no form submissions.
+
+### Statuses
+
+**Backlog → Todo → In Progress → Done → Canceled**
+
+These five statuses cover the full lifecycle of a work item. The kanban view groups tasks by status across columns. The list view lets you filter by status.
+
+### Priorities
+
+**Urgent, High, Medium, Low, None** — plus a visual indicator on every task card. Sort your task list by priority to always know what matters most.
+
+## Views
+
+### Kanban
+
+The default view for most teams. Tasks arranged as cards in columns by status (or by priority, assignee, or category if you prefer). Drag and drop to move tasks between columns. Sub-grouping lets you create a two-axis grid — for example, status columns with priority groups inside each column.
+
+### List view
+
+A dense, tabular view suited to reviewing large numbers of tasks at once. Sortable, filterable, and keyboard-friendly.
+
+### Saved views
+
+Create custom filter and grouping combinations and save them for your team. Everyone on the organisation sees the same saved views. Free tier includes 3 saved views; Pro is unlimited.
+
+## Subtasks
+
+Break any task into subtasks for more granular tracking. Each subtask is a full task with its own status, priority, assignees, labels, and visibility. A progress indicator on the parent task shows how many subtasks are complete.
+
+You can promote a subtask to a top-level task at any time.
+
+## Task relations
+
+Link tasks together with typed relationships:
+
+- **Blocks / Blocked by** — express dependencies explicitly
+- **Relates to** — softer association between related work
+
+Creating a relation automatically creates the reverse relation on the other task.
+
+## Labels and categories
+
+**Labels** are multi-select, color-coded tags per task. Each label has its own visibility setting — internal labels like "Sprint 16" or "P0" can be kept private while user-facing labels like "Bug" or "Enhancement" are public.
+
+**Categories** are single-select per task and represent areas of your product (e.g. "Mobile", "API", "Dashboard"). They power the category sidebar on the public portal, letting users filter to the area they care about. Categories also drive GitHub repository routing.
+
+## Releases
+
+Group tasks into releases (milestones, sprints, versions). Each release has a target date with a countdown or overdue indicator, and a status: **Planned → In Progress → Released → Archived**.
+
+The release sidebar shows a progress chart, status breakdown, priority distribution, and assignee workload at a glance. Marking a release as Released auto-closes any open tasks in it.
+
+<Callout label="Available on Pro">
+   Releases are available on the Pro plan and all self-hosted editions. The Free tier does not include releases.
+</Callout>
+
+## Issue templates
+
+Create pre-filled task templates for common request types — bug reports, feature requests, outage reports. Templates can pre-populate the title prefix, description, labels, category, priority, assignees, visibility, status, and release.
+
+Templates are available to both internal team members and public portal users, letting you guide the quality of incoming submissions.
+
+## Full audit timeline
+
+Every task has a timeline that records every change: status updates, priority changes, assignee assignments, label additions, GitHub commit and PR references, and comments.

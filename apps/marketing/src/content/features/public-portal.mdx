@@ -1,0 +1,40 @@
+---
+title: Public Portal
+---
+
+import ComparisonCallout from "@/components/features/ComparisonCallout.astro";
+import FeatureStep from "@/components/features/FeatureStep.astro";
+import Callout from "@/components/features/Callout.astro";
+
+## What is the public portal?
+
+Every Sayr organization gets a live public board hosted at `org.sayr.io`. It's a standalone page your users can visit without needing an account — they see exactly the tasks you've chosen to make public, nothing more.
+
+It's not a status page. It's not a changelog. It's your actual task board, filtered to what's appropriate for external eyes.
+
+<Callout label="Live example">
+   A software team might share their in-progress feature work and open bug reports publicly while keeping internal sprint planning tasks, architectural decisions, and staff-only discussions completely hidden.
+</Callout>
+
+## How it works
+
+<FeatureStep number="01" title="Your team manages tasks internally" description="Create tasks, set priorities, assign work, add internal comments, link GitHub branches — your full workflow, exactly as you'd expect from a project management tool." />
+
+<FeatureStep number="02" title="Mark tasks public when ready" description="Each task has a visibility toggle. Set it to public and it immediately appears on your portal. Set it back to private and it disappears instantly. No publishing workflow, no delay." />
+
+<FeatureStep number="03" title="Users engage directly" description="Visitors to your portal can browse tasks by category, search, sort by votes or recency, submit new requests, vote on existing ones, and leave public comments — all in real time." />
+
+## What users see
+
+The public portal is a clean, minimal board with everything stripped back to what matters for external visitors:
+
+- **Category sidebar** - users filter to the area they care about (e.g. "Mobile", "API", "Dashboard")
+- **Task cards** - title, status, priority, vote count, and comment count
+- **Task detail pages** - full description, public comments, timeline of public status changes
+- **Submit feedback** - users can file bug reports or feature requests, either freeform or from one of your templates
+
+Everything updates in real time via WebSocket. If you change a task's status while a user is viewing the portal, their page updates without a reload.
+
+## Customisation
+
+Your portal reflects your organization's branding. You can set a banner image, logo, organization name, and description — all from your organization settings. The subdomain is your org's slug, which you control.

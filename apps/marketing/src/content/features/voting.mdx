@@ -1,0 +1,48 @@
+---
+title: User Voting & Feedback
+---
+
+import ComparisonCallout from "@/components/features/ComparisonCallout.astro";
+import FeatureStep from "@/components/features/FeatureStep.astro";
+import Callout from "@/components/features/Callout.astro";
+
+## Voting
+
+Any user who visits your public portal can vote on tasks. Each registered user gets one vote per task. Vote counts update in real time across all connected sessions — if you have 50 people on your portal at once and one of them votes, everyone sees the count update instantly.
+
+Votes are always free. External users who vote and comment are **never counted as seats** — only your internal team members are billed.
+
+### Sorting by votes
+
+The public board can be sorted by most popular, letting users discover what's resonating with the community. Your team sees the same vote counts internally, making it easy to identify high-demand work.
+
+## Feedback submission
+
+Public users can submit new tasks directly from your portal. Submissions can be:
+
+- **Freeform** — a blank task form with title and description
+- **Template-based** — you can require all submissions to use one of your issue templates, ensuring consistent structure
+
+You can configure per-organization whether blank submissions are allowed, or whether users must pick a template. This keeps incoming feedback structured and actionable rather than noise.
+
+<Callout label="Moderation controls">
+   You control what public users can set on their submissions — whether they can choose a category, set a label, assign a priority, or only provide a title and description. This keeps your taxonomy clean.
+</Callout>
+
+## Public comments
+
+Users with an account can comment on public tasks. Comments have full rich-text support — headings, lists, code blocks, images, @mentions. Your team can reply in the same thread with public responses, making the task page a conversation between your team and your users.
+
+Internal comments on the same task are visible only to org members and are never sent to external users.
+
+## Authentication for voters
+
+Users sign in to vote and comment using OAuth (GitHub, Doras, Discord, Slack — whichever providers you've enabled). They don't need a Sayr account invitation — they can sign up directly from your public portal.
+
+## How it works
+
+<FeatureStep number="01" title="Users discover your portal" description="Share your org's public URL — {your-org}.sayr.io — anywhere: in your app, your docs, your README, your support channel. Users arrive and see your public task board." />
+
+<FeatureStep number="02" title="They vote, comment, and submit" description="Signed-in users vote on tasks they care about, leave public comments, and submit new requests. Everything is real-time — no page refreshes, no waiting." />
+
+<FeatureStep number="03" title="Your team acts on the data" description="Sort internally by vote count to see what users want most. Use that signal to inform prioritization. When you mark something Done, users who voted on it can see it close out on the portal." />
