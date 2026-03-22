@@ -58,3 +58,12 @@ export type DorasUserType = {
 		pronouns: string;
 	};
 };
+
+export type DiscordUserType = {
+	id: string;
+	username: string;
+	global_name: string | null;
+	avatar: string | null;
+	email: string | null;
+	verified: boolean;
+};

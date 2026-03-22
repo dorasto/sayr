@@ -224,11 +224,16 @@ export const auth = betterAuth({
 				};
 			},
 		},
+		discord: {
+			clientId: process.env.DISCORD_CLIENT_ID as string,
+			clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+			redirectURI: `${authCallbackUrl}/api/auth/callback/discord`,
+		},
 	},
 	account: {
 		accountLinking: {
 			enabled: true,
-			trustedProviders: ["github", "doras"],
+			trustedProviders: ["github", "doras", "discord"],
 			allowDifferentEmails: true,
 		},
 	},

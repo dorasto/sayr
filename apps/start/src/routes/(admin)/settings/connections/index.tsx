@@ -4,8 +4,8 @@ import { SubWrapper } from "@/components/generic/wrapper";
 import { auth, db, type schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
-import { getUserInfoDoras, getUserInfoGithub } from "@/lib/fetches/connections";
-import type { DorasUserType, GithubUserType } from "@/types";
+import { getUserInfoDiscord, getUserInfoDoras, getUserInfoGithub } from "@/lib/fetches/connections";
+import type { DiscordUserType, DorasUserType, GithubUserType } from "@/types";
 import { seo } from "@/seo";
 
 export const getConnections = createServerFn({ method: "GET" })
@@ -15,16 +15,19 @@ export const getConnections = createServerFn({ method: "GET" })
 			const email = await db.query.account.findFirst({
 				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "credential")),
 			});
-			// Find GitHub account association for this user
 			const github = await db.query.account.findFirst({
 				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "github")),
 			});
 			const doras = await db.query.account.findFirst({
 				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "doras")),
 			});
+			const discord = await db.query.account.findFirst({
+				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "discord")),
+			});
 
 			let githubUser: GithubUserType | null = null;
 			let dorasUser: DorasUserType | null = null;
+			let discordUser: DiscordUserType | null = null;
 
 			if (github?.accessToken) {
 				try {
@@ -42,13 +45,26 @@ export const getConnections = createServerFn({ method: "GET" })
 				}
 			}
 
+			if (discord?.accessToken) {
+				try {
+					discordUser = await getUserInfoDiscord(discord.accessToken);
+				} catch (error) {
+					console.error("Failed to fetch Discord user:", error);
+				}
+			}
+
 			return {
 				email,
 				githubUser,
 				dorasUser,
+				discordUser,
+				providers: {
+					github: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
+					doras: !!(process.env.DORAS_CLIENT_ID && process.env.DORAS_CLIENT_SECRET),
+					discord: !!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET),
+				},
 			};
 		} catch (error) {
-			// If it's already a redirect, re-throw it
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;
 			}
@@ -68,10 +84,10 @@ export const Route = createFileRoute("/(admin)/settings/connections/")({
 });
 
 function RouteComponent() {
-	const { email, githubUser, dorasUser } = Route.useLoaderData();
+	const { email, githubUser, dorasUser, discordUser, providers } = Route.useLoaderData();
 	return (
 		<SubWrapper title="Connections" style="compact">
-			<UserConnections email={email} githubUser={githubUser} dorasUser={dorasUser} />
+			<UserConnections email={email} githubUser={githubUser} dorasUser={dorasUser} discordUser={discordUser} providers={providers} />
 		</SubWrapper>
 	);
 }

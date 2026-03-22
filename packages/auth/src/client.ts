@@ -77,3 +77,16 @@ export const signInGithub = async () => {
 		callbackURL: `/auth/auth-check`,
 	});
 };
+
+export const signInDiscord = async () => {
+	const found = await authClient.getSession();
+	if (found.data) {
+		window.location.href = "/";
+		return;
+	}
+	setLoginOriginCookie();
+	await authClient.signIn.social({
+		provider: "discord",
+		callbackURL: `/auth/auth-check`,
+	});
+};

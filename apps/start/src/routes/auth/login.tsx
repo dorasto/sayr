@@ -13,6 +13,7 @@ const getOAuthProviders = createServerFn({ method: "GET" }).handler(async () => 
 	return {
 		github: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
 		doras: !!(process.env.DORAS_CLIENT_ID && process.env.DORAS_CLIENT_SECRET),
+		discord: !!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET),
 	};
 });
 
