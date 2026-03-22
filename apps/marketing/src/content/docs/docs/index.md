@@ -77,3 +77,4 @@ hero:
 |------|-------------|
 | [Get Started](/docs/self-hosting/get-started) | Deploy Sayr on your own infrastructure |
 | [Editions](/docs/self-hosting/editions) | Community, Cloud, and Enterprise differences explained |
+| [Authentication & OAuth](/docs/self-hosting/authentication) | Configure login providers using environment variables |
