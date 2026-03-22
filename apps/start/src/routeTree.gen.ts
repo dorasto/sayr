@@ -21,6 +21,7 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthAuthCheckRouteImport } from './routes/auth/auth-check'
 import { Route as Auth2faRouteImport } from './routes/auth/2fa'
 import { Route as ApiTracesRouteImport } from './routes/api/traces'
+import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
 import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
 import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
@@ -124,6 +125,11 @@ const Auth2faRoute = Auth2faRouteImport.update({
 const ApiTracesRoute = ApiTracesRouteImport.update({
   id: '/api/traces',
   path: '/api/traces',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof adminSettingsRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/og': typeof ApiOgRoute
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
@@ -438,6 +445,7 @@ export interface FileRoutesByTo {
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/og': typeof ApiOgRoute
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
@@ -494,6 +502,7 @@ export interface FileRoutesById {
   '/(admin)/settings': typeof adminSettingsRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/og': typeof ApiOgRoute
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
@@ -554,6 +563,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/orgs/$orgSlug'
     | '/api/image-preview'
+    | '/api/og'
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
@@ -606,6 +616,7 @@ export interface FileRouteTypes {
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/api/image-preview'
+    | '/api/og'
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
@@ -661,6 +672,7 @@ export interface FileRouteTypes {
     | '/(admin)/settings'
     | '/orgs/$orgSlug'
     | '/api/image-preview'
+    | '/api/og'
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
@@ -716,6 +728,7 @@ export interface RootRouteChildren {
   ProsekitTestRoute: typeof ProsekitTestRoute
   OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
+  ApiOgRoute: typeof ApiOgRoute
   ApiTracesRoute: typeof ApiTracesRoute
   Auth2faRoute: typeof Auth2faRoute
   AuthAuthCheckRoute: typeof AuthAuthCheckRoute
@@ -811,6 +824,13 @@ declare module '@tanstack/react-router' {
       path: '/api/traces'
       fullPath: '/api/traces'
       preLoaderRoute: typeof ApiTracesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/image-preview': {
@@ -1347,6 +1367,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProsekitTestRoute: ProsekitTestRoute,
   OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
+  ApiOgRoute: ApiOgRoute,
   ApiTracesRoute: ApiTracesRoute,
   Auth2faRoute: Auth2faRoute,
   AuthAuthCheckRoute: AuthAuthCheckRoute,

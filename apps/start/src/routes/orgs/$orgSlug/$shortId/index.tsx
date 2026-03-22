@@ -4,6 +4,7 @@ import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { getOgImageUrl, seo } from "@/seo";
 import {
   IconArrowLeft,
   IconLayoutSidebarRight,
@@ -15,13 +16,16 @@ const fetchPublicTask = createServerFn({ method: "GET" })
   .inputValidator((data: { slug: string; shortId: number }) => data)
   .handler(async ({ data }) => {
     const organization = await getOrganizationPublic(data.slug);
-    if (!organization) return { task: null };
+    if (!organization) return { task: null, org: null };
     const task = await getTaskByShortId(
       organization.id,
       data.shortId,
       "public",
     );
-    return { task };
+    return {
+      task,
+      org: { name: organization.name, logo: organization.logo },
+    };
   });
 
 export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
@@ -35,6 +39,21 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
     });
   },
   component: RouteComponent,
+  head: ({ loaderData }) => ({
+    meta: seo({
+      title: loaderData?.task
+        ? `#${loaderData.task.shortId} - ${loaderData.task.title} | ${loaderData.org?.name}`
+        : "Task Not Available",
+      image: loaderData?.task
+        ? getOgImageUrl({
+            title: loaderData.task.title || undefined,
+            subtitle: `#${loaderData.task.shortId}`,
+            meta: loaderData.org?.name || undefined,
+            logo: loaderData.org?.logo || undefined,
+          })
+        : undefined,
+    }),
+  }),
 });
 
 function RouteComponent() {
@@ -44,37 +63,29 @@ function RouteComponent() {
 
   if (!task) {
     return (
-      <>
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any" />
-        <title>Task Not Available</title>
+      <div className="via-surface to-surface flex min-h-[60vh] items-center justify-center bg-[conic-gradient(at_bottom_left,var(--tw-gradient-stops))] from-primary">
+        <div className="mx-auto max-w-xl text-center text-white">
+          <h1 className="text-5xl font-black">Task Not Available</h1>
 
-        <div className="via-surface to-surface flex min-h-[60vh] items-center justify-center bg-[conic-gradient(at_bottom_left,var(--tw-gradient-stops))] from-primary">
-          <div className="mx-auto max-w-xl text-center text-white">
-            <h1 className="text-5xl font-black">Task Not Available</h1>
+          <p className="mb-7 mt-3">
+            Sorry, this task could not be found or isn't publicly available. It
+            may have been removed, or the link is incorrect.
+          </p>
 
-            <p className="mb-7 mt-3">
-              Sorry, this task could not be found or isn't publicly available.
-              It may have been removed, or the link is incorrect.
-            </p>
-
-            <div className="flex place-content-center items-center gap-3">
-              <a href="/">
-                <Button className="border-surface-100! text-surface-100 w-full p-4 font-bold">
-                  Back to organization
-                </Button>
-              </a>
-            </div>
+          <div className="flex place-content-center items-center gap-3">
+            <a href="/">
+              <Button className="border-surface-100! text-surface-100 w-full p-4 font-bold">
+                Back to organization
+              </Button>
+            </a>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      <title>
-        #{task.shortId} - {task.title}
-      </title>
       {/* Top bar */}
       <div className="flex items-center justify-between h-11 shrink-0 border-b px-3">
         <Link to={`/orgs/${orgSlug}`}>
