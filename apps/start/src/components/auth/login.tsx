@@ -101,6 +101,8 @@ export function LoginComponent({
   isDialog?: boolean;
   providers?: OAuthProviders;
 }) {
+  const lastMethod = authClient.getLastUsedLoginMethod();
+
   useEffect(() => {
     if (
       !PublicKeyCredential.isConditionalMediationAvailable ||
@@ -193,6 +195,9 @@ export function LoginComponent({
                   height={20}
                   className="dark:hidden"
                 />
+                {lastMethod === "doras" && (
+                  <span className="text-[9px] leading-none opacity-70">Last used</span>
+                )}
               </Button>
             )}
 
@@ -205,6 +210,9 @@ export function LoginComponent({
               >
                 <IconBrandGithub className="size-5! text-black dark:hidden" />
                 <IconBrandGithub className="size-5! text-white hidden dark:block" />
+                {lastMethod === "github" && (
+                  <span className="text-[9px] leading-none opacity-70">Last used</span>
+                )}
               </Button>
             )}
             {providers?.discord && (
@@ -215,6 +223,9 @@ export function LoginComponent({
                 onClick={signInDiscord}
               >
                 <IconBrandDiscordFilled className="size-5!" />
+                {lastMethod === "discord" && (
+                  <span className="text-[9px] leading-none opacity-70">Last used</span>
+                )}
               </Button>
             )}
             {providers?.slack && (
@@ -225,6 +236,9 @@ export function LoginComponent({
                 onClick={signInSlack}
               >
                 <IconBrandSlack className="size-5!" />
+                {lastMethod === "slack" && (
+                  <span className="text-[9px] leading-none opacity-70">Last used</span>
+                )}
               </Button>
             )}
           </div>

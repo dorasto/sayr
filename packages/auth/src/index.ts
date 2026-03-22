@@ -2,7 +2,7 @@ import * as schema from "@repo/database";
 import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, apiKey, genericOAuth, twoFactor } from "better-auth/plugins";
+import { admin, apiKey, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import {
 	polar,
@@ -32,6 +32,7 @@ export const polarClient = polarBillingEnabled
 	})
 	: null;
 const plugins: any[] = [
+	lastLoginMethod(),
 	apiKey({ enableMetadata: true, defaultPrefix: "api_", defaultKeyLength: 64 }),
 	admin(),
 	genericOAuth({

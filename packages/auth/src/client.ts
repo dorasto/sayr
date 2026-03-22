@@ -1,4 +1,4 @@
-import { genericOAuthClient, inferAdditionalFields, twoFactorClient } from "better-auth/client/plugins";
+import { genericOAuthClient, inferAdditionalFields, lastLoginMethodClient, twoFactorClient } from "better-auth/client/plugins";
 import { polarClient } from "@polar-sh/better-auth/client";
 import { passkeyClient } from "@better-auth/passkey/client";
 import { createAuthClient } from "better-auth/react"; // make sure to import from better-auth/react
@@ -7,6 +7,7 @@ export const authClient = createAuthClient({
 	plugins: [
 		inferAdditionalFields<typeof auth>(),
 		genericOAuthClient(),
+		lastLoginMethodClient(),
 		polarClient(),
 		twoFactorClient({
 			onTwoFactorRedirect() {
