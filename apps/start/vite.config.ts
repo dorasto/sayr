@@ -67,14 +67,32 @@ const config = defineConfig({
     devtools(),
     !isDev &&
     nitro({
-      // @ts-expect-error - externals exists at runtime, types may be outdated
-      externals: {
-        inline: ["@tabler/icons-react", "lucide-react"],
-      },
       // Treat native-binary packages as external in Nitro's server bundle.
       // These contain .node files that Rollup cannot parse — they must be
       // resolved at runtime by Node, not bundled.
       traceDeps: ["@resvg/resvg-js", "satori"],
+      rollupConfig: {
+        plugins: [
+          // Intercept .node native binary imports before any other plugin
+          // (e.g. nitro:externals, rollup-plugin-inject) tries to parse them.
+          // @resvg/resvg-js/js-binding.js does static require() calls for
+          // platform-specific sub-packages (@resvg/resvg-js-linux-x64-musl etc.)
+          // that resolve to raw ELF binaries — marking them external here
+          // prevents Rollup from attempting to parse the binary as JavaScript.
+          {
+            name: "native-node-externals",
+            resolveId(id: string) {
+              if (id.endsWith(".node") || /^@resvg\/resvg-js/.test(id)) {
+                return { id, external: true };
+              }
+            },
+          },
+        ],
+      },
+      // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
+      externals: {
+        inline: ["@tabler/icons-react", "lucide-react"],
+      },
       routeRules: {
         "/api/auth/**": {}, // local auth
         "/api/image-preview/**": {},
