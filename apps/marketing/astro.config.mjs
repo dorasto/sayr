@@ -60,7 +60,7 @@ export default defineConfig({
         {
           icon: "right-arrow",
           label: "Login",
-          href: "https://admin.sayr.io/login",
+          href: "https://admin.sayr.io/auth/login",
         },
       ],
       customCss: ["./src/styles/custom.css"],
