@@ -41,7 +41,7 @@ export const Route = createFileRoute("/auth/login")({
 function RouteComponent() {
 	const { providers } = Route.useLoaderData();
 	return (
-		<div>
+		<div className="min-h-screen flex items-center justify-center p-4">
 			<LoginComponent providers={providers} />
 		</div>
 	);
