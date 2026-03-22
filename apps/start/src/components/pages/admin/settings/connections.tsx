@@ -17,37 +17,47 @@ import {
   IconBrandDiscordFilled,
   IconBrandGithub,
   IconBrandGithubFilled,
+  IconBrandSlack,
   IconMail,
 } from "@tabler/icons-react";
 import { useLayoutData } from "@/components/generic/Context";
-import type { DiscordUserType, DorasUserType, GithubUserType } from "@/types";
+import type {
+  DiscordUserType,
+  DorasUserType,
+  GithubUserType,
+  SlackUserType,
+} from "@/types";
 import { schema } from "@repo/database";
 import { useToastAction } from "@/lib/util";
 
 interface Props {
-	email: schema.accountType | null | undefined;
-	githubUser: GithubUserType | null | undefined;
-	dorasUser: DorasUserType | null | undefined;
-	discordUser: DiscordUserType | null | undefined;
-	providers: {
-		github: boolean;
-		doras: boolean;
-		discord: boolean;
-	};
+  email: schema.accountType | null | undefined;
+  githubUser: GithubUserType | null | undefined;
+  dorasUser: DorasUserType | null | undefined;
+  discordUser: DiscordUserType | null | undefined;
+  slackUser: SlackUserType | null | undefined;
+  providers: {
+    github: boolean;
+    doras: boolean;
+    discord: boolean;
+    slack: boolean;
+  };
 }
 
 export default function UserConnections({
-	email,
-	githubUser,
-	dorasUser,
-	discordUser,
-	providers,
+  email,
+  githubUser,
+  dorasUser,
+  discordUser,
+  slackUser,
+  providers,
 }: Props) {
-	  const connectedCount =
-		(email ? 1 : 0) +
-		(githubUser ? 1 : 0) +
-		(dorasUser ? 1 : 0) +
-		(discordUser ? 1 : 0);
+  const connectedCount =
+    (email ? 1 : 0) +
+    (githubUser ? 1 : 0) +
+    (dorasUser ? 1 : 0) +
+    (discordUser ? 1 : 0) +
+    (slackUser ? 1 : 0);
   const canDisconnect = connectedCount >= 2;
   const { account } = useLayoutData();
   const { runWithToast } = useToastAction();
@@ -141,214 +151,283 @@ export default function UserConnections({
       </div>
       {/* --- Doras connection --- */}
       {providers.doras && (
-      <div className="bg-card rounded-lg flex flex-col">
-        <Tile className="md:w-full">
-          <TileHeader>
-            <TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
-              <div className="absolute z-50 -bottom-0.5 -right-0.5 bg-accent p-0.5 rounded-xl">
-                <img
-                  src={"https://cdn.doras.to/doras/icon-white.svg"}
-                  alt="Doras logo"
-                  width={16}
-                  height={16}
-                />
-              </div>
-              <Avatar className="w-full h-full rounded-md">
-                <AvatarImage
-                  src={dorasUser?.pic || ""}
-                  alt={dorasUser?.displayname || ""}
-                  className="rounded-none"
-                />
-                <AvatarFallback className="rounded-md uppercase text-xs">
+        <div className="bg-card rounded-lg flex flex-col">
+          <Tile className="md:w-full">
+            <TileHeader>
+              <TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
+                <div className="absolute z-50 -bottom-0.5 -right-0.5 bg-accent p-0.5 rounded-xl">
                   <img
                     src={"https://cdn.doras.to/doras/icon-white.svg"}
                     alt="Doras logo"
-                    width={20}
-                    height={20}
+                    width={16}
+                    height={16}
                   />
-                </AvatarFallback>
-              </Avatar>
-            </TileIcon>
-            <TileTitle>Doras</TileTitle>
-            <TileDescription className="text-xs">
-              {dorasUser?.displayname
-                ? `${dorasUser.displayname} - (${dorasUser.username})`
-                : "Connect to sync activity"}
-            </TileDescription>
-          </TileHeader>
+                </div>
+                <Avatar className="w-full h-full rounded-md">
+                  <AvatarImage
+                    src={dorasUser?.pic || ""}
+                    alt={dorasUser?.displayname || ""}
+                    className="rounded-none"
+                  />
+                  <AvatarFallback className="rounded-md uppercase text-xs">
+                    <img
+                      src={"https://cdn.doras.to/doras/icon-white.svg"}
+                      alt="Doras logo"
+                      width={20}
+                      height={20}
+                    />
+                  </AvatarFallback>
+                </Avatar>
+              </TileIcon>
+              <TileTitle>Doras</TileTitle>
+              <TileDescription className="text-xs">
+                {dorasUser?.displayname
+                  ? `${dorasUser.displayname} - (${dorasUser.username})`
+                  : "Connect to sync activity"}
+              </TileDescription>
+            </TileHeader>
 
-          <TileAction>
-            {dorasUser === null ? (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={async () => {
-                  await authClient.oauth2.link({
-                    providerId: "doras",
-                    callbackURL: "/settings/connections",
-                  });
-                }}
-              >
-                Connect
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={!canDisconnect}
-                title={
-                  canDisconnect
-                    ? "Disconnect Doras"
-                    : "You must have at least one other connection to disconnect Doras"
-                }
-                onClick={async () => {
-                  await authClient.unlinkAccount({ providerId: "doras" });
-                  window.location.reload();
-                }}
-              >
-                Disconnect
-              </Button>
-            )}
-          </TileAction>
-        </Tile>
-      </div>
+            <TileAction>
+              {dorasUser === null ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    await authClient.oauth2.link({
+                      providerId: "doras",
+                      callbackURL: "/settings/connections",
+                    });
+                  }}
+                >
+                  Connect
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!canDisconnect}
+                  title={
+                    canDisconnect
+                      ? "Disconnect Doras"
+                      : "You must have at least one other connection to disconnect Doras"
+                  }
+                  onClick={async () => {
+                    await authClient.unlinkAccount({ providerId: "doras" });
+                    window.location.reload();
+                  }}
+                >
+                  Disconnect
+                </Button>
+              )}
+            </TileAction>
+          </Tile>
+        </div>
       )}
 
       {/* --- GitHub connection --- */}
       {providers.github && (
-      <div className="bg-card rounded-lg flex flex-col">
-        <Tile className="md:w-full">
-          <TileHeader>
-            <TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
-              <div className="absolute z-50 -bottom-0.5 -right-0.5 bg-accent p-0.5 rounded-xl">
-                <IconBrandGithubFilled className="size-4" />
-              </div>
-              <Avatar className="w-full h-full rounded-md">
-                <AvatarImage
-                  src={githubUser?.avatar_url || ""}
-                  alt={githubUser?.login || ""}
-                  className="rounded-none"
-                />
-                <AvatarFallback className="rounded-md uppercase text-xs">
-                  <IconBrandGithub className="size-5" />
-                </AvatarFallback>
-              </Avatar>
-            </TileIcon>
-            <TileTitle>GitHub</TileTitle>
-            <TileDescription className="text-xs">
-              {githubUser?.login
-                ? `${githubUser.name} - (${githubUser.login})`
-                : "Connect to sync activity"}
-            </TileDescription>
-          </TileHeader>
+        <div className="bg-card rounded-lg flex flex-col">
+          <Tile className="md:w-full">
+            <TileHeader>
+              <TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
+                <div className="absolute z-50 -bottom-0.5 -right-0.5 bg-accent p-0.5 rounded-xl">
+                  <IconBrandGithubFilled className="size-4" />
+                </div>
+                <Avatar className="w-full h-full rounded-md">
+                  <AvatarImage
+                    src={githubUser?.avatar_url || ""}
+                    alt={githubUser?.login || ""}
+                    className="rounded-none"
+                  />
+                  <AvatarFallback className="rounded-md uppercase text-xs">
+                    <IconBrandGithub className="size-5" />
+                  </AvatarFallback>
+                </Avatar>
+              </TileIcon>
+              <TileTitle>GitHub</TileTitle>
+              <TileDescription className="text-xs">
+                {githubUser?.login
+                  ? `${githubUser.name} - (${githubUser.login})`
+                  : "Connect to sync activity"}
+              </TileDescription>
+            </TileHeader>
 
-          <TileAction>
-            {githubUser === null ? (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={async () => {
-                  await authClient.linkSocial({
-                    provider: "github",
-                    callbackURL: "/settings/connections",
-                  });
-                }}
-              >
-                Connect
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={!canDisconnect}
-                title={
-                  canDisconnect
-                    ? "Disconnect GitHub"
-                    : "You must connect another account first to disconnect GitHub"
-                }
-                onClick={async () => {
-                  await authClient.unlinkAccount({ providerId: "github" });
-                  window.location.reload();
-                }}
-              >
-                Disconnect
-              </Button>
-            )}
-          </TileAction>
-        </Tile>
-      </div>
+            <TileAction>
+              {githubUser === null ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    await authClient.linkSocial({
+                      provider: "github",
+                      callbackURL: "/settings/connections",
+                    });
+                  }}
+                >
+                  Connect
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!canDisconnect}
+                  title={
+                    canDisconnect
+                      ? "Disconnect GitHub"
+                      : "You must connect another account first to disconnect GitHub"
+                  }
+                  onClick={async () => {
+                    await authClient.unlinkAccount({ providerId: "github" });
+                    window.location.reload();
+                  }}
+                >
+                  Disconnect
+                </Button>
+              )}
+            </TileAction>
+          </Tile>
+        </div>
       )}
 
       {/* --- Discord connection --- */}
       {providers.discord && (
-      <div className="bg-card rounded-lg flex flex-col">
-        <Tile className="md:w-full">
-          <TileHeader>
-            <TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
-              {discordUser && (
-                <div className="absolute z-50 -bottom-0.5 -right-0.5 bg-accent p-0.5 rounded-xl">
-                  <IconBrandDiscordFilled className="size-4 text-discord" />
-                </div>
-              )}
+        <div className="bg-card rounded-lg flex flex-col">
+          <Tile className="md:w-full">
+            <TileHeader>
+              <TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
+                {discordUser && (
+                  <div className="absolute z-50 -bottom-0.5 -right-0.5 bg-accent p-0.5 rounded-xl">
+                    <IconBrandDiscordFilled className="size-4 text-discord" />
+                  </div>
+                )}
 
-              <Avatar className="w-full h-full rounded-md">
-                <AvatarImage
-                  src={
-                    discordUser?.avatar
-                      ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
-                      : ""
+                <Avatar className="w-full h-full rounded-md">
+                  <AvatarImage
+                    src={
+                      discordUser?.avatar
+                        ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
+                        : ""
+                    }
+                    alt={
+                      discordUser?.global_name || discordUser?.username || ""
+                    }
+                    className="rounded-none"
+                  />
+                  <AvatarFallback className="rounded-md uppercase text-xs">
+                    <IconBrandDiscordFilled className="size-5 text-discord" />
+                  </AvatarFallback>
+                </Avatar>
+              </TileIcon>
+              <TileTitle>Discord</TileTitle>
+              <TileDescription className="text-xs">
+                {discordUser?.username
+                  ? `${discordUser.global_name ?? discordUser.username} (@${discordUser.username})`
+                  : "Connect your Discord account"}
+              </TileDescription>
+            </TileHeader>
+
+            <TileAction>
+              {discordUser === null ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    await authClient.linkSocial({
+                      provider: "discord",
+                      callbackURL: "/settings/connections",
+                    });
+                  }}
+                >
+                  Connect
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!canDisconnect}
+                  title={
+                    canDisconnect
+                      ? "Disconnect Discord"
+                      : "You must have at least one other connection to disconnect Discord"
                   }
-                  alt={discordUser?.global_name || discordUser?.username || ""}
-                  className="rounded-none"
-                />
-                <AvatarFallback className="rounded-md uppercase text-xs">
-                  <IconBrandDiscordFilled className="size-5 text-discord" />
-                </AvatarFallback>
-              </Avatar>
-            </TileIcon>
-            <TileTitle>Discord</TileTitle>
-            <TileDescription className="text-xs">
-              {discordUser?.username
-                ? `${discordUser.global_name ?? discordUser.username} (@${discordUser.username})`
-                : "Connect your Discord account"}
-            </TileDescription>
-          </TileHeader>
+                  onClick={async () => {
+                    await authClient.unlinkAccount({ providerId: "discord" });
+                    window.location.reload();
+                  }}
+                >
+                  Disconnect
+                </Button>
+              )}
+            </TileAction>
+          </Tile>
+        </div>
+      )}
 
-          <TileAction>
-            {discordUser === null ? (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={async () => {
-                  await authClient.linkSocial({
-                    provider: "discord",
-                    callbackURL: "/settings/connections",
-                  });
-                }}
-              >
-                Connect
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={!canDisconnect}
-                title={
-                  canDisconnect
-                    ? "Disconnect Discord"
-                    : "You must have at least one other connection to disconnect Discord"
-                }
-                onClick={async () => {
-                  await authClient.unlinkAccount({ providerId: "discord" });
-                  window.location.reload();
-                }}
-              >
-                Disconnect
-              </Button>
-            )}
-          </TileAction>
-        </Tile>
-      </div>
+      {/* --- Slack connection --- */}
+      {providers.slack && (
+        <div className="bg-card rounded-lg flex flex-col">
+          <Tile className="md:w-full">
+            <TileHeader>
+              <TileIcon className="size-10 bg-transparent relative p-0 overflow-hidden">
+                {slackUser && (
+                  <div className="absolute z-50 -bottom-0.5 -right-0.5 bg-accent p-0.5 rounded-xl">
+                    <IconBrandSlack className="size-4" />
+                  </div>
+                )}
+                <Avatar className="w-full h-full rounded-md">
+                  <AvatarImage
+                    src={slackUser?.picture || ""}
+                    alt={slackUser?.name || ""}
+                    className="rounded-none"
+                  />
+                  <AvatarFallback className="rounded-md uppercase text-xs">
+                    <IconBrandSlack className="size-5" />
+                  </AvatarFallback>
+                </Avatar>
+              </TileIcon>
+              <TileTitle>Slack</TileTitle>
+              <TileDescription className="text-xs">
+                {slackUser?.name
+                  ? `${slackUser.name}${slackUser["https://slack.com/team_name"] ? ` · ${slackUser["https://slack.com/team_name"]}` : ""}`
+                  : "Connect your Slack account"}
+              </TileDescription>
+            </TileHeader>
+
+            <TileAction>
+              {slackUser === null ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    await authClient.linkSocial({
+                      provider: "slack",
+                      callbackURL: "/settings/connections",
+                    });
+                  }}
+                >
+                  Connect
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!canDisconnect}
+                  title={
+                    canDisconnect
+                      ? "Disconnect Slack"
+                      : "You must have at least one other connection to disconnect Slack"
+                  }
+                  onClick={async () => {
+                    await authClient.unlinkAccount({ providerId: "slack" });
+                    window.location.reload();
+                  }}
+                >
+                  Disconnect
+                </Button>
+              )}
+            </TileAction>
+          </Tile>
+        </div>
       )}
     </div>
   );

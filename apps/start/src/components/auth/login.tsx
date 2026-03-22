@@ -7,6 +7,7 @@ import {
   signInEmail,
   signInEmailTwoFactor,
   signInGithub,
+  signInSlack,
 } from "@repo/auth/client";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
@@ -22,9 +23,9 @@ import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
 import {
-  IconBrandDiscord,
   IconBrandDiscordFilled,
   IconBrandGithub,
+  IconBrandSlack,
 } from "@tabler/icons-react";
 import { ArrowRight } from "lucide-react";
 
@@ -32,6 +33,7 @@ interface OAuthProviders {
   github: boolean;
   doras: boolean;
   discord: boolean;
+  slack: boolean;
 }
 
 const getOAuthProviders = createServerFn({ method: "GET" }).handler(
@@ -43,6 +45,9 @@ const getOAuthProviders = createServerFn({ method: "GET" }).handler(
       doras: !!(process.env.DORAS_CLIENT_ID && process.env.DORAS_CLIENT_SECRET),
       discord: !!(
         process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET
+      ),
+      slack: !!(
+        process.env.SLACK_CLIENT_ID && process.env.SLACK_CLIENT_SECRET
       ),
     };
   },
@@ -165,7 +170,7 @@ export function LoginComponent({
             </Label>
           </div>
         )}
-        {(providers?.doras || providers?.github || providers?.discord) && (
+        {(providers?.doras || providers?.github || providers?.discord || providers?.slack) && (
           <div className="flex flex-wrap gap-3">
             {providers?.doras && (
               <Button
@@ -210,6 +215,16 @@ export function LoginComponent({
                 onClick={signInDiscord}
               >
                 <IconBrandDiscordFilled className="size-5!" />
+              </Button>
+            )}
+            {providers?.slack && (
+              <Button
+                variant="accent"
+                size={"icon"}
+                className="flex flex-col items-center gap-1 w-full aspect-square size-18"
+                onClick={signInSlack}
+              >
+                <IconBrandSlack className="size-5!" />
               </Button>
             )}
           </div>

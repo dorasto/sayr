@@ -229,11 +229,16 @@ export const auth = betterAuth({
 			clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
 			redirectURI: `${authCallbackUrl}/api/auth/callback/discord`,
 		},
+		slack: {
+			clientId: process.env.SLACK_CLIENT_ID as string,
+			clientSecret: process.env.SLACK_CLIENT_SECRET as string,
+			redirectURI: `${authCallbackUrl}/api/auth/callback/slack`,
+		},
 	},
 	account: {
 		accountLinking: {
 			enabled: true,
-			trustedProviders: ["github", "doras", "discord"],
+			trustedProviders: ["github", "doras", "discord", "slack"],
 			allowDifferentEmails: true,
 		},
 	},

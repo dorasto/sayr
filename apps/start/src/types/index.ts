@@ -67,3 +67,14 @@ export type DiscordUserType = {
 	email: string | null;
 	verified: boolean;
 };
+
+export type SlackUserType = {
+	sub: string;
+	name: string;
+	picture: string;
+	email: string;
+	email_verified: boolean;
+	"https://slack.com/user_id": string;
+	"https://slack.com/team_id": string;
+	"https://slack.com/team_name": string;
+};

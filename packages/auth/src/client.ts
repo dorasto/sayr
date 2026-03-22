@@ -90,3 +90,16 @@ export const signInDiscord = async () => {
 		callbackURL: `/auth/auth-check`,
 	});
 };
+
+export const signInSlack = async () => {
+	const found = await authClient.getSession();
+	if (found.data) {
+		window.location.href = "/";
+		return;
+	}
+	setLoginOriginCookie();
+	await authClient.signIn.social({
+		provider: "slack",
+		callbackURL: `/auth/auth-check`,
+	});
+};
