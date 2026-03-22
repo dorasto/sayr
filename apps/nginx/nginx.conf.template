@@ -70,6 +70,11 @@ http {
             include /etc/nginx/proxy.conf;
         }
     
+        location ^~ /api/og {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+    
         location ^~ /api/traces {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;
@@ -149,6 +154,11 @@ http {
             include /etc/nginx/proxy.conf;
         }
 
+        location ^~ /api/og {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
         # Traces -> start
         location ^~ /api/traces {
             proxy_pass http://start_upstream;
@@ -214,6 +224,11 @@ http {
 
         # Image preview -> start
         location ^~ /api/image-preview {
+            proxy_pass http://start_upstream;
+            include /etc/nginx/proxy.conf;
+        }
+
+        location ^~ /api/og {
             proxy_pass http://start_upstream;
             include /etc/nginx/proxy.conf;
         }
