@@ -14,8 +14,8 @@ function SnapshotTriggerButton() {
 	const trigger = async () => {
 		setState("loading");
 		try {
-	const base = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
-		const res = await fetch(`${base}/v1/admin/snapshots/trigger`, {
+			const base = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
+			const res = await fetch(`${base}/v1/admin/snapshots/trigger`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				credentials: "include",
@@ -48,7 +48,7 @@ export const Route = createFileRoute("/(admin)/console/")({
 	head: () => ({ meta: seo({ title: "Users · Console" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/login" });
+			throw redirect({ to: "/auth/login" });
 		}
 		// Initial load: fetch page 1 server-side via direct DB access
 		const result = await getConsoleUsersServer({ data: { page: 1, limit: 25 } });

@@ -38,7 +38,6 @@ export const getRouter = () => {
 
 					if (
 						url.pathname.startsWith("/api") ||
-						url.pathname.startsWith("/login") ||
 						url.pathname.startsWith("/manifest.webmanifest") ||
 						url.pathname.startsWith("/invite") ||
 						// Skip if already rewritten to /orgs/ path (prevents double-rewrite loop)

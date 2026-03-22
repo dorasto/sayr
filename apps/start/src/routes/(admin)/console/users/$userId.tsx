@@ -8,7 +8,7 @@ import { seo } from "@/seo";
 export const Route = createFileRoute("/(admin)/console/users/$userId")({
 	loader: async ({ params, context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/login" });
+			throw redirect({ to: "/auth/login" });
 		}
 		if (context.account.role !== "admin") {
 			throw redirect({ to: "/" });

@@ -46,7 +46,7 @@ http://{$VITE_ROOT_DOMAIN}, http://www.{$VITE_ROOT_DOMAIN} {
 
 	# Redirect /login -> admin subdomain
 	handle /login {
-		redir https://admin.{$VITE_ROOT_DOMAIN}/login 302
+		redir https://admin.{$VITE_ROOT_DOMAIN}/auth/login 302
 	}
 
 	# Root API -> backend
