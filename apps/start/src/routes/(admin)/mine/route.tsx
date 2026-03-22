@@ -6,6 +6,7 @@ import { db, getLabels, getTasksByUserId, getReleases, getOrgPermissions, type T
 import { ensureCdnUrl } from "@repo/util";
 import { createServerFn } from "@tanstack/react-start";
 import { eq, inArray } from "drizzle-orm";
+import { seo } from "@/seo";
 
 export const getMyTasks = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType }) => data)
@@ -170,6 +171,7 @@ export const getMyTasks = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/(admin)/mine")({
+	head: () => ({ meta: seo({ title: "My Tasks" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/login" });

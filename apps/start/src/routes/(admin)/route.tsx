@@ -7,7 +7,7 @@ import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper, AdminSidebar } from "@/components/generic/wrapper";
 import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
-import { seo } from "@/seo";
+import { seo, getOgImageUrl } from "@/seo";
 import { PostHogUserSync } from "@/components/PostHogProvider";
 import { GlobalCreateTaskDialog } from "@/components/generic/GlobalCreateTaskDialog";
 import { useGlobalCommands } from "@/hooks/commands/useGlobalCommands";
@@ -124,7 +124,10 @@ async function getCachedAuth(): Promise<{
 
 export const Route = createFileRoute("/(admin)")({
   head: () => ({
-    meta: seo({ title: "Admin" }),
+    meta: seo({
+      title: "Admin",
+      image: getOgImageUrl({ type: "simple", title: "Sayr Admin" }),
+    }),
   }),
 
   beforeLoad: async () => {

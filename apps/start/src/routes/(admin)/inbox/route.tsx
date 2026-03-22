@@ -5,6 +5,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { eq, inArray } from "drizzle-orm";
 import { RootProviderInbox } from "@/contexts/ContextInbox";
+import { seo } from "@/seo";
 
 export const getInboxData = createServerFn({
 	method: "GET",
@@ -175,6 +176,7 @@ export const getInboxData = createServerFn({
 	});
 
 export const Route = createFileRoute("/(admin)/inbox")({
+	head: () => ({ meta: seo({ title: "Inbox" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/login" });

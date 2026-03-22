@@ -131,6 +131,65 @@ export const DEFAULT_KEYWORDS = [
 ] as const;
 
 /**
+ * Build an absolute URL for the /api/og dynamic OG image endpoint.
+ *
+ * All params are optional — omit any you don't have and the image will
+ * gracefully fall back to Sayr branding.
+ *
+ * @example
+ * // Task page
+ * getOgImageUrl({ title: task.title, subtitle: `#${task.shortId}`, meta: org.name, logo: org.logo })
+ *
+ * // Org page
+ * getOgImageUrl({ title: org.name, subtitle: "Organization", logo: org.logo })
+ *
+ * // Generic / static page
+ * getOgImageUrl({ title: "Pricing" })
+ *
+ * // Default Sayr branded card
+ * getOgImageUrl()
+ */
+export const getOgImageUrl = (params?: {
+	/**
+	 * Layout type:
+	 * - "detailed" (default) — org logo + meta row, large title, subtitle. For entity pages (tasks, release detail).
+	 * - "simple" — large title + optional context line only. For list/section/admin pages.
+	 */
+	type?: "detailed" | "simple";
+	/** Main large text — the task/release/page title */
+	title?: string;
+	/** Smaller line below the title — e.g. "#42", a status, or "Sayr Admin" */
+	subtitle?: string;
+	/** Label shown next to the logo — typically the org name. Detailed only. */
+	meta?: string;
+	/** Absolute URL of an image (org logo, etc.). Detailed: small circle in org row. Simple: large square on right side. */
+	logo?: string;
+	/**
+	 * Optional task status counts for the detailed layout.
+	 * Renders a horizontal row of coloured status pills below the subtitle.
+	 * Only statuses with count > 0 are shown.
+	 *
+	 * @example
+	 * stats: [{ status: "done", count: 5 }, { status: "in-progress", count: 2 }]
+	 */
+	stats?: Array<{ status: string; count: number }>;
+}): string => {
+	// Use VITE_URL_ROOT so this works correctly in dev (localhost:3000),
+	// staging, and production — not the hardcoded SITE_CONFIG.url.
+	const base = import.meta.env.VITE_URL_ROOT || SITE_CONFIG.url;
+	const url = new URL(`${base}/api/og`);
+	if (params?.type && params.type !== "detailed") url.searchParams.set("type", params.type);
+	if (params?.title) url.searchParams.set("title", params.title);
+	if (params?.subtitle) url.searchParams.set("subtitle", params.subtitle);
+	if (params?.meta) url.searchParams.set("meta", params.meta);
+	if (params?.logo) url.searchParams.set("logo", params.logo);
+	if (params?.stats && params.stats.length > 0) {
+		url.searchParams.set("stats", JSON.stringify(params.stats));
+	}
+	return url.toString();
+};
+
+/**
  * Generate a canonical URL
  */
 export const getCanonicalUrl = (path: string) => {

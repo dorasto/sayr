@@ -16,6 +16,7 @@ import {
   DeleteTaskCommentAction,
   UpdateTaskCommentAction,
 } from "@/lib/fetches/task";
+import processUploads from "@/components/prosekit/upload";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
@@ -348,11 +349,12 @@ export function PublicComments({
   const handleEditComment = useCallback(
     async (commentId: string, content: NodeJSON) => {
       try {
+        const processedContent = await processUploads(content, "public", organizationId, "public-comment-edit");
         const result = await UpdateTaskCommentAction(
           organizationId,
           taskId,
           commentId,
-          content,
+          processedContent,
           "public",
           sseClientId,
         );
@@ -429,10 +431,11 @@ export function PublicComments({
 
     setIsSubmitting(true);
     try {
+      const processedContent = await processUploads(commentContent, "public", organizationId, "public-comment-upload");
       const result = await CreateTaskCommentAction(
         organizationId,
         taskId,
-        commentContent,
+        processedContent,
         "public",
         sseClientId,
       );

@@ -3,7 +3,7 @@ import OrganizationTaskIdPage from "@/components/pages/admin/orgid/tasks/taskId"
 import { RootProviderOrganizationTask } from "@/contexts/ContextOrgTask";
 import { useTaskCommands } from "@/hooks/commands/useTaskCommands";
 import { getAdminOrganizationTask } from "@/lib/serverFunctions/getAdminOrganizationTask";
-import { seo } from "@/seo";
+import { seo, getOgImageUrl } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
   loader: async ({ params, context }) => {
@@ -23,6 +23,14 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
   head: ({ loaderData }) => ({
     meta: seo({
       title: `${loaderData?.task.title}`,
+      image: loaderData?.task
+        ? getOgImageUrl({
+            title: loaderData.task.title || undefined,
+            subtitle: `#${loaderData.task.shortId}`,
+            meta: loaderData.orgName || undefined,
+            logo: loaderData.orgLogo || undefined,
+          })
+        : undefined,
     }),
   }),
 });

@@ -3133,10 +3133,12 @@ apiRouteAdminProjectTask.get("/voted", async (c) => {
 	});
 });
 
-function baseTaskWhere(orgId: string, categoryId?: string, search?: string) {
+function baseTaskWhere(orgId: string, categoryId?: string, search?: string, includeClosed?: boolean) {
 	const conditions = [
 		eq(schema.task.organizationId, orgId),
-		or(eq(schema.task.status, "todo"), eq(schema.task.status, "in-progress"), eq(schema.task.status, "backlog")),
+		...(includeClosed
+			? []
+			: [or(eq(schema.task.status, "todo"), eq(schema.task.status, "in-progress"), eq(schema.task.status, "backlog"))]),
 		eq(schema.task.visible, "public"),
 	];
 
@@ -3174,6 +3176,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 		const searchQuery = typeof query.q === "string" && query.q.trim().length > 0 ? query.q.trim() : undefined;
 		const category_id = query.category_id;
 		const orgId = query.org_id;
+		const includeClosed = query.include_closed === "true";
 		const page = Math.max(Number(query.page) || 1, 1);
 		const requestedLimit = Number(query.limit);
 		const limit = Math.min(requestedLimit || 15, 30);
@@ -3209,7 +3212,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 				const [result] = await db
 					.select({ count: sql<number>`count(*)` })
 					.from(schema.task)
-					.where(baseTaskWhere(orgId, category_id, searchQuery));
+					.where(baseTaskWhere(orgId, category_id, searchQuery, includeClosed));
 
 				return Number(result?.count ?? 0);
 			},
@@ -3224,7 +3227,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 			"organization.tasks.fetch",
 			async () =>
 				db.query.task.findMany({
-					where: baseTaskWhere(orgId, category_id, searchQuery),
+					where: baseTaskWhere(orgId, category_id, searchQuery, includeClosed),
 
 					// ✅ DB handles ordering when possible
 					orderBy: isTrending
@@ -3337,3 +3340,66 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 		return c.json(errorResponse("Database error", "Unexpected error"), 500);
 	}
 });
+
+/**
+ * GET /tasks/counts
+ * Returns open task count + per-category task count for the public sidebar.
+ * Always uses the unfiltered open-only set (todo, in-progress, backlog, visible=public).
+ */
+apiRouteAdminProjectTask.get("/tasks/counts", async (c) => {
+	const recordWideError = c.get("recordWideError");
+
+	try {
+		const orgId = c.req.query("org_id");
+		if (!orgId) {
+			return c.json(errorResponse("Missing organization id", "Route parameter `org_id` is required"), 400);
+		}
+
+		const baseWhere = and(
+			eq(schema.task.organizationId, orgId),
+			eq(schema.task.visible, "public"),
+			or(
+				eq(schema.task.status, "todo"),
+				eq(schema.task.status, "in-progress"),
+				eq(schema.task.status, "backlog"),
+			),
+		);
+
+		// Total open count
+		const [openResult] = await db
+			.select({ count: sql<number>`count(*)` })
+			.from(schema.task)
+			.where(baseWhere);
+
+		// Per-category counts
+		const categoryRows = await db
+			.select({
+				categoryId: schema.task.category,
+				count: sql<number>`count(*)`,
+			})
+			.from(schema.task)
+			.where(baseWhere)
+			.groupBy(schema.task.category);
+
+		return c.json({
+			success: true,
+			data: {
+				open: Number(openResult?.count ?? 0),
+				categories: categoryRows.map((r) => ({
+					id: r.categoryId,
+					count: Number(r.count),
+				})),
+			},
+		});
+	} catch (err) {
+		await recordWideError({
+			name: "organization.tasks.counts.error",
+			error: err,
+			message: "Failed to fetch task counts",
+			contextData: { path: c.req.path, query: c.req.query() },
+		});
+
+		return c.json(errorResponse("Database error", "Unexpected error"), 500);
+	}
+});
+

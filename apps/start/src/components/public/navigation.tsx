@@ -1,61 +1,147 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/avatar";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
-import { SearchIcon } from "lucide-react";
-import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@repo/ui/components/input-group";
+import { IconSearch, IconUser } from "@tabler/icons-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 import { authClient } from "@repo/auth/client";
-import { IconUser } from "@tabler/icons-react";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@repo/ui/components/input-group";
+import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import LoginDialog from "../auth/login";
+import { PublicSearchDialog } from "./search-dialog";
+import { UserSettingsDialog } from "@/components/settings/user-settings-dialog";
+import { cn } from "@repo/ui/lib/utils";
 
 export default function PublicNavigation() {
-	const { data: session } = authClient.useSession();
-	// console.log("🚀 ~ PublicNavigation ~ session:", session);
+  const { data: session } = authClient.useSession();
+  const { organization } = usePublicOrganizationLayout();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-	const { organization } = usePublicOrganizationLayout();
-	return (
-		<header className="bg-sidebar h-(--header-height) z-50 flex w-full items-center rounded-b-xl">
-			<div className="flex w-full justify-between items-center gap-2 p-3">
-				<div className="flex-1 items-center gap-1 font-bold">
-					<Button
-						variant={"primary"}
-						className="justify-start rounded-xl h-8 p-1 px-2 bg-transparent hover:bg-accent border-0"
-					>
-						<Avatar className="h-6 w-6 rounded-md">
-							<AvatarImage src={organization.logo || ""} alt={organization.name} />
-							<AvatarFallback className="rounded-md uppercase text-xs">
-								<TasqIcon className="size-6! transition-all" />
-							</AvatarFallback>
-						</Avatar>
+  const rawPathname = useRouterState({ select: (s) => s.location.pathname });
+  const orgSlugMatch = rawPathname.match(/^\/orgs\/([^/]+)/);
+  const orgSlug = orgSlugMatch?.[1] ?? "";
+  const tasksPath = `/orgs/${orgSlug}`;
+  const releasesPath = `/orgs/${orgSlug}/releases`;
 
-						<span className="text-inherit font-bold text-sm">{organization.name}</span>
-					</Button>
-				</div>
-				<div className="flex flex-1 items-center justify-end gap-2">
-					{/* Search form */}
-					<div className="relative">
-						<InputGroup className="bg-transparent rounded-xl border-transparent focus-within:bg-accent transition-all text-muted-foreground focus-within:text-foreground placeholder:text-muted-foreground hover:bg-accent max-w-48 h-8">
-							<InputGroupInput placeholder="Search..." />
-							<InputGroupAddon>
-								<SearchIcon />
-							</InputGroupAddon>
-						</InputGroup>
-					</div>
-				</div>
-				{session ? (
-					session.user.name
-				) : (
-					// <Button
-					//   variant={"ghost"}
-					//   className="flex items-center px-2 rounded-xl h-8 p-1 px-2 bg-transparent hover:bg-accent border-0 text-muted-foreground"
-					//   onClick={}
-					// >
-					//   <IconUser className="h-6 w-6" />
-					//   Log in
-					// </Button>
-					<LoginDialog trigger={<Button size={"lg"}>Log in</Button>} />
-				)}
-			</div>
-		</header>
-	);
+  const pathname =
+    rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
+  const isOnTasks = pathname === tasksPath || pathname === `${tasksPath}/`;
+  const isOnReleases = pathname.startsWith(releasesPath);
+
+  return (
+    <>
+      <header className="bg-sidebar h-(--header-height) z-50 flex w-full shrink-0 items-center">
+        <div className="flex w-full items-center gap-2 px-2">
+          {/* Org identity */}
+          <Link to={tasksPath} className="flex items-center gap-2 shrink-0">
+            <Avatar className="h-6 w-6 rounded-md">
+              <AvatarImage
+                src={organization.logo || ""}
+                alt={organization.name}
+              />
+              <AvatarFallback className="rounded-md uppercase text-xs">
+                <TasqIcon className="size-6! transition-all" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-bold text-sm hidden sm:block">
+              {organization.name}
+            </span>
+          </Link>
+
+          {/* Navigation tabs */}
+          <div className="flex items-center gap-1 shrink-0">
+            <Link to={tasksPath}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "text-muted-foreground h-8 rounded-xl",
+                  isOnTasks && "text-foreground bg-accent",
+                )}
+              >
+                Tasks
+              </Button>
+            </Link>
+            <Link to={releasesPath}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "text-muted-foreground h-8 rounded-xl",
+                  isOnReleases && "text-foreground bg-accent",
+                )}
+              >
+                Releases
+              </Button>
+            </Link>
+          </div>
+
+          {/* Fake search input — opens PublicSearchDialog on click */}
+          <div className="flex flex-1 justify-center px-2">
+            <button
+              type="button"
+              className="w-full max-w-sm"
+              onClick={() => setSearchOpen(true)}
+            >
+              <InputGroup className="bg-accent/50 rounded-xl border-transparent hover:bg-accent transition-all text-muted-foreground max-w-sm h-8 cursor-pointer pointer-events-none">
+                <InputGroupAddon>
+                  <IconSearch className="size-3.5" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  readOnly
+                  placeholder="Search tasks & releases..."
+                  className="cursor-pointer"
+                  tabIndex={-1}
+                />
+                <InputGroupAddon className="text-xs text-muted-foreground pr-2 hidden sm:flex">
+                  /
+                </InputGroupAddon>
+              </InputGroup>
+            </button>
+          </div>
+
+          {/* Auth */}
+          <div className="shrink-0">
+            {session ? (
+              <Button
+                className="h-8 w-8 p-0 bg-transparent rounded-xl hover:bg-transparent"
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Avatar className="h-8 w-8 rounded-xl cursor-pointer">
+                  <AvatarImage
+                    src={session.user.image || ""}
+                    alt={session.user.name || ""}
+                  />
+                  <AvatarFallback className="rounded-md uppercase text-xs">
+                    <IconUser className="size-4" />
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            ) : (
+              <LoginDialog trigger={<Button size="sm">Log in</Button>} />
+            )}
+          </div>
+        </div>
+      </header>
+
+      <PublicSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+      {session && (
+        <UserSettingsDialog
+          isOpen={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          user={session.user}
+        />
+      )}
+    </>
+  );
 }

@@ -17,6 +17,15 @@ const config = defineConfig({
     minify: false,
     sourcemap: true,
   },
+  // Prevent Vite from trying to bundle native .node binaries (e.g. @resvg/resvg-js)
+  // These are server-only and must be loaded by Node/Bun at runtime, not bundled by esbuild.
+  optimizeDeps: {
+    exclude: ["@resvg/resvg-js", "satori", "sharp"],
+  },
+  ssr: {
+    external: ["@resvg/resvg-js", "satori", "sharp"],
+    noExternal: [],
+  },
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
       env.APP_ENV ?? "development",

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { PublicTaskItem } from "./task-item";
 import {
@@ -17,33 +17,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuItem,
 } from "@repo/ui/components/dropdown-menu";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@repo/ui/components/input-group";
-import { SearchIcon } from "lucide-react";
-import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { IconFilter2 } from "@tabler/icons-react";
-import { useSticky } from "@/hooks/use-sticky";
-import { cn } from "@/lib/utils";
+import { IconFilter2, IconLoader2 } from "@tabler/icons-react";
 import { SortOption } from ".";
 import { PublicTaskCreator } from "./public-task-creator";
+import { useTaskViewManager } from "@/hooks/useTaskViewManager";
+import { generateSlug } from "@repo/util";
+import { cn } from "@repo/ui/lib/utils";
+import RenderIcon from "@/components/generic/RenderIcon";
 
 export function PublicTaskView({
   sortBy,
   setSortBy,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
 }: {
   sortBy: SortOption;
   setSortBy: (value: SortOption) => void;
+  fetchNextPage: () => void;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
 }) {
   const { tasks, categories, setTasks, organization } =
     usePublicOrganizationLayout();
 
   const queryClient = useQueryClient();
-  const { stuck, stickyRef } = useSticky();
-  const isMobile = useIsMobile();
+
+  const { categorySlug, setCategoryFilter, clearView } = useTaskViewManager();
 
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { value: votes } = useStateManagementKey<
@@ -53,52 +55,44 @@ export function PublicTaskView({
       count: number;
     }[]
   >(["votes", organization.id], []);
-  const didMountRef = useRef(false);
-  // Instant typing state
-  const [searchInput, setSearchInput] = useState(() => {
-    if (typeof window === "undefined") return "";
-    const params = new URLSearchParams(window.location.search);
-    return params.get("search") ?? "";
-  });
+  // Sentinel ref for infinite scroll
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Debounced value (used for URL + refetch)
-  const [debouncedSearch, setDebouncedSearch] = useState(searchInput);
-
-  // Wait until user stops typing
+  // Infinite scroll: trigger fetchNextPage when sentinel enters the scroll container.
+  // The layout uses an inner overflow-y-auto div as the scroll root (not window),
+  // so we walk up the DOM to find it and pass it as the IntersectionObserver root.
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearch(searchInput);
-    }, 400);
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
-    return () => clearTimeout(timeout);
-  }, [searchInput]);
+    const getScrollParent = (el: HTMLElement): HTMLElement | null => {
+      let parent = el.parentElement;
+      while (parent) {
+        const { overflow, overflowY } = getComputedStyle(parent);
+        if (/auto|scroll/.test(overflow + overflowY)) return parent;
+        parent = parent.parentElement;
+      }
+      return null;
+    };
 
-  // Sync URL + refetch only after debounce
-  useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
-    }
+    const scrollParent = getScrollParent(sentinel);
 
-    const params = new URLSearchParams(window.location.search);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      {
+        root: scrollParent,
+        rootMargin: "0px 0px 300px 0px",
+        threshold: 0,
+      },
+    );
 
-    if (debouncedSearch) {
-      params.set("search", debouncedSearch);
-    } else {
-      params.delete("search");
-    }
-
-    const query = params.toString();
-    const newUrl = query
-      ? `${window.location.pathname}?${query}`
-      : window.location.pathname;
-
-    window.history.replaceState(null, "", newUrl);
-
-    queryClient.invalidateQueries({
-      queryKey: ["org-tasks", organization.id],
-    });
-  }, [debouncedSearch, organization.id, queryClient]);
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const handleVote = async (taskId: string) => {
     const votesKey = ["votes", organization.id];
@@ -117,9 +111,9 @@ export function PublicTaskView({
       tasks.map((t) =>
         t.id === taskId
           ? {
-            ...t,
-            voteCount: isVoted ? t.voteCount - 1 : t.voteCount + 1,
-          }
+              ...t,
+              voteCount: isVoted ? t.voteCount - 1 : t.voteCount + 1,
+            }
           : t,
       ),
     );
@@ -160,67 +154,111 @@ export function PublicTaskView({
     }
   };
 
+  const activeCategoryName = categorySlug
+    ? categories.find((c) => generateSlug(c.name) === categorySlug)?.name
+    : null;
+
+  const handleCategorySelect = (categoryId: string | null) => {
+    if (categoryId === null) {
+      clearView();
+    } else {
+      const category = categories.find((c) => c.id === categoryId);
+      if (category) {
+        const slug = generateSlug(category.name);
+        setCategoryFilter(slug);
+      }
+    }
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ["org-tasks", organization.id] });
+    }, 100);
+  };
+
   return (
     <div className="flex flex-col gap-2">
-      <div
-        className="sticky top-0 z-50 pt-3 bg-background/95 backdrop-blur -mx-3 px-3"
-        ref={stickyRef}
-      >
-        <div
-          className={cn(
-            "bg-card p-3 rounded-lg flex w-full items-center shadow-xl",
-            stuck && "rounded-b-none border-b",
-          )}
-        >
+      {/* Toolbar: sort + category */}
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <IconFilter2 />
+              <span className="truncate">{getSortLabel(sortBy)}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup
+              value={sortBy}
+              onValueChange={(v) => {
+                setSortBy(v as SortOption);
+                setTimeout(() => {
+                  queryClient.invalidateQueries({
+                    queryKey: ["org-tasks", organization.id],
+                  });
+                }, 100);
+              }}
+            >
+              <DropdownMenuRadioItem value="mostPopular">
+                Most popular
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="newest">
+                Newest
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="trending">
+                Trending
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {categories.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="primary" size="sm">
-                <IconFilter2 />
-                {!isMobile && (
-                  <span className="truncate">{getSortLabel(sortBy)}</span>
-                )}
+              <Button
+                variant={activeCategoryName ? "secondary" : "outline"}
+                size="sm"
+                className={cn(activeCategoryName && "font-medium")}
+              >
+                <span className="truncate">{activeCategoryName ?? "Category"}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+            <DropdownMenuContent className="w-48">
+              <DropdownMenuLabel>Filter by category</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup
-                value={sortBy}
-                onValueChange={(v) => {
-                  setSortBy(v as SortOption);
-                  setTimeout(() => {
-                    queryClient.invalidateQueries({
-                      queryKey: ["org-tasks", organization.id],
-                    });
-                  }, 100);
-                }}
+              <DropdownMenuItem
+                onClick={() => handleCategorySelect(null)}
+                className={cn(!categorySlug && "font-medium")}
               >
-                <DropdownMenuRadioItem value="mostPopular">
-                  Most popular
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="newest">
-                  Newest
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="trending">
-                  Trending
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
+                All categories
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {categories.map((category) => {
+                const slug = generateSlug(category.name);
+                const isActive = categorySlug === slug;
+                return (
+                  <DropdownMenuItem
+                    key={category.id}
+                    onClick={() => handleCategorySelect(category.id)}
+                    className={cn(isActive && "font-medium")}
+                  >
+                    <RenderIcon
+                      iconName={category.icon || "IconCircleFilled"}
+                      color={category.color || undefined}
+                      button
+                      focus={isActive}
+                      className="size-4! [&_svg]:size-3! border-0 shrink-0"
+                    />
+                    <span className="truncate">{category.name}</span>
+                  </DropdownMenuItem>
+                );
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <InputGroup className="bg-accent rounded-lg border-transparent focus-within:bg-secondary transition-all focus-within:text-foreground placeholder:text-muted-foreground hover:bg-secondary max-w-48 h-9 ml-auto">
-            <InputGroupInput
-              placeholder="Search..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
-        </div>
+        )}
       </div>
+
       <PublicTaskCreator />
+
       {tasks.length === 0 ? (
         <div className="text-muted-foreground p-4 text-center border rounded-lg bg-card/50 border-dashed">
           No public tasks found matching your criteria.
@@ -241,6 +279,14 @@ export function PublicTaskView({
           })}
         </div>
       )}
+      {/* Infinite scroll sentinel — always rendered so the observer stays attached */}
+      <div ref={sentinelRef} className="h-px" />
+      {isFetchingNextPage && (
+        <div className="flex justify-center py-4">
+          <IconLoader2 className="animate-spin text-muted-foreground size-5" />
+        </div>
+      )}
     </div>
   );
 }
+

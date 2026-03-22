@@ -36,10 +36,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@repo/ui/components/sheet";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute(
   "/(admin)/settings/org/$orgId/connections/github/",
 )({
+  head: () => ({ meta: seo({ title: "GitHub · Connections · Settings" }) }),
   component: RouteComponent,
 });
 

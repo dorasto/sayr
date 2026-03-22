@@ -3,8 +3,15 @@ import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { authClient } from "@repo/auth/client";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input"; // or whatever input you use
+import { seo, getOgImageUrl } from "@/seo";
 
 export const Route = createFileRoute("/auth/password-reset")({
+  head: () => ({
+    meta: seo({
+      title: "Reset password",
+      image: getOgImageUrl({ type: "simple", title: "Reset password" }),
+    }),
+  }),
   component: RouteComponent,
 });
 

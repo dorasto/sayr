@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import SettingsOrganizationPageTeamSettings from "@/components/pages/admin/settings/orgId/teamsetttings";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/teams/new")({
+	head: () => ({ meta: seo({ title: "New Team · Settings" }) }),
 	component: RouteComponent,
 });
 

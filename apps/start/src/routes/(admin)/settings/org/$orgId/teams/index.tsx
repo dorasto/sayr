@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import SettingsOrganizationPageTeams from "@/components/pages/admin/settings/orgId/teams";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { seo } from "@/seo";
 
 /**
  * Fetch all teams (and optional member summaries)
@@ -27,6 +28,7 @@ const fetchTeams = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/teams/")({
+	head: () => ({ meta: seo({ title: "Teams · Settings" }) }),
 	loader: async ({ params }) =>
 		fetchTeams({
 			data: { orgId: params.orgId },

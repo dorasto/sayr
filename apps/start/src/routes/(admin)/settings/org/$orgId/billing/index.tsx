@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { PermissionError } from "@repo/util";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { seo } from "@/seo";
 
 const edition = import.meta.env.VITE_SAYR_EDITION ?? "community";
 
@@ -20,6 +21,7 @@ const fetchPlanLimits = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/billing/")({
+	head: () => ({ meta: seo({ title: "Billing · Settings" }) }),
 	async loader(ctx) {
 		// Billing is only available on the cloud edition
 		if (edition !== "cloud") {

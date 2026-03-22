@@ -1,8 +1,10 @@
 import SettingsOrganizationTemplatesPage from "@/components/pages/admin/settings/orgId/templates";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { createFileRoute } from "@tanstack/react-router";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/templates/")({
+	head: () => ({ meta: seo({ title: "Templates · Settings" }) }),
 	component: RouteComponent,
 });
 

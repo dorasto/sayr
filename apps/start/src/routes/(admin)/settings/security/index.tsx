@@ -33,6 +33,7 @@ import { TwoFactorSetupDialog } from "@/components/settings/security/TwoFactorSe
 import { BackupCodesDialog } from "@/components/settings/security/BackupCodesDialog";
 import { GenerateBackupCodesDialog } from "@/components/settings/security/GenerateBackupCodesDialog";
 import { PasskeySection } from "@/components/settings/security/PasskeySection";
+import { seo } from "@/seo";
 
 export const getConnections = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType }) => data)
@@ -81,6 +82,7 @@ export const getBackupCodes = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/(admin)/settings/security/")({
+	head: () => ({ meta: seo({ title: "Security · Settings" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/auth/login" });

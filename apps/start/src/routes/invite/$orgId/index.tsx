@@ -6,6 +6,7 @@ import { getAccess } from "@/getAccess";
 import { InvitationActions } from "@/components/invitation";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { or } from "drizzle-orm";
+import { seo, getOgImageUrl } from "@/seo";
 
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
 	const { account } = await getAccess();
@@ -52,6 +53,17 @@ export const Route = createFileRoute("/invite/$orgId/")({
 			},
 		});
 	},
+	head: ({ loaderData }) => ({
+		meta: seo({
+			title: loaderData?.organization ? `You've been invited · ${loaderData.organization.name}` : "You've been invited",
+			image: getOgImageUrl({
+				type: "simple",
+				title: "You've been invited",
+				subtitle: loaderData?.organization?.name || undefined,
+				logo: loaderData?.organization?.logo || undefined,
+			}),
+		}),
+	}),
 	component: RouteComponent,
 });
 

@@ -21,6 +21,7 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthAuthCheckRouteImport } from './routes/auth/auth-check'
 import { Route as Auth2faRouteImport } from './routes/auth/2fa'
 import { Route as ApiTracesRouteImport } from './routes/api/traces'
+import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
 import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
 import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
@@ -39,6 +40,7 @@ import { Route as adminOrgIdIndexRouteImport } from './routes/(admin)/$orgId/ind
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
 import { Route as adminOrgIdTasksRouteRouteImport } from './routes/(admin)/$orgId/tasks/route'
+import { Route as OrgsOrgSlugReleasesIndexRouteImport } from './routes/orgs/$orgSlug/releases/index'
 import { Route as OrgsOrgSlugShortIdIndexRouteImport } from './routes/orgs/$orgSlug/$shortId/index'
 import { Route as adminSettingsSecurityIndexRouteImport } from './routes/(admin)/settings/security/index'
 import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(admin)/settings/connections/index'
@@ -50,6 +52,7 @@ import { Route as adminConsoleUsersUserIdRouteImport } from './routes/(admin)/co
 import { Route as adminOrgIdReleasesReleaseSlugRouteImport } from './routes/(admin)/$orgId/releases/$releaseSlug'
 import { Route as adminSettingsOrgOrgIdRouteRouteImport } from './routes/(admin)/settings/org/$orgId/route'
 import { Route as adminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/route'
+import { Route as OrgsOrgSlugReleasesReleaseSlugIndexRouteImport } from './routes/orgs/$orgSlug/releases/$releaseSlug/index'
 import { Route as adminSettingsOrgOrgIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/index'
 import { Route as adminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/index'
 import { Route as adminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/index'
@@ -122,6 +125,11 @@ const Auth2faRoute = Auth2faRouteImport.update({
 const ApiTracesRoute = ApiTracesRouteImport.update({
   id: '/api/traces',
   path: '/api/traces',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
@@ -215,6 +223,12 @@ const adminOrgIdTasksRouteRoute = adminOrgIdTasksRouteRouteImport.update({
   path: '/tasks',
   getParentRoute: () => adminOrgIdRouteRoute,
 } as any)
+const OrgsOrgSlugReleasesIndexRoute =
+  OrgsOrgSlugReleasesIndexRouteImport.update({
+    id: '/releases/',
+    path: '/releases/',
+    getParentRoute: () => OrgsOrgSlugRouteRoute,
+  } as any)
 const OrgsOrgSlugShortIdIndexRoute = OrgsOrgSlugShortIdIndexRouteImport.update({
   id: '/$shortId/',
   path: '/$shortId/',
@@ -275,6 +289,12 @@ const adminOrgIdTasksTaskShortIdRouteRoute =
     id: '/$taskShortId',
     path: '/$taskShortId',
     getParentRoute: () => adminOrgIdTasksRouteRoute,
+  } as any)
+const OrgsOrgSlugReleasesReleaseSlugIndexRoute =
+  OrgsOrgSlugReleasesReleaseSlugIndexRouteImport.update({
+    id: '/releases/$releaseSlug/',
+    path: '/releases/$releaseSlug/',
+    getParentRoute: () => OrgsOrgSlugRouteRoute,
   } as any)
 const adminSettingsOrgOrgIdIndexRoute =
   adminSettingsOrgOrgIdIndexRouteImport.update({
@@ -372,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof adminSettingsRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/og': typeof ApiOgRoute
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
@@ -402,8 +423,10 @@ export interface FileRoutesByFullPath {
   '/settings/connections/': typeof adminSettingsConnectionsIndexRoute
   '/settings/security/': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/releases/': typeof OrgsOrgSlugReleasesIndexRoute
   '/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
+  '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
   '/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
@@ -422,6 +445,7 @@ export interface FileRoutesByTo {
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/og': typeof ApiOgRoute
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
@@ -448,8 +472,10 @@ export interface FileRoutesByTo {
   '/settings/connections': typeof adminSettingsConnectionsIndexRoute
   '/settings/security': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/releases': typeof OrgsOrgSlugReleasesIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
+  '/orgs/$orgSlug/releases/$releaseSlug': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
   '/settings/org/$orgId/billing': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
@@ -476,6 +502,7 @@ export interface FileRoutesById {
   '/(admin)/settings': typeof adminSettingsRouteRouteWithChildren
   '/orgs/$orgSlug': typeof OrgsOrgSlugRouteRouteWithChildren
   '/api/image-preview': typeof ApiImagePreviewRoute
+  '/api/og': typeof ApiOgRoute
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
@@ -506,8 +533,10 @@ export interface FileRoutesById {
   '/(admin)/settings/connections/': typeof adminSettingsConnectionsIndexRoute
   '/(admin)/settings/security/': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/releases/': typeof OrgsOrgSlugReleasesIndexRoute
   '/(admin)/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
+  '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/(admin)/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
   '/(admin)/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/(admin)/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
@@ -534,6 +563,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/orgs/$orgSlug'
     | '/api/image-preview'
+    | '/api/og'
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
@@ -564,8 +594,10 @@ export interface FileRouteTypes {
     | '/settings/connections/'
     | '/settings/security/'
     | '/orgs/$orgSlug/$shortId/'
+    | '/orgs/$orgSlug/releases/'
     | '/$orgId/tasks/$taskShortId/'
     | '/settings/org/$orgId/'
+    | '/orgs/$orgSlug/releases/$releaseSlug/'
     | '/settings/org/$orgId/teams/new'
     | '/settings/org/$orgId/billing/'
     | '/settings/org/$orgId/categories/'
@@ -584,6 +616,7 @@ export interface FileRouteTypes {
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/api/image-preview'
+    | '/api/og'
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
@@ -610,8 +643,10 @@ export interface FileRouteTypes {
     | '/settings/connections'
     | '/settings/security'
     | '/orgs/$orgSlug/$shortId'
+    | '/orgs/$orgSlug/releases'
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
+    | '/orgs/$orgSlug/releases/$releaseSlug'
     | '/settings/org/$orgId/teams/new'
     | '/settings/org/$orgId/billing'
     | '/settings/org/$orgId/categories'
@@ -637,6 +672,7 @@ export interface FileRouteTypes {
     | '/(admin)/settings'
     | '/orgs/$orgSlug'
     | '/api/image-preview'
+    | '/api/og'
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
@@ -667,8 +703,10 @@ export interface FileRouteTypes {
     | '/(admin)/settings/connections/'
     | '/(admin)/settings/security/'
     | '/orgs/$orgSlug/$shortId/'
+    | '/orgs/$orgSlug/releases/'
     | '/(admin)/$orgId/tasks/$taskShortId/'
     | '/(admin)/settings/org/$orgId/'
+    | '/orgs/$orgSlug/releases/$releaseSlug/'
     | '/(admin)/settings/org/$orgId/teams/new'
     | '/(admin)/settings/org/$orgId/billing/'
     | '/(admin)/settings/org/$orgId/categories/'
@@ -690,6 +728,7 @@ export interface RootRouteChildren {
   ProsekitTestRoute: typeof ProsekitTestRoute
   OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
   ApiImagePreviewRoute: typeof ApiImagePreviewRoute
+  ApiOgRoute: typeof ApiOgRoute
   ApiTracesRoute: typeof ApiTracesRoute
   Auth2faRoute: typeof Auth2faRoute
   AuthAuthCheckRoute: typeof AuthAuthCheckRoute
@@ -785,6 +824,13 @@ declare module '@tanstack/react-router' {
       path: '/api/traces'
       fullPath: '/api/traces'
       preLoaderRoute: typeof ApiTracesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/image-preview': {
@@ -913,6 +959,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdTasksRouteRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
+    '/orgs/$orgSlug/releases/': {
+      id: '/orgs/$orgSlug/releases/'
+      path: '/releases'
+      fullPath: '/orgs/$orgSlug/releases/'
+      preLoaderRoute: typeof OrgsOrgSlugReleasesIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
     '/orgs/$orgSlug/$shortId/': {
       id: '/orgs/$orgSlug/$shortId/'
       path: '/$shortId'
@@ -989,6 +1042,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$orgId/tasks/$taskShortId'
       preLoaderRoute: typeof adminOrgIdTasksTaskShortIdRouteRouteImport
       parentRoute: typeof adminOrgIdTasksRouteRoute
+    }
+    '/orgs/$orgSlug/releases/$releaseSlug/': {
+      id: '/orgs/$orgSlug/releases/$releaseSlug/'
+      path: '/releases/$releaseSlug'
+      fullPath: '/orgs/$orgSlug/releases/$releaseSlug/'
+      preLoaderRoute: typeof OrgsOrgSlugReleasesReleaseSlugIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
     }
     '/(admin)/settings/org/$orgId/': {
       id: '/(admin)/settings/org/$orgId/'
@@ -1285,11 +1345,16 @@ const adminRouteRouteWithChildren = adminRouteRoute._addFileChildren(
 interface OrgsOrgSlugRouteRouteChildren {
   OrgsOrgSlugIndexRoute: typeof OrgsOrgSlugIndexRoute
   OrgsOrgSlugShortIdIndexRoute: typeof OrgsOrgSlugShortIdIndexRoute
+  OrgsOrgSlugReleasesIndexRoute: typeof OrgsOrgSlugReleasesIndexRoute
+  OrgsOrgSlugReleasesReleaseSlugIndexRoute: typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
 }
 
 const OrgsOrgSlugRouteRouteChildren: OrgsOrgSlugRouteRouteChildren = {
   OrgsOrgSlugIndexRoute: OrgsOrgSlugIndexRoute,
   OrgsOrgSlugShortIdIndexRoute: OrgsOrgSlugShortIdIndexRoute,
+  OrgsOrgSlugReleasesIndexRoute: OrgsOrgSlugReleasesIndexRoute,
+  OrgsOrgSlugReleasesReleaseSlugIndexRoute:
+    OrgsOrgSlugReleasesReleaseSlugIndexRoute,
 }
 
 const OrgsOrgSlugRouteRouteWithChildren =
@@ -1302,6 +1367,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProsekitTestRoute: ProsekitTestRoute,
   OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,
   ApiImagePreviewRoute: ApiImagePreviewRoute,
+  ApiOgRoute: ApiOgRoute,
   ApiTracesRoute: ApiTracesRoute,
   Auth2faRoute: Auth2faRoute,
   AuthAuthCheckRoute: AuthAuthCheckRoute,
