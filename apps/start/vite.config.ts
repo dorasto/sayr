@@ -71,6 +71,10 @@ const config = defineConfig({
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],
       },
+      // Treat native-binary packages as external in Nitro's server bundle.
+      // These contain .node files that Rollup cannot parse — they must be
+      // resolved at runtime by Node, not bundled.
+      traceDeps: ["@resvg/resvg-js", "satori"],
       routeRules: {
         "/api/auth/**": {}, // local auth
         "/api/image-preview/**": {},
