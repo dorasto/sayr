@@ -1,0 +1,2 @@
+ALTER TABLE "team" ALTER COLUMN "permissions" SET DEFAULT '{"admin":{"administrator":false,"manageMembers":false,"manageTeams":false,"billing":false},"content":{"manageCategories":false,"manageLabels":false,"manageViews":false,"manageReleases":false},"tasks":{"create":true,"editAny":false,"deleteAny":false,"assign":false,"changeStatus":true,"changePriority":true},"moderation":{"manageComments":false,"approveSubmissions":false,"manageVotes":false}}'::json;--> statement-breakpoint
+ALTER TABLE "user" ADD COLUMN "last_login_method" text;

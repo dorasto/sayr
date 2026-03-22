@@ -2192,6 +2192,9 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 					400
 				);
 			}
+			polarClient && await polarClient.customers.deleteExternal({
+				externalId: org.id,
+			});
 
 			await traceAsync(
 				"organization.delete.s3_files",

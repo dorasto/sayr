@@ -26,6 +26,7 @@ export const user = table("user", {
 	banReason: v.text("ban_reason"),
 	banExpires: v.timestamp("ban_expires"),
 	twoFactorEnabled: v.boolean("two_factor_enabled"),
+	lastLoginMethod: v.text("last_login_method"),
 });
 
 export const two_factor = table("twoFactor", {
