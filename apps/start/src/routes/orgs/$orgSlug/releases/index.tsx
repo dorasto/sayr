@@ -14,7 +14,6 @@ import { SubWrapper } from "@/components/generic/wrapper";
 import { Button } from "@repo/ui/components/button";
 import {
   Tile,
-  TileAction,
   TileHeader,
   TileIcon,
   TileTitle,
@@ -22,6 +21,7 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { extractTaskText } from "@repo/util";
+import { getOgImageUrl, seo } from "@/seo";
 
 const fetchPublicReleases = createServerFn({ method: "GET" })
   .inputValidator((data: { slug: string }) => data)
@@ -40,7 +40,7 @@ const fetchPublicReleases = createServerFn({ method: "GET" })
     }
 
     const org = await getOrganizationPublic(resolvedSlug);
-    if (!org?.settings?.enablePublicPage) return { releases: [] };
+    if (!org?.settings?.enablePublicPage) return { releases: [], org: null };
 
     const all = await getReleases(org.id);
     // Non-archived first, archived last
@@ -48,7 +48,7 @@ const fetchPublicReleases = createServerFn({ method: "GET" })
       ...all.filter((r) => r.status !== "archived"),
       ...all.filter((r) => r.status === "archived"),
     ];
-    return { releases: sorted };
+    return { releases: sorted, org: { name: org.name, logo: org.logo } };
   });
 
 export const Route = createFileRoute("/orgs/$orgSlug/releases/")({
@@ -60,7 +60,17 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/")({
           params.orgSlug,
       },
     }),
-  head: () => ({ meta: [{ title: "Releases" }] }),
+  head: ({ loaderData }) => ({
+    meta: seo({
+      title: `Releases${loaderData?.org?.name ? ` · ${loaderData.org.name}` : ""}`,
+      image: getOgImageUrl({
+        type: "simple",
+        logo: loaderData?.org?.logo || undefined,
+        title: loaderData?.org?.name || undefined,
+        subtitle: "Releases",
+      }),
+    }),
+  }),
   component: ReleasesListPage,
 });
 

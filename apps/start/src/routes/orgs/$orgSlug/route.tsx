@@ -7,6 +7,7 @@ import {
   getOrganizationPublic,
 } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
+import { getOgImageUrl, seo } from "@/seo";
 import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import {
@@ -107,7 +108,15 @@ export const Route = createFileRoute("/orgs/$orgSlug")({
     }
 
     return {
-      meta: [{ title: `${loaderData.organization.name} | Sayr.io` }],
+      meta: seo({
+        title: loaderData.organization.name,
+        image: getOgImageUrl({
+          type: "simple",
+          title: loaderData.organization.name,
+          subtitle: loaderData.organization.description,
+          logo: loaderData.organization.logo || undefined,
+        }),
+      }),
     };
   },
   component: PublicLayout,

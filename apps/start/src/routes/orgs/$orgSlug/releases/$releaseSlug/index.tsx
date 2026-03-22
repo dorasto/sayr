@@ -14,6 +14,7 @@ import { and, eq } from "drizzle-orm";
 import { SubWrapper, PanelWrapper } from "@/components/generic/wrapper";
 import Editor from "@/components/prosekit/editor";
 import type { NodeJSON } from "prosekit/core";
+import { getOgImageUrl, seo } from "@/seo";
 import {
 	IconArrowLeft,
 	IconLayoutSidebarRight,
@@ -36,10 +37,10 @@ const fetchPublicRelease = createServerFn({ method: "GET" })
 		}
 
 		const org = await getOrganizationPublic(resolvedSlug);
-		if (!org?.settings?.enablePublicPage) return { release: null, tasks: [] };
+		if (!org?.settings?.enablePublicPage) return { release: null, tasks: [], org: null };
 
 		const release = await getReleaseBySlug(org.id, data.releaseSlug);
-		if (!release) return { release: null, tasks: [] };
+		if (!release) return { release: null, tasks: [], org: null };
 
 		// Fetch only public tasks for this release
 		const rawTasks = await db.query.task.findMany({
@@ -66,7 +67,7 @@ const fetchPublicRelease = createServerFn({ method: "GET" })
 			assignees: task.assignees.map((a) => a.user),
 		}));
 
-		return { release, tasks };
+		return { release, tasks, org: { name: org.name, logo: org.logo } };
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug/releases/$releaseSlug/")({
@@ -79,9 +80,33 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/$releaseSlug/")({
 				releaseSlug: params.releaseSlug,
 			},
 		}),
-	head: ({ loaderData }) => ({
-		meta: [{ title: loaderData?.release?.name ?? "Release" }],
-	}),
+	head: ({ loaderData }) => {
+		// Build task status counts for OG stats pills
+		const statsMap: Record<string, number> = {};
+		for (const task of loaderData?.tasks ?? []) {
+			if (task.status) {
+				statsMap[task.status] = (statsMap[task.status] ?? 0) + 1;
+			}
+		}
+		const stats = Object.entries(statsMap).map(([status, count]) => ({ status, count }));
+
+		return {
+			meta: seo({
+				title: loaderData?.release?.name ?? "Release",
+				image: loaderData?.release
+					? getOgImageUrl({
+							title: loaderData.release.name,
+							subtitle: loaderData.release.status
+								? getReleaseStatusConfig(loaderData.release.status).label
+								: undefined,
+							meta: loaderData.org?.name || undefined,
+							logo: loaderData.org?.logo || undefined,
+							stats: stats.length > 0 ? stats : undefined,
+						})
+					: undefined,
+			}),
+		};
+	},
 	component: ReleaseDetailPage,
 });
 
