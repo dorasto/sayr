@@ -35,7 +35,7 @@ export const getAdminOrganizationRelease = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/(admin)/$orgId/releases/$releaseSlug")({
   loader: async ({ params, context }) => {
     if (!context.account) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/auth/login" });
     }
     return await getAdminOrganizationRelease({
       data: {

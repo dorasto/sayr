@@ -5,8 +5,10 @@ import { VisibilityDemo } from "./sections/visibility-demo";
 import { HowItWorks } from "./sections/how-it-works";
 import { ComparisonSection } from "./sections/comparison-section";
 import { OpenSourceHighlight } from "./sections/open-source-highlight";
+import { EUHighlight } from "./sections/eu-highlight";
 import { PricingCards } from "./sections/pricing-cards";
 import { FAQAccordion } from "./sections/faq-accordion";
+import { FeatureLinks } from "./sections/feature-links";
 import { CTASection } from "./sections/cta-section";
 
 export default function LandingPage() {
@@ -19,8 +21,10 @@ export default function LandingPage() {
 			<HowItWorks />
 			<ComparisonSection />
 			<OpenSourceHighlight />
+			<EUHighlight />
 			<PricingCards />
 			<FAQAccordion />
+			<FeatureLinks />
 			<CTASection />
 		</div>
 	);

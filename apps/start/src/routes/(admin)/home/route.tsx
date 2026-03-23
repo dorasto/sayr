@@ -7,7 +7,7 @@ export const Route = createFileRoute("/(admin)/home")({
 	head: () => ({ meta: seo({ title: "Home" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/login" });
+			throw redirect({ to: "/auth/login" });
 		}
 		return await getMyTasks({ data: { account: context.account } });
 	},

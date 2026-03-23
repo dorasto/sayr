@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: "Is it free to self-host?",
-    a: "Sayr is open source and free to self-host with Docker Compose, Railway, or anywhere you like. The core features are included out of the box. Some advanced features may require a license key - similar to how GitLab offers a free community edition alongside premium tiers. Pricing details are still being finalized.",
+    a: "Sayr is source available and free to self-host with Docker Compose, Railway, or anywhere you like. The core features are included out of the box. Some advanced features may require a license key - similar to how GitLab offers a free community edition alongside premium tiers. Pricing details are still being finalized.",
   },
   {
     q: "How does visibility work?",
@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: "What tech stack does Sayr use?",
-    a: "TypeScript throughout. React 19 with TanStack Start for the frontend, Hono on Bun for the backend API, PostgreSQL with Drizzle ORM for the database, WebSocket for real-time updates, and Better Auth for authentication. The full stack is documented in the repo.",
+    a: "TypeScript throughout. React 19 with TanStack Start for the frontend, Hono on Bun for the backend API, PostgreSQL with Drizzle ORM for the database, Server‑Sent Events (SSE) for real-time updates, and Better Auth for authentication. The full stack is documented in the repo.",
   },
 ];
 

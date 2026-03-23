@@ -38,7 +38,7 @@ Sayr uses subdomains to separate concerns. If your domain is `sayr.example.com`:
 |---|---|---|
 | `sayr.example.com` | start | Public-facing pages |
 | `admin.sayr.example.com` | start | Admin dashboard and app UI |
-| `api.sayr.example.com` | backend | Public API and WebSocket |
+| `api.sayr.example.com` | backend | Public API and SSE |
 
 The nginx container handles all of this routing automatically based on your `VITE_ROOT_DOMAIN` setting.
 

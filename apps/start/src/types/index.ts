@@ -58,3 +58,23 @@ export type DorasUserType = {
 		pronouns: string;
 	};
 };
+
+export type DiscordUserType = {
+	id: string;
+	username: string;
+	global_name: string | null;
+	avatar: string | null;
+	email: string | null;
+	verified: boolean;
+};
+
+export type SlackUserType = {
+	sub: string;
+	name: string;
+	picture: string;
+	email: string;
+	email_verified: boolean;
+	"https://slack.com/user_id": string;
+	"https://slack.com/team_id": string;
+	"https://slack.com/team_name": string;
+};

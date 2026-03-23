@@ -179,7 +179,7 @@ export const Route = createFileRoute("/(admin)/inbox")({
 	head: () => ({ meta: seo({ title: "Inbox" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/login" });
+			throw redirect({ to: "/auth/login" });
 		}
 		return await getInboxData({ data: { account: context.account } });
 	},

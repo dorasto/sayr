@@ -213,22 +213,22 @@ if (res.success) {
 
 ---
 
-## Real‑Time Updates (WebSocket)
+## Real‑Time Updates (SSE)
 
-Subscribe to public real‑time events using WebSockets:
+Subscribe to public real‑time events using **Server‑Sent Events**:
 
 ```ts
-Sayr.ws(org.wsUrl, {
-  [Sayr.WS_EVENTS.UPDATE_TASK]: (data) => {
+Sayr.sse(org.eventsUrl, {
+  [Sayr.EVENTS.UPDATE_TASK]: (data) => {
     console.log("Task updated", data);
   },
 });
 ```
 
-### WebSocket Features
+### SSE Features
 
-- Automatic reconnection
-- Heartbeat support (PING / PONG)
+- Automatic reconnection (native in browsers)
+- Lightweight, one‑way streaming
 - Typed event constants
 - Public‑safe payloads only
 
@@ -308,12 +308,14 @@ Authenticated user endpoints.
 
 ---
 
-### `Sayr.ws(url, handlers)`
+## Real‑Time API
 
-Create a WebSocket connection for public events:
+`Sayr.sse(url, handlers)`
+
+Create an SSE connection for public events:
 
 ```ts
-const conn = Sayr.ws(wsUrl, {
+const conn = Sayr.sse(eventsUrl, {
   UPDATE_TASK: () => {},
 });
 
@@ -322,15 +324,15 @@ conn.close();
 
 ---
 
-### `WS_EVENTS`
+### `EVENTS`
 
-Typed WebSocket event constants:
+Typed SSE event constants:
 
 ```ts
-Sayr.WS_EVENTS.CREATE_TASK;
-Sayr.WS_EVENTS.UPDATE_TASK;
-Sayr.WS_EVENTS.UPDATE_TASK_COMMENTS;
-Sayr.WS_EVENTS.ERROR;
+Sayr.EVENTS.CREATE_TASK;
+Sayr.EVENTS.UPDATE_TASK;
+Sayr.EVENTS.UPDATE_TASK_COMMENTS;
+Sayr.EVENTS.ERROR;
 ```
 
 ---

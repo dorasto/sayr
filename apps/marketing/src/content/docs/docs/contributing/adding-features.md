@@ -16,7 +16,7 @@ A typical feature touches these layers:
 3. **Backend API route** - HTTP endpoint with auth/permissions
 4. **Frontend fetch function** - API wrapper
 5. **Frontend component** - User interface
-6. **Real-time updates** - WebSocket broadcasting
+6. **Real-time updates** - SSE broadcasting
 
 ## Step 1: Database Schema
 
@@ -287,7 +287,7 @@ const API_URL = import.meta.env.VITE_APP_ENV === "development"
  *
  * @param organizationId - The organization the task belongs to
  * @param taskId - The task to bookmark/unbookmark
- * @param sseClientId - WebSocket client ID for real-time updates
+ * @param sseClientId - SSE client ID for real-time updates
  * @returns Promise with success status and bookmark state
  *
  * @example
@@ -415,15 +415,15 @@ function TaskCard({ task, organization }) {
 }
 ```
 
-## Step 6: Real-time Updates (WebSocket)
+## Step 6: Real-time Updates Server‑Sent Events (SSE)
 
-For features that need real-time sync across clients, add WebSocket message handling.
+For features that need real-time sync across clients, add SSE message handling.
 
 ### Add message type
 
 ```typescript
-// apps/backend/routes/ws/types.ts
-export type WSMessageType =
+// apps/backend/routes/events/types.ts
+export type ServerEventBaseMessage =
    | "CREATE_TASK"
    | "UPDATE_TASK"
    | "DELETE_TASK"
@@ -434,7 +434,7 @@ export type WSMessageType =
 ### Handle in frontend
 
 ```tsx
-// In a component or context that manages WebSocket
+// In a component or context that manages SSE
 useEffect(() => {
    const handleMessage = (event: MessageEvent) => {
       const message = JSON.parse(event.data);
@@ -450,8 +450,8 @@ useEffect(() => {
       }
    };
 
-   ws.addEventListener("message", handleMessage);
-   return () => ws.removeEventListener("message", handleMessage);
+   serverEvents.event.addEventListener("message", handleMessage);
+   return () => serverEvents.event.removeEventListener("message", handleMessage);
 }, []);
 ```
 
@@ -468,7 +468,7 @@ Before submitting your PR, verify:
 - [ ] Tracing with `createTraceAsync()`
 - [ ] Frontend fetch function with JSDoc
 - [ ] React component following structure guidelines
-- [ ] WebSocket broadcasting (if real-time needed)
+- [ ] SSE broadcasting (if real-time needed)
 - [ ] Types exported for consumers
 - [ ] `pnpm lint` passes
 - [ ] `pnpm check-types` passes

@@ -8,7 +8,7 @@ import { seo, getOgImageUrl } from "@/seo";
 export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
   loader: async ({ params, context }) => {
     if (!context.account) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/auth/login" });
     }
     return await getAdminOrganizationTask({
       data: {
@@ -25,11 +25,11 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
       title: `${loaderData?.task.title}`,
       image: loaderData?.task
         ? getOgImageUrl({
-            title: loaderData.task.title || undefined,
-            subtitle: `#${loaderData.task.shortId}`,
-            meta: loaderData.orgName || undefined,
-            logo: loaderData.orgLogo || undefined,
-          })
+          title: loaderData.task.title || undefined,
+          subtitle: `#${loaderData.task.shortId}`,
+          meta: loaderData.orgName || undefined,
+          logo: loaderData.orgLogo || undefined,
+        })
         : undefined,
     }),
   }),

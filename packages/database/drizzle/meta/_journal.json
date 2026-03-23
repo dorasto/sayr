@@ -134,6 +134,13 @@
       "when": 1773397919124,
       "tag": "20260313103159_massive_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1774192918774,
+      "tag": "20260322152158_nifty_firestar",
+      "breakpoints": true
     }
   ]
 }

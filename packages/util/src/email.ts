@@ -36,6 +36,8 @@ const normalizeList = (
 
 /**
  * UseSend provider
+ * Env:
+ *   SAYR_EMAIL
  */
 class UseSendProvider implements EmailProvider {
 	async sendEmail(
@@ -69,15 +71,15 @@ class UseSendProvider implements EmailProvider {
 /**
  * SendGrid provider
  * Env:
- *   SENDGRID_API_KEY
+ *   SAYR_EMAIL
  */
 class SendGridProvider implements EmailProvider {
 	async sendEmail(
 		options: Required<Pick<SendEmailOptions, "from">> &
 			Omit<SendEmailOptions, "from">
 	): Promise<EmailProviderResponse> {
-		if (!process.env.SENDGRID_API_KEY) {
-			console.warn("SENDGRID_API_KEY not set, skipping email send");
+		if (!process.env.SAYR_EMAIL) {
+			console.warn("SAYR_EMAIL not set, skipping email send");
 			return { emailId: "" };
 		}
 
@@ -131,15 +133,15 @@ class SendGridProvider implements EmailProvider {
 /**
  * Resend provider
  * Env:
- *   RESAYR_EMAIL
+ *   SAYR_EMAIL
  */
 class ResendProvider implements EmailProvider {
 	async sendEmail(
 		options: Required<Pick<SendEmailOptions, "from">> &
 			Omit<SendEmailOptions, "from">
 	): Promise<EmailProviderResponse> {
-		if (!process.env.RESAYR_EMAIL) {
-			console.warn("RESAYR_EMAIL not set, skipping email send");
+		if (!process.env.SAYR_EMAIL) {
+			console.warn("SAYR_EMAIL not set, skipping email send");
 			return { emailId: "" };
 		}
 
@@ -202,8 +204,8 @@ function getProvider(): EmailProvider {
  *
  * Plus each provider's API keys:
  *   usesend:  SAYR_EMAIL
- *   sendgrid: SENDGRID_API_KEY
- *   resend:   RESAYR_EMAIL
+ *   sendgrid: SAYR_EMAIL
+ *   resend:   SAYR_EMAIL
  *
  * Also:
  *   SAYR_FROM_EMAIL (default "from" address)
@@ -212,7 +214,6 @@ export async function sendEmail(
 	options: SendEmailOptions
 ): Promise<string> {
 	const from = options.from ?? process.env.SAYR_FROM_EMAIL;
-	console.log("🚀 ~ sendEmail ~ from:", from)
 
 	if (!from) {
 		throw new Error("SAYR_FROM_EMAIL is not set and no from provided");

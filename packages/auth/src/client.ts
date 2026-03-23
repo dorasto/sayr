@@ -1,4 +1,4 @@
-import { genericOAuthClient, inferAdditionalFields, twoFactorClient } from "better-auth/client/plugins";
+import { genericOAuthClient, inferAdditionalFields, lastLoginMethodClient, twoFactorClient } from "better-auth/client/plugins";
 import { polarClient } from "@polar-sh/better-auth/client";
 import { passkeyClient } from "@better-auth/passkey/client";
 import { createAuthClient } from "better-auth/react"; // make sure to import from better-auth/react
@@ -7,6 +7,7 @@ export const authClient = createAuthClient({
 	plugins: [
 		inferAdditionalFields<typeof auth>(),
 		genericOAuthClient(),
+		lastLoginMethodClient(),
 		polarClient(),
 		twoFactorClient({
 			onTwoFactorRedirect() {
@@ -65,7 +66,7 @@ export const signInDoras = async () => {
 	});
 };
 
-export const singInGithub = async () => {
+export const signInGithub = async () => {
 	const found = await authClient.getSession();
 	if (found.data) {
 		window.location.href = "/";
@@ -74,6 +75,32 @@ export const singInGithub = async () => {
 	setLoginOriginCookie();
 	await authClient.signIn.social({
 		provider: "github",
+		callbackURL: `/auth/auth-check`,
+	});
+};
+
+export const signInDiscord = async () => {
+	const found = await authClient.getSession();
+	if (found.data) {
+		window.location.href = "/";
+		return;
+	}
+	setLoginOriginCookie();
+	await authClient.signIn.social({
+		provider: "discord",
+		callbackURL: `/auth/auth-check`,
+	});
+};
+
+export const signInSlack = async () => {
+	const found = await authClient.getSession();
+	if (found.data) {
+		window.location.href = "/";
+		return;
+	}
+	setLoginOriginCookie();
+	await authClient.signIn.social({
+		provider: "slack",
 		callbackURL: `/auth/auth-check`,
 	});
 };

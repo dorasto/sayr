@@ -135,6 +135,7 @@ function RouteComponent() {
 			ipAddress: string;
 			createdAt: Date;
 			expiresAt: Date;
+			token: string;
 		}[]
 	>([]);
 	const [loadingSessions, setLoadingSessions] = useState(true);
@@ -156,6 +157,7 @@ function RouteComponent() {
 							ipAddress: s.ipAddress || "Unknown",
 							createdAt: new Date(s.createdAt),
 							expiresAt: new Date(s.expiresAt),
+							token: s.token,
 						})),
 					);
 				}
@@ -372,7 +374,7 @@ function RouteComponent() {
 										<Button
 											variant="ghost"
 											size="icon"
-											onClick={() => handleRevokeSession(_session.id)}
+											onClick={() => handleRevokeSession(_session.token)}
 										>
 											<IconTrash className="size-4" />
 										</Button>
