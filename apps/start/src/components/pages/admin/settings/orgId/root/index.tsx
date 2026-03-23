@@ -492,7 +492,7 @@ export default function SettingsOrganizationPage() {
             </Label>
           </TileDescription>
         </TileHeader>
-        <TileAction className="w-full">
+        <TileAction className="w-full flex flex-col">
           <InputGroup className={cn("bg-accent border-0 shadow-none transition-all", slugError && "ring-1 ring-destructive")}>
             <InputGroupInput
               placeholder="My Organization"
