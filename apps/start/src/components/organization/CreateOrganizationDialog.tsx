@@ -177,7 +177,7 @@ export default function CreateOrganizationDialog({
                   Your organization will be accessible at{" "}
                   <code className="bg-muted px-1 py-0.5 rounded">
                     {slug || "your-slug"}.
-                    {process.env.VITE_ROOT_DOMAIN || "sayr.io"}
+                    {import.meta.env.VITE_ROOT_DOMAIN || "sayr.io"}
                   </code>
                 </p>
               )}
