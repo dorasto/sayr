@@ -52,7 +52,7 @@ We're actively working on import functionality. Check our [GitHub issues](https:
 
 ### Does Sayr have an API?
 
-Yes! Sayr provides both a REST API and WebSocket API for real-time updates. See our [API documentation](/docs/api/overview) for details.
+Yes! Sayr provides both a REST API and SSE API for real-time updates. See our [API documentation](/docs/api/overview) for details.
 
 ### Can I integrate Sayr with GitHub?
 
@@ -71,7 +71,7 @@ Try these steps:
 
 ### Real-time updates aren't working
 
-WebSocket connections may be blocked by:
+SSE connections may be blocked by:
 - Corporate firewalls
 - Browser extensions (ad blockers, privacy tools)
 - VPNs

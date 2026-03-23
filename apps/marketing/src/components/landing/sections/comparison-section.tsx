@@ -11,7 +11,7 @@ export function ComparisonSection() {
 		{ feature: "User voting on tasks", sayr: true, linear: false, canny: true },
 		{ feature: "Self-hostable", sayr: true, linear: false, canny: false },
 		{ feature: "Open source", sayr: true, linear: false, canny: false },
-		{ feature: "Real-time collaboration (WebSocket)", sayr: true, linear: true, canny: false },
+		{ feature: "Real-time collaboration Server‑Sent Events (SSE)", sayr: true, linear: true, canny: false },
 		{ feature: "Role-based access control", sayr: true, linear: true, canny: "partial" },
 		{ feature: "Categories and labels", sayr: true, linear: "partial", canny: "partial" },
 		{ feature: "Task templates", sayr: true, linear: true, canny: true },

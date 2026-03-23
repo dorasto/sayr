@@ -51,9 +51,9 @@ To permanently remove a notification, right-click and select **Delete**. Deleted
 
 ## Real-Time Delivery
 
-Notifications arrive instantly via the WebSocket connection. You don't need to refresh the page — new notifications appear in the inbox and the badge count updates automatically.
+Notifications arrive instantly via the SSE connection. You don't need to refresh the page — new notifications appear in the inbox and the badge count updates automatically.
 
-If the WebSocket connection is unavailable (e.g., due to a network interruption), notifications are delivered the next time you load the app.
+If the SSE connection is unavailable (e.g., due to a network interruption), notifications are delivered the next time you load the app.
 
 ## Tips
 

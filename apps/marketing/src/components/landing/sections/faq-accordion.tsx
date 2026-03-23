@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: "What tech stack does Sayr use?",
-    a: "TypeScript throughout. React 19 with TanStack Start for the frontend, Hono on Bun for the backend API, PostgreSQL with Drizzle ORM for the database, WebSocket for real-time updates, and Better Auth for authentication. The full stack is documented in the repo.",
+    a: "TypeScript throughout. React 19 with TanStack Start for the frontend, Hono on Bun for the backend API, PostgreSQL with Drizzle ORM for the database, Server‑Sent Events (SSE) for real-time updates, and Better Auth for authentication. The full stack is documented in the repo.",
   },
 ];
 

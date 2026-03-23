@@ -293,7 +293,7 @@ const allTasks: TaskData[] = [
   },
   {
     shortId: "180",
-    title: "Fix WebSocket reconnect on mobile",
+    title: "Fix SSE reconnect on mobile",
     status: "done",
     priority: "medium",
     visible: "private",
@@ -628,11 +628,10 @@ function PublicTaskTile({ task }: { task: TaskData }) {
       <button
         type="button"
         onClick={() => setVoted(!voted)}
-        className={`flex flex-col items-center justify-center w-[52px] h-[56px] rounded-lg border text-sm font-semibold transition-all shrink-0 ${
-          voted
+        className={`flex flex-col items-center justify-center w-[52px] h-[56px] rounded-lg border text-sm font-semibold transition-all shrink-0 ${voted
             ? "bg-primary/10 border-primary/30 text-primary"
             : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-foreground/20"
-        }`}
+          }`}
       >
         <ChevronUp size={16} className={voted ? "text-primary" : ""} />
         <span className="leading-none">

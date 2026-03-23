@@ -266,31 +266,31 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 });
 ```
 
-## WebSocket Broadcasting
+## Server‑Sent Events (SSE) Broadcasting
 
 When data changes need to be pushed to clients in real-time:
 
 ```typescript
-import { broadcast, broadcastPublic, broadcastIndividual } from "@/routes/ws";
+import { sseBroadcastToRoom, sseBroadcastPublic, broadcastIndividual } from "@/routes/events";
 
 // Broadcast to a specific channel (e.g., "tasks", "admin")
-broadcast(orgId, "tasks", { type: "UPDATE_TASK", data: task }, excludeSocket);
+sseBroadcastToRoom(orgId, "tasks", { type: "UPDATE_TASK", data: task }, excludeID);
 
 // Broadcast to the public channel (for public board viewers)
-broadcastPublic(orgId, { type: "UPDATE_TASK", data: task });
+sseBroadcastPublic(orgId, { type: "UPDATE_TASK", data: task });
 
 // Broadcast to a specific user's socket
-broadcastIndividual(socket, { type: "NOTIFICATION", data: notification }, orgId);
+sseBroadcastIndividual(socket, { type: "NOTIFICATION", data: notification }, orgId);
 ```
 
 ### Message Types
 
-WebSocket message types are defined as constants:
+SSE message types are defined as constants:
 
 ```typescript
-type: "CREATE_TASK" as WSBaseMessage["type"]
-type: "UPDATE_TASK" as WSBaseMessage["type"]
-type: "DELETE_TASK" as WSBaseMessage["type"]
+type: "CREATE_TASK" as ServerEventBaseMessage["type"]
+type: "UPDATE_TASK" as ServerEventBaseMessage["type"]
+type: "DELETE_TASK" as ServerEventBaseMessage["type"]
 ```
 
 ## Tracing with OpenTelemetry
