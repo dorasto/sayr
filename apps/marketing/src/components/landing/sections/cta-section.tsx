@@ -16,7 +16,7 @@ export function CTASection() {
           </span>
         </h2>
         <p className="text-lg text-muted-foreground max-w-lg mx-auto mb-10">
-          Open source. Self-hostable. Cloud available. Give your users the
+          Source available. Self-hostable. Cloud available. Give your users the
           visibility they deserve.
         </p>
         <div className="flex items-center justify-center gap-4">

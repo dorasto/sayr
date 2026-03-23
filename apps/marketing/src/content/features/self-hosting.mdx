@@ -1,0 +1,34 @@
+---
+title: Self-Hosting
+---
+
+import ComparisonCallout from "@/components/features/ComparisonCallout.astro";
+import FeatureStep from "@/components/features/FeatureStep.astro";
+import Callout from "@/components/features/Callout.astro";
+
+## Why self-host?
+
+For some teams, using a hosted SaaS product for project management is a non-starter. Your organisation might have data residency requirements, a security policy that prohibits third-party data processors, or simply a preference for owning your own stack.
+
+Sayr is built with self-hosting as a first-class concern. The same codebase that runs `sayr.io` is the same codebase you deploy yourself.
+
+<Callout label="Source availablee">
+   The full Sayr source code is available on GitHub at github.com/dorasto/sayr. Every line of the backend, frontend, and worker is public. Fork it, inspect it, contribute to it.
+</Callout>
+
+## What you need to deploy
+
+- **Docker** — all services are containerised
+- **PostgreSQL** — your primary database
+- **Redis** — for the job queue
+- **S3-compatible storage** — for file uploads (MinIO works, as does any S3-compatible provider)
+- A domain with DNS control (for your subdomain portal at `{org}.yourdomain.com`)
+
+
+## How it works
+
+<FeatureStep number="01" title="Pull the Docker images" description="All Sayr services are published as Docker images. Use the provided docker-compose.yml as your starting point and configure via environment variables." />
+
+<FeatureStep number="02" title="Point at your database and storage" description="Set your PostgreSQL connection string, Redis URL, and S3-compatible storage credentials. Run the database migrations and the schema is ready." />
+
+<FeatureStep number="03" title="Configure your domain and OAuth" description="Set your base domain and configure whichever OAuth providers you want to offer. Your public portal will be accessible at {org-slug}.yourdomain.com automatically." />

@@ -21,7 +21,7 @@ hero:
 ## Key Features
 
 - **Granular Visibility Controls**: Every task, comment, label, and timeline entry can be set to public or private
-- **Real-time Collaboration**: WebSocket-powered live updates across all connected clients
+- **Real-time Collaboration**: SSE‑powered live updates across all connected clients
 - **GitHub Integration**: Sync issues and pull requests with your Sayr tasks bidirectionally
 - **Rich Text Editing**: Full-featured block editor for task descriptions and comments
 - **Public Pages**: Share your roadmap, collect votes, and accept community feedback at `{your-org}.sayr.io`
@@ -77,3 +77,4 @@ hero:
 |------|-------------|
 | [Get Started](/docs/self-hosting/get-started) | Deploy Sayr on your own infrastructure |
 | [Editions](/docs/self-hosting/editions) | Community, Cloud, and Enterprise differences explained |
+| [Authentication & OAuth](/docs/self-hosting/authentication) | Configure login providers using environment variables |

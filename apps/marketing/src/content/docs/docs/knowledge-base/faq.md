@@ -13,7 +13,7 @@ Sayr is a transparent, collaborative project management platform. It helps teams
 
 ### Is Sayr open source?
 
-Yes! Sayr is fully open source. You can view the code, contribute, or self-host your own instance. Check out our [GitHub repository](https://github.com/dorasto/sayr).
+Sayr does not fall under the OSI's definition of open source, but source available. You can view the code, contribute, or self-host your own instance. Check out our [GitHub repository](https://github.com/dorasto/sayr).
 
 ### Can I self-host Sayr?
 
@@ -52,7 +52,7 @@ We're actively working on import functionality. Check our [GitHub issues](https:
 
 ### Does Sayr have an API?
 
-Yes! Sayr provides both a REST API and WebSocket API for real-time updates. See our [API documentation](/docs/api/overview) for details.
+Yes! Sayr provides both a REST API and SSE API for real-time updates. See our [API documentation](/docs/api/overview) for details.
 
 ### Can I integrate Sayr with GitHub?
 
@@ -71,7 +71,7 @@ Try these steps:
 
 ### Real-time updates aren't working
 
-WebSocket connections may be blocked by:
+SSE connections may be blocked by:
 - Corporate firewalls
 - Browser extensions (ad blockers, privacy tools)
 - VPNs

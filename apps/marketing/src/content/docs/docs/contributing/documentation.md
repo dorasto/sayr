@@ -104,7 +104,7 @@ Files map to URLs as follows:
 | Account features | `docs/account/` | My tasks, notifications, settings, security |
 | Organization settings | `docs/organizations/` | Members & teams, preferences, billing |
 | Integrations | `docs/integrations/` | GitHub, and future integrations |
-| API documentation | `docs/api/` | Endpoints, WebSocket events |
+| API documentation | `docs/api/` | Endpoints, SSE events |
 | Self-hosting | `docs/self-hosting/` | Deployment guides |
 | Contributing | `docs/contributing/` | Developer documentation |
 

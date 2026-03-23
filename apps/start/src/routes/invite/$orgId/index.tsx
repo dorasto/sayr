@@ -40,7 +40,7 @@ export const Route = createFileRoute("/invite/$orgId/")({
 	},
 	loader: async ({ context, params, location }) => {
 		if (!context.account) {
-			throw redirect({ to: "/login" });
+			throw redirect({ to: "/auth/login" });
 		}
 		if (((location.search as { code?: string })?.code as string) === undefined) {
 			throw redirect({ to: `/` });

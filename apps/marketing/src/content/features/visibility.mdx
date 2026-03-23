@@ -1,0 +1,40 @@
+---
+title: Visibility Control
+---
+
+import ComparisonCallout from "@/components/features/ComparisonCallout.astro";
+import FeatureStep from "@/components/features/FeatureStep.astro";
+import Callout from "@/components/features/Callout.astro";
+
+## Visibility at every level
+
+Most tools treat privacy as an all-or-nothing setting — either your board is public or it isn't. Sayr works differently. Visibility is a property of each individual entity:
+
+- **Tasks** — public or private
+- **Labels** — public or private (a private label like "Sprint 16" won't appear on the public portal)
+- **Comments** — public (visible to everyone) or internal (visible only to org members)
+- **Timeline entries** — status changes and activity can be public or stay internal
+
+This means a single task can have public content visible on the portal alongside internal comments and private labels that your users never see.
+
+<Callout label="How it works in practice">
+   A task titled "Fix payment processing bug" might be set to public so users can track it. The comments from your engineering team about root cause analysis are marked internal. The label "Critical — P0" is set private. Users see the task and its public updates; your team sees everything.
+</Callout>
+
+## Defaults and bulk updates
+
+New tasks are **private by default**. This means you can't accidentally publish something you're not ready to share — you always opt-in to visibility.
+
+When you're ready to go public with a batch of work, bulk visibility updates let you flip multiple tasks to public at once from the task list view.
+
+## Real-time enforcement
+
+Visibility changes take effect immediately. If you set a task to private while a user is viewing it on the public portal, it disappears from their session in real time. There's no cache delay, no stale content.
+
+## How it works
+
+<FeatureStep number="01" title="Create tasks privately" description="By default, every new task is private. Your team can work on it, discuss it internally, and iterate before anyone outside sees it." />
+
+<FeatureStep number="02" title="Set visibility per entity" description="When you're ready, toggle a task to public. Do the same for the labels and comments you want to expose. Everything else stays hidden." />
+
+<FeatureStep number="03" title="Users see a curated view" description="The public portal automatically shows only public tasks with public labels and public comments. Internal content is stripped from the response server-side — it's never sent to the browser." />

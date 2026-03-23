@@ -24,7 +24,7 @@ Sayr is built as a monorepo with multiple applications and shared packages:
 │     Port 3000           │   │      Port 3002          │
 └───────────┬─────────────┘   └─────────────────────────┘
             │
-            │ HTTP + WebSocket
+            │ HTTP + SSE
             ▼
 ┌─────────────────────────┐
 │     apps/backend        │
@@ -54,18 +54,18 @@ Key responsibilities:
 - User authentication flows
 - Organization management UI
 - Task boards and management
-- Real-time updates via WebSocket
+- Real-time updates via SSE
 
 ### apps/backend (API Server)
 
 The backend API server built with:
 - **Hono** - Fast web framework
 - **Bun** - JavaScript runtime
-- **WebSocket** - Real-time communication
+- **SSE** - Real-time communication
 
 Key responsibilities:
 - REST API endpoints
-- WebSocket connections for real-time updates
+- SSE connections for real-time updates
 - Authentication session management
 - Business logic and validation
 
@@ -175,15 +175,15 @@ import { generateSlug, formatDate, ensureCdnUrl } from "@repo/util";
    └─► apps/backend → Client
 ```
 
-### Real-time Updates (WebSocket)
+### Real-time Updates (SSE)
 
 ```
-1. Client initiates WebSocket connection
-   └─► apps/backend /ws (upgradeWebSocket)
+1. Client initiates SSE connection
+   └─► apps/backend /api/events
 
 2. Server accepts connection
    ├─► Generate sseClientId (unique per connection)
-   ├─► Create connection metadata entry (wsClients)
+   ├─► Create connection metadata entry (SSEClients)
    │     ├─► connectedAt
    │     ├─► heartbeat state (lastPing / lastPong / latency)
    │     └─► rate‑limit state (lastMessageAt / offenceCount)
@@ -205,7 +205,7 @@ import { generateSlug, formatDate, ensureCdnUrl } from "@repo/util";
    (Note: this does not grant access to private channels)
 
 5. Client explicitly subscribes to channels
-   └─► WS message:
+   └─► SSE message:
        {
          type: "SUBSCRIBE",
          orgId,
@@ -264,7 +264,7 @@ import { generateSlug, formatDate, ensureCdnUrl } from "@repo/util";
     ├─► Triggered by close, error, rate‑limit, or timeout
     ├─► Remove client from all rooms
     ├─► Broadcast USER_UNSUBSCRIBED to affected channels
-    └─► Remove wsClients entry and release resources
+    └─► Remove SEEClients entry and release resources
 ```
 
 ### Authentication Flow
@@ -330,7 +330,7 @@ if (!isAuthorized) {
 
 The `administrator` permission grants full access to all other permissions.
 
-## WebSocket Channels
+## SSE Channels
 
 | Channel | Purpose | Subscribers |
 |---------|---------|-------------|
@@ -341,7 +341,7 @@ The `administrator` permission grants full access to all other permissions.
 ### Message Types
 
 ```typescript
-type WSMessageType =
+type ServerEventBaseMessage =
    | "CREATE_TASK"
    | "UPDATE_TASK"
    | "DELETE_TASK"
@@ -437,7 +437,7 @@ Traces are sent to Axiom (when configured) for analysis and debugging.
 
 - **Performance** - Faster startup and execution
 - **Native TypeScript** - No build step needed
-- **WebSocket support** - Built-in, performant WebSockets
+- **SSE support** - Built-in, performant SSE
 
 ### Why TanStack Start?
 

@@ -40,7 +40,7 @@ export const getAccess = createServerFn({ method: "GET" }).handler(async () => {
 	const cookie = getSessionCookie(h);
 
 	if (!cookie) {
-		throw redirect({ to: "/login" });
+		throw redirect({ to: "/auth/login" });
 	}
 
 	try {
@@ -48,13 +48,13 @@ export const getAccess = createServerFn({ method: "GET" }).handler(async () => {
 		if (session?.user) {
 			return { account: normalizeUser(session.user) };
 		}
-		throw redirect({ to: "/login" });
+		throw redirect({ to: "/auth/login" });
 	} catch (error) {
 		// If it's already a redirect, re-throw it
 		if (error && typeof error === "object" && "redirect" in error) {
 			throw error;
 		}
-		throw redirect({ to: "/login" });
+		throw redirect({ to: "/auth/login" });
 	}
 });
 
