@@ -29,9 +29,9 @@ import { Octokit } from "@octokit/rest";
 import { polarClient } from "@repo/auth";
 import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
 import { emitEvent } from "@/clickhouse";
-import { UseSend } from "usesend-js";
 import { findClientBysseId, sseBroadcastByUserId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
 import { ServerEventBaseMessage } from "@/routes/events/types";
+import { sendEmailBatch, type SendEmailOptions } from "@repo/util/email";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 // Create a new organization
@@ -2411,39 +2411,29 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		}
 	);
 	await traceAsync("email.sendInvites", async () => {
-		const usesend = new UseSend(process.env.SAYR_EMAIL);
-
-		const chunkSize = 100;
-
-		for (let i = 0; i < invites.length; i += chunkSize) {
-			const chunk = invites.slice(i, i + chunkSize);
-
-			const batchPayload: any = chunk.map((invite) => {
+		const batchPayload = invites
+			.map((invite) => {
 				const normalizedEmail = invite?.email?.toLowerCase().trim();
-				if (!normalizedEmail) {
-					return null;
-				}
-
-				return {
+				if (!normalizedEmail) return null;
+				const payload: SendEmailOptions = {
 					to: normalizedEmail,
 					from: `Sayr.io <${process.env.SAYR_FROM_EMAIL}>`,
 					text: "You've been invited to join a Sayr organization",
+					subject: "Sayr organization invite",
 					templateId: process.env.SAYR_INVITE_TEMPLATE_ID || "",
 					variables: {
-						orgName: invite?.organization?.name,
-						displayname: invite?.user?.displayName || "",
-						inviteUrl: `${process.env.VITE_URL_ROOT}/invite/${invite.organizationId}?code=${invite.inviteCode}`,
+						orgName: invite?.organization?.name || "",
+						displayName: invite?.user?.displayName || "",
+						inviteUrl: `${process.env.VITE_URL_ROOT}/invite/${invite.organizationId}?code=${invite.inviteCode}`
 					}
-
 				};
-			});
-
-			if (batchPayload.length > 0) {
-				await usesend.emails.batch(batchPayload);
-			}
+				return payload;
+			})
+			.filter((item): item is SendEmailOptions => item !== null);
+		if (batchPayload.length > 0) {
+			await sendEmailBatch(batchPayload);
 		}
 	});
-
 	for (const invite of invites) {
 		emitEvent({
 			event_type: "member.invited",
@@ -2459,6 +2449,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		...(failedEmails.length > 0 && { errors: failedEmails }),
 	});
 });
+
 apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");

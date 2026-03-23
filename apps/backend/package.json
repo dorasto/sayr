@@ -33,7 +33,6 @@
     "mime-types": "^3.0.2",
     "prosemirror-markdown": "^1.13.2",
     "prosemirror-model": "1.25.4",
-    "usesend-js": "^1.6.0",
     "zod": "^4.0.5"
   },
   "devDependencies": {
