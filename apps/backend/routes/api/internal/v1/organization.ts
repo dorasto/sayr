@@ -17,7 +17,7 @@ import {
 } from "@repo/database";
 
 import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
-import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
+import { ensureCdnUrl, getFileNameFromUrl, isSlugBanned } from "@repo/util";
 import { getInstallationDetailsWithRepos, createAppJWT } from "@repo/util/github/auth";
 import { and, count, eq, ilike, ne } from "drizzle-orm";
 import { Hono } from "hono";
@@ -98,6 +98,10 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 
 	if (shortId && !/^[A-Z]{1,3}$/.test(shortId)) {
 		return c.json({ success: false, error: "Short ID must be 1-3 uppercase letters" }, 400);
+	}
+
+	if (isSlugBanned(slug)) {
+		return c.json({ success: false, error: "That organization slug is unavailable" }, 400);
 	}
 
 	const existingOrg = await traceAsync(
@@ -267,11 +271,15 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 					return null;
 				}
 
-				// 2️⃣ Slug uniqueness check (only if changed)
+				// 2️⃣ Slug uniqueness + banned check (only if changed)
 				if (
 					data.slug &&
 					data.slug !== currentOrg.slug
 				) {
+					if (isSlugBanned(data.slug)) {
+						throw new Error("SLUG_BANNED");
+					}
+
 					const [existing] = await tx
 						.select({
 							id: schema.organization.id,
@@ -316,6 +324,21 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 			},
 		}
 	).catch(async (err) => {
+		if ((err as Error).message === "SLUG_BANNED") {
+			await recordWideError({
+				name: "organization.update.slug_banned",
+				error: err,
+				code: "SLUG_BANNED",
+				message: "Attempted to use a reserved organization slug",
+				contextData: {
+					organization: { id: orgId },
+					slug: data.slug,
+				},
+			});
+
+			return "SLUG_BANNED" as const;
+		}
+
 		if ((err as Error).message === "SLUG_TAKEN") {
 			await recordWideError({
 				name: "organization.update.slug_taken",
@@ -334,6 +357,16 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 
 		throw err;
 	});
+
+	if (result === "SLUG_BANNED") {
+		return c.json(
+			{
+				success: false,
+				error: "That organization slug is unavailable",
+			},
+			400
+		);
+	}
 
 	if (!result) {
 		return c.json(

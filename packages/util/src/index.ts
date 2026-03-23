@@ -1,3 +1,5 @@
+export { BANNED_SLUGS, isSlugBanned } from "./bannedSlugs";
+
 /**
  * Extracts the private ID (orgKey) if present in a Sayr file URL.
  */
