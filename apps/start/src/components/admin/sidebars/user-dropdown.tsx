@@ -19,6 +19,11 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import {
+  IconBook,
+  IconBrandDiscord,
+  IconBrandGithub,
+  IconBrandGithubFilled,
+  IconExternalLink,
   IconNotification,
   IconSettings,
   IconUserCog,
@@ -116,6 +121,28 @@ export default function UserDropdown() {
               {theme === "dark" ? <Sun /> : <Moon />}
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-border" />
+            <a href={"https://github.com/dorasto/sayr"} className="w-full">
+              <DropdownMenuItem>
+                <IconBrandGithub />
+                GitHub
+                <IconExternalLink className="ml-auto" />
+              </DropdownMenuItem>
+            </a>
+            <a href={"https://sayr.io/docs"} className="w-full">
+              <DropdownMenuItem>
+                <IconBook />
+                Documentation
+                <IconExternalLink className="ml-auto" />
+              </DropdownMenuItem>
+            </a>
+            <a href={"https://doras.to/discord"} className="w-full">
+              <DropdownMenuItem>
+                <IconBrandDiscord />
+                Discord
+                <IconExternalLink className="ml-auto" />
+              </DropdownMenuItem>
+            </a>
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={async () => {
