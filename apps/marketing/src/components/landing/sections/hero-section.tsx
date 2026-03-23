@@ -769,7 +769,7 @@ export function HeroSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto"
         >
-          Sayr is an open-source project management platform with a
+          Sayr is an source-available project management platform with a
           public-facing portal. Your team works internally while users submit
           feedback, vote on features, and track progress — all from the same
           tool.
