@@ -23,18 +23,10 @@ import { Separator } from "@repo/ui/components/separator";
 import { cn } from "@repo/ui/lib/utils";
 import {
   IconBrandDiscordFilled,
-  IconBrandGithub,
   IconBrandGithubFilled,
   IconBrandSlack,
 } from "@tabler/icons-react";
 import { ArrowRight } from "lucide-react";
-import {
-  Tile,
-  TileHeader,
-  TileIcon,
-  TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
-import { Label } from "@repo/ui/components/label";
 
 interface OAuthProviders {
   github: boolean;
@@ -93,12 +85,24 @@ export function LoginComponent({
   isDialog?: boolean;
   providers?: OAuthProviders;
 }) {
-  const lastMethod = authClient.getLastUsedLoginMethod();
-
+  const [lastMethod, setLastMethod] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<"email" | "password">("email");
-
+  useEffect(() => {
+    setLastMethod(authClient.getLastUsedLoginMethod());
+  }, []);
+  useEffect(() => {
+    if (!PublicKeyCredential.isConditionalMediationAvailable ||
+      !PublicKeyCredential.isConditionalMediationAvailable()) {
+      return;
+    }
+    authClient.signIn.passkey().then(e => {
+      if (e.data?.session) {
+        signInEmail();
+      }
+    })
+  }, [])
   const handleEmailSubmit = () => {
     if (email) {
       setStep("password");
@@ -265,8 +269,7 @@ export function LoginComponent({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
-                  autoComplete={"webauthn"}
-                  disabled
+                  autoComplete={"email webauthn"}
                 />
               </div>
             ) : (
@@ -285,6 +288,7 @@ export function LoginComponent({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                  autoComplete="password"
                 />
               </div>
             )}
