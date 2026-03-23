@@ -1,10 +1,8 @@
 interface Props {
-  /** Color of the bolt/lightning icon */
+  /** Color of the icon */
   color?: string;
   /** Size of the icon in pixels (both width and height) */
   size?: number;
-  /** Stroke width of the bolt icon */
-  strokeWidth?: number;
   /** Additional CSS classes */
   className?: string;
 }
@@ -12,30 +10,22 @@ interface Props {
 export default function SayrIcon({
   color = "currentColor",
   size = 24,
-  strokeWidth = 2.6,
   className = "",
 }: Props) {
-  // Calculate relative stroke width based on size
-  const relativeStrokeWidth = (strokeWidth / 24) * size;
-
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
+      viewBox="0 0 5000 5000"
       width={size}
       height={size}
-      fill="none"
       role="img"
-      aria-label="Tasq icon"
+      aria-label="Sayr icon"
       className={className}
+      style={{ fillRule: "evenodd", clipRule: "evenodd" }}
     >
       <path
-        d="M9 5.5 L11.5 11 L9.8 12.6 L13.8 18 L16.8 12.8 C17.4 11.9 18.4 10.6 18.9 9.9 L15.6 8.2"
-        stroke={color}
-        strokeWidth={relativeStrokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
+        d="M2616.835,206.326c221.574,-279.539 1356.778,11.143 1012.569,405.733c-627.971,719.885 -992.64,1215.012 -340.463,1173.098c652.177,-41.913 641.375,505.084 421.61,666.814c-908.028,668.234 -1228.018,1941.949 -1315.043,2388.13c-5.294,29.318 -26.875,53.034 -55.566,61.061c-28.691,8.027 -59.445,-1.046 -79.185,-23.36c-83.111,-93.831 -195.739,-221.149 -267.895,-302.717c-42.587,-48.142 -53.205,-116.691 -27.179,-175.462c118.808,-268.721 409.972,-1013.555 -17.426,-1003.881c-521.333,11.8 -1076.417,403.429 -631.533,-319.294c444.885,-722.724 910.824,-2378.996 1300.11,-2870.122Z"
+        fill={color}
       />
     </svg>
   );
