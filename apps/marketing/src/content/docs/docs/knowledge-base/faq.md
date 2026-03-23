@@ -13,7 +13,7 @@ Sayr is a transparent, collaborative project management platform. It helps teams
 
 ### Is Sayr open source?
 
-Yes! Sayr is fully open source. You can view the code, contribute, or self-host your own instance. Check out our [GitHub repository](https://github.com/dorasto/sayr).
+Sayr does not fall under the OSI's definition of open source, but source available. You can view the code, contribute, or self-host your own instance. Check out our [GitHub repository](https://github.com/dorasto/sayr).
 
 ### Can I self-host Sayr?
 

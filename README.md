@@ -2,7 +2,7 @@
 
 **Project management your users can see.**
 
-Sayr is an open-source project management platform with a built-in public-facing portal. Your team works internally while users submit feedback, vote on features, and track progress — all from the same tool.
+Sayr is a source-available project management platform with a built-in public-facing portal. Your team works internally while users submit feedback, vote on features, and track progress — all from the same tool.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![TanStack Start](https://img.shields.io/badge/TanStack_Start-1.x-red)](https://tanstack.com/start)

@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: "Is it free to self-host?",
-    a: "Sayr is open source and free to self-host with Docker Compose, Railway, or anywhere you like. The core features are included out of the box. Some advanced features may require a license key - similar to how GitLab offers a free community edition alongside premium tiers. Pricing details are still being finalized.",
+    a: "Sayr is source available and free to self-host with Docker Compose, Railway, or anywhere you like. The core features are included out of the box. Some advanced features may require a license key - similar to how GitLab offers a free community edition alongside premium tiers. Pricing details are still being finalized.",
   },
   {
     q: "How does visibility work?",
