@@ -40,7 +40,7 @@ export function OpenSourceHighlight() {
             <div>
               <Github className="size-12 text-primary mb-6" />
               <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
-                100% Open Source
+                100% Source-Available
               </h2>
               <p className="text-muted-foreground mb-6">
                 Every line of code is public. Fork it, self-host it on your own

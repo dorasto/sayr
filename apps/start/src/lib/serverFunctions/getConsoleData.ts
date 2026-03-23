@@ -17,12 +17,12 @@ async function requireAdmin() {
 	const cookie = getSessionCookie(h);
 
 	if (!cookie) {
-		throw redirect({ to: "/login" });
+		throw redirect({ to: "/auth/login" });
 	}
 
 	const session = await auth.api.getSession({ headers: h });
 	if (!session?.user) {
-		throw redirect({ to: "/login" });
+		throw redirect({ to: "/auth/login" });
 	}
 
 	if (session.user.role !== "admin") {
@@ -268,13 +268,13 @@ export const getConsoleUserServer = createServerFn({ method: "GET" })
 			const orgIds = [...new Set(recentActivity.map((a) => a.organizationId))];
 			const orgsForActivity = orgIds.length
 				? await db
-						.select({
-							id: schema.organization.id,
-							name: schema.organization.name,
-							slug: schema.organization.slug,
-						})
-						.from(schema.organization)
-						.where(inArray(schema.organization.id, orgIds))
+					.select({
+						id: schema.organization.id,
+						name: schema.organization.name,
+						slug: schema.organization.slug,
+					})
+					.from(schema.organization)
+					.where(inArray(schema.organization.id, orgIds))
 				: [];
 			const orgMap = new Map(orgsForActivity.map((o) => [o.id, o]));
 

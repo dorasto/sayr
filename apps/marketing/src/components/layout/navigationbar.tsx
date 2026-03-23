@@ -7,18 +7,32 @@ import {
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { NAV_FEATURES } from "@/data/features";
+import { cn } from "@/lib/utils";
 
-const products = [
-  { title: "Analytics", desc: "Monitor key metrics", href: "#" },
-  { title: "Automation", desc: "Build powerful flows", href: "#" },
-  { title: "Billing", desc: "Manage subscriptions", href: "#" },
-  { title: "Audiences", desc: "Segment your data", href: "#" },
-];
+const features = NAV_FEATURES.map((f) => ({
+  title: f.title,
+  desc: f.navDesc,
+  href: f.href,
+  icon: f.icon,
+}));
 const resources = [
-  { title: "Docs", desc: "Developer guides", href: "#" },
-  { title: "Tutorials", desc: "Step-by-step", href: "#" },
-  { title: "Templates", desc: "Jumpstart UI", href: "#" },
-  { title: "Community", desc: "Join discussions", href: "#" },
+  { title: "Documentation", desc: "Guides and references", href: "/docs" },
+  {
+    title: "API Reference",
+    desc: "REST API and SDK docs",
+    href: "/docs/api/reference-v1",
+  },
+  {
+    title: "Self-Hosting",
+    desc: "Deploy on your own servers",
+    href: "/docs/self-hosting/get-started",
+  },
+  {
+    title: "FAQ",
+    desc: "Common questions answered",
+    href: "/docs/knowledge-base/faq",
+  },
 ];
 
 const tapProps = {
@@ -58,11 +72,14 @@ export function Navbar() {
               <motion.button
                 onMouseEnter={() => setMegaOpen(true)}
                 onMouseLeave={() => setMegaOpen(false)}
-                className="hover:bg-muted inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm"
+                className={cn(
+                  "hover:bg-muted inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm",
+                  megaOpen && "bg-muted",
+                )}
                 whileTap={{ scale: 0.97 }}
                 whileHover={{ y: -1 }}
               >
-                Products <ChevronDown size={16} />
+                Features <ChevronDown size={16} />
               </motion.button>
               <AnimatePresence>
                 {megaOpen && (
@@ -72,32 +89,36 @@ export function Navbar() {
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
-                    className="bg-card absolute top-full left-0 z-20 mt-2 w-[42rem] rounded-xl p-4 ring shadow-sm shadow-black/10 ring-black/10 dark:shadow-white/10 dark:ring-white/10"
+                    className="bg-popover absolute top-full left-0 z-20 mt-2 w-2xl p-3 shadow-sm shadow-black/10 rounded-2xl"
                   >
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="rounded-lg p-3">
+                      <div className="rounded-lg">
                         <p className="text-muted-foreground px-1 pb-2 text-xs uppercase">
-                          Products
+                          Features
                         </p>
-                        <ul className="grid gap-2">
-                          {products.map((p) => (
-                            <li key={p.title}>
+                        <ul className="grid gap-1">
+                          {features.map((f) => (
+                            <li key={f.title}>
                               <motion.a
-                                href={p.href}
-                                className="hover:bg-muted block rounded-md px-2 py-2"
+                                href={f.href}
+                                className="hover:bg-secondary bg-accent transition-colors block rounded-xl px-2 py-2"
                                 whileHover={{ x: 2 }}
                                 whileTap={{ scale: 0.98 }}
                               >
-                                <p className="text-sm font-medium">{p.title}</p>
+                                <div className="flex items-center gap-1">
+                                  <f.icon className="h-4 w-4" />
+                                  <p className="text-sm font-bold">{f.title}</p>
+                                </div>
+
                                 <p className="text-muted-foreground text-xs">
-                                  {p.desc}
+                                  {f.desc}
                                 </p>
                               </motion.a>
                             </li>
                           ))}
                         </ul>
                       </div>
-                      <div className="rounded-lg p-3">
+                      <div className="rounded-lg">
                         <p className="text-muted-foreground px-1 pb-2 text-xs uppercase">
                           Resources
                         </p>
@@ -162,26 +183,26 @@ export function Navbar() {
             >
               <details className="px-3">
                 <summary className="hover:bg-muted flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm">
-                  <span>Products</span>
+                  <span>Features</span>
                   <ChevronDown size={16} />
                 </summary>
                 <div className="mt-2 rounded-lg border p-2">
                   <p className="text-muted-foreground px-1 pb-2 text-xs uppercase">
-                    Products
+                    Features
                   </p>
                   <ul className="grid gap-1">
-                    {products.map((p) => (
-                      <li key={p.title}>
+                    {features.map((f) => (
+                      <li key={f.title}>
                         <motion.a
-                          href={p.href}
+                          href={f.href}
                           className="hover:bg-muted flex items-center justify-between rounded-md px-2 py-2 text-sm"
                           whileHover={{ x: 2 }}
                           whileTap={{ scale: 0.98 }}
                         >
                           <div className="min-w-0">
-                            <p className="font-medium">{p.title}</p>
+                            <p className="font-medium">{f.title}</p>
                             <p className="text-muted-foreground text-xs">
-                              {p.desc}
+                              {f.desc}
                             </p>
                           </div>
                           <ChevronRight
@@ -230,21 +251,22 @@ export function Navbar() {
                 <ChevronRight size={16} className="text-muted-foreground" />
               </motion.a>
               <motion.a
-                href="#"
+                href="/docs"
                 className="hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm"
                 whileHover={{ x: 2 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <span>Company</span>
+                <span>Documentation</span>
                 <ChevronRight size={16} className="text-muted-foreground" />
               </motion.a>
               <div className="flex items-center gap-2 px-3 pt-2">
-                <motion.button
+                <motion.a
+                  href="/login"
                   {...tapProps}
-                  className="ml-auto rounded-full bg-black px-4 py-2 text-sm font-bold text-white shadow-[0px_-2px_0px_0px_rgba(255,255,255,0.4)_inset] dark:bg-white dark:text-black"
+                  className="ml-auto rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
                 >
-                  Contact sales
-                </motion.button>
+                  Get started
+                </motion.a>
               </div>
             </motion.div>
           )}

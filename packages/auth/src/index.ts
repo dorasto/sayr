@@ -2,7 +2,7 @@ import * as schema from "@repo/database";
 import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, apiKey, genericOAuth, twoFactor } from "better-auth/plugins";
+import { admin, apiKey, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import {
 	polar,
@@ -24,7 +24,7 @@ const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_U
 // Cookie domains need at least 2 parts (e.g., ".app.localhost" works, ".localhost" doesn't)
 // For local dev with subdomains, use "app.localhost" pattern or sslip.io/nip.io
 const isBarelocalhost = rootUrl === "localhost";
-const { polarBillingEnabled, dorasOAuthEnabled } = getEditionCapabilities();
+const { polarBillingEnabled } = getEditionCapabilities();
 
 export const polarClient = polarBillingEnabled
 	? new Polar({
@@ -32,35 +32,27 @@ export const polarClient = polarBillingEnabled
 	})
 	: null;
 const plugins: any[] = [
+	lastLoginMethod({
+		storeInDatabase: true
+	}),
 	apiKey({ enableMetadata: true, defaultPrefix: "api_", defaultKeyLength: 64 }),
 	admin(),
 	genericOAuth({
 		config: [
 			{
-				disableSignUp: !dorasOAuthEnabled,
 				providerId: "doras",
 				clientId: process.env.DORAS_CLIENT_ID as string,
 				clientSecret: process.env.DORAS_CLIENT_SECRET as string,
 				authorizationUrl: "https://doras.to/oauth2/authorize",
 				tokenUrl: "https://doras.to/oauth2/token",
 				userInfoUrl: "https://doras.to/api/v1/account/me",
-				scopes: ["identity,brands"],
+				scopes: ["identity"],
 				responseType: "code",
 				authentication: "post",
 				authorizationUrlParams: {
 					redirect_to: "/",
 				},
 				redirectURI: `${authCallbackUrl}/api/auth/oauth2/callback/doras`,
-				getUserInfo: async (tokens) => {
-					if (tokens.accessToken) {
-						const data = await DorasUser(tokens.accessToken);
-						if (data?.error) {
-							throw new Error(data.error);
-						}
-						const profile = data?.account;
-						return profile;
-					}
-				},
 				mapProfileToUser: async (profile) => {
 					return {
 						id: profile.id,
@@ -224,11 +216,21 @@ export const auth = betterAuth({
 				};
 			},
 		},
+		discord: {
+			clientId: process.env.DISCORD_CLIENT_ID as string,
+			clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+			redirectURI: `${authCallbackUrl}/api/auth/callback/discord`,
+		},
+		slack: {
+			clientId: process.env.SLACK_CLIENT_ID as string,
+			clientSecret: process.env.SLACK_CLIENT_SECRET as string,
+			redirectURI: `${authCallbackUrl}/api/auth/callback/slack`,
+		},
 	},
 	account: {
 		accountLinking: {
 			enabled: true,
-			trustedProviders: ["github", "doras"],
+			trustedProviders: ["github", "doras", "discord", "slack"],
 			allowDifferentEmails: true,
 		},
 	},
@@ -291,44 +293,3 @@ export const auth = betterAuth({
 		},
 	},
 });
-async function DorasUser(accessToken: string) {
-	try {
-		const response = await fetch("https://doras.to/api/v1/account/me", {
-			method: "GET",
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-			},
-		});
-		const account = await response.json();
-		if (account?.id) {
-			const responseOrgMember = await fetch(
-				`https://doras.to/api/v1/account/me/brand/${process.env.DORAS_ORGANIZATION}`,
-				{
-					method: "GET",
-					headers: {
-						Authorization: `Bearer ${accessToken}`,
-					},
-				}
-			);
-			const dataOrgMember = await responseOrgMember.json();
-			if (dataOrgMember?.message) {
-				return null;
-			}
-			if (dataOrgMember.id !== process.env.DORAS_ORGANIZATION) {
-				return null;
-			}
-			return {
-				account: account,
-			};
-		}
-		return {
-			error: "Token not found",
-		};
-		// biome-ignore lint/suspicious/noExplicitAny: <needed>
-	} catch (error: any) {
-		console.error("Error fetching token:", error);
-		return {
-			error: error.toString(),
-		};
-	}
-}

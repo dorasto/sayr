@@ -1,4 +1,4 @@
-import type { DorasUserType, GithubUserType } from "@/types";
+import type { DiscordUserType, DorasUserType, GithubUserType, SlackUserType } from "@/types";
 
 export async function getUserInfoGithub(accessToken: string): Promise<GithubUserType> {
 	const response = await fetch("https://api.github.com/user", {
@@ -29,6 +29,38 @@ export async function getUserInfoDoras(accessToken: string): Promise<DorasUserTy
 
 	if (!response.ok) {
 		throw new Error(`Doras API error: ${response.status} ${response.statusText}`);
+	}
+
+	const data = await response.json();
+	return data;
+}
+
+export async function getUserInfoDiscord(accessToken: string): Promise<DiscordUserType> {
+	const response = await fetch("https://discord.com/api/users/@me", {
+		method: "GET",
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+
+	if (!response.ok) {
+		throw new Error(`Discord API error: ${response.status} ${response.statusText}`);
+	}
+
+	const data = await response.json();
+	return data;
+}
+
+export async function getUserInfoSlack(accessToken: string): Promise<SlackUserType> {
+	const response = await fetch("https://slack.com/api/openid.connect.userinfo", {
+		method: "GET",
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+
+	if (!response.ok) {
+		throw new Error(`Slack API error: ${response.status} ${response.statusText}`);
 	}
 
 	const data = await response.json();

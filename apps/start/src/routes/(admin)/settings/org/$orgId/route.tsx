@@ -63,7 +63,7 @@ export const getUserOrgPermissions = createServerFn({ method: "GET" })
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;
 			}
-			throw redirect({ to: "/login" });
+			throw redirect({ to: "/auth/login" });
 		}
 	});
 export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
@@ -86,7 +86,7 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 
 		if (!account) {
 			throw redirect({
-				to: "/login",
+				to: "/auth/login",
 				headers: {
 					"Set-Cookie": `post_login_redirect=${encodeURIComponent(
 						currentUrl
@@ -106,7 +106,7 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 	},
 	loader: async ({ params, context }) => {
 		if (!context.account) {
-			throw redirect({ to: "/login" });
+			throw redirect({ to: "/auth/login" });
 		}
 		const org = await getAdminOrganizationSettings({
 			data: {

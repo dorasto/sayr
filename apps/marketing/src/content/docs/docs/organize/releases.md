@@ -254,7 +254,7 @@ Keep your active releases list clean:
 
 ## Real-Time Collaboration
 
-Releases support real-time updates via WebSocket:
+Releases support real-time updates via Server‑Sent Events (SSE):
 - Changes sync instantly across all connected clients
 - Multiple team members can work on release planning simultaneously
 - Task assignments to releases update live

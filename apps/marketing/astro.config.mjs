@@ -1,3 +1,4 @@
+import mdx from "@astrojs/mdx";
 import node from "@astrojs/node";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
@@ -60,7 +61,7 @@ export default defineConfig({
         {
           icon: "right-arrow",
           label: "Login",
-          href: "https://admin.sayr.io/login",
+          href: "https://admin.sayr.io/auth/login",
         },
       ],
       customCss: ["./src/styles/custom.css"],
@@ -167,6 +168,7 @@ export default defineConfig({
       ],
     }),
     react(),
+    mdx(),
   ],
 
   vite: {

@@ -1,0 +1,61 @@
+---
+title: GitHub Integration
+---
+
+import ComparisonCallout from "@/components/features/ComparisonCallout.astro";
+import FeatureStep from "@/components/features/FeatureStep.astro";
+import Callout from "@/components/features/Callout.astro";
+
+## Connecting GitHub to Sayr
+
+Install the Sayr GitHub App on your GitHub organisation or personal account. From there, connect individual repositories to your Sayr organisation and map them to categories — so issues from your `mobile-app` repo route to the "Mobile" category in Sayr, and your `backend` repo routes to "API".
+
+You can connect multiple GitHub organisations to a single Sayr organisation, and multiple Sayr organisations can share a single GitHub installation using different repo mappings.
+
+## Task references in code
+
+Reference Sayr tasks anywhere in your Git workflow using the task's short ID (e.g. `SAY-188`):
+
+- **Commit messages** — `git commit -m "Ref SAY-188: add dark mode tokens"`
+- **Pull request titles** — `Fix auth regression (SAY-201)`
+- **Pull request bodies** — reference or close tasks inline
+- **GitHub issue bodies** — link to existing Sayr tasks
+
+These references are picked up automatically and appear in the task's timeline, giving your team full traceability from requirement to merged code.
+
+## Closing tasks with keywords
+
+Use closing keywords in commits or PRs and Sayr will automatically update the task status to **Done** when the code lands:
+
+```
+Fixes SAY-188
+Fixed SAY-188
+Closes SAY-201
+Closed SAY-201
+Resolves SAY-205
+```
+
+<Callout label="Public visibility of code activity">
+   When a task is public, PR merges and issue references that come from public repositories will appear on the task's public timeline — your users can see that their requested feature was shipped with a specific PR. Activity from private repositories stays internal only.
+</Callout>
+
+## Pull request lifecycle tracking
+
+Sayr tracks the full lifecycle of PRs linked to a task:
+
+- **Opened** — PR is created, appears in the task timeline
+- **New commits pushed** — synchronised event logged
+- **Merged** — task status updated to Done (if closing keyword used)
+- **Closed without merge** — logged, task status unchanged
+
+## Issue syncing
+
+Two-way sync between GitHub Issues and Sayr tasks. When a GitHub issue is created in a connected repository, a corresponding Sayr task is created automatically in the mapped category. Comments and status changes can sync bidirectionally.
+
+## How it works
+
+<FeatureStep number="01" title="Install the GitHub App" description="Install Sayr's GitHub App on your GitHub account or organisation. Takes about 30 seconds from the Integrations settings page." />
+
+<FeatureStep number="02" title="Map repos to categories" description="Choose which repositories connect to which Sayr categories. One repo per category, or multiple repos to the same category — your call." />
+
+<FeatureStep number="03" title="Reference tasks in your workflow" description="Use task IDs in commits, PR titles, and issue bodies. Sayr picks these up automatically and updates task timelines and statuses." />
