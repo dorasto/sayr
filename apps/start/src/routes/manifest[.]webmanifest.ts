@@ -9,6 +9,11 @@ const DEFAULT_MANIFEST = {
 	start_url: "/",
 	icons: [
 		{
+			src: "/icon.svg",
+			sizes: "any",
+			type: "image/svg+xml",
+		},
+		{
 			src: "/favicon.ico",
 			sizes: "64x64 32x32 24x24 16x16",
 			type: "image/x-icon",
