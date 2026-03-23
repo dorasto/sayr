@@ -23,7 +23,7 @@
     "@repo/storage": "workspace:*",
     "@repo/util": "workspace:*",
     "cron": "^4.3.4",
-    "markdown-it": "^14.1.0",
+    "markdown-it": "^14.1.1",
     "prosemirror-markdown": "^1.13.2",
     "prosemirror-model": "1.25.4"
   },
