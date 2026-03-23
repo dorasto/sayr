@@ -11,7 +11,7 @@ import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
-import { generateSlug } from "@repo/util";
+import { generateSlug, isSlugBanned } from "@repo/util";
 import { IconBuilding, IconPlus } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -46,6 +46,8 @@ export default function CreateOrganizationDialog({
 
   const isLimited = edition === "community" && organizations.length >= 1;
 
+  const slugError = slug.trim() && isSlugBanned(slug) ? "That slug is unavailable" : null;
+
   // Auto-generate slug from name unless manually edited
   useEffect(() => {
     if (!slugManuallyEdited && name) {
@@ -73,7 +75,7 @@ export default function CreateOrganizationDialog({
   };
 
   const handleCreate = async () => {
-    if (!name.trim() || !slug.trim()) {
+    if (!name.trim() || !slug.trim() || slugError) {
       return;
     }
 
@@ -166,15 +168,19 @@ export default function CreateOrganizationDialog({
                 placeholder="my-organization"
                 value={slug}
                 onChange={(e) => handleSlugChange(e.target.value)}
-                className="bg-accent border-transparent font-mono"
+                className={`bg-accent border-transparent font-mono${slugError ? " border-destructive" : ""}`}
               />
-              <p className="text-xs text-muted-foreground">
-                Your organization will be accessible at{" "}
-                <code className="bg-muted px-1 py-0.5 rounded">
-                  {slug || "your-slug"}.
-                  {process.env.VITE_ROOT_DOMAIN || "sayr.io"}
-                </code>
-              </p>
+              {slugError ? (
+                <p className="text-xs text-destructive">{slugError}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Your organization will be accessible at{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {slug || "your-slug"}.
+                    {import.meta.env.VITE_ROOT_DOMAIN || "sayr.io"}
+                  </code>
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="org-short-id">
@@ -227,7 +233,7 @@ export default function CreateOrganizationDialog({
           <Button
             variant="default"
             onClick={handleCreate}
-            disabled={isFetching || !name.trim() || !slug.trim()}
+            disabled={isFetching || !name.trim() || !slug.trim() || !!slugError}
           >
             {isFetching ? "Creating..." : "Create Organization"}
           </Button>

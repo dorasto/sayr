@@ -22,6 +22,7 @@ import {
 import { Separator } from "@repo/ui/components/separator";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { isSlugBanned } from "@repo/util";
 import { IconCheck, IconPhoto } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
@@ -298,6 +299,7 @@ export default function SettingsOrganizationPage() {
 
   const handleSlugSave = useCallback(async () => {
     if (slug === organization.slug) return;
+    if (isSlugBanned(slug)) return;
 
     setIsSlugSaving(true);
     try {
@@ -414,6 +416,7 @@ export default function SettingsOrganizationPage() {
 
   const nameChanged = name !== organization.name;
   const slugChanged = slug !== organization.slug;
+  const slugError = slugChanged && isSlugBanned(slug) ? "That slug is unavailable" : null;
   const shortIdChanged = orgShortId !== organization.shortId;
   const descriptionChanged = description !== organization.description;
 
@@ -489,8 +492,8 @@ export default function SettingsOrganizationPage() {
             </Label>
           </TileDescription>
         </TileHeader>
-        <TileAction className="w-full">
-          <InputGroup className="bg-accent border-0 shadow-none transition-all">
+        <TileAction className="w-full flex flex-col">
+          <InputGroup className={cn("bg-accent border-0 shadow-none transition-all", slugError && "ring-1 ring-destructive")}>
             <InputGroupInput
               placeholder="My Organization"
               value={slug}
@@ -503,13 +506,16 @@ export default function SettingsOrganizationPage() {
                 variant="ghost"
                 size="icon-sm"
                 onClick={handleSlugSave}
-                disabled={!slugChanged || isSlugSaving}
+                disabled={!slugChanged || isSlugSaving || !!slugError}
                 className={cn(!slugChanged && "opacity-50 text-foreground/0")}
               >
                 <IconCheck />
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
+          {slugError && (
+            <p className="text-xs text-destructive mt-1">{slugError}</p>
+          )}
         </TileAction>
       </Tile>
 
