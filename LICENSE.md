@@ -76,11 +76,7 @@ You may not remove, disable, modify, or circumvent the edition detection, featur
 
 ### Contributions
 
-By submitting a contribution to this repository (including pull requests, patches, code, or documentation), you agree that:
-
-1. Your contribution must be made under a Contributor License Agreement (CLA) signed with Doras Media Ltd. Contributions submitted without a signed CLA will not be accepted.
-2. You assign to Doras Media Ltd all right, title, and interest (including all intellectual property rights) in and to your contribution, to the extent permitted by applicable law.
-3. You represent that you have the right to make this assignment and that your contribution does not infringe the intellectual property rights of any third party.
+By submitting a contribution to this repository, you agree to the terms of the [Contributor License Agreement](./CLA.md). Contributions submitted without a signed CLA will not be accepted.
 
 ### Trademarks
 
