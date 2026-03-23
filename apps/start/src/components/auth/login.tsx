@@ -93,15 +93,19 @@ export function LoginComponent({
     setLastMethod(authClient.getLastUsedLoginMethod());
   }, []);
   useEffect(() => {
-    if (!PublicKeyCredential.isConditionalMediationAvailable ||
-      !PublicKeyCredential.isConditionalMediationAvailable()) {
-      return;
-    }
-    authClient.signIn.passkey().then(e => {
-      if (e.data?.session) {
-        signInEmail();
+    void (async () => {
+      if (
+        typeof PublicKeyCredential === "undefined" ||
+        typeof PublicKeyCredential.isConditionalMediationAvailable !== "function" ||
+        !(await PublicKeyCredential.isConditionalMediationAvailable())
+      ) {
+        return;
       }
-    })
+      const result = await authClient.signIn.passkey();
+      if (result.data?.session) {
+        await signInEmail();
+      }
+    })();
   }, [])
   const handleEmailSubmit = () => {
     if (email) {
