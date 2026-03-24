@@ -10,12 +10,13 @@ export const Route = createFileRoute("/health")({
 				const database = await checkDatabase();
 				const healthy = database.status === "connected";
 
+				const mem = process.memoryUsage();
 				const checks = {
 					status: healthy ? "healthy" : "unhealthy",
 					timestamp: new Date().toISOString(),
 					uptime: process.uptime(),
-					memory: process.memoryUsage(),
-					database,
+					memory: { heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024) },
+					database: { status: database.status === "connected" ? "ok" : "unavailable" },
 					version: process.env.npm_package_version,
 				};
 
@@ -35,10 +36,9 @@ async function checkDatabase() {
 			status: "connected",
 			latency: Date.now() - start,
 		};
-	} catch (error) {
+	} catch {
 		return {
 			status: "error",
-			error: error instanceof Error ? error.message : "Unknown database error",
 		};
 	}
 }
