@@ -81,7 +81,24 @@ app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? 
 app.route("/api/events", sseRoute)
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.route("/render", renderRoute);
-app.get("/api/health", (c) => c.text("OK"));
+app.get("/api/health", async (c) => {
+	const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 2000));
+	let dbOk = false;
+	try {
+		await Promise.race([db.execute(sql`select 1`), timeout]);
+		dbOk = true;
+	} catch {
+		dbOk = false;
+	}
+	const healthy = dbOk;
+	return c.json(
+		{
+			status: healthy ? "healthy" : "unhealthy",
+			checks: { database: dbOk ? "ok" : "unavailable" },
+		},
+		healthy ? 200 : 503
+	);
+});
 app.get("/api/db-health", async (c) => {
 	try {
 		const session = await safeGetSession(c.req.raw.headers);

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 export function CTASection() {
   return (
-    <section className="py-24 px-6 relative">
+    <section className="py-24 px-6 relative overflow-hidden">
       <div className="absolute inset-0">
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/5 rounded-full blur-[100px]" />
       </div>

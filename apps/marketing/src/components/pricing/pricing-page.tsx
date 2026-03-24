@@ -66,6 +66,7 @@ const pricingFaqs = [
 export function PricingPage() {
   const tiers = pricingData.tiers;
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [activeTierId, setActiveTierId] = useState<string>(tiers[0].id);
 
   return (
     <div className="w-full">
@@ -85,62 +86,98 @@ export function PricingPage() {
         </div>
       </section>
 
-      {/* Feature comparison - Linear style */}
+      {/* Feature comparison */}
       <section className="px-6 pb-24">
         <div className="mx-auto max-w-(--breakpoint-lg)">
-          {/* Tier headers */}
-          <div className="grid grid-cols-4 gap-0 sticky top-15 border-b">
-            {tiers.map((tier) => (
-              <div
-                key={tier.id}
-                className={cn(
-                  "px-3 bg-background",
-                  tier.highlighted && "bg-card rounded-t-lg",
-                )}
-              >
-                <div className="flex items-center justify-between h-full p-3">
-                  <h2 className="text-xl! font-semibold ">{tier.name}</h2>
-                </div>
-              </div>
-            ))}
+          {/* Mobile: pill tier selector */}
+          <div className="md:hidden mb-4">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+              {tiers.map((tier) => (
+                <button
+                  key={tier.id}
+                  type="button"
+                  onClick={() => setActiveTierId(tier.id)}
+                  className={cn(
+                    "shrink-0 rounded-full px-4 py-1.5 text-sm font-medium border transition-colors",
+                    activeTierId === tier.id
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border hover:text-foreground",
+                  )}
+                >
+                  {tier.name}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Feature rows */}
-          {pricingData.featureGroups.map((group) => (
-            <div key={group.name}>
-              {/* Group header */}
-              <div className="grid grid-cols-4 gap-0">
-                {tiers.map((tier, i) => (
-                  <div
-                    key={tier.id}
-                    className={cn(
-                      "px-6 py-3 bg-background",
-                      tier.highlighted && "bg-card",
-                    )}
-                  >
-                    {i === 0 && (
-                      <h3 className="text-sm font-semibold text-foreground">
-                        {group.name}
-                      </h3>
-                    )}
+          {/* Mobile: active tier pricing card */}
+          <div className="md:hidden mb-6">
+            {tiers
+              .filter((t) => t.id === activeTierId)
+              .map((tier) => (
+                <div
+                  key={tier.id}
+                  className={cn(
+                    "rounded-xl border p-5",
+                    tier.highlighted ? "bg-card border-primary/30" : "bg-card",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {tier.name}
+                      </p>
+                      {tier.price === null || tier.price === 0 ? (
+                        <p
+                          className="text-2xl font-semibold invisible select-none"
+                          aria-hidden="true"
+                        >
+                          —
+                        </p>
+                      ) : typeof tier.price === "number" ? (
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-semibold">
+                            ${tier.price}
+                          </span>
+                          {tier.priceSuffix && (
+                            <span className="text-sm text-muted-foreground">
+                              {tier.priceSuffix}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-2xl font-semibold">{tier.price}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={tier.highlighted ? "default" : "outline"}
+                      className="rounded-full shrink-0"
+                      asChild
+                    >
+                      <a href={tier.cta.href}>{tier.cta.label}</a>
+                    </Button>
                   </div>
-                ))}
-              </div>
+                  <p className="text-sm text-muted-foreground">
+                    {tier.description}
+                  </p>
+                </div>
+              ))}
+          </div>
 
-              {/* Features */}
-              {group.features.map((feature) => (
-                <div key={feature.name} className="grid grid-cols-4 gap-0">
-                  {tiers.map((tier) => {
+          {/* Mobile: single-column feature list */}
+          <div className="md:hidden">
+            {pricingData.featureGroups.map((group) => (
+              <div key={group.name} className="mb-6">
+                <h3 className="text-sm font-semibold text-foreground px-1 mb-2">
+                  {group.name}
+                </h3>
+                <div className="rounded-xl border bg-card divide-y divide-border overflow-hidden">
+                  {group.features.map((feature) => {
                     const value =
-                      feature.tiers[tier.id as keyof typeof feature.tiers];
+                      feature.tiers[activeTierId as keyof typeof feature.tiers];
                     return (
-                      <div
-                        key={tier.id}
-                        className={cn(
-                          "px-6 py-3 bg-background",
-                          tier.highlighted && "bg-card",
-                        )}
-                      >
+                      <div key={feature.name} className="px-4 py-3">
                         <FeatureValue
                           value={value}
                           featureName={feature.name}
@@ -149,18 +186,116 @@ export function PricingPage() {
                     );
                   })}
                 </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: full comparison grid */}
+          <div className="hidden md:block">
+            {/* Tier headers */}
+            <div className="grid grid-cols-4 gap-0 sticky top-15 border-b">
+              {tiers.map((tier) => (
+                <div
+                  key={tier.id}
+                  className={cn(
+                    "px-3 bg-background",
+                    tier.highlighted && "bg-card rounded-t-lg",
+                  )}
+                >
+                  <div className="flex flex-col gap-1 p-3 pb-4">
+                    <h2 className="text-xl! font-semibold">{tier.name}</h2>
+                    {tier.price === null || tier.price === 0 ? (
+                      <p
+                        className="text-lg font-semibold invisible select-none"
+                        aria-hidden="true"
+                      >
+                        —
+                      </p>
+                    ) : typeof tier.price === "number" ? (
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-semibold">
+                          ${tier.price}
+                        </span>
+                        {tier.priceSuffix && (
+                          <span className="text-xs text-muted-foreground">
+                            {tier.priceSuffix}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-lg font-semibold">{tier.price}</p>
+                    )}
+                    {/*<p className="text-xs text-muted-foreground leading-snug">{tier.description}</p>*/}
+                    <Button
+                      size="sm"
+                      variant={tier.highlighted ? "default" : "outline"}
+                      className="rounded-full mt-2 w-full text-xs"
+                      asChild
+                    >
+                      <a href={tier.cta.href}>{tier.cta.label}</a>
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
-          ))}
 
-          {/* Bottom border for highlighted column */}
-          <div className="grid grid-cols-4 gap-0">
-            {tiers.map((tier) => (
-              <div
-                key={tier.id}
-                className={cn(tier.highlighted && "rounded-b-lg h-4 bg-card")}
-              />
+            {/* Feature rows */}
+            {pricingData.featureGroups.map((group) => (
+              <div key={group.name}>
+                {/* Group header */}
+                <div className="grid grid-cols-4 gap-0">
+                  {tiers.map((tier, i) => (
+                    <div
+                      key={tier.id}
+                      className={cn(
+                        "px-6 py-3 bg-background",
+                        tier.highlighted && "bg-card",
+                      )}
+                    >
+                      {i === 0 && (
+                        <h3 className="text-sm font-semibold text-foreground">
+                          {group.name}
+                        </h3>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Features */}
+                {group.features.map((feature) => (
+                  <div key={feature.name} className="grid grid-cols-4 gap-0">
+                    {tiers.map((tier) => {
+                      const value =
+                        feature.tiers[tier.id as keyof typeof feature.tiers];
+                      return (
+                        <div
+                          key={tier.id}
+                          className={cn(
+                            "px-6 py-3 bg-background",
+                            tier.highlighted && "bg-card",
+                          )}
+                        >
+                          <FeatureValue
+                            value={value}
+                            featureName={feature.name}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             ))}
+
+            {/* Bottom border for highlighted column */}
+            <div className="grid grid-cols-4 gap-0">
+              {tiers.map((tier) => (
+                <div
+                  key={tier.id}
+                  className={cn(tier.highlighted && "rounded-b-lg h-4 bg-card")}
+                />
+              ))}
+            </div>
           </div>
 
           <p className="text-center mt-10 text-sm text-muted-foreground">
