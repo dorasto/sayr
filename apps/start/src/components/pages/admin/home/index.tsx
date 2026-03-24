@@ -27,6 +27,8 @@ import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { useMyTasks } from "@/contexts/ContextMine";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import SayrIcon from "@repo/ui/components/brand-icon";
+import { Separator } from "@repo/ui/components/separator";
 
 // Priority order for sorting tasks
 const priorityOrder: Record<string, number> = {
@@ -148,8 +150,8 @@ export default function AdminHomePage() {
                           {org.name}
                         </TileTitle>
                         <TileDescription className="text-xs">
-                          {orgTaskCount} open task
-                          {orgTaskCount !== 1 ? "s" : ""}{" "}
+                          {orgTaskCount} task
+                          {orgTaskCount !== 1 ? "s" : ""} assigned to you
                         </TileDescription>
                       </div>
                     </TileHeader>
@@ -194,6 +196,33 @@ export default function AdminHomePage() {
             </Tile>
           )}
         </section>
+        <Separator />
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-3 w-full">
+            <a
+              href="https://platform.sayr.io"
+              className="flex-[1_1_calc(33.333%-0.5rem)] min-w-[200px]"
+            >
+              <Tile className="hover:bg-accent md:w-full transition-colors h-full">
+                <TileHeader className="w-full">
+                  <TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
+                    <SayrIcon color="var(--primary)" />
+                  </TileIcon>
+                  <div className="flex-1 min-w-0">
+                    <TileTitle className="font-medium truncate">
+                      Do you have any feedback or bug reports?
+                    </TileTitle>
+                    <TileDescription className="text-xs">
+                      Check out the Sayr board to report issues, submit feature
+                      requests, or keep an eye on what's happening.
+                    </TileDescription>
+                  </div>
+                </TileHeader>
+                <IconChevronRight className="size-4 text-muted-foreground shrink-0" />
+              </Tile>
+            </a>
+          </div>
+        </section>
       </SubWrapper>
     </div>
   );
@@ -219,7 +248,7 @@ function PriorityTaskItem({ task }: PriorityTaskItemProps) {
         className={cn(
           "flex flex-col gap-1.5 p-3 rounded-lg border bg-card hover:bg-accent transition-colors",
           task.priority === "urgent" &&
-          "border-destructive/30 bg-destructive/5 hover:bg-destructive/10",
+            "border-destructive/30 bg-destructive/5 hover:bg-destructive/10",
         )}
       >
         {/* Header row: Org + Task ID + Status/Priority */}
