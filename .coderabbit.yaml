@@ -5,6 +5,7 @@ early_access: true
 
 reviews:
   request_changes_workflow: true
+
   high_level_summary: true
   poem: false
   review_status: true
@@ -12,6 +13,7 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    auto_incremental_review: false
   suggested_labels: false
   auto_apply_labels: false
 
