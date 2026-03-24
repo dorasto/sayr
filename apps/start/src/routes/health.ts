@@ -29,8 +29,10 @@ export const Route = createFileRoute("/health")({
 async function checkDatabase() {
 	const start = Date.now();
 
+	const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 2000));
+
 	try {
-		await db.execute(sql`select 1`);
+		await Promise.race([db.execute(sql`select 1`), timeout]);
 
 		return {
 			status: "connected",
