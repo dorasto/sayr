@@ -14,6 +14,11 @@ zerops:
         - apps/marketing/package.json
         - apps/marketing/node_modules
         - node_modules
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 3000
+          path: /
     run:
       base: nodejs@20
       ports:
@@ -52,6 +57,11 @@ zerops:
         - apps/backend/~package.json
         # workspace node_modules (resolved deps)
         - node_modules
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 5468
+          path: /api/health
     run:
       base: nodejs@22
       os: ubuntu
@@ -96,6 +106,11 @@ zerops:
         # Startup script: placeholder replacement + Nitro manifest size patching
         - apps/start/~zerops-start.sh
         - node_modules
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 3000
+          path: /health
     run:
       base: nodejs@22
       ports:
