@@ -78,7 +78,7 @@ export default function UserDropdown() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg z-[999]"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : "top"}
             align="end"
             sideOffset={4}
           >
