@@ -65,7 +65,7 @@ apiPublicRouteV1.get(
 			},
 			servers: [
 				{
-					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api/public/v1` : `https://api.${process.env.VITE_ROOT_DOMAIN}/v1`}`,
+					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/v1` : `https://api.${process.env.VITE_ROOT_DOMAIN}/v1`}`,
 					description: process.env.APP_ENV === "development" ? "Development" : "Production",
 				},
 			],

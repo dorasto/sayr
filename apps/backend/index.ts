@@ -74,6 +74,54 @@ app.use("*", async (c, next) => {
 });
 app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
 app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
+
+app.use("*", async (c, next) => {
+	const root = process.env.VITE_ROOT_DOMAIN;
+	let apiDomain = `api.${root}`;
+	const host = c.req.header("host");
+
+	// if localhost, force port
+	if (apiDomain.endsWith("localhost")) {
+		apiDomain = `${apiDomain}:5468`;
+	}
+
+	if (host === apiDomain) {
+		const url = new URL(c.req.url);
+		const path = url.pathname;
+
+		if (path.startsWith("/api/public") || path.startsWith("/api/events")) {
+			return next();
+		}
+
+		if (path === "/events") {
+			url.pathname = "/api/events";
+			return app.fetch(
+				new Request(url.toString(), {
+					method: c.req.method,
+					headers: c.req.raw.headers,
+					body: c.req.raw.body
+				})
+			);
+		}
+
+		if (path === "/") {
+			url.pathname = "/api/public";
+		} else {
+			url.pathname = "/api/public" + path;
+		}
+
+		return app.fetch(
+			new Request(url.toString(), {
+				method: c.req.method,
+				headers: c.req.raw.headers,
+				body: c.req.raw.body
+			})
+		);
+	}
+
+	return next();
+});
+
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
