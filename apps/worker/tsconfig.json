@@ -1,10 +1,25 @@
 {
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
+		"types": [
+			"bun"
+		],
 		"paths": {
-			"@/index": ["./index.ts"]
+			"@/index": [
+				"./index.ts"
+			]
 		}
 	},
-	"include": ["routes", "public", "index.ts", "queue.ts", "github", "worker.ts", "tracing.ts"],
-	"exclude": ["node_modules"]
+	"include": [
+		"routes",
+		"public",
+		"index.ts",
+		"queue.ts",
+		"github",
+		"worker.ts",
+		"tracing.ts"
+	],
+	"exclude": [
+		"node_modules"
+	]
 }
