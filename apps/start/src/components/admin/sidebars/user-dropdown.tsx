@@ -26,6 +26,7 @@ import {
   IconExternalLink,
   IconNotification,
   IconSettings,
+  IconShield,
   IconUserCog,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -141,6 +142,14 @@ export default function UserDropdown() {
               </DropdownMenuItem>
             </a>
             <DropdownMenuSeparator className="bg-border" />
+            {account.role === "admin" && (
+              <Link to={"/console"} className="w-full">
+                <DropdownMenuItem>
+                  <IconShield />
+                  Admin console
+                </DropdownMenuItem>
+              </Link>
+            )}
             <DropdownMenuItem
               onClick={async () => {
                 await authClient.signOut();

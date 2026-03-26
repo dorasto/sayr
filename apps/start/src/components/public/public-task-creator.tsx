@@ -55,6 +55,7 @@ import { createPublicTaskAction } from "@/lib/fetches/task";
 import processUploads from "@/components/prosekit/upload";
 import { cn } from "@/lib/utils";
 import RenderIcon from "../generic/RenderIcon";
+import { useIsOrgMember } from "@/hooks/useIsOrgMember";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -124,12 +125,7 @@ export function PublicTaskCreator() {
     };
   }, [organization.settings]);
 
-  const isOrgMember = useMemo(
-    () =>
-      !!session?.user?.id &&
-      organization.members.some((m) => m.user.id === session.user.id),
-    [session?.user?.id, organization.members],
-  );
+  const isOrgMember = useIsOrgMember(organization);
 
   // Signed-in users can create tasks on the public page:
   // - Org members can always create (they have full access)

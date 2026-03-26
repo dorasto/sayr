@@ -246,19 +246,7 @@ export function PrimarySidebar() {
               {isSidebarOpen ? "Collapse" : "Expand"}
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {account.role === "admin" && (
-            <SidebarMenuItem className="min-h-auto">
-              <Link to={"/console"} className="w-full">
-                <SidebarMenuButton
-                  size="small"
-                  icon={<IconShield />}
-                  tooltip="Admin console"
-                >
-                  Admin console
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          )}
+
           <SidebarMenuItem className="min-h-auto">
             <Link to={"/settings"} className="w-full">
               <SidebarMenuButton

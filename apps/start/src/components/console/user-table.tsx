@@ -1,5 +1,3 @@
-"use client";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,7 +55,16 @@ import {
   TableRow,
 } from "@repo/ui/components/table";
 import { cn } from "@repo/ui/lib/utils";
-import { IconCheck, IconX } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconX,
+  IconBrandGithub,
+  IconBrandDiscord,
+  IconBrandSlack,
+  IconLink,
+  IconCrown,
+  IconSettings,
+} from "@tabler/icons-react";
 import {
   type ColumnDef,
   flexRender,
@@ -160,14 +167,91 @@ const columns: ColumnDef<ConsoleUser>[] = [
           </div>
         )}
         <div>
-          <div className="font-medium">{row.getValue("name")}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">{row.getValue("name")}</span>
+            {row.original.role === "admin" && (
+              <span title="Admin" className="text-amber-500">
+                <IconCrown size={13} />
+              </span>
+            )}
+            {row.original.role === "system" && (
+              <span title="System" className="text-blue-500">
+                <IconSettings size={13} />
+              </span>
+            )}
+            {row.original.connections &&
+              row.original.connections.length > 0 && (
+                <span className="flex items-center gap-0.5">
+                  {row.original.connections.map((provider) => {
+                    if (provider === "doras") {
+                      return (
+                        <span
+                          key={provider}
+                          title="Doras"
+                          className="text-muted-foreground"
+                        >
+                          <img
+                            src="https://cdn.doras.to/doras/icon-white.svg"
+                            alt="Doras"
+                            className="size-3"
+                          />
+                        </span>
+                      );
+                    }
+                    if (provider === "github") {
+                      return (
+                        <span
+                          key={provider}
+                          title="GitHub"
+                          className="text-muted-foreground"
+                        >
+                          <IconBrandGithub size={13} />
+                        </span>
+                      );
+                    }
+                    if (provider === "discord") {
+                      return (
+                        <span
+                          key={provider}
+                          title="Discord"
+                          className="text-muted-foreground"
+                        >
+                          <IconBrandDiscord size={13} />
+                        </span>
+                      );
+                    }
+                    if (provider === "slack") {
+                      return (
+                        <span
+                          key={provider}
+                          title="Slack"
+                          className="text-muted-foreground"
+                        >
+                          <IconBrandSlack size={13} />
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <span
+                        key={provider}
+                        title={provider}
+                        className="text-muted-foreground"
+                      >
+                        <IconLink size={13} />
+                      </span>
+                    );
+                  })}
+                </span>
+              )}
+          </div>
           <div className="text-sm text-muted-foreground">
             {row.original.email}
           </div>
         </div>
       </Link>
     ),
-    size: 250,
+    size: 280,
     enableHiding: false,
   },
   {
@@ -177,6 +261,7 @@ const columns: ColumnDef<ConsoleUser>[] = [
       <Badge variant="secondary">{row.original.role || "User"}</Badge>
     ),
     size: 120,
+    enableHiding: true,
   },
   {
     header: "Status",
@@ -208,7 +293,7 @@ const columns: ColumnDef<ConsoleUser>[] = [
     size: 100,
   },
   {
-    header: "Organizations",
+    header: "Orgs",
     accessorKey: "organizationCount",
     cell: ({ row }) => {
       const count = row.original.organizationCount ?? 0;
@@ -270,7 +355,9 @@ export default function UserTable({ initialData }: UserTableProps) {
   useServerEventsSubscription({ serverEvents });
 
   const id = useId();
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    role: false,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

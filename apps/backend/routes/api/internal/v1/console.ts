@@ -120,10 +120,34 @@ apiRouteConsole.get("/users", async (c) => {
 					.limit(limit)
 					.offset(offset);
 
-				// Transform images to CDN URLs
+				// Fetch connected provider IDs for all returned users
+				const userIds = users.map((u) => u.id);
+				const accountRows = userIds.length > 0
+					? await db
+						.select({
+							userId: accountTable.userId,
+							providerId: accountTable.providerId,
+						})
+						.from(accountTable)
+						.where(inArray(accountTable.userId, userIds))
+					: [];
+
+				// Group provider IDs by userId (exclude credential provider)
+				const connectionsByUser = new Map<string, string[]>();
+				for (const row of accountRows) {
+					if (row.providerId === "credential") continue;
+					const existing = connectionsByUser.get(row.userId) ?? [];
+					if (!existing.includes(row.providerId)) {
+						existing.push(row.providerId);
+					}
+					connectionsByUser.set(row.userId, existing);
+				}
+
+				// Transform images to CDN URLs and attach connections
 				const transformedUsers = users.map((u) => ({
 					...u,
 					image: u.image ? ensureCdnUrl(u.image) : null,
+					connections: connectionsByUser.get(u.id) ?? [],
 				}));
 
 				return {
