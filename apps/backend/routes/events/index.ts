@@ -211,25 +211,24 @@ sseRoute.get("/", async (c) => {
     const session = await safeGetSession(c.req.raw.headers);
 
     // Determine authentication
-    let authenticated = false;
-
+    const authenticated = !!session?.session;
     if (!channel || channel === "public") {
         // public channel allowed for everyone
         channel = "public";
-        authenticated = !!session?.session; // authenticated if user logged in
     } else if (orgId) {
-        channel = "user";
         // Non-public channel → must be a valid org and user member
         const org = await safeGetOrganization(orgId, session?.user.id || "");
         if (!org) {
             // block connection
             return c.json({ error: "Unauthorized or org does not exist" }, 403);
         }
-        authenticated = true;
     } else {
         // no org provided for non-public channel → block
 
         return c.json({ error: "Organization required for this channel" }, 400);
+    }
+    if (channel === "public" && !orgId && authenticated) {
+        channel = "user";
     }
 
     const stream = new ReadableStream({
