@@ -76,15 +76,9 @@ app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? 
 app.use("*", async (c, next) => {
 	const root = process.env.VITE_ROOT_DOMAIN;
 	let apiDomain = `api.${root}`;
-	const host = c.req.header("host");
-
+	const { hostname } = new URL(c.req.url);
 	const docs = `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}`;
-
-	if (apiDomain.endsWith("localhost")) {
-		apiDomain = `${apiDomain}:5468`;
-	}
-
-	if (host === apiDomain) {
+	if (hostname === apiDomain) {
 		const url = new URL(c.req.url);
 		const method = c.req.method;
 		const path = url.pathname;
