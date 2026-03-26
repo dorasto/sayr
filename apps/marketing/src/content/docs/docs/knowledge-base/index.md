@@ -17,8 +17,8 @@ Welcome to the Sayr Knowledge Base. Here you'll find answers to frequently asked
 If you can't find an answer to your question:
 
 1. **Search the docs** — Use the search bar at the top of the page
-2. **Check GitHub Issues** — Someone may have already asked: [github.com/dorasto/sayr/issues](https://github.com/dorasto/sayr/issues)
-3. **Ask the community** — Open a new discussion or issue on GitHub
+2. **Check our board** — We use Sayr to build Sayr! [Check out our board](https://platform.sayr.io)
+3. **Ask the community** — Start a discussion on our [board](https://platform.sayr.io) or join us on [Discord](https://doras.to/discord)
 
 ## Contributing to the Knowledge Base
 

@@ -34,8 +34,8 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
     if (Number.isNaN(Number(params.shortId))) {
       throw redirect({
         to: "/orgs/$orgSlug",
-        params: { orgSlug: slug }
-      })
+        params: { orgSlug: slug },
+      });
     }
     return await fetchPublicTask({
       data: {
@@ -52,11 +52,11 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
         : "Task Not Available",
       image: loaderData?.task
         ? getOgImageUrl({
-          title: loaderData.task.title || undefined,
-          subtitle: `#${loaderData.task.shortId}`,
-          meta: loaderData.org?.name || undefined,
-          logo: loaderData.org?.logo || undefined,
-        })
+            title: loaderData.task.title || undefined,
+            subtitle: `#${loaderData.task.shortId}`,
+            meta: loaderData.org?.name || undefined,
+            logo: loaderData.org?.logo || undefined,
+          })
         : undefined,
     }),
   }),

@@ -29,6 +29,7 @@ export type ConsoleUser = {
 	banReason?: string | null;
 	banExpires?: string | Date | null;
 	organizationCount: number;
+	connections?: string[];
 };
 
 export type ConsoleUsersParams = {

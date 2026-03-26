@@ -17,6 +17,7 @@ import {
   IconLayoutSidebar,
   IconLayoutSidebarFilled,
   IconPlus,
+  IconQuestionMark,
   IconSearch,
   IconSettings,
   IconShield,
@@ -246,29 +247,17 @@ export function PrimarySidebar() {
               {isSidebarOpen ? "Collapse" : "Expand"}
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {account.role === "admin" && (
-            <SidebarMenuItem className="min-h-auto">
-              <Link to={"/console"} className="w-full">
-                <SidebarMenuButton
-                  size="small"
-                  icon={<IconShield />}
-                  tooltip="Admin console"
-                >
-                  Admin console
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          )}
+
           <SidebarMenuItem className="min-h-auto">
-            <Link to={"/settings"} className="w-full">
+            <a href={"https://platform.sayr.io"} className="w-full">
               <SidebarMenuButton
                 size="small"
-                icon={<IconSettings />}
-                tooltip="Settings"
+                icon={<IconQuestionMark />}
+                tooltip="Feedback"
               >
-                Settings
+                Feedback
               </SidebarMenuButton>
-            </Link>
+            </a>
           </SidebarMenuItem>
           <UserDropdown />
         </SidebarMenu>

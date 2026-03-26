@@ -26,6 +26,7 @@ import {
   IconExternalLink,
   IconNotification,
   IconSettings,
+  IconShield,
   IconUserCog,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -40,6 +41,7 @@ import {
 import { useLayoutData } from "@/components/generic/Context";
 import { getDisplayName } from "@repo/util";
 import { useTheme } from "@/components/theme-provider";
+import SayrIcon from "@repo/ui/components/brand-icon";
 // import { UserUpdate } from "@/app/components/admin/user/update"; // TODO: Port this component
 
 export default function UserDropdown() {
@@ -77,7 +79,7 @@ export default function UserDropdown() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg z-[999]"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : "top"}
             align="end"
             sideOffset={4}
           >
@@ -107,43 +109,47 @@ export default function UserDropdown() {
                 </DropdownMenuItem>
               </Link>
             </DropdownMenuGroup>
-            <DropdownMenuGroup>
-              <Link to={"/inbox"} className="w-full">
-                <DropdownMenuItem>
-                  <IconNotification />
-                  Notifications
-                </DropdownMenuItem>
-              </Link>
-            </DropdownMenuGroup>
+
             <DropdownMenuItem
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
               {theme === "dark" ? <Sun /> : <Moon />}
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </DropdownMenuItem>
+            <a href={"https://platform.sayr.io"} className="w-full">
+              <DropdownMenuItem>
+                <SayrIcon color="var(--primary)" />
+                Sayr Project Board
+              </DropdownMenuItem>
+            </a>
             <DropdownMenuSeparator className="bg-border" />
-            <a href={"https://github.com/dorasto/sayr"} className="w-full">
+            <a href={"https://platform.sayr.io"} className="w-full">
               <DropdownMenuItem>
                 <IconBrandGithub />
                 GitHub
-                <IconExternalLink className="ml-auto" />
               </DropdownMenuItem>
             </a>
             <a href={"https://sayr.io/docs"} className="w-full">
               <DropdownMenuItem>
                 <IconBook />
                 Documentation
-                <IconExternalLink className="ml-auto" />
               </DropdownMenuItem>
             </a>
             <a href={"https://doras.to/discord"} className="w-full">
               <DropdownMenuItem>
                 <IconBrandDiscord />
                 Discord
-                <IconExternalLink className="ml-auto" />
               </DropdownMenuItem>
             </a>
             <DropdownMenuSeparator className="bg-border" />
+            {account.role === "admin" && (
+              <Link to={"/console"} className="w-full">
+                <DropdownMenuItem>
+                  <IconShield />
+                  Admin console
+                </DropdownMenuItem>
+              </Link>
+            )}
             <DropdownMenuItem
               onClick={async () => {
                 await authClient.signOut();

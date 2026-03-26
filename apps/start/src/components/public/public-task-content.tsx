@@ -1,37 +1,28 @@
 import type { schema } from "@repo/database";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@repo/ui/components/avatar";
-import {
   Tile,
   TileHeader,
   TileIcon,
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@repo/ui/components/tooltip";
-import {
   useStateManagement,
   useStateManagementFetch,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { Button } from "@repo/ui/components/button";
+import { extractHslValues, generateSlug } from "@repo/util";
 import {
-  extractHslValues,
-  formatDateCompact,
-  generateSlug,
-  getDisplayName,
-} from "@repo/util";
-import { IconChevronUp, IconCircleFilled, IconTag } from "@tabler/icons-react";
+  IconArrowUpRight,
+  IconChevronUp,
+  IconCircleFilled,
+  IconTag,
+} from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { lazy, useState, useEffect, Suspense } from "react";
-import { authClient } from "@repo/auth/client";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { useIsOrgMember } from "@/hooks/useIsOrgMember";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import RenderIcon from "@/components/generic/RenderIcon";
 
@@ -69,7 +60,7 @@ export function PublicTaskContent({
     usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-  const { data: session } = authClient.useSession();
+  const isMember = useIsOrgMember(organization);
 
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
   const orgSlugMatch = rawPathname.match(/^\/orgs\/([^/]+)/);
@@ -223,7 +214,27 @@ export function PublicTaskContent({
       setOpen={setPanelOpen}
       panelDefaultSize={28}
       panelMinSize={20}
-      panelHeader={<Label className="text-sm font-semibold">Details</Label>}
+      panelHeader={
+        <div className="flex items-center gap-3 justify-between w-full">
+          <Label className="text-sm font-semibold">Details</Label>
+          {isMember && (
+            <a
+              href={`${import.meta.env.VITE_URL_ROOT}/${organization.id}/tasks/${task.shortId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 text-xs text-muted-foreground"
+              >
+                <IconArrowUpRight className="" />
+                Open internally
+              </Button>
+            </a>
+          )}
+        </div>
+      }
       panelBody={
         <div className="flex flex-col gap-0">
           <div className="flex flex-col gap-1 p-1">

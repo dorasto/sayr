@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import Waitlist from "./waitlist";
+import SayrIcon from "@repo/ui/components/brand-icon";
 
 /* ── Status Config ── */
 
@@ -792,17 +793,13 @@ export function HeroSection() {
             </a>
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="lg"
             className="rounded-full text-base shadow-none"
             asChild
           >
-            <a
-              href="https://github.com/dorasto/sayr"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Github className="size-4" /> View Source
+            <a href="https://platform.sayr.io">
+              <SayrIcon className="size-4" /> Project Board
             </a>
           </Button>
         </motion.div>

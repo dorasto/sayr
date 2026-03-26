@@ -1,6 +1,7 @@
-import { getOrganization, getTaskByShortId, type schema } from "@repo/database";
-import { redirect } from "@tanstack/react-router";
+import { db, getOrganization, getTaskByShortId, type schema } from "@repo/database";
+import { isRedirect, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { eq } from "drizzle-orm";
 
 export const getAdminOrganizationTask = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType; orgId: string; taskShortId: number }) => data)
@@ -13,8 +14,16 @@ export const getAdminOrganizationTask = createServerFn({ method: "GET" })
 			}
 			const organization = await getOrganization(orgId, account.id, { blockOrgUnseated: true });
 			if (!organization) {
-				console.log("🚀 ~ organization:", organization);
-				throw redirect({ to: "/" });
+				// Distinguish between org not existing and user not being a member
+				const bareOrg = await db.query.organization.findFirst({
+					where: (org) => eq(org.id, orgId),
+					columns: { slug: true },
+				});
+				if (!bareOrg) {
+					throw redirect({ to: "/" });
+				}
+				// Org exists but user is not a member — send to the public task page
+				throw redirect({ href: `https://${bareOrg.slug}.${process.env.VITE_ROOT_DOMAIN}/${taskShortId}` });
 			}
 			const task = await getTaskByShortId(organization.id, taskShortId);
 			if (!task) {
@@ -24,9 +33,8 @@ export const getAdminOrganizationTask = createServerFn({ method: "GET" })
 			}
 			return { task, orgName: organization.name, orgSlug: organization.slug, orgLogo: organization.logo };
 		} catch (error) {
-			console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it
-			if (error && typeof error === "object" && "redirect" in error) {
+			if (isRedirect(error)) {
 				throw error;
 			}
 			throw redirect({ to: "/" });

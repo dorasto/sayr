@@ -10,6 +10,7 @@ import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { authClient } from "@repo/auth/client";
 import type { MentionContext } from "@/hooks/useMentionUsers";
+import { useIsOrgMember } from "@/hooks/useIsOrgMember";
 import {
   CreateTaskCommentAction,
   CreateTaskReactionAction,
@@ -137,10 +138,7 @@ export function PublicComments({
   );
 
   // Check if the current viewer is an org member
-  const isOrgMember = useMemo(
-    () => !!session?.user?.id && organization.members.some((m) => m.user.id === session.user.id),
-    [session?.user?.id, organization.members],
-  );
+  const isOrgMember = useIsOrgMember(organization);
 
   /**
    * Whether the current user can perform write actions (comment, react, reply, edit, delete).

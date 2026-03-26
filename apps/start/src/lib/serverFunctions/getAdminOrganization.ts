@@ -1,5 +1,5 @@
 import { db, getIssueTemplates, getLabels, getOrganization, getReleases, schema } from "@repo/database";
-import { redirect } from "@tanstack/react-router";
+import { isRedirect, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 
@@ -13,7 +13,15 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			}
 			const organization = await getOrganization(orgId, account.id, { blockOrgUnseated: true });
 			if (!organization) {
-				throw redirect({ to: "/" });
+				// Distinguish between org not existing and user not being a member
+				const bareOrg = await db.query.organization.findFirst({
+					where: (org) => eq(org.id, orgId),
+					columns: { slug: true },
+				});
+				if (!bareOrg) {
+					throw redirect({ to: "/" });
+				}
+				throw redirect({ href: `https://${bareOrg.slug}.${process.env.VITE_ROOT_DOMAIN}` });
 			}
 			const labels = await getLabels(organization.id);
 			const views = await db
@@ -27,9 +35,8 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			const releases = await getReleases(organization.id);
 			return { organization, labels, views, categories, issueTemplates, releases, permissions };
 		} catch (error) {
-			// console.log("🚀 ~ error:", error);
 			// If it's already a redirect, re-throw it
-			if (error && typeof error === "object" && "redirect" in error) {
+			if (isRedirect(error)) {
 				throw error;
 			}
 			throw redirect({ to: "/" });
