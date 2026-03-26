@@ -858,7 +858,7 @@ apiPublicRouteV1.get(
 		}
 
 		if (!org.settings?.enablePublicPage) {
-			return c.json(errorResponse("Organization not available"), 403);
+			return c.json(errorResponse("Organization not available"), 404);
 		}
 
 		const releases = await getReleases(org.id);
@@ -896,7 +896,7 @@ apiPublicRouteV1.get(
 		}
 
 		if (!org.settings?.enablePublicPage) {
-			return c.json(errorResponse("Organization not available"), 403);
+			return c.json(errorResponse("Organization not available"), 404);
 		}
 
 		const release = await getReleaseBySlug(org.id, release_slug);
