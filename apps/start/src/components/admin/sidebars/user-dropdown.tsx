@@ -116,7 +116,7 @@ export default function UserDropdown() {
               {theme === "dark" ? <Sun /> : <Moon />}
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </DropdownMenuItem>
-            <a href={"https://github.com/dorasto/sayr"} className="w-full">
+            <a href={"https://platform.sayr.io"} className="w-full">
               <DropdownMenuItem>
                 <SayrIcon color="var(--primary)" />
                 Sayr Project Board

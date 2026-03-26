@@ -1,4 +1,3 @@
-"use client";
 import type { schema } from "@repo/database";
 import {
   Avatar,
@@ -33,6 +32,7 @@ import {
   IconProgress,
   IconRocket,
   IconSettings,
+  IconSparkles,
   IconStack2,
   IconUsers,
 } from "@tabler/icons-react";
@@ -140,12 +140,19 @@ export default function OrgSection({
               }
               // tooltip={item.title}
             >
-              {organization.name}
+              <span className="w-full flex flex-row items-center gap-3">
+                {organization.name}{" "}
+                <span className="">
+                  {organization.plan == "pro" && (
+                    <IconSparkles className="size-4 text-primary" />
+                  )}
+                </span>
+              </span>
             </SidebarMenuButton>
           </Link>
           {renderDropdown({
             customTrigger: (
-              <SidebarMenuSub className="h-3">
+              <SidebarMenuSub className="h-3 shrink-0">
                 <SidebarMenuButton
                   icon={
                     <IconDots

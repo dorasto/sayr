@@ -17,6 +17,7 @@ import {
   IconLayoutSidebar,
   IconLayoutSidebarFilled,
   IconPlus,
+  IconQuestionMark,
   IconSearch,
   IconSettings,
   IconShield,
@@ -248,15 +249,15 @@ export function PrimarySidebar() {
           </SidebarMenuItem>
 
           <SidebarMenuItem className="min-h-auto">
-            <Link to={"/settings"} className="w-full">
+            <a href={"https://platform.sayr.io"} className="w-full">
               <SidebarMenuButton
                 size="small"
-                icon={<IconSettings />}
-                tooltip="Settings"
+                icon={<IconQuestionMark />}
+                tooltip="Feedback"
               >
-                Settings
+                Feedback
               </SidebarMenuButton>
-            </Link>
+            </a>
           </SidebarMenuItem>
           <UserDropdown />
         </SidebarMenu>

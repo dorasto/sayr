@@ -23,7 +23,13 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { ImageCrop } from "@repo/ui/components/image-crop";
-import { IconTrash, IconAlertTriangle } from "@tabler/icons-react";
+import {
+  IconTrash,
+  IconAlertTriangle,
+  IconCheck,
+  IconPhoto,
+  IconChevronDown,
+} from "@tabler/icons-react";
 import { Input } from "@repo/ui/components/input";
 import {
   InputGroup,
@@ -33,20 +39,28 @@ import {
 } from "@repo/ui/components/input-group";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { IconCheck, IconPhoto } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { updateUserAction, uploadUserProfilePicture, deleteUserAction } from "@/lib/fetches/user";
+import {
+  updateUserAction,
+  uploadUserProfilePicture,
+  deleteUserAction,
+} from "@/lib/fetches/user";
 import { handleFileValidation } from "@/lib/utils/file-validation";
 import { useTheme } from "@/components/theme-provider";
-import { DarkModeToggle } from "@/components/dark-mode-toggle";
-import { Switch } from "@repo/ui/components/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import { Button } from "@repo/ui/components/button";
 import { useStore } from "@tanstack/react-store";
 import {
   userPreferencesStore,
   userPreferencesActions,
 } from "@/lib/stores/user-preferences-store";
-import { Button } from "@repo/ui/components/button";
 
 /**
  * Props for the standalone UserSettingsContent component.
@@ -334,7 +348,10 @@ export function UserSettingsContent({
                   </Label>
                   <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                     <li>Transfer ownership of any organizations you own</li>
-                    <li>You will lose access to all organizations you are a member of</li>
+                    <li>
+                      You will lose access to all organizations you are a member
+                      of
+                    </li>
                     <li>All your assets will be permanently deleted</li>
                   </ul>
                 </div>
@@ -400,10 +417,25 @@ export function UserPreferences() {
           <TileTitle>Theme</TileTitle>
         </TileHeader>
         <TileAction>
-          <DarkModeToggle
-            theme={theme}
-            onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
-          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="primary" size="sm" className="capitalize">
+                {theme}
+                <IconChevronDown className="size-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={theme}
+                onValueChange={(v) => setTheme(v as typeof theme)}
+              >
+                <DropdownMenuRadioItem value="light">
+                  Light
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </TileAction>
       </Tile>
       <Tile className="md:w-full">
@@ -414,19 +446,27 @@ export function UserPreferences() {
           </TileDescription>
         </TileHeader>
         <TileAction>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={taskOpenMode === "dialog"}
-              onCheckedChange={(checked) =>
-                userPreferencesActions.setTaskOpenMode(
-                  checked ? "dialog" : "page",
-                )
-              }
-            />
-            <span className="text-sm text-muted-foreground">
-              {taskOpenMode === "dialog" ? "Dialog" : "Page"}
-            </span>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="primary" size="sm" className="capitalize">
+                {taskOpenMode}
+                <IconChevronDown className="size-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={taskOpenMode}
+                onValueChange={(v) =>
+                  userPreferencesActions.setTaskOpenMode(v as "dialog" | "page")
+                }
+              >
+                <DropdownMenuRadioItem value="dialog">
+                  Dialog
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="page">Page</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </TileAction>
       </Tile>
     </div>
