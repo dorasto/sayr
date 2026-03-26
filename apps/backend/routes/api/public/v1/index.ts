@@ -24,7 +24,7 @@ import { prosekitJSONToHTML } from "@/prosekit/html";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 import { openAPIRouteHandler } from "hono-openapi";
 import { auth } from "@repo/auth";
-
+import { Route as apiPublicMeV1 } from "./me";
 const API_LIMITS = {
 	comments: 30,
 	tasks: 50,
@@ -72,6 +72,8 @@ apiPublicRouteV1.get(
 		},
 	})
 );
+apiPublicRouteV1.route("/me", apiPublicMeV1);
+
 
 /**
  * Public user inside organization member
@@ -831,254 +833,111 @@ apiPublicRouteV1.get(
 		}
 	}
 );
-
 //@ts-expect-error
-const PublicUserSchema = createSelectSchema(authSchema.user)
-	.pick({
-		id: true,
-		name: true,
-		email: true,
-		image: true,
-		createdAt: true,
-	})
+const Releaseschema = createSelectSchema(schema.release)
+	.omit({})
 	.extend({
 		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+		targetDate: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+		releasedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 	});
-apiPublicRouteV1.get(
-	"/me",
-	describeOkNotFound({
-		summary: "Get User Info",
-		description: "Retrieve information about the authenticated user.",
-		dataSchema: PublicUserSchema,
-		tags: ["User"],
-		security: [{ bearerAuth: [] }],
-	}),
-	async (c) => {
-		const traceAsync = createTraceAsync();
-		const recordWideError = c.get("recordWideError");
-
-		const authHeader = c.req.header("authorization");
-		const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
-
-		if (!token) {
-			return c.json(errorResponse("Unauthorized"), 401);
-		}
-
-		const apiKeyResult = await traceAsync(
-			"auth.apikey.verify",
-			() =>
-				auth.api.verifyApiKey({
-					body: {
-						key: token,
-					},
-				}),
-			{
-				description: "Verifying API key",
-				onSuccess: () => ({
-					outcome: "API key verified",
-				}),
-			}
-		);
-
-		if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
-			return c.json(errorResponse("Invalid API key"), 401);
-		}
-
-		const user = await traceAsync(
-			"me.public.fetch",
-			() =>
-				db.query.user.findFirst({
-					where: (u) => eq(u.id, apiKeyResult.key?.userId || ""),
-				}),
-			{
-				description: "Fetching public user info",
-				data: { userId: apiKeyResult.key.userId },
-				onSuccess: () => ({
-					outcome: "Public user info fetched",
-				}),
-			}
-		);
-
-		if (!user) {
-			await recordWideError({
-				name: "me.public.notfound",
-				error: new Error("User not found"),
-				code: "NOT_FOUND",
-				message: "No user found for API key owner",
-				contextData: {
-					userId: apiKeyResult.key.userId,
-				},
-			});
-
-			return c.json(errorResponse("No user found"), 404);
-		}
-
-		return c.json(
-			successResponse({
-				id: user.id,
-				name: user.name,
-				email: user.email,
-				image: user.image,
-				createdAt: user.createdAt.toISOString(),
-			})
-		);
-	}
-);
-
-apiPublicRouteV1.get(
-	"/me/organizations",
-	describeOkNotFound({
-		summary: "Get Users Organizations",
-		description: "Retrieve organizations associated with the authenticated user.",
-		dataSchema: z.array(OrganizationSchema),
-		tags: ["User"],
-		security: [{ bearerAuth: [] }],
-	}),
-	async (c) => {
-		const traceAsync = createTraceAsync();
-
-		const authHeader = c.req.header("authorization");
-		const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
-
-		if (!token) {
-			return c.json(errorResponse("Unauthorized"), 401);
-		}
-
-		const apiKeyResult = await traceAsync(
-			"auth.apikey.verify",
-			() =>
-				auth.api.verifyApiKey({
-					body: {
-						key: token,
-					},
-				}),
-			{
-				description: "Verifying API key",
-				onSuccess: () => ({
-					outcome: "API key verified",
-				}),
-			}
-		);
-
-		if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
-			return c.json(errorResponse("Invalid API key"), 401);
-		}
-
-		const organizations = await traceAsync(
-			"me.public.organizations.fetch",
-			() => getOrganizations(apiKeyResult.key?.userId || ""),
-			{
-				description: "Fetching user's organizations",
-				data: { userId: apiKeyResult.key.userId },
-				onSuccess: () => ({
-					outcome: "User's organizations fetched",
-				}),
-			}
-		);
-
-		return c.json(
-			successResponse(
-				organizations.map((org) => {
-					const { privateId, ...publicOrg } = org;
-					return {
-						...publicOrg,
-						members: org.members.map((member) => ({
-							id: member.id,
-							userId: member.userId,
-							organizationId: member.organizationId,
-							createdAt: member.createdAt,
-							user: {
-								id: member.user.id,
-								name: member.user.name,
-								image: member.user.image,
-								createdAt: member.user.createdAt,
-							},
-						})),
-						eventsUrl: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/events?orgId=${publicOrg.id}&ref=publicApi`,
-					};
-				})
-			)
-		);
-	}
-);
-
 /**
  * GET /organization/:org_slug/releases
  * Returns all releases for an org (non-archived first, archived last).
  */
-apiPublicRouteV1.get("/organization/:org_slug/releases", async (c) => {
-	const { org_slug } = c.req.param();
+apiPublicRouteV1.get(
+	"/organization/:org_slug/releases",
+	describeOkNotFound({
+		summary: "Get Organization Releases",
+		description: "Retrieve all releases for the specified organization.",
+		dataSchema: z.array(Releaseschema),
+		tags: ["Organization"],
+	}),
+	async (c) => {
+		const { org_slug } = c.req.param();
 
-	const org = await getOrganizationPublic(org_slug);
-	if (!org) {
-		return c.json(errorResponse("Organization not found"), 404);
-	}
+		const org = await getOrganizationPublic(org_slug);
+		if (!org) {
+			return c.json(errorResponse("Organization not found"), 404);
+		}
 
-	if (!org.settings?.enablePublicPage) {
-		return c.json(errorResponse("Organization not available"), 403);
-	}
+		if (!org.settings?.enablePublicPage) {
+			return c.json(errorResponse("Organization not available"), 403);
+		}
 
-	const releases = await getReleases(org.id);
+		const releases = await getReleases(org.id);
 
-	// Sort: non-archived first (preserving existing order), archived last
-	const sorted = [
-		...releases.filter((r) => r.status !== "archived"),
-		...releases.filter((r) => r.status === "archived"),
-	];
+		// Sort: non-archived first (preserving existing order), archived last
+		const sorted = [
+			...releases.filter((r) => r.status !== "archived"),
+			...releases.filter((r) => r.status === "archived"),
+		];
 
-	return c.json(successResponse(sorted));
-});
+		return c.json(successResponse(sorted));
+	});
 
 /**
  * GET /organization/:org_slug/releases/:release_slug
  * Returns a single release with its public tasks.
  */
-apiPublicRouteV1.get("/organization/:org_slug/releases/:release_slug", async (c) => {
-	const { org_slug, release_slug } = c.req.param();
+apiPublicRouteV1.get(
+	"/organization/:org_slug/releases/:release_slug",
+	describeOkNotFound({
+		summary: "Get Release",
+		description: "Retrieve the specified release for the organization.",
+		dataSchema: z.object({
+			...Releaseschema.shape,
+			tasks: z.array(TaskSchema)
+		}),
+		tags: ["Organization"]
+	}),
+	async (c) => {
+		const { org_slug, release_slug } = c.req.param();
 
-	const org = await getOrganizationPublic(org_slug);
-	if (!org) {
-		return c.json(errorResponse("Organization not found"), 404);
-	}
+		const org = await getOrganizationPublic(org_slug);
+		if (!org) {
+			return c.json(errorResponse("Organization not found"), 404);
+		}
 
-	if (!org.settings?.enablePublicPage) {
-		return c.json(errorResponse("Organization not available"), 403);
-	}
+		if (!org.settings?.enablePublicPage) {
+			return c.json(errorResponse("Organization not available"), 403);
+		}
 
-	const release = await getReleaseBySlug(org.id, release_slug);
-	if (!release) {
-		return c.json(errorResponse("Release not found"), 404);
-	}
+		const release = await getReleaseBySlug(org.id, release_slug);
+		if (!release) {
+			return c.json(errorResponse("Release not found"), 404);
+		}
 
-	// Fetch tasks for this release, public visibility only
-	const tasks = await db.query.task.findMany({
-		where: (t, { and, eq }) => and(eq(t.releaseId, release.id), eq(t.visible, "public")),
-		with: {
-			labels: {
-				with: {
-					label: true,
+		// Fetch tasks for this release, public visibility only
+		const tasks = await db.query.task.findMany({
+			where: (t) => and(eq(t.releaseId, release.id), eq(t.visible, "public")),
+			with: {
+				labels: {
+					with: {
+						label: true,
+					},
 				},
-			},
-			assignees: {
-				with: {
-					user: {
-						columns: userSummaryColumns,
+				assignees: {
+					with: {
+						user: {
+							columns: userSummaryColumns,
+						},
 					},
 				},
 			},
-		},
+		});
+
+		const tasksWithLabels = tasks.map((task) => ({
+			...task,
+			labels: task.labels.map((l) => l.label),
+			assignees: task.assignees.map((a) => a.user),
+		}));
+
+		return c.json(
+			successResponse({
+				...release,
+				tasks: tasksWithLabels,
+			})
+		);
 	});
-
-	const tasksWithLabels = tasks.map((task) => ({
-		...task,
-		labels: task.labels.map((l) => l.label),
-		assignees: task.assignees.map((a) => a.user),
-	}));
-
-	return c.json(
-		successResponse({
-			...release,
-			tasks: tasksWithLabels,
-		})
-	);
-});
