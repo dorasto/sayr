@@ -1,14 +1,11 @@
 import {
 	db,
 	getBlockedUserIds,
-	getLabels,
 	getOrganizationPublic,
 	getTaskByShortId,
 	getReleases,
 	getReleaseBySlug,
 	schema,
-	auth as authSchema,
-	getOrganizations,
 	userSummaryColumns,
 } from "@repo/database";
 import { and, eq, notInArray, sql } from "drizzle-orm";
@@ -23,7 +20,6 @@ import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { prosekitJSONToHTML } from "@/prosekit/html";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 import { openAPIRouteHandler } from "hono-openapi";
-import { auth } from "@repo/auth";
 import { Route as apiPublicMeV1 } from "./me";
 const API_LIMITS = {
 	comments: 30,
@@ -72,7 +68,6 @@ apiPublicRouteV1.get(
 		},
 	})
 );
-apiPublicRouteV1.route("/me", apiPublicMeV1);
 
 
 /**
@@ -941,3 +936,6 @@ apiPublicRouteV1.get(
 			})
 		);
 	});
+
+//ME routes
+apiPublicRouteV1.route("/me", apiPublicMeV1);

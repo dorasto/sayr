@@ -1536,6 +1536,573 @@
                 }
             }
         },
+        "/organization/{org_slug}/releases": {
+            "get": {
+                "operationId": "getOrganization:org_slugReleases",
+                "summary": "Get Organization Releases",
+                "description": "Retrieve all releases for the specified organization.",
+                "tags": [
+                    "Organization"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "organizationId": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "slug": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "anyOf": [
+                                                            {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "type": "number"
+                                                                            },
+                                                                            {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "type": "object",
+                                                                        "propertyNames": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "additionalProperties": {}
+                                                                    },
+                                                                    {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "planned",
+                                                            "in-progress",
+                                                            "released",
+                                                            "archived"
+                                                        ]
+                                                    },
+                                                    "targetDate": {
+                                                        "type": "string"
+                                                    },
+                                                    "releasedAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "color": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "icon": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "createdBy": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "updatedAt": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "organizationId",
+                                                    "name",
+                                                    "slug",
+                                                    "description",
+                                                    "status",
+                                                    "targetDate",
+                                                    "releasedAt",
+                                                    "color",
+                                                    "icon",
+                                                    "createdBy",
+                                                    "createdAt",
+                                                    "updatedAt"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "org_slug",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        "/organization/{org_slug}/releases/{release_slug}": {
+            "get": {
+                "operationId": "getOrganization:org_slugReleases:release_slug",
+                "summary": "Get Release",
+                "description": "Retrieve the specified release for the organization.",
+                "tags": [
+                    "Organization"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "organizationId": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "slug": {
+                                                    "type": "string"
+                                                },
+                                                "description": {
+                                                    "anyOf": [
+                                                        {
+                                                            "anyOf": [
+                                                                {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "number"
+                                                                        },
+                                                                        {
+                                                                            "type": "boolean"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "propertyNames": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "additionalProperties": {}
+                                                                },
+                                                                {
+                                                                    "type": "array",
+                                                                    "items": {}
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "planned",
+                                                        "in-progress",
+                                                        "released",
+                                                        "archived"
+                                                    ]
+                                                },
+                                                "targetDate": {
+                                                    "type": "string"
+                                                },
+                                                "releasedAt": {
+                                                    "type": "string"
+                                                },
+                                                "color": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "icon": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "createdBy": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "createdAt": {
+                                                    "type": "string"
+                                                },
+                                                "updatedAt": {
+                                                    "type": "string"
+                                                },
+                                                "tasks": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "organizationId": {
+                                                                "type": "string"
+                                                            },
+                                                            "shortId": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "integer",
+                                                                        "minimum": -2147483648,
+                                                                        "maximum": 2147483647
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "visible": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "public",
+                                                                    "private"
+                                                                ]
+                                                            },
+                                                            "createdAt": {
+                                                                "type": "string"
+                                                            },
+                                                            "updatedAt": {
+                                                                "type": "string"
+                                                            },
+                                                            "title": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "description": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "number"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "boolean"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "type": "object",
+                                                                                "propertyNames": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "additionalProperties": {}
+                                                                            },
+                                                                            {
+                                                                                "type": "array",
+                                                                                "items": {}
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "backlog",
+                                                                    "todo",
+                                                                    "in-progress",
+                                                                    "done",
+                                                                    "canceled"
+                                                                ]
+                                                            },
+                                                            "priority": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "none",
+                                                                    "low",
+                                                                    "medium",
+                                                                    "high",
+                                                                    "urgent"
+                                                                ]
+                                                            },
+                                                            "createdBy": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "category": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "releaseId": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "voteCount": {
+                                                                "type": "integer",
+                                                                "minimum": -2147483648,
+                                                                "maximum": 2147483647
+                                                            },
+                                                            "parentId": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "descriptionHtml": {
+                                                                "type": "string"
+                                                            },
+                                                            "descriptionMarkdown": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "organizationId",
+                                                            "shortId",
+                                                            "visible",
+                                                            "createdAt",
+                                                            "updatedAt",
+                                                            "title",
+                                                            "description",
+                                                            "status",
+                                                            "priority",
+                                                            "createdBy",
+                                                            "category",
+                                                            "releaseId",
+                                                            "voteCount",
+                                                            "parentId",
+                                                            "descriptionHtml",
+                                                            "descriptionMarkdown"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "organizationId",
+                                                "name",
+                                                "slug",
+                                                "description",
+                                                "status",
+                                                "targetDate",
+                                                "releasedAt",
+                                                "color",
+                                                "icon",
+                                                "createdBy",
+                                                "createdAt",
+                                                "updatedAt",
+                                                "tasks"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "org_slug",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "release_slug",
+                        "required": true
+                    }
+                ]
+            }
+        },
         "/me": {
             "get": {
                 "operationId": "getMe",
