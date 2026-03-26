@@ -31,7 +31,7 @@ export const polarClient = polarBillingEnabled
 		accessToken: process.env.POLAR_ACCESS_TOKEN,
 	})
 	: null;
-const plugins: any[] = [
+const plugins = [
 	lastLoginMethod({
 		storeInDatabase: true
 	}),
@@ -86,6 +86,7 @@ if (polarBillingEnabled) {
 	}
 
 	plugins.push(
+		//@ts-expect-error
 		polar({
 			client: polarClient,
 			createCustomerOnSignUp: true,

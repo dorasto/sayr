@@ -9,14 +9,12 @@ import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { apiRoute } from "./routes/api";
 import { webhookRoute } from "./routes/webhook";
-// import { wsRoute } from "./routes/ws";
 import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
 import { rootSpanPlugin } from "@/tracing/index";
 import { renderRoute } from "./routes/render";
 import { ensureBucketExists } from "@repo/storage";
 import { getEdition } from "@repo/edition";
 import sseRoute from "./routes/events";
-import { safeGetSession } from "./getSession";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -74,10 +72,64 @@ app.use("*", async (c, next) => {
 });
 app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
 app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
+
+app.use("*", async (c, next) => {
+	const root = process.env.VITE_ROOT_DOMAIN;
+	let apiDomain = `api.${root}`;
+	const { hostname } = new URL(c.req.url);
+	const docs = `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}`;
+	if (hostname === apiDomain) {
+		const url = new URL(c.req.url);
+		const method = c.req.method;
+		const path = url.pathname;
+
+		if (path.startsWith("/api/public") || path.startsWith("/api/events")) {
+			return next();
+		}
+
+		if (path === "/events") {
+			url.pathname = "/api/events";
+
+			const exists = routeExists(method, url.pathname);
+			if (!exists) {
+				return c.json({ error: "Route not found", docs }, 404);
+			}
+
+			return app.fetch(
+				new Request(url.toString(), {
+					method,
+					headers: c.req.raw.headers,
+					body: c.req.raw.body
+				})
+			);
+		}
+
+		if (path === "/") {
+			url.pathname = "/api/public";
+		} else {
+			url.pathname = "/api/public" + path;
+		}
+
+		const exists = routeExists(method, url.pathname);
+		if (!exists) {
+			return c.json({ error: "Route not found", docs }, 404);
+		}
+
+		return app.fetch(
+			new Request(url.toString(), {
+				method,
+				headers: c.req.raw.headers,
+				body: c.req.raw.body
+			})
+		);
+	}
+
+	return next();
+});
+
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
-// app.route("/ws", wsRoute);
 app.route("/api/events", sseRoute)
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.route("/render", renderRoute);
@@ -98,24 +150,6 @@ app.get("/api/health", async (c) => {
 		},
 		healthy ? 200 : 503
 	);
-});
-app.get("/api/db-health", async (c) => {
-	try {
-		const session = await safeGetSession(c.req.raw.headers);
-		if (!session?.session || !session?.user?.id) {
-			return c.json({ error: "Unauthorized" }, 401);
-		}
-		if (session.user.role !== "admin") {
-			return c.json({ error: "Unauthorized" }, 401);
-		}
-		const start = Date.now();
-		await db.execute(sql`select 1`);
-		const ms = Date.now() - start;
-		return c.json({ ok: true, ms });
-	} catch (err) {
-		console.error("DB health check failed:", err);
-		return c.json({ ok: false, error: String(err) }, 500);
-	}
 });
 app.use("*", rootSpanPlugin());
 app.use("*", wideEventMiddleware());

@@ -29,7 +29,7 @@ apiRoute.get(
 			sources: [
 				{
 					default: true,
-					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api/public/v1` : `https://api.${process.env.VITE_ROOT_DOMAIN}/v1`}/openapi.json`,
+					url: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/v1` : `https://api.${process.env.VITE_ROOT_DOMAIN}/v1`}/openapi.json`,
 					title: "Public V1 API",
 					slug: "public-v1",
 				},

@@ -34,11 +34,9 @@ zerops:
   # ===============================
   - setup: backend
     build:
-      base: nodejs@22
+      base: bun@latest
       os: ubuntu
       prepareCommands:
-        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
         # Use corepack for pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
@@ -63,14 +61,11 @@ zerops:
           port: 5468
           path: /api/health
     run:
-      base: nodejs@22
+      base: bun@latest
       os: ubuntu
       ports:
         - port: 5468
           httpSupport: true
-      prepareCommands:
-        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
       initCommands:
         # jsdom's bundled code resolves __dirname to the build-time path
         # (/build/source/node_modules/...) for its CSS assets. Create a symlink
@@ -126,11 +121,9 @@ zerops:
   # ===============================
   - setup: workermain
     build:
-      base: nodejs@22
+      base: bun@latest
       os: ubuntu
       prepareCommands:
-        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
         # Use corepack for pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
@@ -142,14 +135,11 @@ zerops:
         - apps/worker/~package.json
         - node_modules
     run:
-      base: nodejs@22
+      base: bun@latest
       os: ubuntu
       ports:
         - port: 8080
           httpSupport: true
-      prepareCommands:
-        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
       healthCheck:
         httpGet:
           port: 8080
@@ -158,11 +148,9 @@ zerops:
 
   - setup: workergithub
     build:
-      base: nodejs@22
+      base: bun@latest
       os: ubuntu
       prepareCommands:
-        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
         # Use corepack for pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
@@ -174,50 +162,13 @@ zerops:
         - apps/worker/~package.json
         - node_modules
     run:
-      base: nodejs@22
+      base: bun@latest
       os: ubuntu
       ports:
         - port: 8080
           httpSupport: true
-      prepareCommands:
-        # Install Bun then move it to /usr/local/bin so it's on PATH for all users
-        - curl -fsSL https://bun.sh/install | bash && sudo mv ~/.bun/bin/bun /usr/local/bin/bun
       healthCheck:
         httpGet:
           port: 8080
           path: /
       start: bun run dist/index.js github
-
-  # ===============================
-  # NGINX (Caddy reverse proxy — service kept as "nginx" to avoid reconfiguring domains)
-  # ===============================
-  # IMPORTANT: This service must be created as "Ubuntu" type in the Zerops dashboard.
-  # Caddy re-resolves DNS on every request via "dynamic a" upstreams, so redeploying
-  # start/backend/marketing never requires restarting this service.
-  - setup: nginx
-    build:
-      base: ubuntu@24.04
-
-      buildCommands:
-        # Copy Caddyfile for deploy
-        - cp zerops/caddy/Caddyfile Caddyfile
-      deployFiles:
-        - Caddyfile
-    run:
-      base: ubuntu@24.04
-      envVariables:
-        VITE_ROOT_DOMAIN: "sayr.io"
-      ports:
-        - port: 80
-          httpSupport: true
-      prepareCommands:
-        # Install Caddy from the official apt repository
-        - sudo apt-get update && sudo apt-get install -y --no-install-recommends debian-keyring debian-archive-keyring apt-transport-https curl
-        - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-        - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-        - sudo apt-get update && sudo apt-get install -y caddy && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
-      start: sudo -E caddy run --config /var/www/Caddyfile --adapter caddyfile
-      healthCheck:
-        httpGet:
-          port: 8080
-          path: /healthz
