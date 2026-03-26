@@ -217,10 +217,10 @@ sseRoute.get("/", async (c) => {
         // public channel allowed for everyone
         channel = "public";
         authenticated = !!session?.session; // authenticated if user logged in
+    } else if (orgId) {
         if (authenticated) {
             channel = "user";
         }
-    } else if (orgId) {
         // Non-public channel → must be a valid org and user member
         const org = await safeGetOrganization(orgId, session?.user.id || "");
         if (!org) {
