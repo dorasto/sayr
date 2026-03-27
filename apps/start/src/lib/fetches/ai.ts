@@ -1,0 +1,121 @@
+const API_URL =
+  import.meta.env.VITE_APP_ENV === "development"
+    ? "/backend-api/internal"
+    : "/api/internal";
+
+export interface AiPromptDebugInfo {
+  systemPrompt: string;
+  userPrompt: string;
+}
+
+/**
+ * Streams an AI-generated summary for a task.
+ *
+ * Callbacks:
+ * - `onPrompt`  — called once with the exact prompts sent to Mistral (for debugging)
+ * - `onChunk`   — called for each streamed token
+ * - `onDone`    — called when the stream completes
+ * - `onError`   — called on any failure
+ */
+export async function streamSummarizeTask(
+  taskId: string,
+  orgId: string,
+  onPrompt: (info: AiPromptDebugInfo) => void,
+  onChunk: (chunk: string) => void,
+  onDone: () => void,
+  onError: (error: string) => void,
+): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/v1/ai/summarize-task`, {
+      method: "POST",
+      body: JSON.stringify({ taskId, orgId }),
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
+  } catch {
+    onError("Network error — could not reach the server.");
+    return;
+  }
+
+  // Non-streaming error responses (401, 403, 404, 500) return JSON
+  if (!res.ok) {
+    try {
+      const json = (await res.json()) as { error?: string };
+      onError(json.error ?? "Request failed.");
+    } catch {
+      onError(`Request failed with status ${res.status}.`);
+    }
+    return;
+  }
+
+  if (!res.body) {
+    onError("No response body received.");
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE lines are separated by \n\n
+      const lines = buffer.split("\n\n");
+      // Keep the last (potentially incomplete) segment in the buffer
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+
+        const data = trimmed.slice(6); // strip "data: "
+        if (data === "[DONE]") {
+          onDone();
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(data) as {
+            type?: string;
+            systemPrompt?: string;
+            userPrompt?: string;
+            chunk?: string;
+            error?: string;
+          };
+
+          if (
+            parsed.type === "prompt" &&
+            parsed.systemPrompt &&
+            parsed.userPrompt
+          ) {
+            onPrompt({
+              systemPrompt: parsed.systemPrompt,
+              userPrompt: parsed.userPrompt,
+            });
+            continue;
+          }
+          if (parsed.error) {
+            onError(parsed.error);
+            return;
+          }
+          if (parsed.chunk) {
+            onChunk(parsed.chunk);
+          }
+        } catch {
+          // Malformed SSE line — skip it
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  // Stream ended without [DONE] — still call onDone
+  onDone();
+}

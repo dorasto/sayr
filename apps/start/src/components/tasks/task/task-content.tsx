@@ -25,6 +25,7 @@ import {
   TaskRelationsSection,
 } from "./task-hierarchy-sections";
 import { TaskContextBanner } from "./task-context-banner";
+import { AiTaskSummary } from "./task-ai-summary";
 
 interface TaskContentSideContentProps {
   task: schema.TaskWithLabels;
@@ -275,7 +276,7 @@ export function TaskContentMain({
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
         />
-
+        <AiTaskSummary task={task} orgId={organization.id} />
         <GlobalTimeline
           task={task}
           labels={labels}
