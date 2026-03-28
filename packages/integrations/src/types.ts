@@ -106,7 +106,10 @@ export interface UIField {
     | "select"
     | "textarea"
     | "date"
+    | "label"
+    | "heading"
     | "readonly";
+
   label?: string;
   description?: string;
   placeholder?: string;

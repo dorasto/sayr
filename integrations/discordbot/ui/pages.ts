@@ -99,6 +99,7 @@ export const templatesPage: UIPage = {
             type: "string",
             label: "Template Name",
             placeholder: "e.g., Bug Report",
+
             required: true,
           },
           {
@@ -106,12 +107,21 @@ export const templatesPage: UIPage = {
             type: "string",
             label: "Title Prefix",
             placeholder: "e.g., [BUG]",
+            description: "Will be prepended to the task title.",
           },
           {
             name: "description",
             type: "textarea",
             label: "Description",
             placeholder: "Brief description of when to use this template",
+          },
+
+          {
+            name: "questions_heading",
+            type: "heading",
+            label: "Questions",
+            description:
+              "Up to 4 prompts shown to the user in the Discord modal. Leave blank to disable. At least one question is required.",
           },
           {
             name: "question_1",
@@ -139,24 +149,27 @@ export const templatesPage: UIPage = {
             placeholder: "e.g., Additional context",
           },
           {
+            name: "defaults_heading",
+            type: "heading",
+            label: "Additional fields",
+            description:
+              "Applied automatically when a task is created with this template.",
+          },
+          {
             name: "status",
             type: "select",
             label: "Status",
-            required: true,
             default: "backlog",
             options: [
               { value: "backlog", label: "Backlog" },
               { value: "todo", label: "To Do" },
               { value: "in-progress", label: "In Progress" },
-              { value: "done", label: "Done" },
-              { value: "canceled", label: "Canceled" },
             ],
           },
           {
             name: "priority",
             type: "select",
             label: "Priority",
-            required: true,
             default: "none",
             options: [
               { value: "none", label: "None" },

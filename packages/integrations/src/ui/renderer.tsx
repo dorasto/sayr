@@ -908,6 +908,29 @@ function FieldRenderer({ field, data, updateData }: FieldRendererProps) {
       }[]) ?? [])
     : field.options;
 
+  if (field.type === "heading") {
+    return (
+      <div className="py-2 flex flex-col">
+        {field.label && (
+          <Label className="" variant={"subheading"}>
+            {field.label}
+          </Label>
+        )}
+        {field.description && (
+          <Label variant={"description"}>{field.description}</Label>
+        )}
+      </div>
+    );
+  }
+
+  if (field.type === "label") {
+    return (
+      <Label className="text-base pt-3" variant={"description"}>
+        {field.label}
+      </Label>
+    );
+  }
+
   if (field.type === "readonly") {
     return (
       <div className="space-y-1">
@@ -936,20 +959,20 @@ function FieldRenderer({ field, data, updateData }: FieldRendererProps) {
 
   if (field.type === "textarea") {
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-1">
         <Label>
           {field.label || field.name}
           {field.required && <span className="text-destructive ml-1">*</span>}
         </Label>
+        {field.description && (
+          <Label variant={"description"}>{field.description}</Label>
+        )}
         <Textarea
           value={String(displayValue ?? "")}
           onChange={(e) => updateData(e.target.value)}
           placeholder={field.placeholder}
           className="bg-accent rounded-xl"
         />
-        {field.description && (
-          <p className="text-xs text-muted-foreground">{field.description}</p>
-        )}
       </div>
     );
   }
@@ -957,11 +980,14 @@ function FieldRenderer({ field, data, updateData }: FieldRendererProps) {
   if (field.type === "select") {
     const selectValue = displayValue !== undefined ? String(displayValue) : "";
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-1">
         <Label>
           {field.label || field.name}
           {field.required && <span className="text-destructive ml-1">*</span>}
         </Label>
+        {field.description && (
+          <Label variant={"description"}>{field.description}</Label>
+        )}
         <Select value={selectValue} onValueChange={(val) => updateData(val)}>
           <SelectTrigger className="bg-accent! rounded-xl hover:bg-secondary!">
             <SelectValue placeholder={field.placeholder} />
@@ -979,19 +1005,19 @@ function FieldRenderer({ field, data, updateData }: FieldRendererProps) {
             ))}
           </SelectContent>
         </Select>
-        {field.description && (
-          <p className="text-xs text-muted-foreground">{field.description}</p>
-        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-1">
       <Label>
         {field.label || field.name}
         {field.required && <span className="text-destructive ml-1">*</span>}
       </Label>
+      {field.description && (
+        <Label variant={"description"}>{field.description}</Label>
+      )}
       <Input
         type={field.type === "number" ? "number" : "text"}
         className="bg-accent rounded-xl"
@@ -1003,9 +1029,6 @@ function FieldRenderer({ field, data, updateData }: FieldRendererProps) {
         }
         placeholder={field.placeholder}
       />
-      {field.description && (
-        <p className="text-xs text-muted-foreground">{field.description}</p>
-      )}
     </div>
   );
 }
