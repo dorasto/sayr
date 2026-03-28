@@ -9,6 +9,8 @@ export interface IntegrationManifest {
   version: string;
   description: string;
   icon?: string;
+  /** Optional markdown string shown in the integration's Overview sheet. */
+  docs?: string;
   api: Hono<any>;
   ui: {
     pages: Record<string, UIPage>;

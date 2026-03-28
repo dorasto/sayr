@@ -2,6 +2,7 @@ import { registerIntegration } from "@repo/integrations";
 import type { IntegrationManifest } from "@repo/integrations/types";
 import { apiRoute } from "./api";
 import { questionsPage, settingsPage } from "./ui/pages";
+import { docs } from "./docs";
 
 const integration: IntegrationManifest = {
   id: "discordbot",
@@ -9,6 +10,7 @@ const integration: IntegrationManifest = {
   version: "1.0.0",
   description: "Create tasks from Discord with slash commands",
   icon: "IconBrandDiscord",
+  docs,
   api: apiRoute,
   ui: {
     pages: {
