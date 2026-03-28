@@ -52,6 +52,9 @@ export const ConnectionRow = memo(function ConnectionRow({
 				{client.account?.role === "admin" && (
 					<Badge className="ml-2 bg-purple-600 hover:bg-purple-950">ADMIN</Badge>
 				)}
+				{client.account?.role === "system" && (
+					<Badge className="ml-2 bg-yellow-600 hover:bg-purple-950">SYSTEM</Badge>
+				)}
 			</TableCell>
 
 			{/* User ID column (always shown, fallback displayed here instead) */}
