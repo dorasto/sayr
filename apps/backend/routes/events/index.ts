@@ -226,17 +226,17 @@ sseRoute.get("/", async (c) => {
     let userId = null;
     let orgId = c.req.query("orgId");
     let channel = c.req.query("channel");
+    let key = c.req.query("key");
     let ref = c.req.query("ref");
     const userAgent = c.req.raw.headers.get("user-agent");
-    const authHeader = c.req.header("authorization");
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
     let device = getDeviceType(userAgent || "");
     if (userAgent?.startsWith("integration")) {
         device = "Sayr " + userAgent
     }
     const id = crypto.randomUUID();
-    if (channel === "system" && token) {
-        const result = await auth.api.verifyApiKey({ body: { key: token } });
+    if (channel === "system" && key) {
+        const result = await auth.api.verifyApiKey({ body: { key: key } });
+        console.log("🚀 ~ result:", result)
         if (!result?.valid || !result.key?.enabled || !result.key?.userId) {
             return c.json({ error: "Organization required for this channel" }, 400);
         }

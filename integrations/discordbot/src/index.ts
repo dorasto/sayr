@@ -78,7 +78,7 @@ client.once(Events.ClientReady, () => {
 client.login(token);
 
 Sayr.sse(
-  `${API_URL}/events?channel=system"`,
+  `${API_URL.replace("/api/public", "/api")}/events?channel=system&key=${process.env.SAYR_API_KEY}`,
   {
     [Sayr.EVENTS.CONNECTION_STATUS]: (msg: any) => {
       console.log(
@@ -97,7 +97,6 @@ Sayr.sse(
           ...init,
           headers: {
             ...init?.headers,
-            Authorization: `Bearer ${process.env.SAYR_API_KEY}`,
             "User-Agent": "integration DiscordBot v1"
           }
         })
