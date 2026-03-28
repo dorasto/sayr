@@ -61,6 +61,7 @@ apiRouteAdminIntegrations.get("/ui/:id/pages", async (c) => {
 		data: {
 			id: integration.id,
 			name: integration.name,
+			icon: integration.icon,
 			pages: integration.ui.pages,
 		},
 	});
