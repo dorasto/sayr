@@ -182,7 +182,6 @@ export function registerModalHandler(client: Client) {
                     `🎉 Your task has been created!\n\n` +
                     `Title: **${res.data.title}**\n` +
                     `View it here: ${res.data.publicPortalUrl}`,
-                flags: MessageFlags.Ephemeral
             });
     });
 }

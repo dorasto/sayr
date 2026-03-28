@@ -10,6 +10,12 @@ import {
 } from "discord.js";
 
 import * as sayrCreate from "./commands/create";
+import Sayr from "@sayrio/public";
+import { EventSource } from "eventsource"
+import { getIntegrationConfig, getIntegrationStorage, setIntegrationStorage, db, schema } from "@repo/database";
+import { eq } from "drizzle-orm";
+Sayr.client.setToken(process.env.SAYR_API_KEY)
+Sayr.client.setBaseUrl("http://api.app.localhost:5468")
 
 const token = process.env.DISCORD_BOT_TOKEN;
 
@@ -69,3 +75,229 @@ client.once(Events.ClientReady, () => {
 
 // ----- Login -----
 client.login(token);
+
+Sayr.sse(
+  "http://api.app.localhost:5468/events?channel=system",
+  {
+    [Sayr.EVENTS.CONNECTION_STATUS]: (msg: any) => {
+      console.log(
+        `SSE Connected → clientId=${msg.clientId}`
+      );
+    },
+    [Sayr.EVENTS.UPDATE_TASK]: async (t: any) => {
+      await handleUpdateTask(t);
+    }
+  },
+  {
+    eventSource: EventSource,
+    eventSourceOptions: {
+      fetch: (input: any, init: any) =>
+        fetch(input, {
+          ...init,
+          headers: {
+            ...init?.headers,
+            Authorization: `Bearer ${process.env.SAYR_API_KEY}`,
+            "User-Agent": "integration DiscordBot v1"
+          }
+        })
+    }
+  }
+);
+
+async function handleUpdateTask(t: any) {
+  // 1. Load integration config
+  const connected = await getIntegrationConfig(
+    t.organizationId,
+    "discordbot",
+    "guildId"
+  );
+  const connectedChannelId = await getIntegrationConfig(
+    t.organizationId,
+    "discordbot",
+    "channelId"
+  );
+
+  if (!connected || !connectedChannelId) return;
+
+  const orgId = connected.organizationId;
+
+  // 2. Load stored messages
+  const storage = await getIntegrationStorage(orgId, "discordbot-task-messages");
+  //@ts-expect-error
+  const existing = Array.isArray(storage?.data?.data)
+    //@ts-expect-error
+    ? storage.data.data
+    : [];
+
+  const existingEntry = existing.find((m: any) => m.taskId === t.id);
+
+  // 3. Load guild
+  //@ts-expect-error
+  let guild = client.guilds.cache.get(connected.value?.guildId as string);
+  if (!guild) {
+    console.warn("Guild not found:", connected.value);
+    return;
+  }
+
+  // 4. Determine channel
+  //@ts-expect-error
+  const channelId = existingEntry?.channelId || connectedChannelId.value?.channelId;
+
+  let channel = guild.channels.cache.get(channelId);
+  if (!channel) {
+    console.warn("Channel not found:", channelId);
+    return;
+  }
+
+  // Must be text
+  if (!channel.isTextBased()) {
+    console.warn("Channel is not text-based, aborting");
+    return;
+  }
+
+  // 5. Delete if task marked done
+  if (t.status === "done" && existingEntry) {
+    try {
+      await channel.messages.delete(existingEntry.messageId);
+    } catch { }
+
+    const updated = existing.filter((m: any) => m.taskId !== t.id);
+
+    await setIntegrationStorage(orgId, "discordbot-task-messages", {
+      data: updated
+    });
+
+    console.log(
+      "Deleted Discord task message and removed from DB:",
+      t.id
+    );
+    return;
+  }
+
+  // 6. Build embed
+  const updatedAt = t.updatedAt
+    ? new Date(t.updatedAt).getTime()
+    : Date.now();
+
+  const ts = Math.floor(updatedAt / 1000);
+
+  const orgSlug = await db.query.organization.findFirst({
+    where: eq(schema.organization.id, t.organizationId),
+    columns: { slug: true }
+  });
+
+  const projectUrl = `${process.env.APP_ENV === "development"
+    ? `http://${orgSlug?.slug}.${process.env.VITE_ROOT_DOMAIN}:3000`
+    : `https://${orgSlug?.slug}.${process.env.VITE_ROOT_DOMAIN}`
+    }/${t.shortId}`;
+
+  const embed = {
+    title: t.title || "Task Updated",
+    color: 0x5865f2,
+    fields: [
+      {
+        name: "Status",
+        value: t.status || "Unknown",
+        inline: true
+      },
+      {
+        name: "Priority",
+        value: t.priority || "None",
+        inline: true
+      },
+      {
+        name: "Last Updated",
+        value: `<t:${ts}:f> (<t:${ts}:R>)`,
+        inline: false
+      },
+      {
+        name: "Task",
+        value: projectUrl,
+        inline: false
+      }
+    ]
+  };
+
+  //
+  // 7. If NEW → create message
+  //
+  if (!existingEntry) {
+    const msg = await channel.send({
+      content: t.message || "",
+      embeds: [embed]
+    });
+
+    const newEntry = {
+      organizationId: orgId,
+      taskId: t.id,
+      guildId: guild.id,
+      channelId: channelId,
+      messageId: msg.id,
+      lastUpdatedAt: Date.now()
+    };
+
+    const updated = [...existing, newEntry];
+
+    await setIntegrationStorage(orgId, "discordbot-task-messages", {
+      data: updated
+    });
+
+    console.log("Created new Discord task message:", newEntry);
+    return;
+  }
+
+  //
+  // 8. UPDATE existing message
+  //
+  try {
+    await channel.messages.edit(existingEntry.messageId, {
+      content: t.message || "",
+      embeds: [embed]
+    });
+
+    const updatedEntry = {
+      organizationId: orgId,
+      taskId: t.id,
+      guildId: guild.id,
+      channelId: channelId,
+      messageId: existingEntry.messageId,
+      lastUpdatedAt: Date.now()
+    };
+
+    const updated = existing.map((m: any) =>
+      m.taskId === t.id ? updatedEntry : m
+    );
+
+    await setIntegrationStorage(orgId, "discordbot-task-messages", {
+      data: updated
+    });
+
+    console.log("Updated existing Discord task message:", updatedEntry);
+  } catch (err) {
+    console.error("Failed to update message, recreating:", err);
+
+    const msg = await channel.send({
+      content: t.message || "",
+      embeds: [embed]
+    });
+
+    const updatedEntry = {
+      organizationId: orgId,
+      taskId: t.id,
+      guildId: guild.id,
+      channelId: channelId,
+      messageId: msg.id,
+      lastUpdatedAt: Date.now()
+    };
+
+    const updated = existing.map((m: any) =>
+      m.taskId === t.id ? updatedEntry : m
+    );
+
+    await setIntegrationStorage(orgId, "discordbot-task-messages", {
+      data: updated
+    });
+
+    console.log("Recreated Discord task message:", updatedEntry);
+  }
+}

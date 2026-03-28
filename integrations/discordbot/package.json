@@ -14,8 +14,9 @@
     "@discordjs/rest": "^2.5.0",
     "@repo/database": "workspace:*",
     "@repo/integrations": "workspace:*",
-    "@sayrio/public": "^1.0.4",
+    "@sayrio/public": "workspace:*",
     "discord.js": "^14.18.0",
+    "eventsource": "^4.1.0",
     "hono": "^4.12.7"
   },
   "devDependencies": {

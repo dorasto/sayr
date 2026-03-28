@@ -31,15 +31,15 @@ export const apiRoute = new Hono<AppEnv>();
 apiRoute.get("/settings", async (c) => {
 	const orgId = c.get("orgId");
 	const enabled = await getIntegrationEnabled(orgId, INTEGRATION_ID);
-	const guildId = await getIntegrationConfig(orgId, INTEGRATION_ID, "guildId");
-	const channelId = await getIntegrationConfig(orgId, INTEGRATION_ID, "channelId");
+	const { guildId }: any = (await getIntegrationConfig(orgId, INTEGRATION_ID, "guildId"))?.value ?? {};
+	const { channelId }: any = (await getIntegrationConfig(orgId, INTEGRATION_ID, "channelId"))?.value ?? {};
 
 	return c.json({
 		success: true,
 		data: {
 			enabled,
-			guildId: guildId?.value ?? "",
-			channelId: channelId?.value ?? "",
+			guildId: guildId ?? "",
+			channelId: channelId ?? "",
 		},
 	});
 });
@@ -48,10 +48,10 @@ apiRoute.patch("/settings", async (c) => {
 	const orgId = c.get("orgId");
 	const body = await c.req.json();
 	if (body.guildId !== undefined) {
-		await setIntegrationConfig(orgId, INTEGRATION_ID, "guildId", body.guildId);
+		await setIntegrationConfig(orgId, INTEGRATION_ID, "guildId", { guildId: body.guildId });
 	}
 	if (body.channelId !== undefined) {
-		await setIntegrationConfig(orgId, INTEGRATION_ID, "channelId", body.channelId);
+		await setIntegrationConfig(orgId, INTEGRATION_ID, "channelId", { channelId: body.channelId });
 	}
 
 	return c.json({ success: true });
