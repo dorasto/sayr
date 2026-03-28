@@ -120,6 +120,7 @@ summarizeTaskRoute.post("/", async (c) => {
     async start(controller) {
       const encoder = new TextEncoder();
       let outputChars = 0;
+      let outputText = "";
       let streamError = false;
       try {
         // Emit the exact prompts first so clients can display/debug what was sent.
@@ -131,6 +132,7 @@ summarizeTaskRoute.post("/", async (c) => {
 
         for await (const chunk of tokenStream) {
           outputChars += chunk.length;
+          outputText += chunk;
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`),
           );
@@ -163,6 +165,8 @@ summarizeTaskRoute.post("/", async (c) => {
             input_chars: userPrompt.length + SYSTEM_PROMPT.length,
             output_chars: outputChars,
             timeline_items: activity?.length ?? 0,
+            prompt: { systemPrompt: SYSTEM_PROMPT, userPrompt },
+            output_text: outputText,
             success: !streamError,
           },
         });
