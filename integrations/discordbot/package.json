@@ -12,9 +12,9 @@
   "dependencies": {
     "@discordjs/builders": "^1.10.1",
     "@discordjs/rest": "^2.5.0",
-    "@repo/integrations": "workspace:*",
     "@repo/database": "workspace:*",
-    "@sayrio/public": "workspace:*",
+    "@repo/integrations": "workspace:*",
+    "@sayrio/public": "^1.0.4",
     "discord.js": "^14.18.0",
     "hono": "^4.12.7"
   },
