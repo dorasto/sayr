@@ -59,15 +59,14 @@ import { Route as adminSettingsOrgOrgIdTemplatesIndexRouteImport } from './route
 import { Route as adminSettingsOrgOrgIdTeamsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/index'
 import { Route as adminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/(admin)/settings/org/$orgId/members/index'
 import { Route as adminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/labels/index'
-import { Route as adminSettingsOrgOrgIdIntegrationsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/integrations/index'
 import { Route as adminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/index'
 import { Route as adminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/categories/index'
 import { Route as adminSettingsOrgOrgIdBillingIndexRouteImport } from './routes/(admin)/settings/org/$orgId/billing/index'
 import { Route as adminSettingsOrgOrgIdTeamsNewRouteImport } from './routes/(admin)/settings/org/$orgId/teams/new'
 import { Route as adminSettingsOrgOrgIdViewsViewIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/$viewId/index'
 import { Route as adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/$teamId/index'
-import { Route as adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/integrations/$integrationId/index'
 import { Route as adminSettingsOrgOrgIdConnectionsGithubIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/github/index'
+import { Route as adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/$integrationId/index'
 
 const ProsekitTestRoute = ProsekitTestRouteImport.update({
   id: '/prosekit-test',
@@ -334,12 +333,6 @@ const adminSettingsOrgOrgIdLabelsIndexRoute =
     path: '/labels/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const adminSettingsOrgOrgIdIntegrationsIndexRoute =
-  adminSettingsOrgOrgIdIntegrationsIndexRouteImport.update({
-    id: '/integrations/',
-    path: '/integrations/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
 const adminSettingsOrgOrgIdConnectionsIndexRoute =
   adminSettingsOrgOrgIdConnectionsIndexRouteImport.update({
     id: '/connections/',
@@ -376,16 +369,16 @@ const adminSettingsOrgOrgIdTeamsTeamIdIndexRoute =
     path: '/teams/$teamId/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRoute =
-  adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRouteImport.update({
-    id: '/integrations/$integrationId/',
-    path: '/integrations/$integrationId/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
 const adminSettingsOrgOrgIdConnectionsGithubIndexRoute =
   adminSettingsOrgOrgIdConnectionsGithubIndexRouteImport.update({
     id: '/connections/github/',
     path: '/connections/github/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute =
+  adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport.update({
+    id: '/connections/$integrationId/',
+    path: '/connections/$integrationId/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
 
@@ -438,14 +431,13 @@ export interface FileRoutesByFullPath {
   '/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
-  '/settings/org/$orgId/integrations/': typeof adminSettingsOrgOrgIdIntegrationsIndexRoute
   '/settings/org/$orgId/labels/': typeof adminSettingsOrgOrgIdLabelsIndexRoute
   '/settings/org/$orgId/members/': typeof adminSettingsOrgOrgIdMembersIndexRoute
   '/settings/org/$orgId/teams/': typeof adminSettingsOrgOrgIdTeamsIndexRoute
   '/settings/org/$orgId/templates/': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
   '/settings/org/$orgId/views/': typeof adminSettingsOrgOrgIdViewsIndexRoute
+  '/settings/org/$orgId/connections/$integrationId/': typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute
   '/settings/org/$orgId/connections/github/': typeof adminSettingsOrgOrgIdConnectionsGithubIndexRoute
-  '/settings/org/$orgId/integrations/$integrationId/': typeof adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRoute
   '/settings/org/$orgId/teams/$teamId/': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
   '/settings/org/$orgId/views/$viewId/': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
@@ -488,14 +480,13 @@ export interface FileRoutesByTo {
   '/settings/org/$orgId/billing': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
-  '/settings/org/$orgId/integrations': typeof adminSettingsOrgOrgIdIntegrationsIndexRoute
   '/settings/org/$orgId/labels': typeof adminSettingsOrgOrgIdLabelsIndexRoute
   '/settings/org/$orgId/members': typeof adminSettingsOrgOrgIdMembersIndexRoute
   '/settings/org/$orgId/teams': typeof adminSettingsOrgOrgIdTeamsIndexRoute
   '/settings/org/$orgId/templates': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
   '/settings/org/$orgId/views': typeof adminSettingsOrgOrgIdViewsIndexRoute
+  '/settings/org/$orgId/connections/$integrationId': typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute
   '/settings/org/$orgId/connections/github': typeof adminSettingsOrgOrgIdConnectionsGithubIndexRoute
-  '/settings/org/$orgId/integrations/$integrationId': typeof adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRoute
   '/settings/org/$orgId/teams/$teamId': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
   '/settings/org/$orgId/views/$viewId': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
@@ -550,14 +541,13 @@ export interface FileRoutesById {
   '/(admin)/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/(admin)/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/(admin)/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
-  '/(admin)/settings/org/$orgId/integrations/': typeof adminSettingsOrgOrgIdIntegrationsIndexRoute
   '/(admin)/settings/org/$orgId/labels/': typeof adminSettingsOrgOrgIdLabelsIndexRoute
   '/(admin)/settings/org/$orgId/members/': typeof adminSettingsOrgOrgIdMembersIndexRoute
   '/(admin)/settings/org/$orgId/teams/': typeof adminSettingsOrgOrgIdTeamsIndexRoute
   '/(admin)/settings/org/$orgId/templates/': typeof adminSettingsOrgOrgIdTemplatesIndexRoute
   '/(admin)/settings/org/$orgId/views/': typeof adminSettingsOrgOrgIdViewsIndexRoute
+  '/(admin)/settings/org/$orgId/connections/$integrationId/': typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute
   '/(admin)/settings/org/$orgId/connections/github/': typeof adminSettingsOrgOrgIdConnectionsGithubIndexRoute
-  '/(admin)/settings/org/$orgId/integrations/$integrationId/': typeof adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRoute
   '/(admin)/settings/org/$orgId/teams/$teamId/': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
   '/(admin)/settings/org/$orgId/views/$viewId/': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
@@ -612,14 +602,13 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/billing/'
     | '/settings/org/$orgId/categories/'
     | '/settings/org/$orgId/connections/'
-    | '/settings/org/$orgId/integrations/'
     | '/settings/org/$orgId/labels/'
     | '/settings/org/$orgId/members/'
     | '/settings/org/$orgId/teams/'
     | '/settings/org/$orgId/templates/'
     | '/settings/org/$orgId/views/'
+    | '/settings/org/$orgId/connections/$integrationId/'
     | '/settings/org/$orgId/connections/github/'
-    | '/settings/org/$orgId/integrations/$integrationId/'
     | '/settings/org/$orgId/teams/$teamId/'
     | '/settings/org/$orgId/views/$viewId/'
   fileRoutesByTo: FileRoutesByTo
@@ -662,14 +651,13 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/billing'
     | '/settings/org/$orgId/categories'
     | '/settings/org/$orgId/connections'
-    | '/settings/org/$orgId/integrations'
     | '/settings/org/$orgId/labels'
     | '/settings/org/$orgId/members'
     | '/settings/org/$orgId/teams'
     | '/settings/org/$orgId/templates'
     | '/settings/org/$orgId/views'
+    | '/settings/org/$orgId/connections/$integrationId'
     | '/settings/org/$orgId/connections/github'
-    | '/settings/org/$orgId/integrations/$integrationId'
     | '/settings/org/$orgId/teams/$teamId'
     | '/settings/org/$orgId/views/$viewId'
   id:
@@ -723,14 +711,13 @@ export interface FileRouteTypes {
     | '/(admin)/settings/org/$orgId/billing/'
     | '/(admin)/settings/org/$orgId/categories/'
     | '/(admin)/settings/org/$orgId/connections/'
-    | '/(admin)/settings/org/$orgId/integrations/'
     | '/(admin)/settings/org/$orgId/labels/'
     | '/(admin)/settings/org/$orgId/members/'
     | '/(admin)/settings/org/$orgId/teams/'
     | '/(admin)/settings/org/$orgId/templates/'
     | '/(admin)/settings/org/$orgId/views/'
+    | '/(admin)/settings/org/$orgId/connections/$integrationId/'
     | '/(admin)/settings/org/$orgId/connections/github/'
-    | '/(admin)/settings/org/$orgId/integrations/$integrationId/'
     | '/(admin)/settings/org/$orgId/teams/$teamId/'
     | '/(admin)/settings/org/$orgId/views/$viewId/'
   fileRoutesById: FileRoutesById
@@ -1105,13 +1092,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdLabelsIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/(admin)/settings/org/$orgId/integrations/': {
-      id: '/(admin)/settings/org/$orgId/integrations/'
-      path: '/integrations'
-      fullPath: '/settings/org/$orgId/integrations/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdIntegrationsIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
-    }
     '/(admin)/settings/org/$orgId/connections/': {
       id: '/(admin)/settings/org/$orgId/connections/'
       path: '/connections'
@@ -1154,18 +1134,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/(admin)/settings/org/$orgId/integrations/$integrationId/': {
-      id: '/(admin)/settings/org/$orgId/integrations/$integrationId/'
-      path: '/integrations/$integrationId'
-      fullPath: '/settings/org/$orgId/integrations/$integrationId/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
-    }
     '/(admin)/settings/org/$orgId/connections/github/': {
       id: '/(admin)/settings/org/$orgId/connections/github/'
       path: '/connections/github'
       fullPath: '/settings/org/$orgId/connections/github/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsGithubIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/connections/$integrationId/': {
+      id: '/(admin)/settings/org/$orgId/connections/$integrationId/'
+      path: '/connections/$integrationId'
+      fullPath: '/settings/org/$orgId/connections/$integrationId/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
   }
@@ -1275,14 +1255,13 @@ interface adminSettingsOrgOrgIdRouteRouteChildren {
   adminSettingsOrgOrgIdBillingIndexRoute: typeof adminSettingsOrgOrgIdBillingIndexRoute
   adminSettingsOrgOrgIdCategoriesIndexRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   adminSettingsOrgOrgIdConnectionsIndexRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRoute
-  adminSettingsOrgOrgIdIntegrationsIndexRoute: typeof adminSettingsOrgOrgIdIntegrationsIndexRoute
   adminSettingsOrgOrgIdLabelsIndexRoute: typeof adminSettingsOrgOrgIdLabelsIndexRoute
   adminSettingsOrgOrgIdMembersIndexRoute: typeof adminSettingsOrgOrgIdMembersIndexRoute
   adminSettingsOrgOrgIdTeamsIndexRoute: typeof adminSettingsOrgOrgIdTeamsIndexRoute
   adminSettingsOrgOrgIdTemplatesIndexRoute: typeof adminSettingsOrgOrgIdTemplatesIndexRoute
   adminSettingsOrgOrgIdViewsIndexRoute: typeof adminSettingsOrgOrgIdViewsIndexRoute
+  adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute: typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute
   adminSettingsOrgOrgIdConnectionsGithubIndexRoute: typeof adminSettingsOrgOrgIdConnectionsGithubIndexRoute
-  adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRoute: typeof adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRoute
   adminSettingsOrgOrgIdTeamsTeamIdIndexRoute: typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
   adminSettingsOrgOrgIdViewsViewIdIndexRoute: typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
@@ -1297,8 +1276,6 @@ const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteCh
       adminSettingsOrgOrgIdCategoriesIndexRoute,
     adminSettingsOrgOrgIdConnectionsIndexRoute:
       adminSettingsOrgOrgIdConnectionsIndexRoute,
-    adminSettingsOrgOrgIdIntegrationsIndexRoute:
-      adminSettingsOrgOrgIdIntegrationsIndexRoute,
     adminSettingsOrgOrgIdLabelsIndexRoute:
       adminSettingsOrgOrgIdLabelsIndexRoute,
     adminSettingsOrgOrgIdMembersIndexRoute:
@@ -1307,10 +1284,10 @@ const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteCh
     adminSettingsOrgOrgIdTemplatesIndexRoute:
       adminSettingsOrgOrgIdTemplatesIndexRoute,
     adminSettingsOrgOrgIdViewsIndexRoute: adminSettingsOrgOrgIdViewsIndexRoute,
+    adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute:
+      adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute,
     adminSettingsOrgOrgIdConnectionsGithubIndexRoute:
       adminSettingsOrgOrgIdConnectionsGithubIndexRoute,
-    adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRoute:
-      adminSettingsOrgOrgIdIntegrationsIntegrationIdIndexRoute,
     adminSettingsOrgOrgIdTeamsTeamIdIndexRoute:
       adminSettingsOrgOrgIdTeamsTeamIdIndexRoute,
     adminSettingsOrgOrgIdViewsViewIdIndexRoute:

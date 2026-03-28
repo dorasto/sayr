@@ -35,6 +35,7 @@ apiRouteAdminIntegrations.get("/list", async (c) => {
 				name: i.name,
 				version: i.version,
 				description: i.description,
+				icon: i.icon,
 				pages: Object.keys(i.ui.pages),
 				enabled,
 			};
