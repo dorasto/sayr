@@ -5,6 +5,7 @@ import { ServerEventBaseMessage } from "./types";
 import { auth as authSchema, db } from "@repo/database";
 import { inArray } from "drizzle-orm";
 import { ensureCdnUrl } from "@repo/util";
+import { auth } from "@repo/auth";
 
 export const sseRoute = new Hono();
 
@@ -24,6 +25,7 @@ type SSEClient = {
     ref?: string;
 };
 
+const systemRoom = new Set<SSEClient>();
 const sseRooms = new Map<string, Set<SSEClient>>();
 const clientsById = new Map<string, SSEClient>();
 
@@ -32,17 +34,20 @@ export function findClientBysseId(id: string): SSEClient | undefined {
 }
 
 function sseUnsubscribe(client: SSEClient) {
+    if (client.channel === "system") {
+        systemRoom.delete(client);
+        clientsById.delete(client.id);
+        return;
+    }
+
     const key = `${client.orgId}:${client.channel}`;
     const room = sseRooms.get(key);
-
     if (!room) return;
 
     room.delete(client);
     clientsById.delete(client.id);
 
-    if (room.size === 0) {
-        sseRooms.delete(key);
-    }
+    if (room.size === 0) sseRooms.delete(key);
 }
 
 export function sseBroadcastToRoom(
@@ -67,6 +72,11 @@ export function sseBroadcastToRoom(
             if (seen.has(client.id)) continue;
             seen.add(client.id);
             targets.push(client);
+        }
+
+        for (const sysClient of systemRoom) {
+            if (excludeId && sysClient.id === excludeId) continue;
+            targets.push(sysClient);
         }
     };
 
@@ -213,18 +223,32 @@ function getDeviceType(userAgent: string | undefined): string {
     return isMobile ? "mobile" : "desktop";
 }
 sseRoute.get("/", async (c) => {
+    let userId = null;
     let orgId = c.req.query("orgId");
     let channel = c.req.query("channel");
     let ref = c.req.query("ref");
     const userAgent = c.req.raw.headers.get("user-agent");
-    const device = getDeviceType(userAgent || "");
+    const authHeader = c.req.header("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
+    let device = getDeviceType(userAgent || "");
+    if (userAgent?.startsWith("integration")) {
+        device = "Sayr " + userAgent
+    }
     const id = crypto.randomUUID();
+    if (channel === "system" && token) {
+        const result = await auth.api.verifyApiKey({ body: { key: token } });
+        if (!result?.valid || !result.key?.enabled || !result.key?.userId) {
+            return c.json({ error: "Organization required for this channel" }, 400);
+        }
+        userId = result.key?.userId
+    }
 
     const session = await safeGetSession(c.req.raw.headers);
-
     // Determine authentication
-    const authenticated = !!session?.session;
-    if (!channel || channel === "public") {
+    const authenticated = !!session?.session || userId !== null;
+    if (channel === "system") {
+        // no org required, no membership needed
+    } else if (!channel || channel === "public") {
         // public channel allowed for everyone
         channel = "public";
     } else if (orgId) {
@@ -261,11 +285,15 @@ sseRoute.get("/", async (c) => {
                 sseUnsubscribe(client);
             };
 
-            const client: SSEClient = { id: id, orgId: orgId || "", channel, send, close, clientId: session?.user.id || "", authenticated, connectedAt: Date.now(), ref: ref, device: device };
+            const client: SSEClient = { id: id, orgId: orgId || "", channel, send, close, clientId: session?.user.id || userId || "", authenticated, connectedAt: Date.now(), ref: ref, device: device };
 
-            const key = `${orgId || ""}:${channel}`;
-            if (!sseRooms.has(key)) sseRooms.set(key, new Set());
-            sseRooms.get(key)!.add(client);
+            if (channel === "system") {
+                systemRoom.add(client);
+            } else {
+                const key = `${orgId || ""}:${channel}`;
+                if (!sseRooms.has(key)) sseRooms.set(key, new Set());
+                sseRooms.get(key)!.add(client);
+            }
             clientsById.set(id, client);
 
             // heartbeat ping

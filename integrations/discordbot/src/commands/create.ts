@@ -258,4 +258,3 @@ export function registerModalHandler(client: Client) {
 		}
 	});
 }
-
