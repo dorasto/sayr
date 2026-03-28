@@ -22,6 +22,15 @@ const EMAIL_TO_GITHUB: Record<string, string> = {
 	// Add more mappings as needed
 };
 
+/**
+ * Returns true if a commit author looks like an automated bot account.
+ * Bot commits (e.g. dependabot, github-actions, copilot-swe-agent) should
+ * never appear as the primary author or a contributor on a docs page.
+ */
+function isBot(name: string, email: string): boolean {
+	return /\[bot\]/i.test(name) || /\[bot\]/i.test(email);
+}
+
 export interface GitContributor {
 	name: string;
 	email: string;
@@ -141,8 +150,18 @@ async function getFileContributors(filePath: string, cwd: string): Promise<PageC
 			return { contributors: [] };
 		}
 
-		// The last line is the oldest commit (original author)
-		const originalAuthorLine = lines[lines.length - 1];
+		// Filter out bot commits entirely before doing any author resolution
+		const humanLines = lines.filter((line) => {
+			const [name, email] = line.split("\t");
+			return name && email && !isBot(name, email);
+		});
+
+		if (humanLines.length === 0) {
+			return { contributors: [] };
+		}
+
+		// The last human line is the oldest commit (original author)
+		const originalAuthorLine = humanLines[humanLines.length - 1];
 		const [originalName, originalEmail] = originalAuthorLine.split("\t");
 		const originalAuthorGithub = extractGitHubFromEmail(originalEmail);
 
@@ -153,7 +172,7 @@ async function getFileContributors(filePath: string, cwd: string): Promise<PageC
 			{ name: string; email: string; commits: number; github?: string }
 		>();
 
-		for (const line of lines) {
+		for (const line of humanLines) {
 			const [name, email] = line.split("\t");
 			if (!name || !email) continue;
 
@@ -234,7 +253,7 @@ async function getFileContributors(filePath: string, cwd: string): Promise<PageC
 		const author: GitContributor = {
 			name: originalName,
 			email: originalEmail,
-			commits: lines.filter((l) => l.split("\t")[1]?.toLowerCase() === originalEmail.toLowerCase()).length,
+			commits: humanLines.filter((l) => l.split("\t")[1]?.toLowerCase() === originalEmail.toLowerCase()).length,
 			github: authorGithub,
 			avatar_url: authorAvatarUrl,
 			profile_url: authorProfileUrl,
@@ -344,8 +363,11 @@ export function precomputeContributors(): AstroIntegration {
 				await generateContributorData(process.cwd(), logger);
 			},
 			"astro:build:start": async ({ logger }) => {
-				logger.info("Pre-computing Git contributor data...");
-				await generateContributorData(process.cwd(), logger);
+				// Do NOT regenerate during builds — use the committed contributors.json
+				// which was generated locally with full git history.
+				// Regeneration only happens during 'astro dev' (astro:server:setup hook).
+				// Run 'pnpm -F marketing contributors' locally to update the file.
+				logger.info("Using committed contributors.json for build.");
 			},
 			"astro:build:done": async ({ dir, logger }) => {
 				// Copy the contributors.json to the dist folder for runtime access (SSR fallback)
