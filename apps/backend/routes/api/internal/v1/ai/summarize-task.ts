@@ -1,6 +1,7 @@
-import { getTaskById, getMergedTaskActivity } from "@repo/database";
-import { streamText, MISTRAL_MODELS } from "@repo/ai-mistral";
+import { getTaskById, getMergedTaskActivity, getOrganization, getUserById } from "@repo/database";
+import { streamText, MISTRAL_MODELS, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
 import { isCloud } from "@repo/edition";
+import { polarClient } from "@repo/auth";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "@/index";
@@ -66,12 +67,22 @@ summarizeTaskRoute.post("/", async (c) => {
 
   let task: Awaited<ReturnType<typeof getTaskById>>;
   let activity: Awaited<ReturnType<typeof getMergedTaskActivity>>;
+  let polarCustomerId: string | null = null;
+  let orgSlug: string = "";
+  let triggeredBy: string = "";
 
   try {
-    [task, activity] = await Promise.all([
+    const [taskResult, activityResult, org, user] = await Promise.all([
       getTaskById(orgId, taskId),
       getMergedTaskActivity(orgId, taskId, false),
+      getOrganization(orgId, session.userId),
+      getUserById(session.userId),
     ]);
+    task = taskResult;
+    activity = activityResult;
+    polarCustomerId = org?.polarCustomerId ?? null;
+    orgSlug = org?.slug ?? "";
+    triggeredBy = user?.displayName ?? user?.name ?? session.userId;
   } catch (err) {
     await recordWideError({
       name: "ai.summarize-task.fetch-failed",
@@ -109,9 +120,10 @@ summarizeTaskRoute.post("/", async (c) => {
       .filter(Boolean)
       .join("\n") ?? "";
 
+  const model = MISTRAL_MODELS.SMALL;
   const userPrompt = buildUserPrompt(task, descriptionText, timelineText);
   const tokenStream = streamText({
-    model: MISTRAL_MODELS.SMALL,
+    model,
     systemPrompt: SYSTEM_PROMPT,
     userPrompt,
   });
@@ -119,9 +131,11 @@ summarizeTaskRoute.post("/", async (c) => {
   const responseBody = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
-      let outputChars = 0;
       let outputText = "";
       let streamError = false;
+      let promptTokens = 0;
+      let completionTokens = 0;
+      let totalTokens = 0;
       try {
         // Emit the exact prompts first so clients can display/debug what was sent.
         controller.enqueue(
@@ -130,12 +144,17 @@ summarizeTaskRoute.post("/", async (c) => {
           ),
         );
 
-        for await (const chunk of tokenStream) {
-          outputChars += chunk.length;
-          outputText += chunk;
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`),
-          );
+        for await (const item of tokenStream) {
+          if (item.type === "chunk") {
+            outputText += item.text;
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ chunk: item.text })}\n\n`),
+            );
+          } else if (item.type === "done") {
+            promptTokens = item.usage.promptTokens;
+            completionTokens = item.usage.completionTokens;
+            totalTokens = item.usage.totalTokens;
+          }
         }
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
@@ -154,22 +173,63 @@ summarizeTaskRoute.post("/", async (c) => {
           ),
         );
       } finally {
-        controller.close();
+        // Calculate cost in USD cents using per-model pricing constants.
+        const pricing = MISTRAL_MODEL_PRICING[model];
+        const costCents =
+          promptTokens * pricing.inputCentsPerToken +
+          completionTokens * pricing.outputCentsPerToken;
+
+        // Emit cost event to Polar for paid orgs that have a Polar customer.
+        // Free orgs (no polarCustomerId) are silently skipped — they still appear in ClickHouse.
+        if (polarCustomerId && polarClient && !streamError) {
+          await polarClient.events
+            .ingest({
+              events: [
+                {
+                  name: "ai.task_summary",
+                  customerId: polarCustomerId,
+                  metadata: {
+                    _cost: { amount: costCents, currency: "usd" } as any,
+                    _llm: {
+                      vendor: "mistral",
+                      model,
+                      input_tokens: promptTokens,
+                      output_tokens: completionTokens,
+                      total_tokens: totalTokens,
+                    } as any,
+                    org_id: orgId,
+                    task_id: taskId,
+                    task_url: `https://${orgSlug}.${process.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
+                    triggered_by: triggeredBy,
+                    timeline_items: activity?.length ?? 0,
+                  },
+                },
+              ],
+            })
+            .catch((err: unknown) => {
+              console.error("[polar] Failed to ingest AI cost event:", err);
+            });
+        }
+
         emitEvent({
           event_type: "ai.summary_requested",
           actor_id: session.userId,
           target_id: taskId,
           org_id: orgId,
           metadata: {
-            model: MISTRAL_MODELS.SMALL,
-            input_chars: userPrompt.length + SYSTEM_PROMPT.length,
-            output_chars: outputChars,
+            model,
+            input_tokens: promptTokens,
+            output_tokens: completionTokens,
+            total_tokens: totalTokens,
+            cost_cents: costCents,
             timeline_items: activity?.length ?? 0,
             prompt: { systemPrompt: SYSTEM_PROMPT, userPrompt },
             output_text: outputText,
             success: !streamError,
           },
         });
+
+        controller.close();
       }
     },
   });
