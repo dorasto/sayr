@@ -1,187 +1,260 @@
-import { getIntegrationConfigByValue, getIntegrationEnabled, getIntegrationStorage, getOrganizationPublicById } from "@repo/database";
+import { getIntegrationConfigByValue, getIntegrationEnabled, getIntegrationStorage } from "@repo/database";
 import {
-    SlashCommandSubcommandBuilder,
-    ChatInputCommandInteraction,
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle,
-    ActionRowBuilder,
-    Client,
-    Events,
-    MessageFlags
+	SlashCommandSubcommandBuilder,
+	ChatInputCommandInteraction,
+	ModalBuilder,
+	TextInputBuilder,
+	TextInputStyle,
+	ActionRowBuilder,
+	StringSelectMenuBuilder,
+	StringSelectMenuOptionBuilder,
+	Client,
+	Events,
+	MessageFlags,
+	type StringSelectMenuInteraction,
 } from "discord.js";
+import type { DiscordTemplate } from "../../api/index";
 import Sayr from "@sayrio/public";
-Sayr.client.setToken(process.env.SAYR_API_KEY)
-Sayr.client.setBaseUrl("http://api.app.localhost:5468")
-const DEFAULT_QUESTIONS = {
-    question_1: "",
-    question_2: "",
-    question_3: "",
-    question_4: ""
-};
+Sayr.client.setToken(process.env.SAYR_API_KEY);
+Sayr.client.setBaseUrl("http://api.app.localhost:5468");
 
-export const data = (sub: SlashCommandSubcommandBuilder) => sub.setName("create").setDescription("Create a new Sayr task");
+export const data = (sub: SlashCommandSubcommandBuilder) =>
+	sub.setName("create").setDescription("Create a new Sayr task");
 
-function buildModal(questions: any) {
-    const modal = new ModalBuilder()
-        .setCustomId("task-create-modal")
-        .setTitle("Create New Task");
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-    for (const q of questions) {
-        const input = new TextInputBuilder()
-            .setCustomId(q.id)
-            .setLabel(q.label)
-            .setStyle(q.style)
-            .setRequired(q.required || false);
+async function getOrgAndTemplates(guildId: string | null) {
+	if (!guildId) return null;
 
-        const row = new ActionRowBuilder<TextInputBuilder>().addComponents(input);
-        modal.addComponents(row);
-    }
+	const connected = await getIntegrationConfigByValue("guildId", "discordbot", guildId);
+	if (!connected) return null;
 
-    return modal;
+	const enabled = await getIntegrationEnabled(connected.organizationId, "discordbot");
+	if (!enabled) return null;
+
+	const storage = await getIntegrationStorage(connected.organizationId, "discordbot");
+	const storageData = (storage?.data ?? {}) as Record<string, unknown>;
+	const templates = (storageData.templates ?? []) as DiscordTemplate[];
+
+	return { connected, templates };
 }
+
+function buildModal(template: DiscordTemplate) {
+	const modal = new ModalBuilder()
+		.setCustomId(`task-create-modal:${template.id}`)
+		.setTitle(template.name);
+
+	// Title is always first
+	const titleInput = new TextInputBuilder()
+		.setCustomId("title")
+		.setLabel(template.titlePrefix ? `Title (prefix: ${template.titlePrefix})` : "Title")
+		.setStyle(TextInputStyle.Short)
+		.setRequired(true);
+
+	if (template.titlePrefix) {
+		titleInput.setPlaceholder(`${template.titlePrefix} `);
+	}
+
+	modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(titleInput));
+
+	// Add enabled questions (non-empty label), up to 4 (Discord modal max is 5 total)
+	const questionSlots = [
+		{ id: "question_1", label: template.questions.question_1 },
+		{ id: "question_2", label: template.questions.question_2 },
+		{ id: "question_3", label: template.questions.question_3 },
+		{ id: "question_4", label: template.questions.question_4 },
+	].filter((q) => q.label.trim() !== "");
+
+	for (const q of questionSlots) {
+		const input = new TextInputBuilder()
+			.setCustomId(q.id)
+			.setLabel(q.label)
+			.setStyle(TextInputStyle.Paragraph)
+			.setRequired(false);
+
+		modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
+	}
+
+	return modal;
+}
+
+// ─── Command Execute ──────────────────────────────────────────────────────────
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-    const connected = await getIntegrationConfigByValue(
-        "guildId",
-        "discordbot",
-        interaction.guildId
-    );
+	const result = await getOrgAndTemplates(interaction.guildId);
 
-    if (!connected) {
-        await interaction.reply({
-            content: "This integration is not enabled.",
-            flags: MessageFlags.Ephemeral
-        });
-        return;
-    }
+	if (!result) {
+		await interaction.reply({
+			content: "This integration is not enabled.",
+			flags: MessageFlags.Ephemeral,
+		});
+		return;
+	}
 
-    const enabled = await getIntegrationEnabled(
-        connected.organizationId,
-        "discordbot"
-    );
+	const { templates } = result;
 
-    if (!enabled) {
-        await interaction.reply({
-            content: "This integration is not enabled.",
-            flags: MessageFlags.Ephemeral
-        });
-        return;
-    }
+	if (templates.length === 0) {
+		await interaction.reply({
+			content: "No templates are configured. Ask an admin to create templates in the Sayr integration settings.",
+			flags: MessageFlags.Ephemeral,
+		});
+		return;
+	}
 
-    const storage = await getIntegrationStorage(connected.organizationId, "discordbot");
-    const data = (storage?.data ?? {}) as Record<string, unknown>;
-    const storedQuestions = (data.questions ?? DEFAULT_QUESTIONS) as Record<string, string>;
+	// Single template — skip the select menu and go straight to modal
+	if (templates.length === 1) {
+		await interaction.showModal(buildModal(templates[0]!));
+		return;
+	}
 
-    const questions = [
-        { id: "title", label: "Title", style: TextInputStyle.Short, required: true },
-        { id: "question_1", label: storedQuestions.question_1 || "Question 1", style: TextInputStyle.Paragraph },
-        { id: "question_2", label: storedQuestions.question_2 || "Question 2", style: TextInputStyle.Paragraph },
-        { id: "question_3", label: storedQuestions.question_3 || "Question 3", style: TextInputStyle.Paragraph },
-        { id: "question_4", label: storedQuestions.question_4 || "Question 4", style: TextInputStyle.Paragraph }
-    ].filter(q => q.id === "title" || storedQuestions[q.id]);
+	// Multiple templates — show a select menu first
+	const select = new StringSelectMenuBuilder()
+		.setCustomId("sayr-template-select")
+		.setPlaceholder("Choose a template...")
+		.addOptions(
+			templates.map((t) =>
+				new StringSelectMenuOptionBuilder()
+					.setLabel(t.name)
+					.setValue(t.id)
+					.setDescription(
+						t.description
+							? t.description.slice(0, 100)
+							: `Status: ${t.defaults.status} | Priority: ${t.defaults.priority}`,
+					),
+			),
+		);
 
-    await interaction.showModal(buildModal(questions));
+	const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+
+	await interaction.reply({
+		content: "Select a template to use:",
+		components: [row],
+		flags: MessageFlags.Ephemeral,
+	});
 }
 
+// ─── Interaction Handlers ─────────────────────────────────────────────────────
+
 export function registerModalHandler(client: Client) {
-    client.on(Events.InteractionCreate, async (interaction) => {
-        if (!interaction.isModalSubmit()) return;
-        if (interaction.customId !== "task-create-modal") return;
+	// Handle template select menu
+	client.on(Events.InteractionCreate, async (interaction) => {
+		if (!interaction.isStringSelectMenu()) return;
+		if (interaction.customId !== "sayr-template-select") return;
 
-        const results: Record<string, string> = {};
+		const menuInteraction = interaction as StringSelectMenuInteraction;
+		const templateId = menuInteraction.values[0];
+		if (!templateId) return;
 
-        for (const [key, component] of interaction.fields.fields.entries()) {
-            //@ts-expect-error
-            results[key] = component.value;
-        }
+		const result = await getOrgAndTemplates(menuInteraction.guildId);
+		if (!result) {
+			await menuInteraction.reply({
+				content: "This integration is not enabled.",
+				flags: MessageFlags.Ephemeral,
+			});
+			return;
+		}
 
-        const connected = await getIntegrationConfigByValue(
-            "guildId",
-            "discordbot",
-            interaction.guildId!
-        );
+		const template = result.templates.find((t) => t.id === templateId);
+		if (!template) {
+			await menuInteraction.reply({
+				content: "Template not found. It may have been deleted.",
+				flags: MessageFlags.Ephemeral,
+			});
+			return;
+		}
 
-        if (!connected) {
-            await interaction.reply({
-                content: "This integration is not enabled.",
-                flags: MessageFlags.Ephemeral
-            });
-            return;
-        }
+		await menuInteraction.showModal(buildModal(template));
+	});
 
-        const enabled = await getIntegrationEnabled(
-            connected.organizationId,
-            "discordbot"
-        );
+	// Handle modal submit
+	client.on(Events.InteractionCreate, async (interaction) => {
+		if (!interaction.isModalSubmit()) return;
+		if (!interaction.customId.startsWith("task-create-modal:")) return;
 
-        if (!enabled) {
-            await interaction.reply({
-                content: "This integration is not enabled.",
-                flags: MessageFlags.Ephemeral
-            });
-            return;
-        }
+		const templateId = interaction.customId.slice("task-create-modal:".length);
 
-        const storage = await getIntegrationStorage(connected.organizationId, "discordbot");
-        const data = (storage?.data ?? {}) as Record<string, unknown>;
-        const storedQuestions = (data.questions ?? DEFAULT_QUESTIONS) as Record<string, string>;
-        const defaults = (data.defaults ?? {}) as Record<string, string>;
+		const result = await getOrgAndTemplates(interaction.guildId);
+		if (!result) {
+			await interaction.reply({
+				content: "This integration is not enabled.",
+				flags: MessageFlags.Ephemeral,
+			});
+			return;
+		}
 
-        // Build markdown description from answers
-        const title = results.title || "Untitled Task";
-        let description = ``;
+		const { connected, templates } = result;
+		const template = templates.find((t) => t.id === templateId);
 
-        const questionLabels: Record<string, string> = {
-            question_1: storedQuestions.question_1 || "Question 1",
-            question_2: storedQuestions.question_2 || "Question 2",
-            question_3: storedQuestions.question_3 || "Question 3",
-            question_4: storedQuestions.question_4 || "Question 4"
-        };
+		if (!template) {
+			await interaction.reply({
+				content: "Template not found. It may have been deleted. Please run /sayr create again.",
+				flags: MessageFlags.Ephemeral,
+			});
+			return;
+		}
 
-        for (const [key, value] of Object.entries(results)) {
-            if (key === "title") continue;
-            if (!value) continue;
+		// Collect field values
+		const modalFields = interaction.fields;
+		const titleRaw = modalFields.getTextInputValue("title") || "Untitled Task";
+		const title =
+			template.titlePrefix && !titleRaw.startsWith(template.titlePrefix)
+				? `${template.titlePrefix} ${titleRaw}`
+				: titleRaw;
 
-            const label = questionLabels[key] || key;
-            description += `### ${label}\n${value}\n\n`;
-        }
+		// Build markdown description from answered questions
+		const questionSlots = [
+			{ id: "question_1", label: template.questions.question_1 },
+			{ id: "question_2", label: template.questions.question_2 },
+			{ id: "question_3", label: template.questions.question_3 },
+			{ id: "question_4", label: template.questions.question_4 },
+		].filter((q) => q.label.trim() !== "");
 
-        // Task object to create
-        const taskData = {
-            title,
-            description,
-            status: defaults.status || "todo",
-            priority: defaults.priority || "none",
-            category: defaults.categoryId === "_none_" ? undefined : defaults.categoryId || undefined
-        };
+		let description = "";
+		for (const q of questionSlots) {
+			let answer = "";
+			try {
+				answer = modalFields.getTextInputValue(q.id);
+			} catch {
+				// Field wasn't in the modal — skip
+			}
+			if (answer) {
+				description += `### ${q.label}\n${answer}\n\n`;
+			}
+		}
 
-        const res = await Sayr.me.createTask({
-            title: taskData.title,
-            description: taskData.description,
-            status: taskData.status as any,
-            priority: taskData.priority as any,
-            category: taskData.category,
-            orgId: connected.organizationId,
-            integration: {
-                id: connected.integrationId,
-                name: "discordbot",
-                platform: "first-party"
-            }
-        })
-        if (res.success !== true) {
-            await interaction.reply({
-                content: "❌ Failed to create the task.",
-                flags: MessageFlags.Ephemeral
-            });
-            return;
-        }
-        if (res.data)
-            await interaction.reply({
-                content:
-                    `🎉 Your task has been created!\n\n` +
-                    `Title: **${res.data.title}**\n` +
-                    `View it here: ${res.data.publicPortalUrl}`,
-            });
-    });
+		const categoryId = template.defaults.categoryId;
+
+		const res = await Sayr.me.createTask({
+			title,
+			description,
+			status: template.defaults.status as "backlog" | "todo" | "in-progress" | "done" | "canceled",
+			priority: template.defaults.priority as "none" | "low" | "medium" | "high" | "urgent",
+			category: categoryId === "" || categoryId === "_none_" ? undefined : categoryId,
+			orgId: connected.organizationId,
+			integration: {
+				id: connected.integrationId,
+				name: "discordbot",
+				platform: "first-party",
+			},
+		});
+
+		if (res.success !== true) {
+			await interaction.reply({
+				content: "Failed to create the task. Please try again.",
+				flags: MessageFlags.Ephemeral,
+			});
+			return;
+		}
+
+		if (res.data) {
+			await interaction.reply({
+				content:
+					`Your task has been created!\n\n` +
+					`Title: **${res.data.title}**\n` +
+					`Template: ${template.name}\n` +
+					`View it here: ${res.data.publicPortalUrl}`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+	});
 }
