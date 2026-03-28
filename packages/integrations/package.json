@@ -10,7 +10,8 @@
 	},
 	"dependencies": {
 		"@repo/ui": "workspace:*",
-		"react": "^19.0.0"
+		"react": "^19.0.0",
+		"hono": "^4.12.7"
 	},
 	"scripts": {
 		"lint": "biome check .",

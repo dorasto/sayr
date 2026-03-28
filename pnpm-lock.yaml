@@ -634,6 +634,9 @@ importers:
       '@repo/ui':
         specifier: workspace:*
         version: link:../ui
+      hono:
+        specifier: ^4.12.7
+        version: 4.12.7
       react:
         specifier: ^19.0.0
         version: 19.2.3
