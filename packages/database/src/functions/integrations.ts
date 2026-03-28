@@ -70,8 +70,8 @@ export async function setIntegrationConfig(
 }
 
 export async function getIntegrationEnabled(orgId: string, integrationId: string): Promise<boolean> {
-	const result = await getIntegrationConfig(orgId, integrationId, "enabled");
-	return result?.value === true;
+	const result: any = await getIntegrationConfig(orgId, integrationId, "enabled");
+	return result?.value?.enabled === true;
 }
 
 export async function setIntegrationEnabled(orgId: string, integrationId: string, enabled: boolean): Promise<void> {

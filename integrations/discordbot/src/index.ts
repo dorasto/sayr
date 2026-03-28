@@ -14,8 +14,9 @@ import Sayr from "@sayrio/public";
 import { EventSource } from "eventsource"
 import { getIntegrationConfig, getIntegrationStorage, setIntegrationStorage, db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
+const API_URL = process.env.APP_ENV === "development" ? "http://localhost:5468/api/internal" : "http://backend:5468/api/internal";
 Sayr.client.setToken(process.env.SAYR_API_KEY)
-Sayr.client.setBaseUrl("http://api.app.localhost:5468")
+Sayr.client.setBaseUrl(API_URL)
 
 const token = process.env.DISCORD_BOT_TOKEN;
 
@@ -77,7 +78,7 @@ client.once(Events.ClientReady, () => {
 client.login(token);
 
 Sayr.sse(
-  "http://api.app.localhost:5468/events?channel=system",
+  `${API_URL}/events?channel=system"`,
   {
     [Sayr.EVENTS.CONNECTION_STATUS]: (msg: any) => {
       console.log(

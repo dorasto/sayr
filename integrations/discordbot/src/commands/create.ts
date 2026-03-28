@@ -15,8 +15,9 @@ import {
 } from "discord.js";
 import type { DiscordTemplate } from "../../api/index";
 import Sayr from "@sayrio/public";
+const API_URL = process.env.APP_ENV === "development" ? "http://localhost:5468/api/internal" : "http://backend:5468/api/internal";
 Sayr.client.setToken(process.env.SAYR_API_KEY);
-Sayr.client.setBaseUrl("http://api.app.localhost:5468");
+Sayr.client.setBaseUrl(API_URL);
 
 export const data = (sub: SlashCommandSubcommandBuilder) =>
 	sub.setName("create").setDescription("Create a new Sayr task");
@@ -26,11 +27,11 @@ export const data = (sub: SlashCommandSubcommandBuilder) =>
 async function getOrgAndTemplates(guildId: string | null) {
 	if (!guildId) return null;
 
-	const connected = await getIntegrationConfigByValue("guildId", "discordbot", guildId);
+	const connected = await getIntegrationConfigByValue("guildId", "discordbot", { guildId: guildId });
 	if (!connected) return null;
 
-	const enabled = await getIntegrationEnabled(connected.organizationId, "discordbot");
-	if (!enabled) return null;
+	// const enabled = await getIntegrationEnabled(connected.organizationId, "discordbot");
+	// if (!enabled) return null;
 
 	const storage = await getIntegrationStorage(connected.organizationId, "discordbot");
 	const storageData = (storage?.data ?? {}) as Record<string, unknown>;
@@ -253,7 +254,6 @@ export function registerModalHandler(client: Client) {
 					`Title: **${res.data.title}**\n` +
 					`Template: ${template.name}\n` +
 					`View it here: ${res.data.publicPortalUrl}`,
-				flags: MessageFlags.Ephemeral,
 			});
 		}
 	});
