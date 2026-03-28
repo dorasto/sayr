@@ -5,21 +5,36 @@ import { ApiErrorResponse, ApiPaginatedResponse, ApiSuccessResponse } from "../r
 /**
  * Generates a describeRoute config for common success + error responses.
  */
-export const describeOkNotFound = <T extends z.ZodTypeAny>(opts: {
+export const describeOkNotFound = <T extends z.ZodTypeAny, B extends z.ZodTypeAny | undefined = undefined>(opts: {
 	summary: string;
 	description?: string;
 	dataSchema: T;
+	bodySchema?: B;
+	bodyExample?: Record<string, unknown>;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	parameters?: any[];
 	tags?: string[];
 	security?: Record<string, string[]>[];
-}) =>
-	describeRoute({
+}) => {
+	const bodyContent: unknown = opts.bodySchema
+		? {
+			content: {
+				"application/json": {
+					schema: resolver(opts.bodySchema),
+					example: opts.bodyExample,
+				},
+			},
+		}
+		: undefined;
+
+	return describeRoute({
 		summary: opts.summary,
 		description: opts.description,
 		parameters: opts.parameters,
 		tags: opts.tags,
 		security: opts.security,
+		// @ts-expect-error - requestBody type mismatch
+		requestBody: bodyContent,
 		responses: {
 			200: {
 				description: "Success",
@@ -39,6 +54,7 @@ export const describeOkNotFound = <T extends z.ZodTypeAny>(opts: {
 			},
 		},
 	});
+};
 
 /**
  * Generates an OpenAPI route config for paginated endpoints

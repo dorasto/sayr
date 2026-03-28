@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { routeExists, type AppEnv } from "@/index";
 import { apiPublicRouteV1 } from "./public/v1";
 import { internalApiV1 } from "./internal/v1";
+import { apiRouteIntegrations } from "./integrations";
 import { safeGetSession } from "@/getSession";
 import { db, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
@@ -186,6 +187,7 @@ apiRoute.get("/github/org-check", async (c) => {
 });
 
 apiRoute.route("/internal/v1", internalApiV1);
+apiRoute.route("/integrations", apiRouteIntegrations);
 
 apiRoute.get("/gdpr/export/download", async (c) => {
 	const token = c.req.query("token");

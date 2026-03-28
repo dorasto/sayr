@@ -5,6 +5,7 @@ import { TableCell, TableRow } from "@repo/ui/components/table";
 import { parseChannel } from "@repo/util";
 import { memo, useEffect, useState } from "react";
 import { ConnectionType } from "./conections";
+import { IconDeviceDesktop, IconDeviceMobile, IconHelp } from "@tabler/icons-react";
 
 function formatDuration(ms: number) {
 	const sec = Math.floor(ms / 1000);
@@ -76,6 +77,14 @@ export const ConnectionRow = memo(function ConnectionRow({
 				) : (
 					<Badge variant="destructive">No</Badge>
 				)}
+			</TableCell>
+			<TableCell className="font-mono text-xs">
+				<div className="flex items-center gap-2">
+					{client.device === "mobile" && <IconDeviceMobile size={16} />}
+					{client.device === "desktop" && <IconDeviceDesktop size={16} />}
+					{!client.device && <IconHelp size={16} />}
+					<span>{client.device ?? "unknown"}</span>
+				</div>
 			</TableCell>
 			<TableCell className="font-mono text-xs">
 				{client.ref ?? "–"}

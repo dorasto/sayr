@@ -39,6 +39,7 @@ export * from "./notification.schema";
 export * from "./github_pull_request.schema";
 export * from "./blockedUser.schema";
 export * from "./github_branch_link.schema";
+export * from "./integrations";
 export interface NodeJSON {
 	type: string;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>

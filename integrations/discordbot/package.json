@@ -1,0 +1,27 @@
+{
+  "name": "@integrations/discordbot",
+  "version": "1.0.0",
+  "private": false,
+  "scripts": {
+    "dev": "bun --watch run src/index.ts",
+    "build": "bun build  src/index.ts --target=bun --outdir ./dist",
+    "start": "bun ./dist/index.js",
+    "zerops:build": "bun build src/index.ts --target=bun --outdir ./dist",
+    "zerops:start": "bun run dist/index.js"
+  },
+  "dependencies": {
+    "@discordjs/builders": "^1.10.1",
+    "@discordjs/rest": "^2.5.0",
+    "@repo/integrations": "workspace:*",
+    "@repo/database": "workspace:*",
+    "@sayrio/public": "workspace:*",
+    "discord.js": "^14.18.0",
+    "hono": "^4.12.7"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/bun": "^1.2.23",
+    "bun-types": "^1.2.21",
+    "typescript": "^5.3.3"
+  }
+}

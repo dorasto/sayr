@@ -15,6 +15,7 @@ export type ConnectionType = {
 		image: string;
 		role: string;
 	};
+	device: string;
 	ref?: string;
 };
 

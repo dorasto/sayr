@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { safeGetSession } from "@/getSession";
-import { safeGetOrganization, traceOrgPermissionCheck } from "@/util";
+import { safeGetOrganization } from "@/util";
 import { ServerEventBaseMessage } from "./types";
 import { auth as authSchema, db } from "@repo/database";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { ensureCdnUrl } from "@repo/util";
 
 export const sseRoute = new Hono();
@@ -18,6 +18,7 @@ type SSEClient = {
     clientId: string; // logical user ID (can have multiple connections)
     authenticated: boolean;
     connectedAt: number; // timestamp (Date.now())
+    device: string;
 
     // Added fields
     ref?: string;
@@ -201,11 +202,22 @@ export function findSSEClientsByUserId(userId: string): SSEClient[] {
 
     return results;
 }
-
+function getDeviceType(userAgent: string | undefined): string {
+    if (!userAgent) return "unknown";
+    const ua = userAgent.toLowerCase();
+    const isMobile =
+        ua.includes("iphone") ||
+        ua.includes("ipad") ||
+        ua.includes("android") ||
+        ua.includes("mobile");
+    return isMobile ? "mobile" : "desktop";
+}
 sseRoute.get("/", async (c) => {
     let orgId = c.req.query("orgId");
     let channel = c.req.query("channel");
     let ref = c.req.query("ref");
+    const userAgent = c.req.raw.headers.get("user-agent");
+    const device = getDeviceType(userAgent || "");
     const id = crypto.randomUUID();
 
     const session = await safeGetSession(c.req.raw.headers);
@@ -249,7 +261,7 @@ sseRoute.get("/", async (c) => {
                 sseUnsubscribe(client);
             };
 
-            const client: SSEClient = { id: id, orgId: orgId || "", channel, send, close, clientId: session?.user.id || "", authenticated, connectedAt: Date.now(), ref: ref };
+            const client: SSEClient = { id: id, orgId: orgId || "", channel, send, close, clientId: session?.user.id || "", authenticated, connectedAt: Date.now(), ref: ref, device: device };
 
             const key = `${orgId || ""}:${channel}`;
             if (!sseRooms.has(key)) sseRooms.set(key, new Set());
@@ -315,6 +327,7 @@ sseRoute.get("/connections", async (c) => {
             image: string;
             role: string;
         }
+        device: string;
         ref?: string;
     }> = [];
 
@@ -351,6 +364,7 @@ sseRoute.get("/connections", async (c) => {
             connectedAt: client.connectedAt,
             authenticated: client.authenticated,
             account,
+            device: client.device,
             ref: client.ref,
         });
     }

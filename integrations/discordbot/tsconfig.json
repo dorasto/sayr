@@ -1,0 +1,19 @@
+{
+	"extends": "@repo/typescript-config/base.json",
+	"compilerOptions": {
+		"types": [
+			"bun"
+		],
+		"paths": {
+			"@/index": [
+				"./index.ts"
+			]
+		}
+	},
+	"include": [
+		"src"
+	],
+	"exclude": [
+		"node_modules"
+	]
+}

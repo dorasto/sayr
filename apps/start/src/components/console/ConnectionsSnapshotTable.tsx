@@ -41,6 +41,7 @@ export function ConnectionsSnapshotTable({
 							<TableHead>Channel</TableHead>
 							<TableHead>Connected For</TableHead>
 							<TableHead>Auth</TableHead>
+							<TableHead>Device</TableHead>
 							<TableHead>Ref</TableHead>
 						</TableRow>
 					</TableHeader>

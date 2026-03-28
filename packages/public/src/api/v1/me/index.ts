@@ -1,5 +1,27 @@
 import { ApiResult, request, type RequestOptions } from "../../../client";
-import { ApiSuccess, Organization } from "../../../types";
+import { ApiSuccess, Organization, TaskPriority, TaskStatus } from "../../../types";
+
+export interface TaskCreated {
+    id: string;
+    shortId: number;
+    title: string;
+    orgSlug: string;
+    publicPortalUrl: string;
+}
+
+export interface CreateTaskInput {
+    title: string;
+    description?: string;
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    category?: string;
+    orgId: string;
+    integration?: {
+        id: string;
+        name: string;
+        platform: string;
+    };
+}
 
 export interface Me {
     id: string;
@@ -50,6 +72,30 @@ export default {
                 success: false,
                 data: null,
                 error: err?.message ?? "Failed to fetch organizations",
+            };
+        }
+    },
+
+    async createTask(
+        body: CreateTaskInput,
+        opts?: RequestOptions,
+    ): Promise<ApiResult<TaskCreated>> {
+        try {
+            const r = await request<ApiSuccess<TaskCreated>>("/v1/me/task", {
+                ...opts,
+                method: "POST",
+                body: body as any,
+            });
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error: err?.message ?? "Failed to create task",
             };
         }
     },

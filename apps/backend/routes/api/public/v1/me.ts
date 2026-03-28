@@ -3,7 +3,12 @@ import {
     auth as authSchema,
     getOrganizations,
     schema,
+    createTask,
+    addLogEventTask,
+    getTaskById,
+    getOrganizationMembers,
 } from "@repo/database";
+import { markdownToProsekitJSON } from "@/prosekit/parser";
 import { eq } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
@@ -13,6 +18,9 @@ import { describeOkNotFound } from "../../../../openapi/helpers";
 import { errorResponse, successResponse } from "../../../../responses";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { auth } from "@repo/auth";
+import { ServerEventBaseMessage } from "@/routes/events/types";
+import { findSSEClientsByUserId, sseBroadcastIndividual, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
+import { traceOrgPermissionCheck } from "@/util";
 export const Route = new Hono<AppEnv>();
 /**
  * Public user inside organization member
@@ -210,6 +218,184 @@ Route.get(
                     };
                 })
             )
+        );
+    }
+);
+
+const CreateTaskSchema = z.object({
+    id: z.string(),
+    title: z.string().min(1),
+    description: z.string().optional(),
+    status: z.enum(["backlog", "todo", "in-progress", "done", "canceled"]).optional(),
+    priority: z.enum(["none", "low", "medium", "high", "urgent"]).optional(),
+    category: z.string().optional(),
+    orgId: z.string(),
+    integration: z.object({
+        id: z.string(),
+        name: z.string(),
+        platform: z.string(),
+    }).optional(),
+});
+
+const CreateTaskSchemaData = z.object({
+    id: z.string(),
+    title: z.string(),
+    shortId: z.string(),
+    orgSlug: z.string(),
+    publicPortalUrl: z.string(),
+});
+
+
+Route.post(
+    "/task",
+    describeOkNotFound({
+        summary: "Create Task",
+        description: "Create a new task in the organization.",
+        dataSchema: CreateTaskSchemaData,
+        bodySchema: CreateTaskSchema,
+        bodyExample: {
+            title: "My Task",
+            description: "Task description",
+            orgId: "abc123",
+        },
+        tags: ["Tasks"],
+        security: [{ bearerAuth: [] }],
+    }),
+    async (c) => {
+        const traceAsync = createTraceAsync();
+
+        const authHeader = c.req.header("authorization");
+        const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
+
+        if (!token) {
+            return c.json(errorResponse("Unauthorized"), 401);
+        }
+
+        const apiKeyResult = await traceAsync(
+            "auth.apikey.verify",
+            () =>
+                auth.api.verifyApiKey({
+                    body: {
+                        key: token,
+                    },
+                }),
+            {
+                description: "Verifying API key",
+                onSuccess: () => ({
+                    outcome: "API key verified",
+                }),
+            }
+        );
+
+        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
+            return c.json(errorResponse("Invalid API key"), 401);
+        }
+
+        const body = await c.req.json();
+        const { orgId, title, description, status, priority, category, integration } = body;
+        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.userId || "", orgId, "tasks.create");
+
+
+        if (!isAuthorized) {
+            return c.json({ success: false, error: "You don't have permission to create tasks." }, 401);
+        }
+
+        const descriptionProsekit = description ? markdownToProsekitJSON(description) : undefined;
+        const task = await traceAsync(
+            "task.create.insert",
+            () => createTask(orgId, {
+                title,
+                description: descriptionProsekit,
+                status: status,
+                priority: priority,
+                category: category,
+                releaseId: null,
+                visible: "public",
+                parentId: null,
+            }, apiKeyResult.key?.userId || undefined),
+            {
+                description: "Creating task record",
+                data: { orgId, title, status, priority, category },
+            }
+        );
+
+        if (!task) {
+            return c.json({ success: false, error: "Failed to create task" }, 500);
+        }
+
+        // Add integration timeline event first if integration info provided
+        if (integration) {
+            await traceAsync(
+                "task.create.timeline.integration",
+                () => addLogEventTask(
+                    task.id,
+                    orgId,
+                    "integration",
+                    null,
+                    integration,
+                    apiKeyResult.key?.userId || undefined,
+                ),
+                {
+                    description: "Adding integration timeline event",
+                }
+            );
+        }
+
+        // Add created timeline event
+        await traceAsync(
+            "task.create.timeline",
+            () => addLogEventTask(
+                task.id,
+                orgId,
+                "created",
+                null,
+                { status, priority, title, labels: [], assignees: [] },
+                apiKeyResult.key?.userId || undefined,
+                descriptionProsekit
+            ),
+            {
+                description: "Adding created timeline event",
+            }
+        );
+        const taskWithData = await traceAsync("task.me.refetch", () => getTaskById(orgId, task.id), {
+            description: "Fetching created public task with relations",
+        });
+        await traceAsync(
+            "task.public_create.broadcast",
+            async () => {
+                const data = {
+                    type: "CREATE_TASK" as ServerEventBaseMessage["type"],
+                    data: taskWithData,
+                };
+
+                sseBroadcastToRoom(orgId, "tasks", data);
+                sseBroadcastPublic(orgId, { ...data, data: data });
+
+                const members = await getOrganizationMembers(orgId);
+                members.forEach((member) => {
+                    const clients = findSSEClientsByUserId(member.userId);
+                    clients.forEach(
+                        (client) =>
+                            client.channel !== "tasks" && sseBroadcastIndividual(client, data, orgId)
+                    );
+                });
+            },
+            { description: "Broadcasting new public task to clients" }
+        );
+        const organization = await db.query.organization.findFirst({
+            columns: {
+                id: true,
+                slug: true
+            }, where: (org) => eq(org.id, orgId),
+        });
+        return c.json(
+            successResponse({
+                id: task.id,
+                shortId: task.shortId,
+                title: task.title,
+                orgSlug: organization?.slug,
+                publicPortalUrl: `${process.env.APP_ENV === "development" ? `http://${organization?.slug}.${process.env.VITE_ROOT_DOMAIN}:3000` : `https://${organization?.slug}.${process.env.VITE_ROOT_DOMAIN}`}/${task.shortId}`
+            })
         );
     }
 );
