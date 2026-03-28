@@ -1,7 +1,7 @@
 import { registerIntegration } from "@repo/integrations";
 import type { IntegrationManifest } from "@repo/integrations/types";
 import { apiRoute } from "./api";
-import { questionsPage, settingsPage } from "./ui/pages";
+import { templatesPage, settingsPage } from "./ui/pages";
 import { docs } from "./docs";
 
 const integration: IntegrationManifest = {
@@ -15,7 +15,7 @@ const integration: IntegrationManifest = {
   ui: {
     pages: {
       settings: settingsPage,
-      questions: questionsPage,
+      templates: templatesPage,
     },
     components: {},
   },

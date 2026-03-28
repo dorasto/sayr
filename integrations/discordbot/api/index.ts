@@ -10,23 +10,37 @@ type AppEnv = {
 
 import { getIntegrationConfig, setIntegrationConfig, getIntegrationEnabled, getIntegrationStorage, setIntegrationStorage, db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
-const DEFAULT_QUESTIONS: Record<string, string> = {
-	question_1: "",
-	question_2: "",
-	question_3: "",
-	question_4: ""
-};
+export interface DiscordTemplate {
+	id: string;
+	name: string;
+	titlePrefix: string;
+	description: string;
+	questions: {
+		question_1: string;
+		question_2: string;
+		question_3: string;
+		question_4: string;
+	};
+	defaults: {
+		status: string;
+		priority: string;
+		categoryId: string;
+	};
+}
 
-const DEFAULT_DEFAULTS = {
+const DEFAULT_TEMPLATE_DEFAULTS = {
 	status: "todo",
 	priority: "none",
-	categoryId: ""
+	categoryId: "",
 };
 
 const INTEGRATION_ID = "discordbot";
 
 export const apiRoute = new Hono<AppEnv>();
+
+// ─── Settings ────────────────────────────────────────────────────────────────
 
 apiRoute.get("/settings", async (c) => {
 	const orgId = c.get("orgId");
@@ -57,48 +71,108 @@ apiRoute.patch("/settings", async (c) => {
 	return c.json({ success: true });
 });
 
-apiRoute.get("/questions", async (c) => {
+// ─── Templates ───────────────────────────────────────────────────────────────
+
+apiRoute.get("/templates", async (c) => {
 	const orgId = c.get("orgId");
 	const storage = await getIntegrationStorage(orgId, INTEGRATION_ID);
 	const data = (storage?.data ?? {}) as Record<string, unknown>;
+	const templates = (data.templates ?? []) as DiscordTemplate[];
 
-	const storedDefaults = (data.defaults ?? DEFAULT_DEFAULTS) as Record<string, unknown>;
-	const storedQuestions = (data.questions ?? DEFAULT_QUESTIONS) as Record<string, string>;
-
-	const categories = await db.select({ id: schema.category.id, name: schema.category.name })
+	const categories = await db
+		.select({ id: schema.category.id, name: schema.category.name })
 		.from(schema.category)
 		.where(eq(schema.category.organizationId, orgId));
 
 	return c.json({
 		success: true,
 		data: {
-			...storedQuestions,
-			defaults: storedDefaults,
-			categories: categories.map(c => ({ value: c.id, label: c.name ?? c.id }))
-		}
+			templates,
+			categories: categories.map((cat) => ({ value: cat.id, label: cat.name ?? cat.id })),
+		},
 	});
 });
 
-apiRoute.patch("/questions", async (c) => {
+apiRoute.post("/templates", async (c) => {
 	const orgId = c.get("orgId");
 	const body = await c.req.json();
-	const questions: Record<string, string> = {};
-	if (body.question_1 !== undefined) questions.question_1 = body.question_1;
-	if (body.question_2 !== undefined) questions.question_2 = body.question_2;
-	if (body.question_3 !== undefined) questions.question_3 = body.question_3;
-	if (body.question_4 !== undefined) questions.question_4 = body.question_4;
 
-	// Handle both flat body (from UI) and nested structure
-	const incomingDefaults = (body.defaults ?? body) as Record<string, unknown>;
+	const storage = await getIntegrationStorage(orgId, INTEGRATION_ID);
+	const data = (storage?.data ?? {}) as Record<string, unknown>;
+	const templates = [...((data.templates ?? []) as DiscordTemplate[])];
 
-	await setIntegrationStorage(orgId, INTEGRATION_ID, {
-		questions: { ...DEFAULT_QUESTIONS, ...questions },
+	const newTemplate: DiscordTemplate = {
+		id: randomUUID(),
+		name: String(body.name ?? "New Template"),
+		titlePrefix: String(body.titlePrefix ?? ""),
+		description: String(body.description ?? ""),
+		questions: {
+			question_1: String(body.question_1 ?? ""),
+			question_2: String(body.question_2 ?? ""),
+			question_3: String(body.question_3 ?? ""),
+			question_4: String(body.question_4 ?? ""),
+		},
 		defaults: {
-			status: String(incomingDefaults.status ?? incomingDefaults.status ?? "todo"),
-			priority: String(incomingDefaults.priority ?? incomingDefaults.priority ?? "none"),
-			categoryId: String(incomingDefaults.categoryId ?? incomingDefaults.categoryId ?? "")
-		}
-	});
+			status: String(body.status ?? DEFAULT_TEMPLATE_DEFAULTS.status),
+			priority: String(body.priority ?? DEFAULT_TEMPLATE_DEFAULTS.priority),
+			categoryId: String(body.categoryId ?? DEFAULT_TEMPLATE_DEFAULTS.categoryId),
+		},
+	};
+
+	templates.push(newTemplate);
+	await setIntegrationStorage(orgId, INTEGRATION_ID, { ...data, templates });
+
+	return c.json({ success: true, data: newTemplate });
+});
+
+apiRoute.patch("/templates/:id", async (c) => {
+	const orgId = c.get("orgId");
+	const templateId = c.req.param("id");
+	const body = await c.req.json();
+
+	const storage = await getIntegrationStorage(orgId, INTEGRATION_ID);
+	const data = (storage?.data ?? {}) as Record<string, unknown>;
+	const templates = [...((data.templates ?? []) as DiscordTemplate[])];
+
+	const idx = templates.findIndex((t) => t.id === templateId);
+	if (idx === -1) {
+		return c.json({ success: false, error: "Template not found" }, 404);
+	}
+
+	const existing = templates[idx]!;
+	const updated: DiscordTemplate = {
+		...existing,
+		name: body.name !== undefined ? String(body.name) : existing.name,
+		titlePrefix: body.titlePrefix !== undefined ? String(body.titlePrefix) : existing.titlePrefix,
+		description: body.description !== undefined ? String(body.description) : existing.description,
+		questions: {
+			question_1: body.question_1 !== undefined ? String(body.question_1) : existing.questions.question_1,
+			question_2: body.question_2 !== undefined ? String(body.question_2) : existing.questions.question_2,
+			question_3: body.question_3 !== undefined ? String(body.question_3) : existing.questions.question_3,
+			question_4: body.question_4 !== undefined ? String(body.question_4) : existing.questions.question_4,
+		},
+		defaults: {
+			status: body.status !== undefined ? String(body.status) : existing.defaults.status,
+			priority: body.priority !== undefined ? String(body.priority) : existing.defaults.priority,
+			categoryId: body.categoryId !== undefined ? String(body.categoryId) : existing.defaults.categoryId,
+		},
+	};
+
+	templates[idx] = updated;
+	await setIntegrationStorage(orgId, INTEGRATION_ID, { ...data, templates });
+
+	return c.json({ success: true, data: updated });
+});
+
+apiRoute.delete("/templates/:id", async (c) => {
+	const orgId = c.get("orgId");
+	const templateId = c.req.param("id");
+
+	const storage = await getIntegrationStorage(orgId, INTEGRATION_ID);
+	const data = (storage?.data ?? {}) as Record<string, unknown>;
+	const templates = ((data.templates ?? []) as DiscordTemplate[]).filter((t) => t.id !== templateId);
+
+	await setIntegrationStorage(orgId, INTEGRATION_ID, { ...data, templates });
 
 	return c.json({ success: true });
 });

@@ -73,6 +73,7 @@ export function parseSection(section: UISection): ParsedSection {
 function parseListItemTemplate(item: ListItemTemplate) {
 	return {
 		fields: item.fields ?? [],
+		createFields: item.createFields ?? item.fields ?? [],
 		children: item.children ? parsePage(item.children) : [],
 		actions: item.actions ?? [],
 		keyField: item.key,

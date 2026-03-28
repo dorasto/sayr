@@ -249,6 +249,7 @@ function PageRenderer({
           key={idx}
           section={section}
           data={rootData}
+          pageData={rootData}
           updateData={updateData}
           onSave={onSave}
           onRefresh={fetchData}
@@ -266,6 +267,8 @@ function PageRenderer({
 interface SectionRendererProps {
   section: ParsedSection;
   data: Record<string, unknown>;
+  /** Full page-level data, for resolving optionsData paths in nested sections/dialogs */
+  pageData?: Record<string, unknown>;
   updateData: (path: string, value: unknown) => void;
   onSave: () => void;
   onRefresh: () => void;
@@ -280,6 +283,7 @@ function TabsSectionRenderer(props: SectionRendererProps) {
   const {
     section,
     data,
+    pageData,
     updateData,
     onSave,
     onRefresh,
@@ -310,6 +314,7 @@ function TabsSectionRenderer(props: SectionRendererProps) {
           <SectionRenderer
             section={t.content}
             data={data}
+            pageData={pageData}
             updateData={updateData}
             onSave={onSave}
             onRefresh={onRefresh}
@@ -329,6 +334,7 @@ function SectionRenderer(props: SectionRendererProps) {
   const {
     section,
     data,
+    pageData,
     updateData,
     onSave,
     onRefresh,
@@ -405,6 +411,7 @@ function SectionRenderer(props: SectionRendererProps) {
               key={i}
               section={child}
               data={sectionData as Record<string, unknown>}
+              pageData={pageData}
               updateData={(path, value) => {
                 const fullPath = section.data
                   ? `${section.data}.${path}`
@@ -446,6 +453,7 @@ function SectionRenderer(props: SectionRendererProps) {
             orgId={orgId}
             apiPath={apiPath}
             onRefresh={onRefresh}
+            pageData={pageData ?? data}
           />
         </div>
       </div>
@@ -457,6 +465,7 @@ function SectionRenderer(props: SectionRendererProps) {
       <TabsSectionRenderer
         section={section}
         data={data}
+        pageData={pageData}
         updateData={updateData}
         onSave={onSave}
         onRefresh={onRefresh}
@@ -483,6 +492,7 @@ function SectionRenderer(props: SectionRendererProps) {
             key={idx}
             section={child}
             data={data}
+            pageData={pageData}
             updateData={updateData}
             onSave={onSave}
             onRefresh={onRefresh}
@@ -507,6 +517,8 @@ interface ListRendererProps {
   orgId: string;
   apiPath: string;
   onRefresh: () => void;
+  /** Full page-level data for resolving optionsData paths in the create dialog */
+  pageData?: Record<string, unknown>;
 }
 
 function ListRenderer({
@@ -516,6 +528,7 @@ function ListRenderer({
   orgId,
   apiPath,
   onRefresh,
+  pageData,
 }: ListRendererProps) {
   const apiBase =
     import.meta.env.VITE_APP_ENV === "development"
@@ -525,16 +538,48 @@ function ListRenderer({
   const [createFormData, setCreateFormData] = useState<Record<string, unknown>>(
     {},
   );
+  const [editItem, setEditItem] = useState<Record<string, unknown> | null>(
+    null,
+  );
+  const [editFormData, setEditFormData] = useState<Record<string, unknown>>({});
 
   const keyField = section.item.keyField ?? "id";
   const createAction = section.item.actions?.find((a) => a.type === "create");
+  const editAction = section.item.actions?.find((a) => a.type === "edit");
+
+  /**
+   * Flatten one level of nested objects so that e.g. { questions: { question_1: "foo" } }
+   * becomes { question_1: "foo" } — matching the flat field names used in createFields.
+   */
+  function flattenItem(item: Record<string, unknown>): Record<string, unknown> {
+    const flat: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(item)) {
+      if (val !== null && typeof val === "object" && !Array.isArray(val)) {
+        for (const [subKey, subVal] of Object.entries(
+          val as Record<string, unknown>,
+        )) {
+          flat[subKey] = subVal;
+        }
+      } else {
+        flat[key] = val;
+      }
+    }
+    return flat;
+  }
 
   const handleAction = async (
     item: unknown,
     action: NonNullable<ParsedListItemTemplate["actions"]>[0],
   ) => {
     if (!item) return;
-    const itemId = (item as Record<string, unknown>)[keyField];
+    const itemRecord = item as Record<string, unknown>;
+    const itemId = itemRecord[keyField];
+
+    if (action.type === "edit") {
+      setEditItem(itemRecord);
+      setEditFormData(flattenItem(itemRecord));
+      return;
+    }
 
     if (action.type === "delete" && action.path) {
       await fetch(`${apiBase}/${integrationId}${action.path}/${itemId}`, {
@@ -550,7 +595,7 @@ function ListRenderer({
         method: action.method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ orgId, ...(item as Record<string, unknown>) }),
+        body: JSON.stringify({ orgId, ...itemRecord }),
       });
       onRefresh();
     }
@@ -567,6 +612,21 @@ function ListRenderer({
     });
     setIsCreateOpen(false);
     setCreateFormData({});
+    onRefresh();
+  };
+
+  const handleEdit = async () => {
+    if (!editAction?.path || !editItem) return;
+    const itemId = editItem[keyField];
+    const method = editAction.method ?? "PATCH";
+    await fetch(`${apiBase}/${integrationId}${editAction.path}/${itemId}`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ orgId, ...editFormData }),
+    });
+    setEditItem(null);
+    setEditFormData({});
     onRefresh();
   };
 
@@ -594,11 +654,30 @@ function ListRenderer({
           <CreateDialog
             open={isCreateOpen}
             onOpenChange={setIsCreateOpen}
-            fields={section.item.fields ?? []}
+            fields={section.item.createFields ?? section.item.fields ?? []}
             formData={createFormData}
             setFormData={setCreateFormData}
             onSubmit={handleCreate}
             title={createAction.label ?? "Create Item"}
+            pageData={pageData}
+          />
+        )}
+        {editAction && (
+          <CreateDialog
+            open={editItem !== null}
+            onOpenChange={(open) => {
+              if (!open) {
+                setEditItem(null);
+                setEditFormData({});
+              }
+            }}
+            fields={section.item.createFields ?? section.item.fields ?? []}
+            formData={editFormData}
+            setFormData={setEditFormData}
+            onSubmit={handleEdit}
+            title={editAction.label ?? "Edit Item"}
+            submitLabel="Save"
+            pageData={pageData}
           />
         )}
       </>
@@ -678,11 +757,30 @@ function ListRenderer({
           <CreateDialog
             open={isCreateOpen}
             onOpenChange={setIsCreateOpen}
-            fields={section.item.fields ?? []}
+            fields={section.item.createFields ?? section.item.fields ?? []}
             formData={createFormData}
             setFormData={setCreateFormData}
             onSubmit={handleCreate}
             title={createAction.label ?? "Create Item"}
+            pageData={pageData}
+          />
+        )}
+        {editAction && (
+          <CreateDialog
+            open={editItem !== null}
+            onOpenChange={(open) => {
+              if (!open) {
+                setEditItem(null);
+                setEditFormData({});
+              }
+            }}
+            fields={section.item.createFields ?? section.item.fields ?? []}
+            formData={editFormData}
+            setFormData={setEditFormData}
+            onSubmit={handleEdit}
+            title={editAction.label ?? "Edit Item"}
+            submitLabel="Save"
+            pageData={pageData}
           />
         )}
       </>
@@ -923,11 +1021,15 @@ interface CreateDialogProps {
     placeholder?: string;
     required?: boolean;
     options?: { value: string; label: string }[];
+    optionsData?: string;
   }>;
   formData: Record<string, unknown>;
   setFormData: (data: Record<string, unknown>) => void;
   onSubmit: () => void;
   title: string;
+  submitLabel?: string;
+  /** Full page-level data so optionsData paths can be resolved */
+  pageData?: Record<string, unknown>;
 }
 
 function CreateDialog({
@@ -938,28 +1040,46 @@ function CreateDialog({
   setFormData,
   onSubmit,
   title,
+  submitLabel = "Create",
+  pageData,
 }: CreateDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-prose max-h-[80vh] min-h-[30vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle asChild>
+            <Label variant={"heading"}>{title}</Label>
+          </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {fields.map((field) => (
-            <FieldRenderer
-              key={field.name}
-              field={field}
-              data={formData}
-              updateData={(value) =>
-                setFormData({ ...formData, [field.name]: value })
-              }
-            />
-          ))}
+          {fields.map((field) => {
+            // Resolve optionsData against pageData if available
+            const resolvedField =
+              field.optionsData && pageData
+                ? {
+                    ...field,
+                    options:
+                      (getByPath(pageData, field.optionsData) as {
+                        value: string;
+                        label: string;
+                      }[]) ?? field.options,
+                  }
+                : field;
+            return (
+              <FieldRenderer
+                key={field.name}
+                field={resolvedField}
+                data={formData}
+                updateData={(value) =>
+                  setFormData({ ...formData, [field.name]: value })
+                }
+              />
+            );
+          })}
         </div>
         <DialogFooter>
           <Button type="submit" onClick={onSubmit}>
-            Create
+            {submitLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

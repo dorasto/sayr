@@ -80,6 +80,8 @@ export interface ListSection {
 
 export interface ListItemTemplate {
   fields?: UIField[];
+  /** Fields shown in the Create dialog (falls back to `fields` if omitted) */
+  createFields?: UIField[];
   children?: UISection[];
   actions?: ListItemAction[];
   key?: string;
@@ -164,6 +166,7 @@ export interface ParsedListSection {
 
 export interface ParsedListItemTemplate {
   fields: UIField[];
+  createFields: UIField[];
   children: ParsedSection[];
   actions: ListItemAction[];
   keyField?: string;
