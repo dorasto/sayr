@@ -156,8 +156,6 @@ export function registerModalHandler(client: Client) {
             category: defaults.categoryId === "_none_" ? undefined : defaults.categoryId || undefined
         };
 
-        // TODO: Create task in database
-        console.log("Creating task:", JSON.stringify(taskData, null, 2));
         const res = await Sayr.me.createTask({
             title: taskData.title,
             description: taskData.description,
