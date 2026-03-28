@@ -33,7 +33,8 @@ export type PlatformEventType =
 	| "task.github_pr_linked"
 	| "task.github_pr_merged"
 	| "task.github_commit_ref"
-	| "task.github_branch_linked";
+	| "task.github_branch_linked"
+	| "ai.summary_requested";
 
 export interface PlatformEvent {
 	event_type: PlatformEventType;

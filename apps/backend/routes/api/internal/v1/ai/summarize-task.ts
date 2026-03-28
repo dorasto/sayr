@@ -8,6 +8,7 @@ import { traceOrgPermissionCheck } from "@/util";
 import { errorResponse } from "../../../../../responses";
 import { extractPlainText } from "../../../../../lib/ai/extract-plain-text";
 import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
+import { emitEvent } from "../../../../../clickhouse";
 
 export const summarizeTaskRoute = new Hono<AppEnv>();
 
@@ -110,7 +111,7 @@ summarizeTaskRoute.post("/", async (c) => {
 
   const userPrompt = buildUserPrompt(task, descriptionText, timelineText);
   const tokenStream = streamText({
-    model: MISTRAL_MODELS.MEDIUM,
+    model: MISTRAL_MODELS.SMALL,
     systemPrompt: SYSTEM_PROMPT,
     userPrompt,
   });
@@ -118,6 +119,8 @@ summarizeTaskRoute.post("/", async (c) => {
   const responseBody = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
+      let outputChars = 0;
+      let streamError = false;
       try {
         // Emit the exact prompts first so clients can display/debug what was sent.
         controller.enqueue(
@@ -127,6 +130,7 @@ summarizeTaskRoute.post("/", async (c) => {
         );
 
         for await (const chunk of tokenStream) {
+          outputChars += chunk.length;
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`),
           );
@@ -134,6 +138,7 @@ summarizeTaskRoute.post("/", async (c) => {
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } catch (err) {
+        streamError = true;
         await recordWideError({
           name: "ai.summarize-task.stream-failed",
           error: err,
@@ -148,6 +153,19 @@ summarizeTaskRoute.post("/", async (c) => {
         );
       } finally {
         controller.close();
+        emitEvent({
+          event_type: "ai.summary_requested",
+          actor_id: session.userId,
+          target_id: taskId,
+          org_id: orgId,
+          metadata: {
+            model: MISTRAL_MODELS.SMALL,
+            input_chars: userPrompt.length + SYSTEM_PROMPT.length,
+            output_chars: outputChars,
+            timeline_items: activity?.length ?? 0,
+            success: !streamError,
+          },
+        });
       }
     },
   });
