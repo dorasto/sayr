@@ -406,7 +406,11 @@ export function UserSettingsContent({
   );
 }
 
-export function UserPreferences() {
+export type UserPreferenceTypes = {
+  isDialog?: boolean;
+};
+
+export function UserPreferences({ isDialog = false }: UserPreferenceTypes) {
   const { theme, setTheme } = useTheme();
   const taskOpenMode = useStore(userPreferencesStore, (s) => s.taskOpenMode);
 
@@ -438,37 +442,43 @@ export function UserPreferences() {
           </DropdownMenu>
         </TileAction>
       </Tile>
-      <Tile className="md:w-full">
-        <TileHeader>
-          <TileTitle>Task open behavior</TileTitle>
-          <TileDescription className="text-xs">
-            Choose how tasks open when clicked from lists
-          </TileDescription>
-        </TileHeader>
-        <TileAction>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="primary" size="sm" className="capitalize">
-                {taskOpenMode}
-                <IconChevronDown className="size-4 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuRadioGroup
-                value={taskOpenMode}
-                onValueChange={(v) =>
-                  userPreferencesActions.setTaskOpenMode(v as "dialog" | "page")
-                }
-              >
-                <DropdownMenuRadioItem value="dialog">
-                  Dialog
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="page">Page</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TileAction>
-      </Tile>
+      {isDialog == false && (
+        <Tile className="md:w-full">
+          <TileHeader>
+            <TileTitle>Task open behavior</TileTitle>
+            <TileDescription className="text-xs">
+              Choose how tasks open when clicked from lists
+            </TileDescription>
+          </TileHeader>
+          <TileAction>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="primary" size="sm" className="capitalize">
+                  {taskOpenMode}
+                  <IconChevronDown className="size-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup
+                  value={taskOpenMode}
+                  onValueChange={(v) =>
+                    userPreferencesActions.setTaskOpenMode(
+                      v as "dialog" | "page",
+                    )
+                  }
+                >
+                  <DropdownMenuRadioItem value="dialog">
+                    Dialog
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="page">
+                    Page
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TileAction>
+        </Tile>
+      )}
     </div>
   );
 }
