@@ -8,13 +8,13 @@ import {
   ChatInputCommandInteraction,
   SlashCommandBuilder
 } from "discord.js";
-
 import * as sayrCreate from "./commands/create";
 import Sayr from "@sayrio/public";
 import { EventSource } from "eventsource"
 import { getIntegrationConfig, getIntegrationStorage, setIntegrationStorage, db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
-const API_URL = process.env.APP_ENV === "development" ? "http://localhost:5468/api/public" : "http://backend:5468/api/public";
+
+const API_URL = process.env.API_SERVER ? process.env.API_SERVER : process.env.APP_ENV === "development" ? "http://localhost:5468/api/public" : "http://backend:5468/api/public";
 Sayr.client.setToken(process.env.SAYR_API_KEY)
 Sayr.client.setBaseUrl(API_URL)
 
@@ -82,8 +82,13 @@ Sayr.sse(
   {
     [Sayr.EVENTS.CONNECTION_STATUS]: (msg: any) => {
       console.log(
-        `SSE Connected → clientId=${msg.clientId}`
+        `🔌 Server‑side Events Connection: ${msg.status}
+     • Authenticated: ${msg.authenticated ? "yes" : "no"}
+     • Client ID: ${msg.clientId}`
       );
+    },
+    [Sayr.EVENTS.CREATE_TASK]: async (t: any) => {
+      await handleUpdateTask(t);
     },
     [Sayr.EVENTS.UPDATE_TASK]: async (t: any) => {
       await handleUpdateTask(t);
@@ -105,6 +110,7 @@ Sayr.sse(
 );
 
 async function handleUpdateTask(t: any) {
+  if (t.visible === "private") return;
   // 1. Load integration config
   const connected = await getIntegrationConfig(
     t.organizationId,

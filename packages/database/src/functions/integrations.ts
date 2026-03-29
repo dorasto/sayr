@@ -7,6 +7,9 @@ export async function getIntegrationConfig(
 	integrationId: string,
 	key: string
 ): Promise<integrationConfigType | null> {
+	if (!orgId) {
+		throw new Error('getIntegrationConfig called without orgId');
+	}
 	const result = await db.select().from(integrationConfig).where(
 		and(
 			eq(integrationConfig.organizationId, orgId),

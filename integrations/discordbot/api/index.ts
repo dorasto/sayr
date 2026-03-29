@@ -8,7 +8,7 @@ type AppEnv = {
 	};
 };
 
-import { getIntegrationConfig, setIntegrationConfig, getIntegrationEnabled, getIntegrationStorage, setIntegrationStorage, db, schema } from "@repo/database";
+import { getIntegrationConfig, setIntegrationConfig, getIntegrationEnabled, getIntegrationStorage, setIntegrationStorage, db, schema, getIntegrationConfigByValue } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
@@ -57,15 +57,38 @@ apiRoute.get("/settings", async (c) => {
 		},
 	});
 });
+export async function getGuildOwner(
+	integrationId: string,
+	guildId: string
+): Promise<string | null> {
+	const existing = await getIntegrationConfigByValue(
+		"guildId",
+		integrationId,
+		{ guildId }
+	);
 
+	return existing?.organizationId ?? null;
+}
 apiRoute.patch("/settings", async (c) => {
 	const orgId = c.get("orgId");
 	const body = await c.req.json();
+
 	if (body.guildId !== undefined) {
-		await setIntegrationConfig(orgId, INTEGRATION_ID, "guildId", { guildId: body.guildId });
+		const ownerOrg = await getGuildOwner(INTEGRATION_ID, body.guildId);
+
+		if (ownerOrg && ownerOrg !== orgId) {
+			return c.json({ error: "Guild already in use" }, 400);
+		}
+
+		await setIntegrationConfig(orgId, INTEGRATION_ID, "guildId", {
+			guildId: body.guildId,
+		});
 	}
+
 	if (body.channelId !== undefined) {
-		await setIntegrationConfig(orgId, INTEGRATION_ID, "channelId", { channelId: body.channelId });
+		await setIntegrationConfig(orgId, INTEGRATION_ID, "channelId", {
+			channelId: body.channelId,
+		});
 	}
 
 	return c.json({ success: true });

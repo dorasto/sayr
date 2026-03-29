@@ -33,10 +33,28 @@ export function sse(
             handlers[msg.type]?.(msg.data, msg);
         };
 
-        source.onerror = () => {
-            if (closed) return;
-            source?.close();
-            setTimeout(connect, 2000); // simple retry
+        source.onerror = (e: any) => {
+            const stateNames = ["CONNECTING", "OPEN", "CLOSED"];
+            const state = source ? stateNames[source.readyState] : "unknown";
+
+            console.error(
+                [
+                    "====== SSE ERROR ======",
+                    `Status       : ${e?.code ?? "unknown"} (${e?.message ?? "no message"})`,
+                    `Event Type   : ${e?.type ?? "unknown"}`,
+                    `Ready State  : ${source?.readyState ?? "?"} (${state})`,
+                    e?.error ? `Error Object : ${JSON.stringify(e.error)}` : null,
+                    "========================"
+                ]
+                    .filter(Boolean)
+                    .join("\n")
+            );
+
+            if (!closed) {
+                source?.close();
+                console.warn("Reconnecting SSE in 5 seconds...");
+                setTimeout(connect, 5000);
+            }
         };
     }
 

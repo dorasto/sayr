@@ -5,7 +5,9 @@ import { ServerEventBaseMessage } from "./types";
 import { auth as authSchema, db } from "@repo/database";
 import { inArray } from "drizzle-orm";
 import { ensureCdnUrl } from "@repo/util";
+import { safeGetApiKey } from "@/getApiKey";
 import { auth } from "@repo/auth";
+type SessionValue = Awaited<ReturnType<typeof auth.api.getSession>>;
 
 export const sseRoute = new Hono();
 
@@ -62,6 +64,7 @@ export function sseBroadcastToRoom(
 
     // helper: add all clients in a room (if not already added)
     const addRoom = (roomKey?: string) => {
+
         if (!roomKey) return;
 
         const clients = sseRooms.get(`${orgId}:${roomKey}`);
@@ -73,17 +76,18 @@ export function sseBroadcastToRoom(
             seen.add(client.id);
             targets.push(client);
         }
-
-        for (const sysClient of systemRoom) {
-            if (excludeId && sysClient.id === excludeId) continue;
-            targets.push(sysClient);
-        }
     };
 
     const parts = channel.split(";");
 
     // add each nested room
     for (const part of parts) {
+        if (part === "admin" || part === "tasks") {
+            for (const sysClient of systemRoom) {
+                if (excludeId && sysClient.id === excludeId) continue;
+                targets.push(sysClient);
+            }
+        }
         addRoom(part);
     }
 
@@ -222,8 +226,57 @@ function getDeviceType(userAgent: string | undefined): string {
         ua.includes("mobile");
     return isMobile ? "mobile" : "desktop";
 }
+async function authenticate(
+    headers: Headers,
+    channel: string,
+    key?: string
+): Promise<{
+    userId: string | null;
+    session: SessionValue | null;
+    authenticated: boolean;
+}> {
+    let userId: string | null = null;
+
+    // 1. system channel using API key
+    if (channel === "system" && key) {
+        const apiKeyResult = await safeGetApiKey(key);
+        if (!apiKeyResult) {
+            return {
+                userId: null,
+                session: null,
+                authenticated: false,
+            };
+        }
+        if (apiKeyResult.account.role !== "system") {
+            return {
+                userId: null,
+                session: null,
+                authenticated: false,
+            };
+        }
+        userId = apiKeyResult.account.id;
+
+        const authenticated = Boolean(userId);
+
+        return {
+            userId,
+            session: null,
+            authenticated,
+        };
+    }
+
+    // 2. normal authentication via session
+    const session = await safeGetSession(headers);
+
+    const authenticated = Boolean(session?.session);
+
+    return {
+        userId,
+        session,
+        authenticated,
+    };
+}
 sseRoute.get("/", async (c) => {
-    let userId = null;
     let orgId = c.req.query("orgId");
     let channel = c.req.query("channel");
     let key = c.req.query("key");
@@ -234,19 +287,8 @@ sseRoute.get("/", async (c) => {
         device = "Sayr " + userAgent
     }
     const id = crypto.randomUUID();
-    if (channel === "system" && key) {
-        const result = await auth.api.verifyApiKey({ body: { key: key } });
-        console.log("🚀 ~ result:", result)
-        if (!result?.valid || !result.key?.enabled || !result.key?.userId) {
-            return c.json({ error: "Organization required for this channel" }, 400);
-        }
-        userId = result.key?.userId
-    }
-
-    const session = await safeGetSession(c.req.raw.headers);
-    // Determine authentication
-    const authenticated = !!session?.session || userId !== null;
-    if (channel === "system") {
+    const { userId, session, authenticated } = await authenticate(c.req.raw.headers, channel || "", key);
+    if (channel === "system" && userId && authenticated) {
         // no org required, no membership needed
     } else if (!channel || channel === "public") {
         // public channel allowed for everyone
@@ -287,7 +329,7 @@ sseRoute.get("/", async (c) => {
 
             const client: SSEClient = { id: id, orgId: orgId || "", channel, send, close, clientId: session?.user.id || userId || "", authenticated, connectedAt: Date.now(), ref: ref, device: device };
 
-            if (channel === "system") {
+            if (channel === "system" && userId && authenticated) {
                 systemRoom.add(client);
             } else {
                 const key = `${orgId || ""}:${channel}`;
