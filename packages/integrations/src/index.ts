@@ -3,7 +3,31 @@ import type { IntegrationManifest } from "./types";
 const integrations = new Map<string, IntegrationManifest>();
 
 export function registerIntegration(manifest: IntegrationManifest): void {
+	const enabled =
+		process.env[`INTEGRATION_${manifest.id.toUpperCase()}_ENABLED`] === "true";
+
+	if (!enabled) {
+		console.log(
+			`Integration '${manifest.id}' is DISABLED via env and was NOT registered. ` +
+			`Enable it by setting INTEGRATION_${manifest.id.toUpperCase()}_ENABLED=true`
+		);
+		return;
+	}
+
 	integrations.set(manifest.id, manifest);
+
+	const authorName = manifest.author?.name ?? "Unknown author";
+
+	console.log(
+		`Integration '${manifest.id}' loaded successfully: ${manifest.name} (version ${manifest.version}) by ${authorName}.`
+	);
+
+	if (manifest.requiresExternalService) {
+		console.log(
+			`Note: '${manifest.id}' requires an external service to be running. ${manifest.externalServiceNote ?? ""
+			}`
+		);
+	}
 }
 
 export function getIntegration(id: string): IntegrationManifest | undefined {

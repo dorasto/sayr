@@ -16,6 +16,12 @@ export interface IntegrationManifest {
     pages: Record<string, UIPage>;
     components: Record<string, unknown>;
   };
+  author?: {
+    name: string;
+    url?: string;
+  };
+  requiresExternalService?: boolean;
+  externalServiceNote?: string;
 }
 
 // -------------------------
