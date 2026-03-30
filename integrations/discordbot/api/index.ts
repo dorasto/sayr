@@ -8,7 +8,7 @@ type AppEnv = {
 	};
 };
 
-import { getIntegrationConfig, setIntegrationConfig, getIntegrationEnabled, getIntegrationStorage, setIntegrationStorage, db, schema, getIntegrationConfigByValue } from "@repo/database";
+import { getIntegrationConfig, setIntegrationConfig, getIntegrationStorage, setIntegrationStorage, db, schema, getIntegrationConfigByValue } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { integrationConfigValueType } from "../src/types";
