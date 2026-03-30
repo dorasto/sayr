@@ -68,6 +68,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 // ----- Ready -----
 client.once(Events.ClientReady, () => {
+  try {
+    const server = Bun.serve({
+      port: 8080,
+      fetch() {
+        return new Response("ok", { status: 200 });
+      },
+    });
+    console.log(`Health check server started on port ${server.port}`);
+  } catch (err) {
+    console.error("Failed to start health check server:", err);
+  }
   console.log(`Logged in as ${client.user?.tag}`);
   registerCommands();
 });
