@@ -533,8 +533,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/integrations
       '@sayrio/public':
-        specifier: ^1.0.7
-        version: 1.0.7(react@19.2.3)
+        specifier: workspace:*
+        version: link:../../packages/public
       discord.js:
         specifier: ^14.18.0
         version: 14.25.1
@@ -4709,14 +4709,6 @@ packages:
   '@sapphire/snowflake@3.5.5':
     resolution: {integrity: sha512-xzvBr1Q1c4lCe7i6sRnrofxeO1QTP/LKQ6A6qy0iB4x5yfiSfARMEQEghojzTNALDTcv8En04qYNIco9/K9eZQ==}
     engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
-
-  '@sayrio/public@1.0.7':
-    resolution: {integrity: sha512-A3PPfGbv2MOn7lYrgqKqlKyvImd+2z0hl4x79YMNsezF/MmLNHdbDJy7pVBdBpWfP0NUv11+3oyTNS68rpyzdg==}
-    peerDependencies:
-      react: '>=18'
-    peerDependenciesMeta:
-      react:
-        optional: true
 
   '@scalar/analytics-client@1.0.1':
     resolution: {integrity: sha512-ai4DJuxsNLUEgJIlYDE3n8/oF47M31Rgjz3LxbefzejxE8LiidUud/fcEzMYtdxqJYi3ketzhSbTWK0o6gg4mQ==}
@@ -15904,10 +15896,6 @@ snapshots:
   '@sapphire/snowflake@3.5.3': {}
 
   '@sapphire/snowflake@3.5.5': {}
-
-  '@sayrio/public@1.0.7(react@19.2.3)':
-    optionalDependencies:
-      react: 19.2.3
 
   '@scalar/analytics-client@1.0.1':
     dependencies:

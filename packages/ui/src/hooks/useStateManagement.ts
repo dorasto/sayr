@@ -108,6 +108,35 @@ export function useStateManagementKey<T>(
 		setValue,
 	};
 }
+
+export function useReadOnlyStateManagementKey<T>(
+	key: string[],
+	defaultValue?: null | T
+): { value: T } {
+	const queryClient = useQueryClient();
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies
+	const queryKey = useMemo(() => key, [...key]);
+
+	// Check cache first
+	const cachedData = queryClient.getQueryData<T>(queryKey);
+	const initialValue = cachedData !== undefined ? cachedData : defaultValue;
+
+	const { data: value } = useQuery<T>({
+		queryKey: queryKey,
+		queryFn: () => {
+			const storedValue = queryClient.getQueryData<T>(queryKey);
+			return storedValue ?? (defaultValue as T);
+		},
+		initialData: initialValue as T,
+		staleTime: Infinity,
+		gcTime: Infinity,
+	});
+
+	return {
+		value: value as T,
+	};
+}
 export interface UseStateManagementFetchType<TypeFetch, TypeMutate> {
 	key: string[];
 	fetch: {

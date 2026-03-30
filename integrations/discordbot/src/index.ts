@@ -249,6 +249,20 @@ async function handleUpdateTask(t: any) {
       lastUpdatedAt: Date.now()
     };
 
+    Sayr.me.createTimelineEvent({
+      id: "discordbot",
+      taskId: t.id,
+      orgId: orgId,
+      type: "sidebar",
+      name: "discordbot",
+      data: {
+        messageId: msg.id,
+        channelId: channelId,
+        guildId: guild.id,
+        url: msg.url,
+      }
+    })
+
     const updated = [...existing, newEntry];
 
     await setIntegrationStorage(orgId, "discordbot-task-messages", {
@@ -293,7 +307,6 @@ async function handleUpdateTask(t: any) {
       content: t.message || "",
       embeds: [embed]
     });
-
     const updatedEntry = {
       organizationId: orgId,
       taskId: t.id,

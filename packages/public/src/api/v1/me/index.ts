@@ -36,6 +36,23 @@ export interface Me {
     createdAt: string;
 }
 
+export interface TimelineEventCreated {
+    id: string;
+}
+export interface CreateTimelineEventInput {
+    taskId: string;
+    orgId: string;
+    type: string;
+    id: string;
+    name: string;
+    data?: Record<string, any>;
+    createdBy?: {
+        type: "github" | "doras" | "discord" | "slack";
+        userId: string;
+        name?: string;
+    } | null;
+}
+
 /**
  * Authenticated user API — Version 1.
  *
@@ -101,6 +118,34 @@ export default {
                 success: false,
                 data: null,
                 error: err?.message ?? "Failed to create task",
+            };
+        }
+    },
+
+    async createTimelineEvent(
+        body: CreateTimelineEventInput,
+        opts?: RequestOptions
+    ): Promise<ApiResult<TimelineEventCreated>> {
+        try {
+            const r = await request<ApiSuccess<TimelineEventCreated>>(
+                "/v1/me/timeline_event",
+                {
+                    ...opts,
+                    method: "POST",
+                    body: body as any,
+                }
+            );
+
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error: err?.message ?? "Failed to create timeline event",
             };
         }
     },

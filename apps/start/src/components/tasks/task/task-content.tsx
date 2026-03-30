@@ -25,6 +25,7 @@ import {
   TaskRelationsSection,
 } from "./task-hierarchy-sections";
 import { TaskContextBanner } from "./task-context-banner";
+import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 
 interface TaskContentSideContentProps {
   task: schema.TaskWithLabels;
@@ -60,6 +61,13 @@ export function TaskContentSideContent({
   const { setLabels, permissions } = useLayoutOrganization();
   const { account } = useLayoutData();
   const fieldPerms = getTaskFieldPermissions(task, account?.id, permissions);
+  const { value: activity }: any = useReadOnlyStateManagementKey(["timeline", "activity", task.id, task.organizationId])
+  const integrationActivities = activity?.filter(
+    (e: any) => e.eventType === "integration" && e.fromValue === "sidebar"
+  );
+  console.log("🚀 ~ TaskContentSideContent ~ integrationActivity:", integrationActivities)
+
+
   return (
     <div className="flex flex-col gap-3 w-full">
       <div className="p-1 pt-3 flex flex-col gap-2 max-w-full md:max-w-1/2">
@@ -85,6 +93,15 @@ export function TaskContentSideContent({
             "githubPr",
           ]}
         />
+        {integrationActivities?.find(
+          (e: any) => e.toValue?.id === "discordbot"
+        ) && (
+            <Label variant="default" className="text-xs">
+              {integrationActivities?.find(
+                (e: any) => e.toValue?.id === "discordbot"
+              ).toValue.data.url}
+            </Label>
+          )}
       </div>
       <div className="p-1 flex flex-col gap-2 max-w-full">
         <Tile

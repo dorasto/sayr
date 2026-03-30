@@ -470,3 +470,217 @@ Route.post(
         );
     }
 );
+
+const CreateTimelineEventSchema = {
+    type: "object",
+    required: ["taskId", "orgId", "type", "id", "name"],
+    properties: {
+        taskId: { type: "string" },
+        orgId: { type: "string" },
+        type: { type: "string" },
+        id: { type: "string" },
+        name: { type: "string" },
+        data: { type: "object" },
+        createdBy: {
+            oneOf: [
+                {
+                    type: "object",
+                    required: ["type", "userId"],
+                    properties: {
+                        type: {
+                            type: "string",
+                            enum: ["github", "doras", "discord", "slack"]
+                        },
+                        userId: { type: "string" },
+                        name: { type: "string" }
+                    }
+                },
+                { type: "null" }
+            ]
+        }
+    }
+};
+
+const CreateTimelineEventSchemaData = z.object({
+    id: z.string(),
+});
+
+Route.post(
+    "/timeline_event",
+    describeOkNotFound({
+        summary: "Create Timeline Event",
+        description: "Create a new timeline event for a task.",
+        dataSchema: CreateTimelineEventSchemaData,
+        bodySchema: CreateTimelineEventSchema,
+        bodyExample: {
+            taskId: "abc123",
+            orgId: "abc123",
+            type: "sidebar",
+            id: "integrationId",
+            name: "Integration Name",
+            data: {}
+        },
+        tags: ["Tasks"],
+        security: [{ bearerAuth: [] }],
+    }),
+    async (c) => {
+        const traceAsync = createTraceAsync();
+
+        const authHeader = c.req.header("authorization");
+        const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
+
+        if (!token) {
+            return c.json(errorResponse("Unauthorized", "No authorization header provided"), 401);
+        }
+
+        const apiKeyResult = await traceAsync(
+            "public.me.auth.apikey.verify",
+            () =>
+                auth.api.verifyApiKey({
+                    body: {
+                        key: token,
+                    },
+                }),
+            {
+                description: "Verifying API key",
+                onSuccess: () => ({
+                    outcome: "API key verified",
+                }),
+            }
+        );
+
+        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
+            return c.json(errorResponse("Invalid API key", "The provided API key is invalid or disabled"), 401);
+        }
+        let userId = apiKeyResult.key?.userId;
+
+        const body = await c.req.json();
+        const { taskId, orgId, type, id, name, data, createdBy } = body;
+        const allowed = ["github", "doras", "discord", "slack"] as const;
+
+        if (createdBy) {
+            const provider = createdBy.type;
+            const providerId = createdBy.userId;
+
+            if (!allowed.includes(provider)) {
+                return c.json(
+                    {
+                        success: false,
+                        error: "Invalid CreatedBy type",
+                        message: "The provided CreatedBy type is invalid",
+                    },
+                    400
+                );
+            }
+
+            if (providerId) {
+                const account = await db.query.account.findFirst({
+                    where: and(
+                        eq(authSchema.account.accountId, providerId),
+                        eq(authSchema.account.providerId, provider)
+                    ),
+                });
+
+                if (account) {
+                    userId = account.userId;
+                }
+            }
+        }
+
+        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.userId || "", orgId, "tasks.create");
+
+        if (!isAuthorized) {
+            return c.json({ success: false, error: "You don't have permission to create tasks.", message: "You are not authorized to create tasks in this organization." }, 401);
+        }
+
+        const task = await traceAsync(
+            "public.me.task.activity.task_lookup",
+            () =>
+                db.query.task.findFirst({
+                    where: (t) =>
+                        and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+                }),
+            {
+                description: "Finding task for activity",
+                data: { orgId, taskId },
+            }
+        );
+
+        if (!task) {
+            return c.json(errorResponse("Task not found", "No task found with the provided ID in the organization"), 404);
+        }
+        // --------------------
+        // Insert timeline event (✅ canonical path)
+        // --------------------
+        const value = {
+            id: id,
+            name: name,
+            data: data
+        }
+        const activity = await traceAsync(
+            "public.me.task.activity.insert",
+            () =>
+                addLogEventTask(
+                    taskId,
+                    orgId,
+                    "integration",
+                    type,
+                    value ?? null, // ✅ commit metadata lives here
+                    userId || undefined
+                ),
+            {
+                description: "Creating task timeline activity",
+                data: { orgId, taskId, type: "integration", value },
+            }
+        );
+
+        // --------------------
+        // Broadcast updates
+        // --------------------
+        await traceAsync(
+            "public.me.task.activity.broadcast",
+            async () => {
+                const taskWithData = await getTaskById(orgId, taskId);
+
+                const message = {
+                    type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
+                    data: taskWithData,
+                };
+
+                sseBroadcastToRoom(
+                    orgId,
+                    `tasks;task:${taskId}`,
+                    message,
+                    undefined,
+                    true
+                );
+
+                if (taskWithData?.visible === "public") {
+                    sseBroadcastPublic(orgId, { ...message });
+                }
+
+                const members = await getOrganizationMembers(orgId);
+                members.forEach((member) => {
+                    const clients = findSSEClientsByUserId(member.userId);
+                    clients.forEach(
+                        (client) =>
+                            !(
+                                client.channel === `task:${taskId}` ||
+                                client.channel === "tasks"
+                            ) &&
+                            sseBroadcastIndividual(
+                                client,
+                                message,
+                                orgId
+                            )
+                    );
+                });
+            },
+            { description: "Broadcasting task activity to clients" }
+        );
+        return c.json(
+            successResponse({
+                id: activity?.id,
+            })
+        );
+    });
