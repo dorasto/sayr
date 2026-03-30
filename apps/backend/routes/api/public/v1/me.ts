@@ -256,7 +256,7 @@ export const CreateTaskSchema = {
             ]
         },
 
-        CreatedBy: {
+        createdBy: {
             oneOf: [
                 {
                     type: "object",

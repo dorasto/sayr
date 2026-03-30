@@ -21,7 +21,7 @@ export interface CreateTaskInput {
         name: string;
         platform: string;
     };
-    CreatedBy?: {
+    createdBy?: {
         type: "github" | "doras" | "discord" | "slack";
         userId: string;
         name: string;
