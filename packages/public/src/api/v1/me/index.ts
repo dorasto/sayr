@@ -53,6 +53,24 @@ export interface CreateTimelineEventInput {
     } | null;
 }
 
+export interface CommentCreated {
+    id: string;
+}
+
+export interface CommentCreatedInput {
+    taskId: string;
+    orgId: string;
+    content: string;
+    visibility: "public" | "internal";
+    createdBy?: {
+        type: "github" | "doras" | "discord" | "slack";
+        userId: string;
+        name?: string;
+        profileUrl?: string;
+    } | null;
+}
+
+
 /**
  * Authenticated user API — Version 1.
  *
@@ -146,6 +164,33 @@ export default {
                 success: false,
                 data: null,
                 error: err?.message ?? "Failed to create timeline event",
+            };
+        }
+    },
+
+    async createComment(
+        body: CommentCreatedInput,
+        opts?: RequestOptions
+    ): Promise<ApiResult<{ id: string }>> {
+        try {
+            const r = await request<ApiSuccess<CommentCreated>>(
+                "/v1/me/create_comment",
+                {
+                    ...opts,
+                    method: "POST",
+                    body: body as any,
+                }
+            );
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error: err?.message ?? "Failed to create comment",
             };
         }
     },

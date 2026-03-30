@@ -7,6 +7,7 @@ import {
     addLogEventTask,
     getTaskById,
     getOrganizationMembers,
+    createComment,
 } from "@repo/database";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
 import { and, eq } from "drizzle-orm";
@@ -21,6 +22,39 @@ import { auth } from "@repo/auth";
 import { ServerEventBaseMessage } from "@/routes/events/types";
 import { findSSEClientsByUserId, sseBroadcastIndividual, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
 import { traceOrgPermissionCheck } from "@/util";
+
+async function resolveCreatedBy(createdBy: {
+    type: "github" | "doras" | "discord" | "slack";
+    userId: string;
+    name?: string;
+    profileUrl?: string;
+}) {
+    const allowed = ["github", "doras", "discord", "slack"];
+
+    if (!createdBy) {
+        return null
+    }
+
+    const provider = createdBy.type;
+    const providerId = createdBy.userId;
+
+    if (!allowed.includes(provider)) {
+        return null
+    }
+
+    if (!providerId) {
+        return null
+    }
+
+    const account = await db.query.account.findFirst({
+        where: and(
+            eq(authSchema.account.accountId, providerId),
+            eq(authSchema.account.providerId, provider)
+        )
+    });
+
+    return account ? account.userId : null
+}
 export const Route = new Hono<AppEnv>();
 /**
  * Public user inside organization member
@@ -683,4 +717,184 @@ Route.post(
                 id: activity?.id,
             })
         );
+    });
+
+const CreateTaskCommentchemaData = z.object({
+    id: z.string(),
+});
+
+const CreateTaskCommentData = {
+    type: "object",
+    required: ["taskId", "orgId", "content"],
+    properties: {
+        taskId: { type: "string" },
+        orgId: { type: "string" },
+        content: { type: "string" },
+        visibility: {
+            type: "string",
+            enum: ["public", "internal"],
+            default: "public"
+        },
+        createdBy: {
+            oneOf: [
+                {
+                    type: "object",
+                    required: ["type", "userId"],
+                    properties: {
+                        type: {
+                            type: "string",
+                            enum: ["github", "doras", "discord", "slack"]
+                        },
+                        userId: { type: "string" },
+                        name: { type: "string" },
+                        profileUrl: { type: "string" },
+                    }
+                },
+                { type: "null" }
+            ]
+        }
+    }
+}
+
+Route.post("/create_comment",
+    describeOkNotFound({
+        summary: "Create Task Comment",
+        description: "Create a new comment on a task.",
+        dataSchema: CreateTaskCommentchemaData,
+        bodySchema: CreateTaskCommentData,
+        bodyExample: {
+            taskId: "abc123",
+            orgId: "abc123",
+            content: "## Comment Title",
+            visibility: "public",
+        },
+        tags: ["Tasks"],
+        security: [{ bearerAuth: [] }],
+    }), async (c) => {
+        const traceAsync = createTraceAsync();
+
+        const authHeader = c.req.header("authorization");
+        const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
+
+        if (!token) {
+            return c.json(errorResponse("Unauthorized", "No authorization header provided"), 401);
+        }
+
+        const apiKeyResult = await traceAsync(
+            "public.me.auth.apikey.verify",
+            () =>
+                auth.api.verifyApiKey({
+                    body: {
+                        key: token,
+                    },
+                }),
+            {
+                description: "Verifying API key",
+                onSuccess: () => ({
+                    outcome: "API key verified",
+                }),
+            }
+        );
+
+        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
+            return c.json(errorResponse("Invalid API key", "The provided API key is invalid or disabled"), 401);
+        }
+        let userId = apiKeyResult.key?.userId;
+
+        const body = await c.req.json();
+        const { taskId, orgId, content, visibility, createdBy } = body;
+        const allowed = ["github", "doras", "discord", "slack"] as const;
+
+        if (createdBy) {
+            const provider = createdBy.type;
+            const providerId = createdBy.userId;
+
+            if (!allowed.includes(provider)) {
+                return c.json(
+                    {
+                        success: false,
+                        error: "Invalid CreatedBy type",
+                        message: "The provided CreatedBy type is invalid",
+                    },
+                    400
+                );
+            }
+
+            if (providerId) {
+                const account = await db.query.account.findFirst({
+                    where: and(
+                        eq(authSchema.account.accountId, providerId),
+                        eq(authSchema.account.providerId, provider)
+                    ),
+                });
+
+                if (account) {
+                    userId = account.userId;
+                }
+            }
+        }
+
+        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.userId || "", orgId, "tasks.create");
+
+        if (!isAuthorized) {
+            return c.json({ success: false, error: "You don't have permission to create tasks.", message: "You are not authorized to create tasks in this organization." }, 401);
+        }
+
+        const task = await traceAsync(
+            "public.me.task.activity.task_lookup",
+            () =>
+                db.query.task.findFirst({
+                    where: (t) =>
+                        and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+                }),
+            {
+                description: "Finding task for activity",
+                data: { orgId, taskId },
+            }
+        );
+
+        if (!task) {
+            return c.json(errorResponse("Task not found", "No task found with the provided ID in the organization"), 404);
+        }
+
+        const descriptionProsekit: any = content ? markdownToProsekitJSON(content) : undefined;
+
+        const comment = await traceAsync(
+            "public.me.task.comment.insert",
+            () => {
+                return createComment(orgId, taskId, descriptionProsekit, visibility, userId, "sayr", createdBy?.name ?? null, createdBy?.profileUrl ?? null, undefined, undefined, undefined, null);
+
+            }
+        );
+
+        if (!comment) {
+            return c.json({ success: false, error: "Failed to create comment", message: "An error occurred while creating the comment" }, 500);
+        }
+
+        await traceAsync(
+            "task.comment.create.broadcast",
+            async () => {
+                const data = {
+                    type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
+                    data: { id: taskId },
+                };
+                sseBroadcastToRoom(orgId, `task:${taskId}`, data)
+                if (visibility === "public") {
+                    sseBroadcastPublic(orgId, { ...data });
+                }
+
+                const members = await getOrganizationMembers(orgId);
+                members.forEach((member) => {
+                    const clients = findSSEClientsByUserId(member.userId);
+                    clients.forEach(
+                        (client) =>
+                            client.orgId !== orgId &&
+                            !(client.channel === `task:${taskId}` || client.channel === "tasks") &&
+                            sseBroadcastIndividual(client, data, orgId)
+                    );
+                });
+            },
+            { description: "Broadcasting new comment to clients" }
+        );
+        return c.json({ success: true, data: { id: taskId } });
     });
