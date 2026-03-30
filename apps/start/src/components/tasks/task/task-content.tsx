@@ -7,7 +7,7 @@ import {
 } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
-import { IconLink } from "@tabler/icons-react";
+import { IconExternalLink, IconLink, IconPlug } from "@tabler/icons-react";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutData } from "@/components/generic/Context";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
@@ -15,7 +15,9 @@ import type { useToastAction } from "@/lib/util";
 import GlobalTaskAssignees from "../shared/assignee";
 import GlobalTaskGithubIssue from "../shared/github-issue";
 import GlobalTaskLabels from "../shared/label";
-import TaskFieldToolbar, { getTaskFieldPermissions } from "../shared/task-field-toolbar";
+import TaskFieldToolbar, {
+  getTaskFieldPermissions,
+} from "../shared/task-field-toolbar";
 import GlobalTimeline from "./timeline/root";
 import { Separator } from "@repo/ui/components/separator";
 import { TaskEditableHeader } from "./editable-header";
@@ -26,6 +28,9 @@ import {
 } from "./task-hierarchy-sections";
 import { TaskContextBanner } from "./task-context-banner";
 import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
+import { InlineLabel } from "../shared";
+import { getMatchedIntegrations } from "../shared/integration-registry";
+import { cn } from "@/lib/utils";
 
 interface TaskContentSideContentProps {
   task: schema.TaskWithLabels;
@@ -36,8 +41,8 @@ interface TaskContentSideContentProps {
   availableUsers?: schema.userType[];
   sseClientId: string;
   runWithToast: typeof useToastAction extends () => { runWithToast: infer T }
-  ? T
-  : never;
+    ? T
+    : never;
   categories: schema.categoryType[];
   releases: schema.releaseType[];
   organization: schema.OrganizationWithMembers;
@@ -61,12 +66,18 @@ export function TaskContentSideContent({
   const { setLabels, permissions } = useLayoutOrganization();
   const { account } = useLayoutData();
   const fieldPerms = getTaskFieldPermissions(task, account?.id, permissions);
-  const { value: activity }: any = useReadOnlyStateManagementKey(["timeline", "activity", task.id, task.organizationId])
+  const { value: activity }: any = useReadOnlyStateManagementKey([
+    "timeline",
+    "activity",
+    task.id,
+    task.organizationId,
+  ]);
   const integrationActivities = activity?.filter(
-    (e: any) => e.eventType === "integration" && e.fromValue === "sidebar"
+    (e: any) => e.eventType === "integration",
   );
-  console.log("🚀 ~ TaskContentSideContent ~ integrationActivity:", integrationActivities)
-
+  const matchedIntegrations = getMatchedIntegrations(
+    integrationActivities ?? [],
+  );
 
   return (
     <div className="flex flex-col gap-3 w-full">
@@ -93,16 +104,8 @@ export function TaskContentSideContent({
             "githubPr",
           ]}
         />
-        {integrationActivities?.find(
-          (e: any) => e.toValue?.id === "discordbot"
-        ) && (
-            <Label variant="default" className="text-xs">
-              {integrationActivities?.find(
-                (e: any) => e.toValue?.id === "discordbot"
-              ).toValue.data.url}
-            </Label>
-          )}
       </div>
+
       <div className="p-1 flex flex-col gap-2 max-w-full">
         <Tile
           className="md:w-full items-start p-0 flex-col gap-1"
@@ -183,6 +186,58 @@ export function TaskContentSideContent({
         sseClientId={sseClientId}
         runWithToast={runWithToast}
       />
+      {matchedIntegrations.length > 0 && (
+        <div className="p-1 flex flex-col gap-2 max-w-full">
+          <Tile
+            className="md:w-full items-start p-0 flex-col gap-1"
+            variant={"transparent"}
+          >
+            <TileHeader>
+              <TileTitle asChild>
+                <InlineLabel
+                  icon={<IconPlug />}
+                  text="Integrations"
+                  className="text-xs text-muted-foreground [&_svg]:size-4 ps-6"
+                />
+              </TileTitle>
+            </TileHeader>
+            <TileAction className="flex flex-col gap-1 items-start">
+              {matchedIntegrations.map(({ config, activity }) => {
+                const url = config.getUrl(activity.toValue?.data);
+                if (url) {
+                  return (
+                    <a
+                      key={activity.id}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "bg-transparent p-1 h-auto w-fit inline-flex items-center rounded-lg hover:bg-secondary border border-transparent hover:border-border group/link transition-all",
+                        config.className,
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-xs">
+                        {config.icon}
+                        <span>{config.label}</span>
+                        <IconExternalLink className="size-3 shrink-0 opacity-0 group-hover/link:opacity-100 transition-all" />
+                      </div>
+                    </a>
+                  );
+                }
+                return (
+                  <div
+                    key={activity.id}
+                    className="flex items-center gap-2 text-xs p-1"
+                  >
+                    {config.icon}
+                    <span>{config.label}</span>
+                  </div>
+                );
+              })}
+            </TileAction>
+          </Tile>
+        </div>
+      )}
     </div>
   );
 }
