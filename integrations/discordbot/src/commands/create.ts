@@ -1,4 +1,4 @@
-import { getIntegrationConfigByValue, getIntegrationEnabled, getIntegrationStorage } from "@repo/database";
+import { getIntegrationConfigByValue, getIntegrationStorage } from "@repo/database";
 
 import {
 	SlashCommandSubcommandBuilder,
@@ -237,11 +237,25 @@ export function registerModalHandler(client: Client) {
 				name: "discordbot",
 				platform: "first-party",
 			},
+			createdBy: {
+				type: "discord",
+				userId: interaction.user.id,
+				name: interaction.user.username,
+			}
 		});
 
 		if (res.success !== true) {
+			console.error(
+				JSON.stringify({
+					level: "error",
+					event: "task_creation_failed",
+					guildId: interaction.guildId,
+					userId: interaction.user.id,
+					error: res.error,
+				})
+			);
 			await interaction.reply({
-				content: "Failed to create the task. Please try again.",
+				content: "Oops! Something went wrong while creating your task. Try again, and if it keeps happening, let a server admin know.",
 				flags: MessageFlags.Ephemeral,
 			});
 			return;

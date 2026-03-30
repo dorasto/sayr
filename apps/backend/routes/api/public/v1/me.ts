@@ -9,7 +9,7 @@ import {
     getOrganizationMembers,
 } from "@repo/database";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
 import z from "zod";
@@ -222,20 +222,59 @@ Route.get(
     }
 );
 
-const CreateTaskSchema = z.object({
-    id: z.string(),
-    title: z.string().min(1),
-    description: z.string().optional(),
-    status: z.enum(["backlog", "todo", "in-progress", "done", "canceled"]).optional(),
-    priority: z.enum(["none", "low", "medium", "high", "urgent"]).optional(),
-    category: z.string().optional(),
-    orgId: z.string(),
-    integration: z.object({
-        id: z.string(),
-        name: z.string(),
-        platform: z.string(),
-    }).optional(),
-});
+export const CreateTaskSchema = {
+    type: "object",
+    required: ["title", "orgId"],
+    properties: {
+        title: { type: "string", minLength: 1 },
+        description: { type: "string" },
+        status: {
+            type: "string",
+            enum: ["backlog", "todo", "in-progress", "done", "canceled"]
+        },
+        priority: {
+            type: "string",
+            enum: ["none", "low", "medium", "high", "urgent"]
+        },
+        category: { type: "string" },
+        orgId: { type: "string" },
+
+        integration: {
+            oneOf: [
+                {
+                    type: "object",
+                    required: ["id", "name", "platform"],
+                    properties: {
+                        id: { type: "string" },
+                        name: { type: "string" },
+                        platform: {
+                            type: "string",
+                        }
+                    }
+                },
+                { type: "null" }
+            ]
+        },
+
+        CreatedBy: {
+            oneOf: [
+                {
+                    type: "object",
+                    required: ["type", "userId"],
+                    properties: {
+                        type: {
+                            type: "string",
+                            enum: ["github", "doras", "discord", "slack"]
+                        },
+                        userId: { type: "string" },
+                        name: { type: "string" }
+                    }
+                },
+                { type: "null" }
+            ]
+        }
+    }
+};
 
 const CreateTaskSchemaData = z.object({
     id: z.string(),
@@ -268,7 +307,7 @@ Route.post(
         const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
 
         if (!token) {
-            return c.json(errorResponse("Unauthorized"), 401);
+            return c.json(errorResponse("Unauthorized", "No authorization header provided"), 401);
         }
 
         const apiKeyResult = await traceAsync(
@@ -288,16 +327,48 @@ Route.post(
         );
 
         if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
-            return c.json(errorResponse("Invalid API key"), 401);
+            return c.json(errorResponse("Invalid API key", "The provided API key is invalid or disabled"), 401);
         }
+        let userId = apiKeyResult.key?.userId;
 
         const body = await c.req.json();
-        const { orgId, title, description, status, priority, category, integration } = body;
+        const { orgId, title, description, status, priority, category, integration, createdBy } = body;
+
+        const allowed = ["github", "doras", "discord", "slack"] as const;
+
+        if (createdBy) {
+            const provider = createdBy.type;
+            const providerId = createdBy.userId;
+
+            if (!allowed.includes(provider)) {
+                return c.json(
+                    {
+                        success: false,
+                        error: "Invalid CreatedBy type",
+                        message: "The provided CreatedBy type is invalid",
+                    },
+                    400
+                );
+            }
+
+            if (providerId) {
+                const account = await db.query.account.findFirst({
+                    where: and(
+                        eq(authSchema.account.accountId, providerId),
+                        eq(authSchema.account.providerId, provider)
+                    ),
+                });
+
+                if (account) {
+                    userId = account.userId;
+                }
+            }
+        }
+
         const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.userId || "", orgId, "tasks.create");
 
-
         if (!isAuthorized) {
-            return c.json({ success: false, error: "You don't have permission to create tasks." }, 401);
+            return c.json({ success: false, error: "You don't have permission to create tasks.", message: "You are not authorized to create tasks in this organization." }, 401);
         }
 
         const descriptionProsekit = description ? markdownToProsekitJSON(description) : undefined;
@@ -312,7 +383,7 @@ Route.post(
                 releaseId: null,
                 visible: "public",
                 parentId: null,
-            }, apiKeyResult.key?.userId || undefined),
+            }, userId || undefined),
             {
                 description: "Creating task record",
                 data: { orgId, title, status, priority, category },
@@ -320,7 +391,7 @@ Route.post(
         );
 
         if (!task) {
-            return c.json({ success: false, error: "Failed to create task" }, 500);
+            return c.json({ success: false, error: "Failed to create task", message: "An error occurred while creating the task" }, 500);
         }
 
         // Add integration timeline event first if integration info provided
@@ -332,8 +403,8 @@ Route.post(
                     orgId,
                     "integration",
                     null,
-                    integration,
-                    apiKeyResult.key?.userId || undefined,
+                    { ...integration, createdBy },
+                    userId || undefined,
                 ),
                 {
                     description: "Adding integration timeline event",
@@ -350,7 +421,7 @@ Route.post(
                 "created",
                 null,
                 { status, priority, title, labels: [], assignees: [] },
-                apiKeyResult.key?.userId || undefined,
+                userId || undefined,
                 descriptionProsekit
             ),
             {

@@ -2,10 +2,11 @@ import { describeRoute, resolver } from "hono-openapi";
 import type { z } from "zod";
 import { ApiErrorResponse, ApiPaginatedResponse, ApiSuccessResponse } from "../responses";
 
+type JsonSchema = Record<string, any>;
 /**
  * Generates a describeRoute config for common success + error responses.
  */
-export const describeOkNotFound = <T extends z.ZodTypeAny, B extends z.ZodTypeAny | undefined = undefined>(opts: {
+export const describeOkNotFound = <T extends z.ZodTypeAny, B extends JsonSchema | undefined = undefined>(opts: {
 	summary: string;
 	description?: string;
 	dataSchema: T;
@@ -16,11 +17,12 @@ export const describeOkNotFound = <T extends z.ZodTypeAny, B extends z.ZodTypeAn
 	tags?: string[];
 	security?: Record<string, string[]>[];
 }) => {
-	const bodyContent: unknown = opts.bodySchema
+	const bodyContent = opts.bodySchema
 		? {
+			required: true,
 			content: {
 				"application/json": {
-					schema: resolver(opts.bodySchema),
+					schema: opts.bodySchema,
 					example: opts.bodyExample,
 				},
 			},
@@ -33,7 +35,6 @@ export const describeOkNotFound = <T extends z.ZodTypeAny, B extends z.ZodTypeAn
 		parameters: opts.parameters,
 		tags: opts.tags,
 		security: opts.security,
-		// @ts-expect-error - requestBody type mismatch
 		requestBody: bodyContent,
 		responses: {
 			200: {
