@@ -4,18 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  prosemirror-model: 1.25.4
-  prosemirror-state: 1.4.4
-  prosemirror-view: 1.41.4
-  prosemirror-transform: 1.10.5
-  prosemirror-commands: 1.7.1
-  prosemirror-history: 1.5.0
-  prosemirror-inputrules: 1.5.1
-  prosemirror-keymap: 1.2.3
-  prosemirror-schema-basic: 1.2.3
-  prosemirror-schema-list: 1.5.0
-
 importers:
 
   .:
@@ -514,6 +502,37 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.8.3
+
+  integrations:
+    dependencies:
+      '@repo/integrations':
+        specifier: workspace:*
+        version: link:../packages/integrations
+      hono:
+        specifier: ^4.12.7
+        version: 4.12.7
+    devDependencies:
+      '@hono/node-server':
+        specifier: ^1.19.10
+        version: 1.19.10(hono@4.12.7)
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../packages/typescript-config
+      '@types/bun':
+        specifier: ^1.2.23
+        version: 1.2.23(@types/react@19.2.8)
+      '@types/jsdom':
+        specifier: ^27.0.0
+        version: 27.0.0
+      '@types/mime-types':
+        specifier: ^3.0.1
+        version: 3.0.1
+      bun-types:
+        specifier: ^1.2.21
+        version: 1.2.23(@types/react@19.2.8)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
 
   packages/auth:
     dependencies:
