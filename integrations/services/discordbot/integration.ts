@@ -1,8 +1,8 @@
-import { registerIntegration } from "@repo/integrations";
 import type { IntegrationManifest } from "@repo/integrations/types";
 import { apiRoute } from "./api";
 import { templatesPage, settingsPage } from "./ui/pages";
 import { docs } from "./docs";
+import { registerIntegration } from "@repo/integrations";
 const ID = "discordbot";
 const integration: IntegrationManifest = {
   id: ID,
@@ -23,11 +23,10 @@ const integration: IntegrationManifest = {
     name: "Doras Media Ltd",
     url: "https://github.com/dorasto"
   },
-  requiresExternalService: true,
+  requiresExternalService: false,
   externalServiceNote: "You must host and run the bot process separately. Use the provided Dockerfile for easy deployment."
 };
 
 registerIntegration(integration);
-
 export { integration };
 export { apiRoute } from "./api";

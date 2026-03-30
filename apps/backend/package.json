@@ -21,7 +21,6 @@
     "@repo/auth": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/edition": "workspace:*",
-    "@repo/integrations": "workspace:*",
     "@repo/opentelemetry": "workspace:*",
     "@repo/queue": "workspace:*",
     "@repo/storage": "workspace:*",

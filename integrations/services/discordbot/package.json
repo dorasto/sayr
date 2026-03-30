@@ -3,11 +3,9 @@
   "version": "1.0.0",
   "private": false,
   "scripts": {
-    "dev": "bun --watch run src/index.ts",
-    "build": "bun build  src/index.ts --target=bun --outdir ./dist",
-    "start": "bun ./dist/index.js",
-    "zerops:build": "bun build src/index.ts --target=bun --outdir ./dist",
-    "zerops:start": "bun run dist/index.js"
+    "dev": "bun --watch run src/index.ts integration.ts",
+    "build": "bun build src/index.ts --target=bun --outdir dist",
+    "start": "bun dist/index.js"
   },
   "dependencies": {
     "@discordjs/builders": "^1.10.1",

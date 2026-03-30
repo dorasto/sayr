@@ -41,7 +41,10 @@ apiRoute.get(
 apiRoute.use("*", async (c, next) => {
 	const method = c.req.method;
 	const path = c.req.path;
-	const exists = routeExists(method, path);
+	const exists =
+		routeExists(method, path) ||
+		path.startsWith("/integrations/") ||
+		path.includes("/integrations/");
 	if (!exists) {
 		return next();
 	}

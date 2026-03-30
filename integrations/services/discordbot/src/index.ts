@@ -22,6 +22,10 @@ if (!token) {
 const API_URL = process.env.API_SERVER ? process.env.API_SERVER : process.env.APP_ENV === "development" ? "http://localhost:5468/api/public" : "http://backend:5468/api/public";
 Sayr.client.setToken(process.env.SAYR_API_KEY)
 Sayr.client.setBaseUrl(API_URL)
+const originalLog = console.log;
+console.log = (...args) => originalLog("[discordbot]", ...args);
+const originalError = console.error;
+console.error = (...args) => originalError("[discordbot]", ...args);
 
 // ----- Discord Client -----
 const client = new Client({
@@ -68,17 +72,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 // ----- Ready -----
 client.once(Events.ClientReady, () => {
-  try {
-    const server = Bun.serve({
-      port: 8080,
-      fetch() {
-        return new Response("ok", { status: 200 });
-      },
-    });
-    console.log(`Health check server started on port ${server.port}`);
-  } catch (err) {
-    console.error("Failed to start health check server:", err);
-  }
   console.log(`Logged in as ${client.user?.tag}`);
   registerCommands();
 });

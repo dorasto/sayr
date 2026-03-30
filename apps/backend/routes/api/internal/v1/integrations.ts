@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { getIntegration, getIntegrationList } from "@repo/integrations";
 import { getIntegrationEnabled, setIntegrationEnabled } from "@repo/database";
 import { traceOrgPermissionCheck } from "@/util";
 
@@ -17,54 +16,49 @@ async function requireAdmin(c: any, orgId: string) {
 
 	return null;
 }
-
+const API_URL =
+	process.env.APP_ENV === "development"
+		? "http://localhost:8080"
+		: "http://integrations:8080";
 export const apiRouteAdminIntegrations = new Hono<AppEnv>();
 
 apiRouteAdminIntegrations.get("/list", async (c) => {
 	const orgId = c.req.query("orgId");
-	const integrations = getIntegrationList();
-
-	const data = await Promise.all(
-		integrations.map(async (i) => {
+	const error = await requireAdmin(c, orgId || "");
+	if (error) return error;
+	const INTERNAL_URL = `${API_URL}/list`;
+	const res = await fetch(INTERNAL_URL);
+	const data = await res.json();
+	const integrations = data.data || [];
+	const enriched = await Promise.all(
+		integrations.map(async (i: any) => {
 			let enabled = false;
 			if (orgId) {
 				enabled = await getIntegrationEnabled(orgId, i.id);
 			}
-			return {
-				id: i.id,
-				name: i.name,
-				version: i.version,
-				description: i.description,
-				icon: i.icon,
-				pages: Object.keys(i.ui.pages),
-				enabled,
-			};
+			return { ...i, enabled };
 		})
 	);
-
-	return c.json({
-		success: true,
-		data,
-	});
+	return new Response(
+		JSON.stringify({
+			success: true,
+			data: enriched,
+		}),
+		{
+			headers: { "Content-Type": "application/json" },
+		}
+	);
 });
 
 apiRouteAdminIntegrations.get("/ui/:id/pages", async (c) => {
 	const id = c.req.param("id");
-	const integration = getIntegration(id);
+	const INTERNAL_URL = `${API_URL}/ui/${id}/pages`;
 
-	if (!integration) {
-		return c.json({ success: false, error: "Integration not found" }, 404);
-	}
+	const res = await fetch(INTERNAL_URL);
+	const data = await res.json();
 
-	return c.json({
-		success: true,
-		data: {
-			id: integration.id,
-			name: integration.name,
-			icon: integration.icon,
-			docs: integration.docs ?? null,
-			pages: integration.ui.pages,
-		},
+	return new Response(JSON.stringify(data), {
+		headers: { "Content-Type": "application/json" },
 	});
 });
 

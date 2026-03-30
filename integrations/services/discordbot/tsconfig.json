@@ -6,11 +6,12 @@
 		],
 		"paths": {
 			"@/index": [
-				"./index.ts"
+				"./integration.ts"
 			]
 		}
 	},
 	"include": [
+		"./integration.ts",
 		"src",
 		"src/types"
 	],
