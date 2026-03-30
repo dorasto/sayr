@@ -1,4 +1,5 @@
 import { getIntegrationConfigByValue, getIntegrationEnabled, getIntegrationStorage } from "@repo/database";
+
 import {
 	SlashCommandSubcommandBuilder,
 	ChatInputCommandInteraction,
@@ -15,6 +16,7 @@ import {
 } from "discord.js";
 import type { DiscordTemplate } from "../../api/index";
 import Sayr from "@sayrio/public";
+import { integrationConfigValueType } from "../types";
 const API_URL = process.env.API_SERVER ? process.env.API_SERVER : process.env.APP_ENV === "development" ? "http://localhost:5468/api/public" : "http://backend:5468/api/public";
 Sayr.client.setToken(process.env.SAYR_API_KEY);
 Sayr.client.setBaseUrl(API_URL);
@@ -27,17 +29,15 @@ export const data = (sub: SlashCommandSubcommandBuilder) =>
 async function getOrgAndTemplates(guildId: string | null) {
 	if (!guildId) return null;
 
-	const connected = await getIntegrationConfigByValue("guildId", "discordbot", { guildId: guildId });
-	if (!connected) return null;
+	const settings = await getIntegrationConfigByValue<integrationConfigValueType>("settings", "discordbot", "guildId", guildId)
+	if (!settings) return null;
+	if (!settings?.value?.enabled) return null;
 
-	// const enabled = await getIntegrationEnabled(connected.organizationId, "discordbot");
-	// if (!enabled) return null;
-
-	const storage = await getIntegrationStorage(connected.organizationId, "discordbot");
+	const storage = await getIntegrationStorage(settings.organizationId, "discordbot");
 	const storageData = (storage?.data ?? {}) as Record<string, unknown>;
 	const templates = (storageData.templates ?? []) as DiscordTemplate[];
 
-	return { connected, templates };
+	return { settings, templates };
 }
 
 function buildModal(template: DiscordTemplate) {
@@ -183,7 +183,7 @@ export function registerModalHandler(client: Client) {
 			return;
 		}
 
-		const { connected, templates } = result;
+		const { settings, templates } = result;
 		const template = templates.find((t) => t.id === templateId);
 
 		if (!template) {
@@ -231,9 +231,9 @@ export function registerModalHandler(client: Client) {
 			status: template.defaults.status as "backlog" | "todo" | "in-progress" | "done" | "canceled",
 			priority: template.defaults.priority as "none" | "low" | "medium" | "high" | "urgent",
 			category: categoryId === "" || categoryId === "_none_" ? undefined : categoryId,
-			orgId: connected.organizationId,
+			orgId: settings.organizationId,
 			integration: {
-				id: connected.integrationId,
+				id: settings.integrationId,
 				name: "discordbot",
 				platform: "first-party",
 			},

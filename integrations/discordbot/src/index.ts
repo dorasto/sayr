@@ -11,19 +11,17 @@ import {
 import * as sayrCreate from "./commands/create";
 import Sayr from "@sayrio/public";
 import { EventSource } from "eventsource"
-import { getIntegrationConfig, getIntegrationStorage, setIntegrationStorage, db, schema } from "@repo/database";
+import { getIntegrationConfig, getIntegrationStorage, setIntegrationStorage, db, schema, getIntegrationEnabled } from "@repo/database";
 import { eq } from "drizzle-orm";
-
-const API_URL = process.env.API_SERVER ? process.env.API_SERVER : process.env.APP_ENV === "development" ? "http://localhost:5468/api/public" : "http://backend:5468/api/public";
-Sayr.client.setToken(process.env.SAYR_API_KEY)
-Sayr.client.setBaseUrl(API_URL)
-
+import { integrationConfigValueType } from "./types";
 const token = process.env.DISCORD_BOT_TOKEN;
-
 if (!token) {
   console.error("Missing DISCORD_BOT_TOKEN");
   process.exit(1);
 }
+const API_URL = process.env.API_SERVER ? process.env.API_SERVER : process.env.APP_ENV === "development" ? "http://localhost:5468/api/public" : "http://backend:5468/api/public";
+Sayr.client.setToken(process.env.SAYR_API_KEY)
+Sayr.client.setBaseUrl(API_URL)
 
 // ----- Discord Client -----
 const client = new Client({
@@ -112,20 +110,16 @@ Sayr.sse(
 async function handleUpdateTask(t: any) {
   if (t.visible === "private") return;
   // 1. Load integration config
-  const connected = await getIntegrationConfig(
+  const settings = await getIntegrationConfig<integrationConfigValueType>(
     t.organizationId,
     "discordbot",
-    "guildId"
+    "settings"
   );
-  const connectedChannelId = await getIntegrationConfig(
-    t.organizationId,
-    "discordbot",
-    "channelId"
-  );
+  if (!settings?.value?.enabled) return;
+  if (!settings?.value?.guildId) return;
+  if (!settings?.value?.channelId) return;
 
-  if (!connected || !connectedChannelId) return;
-
-  const orgId = connected.organizationId;
+  const orgId = settings.organizationId;
 
   // 2. Load stored messages
   const storage = await getIntegrationStorage(orgId, "discordbot-task-messages");
@@ -138,16 +132,14 @@ async function handleUpdateTask(t: any) {
   const existingEntry = existing.find((m: any) => m.taskId === t.id);
 
   // 3. Load guild
-  //@ts-expect-error
-  let guild = client.guilds.cache.get(connected.value?.guildId as string);
+  let guild = client.guilds.cache.get(settings.value?.guildId as string);
   if (!guild) {
-    console.warn("Guild not found:", connected.value);
+    console.warn("Guild not found:", settings.value?.guildId);
     return;
   }
 
   // 4. Determine channel
-  //@ts-expect-error
-  const channelId = existingEntry?.channelId || connectedChannelId.value?.channelId;
+  const channelId = existingEntry?.channelId || settings.value?.channelId;
 
   let channel = guild.channels.cache.get(channelId);
   if (!channel) {
@@ -221,7 +213,11 @@ async function handleUpdateTask(t: any) {
         value: projectUrl,
         inline: false
       }
-    ]
+    ],
+    author: {
+      name: t?.createdBy?.displayName || t?.createdBy?.name || "",
+      iconURL: t?.createdBy?.image || ""
+    }
   };
 
   //

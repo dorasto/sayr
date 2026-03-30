@@ -160,6 +160,7 @@ export const templatesPage: UIPage = {
             type: "select",
             label: "Status",
             default: "backlog",
+            required: true,
             options: [
               { value: "backlog", label: "Backlog" },
               { value: "todo", label: "To Do" },
@@ -171,6 +172,7 @@ export const templatesPage: UIPage = {
             type: "select",
             label: "Priority",
             default: "none",
+            required: true,
             options: [
               { value: "none", label: "None" },
               { value: "low", label: "Low" },

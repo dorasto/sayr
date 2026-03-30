@@ -1,63 +1,96 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../database";
 import { integrationConfig, integrationStorage, type integrationConfigType, type integrationStorageType } from "../../schema/integrations";
 
-export async function getIntegrationConfig(
+export async function getIntegrationConfig<TValue = unknown>(
 	orgId: string,
 	integrationId: string,
 	key: string
-): Promise<integrationConfigType | null> {
+): Promise<
+	(Omit<integrationConfigType, "value"> & { value: TValue }) | null
+> {
 	if (!orgId) {
-		throw new Error('getIntegrationConfig called without orgId');
+		throw new Error("getIntegrationConfig called without orgId")
 	}
-	const result = await db.select().from(integrationConfig).where(
-		and(
-			eq(integrationConfig.organizationId, orgId),
-			eq(integrationConfig.integrationId, integrationId),
-			eq(integrationConfig.key, key)
+
+	const result = await db
+		.select()
+		.from(integrationConfig)
+		.where(
+			and(
+				eq(integrationConfig.organizationId, orgId),
+				eq(integrationConfig.integrationId, integrationId),
+				eq(integrationConfig.key, key)
+			)
 		)
-	);
-	if (!result.length) return null;
-	return result[0] ?? null;
+
+	if (!result.length) return null
+
+	const base = result[0] as integrationConfigType
+
+	return {
+		...base,
+		value: base.value as TValue
+	}
 }
 
-export async function getIntegrationConfigByValue(
+
+export async function getIntegrationConfigByValue<TValue = unknown>(
 	key: string,
 	integrationId: string,
-	value: unknown
-): Promise<integrationConfigType | null> {
-	const result = await db.select().from(integrationConfig).where(
-		and(
-			eq(integrationConfig.key, key),
-			eq(integrationConfig.integrationId, integrationId),
-			eq(integrationConfig.value, value)
+	valueKey: string,
+	value: string
+): Promise<(Omit<integrationConfigType, "value"> & { value: TValue }) | null> {
+	const result = await db
+		.select()
+		.from(integrationConfig)
+		.where(
+			and(
+				eq(integrationConfig.integrationId, integrationId),
+				eq(integrationConfig.key, key),
+				sql`${integrationConfig.value} ->> ${sql.raw(`'${valueKey}'`)} = ${value}`
+			)
 		)
-	);
-	if (!result.length) return null;
-	return result[0] ?? null;
+
+	if (!result.length) return null
+
+	const base = result[0] as integrationConfigType
+
+	return {
+		...base,
+		value: base.value as TValue
+	}
 }
 
-export async function setIntegrationConfig(
+export async function setIntegrationConfig<TValue = unknown>(
 	orgId: string,
 	integrationId: string,
 	key: string,
-	value: unknown
-): Promise<integrationConfigType | undefined> {
-	const existing = await db.select().from(integrationConfig).where(
-		and(
-			eq(integrationConfig.organizationId, orgId),
-			eq(integrationConfig.integrationId, integrationId),
-			eq(integrationConfig.key, key)
+	value: TValue
+): Promise<(Omit<integrationConfigType, "value"> & { value: TValue }) | undefined> {
+	const existing = await db
+		.select()
+		.from(integrationConfig)
+		.where(
+			and(
+				eq(integrationConfig.organizationId, orgId),
+				eq(integrationConfig.integrationId, integrationId),
+				eq(integrationConfig.key, key)
+			)
 		)
-	);
 
 	if (existing.length) {
-		const first = existing[0]!;
+		const first = existing[0] as integrationConfigType
+
 		await db
 			.update(integrationConfig)
 			.set({ value, updatedAt: new Date() })
-			.where(eq(integrationConfig.id, first.id));
-		return { ...first, value };
+			.where(eq(integrationConfig.id, first.id))
+
+		return {
+			...first,
+			value
+		}
 	}
 
 	const [created] = await db
@@ -66,19 +99,26 @@ export async function setIntegrationConfig(
 			organizationId: orgId,
 			integrationId,
 			key,
-			value,
+			value
 		})
-		.returning();
-	return created;
+		.returning()
+
+	if (!created) return undefined
+
+	return {
+		...(created as integrationConfigType),
+		value
+	}
 }
 
 export async function getIntegrationEnabled(orgId: string, integrationId: string): Promise<boolean> {
-	const result: any = await getIntegrationConfig(orgId, integrationId, "enabled");
+	const result: any = await getIntegrationConfig(orgId, integrationId, "settings");
 	return result?.value?.enabled === true;
 }
 
 export async function setIntegrationEnabled(orgId: string, integrationId: string, enabled: boolean): Promise<void> {
-	await setIntegrationConfig(orgId, integrationId, "enabled", enabled);
+	const settings: any = await getIntegrationConfig(orgId, integrationId, "settings");
+	await setIntegrationConfig(orgId, integrationId, "settings", { ...settings?.value, enabled: enabled });
 }
 
 export async function getIntegrationStorage(

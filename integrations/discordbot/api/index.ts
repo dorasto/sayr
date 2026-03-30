@@ -11,6 +11,7 @@ type AppEnv = {
 import { getIntegrationConfig, setIntegrationConfig, getIntegrationEnabled, getIntegrationStorage, setIntegrationStorage, db, schema, getIntegrationConfigByValue } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { integrationConfigValueType } from "../src/types";
 
 export interface DiscordTemplate {
 	id: string;
@@ -44,17 +45,11 @@ export const apiRoute = new Hono<AppEnv>();
 
 apiRoute.get("/settings", async (c) => {
 	const orgId = c.get("orgId");
-	const enabled = await getIntegrationEnabled(orgId, INTEGRATION_ID);
-	const { guildId }: any = (await getIntegrationConfig(orgId, INTEGRATION_ID, "guildId"))?.value ?? {};
-	const { channelId }: any = (await getIntegrationConfig(orgId, INTEGRATION_ID, "channelId"))?.value ?? {};
-
+	const settings = await getIntegrationConfig<integrationConfigValueType>(orgId, INTEGRATION_ID, "settings")
+	const value = settings?.value
 	return c.json({
 		success: true,
-		data: {
-			enabled,
-			guildId: guildId ?? "",
-			channelId: channelId ?? "",
-		},
+		data: value
 	});
 });
 export async function getGuildOwner(
@@ -62,37 +57,52 @@ export async function getGuildOwner(
 	guildId: string
 ): Promise<string | null> {
 	const existing = await getIntegrationConfigByValue(
-		"guildId",
+		"settings",
 		integrationId,
-		{ guildId }
+		"guildId",
+		guildId
 	);
-
 	return existing?.organizationId ?? null;
 }
 apiRoute.patch("/settings", async (c) => {
-	const orgId = c.get("orgId");
-	const body = await c.req.json();
+	const orgId = c.get("orgId")
+	const body = await c.req.json()
+
+	const current = await getIntegrationConfig<integrationConfigValueType>(
+		orgId,
+		INTEGRATION_ID,
+		"settings"
+	)
+
+	// Base value
+	const updated: integrationConfigValueType = {
+		...current?.value
+	}
 
 	if (body.guildId !== undefined) {
-		const ownerOrg = await getGuildOwner(INTEGRATION_ID, body.guildId);
+		const ownerOrg = await getGuildOwner(INTEGRATION_ID, body.guildId)
 
 		if (ownerOrg && ownerOrg !== orgId) {
-			return c.json({ error: "Guild already in use" }, 400);
+			return c.json({ error: "Guild already in use" }, 400)
 		}
 
-		await setIntegrationConfig(orgId, INTEGRATION_ID, "guildId", {
-			guildId: body.guildId,
-		});
+		updated.guildId = body.guildId // safe for snowflakes
 	}
 
 	if (body.channelId !== undefined) {
-		await setIntegrationConfig(orgId, INTEGRATION_ID, "channelId", {
-			channelId: body.channelId,
-		});
+		updated.channelId = body.channelId // safe for snowflakes
 	}
 
-	return c.json({ success: true });
-});
+	// Save once
+	await setIntegrationConfig<integrationConfigValueType>(
+		orgId,
+		INTEGRATION_ID,
+		"settings",
+		updated
+	)
+
+	return c.json({ success: true })
+})
 
 // ─── Templates ───────────────────────────────────────────────────────────────
 

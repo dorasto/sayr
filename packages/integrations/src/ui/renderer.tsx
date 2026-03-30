@@ -129,6 +129,7 @@ function PageRenderer({
   onSaveWithToast,
 }: PageRendererProps) {
   const apiBase =
+    //@ts-expect-error ignore this needed for vite env var typing
     import.meta.env.VITE_APP_ENV === "development"
       ? `/backend-api/integrations/${orgId}`
       : `/api/integrations/${orgId}`;
@@ -531,6 +532,7 @@ function ListRenderer({
   pageData,
 }: ListRendererProps) {
   const apiBase =
+    //@ts-expect-error ignore this needed for vite env var typing
     import.meta.env.VITE_APP_ENV === "development"
       ? `/backend-api/integrations/${orgId}`
       : `/api/integrations/${orgId}`;
@@ -812,7 +814,7 @@ function ListRenderer({
                             value;
                         }
                       }}
-                      onSave={() => {}}
+                      onSave={() => { }}
                       onRefresh={onRefresh}
                       integrationId={integrationId}
                       orgId={orgId}
@@ -900,13 +902,7 @@ interface FieldRendererProps {
 function FieldRenderer({ field, data, updateData }: FieldRendererProps) {
   const value = field.bind ? getByPath(data, field.bind) : data[field.name];
   const displayValue = value === undefined ? field.default : value;
-
-  const options = field.optionsData
-    ? ((getByPath(data, field.optionsData) as {
-        value: string;
-        label: string;
-      }[]) ?? [])
-    : field.options;
+  const options = field.options;
 
   if (field.type === "heading") {
     return (
@@ -1080,13 +1076,13 @@ function CreateDialog({
             const resolvedField =
               field.optionsData && pageData
                 ? {
-                    ...field,
-                    options:
-                      (getByPath(pageData, field.optionsData) as {
-                        value: string;
-                        label: string;
-                      }[]) ?? field.options,
-                  }
+                  ...field,
+                  options:
+                    (getByPath(pageData, field.optionsData) as {
+                      value: string;
+                      label: string;
+                    }[]) ?? field.options,
+                }
                 : field;
             return (
               <FieldRenderer
