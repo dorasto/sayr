@@ -533,8 +533,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/integrations
       '@sayrio/public':
-        specifier: ^1.0.5
-        version: 1.0.5(react@19.2.3)
+        specifier: ^1.0.6
+        version: 1.0.6(react@19.2.3)
       discord.js:
         specifier: ^14.18.0
         version: 14.25.1
@@ -4710,8 +4710,8 @@ packages:
     resolution: {integrity: sha512-xzvBr1Q1c4lCe7i6sRnrofxeO1QTP/LKQ6A6qy0iB4x5yfiSfARMEQEghojzTNALDTcv8En04qYNIco9/K9eZQ==}
     engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
 
-  '@sayrio/public@1.0.5':
-    resolution: {integrity: sha512-ep/95UzWS7DcipkHVw8c5xyTVk3+2Bh9wWHMKPVvOoeQ5kokAajV+SIkVa+Np/4ErkowT/ZXPzNWxEfpDDi4rA==}
+  '@sayrio/public@1.0.6':
+    resolution: {integrity: sha512-P8NlnqGkk5tEbCd4gblzt8vtfwr6uutgYTWvmswhB188qBN0bK8ruIfbl2FWlaMU6yZZwxTbnwYpODwDvHZNBQ==}
     peerDependencies:
       react: '>=18'
     peerDependenciesMeta:
@@ -15905,7 +15905,7 @@ snapshots:
 
   '@sapphire/snowflake@3.5.5': {}
 
-  '@sayrio/public@1.0.5(react@19.2.3)':
+  '@sayrio/public@1.0.6(react@19.2.3)':
     optionalDependencies:
       react: 19.2.3
 
