@@ -20,6 +20,7 @@ export interface IntegrationManifest {
     name: string;
     url?: string;
   };
+  noServiceWorker?: boolean;
   requiresExternalService?: boolean;
   externalServiceNote?: string;
 }

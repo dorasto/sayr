@@ -11,7 +11,7 @@ import {
 import * as sayrCreate from "./commands/create";
 import Sayr from "@sayrio/public";
 import { EventSource } from "eventsource"
-import { getIntegrationConfig, getIntegrationStorage, setIntegrationStorage, db, schema, getIntegrationEnabled } from "@repo/database";
+import { getIntegrationConfig, getIntegrationStorage, setIntegrationStorage, db, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { integrationConfigValueType } from "./types";
 const token = process.env.DISCORD_BOT_TOKEN;
@@ -22,10 +22,6 @@ if (!token) {
 const API_URL = process.env.API_SERVER ? process.env.API_SERVER : process.env.APP_ENV === "development" ? "http://localhost:5468/api/public" : "http://backend:5468/api/public";
 Sayr.client.setToken(process.env.SAYR_API_KEY)
 Sayr.client.setBaseUrl(API_URL)
-const originalLog = console.log;
-console.log = (...args) => originalLog("[discordbot]", ...args);
-const originalError = console.error;
-console.error = (...args) => originalError("[discordbot]", ...args);
 
 // ----- Discord Client -----
 const client = new Client({

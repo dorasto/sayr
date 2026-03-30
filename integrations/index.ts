@@ -94,6 +94,10 @@ app.get("/ui/:id/pages", async (c) => {
             console.log(`${tag} No integration found in registry (skipped)`);
             continue;
         }
+        if (integration.noServiceWorker) {
+            console.log(`${tag} Skipped start (noServiceWorker = true)`);
+            continue;
+        }
 
         if (integration.requiresExternalService) {
             console.log(`${tag} Skipped start (requiresExternalService = true)`);
