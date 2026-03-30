@@ -17,7 +17,7 @@ async function requireAdmin(c: any, orgId: string) {
 const API_URL =
     process.env.APP_ENV === "development"
         ? "http://localhost:8080"
-        : "http://backend:8080";
+        : "http://integrations:8080";
 export const apiRouteIntegrations = new Hono<AppEnv>();
 
 apiRouteIntegrations.all("/:orgId/*", async (c) => {
