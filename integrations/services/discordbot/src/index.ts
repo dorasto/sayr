@@ -20,6 +20,7 @@ if (!token) {
   process.exit(1);
 }
 const API_URL = process.env.API_SERVER ? process.env.API_SERVER : process.env.APP_ENV === "development" ? "http://localhost:5468/api/public" : "http://backend:5468/api/public";
+console.log("🚀 ~ API_URL:", API_URL)
 Sayr.client.setToken(process.env.SAYR_API_KEY)
 Sayr.client.setBaseUrl(API_URL)
 
