@@ -100,15 +100,15 @@ export interface ListItemAction {
 export interface UIField {
   name: string;
   type:
-    | "string"
-    | "number"
-    | "boolean"
-    | "select"
-    | "textarea"
-    | "date"
-    | "label"
-    | "heading"
-    | "readonly";
+  | "string"
+  | "number"
+  | "boolean"
+  | "select"
+  | "textarea"
+  | "date"
+  | "label"
+  | "heading"
+  | "readonly";
 
   label?: string;
   description?: string;
@@ -121,8 +121,9 @@ export interface UIField {
 }
 
 export type CardAction = {
-  type: "save" | "refresh";
+  type: "save" | "refresh" | "copy" | "open";
   label?: string;
+  url?: string;
 };
 
 // -------------------------

@@ -38,6 +38,11 @@ export const settingsPage: UIPage = {
           type: "save",
           label: "Save Connection",
         },
+        {
+          type: "open",
+          label: "Invite the Bot",
+          url: process.env.DISCORD_BOT_INVITE_URL,
+        },
       ],
     },
   ],

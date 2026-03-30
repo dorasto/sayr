@@ -8,9 +8,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 import {
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Card,
 } from "@repo/ui/components/card";
 import { Checkbox } from "@repo/ui/components/checkbox";
@@ -49,6 +46,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/dialog";
+import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard"
 
 function getByPath(obj: unknown, path: string): unknown {
   if (!path || path === "$") return obj;
@@ -353,15 +351,25 @@ function SectionRenderer(props: SectionRendererProps) {
 
   if (section.type === "card") {
     const hasSave = section.actions?.some((a) => a.type === "save");
+    const hasCopy = section.actions?.some((a) => a.type === "copy");
+    const hasNewTab = section.actions?.some((a) => a.type === "open");
     const hasRefresh = section.actions?.some((a) => a.type === "refresh");
     const saveLabel =
       section.actions?.find((a) => a.type === "save")?.label ?? "Save";
     const refreshLabel =
       section.actions?.find((a) => a.type === "refresh")?.label ?? "Refresh";
-
+    const copyUrl =
+      section.actions?.find((a) => a.type === "copy")?.url ?? "Copy";
+    const copyLabel =
+      section.actions?.find((a) => a.type === "copy")?.label ?? "Copy";
+    const newTabUrl =
+      section.actions?.find((a) => a.type === "open")?.url;
+    section.actions?.find((a) => a.type === "copy")?.label ?? "Copy";
+    const newTabLabel =
+      section.actions?.find((a) => a.type === "open")?.label ?? "";
     return (
       <div className="flex flex-col gap-3">
-        {(section.title || section.description || hasSave || hasRefresh) && (
+        {(section.title || section.description || hasSave || hasRefresh || hasCopy) && (
           <div className="flex items-start justify-between">
             <div className="flex flex-col">
               {section.title && (
@@ -385,6 +393,24 @@ function SectionRenderer(props: SectionRendererProps) {
                   onClick={onSave}
                 >
                   {isSaving ? "Saving..." : saveLabel}
+                </Button>
+              )}
+              {hasCopy && (
+                <SimpleClipboard
+                  textToCopy={copyUrl || ""}
+                  size="sm"
+                  variant="primary"
+                  tooltipText={copyLabel}
+                >
+                </SimpleClipboard>
+              )}
+              {hasNewTab && newTabUrl && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => window.open(newTabUrl)}
+                >
+                  {newTabLabel}
                 </Button>
               )}
             </div>
