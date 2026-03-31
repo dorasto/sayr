@@ -172,3 +172,30 @@ zerops:
           port: 8080
           path: /
       start: bun run dist/index.js github
+  
+  - setup: integrations
+    build:
+      base: bun@latest
+      os: ubuntu
+      prepareCommands:
+        # Use corepack for pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
+      buildCommands:
+        - pnpm i
+        - pnpm -F intergations build:all
+      deployFiles:
+        # Strip integrations/ prefix so dist/ lands at container root
+        - integrations/~dist
+        - integrations/~package.json
+        - node_modules
+    run:
+      base: bun@latest
+      os: ubuntu
+      ports:
+        - port: 8080
+          httpSupport: true
+      healthCheck:
+        httpGet:
+          port: 8080
+          path: /
+      start: bun run dist/index.js integrations
