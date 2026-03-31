@@ -186,6 +186,7 @@ zerops:
       deployFiles:
         # Strip integrations/ prefix so dist/ lands at container root
         - integrations/~dist
+        - integrations/services/discordbot/~dist
         - integrations/~package.json
         - node_modules
     run:
@@ -198,4 +199,4 @@ zerops:
         httpGet:
           port: 8080
           path: /
-      start: bun run dist/index.js integrations
+      start: bun run dist/index.js
