@@ -269,7 +269,7 @@ export const auth = betterAuth({
 					}
 
 					// On self-hosted editions, automatically promote the first user to platform admin
-					// if (!isSelfHosted()) return;
+					if (!isSelfHosted()) return;
 
 					const result = await db
 						.select({ count: sql<number>`count(*)::int` })
