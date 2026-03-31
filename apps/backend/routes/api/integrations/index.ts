@@ -18,7 +18,6 @@ const API_URL =
     process.env.APP_ENV === "development"
         ? "http://localhost:8080"
         : "http://integrations:8080";
-console.log("🚀 ~ API_URL:", API_URL)
 export const apiRouteIntegrations = new Hono<AppEnv>();
 
 apiRouteIntegrations.all("/:orgId/*", async (c) => {
