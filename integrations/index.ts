@@ -57,7 +57,7 @@ app.get("/ui/:id/pages", async (c) => {
 });
 
 (async () => {
-    const base = join(__dirname, "services");
+    const base = join(process.cwd(), "services");
 
     const dynamicFolders = readdirSync(base, { withFileTypes: true })
         .filter((d) => d.isDirectory())
@@ -71,8 +71,18 @@ app.get("/ui/:id/pages", async (c) => {
     //
     for (const entry of dynamicFolders) {
         const tag = `[${entry.folder}]`;
+
         try {
-            await import(entry.path + "/integration.ts");
+            if (process.env.npm_lifecycle_event === "dev") {
+                console.log(`${tag} Starting in development mode...`);
+
+                // Load dev source
+                await import(`${entry.path}/integration.ts`);
+            } else {
+                // Load built JS
+                await import(`${entry.path}/dist/integration.js`);
+            }
+
             console.log(`${tag} Registered`);
         } catch (e) {
             console.error(`${tag} Failed to register`, e);
@@ -111,7 +121,7 @@ app.get("/ui/:id/pages", async (c) => {
                 console.log(`${tag} Starting in development mode...`);
                 await import(entry.path + "/src/index.ts");
             } else {
-                await import(entry.path + "/dist/index.js");
+                await import(entry.path + "/dist/src/index.js");
                 console.log(`${tag} Started`);
             }
         } catch (e) {

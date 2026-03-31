@@ -8,7 +8,9 @@
 			"@/index": [
 				"./integration.ts"
 			]
-		}
+		},
+		"module": "esnext",
+		"moduleResolution": "bundler"
 	},
 	"include": [
 		"./integration.ts",

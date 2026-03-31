@@ -2,7 +2,7 @@ import { readdirSync } from "fs";
 import { join } from "path";
 import { $ } from "bun";
 
-const base = join(import.meta.dir, "services");
+const base = join(process.cwd(), "services");
 
 const dirs = readdirSync(base, { withFileTypes: true })
     .filter((d) => d.isDirectory())

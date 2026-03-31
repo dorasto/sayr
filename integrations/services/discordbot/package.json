@@ -4,7 +4,7 @@
   "private": false,
   "scripts": {
     "dev": "bun --watch run src/index.ts integration.ts",
-    "build": "bun build src/index.ts --target=bun --outdir dist",
+    "build": "bun build src/index.ts integration.ts --target=bun --outdir=dist --external='@repo/*'",
     "start": "bun dist/index.js"
   },
   "dependencies": {
