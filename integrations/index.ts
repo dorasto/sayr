@@ -10,6 +10,8 @@ type AppEnv = {
     };
 };
 const app = new Hono<AppEnv>();
+//Health check endpoint
+app.get("/", (c) => c.json({ success: true, message: "Integrations service is running" }));
 app.use("/:orgId/*", async (c, next) => {
     const orgId = c.req.param("orgId");
     c.set("orgId", orgId)
