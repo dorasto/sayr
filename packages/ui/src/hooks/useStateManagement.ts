@@ -111,32 +111,19 @@ export function useStateManagementKey<T>(
 
 export function useReadOnlyStateManagementKey<T>(
 	key: string[],
-	defaultValue?: null | T
-): { value: T } {
-	const queryClient = useQueryClient();
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies
+) {
+	// MUST memo key
 	const queryKey = useMemo(() => key, [...key]);
-
-	// Check cache first
-	const cachedData = queryClient.getQueryData<T>(queryKey);
-	const initialValue = cachedData !== undefined ? cachedData : defaultValue;
-
-	const { data: value } = useQuery<T>({
-		queryKey: queryKey,
+	const { data } = useQuery<T>({
+		queryKey,
+		enabled: false, // critical: read-only mode 
 		queryFn: () => {
-			const storedValue = queryClient.getQueryData<T>(queryKey);
-			return storedValue ?? (defaultValue as T);
+			throw new Error("Should never fetch in read-only hook");
 		},
-		initialData: initialValue as T,
-		staleTime: Infinity,
-		gcTime: Infinity,
 	});
-
-	return {
-		value: value as T,
-	};
+	return { value: data };
 }
+
 export interface UseStateManagementFetchType<TypeFetch, TypeMutate> {
 	key: string[];
 	fetch: {

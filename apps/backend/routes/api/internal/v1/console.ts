@@ -547,6 +547,7 @@ apiRouteConsole.post("/system-api-keys", async (c) => {
 					body: {
 						name: name.trim(),
 						userId: systemUser.id,
+						rateLimitEnabled: false,
 					},
 				}),
 			{
