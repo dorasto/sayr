@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import { seo } from "@/seo";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { IntegrationPage } from "@repo/integrations/ui/renderer";
@@ -15,17 +16,46 @@ import { IconCircleFilled, IconQuestionMark } from "@tabler/icons-react";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@repo/ui/components/sheet";
 import { cn } from "@/lib/utils";
 
+const getIntegrationMeta = createServerFn({ method: "GET" })
+  .inputValidator((data: { integrationId: string }) => data)
+  .handler(async ({ data }) => {
+    const API_URL =
+      process.env.APP_ENV === "development"
+        ? "http://localhost:5468/api/internal"
+        : "http://localhost:5468/api/internal";
+    try {
+      const res = await fetch(
+        `${API_URL}/v1/admin/integrations/ui/${data.integrationId}/pages`,
+      );
+      if (!res.ok) return { name: null };
+      const json = await res.json();
+      return { name: (json?.data?.name as string) || null };
+    } catch {
+      return { name: null };
+    }
+  });
+
 export const Route = createFileRoute(
   "/(admin)/settings/org/$orgId/connections/$integrationId/",
 )({
-  head: () => ({
-    meta: seo({ title: "Integration · Connections · Settings" }),
+  loader: async ({ params }) => {
+    return await getIntegrationMeta({
+      data: { integrationId: params.integrationId },
+    });
+  },
+  head: ({ loaderData }) => ({
+    meta: seo({
+      title: loaderData?.name
+        ? `${loaderData.name} · Connections · Settings`
+        : "Integration · Connections · Settings",
+    }),
   }),
   component: RouteComponent,
 });
@@ -96,6 +126,9 @@ function RouteComponent() {
   const integrationName = pagesData?.data?.name || integrationId;
   const integrationIcon = pagesData?.data?.icon as string | undefined;
   const integrationDocs = pagesData?.data?.docs as string | null | undefined;
+  const integrationAuthorURL = pagesData?.data?.authorUrl || integrationId;
+  const integrationVersion = pagesData?.data?.version || null;
+  const isSayr = pagesData?.data?.authorName === "Doras Media Ltd";
   const pageKeys = Object.keys(pages);
 
   const handleSaveWithToast = useCallback(
@@ -166,13 +199,49 @@ function RouteComponent() {
                   <IconQuestionMark />
                 </Button>
               </SheetTrigger>
-              <SheetContent className="h-full overflow-auto">
-                <SheetHeader className="pb-4">
+              <SheetContent
+                className="flex flex-col p-0 overflow-hidden gap-0 md:max-w-1/3"
+                showClose={false}
+              >
+                <SheetHeader className="shrink-0 bg-card p-3 rounded-xl">
                   <SheetTitle asChild>
-                    <Label variant="heading">Overview</Label>
+                    <div className="flex items-center gap-2">
+                      <RenderIcon
+                        iconName={integrationIcon || "IconPlug"}
+                        size={24}
+                        raw
+                      />
+                      <Label variant="heading">{integrationName}</Label>
+                    </div>
                   </SheetTitle>
+                  <SheetDescription asChild>
+                    <div className="flex flex-row gap-3 w-full justify-between">
+                      <Label variant="subheading">
+                        Created by{" "}
+                        <a
+                          href={integrationAuthorURL}
+                          className="hover:underline text-primary"
+                        >
+                          {isSayr ? "Sayr" : pagesData?.data?.authorName}
+                        </a>
+                      </Label>
+                      <Label variant="subheading">
+                        <a
+                          href={
+                            `https://github.com/dorasto/sayr/tree/main/integrations/services/` +
+                            integrationId
+                          }
+                          className="hover:underline text-primary"
+                        >
+                          Version v{integrationVersion}
+                        </a>
+                      </Label>
+                    </div>
+                  </SheetDescription>
                 </SheetHeader>
-                <MarkdownContent content={integrationDocs} />
+                <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                  <MarkdownContent content={integrationDocs} />
+                </div>
               </SheetContent>
             </Sheet>
           )}
