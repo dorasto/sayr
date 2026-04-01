@@ -4,16 +4,13 @@
 		"types": [
 			"bun"
 		],
-		"paths": {
-			"@/index": [
-				"./integration.ts"
-			]
-		},
 		"module": "esnext",
 		"moduleResolution": "bundler"
 	},
 	"include": [
 		"./integration.ts",
+		"./api",
+		"./ui",
 		"src",
 		"src/types"
 	],

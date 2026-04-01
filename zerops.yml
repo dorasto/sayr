@@ -183,7 +183,6 @@ zerops:
       buildCommands:
         - pnpm i
         - pnpm -F integrations build:all
-        - rm -rf integrations/services/**/node_modules
       deployFiles:
         # Strip integrations/ prefix so dist/ lands at container root
         - integrations/~dist
