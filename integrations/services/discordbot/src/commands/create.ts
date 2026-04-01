@@ -54,6 +54,7 @@ function buildModal(template: DiscordTemplate) {
 
 	if (template.titlePrefix) {
 		titleInput.setPlaceholder(`${template.titlePrefix} `);
+		titleInput.setValue(`${template.titlePrefix} `);
 	}
 
 	modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(titleInput));
