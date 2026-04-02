@@ -52,12 +52,24 @@ function getByPath(obj: unknown, path: string): unknown {
   if (!path || path === "$") return obj;
   const cleanPath = path.replace(/^\$\.?/, "");
   if (!cleanPath) return obj;
-  return cleanPath
+
+  const isStringify = cleanPath.endsWith(".stringify");
+  const targetPath = isStringify
+    ? cleanPath.slice(0, -".stringify".length)
+    : cleanPath;
+
+  const value = targetPath
     .split(".")
     .reduce(
       (acc: unknown, key) => (acc as Record<string, unknown>)?.[key],
       obj,
     );
+
+  if (isStringify && value !== undefined) {
+    return JSON.stringify(value, null, 2);
+  }
+
+  return value;
 }
 
 function setByPath(

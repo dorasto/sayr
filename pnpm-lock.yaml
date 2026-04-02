@@ -586,6 +586,28 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
+  integrations/services/testing:
+    dependencies:
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../../../packages/database
+      '@repo/integrations':
+        specifier: workspace:*
+        version: link:../../../packages/integrations
+      hono:
+        specifier: ^4.12.7
+        version: 4.12.7
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
+      bun-types:
+        specifier: ^1.1.0
+        version: 1.2.23(@types/react@19.2.8)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/auth:
     dependencies:
       '@better-auth/passkey':
@@ -622,6 +644,28 @@ importers:
       '@types/node':
         specifier: ^24.0.14
         version: 24.0.14
+
+  packages/create-integration:
+    dependencies:
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../database
+      '@repo/integrations':
+        specifier: workspace:*
+        version: link:../integrations
+      hono:
+        specifier: ^4.12.7
+        version: 4.12.7
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
+      bun-types:
+        specifier: ^1.1.0
+        version: 1.2.23(@types/react@19.2.8)
 
   packages/database:
     dependencies:

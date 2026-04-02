@@ -204,6 +204,104 @@ sayr/
 
 ---
 
+## Integrations
+
+Sayr supports extensible integrations that can add custom API routes and UI pages.
+
+### Creating an Integration
+
+Use the create-integration scaffolding tool:
+
+```bash
+pnpm create-integration <integration-name> -a <author-name> -d <integration-description>
+```
+
+This generates a new integration in `packages/integrations/` with:
+
+- **API Routes** — Custom REST endpoints (`/api/integrations/:orgId/:integrationId/...`)
+- **UI Pages** — Admin pages rendered from config (cards, lists, tabs, grids)
+- **Settings** — Per-organization configuration
+
+### Integration Structure
+
+```
+my-integration/
+├── api/
+│   └── index.ts       # API route handlers
+├── src/
+│   └── index.ts       # Business logic, commands, utilities
+├── ui/
+│   ├── pages.ts       # UI page config (settings, items, sync, etc.)
+│   ├── renderer.tsx    # Reusable UI components
+│   └── components/    # Custom React components
+├── integration.ts     # Manifest registration
+├── docs.ts            # Documentation
+└── README.md          # Integration-specific docs
+```
+
+### UI Page Configuration
+
+Pages are defined with a declarative config:
+
+```typescript
+const settingsPage: UIPage = {
+  title: "Settings",
+  layout: "admin",
+  api: {
+    path: "/settings",
+    methods: { get: {}, patch: {} },
+  },
+  sections: [
+    {
+      type: "card",
+      title: "Configuration",
+      fields: [
+        { name: "apiKey", type: "string", label: "API Key", required: true },
+        { name: "enabled", type: "boolean", label: "Enabled" },
+      ],
+      actions: [{ type: "save", label: "Save" }],
+    },
+  ],
+};
+```
+
+### Available Section Types
+
+| Type | Description |
+|------|-------------|
+| `card` | Card with fields and optional actions |
+| `list` | Table or card list with CRUD actions |
+| `tabs` | Tabbed sections |
+| `grid` | Multi-column grid layout |
+
+### Field Types
+
+- `string`, `number` — Text/number input
+- `boolean` — Checkbox
+- `select` — Dropdown with options
+- `textarea` — Multi-line text
+- `readonly` — Display-only field
+- `heading`, `label` — Typography
+
+### Data Binding
+
+Use `bind` to extract nested data from API responses:
+
+```typescript
+{ name: "status", type: "readonly", bind: "$.preview.status" }
+{ name: "data", type: "readonly", bind: "$.preview.stringify" }  // JSON stringify
+```
+
+### Enabling an Integration
+
+```bash
+export INTEGRATION_MYINTEGRATION_ENABLED=true
+```
+
+Then configure per-organization in the admin UI.
+
+---
+
 ## Contributing
 
 ### Development Workflow
