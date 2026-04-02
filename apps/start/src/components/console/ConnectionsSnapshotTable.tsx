@@ -13,13 +13,15 @@ import {
 	TableHeader,
 	TableRow
 } from "@repo/ui/components/table";
-import type { ConnectionType } from "./conections";
+import type { ConnectionType, IntegrationType } from "./connections";
 import { ConnectionRow } from "./ConnectionRow";
 
 export function ConnectionsSnapshotTable({
-	snapshot
+	snapshot,
+	integrations
 }: {
 	snapshot: ConnectionType[];
+	integrations: IntegrationType[];
 }) {
 	const sorted = snapshot
 		.slice()
@@ -52,6 +54,7 @@ export function ConnectionsSnapshotTable({
 								<ConnectionRow
 									key={client.sseClientId}
 									client={client}
+									integrations={integrations}
 								/>
 							);
 						})}

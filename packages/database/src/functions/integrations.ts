@@ -160,3 +160,21 @@ export async function setIntegrationStorage(
 		.returning();
 	return created;
 }
+
+export async function getOrganizationsWithIntegration(integrationId: string): Promise<string[]> {
+	const settings = await db
+		.select()
+		.from(integrationConfig)
+		.where(
+			and(
+				eq(integrationConfig.integrationId, integrationId),
+				eq(integrationConfig.key, "settings")
+			)
+		);
+
+	const orgIds = settings
+		.filter((s: any) => s.value?.enabled === true)
+		.map((s: any) => s.organizationId);
+
+	return orgIds;
+}

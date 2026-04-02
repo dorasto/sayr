@@ -100,7 +100,7 @@ Sayr.sse(
           ...init,
           headers: {
             ...init?.headers,
-            "User-Agent": "integration DiscordBot v1"
+            "User-Agent": "integration/discordbot/1.0.0"
           }
         })
     }

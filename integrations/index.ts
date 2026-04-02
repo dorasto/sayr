@@ -17,6 +17,24 @@ app.use("/:orgId/*", async (c, next) => {
   c.set("orgId", orgId);
   await next();
 });
+app.get("/all", (c) => {
+  const integrations = getIntegrationList();
+  const data = Array.from(integrations.values()).map((i) => ({
+    id: i.id,
+    name: i.name,
+    version: i.version,
+    description: i.description,
+    icon: i.icon,
+    enabled: true,
+    enabledOrgCount: 0, // This will be updated by the admin API route
+    author: i.author,
+  }));
+
+  return c.json({
+    success: true,
+    data,
+  });
+});
 
 // Endpoint for listing integrations
 app.get("/list", (c) => {

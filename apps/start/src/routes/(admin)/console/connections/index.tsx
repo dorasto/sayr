@@ -1,4 +1,4 @@
-import AdminConnectionsPage from "@/components/console/conections";
+import AdminConnectionsPage from "@/components/console/connections";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { seo } from "@/seo";
 
