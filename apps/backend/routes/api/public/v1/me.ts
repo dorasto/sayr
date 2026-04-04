@@ -650,7 +650,7 @@ Route.post(
             id: id,
             name: name,
             data: data
-        }
+        };
         const activity = await traceAsync(
             "public.me.task.activity.insert",
             () =>
