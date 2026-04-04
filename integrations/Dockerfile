@@ -39,6 +39,7 @@ FROM oven/bun:1 AS runner
 WORKDIR /app
 
 COPY --from=installer /app/integrations/dist ./dist
+COPY --from=installer /app/integrations/services ./services
 
 # Environment Variables
 ENV SAYR_API_KEY=""

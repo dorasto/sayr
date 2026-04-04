@@ -31,13 +31,13 @@ COPY --from=builder /app/out/full/ .
 ARG SAYR_EDITION_BAKED="community"
 
 # Build the project
-WORKDIR /app/integrations/discordbot
+WORKDIR /app/integrations/services/discordbot
 RUN bun run build
 
 FROM oven/bun:1 AS runner
 WORKDIR /app
 
-COPY --from=installer /app/integrations/discordbot/dist ./dist
+COPY --from=installer /app/integrations/services/discordbot/dist ./dist
 
 # Environment Variables
 ENV SAYR_API_KEY=""

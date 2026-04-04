@@ -229,7 +229,7 @@ function getDeviceType(userAgent: string | undefined): string {
 async function authenticate(
     headers: Headers,
     channel: string,
-    key?: string
+    key?: string | null
 ): Promise<{
     userId: string | null;
     session: SessionValue | null;
@@ -279,7 +279,6 @@ async function authenticate(
 sseRoute.get("/", async (c) => {
     let orgId = c.req.query("orgId");
     let channel = c.req.query("channel");
-    let key = c.req.query("key");
     let ref = c.req.query("ref");
     const userAgent = c.req.raw.headers.get("user-agent");
     let device = getDeviceType(userAgent || "");
@@ -287,7 +286,8 @@ sseRoute.get("/", async (c) => {
         device = "Sayr " + userAgent;
     }
     const id = crypto.randomUUID();
-    const { userId, session, authenticated } = await authenticate(c.req.raw.headers, channel || "", key);
+    const token = c.req.header("authorization")?.match(/^Bearer (.+)$/)?.[1] ?? null;
+    const { userId, session, authenticated } = await authenticate(c.req.raw.headers, channel || "", token);
     if (channel === "system" && userId && authenticated) {
         // no org required, no membership needed
     } else if (!channel || channel === "public") {
