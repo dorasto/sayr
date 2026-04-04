@@ -225,50 +225,66 @@ export function registerModalHandler(client: Client) {
 		}
 
 		const categoryId = template.defaults.categoryId;
+		try {
+			const res = await Sayr.me.createTask({
+				title,
+				description,
+				status: template.defaults.status as "backlog" | "todo" | "in-progress" | "done" | "canceled",
+				priority: template.defaults.priority as "none" | "low" | "medium" | "high" | "urgent",
+				category: categoryId === "" || categoryId === "_none_" ? undefined : categoryId,
+				orgId: settings.organizationId,
+				integration: {
+					id: settings.integrationId,
+					name: "discordbot",
+					platform: "first-party",
+				},
+				createdBy: {
+					type: "discord",
+					userId: interaction.user.id,
+					name: interaction.user.username,
+				}
+			});
 
-		const res = await Sayr.me.createTask({
-			title,
-			description,
-			status: template.defaults.status as "backlog" | "todo" | "in-progress" | "done" | "canceled",
-			priority: template.defaults.priority as "none" | "low" | "medium" | "high" | "urgent",
-			category: categoryId === "" || categoryId === "_none_" ? undefined : categoryId,
-			orgId: settings.organizationId,
-			integration: {
-				id: settings.integrationId,
-				name: "discordbot",
-				platform: "first-party",
-			},
-			createdBy: {
-				type: "discord",
-				userId: interaction.user.id,
-				name: interaction.user.username,
+			if (res.success !== true) {
+				console.error(
+					JSON.stringify({
+						level: "error",
+						event: "task_creation_failed",
+						guildId: interaction.guildId,
+						userId: interaction.user.id,
+						error: res.error,
+					})
+				);
+				await interaction.reply({
+					content: "Oops! Something went wrong while creating your task. Try again, and if it keeps happening, let a server admin know.",
+					flags: MessageFlags.Ephemeral,
+				});
+				return;
 			}
-		});
 
-		if (res.success !== true) {
+			if (res.data) {
+				await interaction.reply({
+					content:
+						`Your task has been created!\n\n` +
+						`Title: **${res.data.title}**\n` +
+						`Template: ${template.name}\n` +
+						`View it here: ${res.data.publicPortalUrl}`,
+					flags: MessageFlags.Ephemeral,
+				});
+			}
+		} catch (err) {
 			console.error(
 				JSON.stringify({
 					level: "error",
-					event: "task_creation_failed",
+					event: "task_creation_exception",
 					guildId: interaction.guildId,
 					userId: interaction.user.id,
-					error: res.error,
+					error: err instanceof Error ? err.stack : String(err),
 				})
 			);
 			await interaction.reply({
 				content: "Oops! Something went wrong while creating your task. Try again, and if it keeps happening, let a server admin know.",
 				flags: MessageFlags.Ephemeral,
-			});
-			return;
-		}
-
-		if (res.data) {
-			await interaction.reply({
-				content:
-					`Your task has been created!\n\n` +
-					`Title: **${res.data.title}**\n` +
-					`Template: ${template.name}\n` +
-					`View it here: ${res.data.publicPortalUrl}`,
 			});
 		}
 	});

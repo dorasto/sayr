@@ -72,7 +72,6 @@ export async function safeGetApiKey(
 
         return { account };
     } catch {
-        apiKeyCache.set(key, { value: null, expiresAt: now + 5000 });
         return null;
     }
 }

@@ -601,7 +601,12 @@ apiRouteConsole.delete("/system-api-keys/:keyId", async (c) => {
 		await traceAsync(
 			"console.system_api_keys.delete",
 			() =>
-				db.delete(schema.apikey).where(eq(schema.apikey.id, keyId)),
+				db.delete(schema.apikey).where(
+					and(
+						eq(schema.apikey.id, keyId),
+						eq(schema.apikey.userId, systemUser.id),
+					),
+				),
 			{
 				description: "Deleting system API key",
 				data: { adminId: session.userId, keyId },
