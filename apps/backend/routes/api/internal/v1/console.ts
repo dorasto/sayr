@@ -558,7 +558,7 @@ apiRouteConsole.post("/system-api-keys", async (c) => {
 
 		return c.json(successResponse(result));
 	} catch (err) {
-		console.log(err)
+		console.log(err);
 		await recordWideError({
 			name: "console.system_api_keys.create.failed",
 			error: err,
