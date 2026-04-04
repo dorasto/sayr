@@ -50,7 +50,7 @@ export async function safeGetApiKey(
         if (!valid) {
             return null;
         }
-        if (!result.key?.userId) return null
+        if (!result.key?.userId) return null;
 
         // Fetch full user account
         const [account] = await db
