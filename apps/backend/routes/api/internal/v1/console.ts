@@ -610,7 +610,7 @@ apiRouteConsole.delete("/system-api-keys/:keyId", async (c) => {
 
 		return c.json(successResponse({ deleted: true }));
 	} catch (err) {
-		console.log("🚀 ~ err:", err)
+		console.log("🚀 ~ err:", err);
 		await recordWideError({
 			name: "console.system_api_keys.delete.failed",
 			error: err,
