@@ -754,7 +754,7 @@ const CreateTaskCommentData = {
             ]
         }
     }
-}
+};
 
 Route.post("/create_comment",
     describeOkNotFound({
