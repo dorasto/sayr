@@ -48,7 +48,7 @@ export async function getIntegrationConfigByValue<TValue = unknown>(
 			and(
 				eq(integrationConfig.integrationId, integrationId),
 				eq(integrationConfig.key, key),
-				sql`${integrationConfig.value} ->> ${sql.raw(`'${valueKey}'`)} = ${value}`
+				sql`${integrationConfig.value} ->> ${valueKey} = ${value}`
 			)
 		)
 

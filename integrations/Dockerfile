@@ -38,8 +38,8 @@ RUN bun run build:services
 FROM oven/bun:1 AS runner
 WORKDIR /app
 
-COPY --from=installer /app/integrations/dist ./dist
-COPY --from=installer /app/integrations/services ./services
+COPY --from=installer --chown=bun:bun /app/integrations/dist ./dist
+COPY --from=installer --chown=bun:bun /app/integrations/services ./services
 
 # Environment Variables
 ENV SAYR_API_KEY=""
@@ -48,4 +48,5 @@ ENV DISCORD_BOT_INVITE_URL=""
 ENV DATABASE_URL=""
 ENV APP_ENV="production"
 
+USER bun
 CMD ["bun", "run", "dist/index.js"]

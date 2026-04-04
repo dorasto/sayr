@@ -32,9 +32,10 @@ export const ConnectionRow = memo(function ConnectionRow({
 		const id = setInterval(() => setNow(Date.now()), 10000);
 		return () => clearInterval(id);
 	}, []);
-	const integration = integrations.find(
-		i => i.id === client.device.split("/")[1]
-	);
+	const integrationId = client.device?.split("/")[1];
+	const integration = integrationId
+		? integrations.find((i) => i.id === integrationId)
+		: undefined;
 	return (
 		<TableRow>
 			{/* User column */}
