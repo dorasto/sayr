@@ -251,7 +251,7 @@ async function handleUpdateTask(t: any) {
         guildId: guild.id,
         url: msg.url,
       }
-    })
+    });
 
     const updated = [...existing, newEntry];
 
