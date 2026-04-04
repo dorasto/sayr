@@ -19,7 +19,7 @@ import {
 import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl, isSlugBanned } from "@repo/util";
 import { getInstallationDetailsWithRepos, createAppJWT } from "@repo/util/github/auth";
-import { and, count, desc, eq, ilike, ne } from "drizzle-orm";
+import { and, count, eq, ilike, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { apiRouteAdminProjectTask } from "./task";
