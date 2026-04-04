@@ -87,7 +87,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 	};
 	useEffect(() => {
 		fetchKeys();
-	}, [])
+	}, []);
 
 	const createKey = async () => {
 		if (!newKeyName.trim()) return;
