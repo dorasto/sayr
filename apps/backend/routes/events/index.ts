@@ -284,7 +284,7 @@ sseRoute.get("/", async (c) => {
     const userAgent = c.req.raw.headers.get("user-agent");
     let device = getDeviceType(userAgent || "");
     if (userAgent?.startsWith("integration")) {
-        device = "Sayr " + userAgent
+        device = "Sayr " + userAgent;
     }
     const id = crypto.randomUUID();
     const { userId, session, authenticated } = await authenticate(c.req.raw.headers, channel || "", key);
