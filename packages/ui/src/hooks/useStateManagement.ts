@@ -108,6 +108,22 @@ export function useStateManagementKey<T>(
 		setValue,
 	};
 }
+
+export function useReadOnlyStateManagementKey<T>(
+	key: string[],
+) {
+	// MUST memo key
+	const queryKey = useMemo(() => key, [...key]);
+	const { data } = useQuery<T>({
+		queryKey,
+		enabled: false, // critical: read-only mode 
+		queryFn: () => {
+			throw new Error("Should never fetch in read-only hook");
+		},
+	});
+	return { value: data };
+}
+
 export interface UseStateManagementFetchType<TypeFetch, TypeMutate> {
 	key: string[];
 	fetch: {

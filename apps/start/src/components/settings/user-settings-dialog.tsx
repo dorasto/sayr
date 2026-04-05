@@ -7,6 +7,8 @@ import {
   IconHome,
   IconLogout,
   IconPalette,
+  IconPlug,
+  IconShield,
   IconUser,
 } from "@tabler/icons-react";
 import { useCallback } from "react";
@@ -23,6 +25,7 @@ interface UserSettingsDialogProps {
     displayName?: string | null;
     email: string;
     image?: string | null;
+    id: string;
   };
 }
 
@@ -67,6 +70,19 @@ export function UserSettingsDialog({
               icon: <IconPalette className="size-4" />,
               title: "Preferences",
             },
+
+            {
+              id: "security",
+              label: "Security",
+              icon: <IconShield className="size-4" />,
+              href: `${import.meta.env.VITE_URL_ROOT}/settings/security`,
+            },
+            {
+              id: "connections",
+              label: "Connections",
+              icon: <IconPlug className="size-4" />,
+              href: `${import.meta.env.VITE_URL_ROOT}/settings/connections`,
+            },
             {
               id: "dashboard",
               label: "Dashboard",
@@ -90,12 +106,13 @@ export function UserSettingsDialog({
             displayName: user.displayName ?? null,
             email: user.email,
             image: user.image ?? null,
+            id: user.id,
           }}
           onAccountUpdated={handleAccountUpdated}
         />
       </TabPanel>
       <TabPanel tabId="preferences">
-        <UserPreferences />
+        <UserPreferences isDialog={true} />
       </TabPanel>
     </TabbedDialog>
   );

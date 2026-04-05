@@ -78,3 +78,11 @@ hero:
 | [Get Started](/docs/self-hosting/get-started) | Deploy Sayr on your own infrastructure |
 | [Editions](/docs/self-hosting/editions) | Community, Cloud, and Enterprise differences explained |
 | [Authentication & OAuth](/docs/self-hosting/authentication) | Configure login providers using environment variables |
+
+### Contributing
+| Page | Description |
+|------|-------------|
+| [Architecture Overview](/docs/contributing/architecture) | How the monorepo applications and packages fit together |
+| [Local Development](/docs/contributing/local-development) | Set up your development environment |
+| [Adding Features](/docs/contributing/adding-features) | End-to-end walkthrough of implementing a new feature |
+| [Database Guide](/docs/contributing/database) | Drizzle ORM patterns and query conventions |

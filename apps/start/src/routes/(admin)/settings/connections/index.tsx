@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import UserConnections from "@/components/pages/admin/settings/connections";
 import { SubWrapper } from "@/components/generic/wrapper";
-import { auth, db, type schema } from "@repo/database";
+import { auth as authSchema, db, type schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import {
@@ -10,86 +10,79 @@ import {
   getUserInfoGithub,
   getUserInfoSlack,
 } from "@/lib/fetches/connections";
-import type {
-  DiscordUserType,
-  DorasUserType,
-  GithubUserType,
-  SlackUserType,
-} from "@/types";
 import { seo } from "@/seo";
+import { auth } from "@repo/auth";
+import { getRequestHeaders } from "@tanstack/react-start/server";
+
+async function resolveAccessToken(providerId: string, accountRow: any, headers: any) {
+  if (!accountRow) return null;
+
+  try {
+    const res = await auth.api.getAccessToken({
+      body: {
+        providerId,
+        accountId: accountRow.id,
+      },
+      headers,
+    });
+
+    return res?.accessToken || accountRow.accessToken || null;
+  } catch (err) {
+    console.error(`Failed to refresh token for ${providerId}:`, err);
+    return accountRow.accessToken || null;
+  }
+}
 
 export const getConnections = createServerFn({ method: "GET" })
   .inputValidator((data: { account: schema.userType }) => data)
   .handler(async ({ data }) => {
     try {
+      const headers = getRequestHeaders();
+      const h = new Headers(headers);
       const email = await db.query.account.findFirst({
         where: and(
-          eq(auth.account.userId, data.account?.id),
-          eq(auth.account.providerId, "credential"),
+          eq(authSchema.account.userId, data.account?.id),
+          eq(authSchema.account.providerId, "credential"),
         ),
       });
-      const github = await db.query.account.findFirst({
-        where: and(
-          eq(auth.account.userId, data.account?.id),
-          eq(auth.account.providerId, "github"),
-        ),
-      });
-      const doras = await db.query.account.findFirst({
-        where: and(
-          eq(auth.account.userId, data.account?.id),
-          eq(auth.account.providerId, "doras"),
-        ),
-      });
-      const discord = await db.query.account.findFirst({
-        where: and(
-          eq(auth.account.userId, data.account?.id),
-          eq(auth.account.providerId, "discord"),
-        ),
-      });
-      const slack = await db.query.account.findFirst({
-        where: and(
-          eq(auth.account.userId, data.account?.id),
-          eq(auth.account.providerId, "slack"),
-        ),
-      });
+      const [github, doras, discord, slack] = await Promise.all([
+        db.query.account.findFirst({
+          where: and(
+            eq(authSchema.account.userId, data.account?.id),
+            eq(authSchema.account.providerId, "github")
+          ),
+        }),
+        db.query.account.findFirst({
+          where: and(
+            eq(authSchema.account.userId, data.account?.id),
+            eq(authSchema.account.providerId, "doras")
+          ),
+        }),
+        db.query.account.findFirst({
+          where: and(
+            eq(authSchema.account.userId, data.account?.id),
+            eq(authSchema.account.providerId, "discord")
+          ),
+        }),
+        db.query.account.findFirst({
+          where: and(
+            eq(authSchema.account.userId, data.account?.id),
+            eq(authSchema.account.providerId, "slack")
+          ),
+        }),
+      ]);
 
-      let githubUser: GithubUserType | null = null;
-      let dorasUser: DorasUserType | null = null;
-      let discordUser: DiscordUserType | null = null;
-      let slackUser: SlackUserType | null = null;
-
-      if (github?.accessToken) {
-        try {
-          githubUser = await getUserInfoGithub(github.accessToken);
-        } catch (error) {
-          console.error("Failed to fetch GitHub user:", error);
-        }
-      }
-
-      if (doras?.accessToken) {
-        try {
-          dorasUser = await getUserInfoDoras(doras.accessToken);
-        } catch (error) {
-          console.error("Failed to fetch Doras user:", error);
-        }
-      }
-
-      if (discord?.accessToken) {
-        try {
-          discordUser = await getUserInfoDiscord(discord.accessToken);
-        } catch (error) {
-          console.error("Failed to fetch Discord user:", error);
-        }
-      }
-
-      if (slack?.accessToken) {
-        try {
-          slackUser = await getUserInfoSlack(slack.accessToken);
-        } catch (error) {
-          console.error("Failed to fetch Slack user:", error);
-        }
-      }
-
+      // Resolve valid tokens for each provider
+      const githubToken = await resolveAccessToken("github", github, h);
+      // const dorasToken = await resolveAccessToken("doras", doras, h);
+      const discordToken = await resolveAccessToken("discord", discord, h);
+      const slackToken = await resolveAccessToken("slack", slack, h);
+      const [githubUser, dorasUser, discordUser, slackUser] = await Promise.all([
+        githubToken ? getUserInfoGithub(githubToken).catch(() => null) : null,
+        doras?.accessToken ? getUserInfoDoras(doras?.accessToken || "").catch(() => null) : null,
+        discordToken ? getUserInfoDiscord(discordToken).catch(() => null) : null,
+        slackToken ? getUserInfoSlack(slackToken).catch(() => null) : null,
+      ]);
       return {
         email,
         githubUser,
@@ -112,6 +105,7 @@ export const getConnections = createServerFn({ method: "GET" })
         },
       };
     } catch (error) {
+      console.error(error)
       if (error && typeof error === "object" && "redirect" in error) {
         throw error;
       }

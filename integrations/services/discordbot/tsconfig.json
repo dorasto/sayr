@@ -1,0 +1,20 @@
+{
+	"extends": "@repo/typescript-config/base.json",
+	"compilerOptions": {
+		"types": [
+			"bun"
+		],
+		"module": "esnext",
+		"moduleResolution": "bundler"
+	},
+	"include": [
+		"./integration.ts",
+		"./api",
+		"./ui",
+		"src",
+		"src/types"
+	],
+	"exclude": [
+		"node_modules"
+	]
+}

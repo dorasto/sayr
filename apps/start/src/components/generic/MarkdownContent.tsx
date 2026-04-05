@@ -22,7 +22,7 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
   return (
     <div
       className={cn(
-        "markdown-content text-sm! text-muted-foreground [&_h2]:text-foreground [&_h2]:text-base! [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_li]:leading-relaxed! [&_strong]:text-foreground [&_strong]:font-medium [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_p]:leading-relaxed! [&_a]:text-primary [&_a]:hover:underline [&_hr]:border-border [&_hr]:my-3",
+        "markdown-content text-sm! text-foreground [&_h2]:text-foreground [&_h2]:text-base! [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_li]:leading-relaxed! [&_strong]:text-foreground [&_strong]:font-medium [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_p]:leading-relaxed! [&_a]:text-primary [&_a]:hover:underline [&_hr]:border-border [&_hr]:my-3",
         className,
       )}
     >

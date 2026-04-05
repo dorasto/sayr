@@ -1,6 +1,6 @@
 {
   "name": "@sayrio/public",
-  "version": "1.0.3",
+  "version": "1.0.8",
   "description": "Sayr.io public REST + Server‑Sent Events SDK",
   "license": "MIT",
   "type": "module",

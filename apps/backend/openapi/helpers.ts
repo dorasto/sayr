@@ -2,24 +2,40 @@ import { describeRoute, resolver } from "hono-openapi";
 import type { z } from "zod";
 import { ApiErrorResponse, ApiPaginatedResponse, ApiSuccessResponse } from "../responses";
 
+type JsonSchema = Record<string, unknown>;
 /**
  * Generates a describeRoute config for common success + error responses.
  */
-export const describeOkNotFound = <T extends z.ZodTypeAny>(opts: {
+export const describeOkNotFound = <T extends z.ZodTypeAny, B extends JsonSchema | undefined = undefined>(opts: {
 	summary: string;
 	description?: string;
 	dataSchema: T;
+	bodySchema?: B;
+	bodyExample?: Record<string, unknown>;
 	// biome-ignore lint/suspicious/noExplicitAny: <any>
 	parameters?: any[];
 	tags?: string[];
 	security?: Record<string, string[]>[];
-}) =>
-	describeRoute({
+}) => {
+	const bodyContent = opts.bodySchema
+		? {
+			required: true,
+			content: {
+				"application/json": {
+					schema: opts.bodySchema,
+					example: opts.bodyExample,
+				},
+			},
+		}
+		: undefined;
+
+	return describeRoute({
 		summary: opts.summary,
 		description: opts.description,
 		parameters: opts.parameters,
 		tags: opts.tags,
 		security: opts.security,
+		requestBody: bodyContent,
 		responses: {
 			200: {
 				description: "Success",
@@ -39,6 +55,7 @@ export const describeOkNotFound = <T extends z.ZodTypeAny>(opts: {
 			},
 		},
 	});
+};
 
 /**
  * Generates an OpenAPI route config for paginated endpoints

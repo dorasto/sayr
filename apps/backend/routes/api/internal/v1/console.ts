@@ -91,9 +91,9 @@ apiRouteConsole.get("/users", async (c) => {
 				// Determine sort column
 				const sortColumn =
 					sortBy === "name" ? userTable.name :
-					sortBy === "email" ? userTable.email :
-					sortBy === "role" ? userTable.role :
-					userTable.createdAt;
+						sortBy === "email" ? userTable.email :
+							sortBy === "role" ? userTable.role :
+								userTable.createdAt;
 
 				const orderFn = sortDir === "asc" ? asc : desc;
 
@@ -312,13 +312,13 @@ apiRouteConsole.get("/users/:userId", async (c) => {
 				const orgIds = [...new Set(recentActivity.map((a) => a.organizationId))];
 				const orgsForActivity = orgIds.length
 					? await db
-							.select({
-								id: schema.organization.id,
-								name: schema.organization.name,
-								slug: schema.organization.slug,
-							})
-							.from(schema.organization)
-							.where(inArray(schema.organization.id, orgIds))
+						.select({
+							id: schema.organization.id,
+							name: schema.organization.name,
+							slug: schema.organization.slug,
+						})
+						.from(schema.organization)
+						.where(inArray(schema.organization.id, orgIds))
 					: [];
 				const orgMap = new Map(orgsForActivity.map((o) => [o.id, o]));
 
@@ -449,4 +449,180 @@ apiRouteConsole.post("/set-role", async (c) => {
 		}
 	);
 	return c.json({ success: true, data: result?.user });
+});
+
+apiRouteConsole.get("/system-api-keys", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const session = c.get("session");
+	const user = c.get("user");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (user?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	try {
+		const systemUser = await db.query.user.findFirst({
+			where: eq(authSchema.user.role, "system"),
+		});
+
+		if (!systemUser) {
+			return c.json(errorResponse("System user not found"), 404);
+		}
+
+		const result = await traceAsync(
+			"console.system_api_keys.list",
+			() =>
+				db
+					.select({
+						id: schema.apikey.id,
+						name: schema.apikey.name,
+						prefix: schema.apikey.prefix,
+						enabled: schema.apikey.enabled,
+						expiresAt: schema.apikey.expiresAt,
+						createdAt: schema.apikey.createdAt,
+						lastRequest: schema.apikey.lastRequest,
+						requestCount: schema.apikey.requestCount,
+					})
+					.from(schema.apikey)
+					.where(eq(schema.apikey.userId, systemUser.id))
+					.orderBy(desc(schema.apikey.createdAt)),
+			{
+				description: "Listing system API keys",
+				data: { adminId: session.userId },
+			}
+		);
+
+		return c.json(successResponse(result));
+	} catch (err) {
+		await recordWideError({
+			name: "console.system_api_keys.list.failed",
+			error: err,
+			code: "CONSOLE_SYSTEM_API_KEYS_LIST_FAILED",
+			message: "Failed to list system API keys",
+			contextData: { adminId: session.userId },
+		});
+		return c.json(errorResponse("Failed to list system API keys"), 500);
+	}
+});
+
+apiRouteConsole.post("/system-api-keys", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const session = c.get("session");
+	const user = c.get("user");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (user?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	const body = await c.req.json().catch(() => null);
+	const { name } = body ?? {};
+
+	if (!name || typeof name !== "string" || name.trim().length === 0) {
+		return c.json(errorResponse("API key name is required"), 400);
+	}
+
+	try {
+		const systemUser = await db.query.user.findFirst({
+			where: eq(authSchema.user.role, "system"),
+		});
+
+		if (!systemUser) {
+			return c.json(errorResponse("System user not found"), 404);
+		}
+
+		const result = await traceAsync(
+			"console.system_api_keys.create",
+			() =>
+				auth.api.createApiKey({
+					body: {
+						name: name.trim(),
+						userId: systemUser.id,
+						rateLimitEnabled: false,
+					},
+				}),
+			{
+				description: "Creating system API key",
+				data: { adminId: session.userId, keyName: name },
+			}
+		);
+
+		return c.json(successResponse(result));
+	} catch (err) {
+		console.log(err);
+		await recordWideError({
+			name: "console.system_api_keys.create.failed",
+			error: err,
+			code: "CONSOLE_SYSTEM_API_KEYS_CREATE_FAILED",
+			message: "Failed to create system API key",
+			contextData: { adminId: session.userId, keyName: name },
+		});
+		return c.json(errorResponse("Failed to create system API key"), 500);
+	}
+});
+
+apiRouteConsole.delete("/system-api-keys/:keyId", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+
+	const session = c.get("session");
+	const user = c.get("user");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (user?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	const keyId = c.req.param("keyId");
+	if (!keyId) {
+		return c.json(errorResponse("API key ID is required"), 400);
+	}
+
+	try {
+		const systemUser = await db.query.user.findFirst({
+			where: eq(authSchema.user.role, "system"),
+		});
+
+		if (!systemUser) {
+			return c.json(errorResponse("System user not found"), 404);
+		}
+
+		await traceAsync(
+			"console.system_api_keys.delete",
+			() =>
+				db.delete(schema.apikey).where(
+					and(
+						eq(schema.apikey.id, keyId),
+						eq(schema.apikey.userId, systemUser.id),
+					),
+				),
+			{
+				description: "Deleting system API key",
+				data: { adminId: session.userId, keyId },
+			}
+		);
+
+		return c.json(successResponse({ deleted: true }));
+	} catch (err) {
+		console.log("🚀 ~ err:", err);
+		await recordWideError({
+			name: "console.system_api_keys.delete.failed",
+			error: err,
+			code: "CONSOLE_SYSTEM_API_KEYS_DELETE_FAILED",
+			message: "Failed to delete system API key",
+			contextData: { adminId: session.userId, keyId },
+		});
+		return c.json(errorResponse("Failed to delete system API key"), 500);
+	}
 });

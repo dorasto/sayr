@@ -4,7 +4,9 @@ import { Badge } from "@repo/ui/components/badge";
 import { TableCell, TableRow } from "@repo/ui/components/table";
 import { parseChannel } from "@repo/util";
 import { memo, useEffect, useState } from "react";
-import { ConnectionType } from "./conections";
+import { ConnectionType, IntegrationType } from "./connections";
+import { IconDeviceDesktop, IconDeviceMobile, IconHelp } from "@tabler/icons-react";
+import RenderIcon from "../generic/RenderIcon";
 
 function formatDuration(ms: number) {
 	const sec = Math.floor(ms / 1000);
@@ -17,10 +19,12 @@ function formatDuration(ms: number) {
 
 type ConnectionRowProps = {
 	client: ConnectionType;
+	integrations: IntegrationType[];
 };
 
 export const ConnectionRow = memo(function ConnectionRow({
 	client,
+	integrations
 }: ConnectionRowProps) {
 	const [now, setNow] = useState(Date.now());
 
@@ -28,7 +32,10 @@ export const ConnectionRow = memo(function ConnectionRow({
 		const id = setInterval(() => setNow(Date.now()), 10000);
 		return () => clearInterval(id);
 	}, []);
-
+	const integrationId = client.device?.split("/")[1];
+	const integration = integrationId
+		? integrations.find((i) => i.id === integrationId)
+		: undefined;
 	return (
 		<TableRow>
 			{/* User column */}
@@ -50,6 +57,9 @@ export const ConnectionRow = memo(function ConnectionRow({
 
 				{client.account?.role === "admin" && (
 					<Badge className="ml-2 bg-purple-600 hover:bg-purple-950">ADMIN</Badge>
+				)}
+				{client.account?.role === "system" && (
+					<Badge className="ml-2 bg-yellow-600 hover:bg-purple-950">SYSTEM</Badge>
 				)}
 			</TableCell>
 
@@ -76,6 +86,35 @@ export const ConnectionRow = memo(function ConnectionRow({
 				) : (
 					<Badge variant="destructive">No</Badge>
 				)}
+			</TableCell>
+			<TableCell className="font-mono text-xs">
+				<div className="flex items-center gap-2">
+					{client.device === "mobile" && <IconDeviceMobile size={16} />}
+					{client.device === "desktop" && <IconDeviceDesktop size={16} />}
+					{!client.device && <IconHelp size={16} />}
+					{integration ? (
+						<>
+							<RenderIcon iconName={integration.icon || ""} size={16} raw />
+							{integration.name}
+							{integration.enabled && <span>(Enabled)</span>}
+							{integration.version && <span>v{integration.version}</span>}
+							{integration.author?.name && (
+								<>
+									{" - "}
+									<a
+										href={integration.author.url}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										{integration.author.name}
+									</a>
+								</>
+							)}
+						</>
+					) : (
+						<span>{client.device || "Unknown"}</span>
+					)}
+				</div>
 			</TableCell>
 			<TableCell className="font-mono text-xs">
 				{client.ref ?? "–"}

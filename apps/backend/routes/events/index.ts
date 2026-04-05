@@ -1,10 +1,13 @@
 import { Hono } from "hono";
 import { safeGetSession } from "@/getSession";
-import { safeGetOrganization, traceOrgPermissionCheck } from "@/util";
+import { safeGetOrganization } from "@/util";
 import { ServerEventBaseMessage } from "./types";
 import { auth as authSchema, db } from "@repo/database";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { ensureCdnUrl } from "@repo/util";
+import { safeGetApiKey } from "@/getApiKey";
+import { auth } from "@repo/auth";
+type SessionValue = Awaited<ReturnType<typeof auth.api.getSession>>;
 
 export const sseRoute = new Hono();
 
@@ -18,11 +21,13 @@ type SSEClient = {
     clientId: string; // logical user ID (can have multiple connections)
     authenticated: boolean;
     connectedAt: number; // timestamp (Date.now())
+    device: string;
 
     // Added fields
     ref?: string;
 };
 
+const systemRoom = new Set<SSEClient>();
 const sseRooms = new Map<string, Set<SSEClient>>();
 const clientsById = new Map<string, SSEClient>();
 
@@ -31,17 +36,20 @@ export function findClientBysseId(id: string): SSEClient | undefined {
 }
 
 function sseUnsubscribe(client: SSEClient) {
+    if (client.channel === "system") {
+        systemRoom.delete(client);
+        clientsById.delete(client.id);
+        return;
+    }
+
     const key = `${client.orgId}:${client.channel}`;
     const room = sseRooms.get(key);
-
     if (!room) return;
 
     room.delete(client);
     clientsById.delete(client.id);
 
-    if (room.size === 0) {
-        sseRooms.delete(key);
-    }
+    if (room.size === 0) sseRooms.delete(key);
 }
 
 export function sseBroadcastToRoom(
@@ -56,6 +64,7 @@ export function sseBroadcastToRoom(
 
     // helper: add all clients in a room (if not already added)
     const addRoom = (roomKey?: string) => {
+
         if (!roomKey) return;
 
         const clients = sseRooms.get(`${orgId}:${roomKey}`);
@@ -73,6 +82,12 @@ export function sseBroadcastToRoom(
 
     // add each nested room
     for (const part of parts) {
+        if (part === "admin" || part === "tasks") {
+            for (const sysClient of systemRoom) {
+                if (excludeId && sysClient.id === excludeId) continue;
+                targets.push(sysClient);
+            }
+        }
         addRoom(part);
     }
 
@@ -201,18 +216,81 @@ export function findSSEClientsByUserId(userId: string): SSEClient[] {
 
     return results;
 }
+function getDeviceType(userAgent: string | undefined): string {
+    if (!userAgent) return "unknown";
+    const ua = userAgent.toLowerCase();
+    const isMobile =
+        ua.includes("iphone") ||
+        ua.includes("ipad") ||
+        ua.includes("android") ||
+        ua.includes("mobile");
+    return isMobile ? "mobile" : "desktop";
+}
+async function authenticate(
+    headers: Headers,
+    channel: string,
+    key?: string | null
+): Promise<{
+    userId: string | null;
+    session: SessionValue | null;
+    authenticated: boolean;
+}> {
+    let userId: string | null = null;
 
+    // 1. system channel using API key
+    if (channel === "system" && key) {
+        const apiKeyResult = await safeGetApiKey(key);
+        if (!apiKeyResult) {
+            return {
+                userId: null,
+                session: null,
+                authenticated: false,
+            };
+        }
+        if (apiKeyResult.account.role !== "system") {
+            return {
+                userId: null,
+                session: null,
+                authenticated: false,
+            };
+        }
+        userId = apiKeyResult.account.id;
+
+        const authenticated = Boolean(userId);
+
+        return {
+            userId,
+            session: null,
+            authenticated,
+        };
+    }
+
+    // 2. normal authentication via session
+    const session = await safeGetSession(headers);
+
+    const authenticated = Boolean(session?.session);
+
+    return {
+        userId,
+        session,
+        authenticated,
+    };
+}
 sseRoute.get("/", async (c) => {
     let orgId = c.req.query("orgId");
     let channel = c.req.query("channel");
     let ref = c.req.query("ref");
+    const userAgent = c.req.raw.headers.get("user-agent");
+    let device = getDeviceType(userAgent || "");
+    if (userAgent?.startsWith("integration")) {
+        device = "Sayr " + userAgent;
+    }
     const id = crypto.randomUUID();
-
-    const session = await safeGetSession(c.req.raw.headers);
-
-    // Determine authentication
-    const authenticated = !!session?.session;
-    if (!channel || channel === "public") {
+    const token = c.req.header("authorization")?.match(/^Bearer (.+)$/)?.[1] ?? null;
+    const { userId, session, authenticated } = await authenticate(c.req.raw.headers, channel || "", token);
+    if (channel === "system" && userId && authenticated) {
+        // no org required, no membership needed
+    } else if (!channel || channel === "public") {
         // public channel allowed for everyone
         channel = "public";
     } else if (orgId) {
@@ -249,11 +327,15 @@ sseRoute.get("/", async (c) => {
                 sseUnsubscribe(client);
             };
 
-            const client: SSEClient = { id: id, orgId: orgId || "", channel, send, close, clientId: session?.user.id || "", authenticated, connectedAt: Date.now(), ref: ref };
+            const client: SSEClient = { id: id, orgId: orgId || "", channel, send, close, clientId: session?.user.id || userId || "", authenticated, connectedAt: Date.now(), ref: ref, device: device };
 
-            const key = `${orgId || ""}:${channel}`;
-            if (!sseRooms.has(key)) sseRooms.set(key, new Set());
-            sseRooms.get(key)!.add(client);
+            if (channel === "system" && userId && authenticated) {
+                systemRoom.add(client);
+            } else {
+                const key = `${orgId || ""}:${channel}`;
+                if (!sseRooms.has(key)) sseRooms.set(key, new Set());
+                sseRooms.get(key)!.add(client);
+            }
             clientsById.set(id, client);
 
             // heartbeat ping
@@ -315,6 +397,7 @@ sseRoute.get("/connections", async (c) => {
             image: string;
             role: string;
         }
+        device: string;
         ref?: string;
     }> = [];
 
@@ -351,6 +434,7 @@ sseRoute.get("/connections", async (c) => {
             connectedAt: client.connectedAt,
             authenticated: client.authenticated,
             account,
+            device: client.device,
             ref: client.ref,
         });
     }

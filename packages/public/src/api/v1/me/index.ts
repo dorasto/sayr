@@ -1,5 +1,32 @@
 import { ApiResult, request, type RequestOptions } from "../../../client";
-import { ApiSuccess, Organization } from "../../../types";
+import { ApiSuccess, Organization, TaskPriority, TaskStatus } from "../../../types";
+
+export interface TaskCreated {
+    id: string;
+    shortId: number;
+    title: string;
+    orgSlug: string;
+    publicPortalUrl: string;
+}
+
+export interface CreateTaskInput {
+    title: string;
+    description?: string;
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    category?: string;
+    orgId: string;
+    integration?: {
+        id: string;
+        name: string;
+        platform: string;
+    };
+    createdBy?: {
+        type: "github" | "doras" | "discord" | "slack";
+        userId: string;
+        name: string;
+    }
+}
 
 export interface Me {
     id: string;
@@ -8,6 +35,41 @@ export interface Me {
     image: string | null;
     createdAt: string;
 }
+
+export interface TimelineEventCreated {
+    id: string;
+}
+export interface CreateTimelineEventInput {
+    taskId: string;
+    orgId: string;
+    type: string;
+    id: string;
+    name: string;
+    data?: Record<string, any>;
+    createdBy?: {
+        type: "github" | "doras" | "discord" | "slack";
+        userId: string;
+        name?: string;
+    } | null;
+}
+
+export interface CommentCreated {
+    id: string;
+}
+
+export interface CommentCreatedInput {
+    taskId: string;
+    orgId: string;
+    content: string;
+    visibility: "public" | "internal";
+    createdBy?: {
+        type: "github" | "doras" | "discord" | "slack";
+        userId: string;
+        name?: string;
+        profileUrl?: string;
+    } | null;
+}
+
 
 /**
  * Authenticated user API — Version 1.
@@ -50,6 +112,85 @@ export default {
                 success: false,
                 data: null,
                 error: err?.message ?? "Failed to fetch organizations",
+            };
+        }
+    },
+
+    async createTask(
+        body: CreateTaskInput,
+        opts?: RequestOptions,
+    ): Promise<ApiResult<TaskCreated>> {
+        try {
+            const r = await request<ApiSuccess<TaskCreated>>("/v1/me/task", {
+                ...opts,
+                method: "POST",
+                body: body as any,
+            });
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error: err?.message ?? "Failed to create task",
+            };
+        }
+    },
+
+    async createTimelineEvent(
+        body: CreateTimelineEventInput,
+        opts?: RequestOptions
+    ): Promise<ApiResult<TimelineEventCreated>> {
+        try {
+            const r = await request<ApiSuccess<TimelineEventCreated>>(
+                "/v1/me/timeline_event",
+                {
+                    ...opts,
+                    method: "POST",
+                    body: body as any,
+                }
+            );
+
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error: err?.message ?? "Failed to create timeline event",
+            };
+        }
+    },
+
+    async createComment(
+        body: CommentCreatedInput,
+        opts?: RequestOptions
+    ): Promise<ApiResult<{ id: string }>> {
+        try {
+            const r = await request<ApiSuccess<CommentCreated>>(
+                "/v1/me/create_comment",
+                {
+                    ...opts,
+                    method: "POST",
+                    body: body as any,
+                }
+            );
+            return {
+                success: true,
+                data: r.data,
+                error: null,
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                data: null,
+                error: err?.message ?? "Failed to create comment",
             };
         }
     },

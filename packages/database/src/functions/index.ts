@@ -7,6 +7,7 @@ export * from "./task";
 export * from "./issueTemplate";
 export * from "./release";
 export * from "./notification";
+export * from "./integrations";
 
 /**
  * Standard columns for user summary in Drizzle relation queries.

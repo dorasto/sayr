@@ -1,5 +1,3 @@
-"use client";
-
 import { SidebarTrigger } from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
