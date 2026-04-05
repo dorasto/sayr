@@ -8,6 +8,7 @@ import starlightSidebarTopics from "starlight-sidebar-topics";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import { precomputeContributors } from "./src/integrations/precompute-contributors.ts";
+import { generateIntegrationDocsIntegration } from "./src/integrations/generate-integration-docs.ts";
 // https://astro.build/config
 export default defineConfig({
   site: "https://sayr.io",
@@ -16,8 +17,9 @@ export default defineConfig({
     mode: "standalone",
   }),
 
-  integrations: [
-    precomputeContributors(),
+   integrations: [
+      precomputeContributors(),
+      generateIntegrationDocsIntegration(),
     starlight({
       title: "Sayr",
       logo: { src: "./src/assets/logo.svg" },
