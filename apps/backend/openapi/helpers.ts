@@ -2,7 +2,7 @@ import { describeRoute, resolver } from "hono-openapi";
 import type { z } from "zod";
 import { ApiErrorResponse, ApiPaginatedResponse, ApiSuccessResponse } from "../responses";
 
-type JsonSchema = Record<string, any>;
+type JsonSchema = Record<string, unknown>;
 /**
  * Generates a describeRoute config for common success + error responses.
  */

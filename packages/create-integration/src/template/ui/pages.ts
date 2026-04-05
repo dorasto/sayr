@@ -24,7 +24,7 @@ export const settingsPage: UIPage = {
 					description: "URL of the external API",
 					placeholder: "https://api.example.com",
 					required: true,
-					default: "https://admin.sayr.io/api/health"
+					default: ""
 				},
 			],
 			actions: [

@@ -18,7 +18,10 @@ export const integrationConfig = table("integration_config", {
 	value: v.jsonb("value"),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
-});
+}, (t) => [
+	v.uniqueIndex("integration_config_org_integration_key_unique").on(t.organizationId, t.integrationId, t.key),
+	v.index("integration_config_org_integration_idx").on(t.organizationId, t.integrationId),
+]);
 
 export type integrationConfigType = typeof integrationConfig.$inferSelect;
 export type integrationConfigInsert = typeof integrationConfig.$inferInsert;
@@ -43,7 +46,9 @@ export const integrationStorage = table("integration_storage", {
 	data: v.jsonb("data").notNull(),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
-});
+}, (t) => [
+	v.index("integration_storage_org_integration_idx").on(t.organizationId, t.integrationId),
+]);
 
 export type integrationStorageType = typeof integrationStorage.$inferSelect;
 export type integrationStorageInsert = typeof integrationStorage.$inferInsert;

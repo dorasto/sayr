@@ -1,0 +1,3 @@
+CREATE UNIQUE INDEX "integration_config_org_integration_key_unique" ON "integration_config" USING btree ("organization_id","integration_id","key");--> statement-breakpoint
+CREATE INDEX "integration_config_org_integration_idx" ON "integration_config" USING btree ("organization_id","integration_id");--> statement-breakpoint
+CREATE INDEX "integration_storage_org_integration_idx" ON "integration_storage" USING btree ("organization_id","integration_id");

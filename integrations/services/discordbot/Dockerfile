@@ -40,10 +40,6 @@ WORKDIR /app
 COPY --from=installer /app/integrations/services/discordbot/dist ./dist
 
 # Environment Variables
-ENV SAYR_API_KEY=""
-ENV DISCORD_BOT_TOKEN=""
-ENV DISCORD_BOT_INVITE_URL=""
-ENV DATABASE_URL=""
 ENV APP_ENV="production"
 
 CMD ["bun", "run", "dist/index.js"]
