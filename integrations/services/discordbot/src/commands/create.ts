@@ -267,10 +267,24 @@ export function registerModalHandler(client: Client) {
 					content:
 						`Your task has been created!\n\n` +
 						`Title: **${res.data.title}**\n` +
-						`Template: ${template.name}\n` +
 						`View it here: ${res.data.publicPortalUrl}`,
-					flags: MessageFlags.Ephemeral,
 				});
+				const msg = await interaction.fetchReply();
+				if (msg) {
+					Sayr.me.createTimelineEvent({
+						id: "discordbot",
+						taskId: res.data.id,
+						orgId: settings.organizationId,
+						type: "sidebar",
+						name: "discordbot",
+						data: {
+							messageId: msg.id,
+							channelId: interaction.channelId,
+							guildId: interaction.guildId,
+							url: msg.url,
+						}
+					});
+				}
 			}
 		} catch (err) {
 			console.error(
