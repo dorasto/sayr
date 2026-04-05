@@ -78,7 +78,9 @@ export default function SettingsOrganizationConnectionsPage({
                         <TooltipTrigger>
                           <span className="flex items-center gap-1.5 text-xs">
                             <IconCircleFilled
-                              className={status.connected ? "text-success" : "hidden"}
+                              className={
+                                status.connected ? "text-success" : "hidden"
+                              }
                               size={10}
                             />
                           </span>
@@ -117,12 +119,17 @@ export default function SettingsOrganizationConnectionsPage({
           ))
         : integrations.map((integration) => {
             const IconComponent = integration.icon
-              ? (tabler as unknown as Record<string, React.ComponentType>)[integration.icon]
+              ? (tabler as unknown as Record<string, React.ComponentType>)[
+                  integration.icon
+                ]
               : null;
             return (
               <Link
                 to="/settings/org/$orgId/connections/$integrationId"
-                params={{ orgId: organization.id, integrationId: integration.id }}
+                params={{
+                  orgId: organization.id,
+                  integrationId: integration.id,
+                }}
                 key={integration.id}
                 className="h-full w-full"
               >
@@ -130,7 +137,11 @@ export default function SettingsOrganizationConnectionsPage({
                   <TileHeader className="md:w-full flex items-center gap-3">
                     <div className="flex items-center gap-3">
                       <TileIcon>
-                        {IconComponent ? <IconComponent /> : <span>{integration.name.charAt(0)}</span>}
+                        {IconComponent ? (
+                          <IconComponent />
+                        ) : (
+                          <span>{integration.name.charAt(0)}</span>
+                        )}
                       </TileIcon>
                       <TileTitle asChild>
                         <Label variant={"subheading"} className="text-sm">
@@ -142,7 +153,10 @@ export default function SettingsOrganizationConnectionsPage({
                           <Tooltip>
                             <TooltipTrigger>
                               <span className="flex items-center gap-1.5 text-xs">
-                                <IconCircleFilled className="text-success" size={10} />
+                                <IconCircleFilled
+                                  className="text-success"
+                                  size={10}
+                                />
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>Enabled</TooltipContent>
@@ -159,28 +173,30 @@ export default function SettingsOrganizationConnectionsPage({
               </Link>
             );
           })}
+      <a href="https://sayr.io/docs/integrations/building-integrations/">
+        <Tile
+          className="md:w-full h-full flex-col gap-1 relative items-start justify-start"
+          variant={"default"}
+        >
+          <TileHeader className="md:w-full flex items-center gap-3">
+            <div className="flex items-center gap-3">
+              <TileIcon>
+                <IconPlus />
+              </TileIcon>
+              <TileTitle asChild>
+                <Label variant={"subheading"} className="text-sm">
+                  More coming
+                </Label>
+              </TileTitle>
+            </div>
+          </TileHeader>
 
-      <Tile
-        className="md:w-full h-full flex-col gap-1 relative items-start justify-start"
-        variant={"default"}
-      >
-        <TileHeader className="md:w-full flex items-center gap-3">
-          <div className="flex items-center gap-3">
-            <TileIcon>
-              <IconPlus />
-            </TileIcon>
-            <TileTitle asChild>
-              <Label variant={"subheading"} className="text-sm">
-                More coming
-              </Label>
-            </TileTitle>
-          </div>
-        </TileHeader>
-
-        <TileDescription className="line-clamp-3 leading-normal! text-xs">
-          Help build integrations with other tools and services directly from the API.
-        </TileDescription>
-      </Tile>
+          <TileDescription className="line-clamp-3 leading-normal! text-xs">
+            Help build integrations with other tools and services directly from
+            the API.
+          </TileDescription>
+        </Tile>
+      </a>
     </div>
   );
 }
