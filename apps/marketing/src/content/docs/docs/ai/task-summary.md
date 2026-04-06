@@ -1,5 +1,5 @@
 ---
-title: AI Task Summary
+title: Task Summary
 description: Automatically generate a concise summary of any task's activity, comments, and context using AI
 sidebar:
    order: 1
