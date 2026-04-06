@@ -114,6 +114,11 @@ export default defineConfig({
                 collapsed: true,
               },
               {
+                label: "AI Features",
+                autogenerate: { directory: "/docs/ai" },
+                collapsed: true,
+              },
+              {
                 label: "Integrations",
                 autogenerate: { directory: "/docs/integrations" },
                 collapsed: true,

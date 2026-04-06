@@ -16,7 +16,11 @@ import {
 } from "@tabler/icons-react";
 import { useState, useEffect, useRef } from "react";
 import parse from "html-react-parser";
-import { streamSummarizeTask, fetchTaskSummaryStatus, type AiPromptDebugInfo } from "@/lib/fetches/ai";
+import {
+  streamSummarizeTask,
+  fetchTaskSummaryStatus,
+  type AiPromptDebugInfo,
+} from "@/lib/fetches/ai";
 import { renderMarkdown } from "@/lib/markdown";
 import { useLayoutData } from "@/components/generic/Context";
 import {
@@ -45,7 +49,8 @@ function AiRateLimitedNotice({ until }: { until: Date | null }) {
           AI features are temporarily unavailable for this organization
           {until ? (
             <>
-              {" "}until{" "}
+              {" "}
+              until{" "}
               <span className="font-mono">
                 {until.toLocaleDateString(undefined, { dateStyle: "medium" })}
               </span>
@@ -166,7 +171,8 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
 
   // Resolve AI status from org settings
   const org = organizations.find((o) => o.id === orgId);
-  const { aiDisabled, aiRateLimited, rateLimitUntil, taskSummaryEnabled } = resolveOrgAiStatus(org?.settings);
+  const { aiDisabled, aiRateLimited, rateLimitUntil, taskSummaryEnabled } =
+    resolveOrgAiStatus(org?.settings);
 
   // Disabled entirely — hide the component
   if (aiDisabled || !taskSummaryEnabled) {
@@ -186,27 +192,29 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
           <IconSparkles className="size-3.5" />
           <span>AI Summary</span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={handleGenerate}
-          disabled={loading}
-        >
-          {loading ? (
-            <Spinner className="size-3" />
-          ) : summary ? (
-            <>
-              <IconRefresh size={12} className="mr-1" />
-              Regenerate
-            </>
-          ) : (
-            <>
-              <IconSparkles size={12} className="mr-1" />
-              Generate
-            </>
-          )}
-        </Button>
+        {account.role === "admin" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={handleGenerate}
+            disabled={loading}
+          >
+            {loading ? (
+              <Spinner className="size-3" />
+            ) : summary ? (
+              <>
+                <IconRefresh size={12} className="mr-1" />
+                Regenerate
+              </>
+            ) : (
+              <>
+                <IconSparkles size={12} className="mr-1" />
+                Generate
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Prompt preview — admin only, collapsed by default */}
