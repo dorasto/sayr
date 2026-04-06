@@ -1,0 +1,21 @@
+{
+	"name": "@repo/create-integration",
+	"version": "0.0.1",
+	"private": true,
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"start": "bun src/index.ts"
+	},
+	"dependencies": {
+		"@repo/integrations": "workspace:*",
+		"@repo/database": "workspace:*",
+		"hono": "^4.12.7"
+	},
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"@types/node": "^24.0.14",
+		"bun-types": "^1.1.0"
+	}
+}

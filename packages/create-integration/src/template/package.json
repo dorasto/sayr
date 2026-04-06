@@ -1,0 +1,21 @@
+{
+	"name": "{{id}}",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun run src/index.ts",
+		"build": "tsc",
+		"start": "bun run src/index.ts"
+	},
+	"dependencies": {
+		"@repo/database": "workspace:*",
+		"@repo/integrations": "workspace:*",
+		"hono": "^4.12.7"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.14",
+		"bun-types": "^1.1.0",
+		"typescript": "^5.8.3"
+	}
+}

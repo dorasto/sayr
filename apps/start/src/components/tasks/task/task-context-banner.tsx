@@ -5,6 +5,7 @@ import {
   IconArrowUpRight,
   IconChevronRight,
   IconCopy,
+  IconExternalLink,
   IconLink,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -17,6 +18,8 @@ import {
   CollapsibleTrigger,
 } from "@repo/ui/components/collapsible";
 import { Label } from "@repo/ui/components/label";
+import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
+import { getMatchedIntegrations } from "../shared/integration-registry";
 
 interface TaskContextBannerProps {
   task: schema.TaskWithLabels;
@@ -56,10 +59,10 @@ function RelationTaskRow({
   return (
     <div className="flex items-center gap-1.5 py-1 group text-sm  p-1 rounded-lg bg-transparent hover:bg-muted transition-all w-full">
       {fullTask ? (
-         <GlobalTaskStatus
-           task={fullTask}
-           editable={true}
-           tasks={tasks}
+        <GlobalTaskStatus
+          task={fullTask}
+          editable={true}
+          tasks={tasks}
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
           customTrigger={
@@ -188,12 +191,27 @@ export function TaskContextBanner({
     [relations],
   );
 
+  // Integration origin — tasks created from an external integration (e.g. Discord)
+  const { value: activity }: any = useReadOnlyStateManagementKey([
+    "timeline",
+    "activity",
+    task.id,
+    task.organizationId,
+  ]);
+  const integrationActivities = activity?.filter(
+    (e: any) => e.eventType === "integration",
+  );
+  const originIntegrations = getMatchedIntegrations(
+    integrationActivities ?? [],
+  );
+
   const hasSubtasks = childTasks.length > 0;
   const hasParent = !!parentTask;
   const hasBlockedBy = blockedByRelations.length > 0;
   const hasBlocking = blockingRelations.length > 0;
   const hasRelated = relatedRelations.length > 0;
   const hasDuplicates = duplicateRelations.length > 0;
+  const hasOriginIntegrations = originIntegrations.length > 0;
 
   // Render nothing if there's no context to show
   if (
@@ -202,7 +220,8 @@ export function TaskContextBanner({
     !hasBlockedBy &&
     !hasBlocking &&
     !hasRelated &&
-    !hasDuplicates
+    !hasDuplicates &&
+    !hasOriginIntegrations
   ) {
     return null;
   }

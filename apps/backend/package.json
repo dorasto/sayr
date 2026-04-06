@@ -31,6 +31,7 @@
     "hono": "^4.12.7",
     "hono-openapi": "^1.1.1",
     "jsdom": "^27.2.0",
+    "markdown-it": "^14.1.1",
     "mime-types": "^3.0.2",
     "prosemirror-markdown": "^1.13.2",
     "prosemirror-model": "1.25.4",

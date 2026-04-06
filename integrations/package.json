@@ -1,0 +1,25 @@
+{
+  "name": "integrations",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "bun --watch run index.ts",
+    "build": "bun build  index.ts --target=bun --outdir ./dist",
+    "start": "bun ./dist/index.js",
+    "build:services": "bun build-services.ts",
+    "build:all": "bun build-services.ts && bun run build"
+  },
+  "dependencies": {
+    "@repo/integrations": "workspace:*",
+    "hono": "^4.12.7"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^1.19.10",
+    "@repo/typescript-config": "workspace:*",
+    "@types/bun": "^1.2.23",
+    "@types/jsdom": "^27.0.0",
+    "@types/mime-types": "^3.0.1",
+    "bun-types": "^1.2.21",
+    "typescript": "^5.3.3"
+  }
+}

@@ -8,7 +8,7 @@ import type { Edition, EditionCapabilities, PlanLimits } from "./types";
 const EDITION_CAPABILITIES: Record<Edition, EditionCapabilities> = {
 	cloud: {
 		maxOrganizations: null,
-		polarBillingEnabled: true,
+		polarBillingEnabled: false,
 		dorasOAuthEnabled: true,
 		axiomTelemetryEnabled: true,
 		marketingSiteEnabled: true,

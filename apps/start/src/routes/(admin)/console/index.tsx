@@ -1,10 +1,12 @@
 import UserTable from "@/components/console/user-table";
+import { SystemApiKeys } from "@/components/console/system-api-keys";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { getConsoleUsersServer } from "@/lib/serverFunctions/getConsoleData";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@repo/ui/components/button";
 import { seo } from "@/seo";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 
 const isCloud = import.meta.env.VITE_SAYR_EDITION === "cloud";
 
@@ -72,13 +74,30 @@ function RouteComponent() {
 		throw redirect({ to: "/" });
 	}
 	const { users, pagination } = Route.useLoaderData();
+	const [activeTab, setActiveTab] = useState("users");
+
 	return (
 		<SubWrapper
-			title="Users"
-			description={`${pagination.totalItems} users`}
-			topContent={isCloud ? <SnapshotTriggerButton /> : undefined}
+			title="Console"
+			description="Manage platform users and system settings"
+			topContent={
+				<div className="flex items-center gap-2">
+					{isCloud && <SnapshotTriggerButton />}
+				</div>
+			}
 		>
-			<UserTable initialData={{ users, pagination }} />
+			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+				<TabsList>
+					<TabsTrigger value="users">Users</TabsTrigger>
+					<TabsTrigger value="api-keys">System API Keys</TabsTrigger>
+				</TabsList>
+				<TabsContent value="users" className="mt-4">
+					<UserTable initialData={{ users, pagination }} />
+				</TabsContent>
+				<TabsContent value="api-keys" className="mt-4">
+					<SystemApiKeys />
+				</TabsContent>
+			</Tabs>
 		</SubWrapper>
 	);
 }

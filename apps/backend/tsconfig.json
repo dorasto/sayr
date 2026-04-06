@@ -2,17 +2,50 @@
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
 		"paths": {
-			"@/routes/*": ["./routes/*"],
-			"@/public/*": ["./public/*"],
-			"@/index": ["./index.ts"],
-			"@/queue": ["./queue.ts"],
-			"@/util": ["./util.ts"],
-			"@/clickhouse": ["./clickhouse.ts"],
-			"@/getSession": ["./getSession.ts"],
-			"@/tracing/*": ["./tracing/*.ts"],
-			"@/prosekit/*": ["./prosekit/*.ts"]
+			"@/routes/*": [
+				"./routes/*"
+			],
+			"@/public/*": [
+				"./public/*"
+			],
+			"@/index": [
+				"./index.ts"
+			],
+			"@/queue": [
+				"./queue.ts"
+			],
+			"@/util": [
+				"./util.ts"
+			],
+			"@/clickhouse": [
+				"./clickhouse.ts"
+			],
+			"@/getSession": [
+				"./getSession.ts"
+			],
+			"@/getApiKey": [
+				"./getApiKey.ts"
+			],
+			"@/tracing/*": [
+				"./tracing/*.ts"
+			],
+			"@/prosekit/*": [
+				"./prosekit/*.ts"
+			]
 		}
 	},
-	"include": ["routes", "public", "index.ts", "queue.ts", "clickhouse.ts", "github", "responses.ts", "openapi", "prosekit"],
-	"exclude": ["node_modules"]
+	"include": [
+		"routes",
+		"public",
+		"index.ts",
+		"queue.ts",
+		"clickhouse.ts",
+		"github",
+		"responses.ts",
+		"openapi",
+		"prosekit"
+	],
+	"exclude": [
+		"node_modules"
+	]
 }

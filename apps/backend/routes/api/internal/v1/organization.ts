@@ -2082,7 +2082,7 @@ apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
 				.where(
 					and(
 						eq(schema.organization.id, orgId),
-						eq(schema.organization.createdBy, session?.userId)
+						eq(schema.organization.createdBy, session?.userId || "")
 					)
 				)
 				.limit(1);
@@ -2173,7 +2173,7 @@ apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
 				.set({ createdBy: newOwnerId, updatedAt: new Date() })
 				.where(and(
 					eq(schema.organization.id, orgId),
-					eq(schema.organization.createdBy, session?.userId)
+					eq(schema.organization.createdBy, session?.userId || "")
 				));
 
 			return c.json({ success: true });
@@ -2204,7 +2204,7 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 				.where(
 					and(
 						eq(schema.organization.id, orgId),
-						eq(schema.organization.createdBy, session?.userId)
+						eq(schema.organization.createdBy, session?.userId || "")
 					)
 				)
 				.limit(1);
@@ -2307,6 +2307,21 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 				},
 				{ description: "Unlinking GitHub installations", data: { orgId } }
 			);
+			await traceAsync("organization.delete.delete_integrations",
+				async () => {
+					try {
+						await db
+							.delete(schema.integrationConfig)
+							.where(eq(schema.integrationConfig.organizationId, orgId));
+						await db
+							.delete(schema.integrationStorage)
+							.where(eq(schema.integrationStorage.organizationId, orgId));
+					} catch (err) {
+						console.error("Failed to delete organization integrations:", err);
+					}
+				},
+				{ description: "Deleting organization integrations", data: { orgId } }
+			);
 
 			await db
 				.delete(schema.organization)
@@ -2314,6 +2329,7 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 
 			return c.json({ success: true });
 		},
+
 		{
 			description: "Deleting organization",
 			data: { actorId: session?.userId },

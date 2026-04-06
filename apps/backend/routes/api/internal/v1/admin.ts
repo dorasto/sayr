@@ -12,6 +12,7 @@ import { apiRouteAdminOrganization } from "./organization";
 import { apiRouteAdminRelease } from "./release";
 import { apiRouteAdminUser } from "./user";
 import { apiRouteAdminNotification } from "./notification";
+import { apiRouteAdminIntegrations } from "./integrations";
 import { getEffectiveLimits } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { polarClient } from "@repo/auth";
@@ -277,3 +278,6 @@ apiRouteAdmin.route("/user", apiRouteAdminUser);
 
 // Notification routes
 apiRouteAdmin.route("/notification", apiRouteAdminNotification);
+
+// Integrations routes
+apiRouteAdmin.route("/integrations", apiRouteAdminIntegrations);
