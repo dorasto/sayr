@@ -8,6 +8,33 @@ export interface AiPromptDebugInfo {
   userPrompt: string;
 }
 
+export type TaskSummaryStatus =
+  | { hasCachedSummary: false }
+  | {
+      hasCachedSummary: true;
+      isStale: boolean;
+      summary: string | null;
+      generatedAt: string;
+    };
+
+/**
+ * Fetches the cached AI summary status for a task without triggering generation.
+ * Returns whether a cached summary exists, whether it is stale, and the text if fresh.
+ */
+export async function fetchTaskSummaryStatus(
+  taskId: string,
+  orgId: string,
+): Promise<TaskSummaryStatus> {
+  const params = new URLSearchParams({ taskId, orgId });
+  const res = await fetch(`${API_URL}/v1/ai/task-summary-status?${params}`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    return { hasCachedSummary: false };
+  }
+  return res.json() as Promise<TaskSummaryStatus>;
+}
+
 /**
  * Streams an AI-generated summary for a task.
  *

@@ -1,5 +1,5 @@
 import type { schema } from "@repo/database";
-import { resolveOrgAiStatus } from "@repo/util";
+import { resolveOrgAiStatus, formatDateTimeFromNow } from "@repo/util";
 import { Button } from "@repo/ui/components/button";
 import { Spinner } from "@repo/ui/components/spinner";
 import {
@@ -16,10 +16,9 @@ import {
 } from "@tabler/icons-react";
 import { useState, useEffect, useRef } from "react";
 import parse from "html-react-parser";
-import { streamSummarizeTask, type AiPromptDebugInfo } from "@/lib/fetches/ai";
+import { streamSummarizeTask, fetchTaskSummaryStatus, type AiPromptDebugInfo } from "@/lib/fetches/ai";
 import { renderMarkdown } from "@/lib/markdown";
 import { useLayoutData } from "@/components/generic/Context";
-import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
 import {
   Tile,
   TileDescription,
@@ -68,9 +67,15 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
   const [promptDebug, setPromptDebug] = useState<AiPromptDebugInfo | null>(
     null,
   );
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   // Track the latest summary string so the async render doesn't overwrite a
   // newer result with a stale one when chunks arrive quickly.
   const latestSummaryRef = useRef<string | null>(null);
+  // Frozen at mount — staleness is not re-evaluated while the panel stays open.
+  const mountHashRef = useRef<string | null>(null);
+  // Stable ref to handleGenerate so the mount effect can call it without
+  // listing it as a dependency (avoids infinite re-trigger).
+  const handleGenerateRef = useRef<() => void>(() => {});
 
   // Re-render markdown whenever the summary text changes.
   useEffect(() => {
@@ -86,6 +91,73 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
       }
     });
   }, [summary]);
+
+  // On mount (or when the task id changes), check for a cached summary.
+  // If fresh → display it. If stale or missing → auto-generate.
+  // The effect intentionally only depends on task.id so that live updates
+  // (WS-driven prop changes) while the panel is open do not trigger re-evaluation.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkCache() {
+      const status = await fetchTaskSummaryStatus(task.id, orgId);
+
+      if (cancelled) return;
+
+      if (status.hasCachedSummary && !status.isStale && status.summary) {
+        // Fresh cache hit — populate directly, no generation needed.
+        mountHashRef.current = status.generatedAt;
+        latestSummaryRef.current = status.summary;
+        setSummary(status.summary);
+        setGeneratedAt(status.generatedAt);
+      } else {
+        // Stale or no cache — auto-generate.
+        handleGenerateRef.current();
+      }
+    }
+
+    checkCache();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [task.id, orgId]);
+
+  const handleGenerate = () => {
+    setSummary(null);
+    setRenderedHtml(null);
+    setError(null);
+    setLoading(true);
+    setPromptDebug(null);
+    setGeneratedAt(null);
+    latestSummaryRef.current = null;
+
+    streamSummarizeTask(
+      task.id,
+      orgId,
+      (info) => {
+        setPromptDebug(info);
+      },
+      (chunk) => {
+        setSummary((prev) => {
+          const next = (prev ?? "") + chunk;
+          latestSummaryRef.current = next;
+          return next;
+        });
+      },
+      () => {
+        setLoading(false);
+        setGeneratedAt(new Date().toISOString());
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      },
+    );
+  };
+
+  // Keep the ref current so the mount effect always calls the latest version.
+  handleGenerateRef.current = handleGenerate;
 
   // Only render on Sayr Cloud
   if (import.meta.env.VITE_SAYR_EDITION !== "cloud") {
@@ -105,37 +177,6 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
   if (aiRateLimited) {
     return <AiRateLimitedNotice until={rateLimitUntil} />;
   }
-
-  const handleGenerate = () => {
-    setSummary(null);
-    setRenderedHtml(null);
-    setError(null);
-    setLoading(true);
-    setPromptDebug(null);
-    latestSummaryRef.current = null;
-
-    streamSummarizeTask(
-      task.id,
-      orgId,
-      (info) => {
-        setPromptDebug(info);
-      },
-      (chunk) => {
-        setSummary((prev) => {
-          const next = (prev ?? "") + chunk;
-          latestSummaryRef.current = next;
-          return next;
-        });
-      },
-      () => {
-        setLoading(false);
-      },
-      (err) => {
-        setError(err);
-        setLoading(false);
-      },
-    );
-  };
 
   return (
     <div className="rounded-xl border border-dashed border-border bg-card p-3 flex flex-col gap-2">
@@ -228,6 +269,13 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
             </TileDescription>
           </TileHeader>
         </Tile>
+      )}
+
+      {/* Generated-at timestamp — shown when a summary is displayed and not actively streaming */}
+      {generatedAt && !loading && (
+        <p className="text-xs text-muted-foreground">
+          Generated {formatDateTimeFromNow(generatedAt)}
+        </p>
       )}
 
       {!summary && !loading && !error && (

@@ -1,0 +1,3 @@
+ALTER TABLE "organization" ALTER COLUMN "settings" SET DEFAULT '{"allowActionsOnClosedTasks":true,"publicActions":true,"enablePublicPage":true,"publicTaskAllowBlank":true,"publicTaskFields":{"labels":true,"category":true,"priority":true},"ai":{"disabled":false,"rateLimited":null,"taskSummary":true}}'::json;--> statement-breakpoint
+ALTER TABLE "task" ADD COLUMN "ai_summary_hash" text;--> statement-breakpoint
+ALTER TABLE "task" ADD COLUMN "ai_summary_generated_at" timestamp;

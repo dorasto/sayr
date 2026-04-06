@@ -44,6 +44,11 @@ export const task = table(
 		// Subtask hierarchy: null = top-level task, set = subtask of parent.
 		// Single-level only — enforced in application code.
 		parentId: v.text("parent_id"),
+		// AI summary cache metadata — cloud only.
+		// Hash is SHA-256 of the user prompt; used as the Redis cache key discriminator.
+		// Null means no summary has ever been generated for this task.
+		aiSummaryHash: v.text("ai_summary_hash"),
+		aiSummaryGeneratedAt: v.timestamp("ai_summary_generated_at"),
 	},
 	(t) => [
 		v.index("idx_task_org_status_priority").on(t.organizationId, t.status, t.priority),

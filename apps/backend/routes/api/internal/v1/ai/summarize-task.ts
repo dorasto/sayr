@@ -1,9 +1,11 @@
-import { getTaskById, getMergedTaskActivity, getOrganization, getUserById, resolveOrgAiStatus, type OrganizationSettings } from "@repo/database";
+import { getTaskById, getMergedTaskActivity, getOrganization, getUserById, resolveOrgAiStatus, updateTaskAiSummaryMeta, type OrganizationSettings } from "@repo/database";
 import { streamText, MISTRAL_MODELS, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
 import { isCloud } from "@repo/edition";
 import { polarClient } from "@repo/auth";
+import { getRedis } from "@repo/queue";
 import { Hono } from "hono";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 import type { AppEnv } from "@/index";
 import { traceOrgPermissionCheck } from "@/util";
 import { errorResponse } from "../../../../../responses";
@@ -139,6 +141,71 @@ summarizeTaskRoute.post("/", async (c) => {
 
   const model = MISTRAL_MODELS.SMALL;
   const userPrompt = buildUserPrompt(task, descriptionText, timelineText);
+
+  // ---------------------------------------------------------------------------
+  // Redis cache check
+  // ---------------------------------------------------------------------------
+  const contentHash = createHash("sha256").update(userPrompt).digest("hex");
+  const cacheKey = `ai:summary:${taskId}:${contentHash}`;
+
+  try {
+    const redis = getRedis();
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      // Stream the cached text back in chunks so the client behaves identically
+      // to a live generation. No Mistral call, no Polar billing event.
+      const CHUNK_SIZE = 80;
+      const cacheStream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          // Emit a sentinel prompt event (empty) so the client parser doesn't choke.
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: "prompt", systemPrompt: SYSTEM_PROMPT, userPrompt, cached: true })}\n\n`,
+            ),
+          );
+          for (let i = 0; i < cached.length; i += CHUNK_SIZE) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ chunk: cached.slice(i, i + CHUNK_SIZE) })}\n\n`,
+              ),
+            );
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+
+          emitEvent({
+            event_type: "ai.summary_requested",
+            actor_id: session.userId,
+            target_id: taskId,
+            org_id: orgId,
+            metadata: {
+              model,
+              input_tokens: 0,
+              output_tokens: 0,
+              total_tokens: 0,
+              cost_cents: 0,
+              timeline_items: activity?.length ?? 0,
+              cache_hit: true,
+              success: true,
+            },
+          });
+
+          controller.close();
+        },
+      });
+
+      return new Response(cacheStream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
+    }
+  } catch {
+    // Redis unavailable — fall through to Mistral as normal.
+  }
+
   const tokenStream = streamText({
     model,
     systemPrompt: SYSTEM_PROMPT,
@@ -190,6 +257,17 @@ summarizeTaskRoute.post("/", async (c) => {
           ),
         );
       } finally {
+        // Write to Redis cache and persist metadata on successful generation.
+        if (!streamError && outputText) {
+          try {
+            const redis = getRedis();
+            await redis.set(cacheKey, outputText, "EX", 60 * 60 * 24 * 7); // 7 days
+            await updateTaskAiSummaryMeta(orgId, taskId, contentHash, new Date());
+          } catch {
+            // Cache write failure is non-fatal — the summary was already streamed.
+          }
+        }
+
         // Calculate cost in USD cents using per-model pricing constants.
         const pricing = MISTRAL_MODEL_PRICING[model];
         const costCents =
@@ -240,6 +318,7 @@ summarizeTaskRoute.post("/", async (c) => {
             total_tokens: totalTokens,
             cost_cents: costCents,
             timeline_items: activity?.length ?? 0,
+            cache_hit: false,
             prompt: { systemPrompt: SYSTEM_PROMPT, userPrompt },
             output_text: outputText,
             success: !streamError,
