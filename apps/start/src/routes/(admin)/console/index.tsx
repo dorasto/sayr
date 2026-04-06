@@ -1,7 +1,8 @@
 import UserTable from "@/components/console/user-table";
+import OrgTable from "@/components/console/org-table";
 import { SystemApiKeys } from "@/components/console/system-api-keys";
 import { SubWrapper } from "@/components/generic/wrapper";
-import { getConsoleUsersServer } from "@/lib/serverFunctions/getConsoleData";
+import { getConsoleUsersServer, getConsoleOrgsServer } from "@/lib/serverFunctions/getConsoleData";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@repo/ui/components/button";
@@ -47,16 +48,27 @@ function SnapshotTriggerButton() {
 }
 
 export const Route = createFileRoute("/(admin)/console/")({
-	head: () => ({ meta: seo({ title: "Users · Console" }) }),
+	head: () => ({ meta: seo({ title: "Console" }) }),
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/auth/login" });
 		}
 		// Initial load: fetch page 1 server-side via direct DB access
-		const result = await getConsoleUsersServer({ data: { page: 1, limit: 25 } });
+		const [usersResult, orgsResult] = await Promise.all([
+			getConsoleUsersServer({ data: { page: 1, limit: 25 } }),
+			getConsoleOrgsServer({ data: { page: 1, limit: 25 } }),
+		]);
 		return {
-			users: result.data ?? [],
-			pagination: result.pagination ?? {
+			users: usersResult.data ?? [],
+			pagination: usersResult.pagination ?? {
+				limit: 25,
+				page: 1,
+				totalPages: 1,
+				totalItems: 0,
+				hasMore: false,
+			},
+			orgs: orgsResult.data ?? [],
+			orgsPagination: orgsResult.pagination ?? {
 				limit: 25,
 				page: 1,
 				totalPages: 1,
@@ -73,7 +85,7 @@ function RouteComponent() {
 	if (account?.role !== "admin") {
 		throw redirect({ to: "/" });
 	}
-	const { users, pagination } = Route.useLoaderData();
+	const { users, pagination, orgs, orgsPagination } = Route.useLoaderData();
 	const [activeTab, setActiveTab] = useState("users");
 
 	return (
@@ -89,10 +101,14 @@ function RouteComponent() {
 			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 				<TabsList>
 					<TabsTrigger value="users">Users</TabsTrigger>
+					<TabsTrigger value="organizations">Organizations</TabsTrigger>
 					<TabsTrigger value="api-keys">System API Keys</TabsTrigger>
 				</TabsList>
 				<TabsContent value="users" className="mt-4">
 					<UserTable initialData={{ users, pagination }} />
+				</TabsContent>
+				<TabsContent value="organizations" className="mt-4">
+					<OrgTable initialData={{ orgs, pagination: orgsPagination }} />
 				</TabsContent>
 				<TabsContent value="api-keys" className="mt-4">
 					<SystemApiKeys />

@@ -292,24 +292,230 @@ export const getConsoleUserServer = createServerFn({ method: "GET" })
 				};
 			});
 
-			return {
+		return {
+			user: {
+				...targetUser,
+				image: targetUser.image ? ensureCdnUrl(targetUser.image) : null,
+			},
+			organizations,
+			sessions,
+			accounts,
+			activity: {
+				aggregates: activityAggregates.map((a) => ({
+					eventType: a.eventType,
+					count: Number(a.count),
+				})),
+				recent: recentActivityWithOrg,
+			},
+		};
+	} catch (error) {
+		// If it's already a redirect, re-throw it
+		if (error && typeof error === "object" && "redirect" in error) {
+			throw error;
+		}
+		throw redirect({ to: "/console" });
+	}
+});
+
+// ──────────────────────────────────────────────
+// getConsoleOrgsServer — paginated org list for SSR loader
+// ──────────────────────────────────────────────
+
+type ConsoleOrgsInput = {
+	page?: number;
+	limit?: number;
+	search?: string;
+	plan?: "free" | "pro" | "";
+	sortBy?: string;
+	sortDirection?: "asc" | "desc";
+};
+
+export const getConsoleOrgsServer = createServerFn({ method: "GET" })
+	.inputValidator((data: ConsoleOrgsInput) => data)
+	.handler(async ({ data }) => {
+		await requireAdmin();
+
+		const page = Math.max(data.page || 1, 1);
+		const requestedLimit = data.limit || 25;
+		const limit = Math.min(Math.max(requestedLimit, 1), 100);
+		const offset = (page - 1) * limit;
+		const search = data.search?.trim() || "";
+		const plan = data.plan || "";
+		const sortBy = data.sortBy || "createdAt";
+		const sortDir = data.sortDirection === "asc" ? "asc" : "desc";
+
+		const conditions = [];
+
+		if (search) {
+			conditions.push(
+				or(
+					ilike(schema.organization.name, `%${search}%`),
+					ilike(schema.organization.slug, `%${search}%`),
+				),
+			);
+		}
+
+		if (plan === "free") {
+			conditions.push(eq(schema.organization.plan, "free"));
+		} else if (plan === "pro") {
+			conditions.push(eq(schema.organization.plan, "pro"));
+		}
+
+		const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+		const [countResult] = await db
+			.select({ count: count() })
+			.from(schema.organization)
+			.where(whereClause);
+		const totalItems = Number(countResult?.count ?? 0);
+		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
+
+		const sortColumn =
+			sortBy === "name"
+				? schema.organization.name
+				: sortBy === "plan"
+					? schema.organization.plan
+					: schema.organization.createdAt;
+
+		const orderFn = sortDir === "asc" ? asc : desc;
+
+		const orgs = await db
+			.select({
+				id: schema.organization.id,
+				name: schema.organization.name,
+				slug: schema.organization.slug,
+				logo: schema.organization.logo,
+				plan: schema.organization.plan,
+				seatCount: schema.organization.seatCount,
+				isSystemOrg: schema.organization.isSystemOrg,
+				shortId: schema.organization.shortId,
+				createdAt: schema.organization.createdAt,
+				updatedAt: schema.organization.updatedAt,
+				createdBy: schema.organization.createdBy,
+				memberCount: db.$count(schema.member, eq(schema.member.organizationId, schema.organization.id)),
+			})
+			.from(schema.organization)
+			.where(whereClause)
+			.orderBy(orderFn(sortColumn))
+			.limit(limit)
+			.offset(offset);
+
+		const transformedOrgs = orgs.map((o) => ({
+			...o,
+			logo: o.logo ? ensureCdnUrl(o.logo) : null,
+		}));
+
+		return {
+			data: transformedOrgs,
+			pagination: {
+				limit,
+				page,
+				totalPages,
+				totalItems,
+				hasMore: page < totalPages,
+			},
+		};
+	});
+
+// ──────────────────────────────────────────────
+// getConsoleOrgServer — org detail for SSR loader
+// ──────────────────────────────────────────────
+
+export const getConsoleOrgServer = createServerFn({ method: "GET" })
+	.inputValidator((data: { orgId: string }) => data)
+	.handler(async ({ data }) => {
+		const { orgId } = data;
+		try {
+			await requireAdmin();
+
+			const [org] = await db
+				.select({
+					id: schema.organization.id,
+					name: schema.organization.name,
+					slug: schema.organization.slug,
+					logo: schema.organization.logo,
+					bannerImg: schema.organization.bannerImg,
+					description: schema.organization.description,
+					plan: schema.organization.plan,
+					seatCount: schema.organization.seatCount,
+					isSystemOrg: schema.organization.isSystemOrg,
+					shortId: schema.organization.shortId,
+					createdAt: schema.organization.createdAt,
+					updatedAt: schema.organization.updatedAt,
+					createdBy: schema.organization.createdBy,
+					polarCustomerId: schema.organization.polarCustomerId,
+					polarSubscriptionId: schema.organization.polarSubscriptionId,
+					currentPeriodEnd: schema.organization.currentPeriodEnd,
+					settings: schema.organization.settings,
+				})
+				.from(schema.organization)
+				.where(eq(schema.organization.id, orgId));
+
+			if (!org) {
+				throw redirect({ to: "/console" });
+			}
+
+			const memberships = await db.query.member.findMany({
+				where: eq(schema.member.organizationId, orgId),
+				with: {
+					user: {
+						columns: {
+							id: true,
+							name: true,
+							displayName: true,
+							email: true,
+							image: true,
+							role: true,
+							banned: true,
+						},
+					},
+					teams: {
+						with: {
+							team: {
+								columns: {
+									id: true,
+									name: true,
+									isSystem: true,
+									permissions: true,
+								},
+							},
+						},
+					},
+				},
+			});
+
+			const members = memberships.map((m) => ({
+				id: m.id,
+				userId: m.userId,
+				joinedAt: m.createdAt,
+				seatAssigned: m.seatAssigned,
 				user: {
-					...targetUser,
-					image: targetUser.image ? ensureCdnUrl(targetUser.image) : null,
+					id: m.user.id,
+					name: m.user.name,
+					displayName: m.user.displayName,
+					email: m.user.email,
+					image: m.user.image ? ensureCdnUrl(m.user.image) : null,
+					role: m.user.role,
+					banned: m.user.banned,
 				},
-				organizations,
-				sessions,
-				accounts,
-				activity: {
-					aggregates: activityAggregates.map((a) => ({
-						eventType: a.eventType,
-						count: Number(a.count),
-					})),
-					recent: recentActivityWithOrg,
+				teams: m.teams.map((mt) => ({
+					id: mt.team.id,
+					name: mt.team.name,
+					isSystem: mt.team.isSystem,
+					isAdmin: mt.team.permissions?.admin?.administrator === true,
+					permissions: mt.team.permissions,
+				})),
+			}));
+
+			return {
+				org: {
+					...org,
+					logo: org.logo ? ensureCdnUrl(org.logo) : null,
+					bannerImg: org.bannerImg ? ensureCdnUrl(org.bannerImg) : null,
 				},
+				members,
 			};
 		} catch (error) {
-			// If it's already a redirect, re-throw it
 			if (error && typeof error === "object" && "redirect" in error) {
 				throw error;
 			}

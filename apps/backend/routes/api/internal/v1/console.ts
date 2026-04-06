@@ -1,11 +1,12 @@
-import { auth } from "@repo/auth";
-import { auth as authSchema, db, schema } from "@repo/database";
-import { and, count, eq, ilike, inArray, or, sql, desc, asc } from "drizzle-orm";
+import { auth, polarClient } from "@repo/auth";
+import { auth as authSchema, db, schema, getUsersByIds } from "@repo/database";
+import { and, count, eq, ilike, inArray, isNotNull, or, sql, desc, asc } from "drizzle-orm";
 import { ensureCdnUrl } from "@repo/util";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { paginatedSuccessResponse, errorResponse, successResponse } from "../../../../responses";
+import { queryAiUsageByOrg, queryAiUsageSummaryAllOrgs } from "@/clickhouse";
 
 const userTable = authSchema.user;
 const sessionTable = authSchema.session;
@@ -570,6 +571,369 @@ apiRouteConsole.post("/system-api-keys", async (c) => {
 	}
 });
 
+// ──────────────────────────────────────────────
+// GET /console/organizations — paginated, filterable org list
+// ──────────────────────────────────────────────
+apiRouteConsole.get("/organizations", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const user = c.get("user");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (user?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	const page = Math.max(Number(c.req.query("page")) || 1, 1);
+	const requestedLimit = Number(c.req.query("limit")) || 25;
+	const limit = Math.min(Math.max(requestedLimit, 1), 100);
+	const offset = (page - 1) * limit;
+	const search = c.req.query("search")?.trim() || "";
+	const plan = c.req.query("plan") || "";
+	const sortBy = c.req.query("sortBy") || "createdAt";
+	const sortDir = c.req.query("sortDirection") === "asc" ? "asc" : "desc";
+
+	try {
+		const result = await traceAsync(
+			"console.organizations.list",
+			async () => {
+				const conditions = [];
+
+				if (search) {
+					conditions.push(
+						or(
+							ilike(schema.organization.name, `%${search}%`),
+							ilike(schema.organization.slug, `%${search}%`),
+						),
+					);
+				}
+
+				if (plan === "free") {
+					conditions.push(eq(schema.organization.plan, "free"));
+				} else if (plan === "pro") {
+					conditions.push(eq(schema.organization.plan, "pro"));
+				}
+
+				const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+				const [countResult] = await db
+					.select({ count: count() })
+					.from(schema.organization)
+					.where(whereClause);
+				const totalItems = Number(countResult?.count ?? 0);
+				const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
+
+				const sortColumn =
+					sortBy === "name" ? schema.organization.name :
+						sortBy === "plan" ? schema.organization.plan :
+							schema.organization.createdAt;
+
+				const orderFn = sortDir === "asc" ? asc : desc;
+
+				const orgs = await db
+					.select({
+						id: schema.organization.id,
+						name: schema.organization.name,
+						slug: schema.organization.slug,
+						logo: schema.organization.logo,
+						plan: schema.organization.plan,
+						seatCount: schema.organization.seatCount,
+						isSystemOrg: schema.organization.isSystemOrg,
+						shortId: schema.organization.shortId,
+						createdAt: schema.organization.createdAt,
+						updatedAt: schema.organization.updatedAt,
+						createdBy: schema.organization.createdBy,
+						memberCount: db.$count(schema.member, eq(schema.member.organizationId, schema.organization.id)),
+					})
+					.from(schema.organization)
+					.where(whereClause)
+					.orderBy(orderFn(sortColumn))
+					.limit(limit)
+					.offset(offset);
+
+				const transformedOrgs = orgs.map((o) => ({
+					...o,
+					logo: o.logo ? ensureCdnUrl(o.logo) : null,
+				}));
+
+				return {
+					orgs: transformedOrgs,
+					pagination: {
+						limit,
+						page,
+						totalPages,
+						totalItems,
+						hasMore: page < totalPages,
+					},
+				};
+			},
+			{
+				description: "Listing console organizations with pagination",
+				data: { page, limit, search, plan },
+			},
+		);
+
+		return c.json(paginatedSuccessResponse(result.orgs, result.pagination));
+	} catch (err) {
+		await recordWideError({
+			name: "console.organizations.list.failed",
+			error: err,
+			code: "CONSOLE_ORGANIZATIONS_LIST_FAILED",
+			message: "Failed to list organizations",
+			contextData: { adminId: session.userId },
+		});
+		return c.json(errorResponse("Failed to list organizations"), 500);
+	}
+});
+
+// ──────────────────────────────────────────────
+// GET /console/organizations/ai-usage-summary — 30-day AI totals per org (cloud-only)
+// ──────────────────────────────────────────────
+apiRouteConsole.get("/organizations/ai-usage-summary", async (c) => {
+	const session = c.get("session");
+	const user = c.get("user");
+	const recordWideError = c.get("recordWideError");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (user?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	try {
+		const summary = await queryAiUsageSummaryAllOrgs(30);
+		if (!summary) {
+			return c.json(successResponse([]));
+		}
+		return c.json(successResponse(summary));
+	} catch (err) {
+		await recordWideError({
+			name: "console.organizations.ai_usage_summary.failed",
+			error: err,
+			code: "CONSOLE_ORG_AI_USAGE_SUMMARY_FAILED",
+			message: "Failed to fetch AI usage summary from ClickHouse",
+			contextData: {},
+		});
+		return c.json(errorResponse("Failed to fetch AI usage summary"), 500);
+	}
+});
+
+// ──────────────────────────────────────────────
+// GET /console/organizations/mrr-summary — MRR per org via Polar (admin API)
+// ──────────────────────────────────────────────
+apiRouteConsole.get("/organizations/mrr-summary", async (c) => {
+	const session = c.get("session");
+	const user = c.get("user");
+	const recordWideError = c.get("recordWideError");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (user?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	if (!polarClient) {
+		return c.json(successResponse([]));
+	}
+
+	try {
+		// Fetch all orgs that have a Polar subscription
+		const orgsWithSub = await db
+			.select({
+				id: schema.organization.id,
+				polarSubscriptionId: schema.organization.polarSubscriptionId,
+				plan: schema.organization.plan,
+			})
+			.from(schema.organization)
+			.where(isNotNull(schema.organization.polarSubscriptionId));
+
+		if (orgsWithSub.length === 0) {
+			return c.json(successResponse([]));
+		}
+
+		// Batch-fetch each subscription from Polar admin API
+		const results = await Promise.allSettled(
+			orgsWithSub.map(async (org) => {
+				const sub = await polarClient!.subscriptions.get({ id: org.polarSubscriptionId! });
+				const isYearly = sub.recurringInterval === "year";
+				const mrrCents = Math.round(sub.amount / (isYearly ? 12 : 1));
+				return {
+					org_id: org.id,
+					mrr_cents: mrrCents,
+					currency: sub.currency ?? "usd",
+					status: sub.status,
+					seats: (sub as Record<string, unknown>).seats as number | null ?? null,
+					recurring_interval: sub.recurringInterval,
+				};
+			}),
+		);
+
+		const summaries = results
+			.filter((r): r is PromiseFulfilledResult<{
+				org_id: string;
+				mrr_cents: number;
+				currency: string;
+				status: string;
+				seats: number | null;
+				recurring_interval: string;
+			}> => r.status === "fulfilled")
+			.map((r) => r.value);
+
+		return c.json(successResponse(summaries));
+	} catch (err) {
+		await recordWideError({
+			name: "console.organizations.mrr_summary.failed",
+			error: err,
+			code: "CONSOLE_ORG_MRR_SUMMARY_FAILED",
+			message: "Failed to fetch MRR summary from Polar",
+			contextData: {},
+		});
+		return c.json(successResponse([]));
+	}
+});
+
+// ──────────────────────────────────────────────
+// GET /console/organizations/:orgId — org detail
+// ──────────────────────────────────────────────
+apiRouteConsole.get("/organizations/:orgId", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const currentUser = c.get("user");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (currentUser?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	const orgId = c.req.param("orgId");
+	if (!orgId) {
+		return c.json(errorResponse("Organization ID is required"), 400);
+	}
+
+	try {
+		const result = await traceAsync(
+			"console.organizations.detail",
+			async () => {
+				const [org] = await db
+					.select({
+						id: schema.organization.id,
+						name: schema.organization.name,
+						slug: schema.organization.slug,
+						logo: schema.organization.logo,
+						bannerImg: schema.organization.bannerImg,
+						description: schema.organization.description,
+						plan: schema.organization.plan,
+						seatCount: schema.organization.seatCount,
+						isSystemOrg: schema.organization.isSystemOrg,
+						shortId: schema.organization.shortId,
+						createdAt: schema.organization.createdAt,
+						updatedAt: schema.organization.updatedAt,
+						createdBy: schema.organization.createdBy,
+						polarCustomerId: schema.organization.polarCustomerId,
+						polarSubscriptionId: schema.organization.polarSubscriptionId,
+						currentPeriodEnd: schema.organization.currentPeriodEnd,
+						settings: schema.organization.settings,
+					})
+					.from(schema.organization)
+					.where(eq(schema.organization.id, orgId));
+
+				if (!org) {
+					return null;
+				}
+
+				// Fetch members with user info and teams
+				const memberships = await db.query.member.findMany({
+					where: eq(schema.member.organizationId, orgId),
+					with: {
+						user: {
+							columns: {
+								id: true,
+								name: true,
+								displayName: true,
+								email: true,
+								image: true,
+								role: true,
+								banned: true,
+							},
+						},
+						teams: {
+							with: {
+								team: {
+									columns: {
+										id: true,
+										name: true,
+										isSystem: true,
+										permissions: true,
+									},
+								},
+							},
+						},
+					},
+				});
+
+				const members = memberships.map((m) => ({
+					id: m.id,
+					userId: m.userId,
+					joinedAt: m.createdAt,
+					seatAssigned: m.seatAssigned,
+					user: {
+						id: m.user.id,
+						name: m.user.name,
+						displayName: m.user.displayName,
+						email: m.user.email,
+						image: m.user.image ? ensureCdnUrl(m.user.image) : null,
+						role: m.user.role,
+						banned: m.user.banned,
+					},
+					teams: m.teams.map((mt) => ({
+						id: mt.team.id,
+						name: mt.team.name,
+						isSystem: mt.team.isSystem,
+						isAdmin: mt.team.permissions?.admin?.administrator === true,
+						permissions: mt.team.permissions,
+					})),
+				}));
+
+				return {
+					org: {
+						...org,
+						logo: org.logo ? ensureCdnUrl(org.logo) : null,
+						bannerImg: org.bannerImg ? ensureCdnUrl(org.bannerImg) : null,
+					},
+					members,
+				};
+			},
+			{
+				description: "Fetching console organization detail",
+				data: { orgId, adminId: session.userId },
+			},
+		);
+
+		if (!result) {
+			return c.json(errorResponse("Organization not found"), 404);
+		}
+
+		return c.json(successResponse(result));
+	} catch (err) {
+		await recordWideError({
+			name: "console.organizations.detail.failed",
+			error: err,
+			code: "CONSOLE_ORGANIZATION_DETAIL_FAILED",
+			message: "Failed to fetch organization detail",
+			contextData: { orgId, adminId: session.userId },
+		});
+		return c.json(errorResponse("Failed to fetch organization detail"), 500);
+	}
+});
+
 apiRouteConsole.delete("/system-api-keys/:keyId", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
@@ -624,5 +988,83 @@ apiRouteConsole.delete("/system-api-keys/:keyId", async (c) => {
 			contextData: { adminId: session.userId, keyId },
 		});
 		return c.json(errorResponse("Failed to delete system API key"), 500);
+	}
+});
+
+// ──────────────────────────────────────────────
+// GET /console/organizations/:orgId/ai-usage — AI usage from ClickHouse (cloud-only)
+// ──────────────────────────────────────────────
+apiRouteConsole.get("/organizations/:orgId/ai-usage", async (c) => {
+	const session = c.get("session");
+	const user = c.get("user");
+	const recordWideError = c.get("recordWideError");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (user?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	const { orgId } = c.req.param();
+	const days = Math.min(Math.max(Number(c.req.query("days")) || 30, 1), 365);
+
+	try {
+		const result = await queryAiUsageByOrg(orgId, days);
+		if (!result) {
+			return c.json(errorResponse("AI usage data is not available on this edition"), 503);
+		}
+
+		// Enrich rows: resolve actor_id → user summary, target_id (taskId) → task shortId + title
+		const actorIds = [...new Set(result.rows.map((r) => r.actor_id).filter(Boolean))];
+		const taskIds = [...new Set(result.rows.map((r) => r.target_id).filter(Boolean))];
+
+		const [users, tasks] = await Promise.all([
+			getUsersByIds(actorIds),
+			taskIds.length > 0
+				? db
+					.select({ id: schema.task.id, shortId: schema.task.shortId, title: schema.task.title })
+					.from(schema.task)
+					.where(inArray(schema.task.id, taskIds))
+				: Promise.resolve([]),
+		]);
+
+		const userMap = new Map(users.map((u) => [u.id, u]));
+		const taskMap = new Map(tasks.map((t) => [t.id, t]));
+		const rootDomain = process.env.VITE_ROOT_DOMAIN ?? "";
+
+		// Fetch the org slug once so we can build task URLs
+		const org = await db
+			.select({ slug: schema.organization.slug })
+			.from(schema.organization)
+			.where(eq(schema.organization.id, orgId))
+			.limit(1);
+		const orgSlug = org[0]?.slug ?? "";
+
+		const enrichedRows = result.rows.map((row) => {
+			const user = userMap.get(row.actor_id);
+			const task = taskMap.get(row.target_id);
+			return {
+				...row,
+				actor_name: user?.displayName ?? user?.name ?? null,
+				actor_image: user?.image ? ensureCdnUrl(user.image) : null,
+				task_short_id: task?.shortId ?? null,
+				task_title: task?.title ?? null,
+				task_url: task?.shortId != null && orgSlug && rootDomain
+					? `https://${orgSlug}.${rootDomain}/${task.shortId}`
+					: null,
+			};
+		});
+
+		return c.json(successResponse({ rows: enrichedRows, monthlySummary: result.monthlySummary }));
+	} catch (err) {
+		await recordWideError({
+			name: "console.organizations.ai_usage.failed",
+			error: err,
+			code: "CONSOLE_ORG_AI_USAGE_FAILED",
+			message: "Failed to fetch AI usage from ClickHouse",
+			contextData: { orgId, days },
+		});
+		return c.json(errorResponse("Failed to fetch AI usage"), 500);
 	}
 });
