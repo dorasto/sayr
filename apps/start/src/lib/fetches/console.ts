@@ -1,5 +1,5 @@
 import type { UserWithRole } from "better-auth/plugins";
-import type { OrganizationSettings, TeamPermissions } from "@repo/database";
+import type { OrganizationSettings, TeamPermissions, OrgAiSettings, OrgAiRateLimit } from "@repo/database";
 
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
@@ -439,4 +439,44 @@ export async function getConsoleOrgsMrrSummary(): Promise<ConsoleOrgMrrSummary[]
 	} catch {
 		return [];
 	}
+}
+
+// ──────────────────────────────────────────────
+// AI Settings Types + Fetch
+// ──────────────────────────────────────────────
+
+export type { OrgAiSettings, OrgAiRateLimit };
+
+/** Patch body for PATCH /console/organizations/:orgId/ai-settings */
+export type OrgAiSettingsPatch = {
+	/** When true, all AI features are hidden entirely for the org. */
+	disabled?: boolean;
+	/**
+	 * Set to an object with `until` (ISO 8601) and optional `reason` to apply a
+	 * rate limit. Set to null to remove an existing rate limit.
+	 */
+	rateLimited?: { until: string; reason?: string } | null;
+	/** When false, the AI task summary panel is hidden for the org. */
+	taskSummary?: boolean;
+};
+
+/**
+ * Updates AI settings for an organization (admin console only).
+ */
+export async function updateConsoleOrgAiSettings(
+	orgId: string,
+	patch: OrgAiSettingsPatch,
+): Promise<{ success: boolean; data?: { ai: OrgAiSettings }; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/console/organizations/${orgId}/ai-settings`, {
+		method: "PATCH",
+		credentials: "include",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(patch),
+	});
+
+	const json = await res.json();
+	if (!res.ok) {
+		return { success: false, error: json?.error || "Failed to update AI settings" };
+	}
+	return json;
 }

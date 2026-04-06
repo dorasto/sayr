@@ -7,10 +7,20 @@ export * from "./functions";
 export { type TeamPermissions, defaultTeamPermissions } from "../schema/member.schema";
 
 // Re-export organization settings types for convenience
-export { type OrganizationSettings, type PublicTaskFieldSettings, defaultOrganizationSettings, defaultPublicTaskFieldSettings } from "../schema/organization.schema";
+export {
+	type OrganizationSettings,
+	type PublicTaskFieldSettings,
+	defaultOrganizationSettings,
+	defaultPublicTaskFieldSettings,
+} from "../schema/organization.schema";
+
+// Re-export AI org types and helpers from @repo/util (browser-safe)
+export { type OrgAiSettings, type OrgAiRateLimit, defaultOrgAiSettings, resolveOrgAiStatus } from "@repo/util";
 
 import { and, eq, inArray } from "drizzle-orm";
-import { member, memberTeam, team, defaultTeamPermissions as defaultPerms, type TeamPermissions, organization, OrganizationSettings, defaultOrganizationSettings, } from "../schema";
+import { member, memberTeam, team, defaultTeamPermissions as defaultPerms, type TeamPermissions, organization, type OrganizationSettings, defaultOrganizationSettings } from "../schema";
+import { defaultOrgAiSettings, type OrgAiSettings } from "@repo/util";
+
 import { user } from "../schema/auth";
 import { db } from "./database";
 

@@ -1,8 +1,9 @@
 import { auth, polarClient } from "@repo/auth";
-import { auth as authSchema, db, schema, getUsersByIds } from "@repo/database";
+import { auth as authSchema, db, schema, getUsersByIds, type OrganizationSettings, type OrgAiSettings, defaultOrgAiSettings } from "@repo/database";
 import { and, count, eq, ilike, inArray, isNotNull, or, sql, desc, asc } from "drizzle-orm";
 import { ensureCdnUrl } from "@repo/util";
 import { Hono } from "hono";
+import { z } from "zod";
 import type { AppEnv } from "@/index";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { paginatedSuccessResponse, errorResponse, successResponse } from "../../../../responses";
@@ -1066,5 +1067,111 @@ apiRouteConsole.get("/organizations/:orgId/ai-usage", async (c) => {
 			contextData: { orgId, days },
 		});
 		return c.json(errorResponse("Failed to fetch AI usage"), 500);
+	}
+});
+
+// ──────────────────────────────────────────────
+// PATCH /console/organizations/:orgId/ai-settings — update org AI settings (admin-only)
+// ──────────────────────────────────────────────
+const orgAiSettingsPatchSchema = z.object({
+	disabled: z.boolean().optional(),
+	rateLimited: z
+		.union([
+			z.object({
+				until: z.string().datetime({ message: "until must be a valid ISO 8601 datetime" }),
+				reason: z.string().max(500).optional(),
+			}),
+			z.null(),
+		])
+		.optional(),
+	taskSummary: z.boolean().optional(),
+});
+
+apiRouteConsole.patch("/organizations/:orgId/ai-settings", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const user = c.get("user");
+
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
+	if (user?.role !== "admin") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
+
+	const orgId = c.req.param("orgId");
+	if (!orgId) {
+		return c.json(errorResponse("Organization ID is required"), 400);
+	}
+
+	let patch: z.infer<typeof orgAiSettingsPatchSchema>;
+	try {
+		const raw = await c.req.json();
+		patch = orgAiSettingsPatchSchema.parse(raw);
+	} catch {
+		return c.json(errorResponse("Invalid request body"), 400);
+	}
+
+	try {
+		const result = await traceAsync(
+			"console.organizations.ai_settings.update",
+			async () => {
+				// Fetch current org settings
+				const [org] = await db
+					.select({ settings: schema.organization.settings })
+					.from(schema.organization)
+					.where(eq(schema.organization.id, orgId));
+
+				if (!org) {
+					return null;
+				}
+
+				// Merge AI settings: existing (or defaults) + incoming patch
+				const currentAi: OrgAiSettings = (org.settings as OrganizationSettings | null)?.ai ?? { ...defaultOrgAiSettings };
+				const updatedAi: OrgAiSettings = {
+					...currentAi,
+					...(patch.disabled !== undefined ? { disabled: patch.disabled } : {}),
+					...(patch.rateLimited !== undefined ? { rateLimited: patch.rateLimited } : {}),
+					...(patch.taskSummary !== undefined ? { taskSummary: patch.taskSummary } : {}),
+				};
+
+				const currentSettings: OrganizationSettings = {
+					allowActionsOnClosedTasks: true,
+					publicActions: true,
+					enablePublicPage: true,
+					publicTaskAllowBlank: true,
+					publicTaskFields: { labels: true, category: true, priority: true },
+					...(org.settings as OrganizationSettings | null),
+					ai: updatedAi,
+				};
+
+				await db
+					.update(schema.organization)
+					.set({ settings: currentSettings, updatedAt: new Date() })
+					.where(eq(schema.organization.id, orgId));
+
+				return updatedAi;
+			},
+			{
+				description: "Updating org AI settings via console",
+				data: { orgId, adminId: session.userId, patch },
+			},
+		);
+
+		if (result === null) {
+			return c.json(errorResponse("Organization not found"), 404);
+		}
+
+		return c.json(successResponse({ ai: result }));
+	} catch (err) {
+		await recordWideError({
+			name: "console.organizations.ai_settings.update.failed",
+			error: err,
+			code: "CONSOLE_ORG_AI_SETTINGS_UPDATE_FAILED",
+			message: "Failed to update org AI settings",
+			contextData: { orgId, adminId: session.userId },
+		});
+		return c.json(errorResponse("Failed to update AI settings"), 500);
 	}
 });

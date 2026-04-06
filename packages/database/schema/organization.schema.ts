@@ -18,6 +18,31 @@ export interface PublicTaskFieldSettings {
 	priority: boolean;
 }
 
+/** Active rate limit applied to an org's AI features. */
+export interface OrgAiRateLimit {
+	/** ISO 8601 date-time string — rate limit is active until this moment. */
+	until: string;
+	/** Optional human-readable reason shown to admins. */
+	reason?: string;
+}
+
+/** AI-feature settings for an organization. */
+export interface OrgAiSettings {
+	/**
+	 * When true, all AI features are hidden entirely for this org.
+	 * Takes precedence over rateLimited and individual feature flags.
+	 */
+	disabled: boolean;
+	/**
+	 * When set and `until` is in the future, AI generation is blocked but the
+	 * UI shows a "temporarily unavailable" message instead of hiding the feature.
+	 * Set to null to remove the rate limit.
+	 */
+	rateLimited: OrgAiRateLimit | null;
+	/** When false, the AI task summary panel is hidden for this org. */
+	taskSummary: boolean;
+}
+
 export interface OrganizationSettings {
 	/** When false, users without privileges cannot comment on or modify closed tasks. */
 	allowActionsOnClosedTasks: boolean;
@@ -29,12 +54,20 @@ export interface OrganizationSettings {
 	publicTaskAllowBlank: boolean;
 	/** Controls which fields public users may set when creating a task. */
 	publicTaskFields: PublicTaskFieldSettings;
+	/** AI feature controls. Missing on older orgs — treated as all-defaults. */
+	ai?: OrgAiSettings;
 }
 
 export const defaultPublicTaskFieldSettings: PublicTaskFieldSettings = {
 	labels: true,
 	category: true,
 	priority: true,
+};
+
+export const defaultOrgAiSettings: OrgAiSettings = {
+	disabled: false,
+	rateLimited: null,
+	taskSummary: true,
 };
 
 /** Sensible defaults — everything enabled so nothing breaks for existing orgs. */
@@ -44,6 +77,7 @@ export const defaultOrganizationSettings: OrganizationSettings = {
 	enablePublicPage: true,
 	publicTaskAllowBlank: true,
 	publicTaskFields: defaultPublicTaskFieldSettings,
+	ai: defaultOrgAiSettings,
 };
 
 export const organization = table("organization", {

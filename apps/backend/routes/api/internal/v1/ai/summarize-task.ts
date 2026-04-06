@@ -1,4 +1,4 @@
-import { getTaskById, getMergedTaskActivity, getOrganization, getUserById } from "@repo/database";
+import { getTaskById, getMergedTaskActivity, getOrganization, getUserById, resolveOrgAiStatus, type OrganizationSettings } from "@repo/database";
 import { streamText, MISTRAL_MODELS, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
 import { isCloud } from "@repo/edition";
 import { polarClient } from "@repo/auth";
@@ -70,6 +70,7 @@ summarizeTaskRoute.post("/", async (c) => {
   let polarCustomerId: string | null = null;
   let orgSlug: string = "";
   let triggeredBy: string = "";
+  let orgSettings: OrganizationSettings | null = null;
 
   try {
     const [taskResult, activityResult, org, user] = await Promise.all([
@@ -82,6 +83,7 @@ summarizeTaskRoute.post("/", async (c) => {
     activity = activityResult;
     polarCustomerId = org?.polarCustomerId ?? null;
     orgSlug = org?.slug ?? "";
+    orgSettings = org?.settings ?? null;
     triggeredBy = user?.displayName ?? user?.name ?? session.userId;
   } catch (err) {
     await recordWideError({
@@ -96,6 +98,21 @@ summarizeTaskRoute.post("/", async (c) => {
 
   if (!task) {
     return c.json(errorResponse("Task not found"), 404);
+  }
+
+  // Check org-level AI settings
+  const aiStatus = resolveOrgAiStatus(orgSettings);
+  if (aiStatus.aiDisabled) {
+    return c.json(errorResponse("AI features are disabled for this organization"), 403);
+  }
+  if (aiStatus.aiRateLimited) {
+    return c.json(
+      { success: false, error: "AI features are temporarily rate limited for this organization", until: aiStatus.rateLimitUntil?.toISOString() },
+      429,
+    );
+  }
+  if (!aiStatus.taskSummaryEnabled) {
+    return c.json(errorResponse("AI task summary is disabled for this organization"), 403);
   }
 
   const descriptionText = task.description

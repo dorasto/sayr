@@ -63,6 +63,7 @@ import { Route as adminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/(
 import { Route as adminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/index'
 import { Route as adminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/categories/index'
 import { Route as adminSettingsOrgOrgIdBillingIndexRouteImport } from './routes/(admin)/settings/org/$orgId/billing/index'
+import { Route as adminSettingsOrgOrgIdAiIndexRouteImport } from './routes/(admin)/settings/org/$orgId/ai/index'
 import { Route as adminSettingsOrgOrgIdTeamsNewRouteImport } from './routes/(admin)/settings/org/$orgId/teams/new'
 import { Route as adminSettingsOrgOrgIdViewsViewIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/$viewId/index'
 import { Route as adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/$teamId/index'
@@ -358,6 +359,12 @@ const adminSettingsOrgOrgIdBillingIndexRoute =
     path: '/billing/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
+const adminSettingsOrgOrgIdAiIndexRoute =
+  adminSettingsOrgOrgIdAiIndexRouteImport.update({
+    id: '/ai/',
+    path: '/ai/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
 const adminSettingsOrgOrgIdTeamsNewRoute =
   adminSettingsOrgOrgIdTeamsNewRouteImport.update({
     id: '/teams/new',
@@ -436,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/settings/org/$orgId/ai/': typeof adminSettingsOrgOrgIdAiIndexRoute
   '/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
@@ -486,6 +494,7 @@ export interface FileRoutesByTo {
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/settings/org/$orgId/ai': typeof adminSettingsOrgOrgIdAiIndexRoute
   '/settings/org/$orgId/billing': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
@@ -548,6 +557,7 @@ export interface FileRoutesById {
   '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/(admin)/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/(admin)/settings/org/$orgId/ai/': typeof adminSettingsOrgOrgIdAiIndexRoute
   '/(admin)/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/(admin)/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/(admin)/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
@@ -610,6 +620,7 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/'
     | '/orgs/$orgSlug/releases/$releaseSlug/'
     | '/settings/org/$orgId/teams/new'
+    | '/settings/org/$orgId/ai/'
     | '/settings/org/$orgId/billing/'
     | '/settings/org/$orgId/categories/'
     | '/settings/org/$orgId/connections/'
@@ -660,6 +671,7 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId'
     | '/orgs/$orgSlug/releases/$releaseSlug'
     | '/settings/org/$orgId/teams/new'
+    | '/settings/org/$orgId/ai'
     | '/settings/org/$orgId/billing'
     | '/settings/org/$orgId/categories'
     | '/settings/org/$orgId/connections'
@@ -721,6 +733,7 @@ export interface FileRouteTypes {
     | '/(admin)/settings/org/$orgId/'
     | '/orgs/$orgSlug/releases/$releaseSlug/'
     | '/(admin)/settings/org/$orgId/teams/new'
+    | '/(admin)/settings/org/$orgId/ai/'
     | '/(admin)/settings/org/$orgId/billing/'
     | '/(admin)/settings/org/$orgId/categories/'
     | '/(admin)/settings/org/$orgId/connections/'
@@ -1133,6 +1146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdBillingIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
+    '/(admin)/settings/org/$orgId/ai/': {
+      id: '/(admin)/settings/org/$orgId/ai/'
+      path: '/ai'
+      fullPath: '/settings/org/$orgId/ai/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdAiIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
     '/(admin)/settings/org/$orgId/teams/new': {
       id: '/(admin)/settings/org/$orgId/teams/new'
       path: '/teams/new'
@@ -1272,6 +1292,7 @@ const adminSettingsConnectionsRouteRouteWithChildren =
 interface adminSettingsOrgOrgIdRouteRouteChildren {
   adminSettingsOrgOrgIdIndexRoute: typeof adminSettingsOrgOrgIdIndexRoute
   adminSettingsOrgOrgIdTeamsNewRoute: typeof adminSettingsOrgOrgIdTeamsNewRoute
+  adminSettingsOrgOrgIdAiIndexRoute: typeof adminSettingsOrgOrgIdAiIndexRoute
   adminSettingsOrgOrgIdBillingIndexRoute: typeof adminSettingsOrgOrgIdBillingIndexRoute
   adminSettingsOrgOrgIdCategoriesIndexRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   adminSettingsOrgOrgIdConnectionsIndexRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRoute
@@ -1290,6 +1311,7 @@ const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteCh
   {
     adminSettingsOrgOrgIdIndexRoute: adminSettingsOrgOrgIdIndexRoute,
     adminSettingsOrgOrgIdTeamsNewRoute: adminSettingsOrgOrgIdTeamsNewRoute,
+    adminSettingsOrgOrgIdAiIndexRoute: adminSettingsOrgOrgIdAiIndexRoute,
     adminSettingsOrgOrgIdBillingIndexRoute:
       adminSettingsOrgOrgIdBillingIndexRoute,
     adminSettingsOrgOrgIdCategoriesIndexRoute:

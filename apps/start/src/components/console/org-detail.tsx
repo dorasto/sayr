@@ -107,7 +107,7 @@ export default function OrgDetail({ data }: OrgDetailProps) {
         )}
         {isCloud && (
           <TabsContent value="ai-usage" className="mt-4">
-            <OrgAiUsage orgId={org.id} />
+            <OrgAiUsage orgId={org.id} settings={org.settings as OrganizationSettings | null} />
           </TabsContent>
         )}
       </Tabs>

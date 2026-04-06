@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import { resolveOrgAiStatus } from "@repo/util";
 import { Button } from "@repo/ui/components/button";
 import { Spinner } from "@repo/ui/components/spinner";
 import {
@@ -11,6 +12,7 @@ import {
   IconRefresh,
   IconChevronRight,
   IconInfoCircle,
+  IconClock,
 } from "@tabler/icons-react";
 import { useState, useEffect, useRef } from "react";
 import parse from "html-react-parser";
@@ -31,8 +33,34 @@ interface AiTaskSummaryProps {
   orgId: string;
 }
 
+function AiRateLimitedNotice({ until }: { until: Date | null }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border bg-card p-3 flex flex-col gap-2">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+        <IconSparkles className="size-3.5" />
+        <span>AI Summary</span>
+      </div>
+      <div className="flex items-start gap-2 text-xs text-muted-foreground">
+        <IconClock className="size-3.5 mt-0.5 shrink-0" />
+        <span>
+          AI features are temporarily unavailable for this organization
+          {until ? (
+            <>
+              {" "}until{" "}
+              <span className="font-mono">
+                {until.toLocaleDateString(undefined, { dateStyle: "medium" })}
+              </span>
+            </>
+          ) : null}
+          .
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
-  const { account } = useLayoutData();
+  const { account, organizations } = useLayoutData();
   const [summary, setSummary] = useState<string | null>(null);
   const [renderedHtml, setRenderedHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,6 +90,20 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
   // Only render on Sayr Cloud
   if (import.meta.env.VITE_SAYR_EDITION !== "cloud") {
     return null;
+  }
+
+  // Resolve AI status from org settings
+  const org = organizations.find((o) => o.id === orgId);
+  const { aiDisabled, aiRateLimited, rateLimitUntil, taskSummaryEnabled } = resolveOrgAiStatus(org?.settings);
+
+  // Disabled entirely — hide the component
+  if (aiDisabled || !taskSummaryEnabled) {
+    return null;
+  }
+
+  // Rate limited — show informational placeholder
+  if (aiRateLimited) {
+    return <AiRateLimitedNotice until={rateLimitUntil} />;
   }
 
   const handleGenerate = () => {

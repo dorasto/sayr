@@ -1,6 +1,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { Calendar } from "@repo/ui/components/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/card";
+import { Input } from "@repo/ui/components/input";
+import { Label } from "@repo/ui/components/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/tooltip";
@@ -11,12 +16,22 @@ import {
 	IconLetterA,
 	IconAlertTriangle,
 	IconExternalLink,
+	IconBan,
+	IconClock,
+	IconX,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { getConsoleOrgAiUsage, type ConsoleAiUsageRow, type ConsoleAiMonthlySummary } from "@/lib/fetches/console";
+import type { OrganizationSettings, OrgAiSettings } from "@repo/database";
+import {
+	getConsoleOrgAiUsage,
+	updateConsoleOrgAiSettings,
+	type ConsoleAiUsageRow,
+	type ConsoleAiMonthlySummary,
+} from "@/lib/fetches/console";
 
 type Props = {
 	orgId: string;
+	settings: OrganizationSettings | null;
 };
 
 type DaysOption = 7 | 30 | 90;
@@ -73,12 +88,239 @@ function formatTokenCount(n: number): string {
 	return String(n);
 }
 
-export default function OrgAiUsage({ orgId }: Props) {
+// ──────────────────────────────────────────────
+// AI Controls card
+// ──────────────────────────────────────────────
+
+const PRESET_DURATIONS: { label: string; days: number }[] = [
+	{ label: "1 day", days: 1 },
+	{ label: "1 week", days: 7 },
+	{ label: "1 month", days: 30 },
+];
+
+function addDays(date: Date, days: number): Date {
+	const d = new Date(date);
+	d.setDate(d.getDate() + days);
+	return d;
+}
+
+function AiControlsCard({
+	orgId,
+	initialAi,
+	onSettingsChange,
+}: {
+	orgId: string;
+	initialAi: OrgAiSettings;
+	onSettingsChange: (updated: OrgAiSettings) => void;
+}) {
+	const [ai, setAi] = useState<OrgAiSettings>(initialAi);
+	const [saving, setSaving] = useState(false);
+	const [rateLimitOpen, setRateLimitOpen] = useState(false);
+	const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+	const [rateLimitReason, setRateLimitReason] = useState("");
+
+	// Derive whether the rate limit is currently active
+	const rateLimitActive = !!ai.rateLimited && new Date(ai.rateLimited.until) > new Date();
+	const rateLimitUntil = ai.rateLimited ? new Date(ai.rateLimited.until) : null;
+
+	async function applyPatch(patch: Parameters<typeof updateConsoleOrgAiSettings>[1]) {
+		setSaving(true);
+		const result = await updateConsoleOrgAiSettings(orgId, patch);
+		setSaving(false);
+		if (result.success && result.data) {
+			setAi(result.data.ai);
+			onSettingsChange(result.data.ai);
+		}
+	}
+
+	async function handleDisableToggle() {
+		await applyPatch({ disabled: !ai.disabled });
+	}
+
+	async function handleApplyRateLimit() {
+		if (!selectedDate) return;
+		await applyPatch({
+			rateLimited: {
+				until: selectedDate.toISOString(),
+				reason: rateLimitReason.trim() || undefined,
+			},
+		});
+		setRateLimitOpen(false);
+		setSelectedDate(undefined);
+		setRateLimitReason("");
+	}
+
+	async function handleRemoveRateLimit() {
+		await applyPatch({ rateLimited: null });
+	}
+
+	return (
+		<Card>
+			<CardHeader className="pb-3">
+				<div className="flex items-center justify-between gap-2 flex-wrap">
+					<div>
+						<CardTitle className="text-sm flex items-center gap-1.5">
+							<IconBrain className="size-3.5" />
+							AI Controls
+						</CardTitle>
+						<CardDescription className="text-xs mt-0.5">
+							Manage AI feature access for this organization.
+						</CardDescription>
+					</div>
+					{/* Status badge */}
+					{ai.disabled ? (
+						<Badge variant="destructive" className="gap-1 text-xs">
+							<IconBan className="size-3" />
+							Disabled
+						</Badge>
+					) : rateLimitActive ? (
+						<Badge variant="outline" className="gap-1 text-xs border-yellow-500 text-yellow-600">
+							<IconClock className="size-3" />
+							Rate Limited
+						</Badge>
+					) : (
+						<Badge variant="secondary" className="gap-1 text-xs">
+							Active
+						</Badge>
+					)}
+				</div>
+			</CardHeader>
+			<CardContent className="space-y-3">
+				{/* Rate limit info when active */}
+				{rateLimitActive && rateLimitUntil && (
+					<div className="text-xs text-muted-foreground bg-yellow-500/10 border border-yellow-500/30 rounded-md px-3 py-2">
+						<span className="font-medium text-yellow-600">Rate limited</span> until{" "}
+						<span className="font-mono">{rateLimitUntil.toLocaleString()}</span>
+						{ai.rateLimited?.reason && (
+							<span className="block mt-0.5 text-muted-foreground">Reason: {ai.rateLimited.reason}</span>
+						)}
+					</div>
+				)}
+
+				<div className="flex flex-wrap gap-2">
+					{/* Disable / Enable toggle */}
+					<Button
+						variant={ai.disabled ? "default" : "outline"}
+						size="sm"
+						className="h-8 text-xs gap-1.5"
+						onClick={handleDisableToggle}
+						disabled={saving}
+					>
+						<IconBan className="size-3.5" />
+						{ai.disabled ? "Re-enable AI" : "Disable AI"}
+					</Button>
+
+					{/* Remove rate limit */}
+					{rateLimitActive && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-8 text-xs gap-1.5"
+							onClick={handleRemoveRateLimit}
+							disabled={saving}
+						>
+							<IconX className="size-3.5" />
+							Remove Rate Limit
+						</Button>
+					)}
+
+					{/* Apply rate limit popover */}
+					{!ai.disabled && (
+						<Popover open={rateLimitOpen} onOpenChange={setRateLimitOpen}>
+							<PopoverTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-8 text-xs gap-1.5"
+									disabled={saving}
+								>
+									<IconClock className="size-3.5" />
+									{rateLimitActive ? "Extend Rate Limit" : "Rate Limit"}
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-0" align="start">
+								<div className="p-3 border-b space-y-3">
+									<p className="text-xs font-medium">Set rate limit expiry</p>
+									{/* Quick presets */}
+									<div className="flex flex-wrap gap-1.5">
+										{PRESET_DURATIONS.map((preset) => (
+											<Button
+												key={preset.days}
+												variant="outline"
+												size="sm"
+												className="h-7 text-xs"
+												onClick={() => setSelectedDate(addDays(new Date(), preset.days))}
+											>
+												{preset.label}
+											</Button>
+										))}
+									</div>
+									{/* Reason input */}
+									<div className="space-y-1">
+										<Label className="text-xs">Reason (optional)</Label>
+										<Input
+											className="h-8 text-xs"
+											placeholder="e.g. Excessive usage"
+											value={rateLimitReason}
+											onChange={(e) => setRateLimitReason(e.target.value)}
+										/>
+									</div>
+									{selectedDate && (
+										<p className="text-xs text-muted-foreground">
+											Expires: <span className="font-mono">{selectedDate.toLocaleString()}</span>
+										</p>
+									)}
+								</div>
+								<Calendar
+									mode="single"
+									selected={selectedDate}
+									onSelect={setSelectedDate}
+									disabled={(date) => date < new Date()}
+									initialFocus
+								/>
+								<div className="p-3 border-t flex justify-end gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										className="h-8 text-xs"
+										onClick={() => setRateLimitOpen(false)}
+									>
+										Cancel
+									</Button>
+									<Button
+										size="sm"
+										className="h-8 text-xs"
+										onClick={handleApplyRateLimit}
+										disabled={!selectedDate || saving}
+									>
+										Apply
+									</Button>
+								</div>
+							</PopoverContent>
+						</Popover>
+					)}
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
+// ──────────────────────────────────────────────
+// Main component
+// ──────────────────────────────────────────────
+
+export default function OrgAiUsage({ orgId, settings }: Props) {
 	const [days, setDays] = useState<DaysOption>(30);
 	const [rows, setRows] = useState<ConsoleAiUsageRow[]>([]);
 	const [monthlySummary, setMonthlySummary] = useState<ConsoleAiMonthlySummary[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+
+	// Local AI settings state — starts from org settings, updated on save
+	const [aiSettings, setAiSettings] = useState<OrgAiSettings>(() => {
+		const ai = settings?.ai;
+		return ai ?? { disabled: false, rateLimited: null, taskSummary: true };
+	});
 
 	useEffect(() => {
 		let cancelled = false;
@@ -111,6 +353,13 @@ export default function OrgAiUsage({ orgId }: Props) {
 
 	return (
 		<div className="space-y-4">
+			{/* AI Controls */}
+			<AiControlsCard
+				orgId={orgId}
+				initialAi={aiSettings}
+				onSettingsChange={setAiSettings}
+			/>
+
 			{/* Header row: title + days selector */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2 text-sm font-medium">
