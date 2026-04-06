@@ -29,6 +29,7 @@ _site/
 .turbo/
 .vercel/
 .netlify/
+.opencode/package-lock.json
 
 # Testing
 coverage/

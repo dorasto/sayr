@@ -10,11 +10,21 @@ import {
   IconSparkles,
   IconRefresh,
   IconChevronRight,
+  IconInfoCircle,
 } from "@tabler/icons-react";
 import { useState, useEffect, useRef } from "react";
 import parse from "html-react-parser";
 import { streamSummarizeTask, type AiPromptDebugInfo } from "@/lib/fetches/ai";
 import { renderMarkdown } from "@/lib/markdown";
+import { useLayoutData } from "@/components/generic/Context";
+import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
+import {
+  Tile,
+  TileDescription,
+  TileHeader,
+  TileIcon,
+  TileTitle,
+} from "@repo/ui/components/doras-ui/tile";
 
 interface AiTaskSummaryProps {
   task: schema.TaskWithLabels;
@@ -22,6 +32,7 @@ interface AiTaskSummaryProps {
 }
 
 export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
+  const { account } = useLayoutData();
   const [summary, setSummary] = useState<string | null>(null);
   const [renderedHtml, setRenderedHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,38 +126,40 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
         </Button>
       </div>
 
-      {/* Prompt preview — collapsed by default */}
-      <Collapsible>
-        <CollapsibleTrigger asChild>
-          <div className="flex items-center gap-1 group cursor-pointer w-fit">
-            <IconChevronRight
-              size={12}
-              className="text-muted-foreground group-data-[state=open]:rotate-90 transition-transform"
-            />
-            <span className="text-xs text-muted-foreground select-none">
-              View prompt
-            </span>
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          {promptDebug ? (
-            <div className="flex flex-col gap-2 mt-1.5 max-h-48 overflow-y-auto max-w-prose">
-              <div>
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted rounded-md px-3 py-2 leading-relaxed">
-                  {promptDebug.systemPrompt}
-                </pre>
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted rounded-md px-3 py-2 leading-relaxed">
-                  {promptDebug.userPrompt}
-                </pre>
-              </div>
+      {/* Prompt preview — admin only, collapsed by default */}
+      {account.role === "admin" && summary && (
+        <Collapsible className="bg-accent p-3 rounded-lg max-w-prose w-fit">
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center gap-1 group cursor-pointer w-fit">
+              <IconChevronRight
+                size={12}
+                className="text-muted-foreground group-data-[state=open]:rotate-90 transition-transform"
+              />
+              <span className="text-xs text-muted-foreground select-none">
+                View prompt
+              </span>
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground mt-1.5 italic">
-              Generate a summary to see the prompt sent to Mistral.
-            </p>
-          )}
-        </CollapsibleContent>
-      </Collapsible>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            {promptDebug ? (
+              <div className="flex flex-col gap-2 mt-1.5 max-h-48 overflow-y-auto">
+                <div>
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
+                    {promptDebug.systemPrompt}
+                  </pre>
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
+                    {promptDebug.userPrompt}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1.5 italic">
+                Generate a summary to see the prompt sent to Mistral.
+              </p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
@@ -157,6 +170,22 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
             <span className="ml-0.5 inline-block w-0.5 h-3.5 bg-foreground/60 animate-pulse align-middle" />
           )}
         </div>
+      )}
+
+      {renderedHtml && !loading && (
+        <Tile className="border border-primary/30 rounded-lg py-1">
+          <TileHeader>
+            <div className="flex items-center gap-1">
+              <TileIcon className="bg-transparent border-transparent">
+                <IconInfoCircle />
+              </TileIcon>
+              <TileTitle>AI can make mistakes</TileTitle>
+            </div>
+            <TileDescription>
+              Review important information carefully.
+            </TileDescription>
+          </TileHeader>
+        </Tile>
       )}
 
       {!summary && !loading && !error && (
