@@ -41,6 +41,7 @@ import { useEffect, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { navigationStore } from "@/lib/navigation-store";
 import { orgSettingsNavigation, settingsNavigation } from "@/lib/routemap";
+import type { OrgSettingsNavLabel } from "@/lib/routemap";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import UserDropdown from "./user-dropdown";
 
@@ -155,10 +156,14 @@ export function SettingsSidebar() {
                 <ComboBoxTrigger asChild>
                   <SidebarMenuButton
                     size="small"
-                    className="w-full justify-between"
+                    className="w-full justify-center"
                     icon={
                       selectedOrg ? (
-                        <Avatar className="h-3 w-3">
+                        <Avatar
+                          className={cn(
+                            isSidebarOpen ? "h-3 w-3" : "h-4! w-4!",
+                          )}
+                        >
                           <AvatarImage
                             src={
                               selectedOrg.logo
@@ -166,13 +171,20 @@ export function SettingsSidebar() {
                                 : ""
                             }
                             alt={selectedOrg.name}
+                            className={cn(
+                              isSidebarOpen ? "h-3 w-3" : "h-4! w-4!",
+                            )}
                           />
                           <AvatarFallback className="rounded-md uppercase text-xs">
                             <IconUsers className="h-3 w-3" />
                           </AvatarFallback>
                         </Avatar>
                       ) : (
-                        <IconUsers className="h-3 w-3" />
+                        <IconUsers
+                          className={cn(
+                            isSidebarOpen ? "h-3 w-3" : "h-4! w-4!",
+                          )}
+                        />
                       )
                     }
                     tooltip="Select organization"
@@ -221,7 +233,22 @@ export function SettingsSidebar() {
             {/* Selected org's navigation items */}
             {selectedOrg && (
               <SidebarGroup className="ml-2 pl-2 border-l mt-1">
-                {orgSettingsNavigation.map((item) => {
+                {orgSettingsNavigation.map((entry) => {
+                  if ("label" in entry) {
+                    const labelEntry = entry as OrgSettingsNavLabel;
+                    return (
+                      <SidebarGroupLabel
+                        key={`label-${labelEntry.label}`}
+                        className={cn(
+                          "mt-2 first:mt-0",
+                          isSidebarOpen ? "" : "hidden",
+                        )}
+                      >
+                        {labelEntry.label}
+                      </SidebarGroupLabel>
+                    );
+                  }
+                  const item = entry;
                   const baseUrl = `/settings/org/${selectedOrg.id}`;
                   const url = item.slug ? `${baseUrl}/${item.slug}` : baseUrl;
                   const isActive =

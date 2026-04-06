@@ -1,3 +1,4 @@
+import type React from "react";
 import * as Icon from "@tabler/icons-react";
 export const heading = [
   {
@@ -65,33 +66,33 @@ export const settingsNavigation = [
   },
 ];
 
+export type OrgSettingsNavLabel = {
+  label: string;
+  cloudOnly?: boolean;
+};
+
+export type OrgSettingsNavItem = {
+  title: string;
+  slug: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  activeIcon: React.ComponentType<{ size?: number; className?: string }>;
+  activeClass: string;
+  matchType: "exact" | "includes";
+  cloudOnly?: boolean;
+};
+
+export type OrgSettingsNavEntry = OrgSettingsNavItem | OrgSettingsNavLabel;
+
 // Organization settings sub-items (used when viewing org settings)
-const _orgSettingsNavigation = [
+const _orgSettingsNavigation: OrgSettingsNavEntry[] = [
+  { label: "Administration" },
   {
     title: "General",
     slug: "",
     icon: Icon.IconSettings,
     activeIcon: Icon.IconSettingsFilled,
-    // activeClass: "fill-white",
-    matchType: "exact" as const,
-  },
-
-  {
-    title: "Connections",
-    slug: "connections",
-    icon: Icon.IconPlug,
-    activeIcon: Icon.IconPlug,
-    activeClass: "fill-white",
-    matchType: "includes" as const,
-  },
-  {
-    title: "AI",
-    slug: "ai",
-    icon: Icon.IconSparkles,
-    activeIcon: Icon.IconSparkles,
     activeClass: "",
     matchType: "exact" as const,
-    cloudOnly: true,
   },
   {
     title: "Members",
@@ -109,6 +110,35 @@ const _orgSettingsNavigation = [
     activeClass: "fill-white",
     matchType: "includes" as const,
   },
+  {
+    title: "Billing",
+    slug: "billing",
+    icon: Icon.IconCreditCard,
+    activeIcon: Icon.IconCreditCardFilled,
+    activeClass: "",
+    matchType: "exact" as const,
+    cloudOnly: true,
+  },
+  { label: "Features" },
+  {
+    title: "Connections",
+    slug: "connections",
+    icon: Icon.IconPlug,
+    activeIcon: Icon.IconPlug,
+    activeClass: "fill-white",
+    matchType: "includes" as const,
+  },
+  {
+    title: "AI",
+    slug: "ai",
+    icon: Icon.IconSparkles,
+    activeIcon: Icon.IconSparkles,
+    activeClass: "fill-primary text-primary",
+    matchType: "exact" as const,
+    cloudOnly: true,
+  },
+
+  { label: "Customization" },
   {
     title: "Labels",
     slug: "labels",
@@ -141,20 +171,11 @@ const _orgSettingsNavigation = [
     activeClass: "",
     matchType: "includes" as const,
   },
-  {
-    title: "Billing",
-    slug: "billing",
-    icon: Icon.IconCreditCard,
-    activeIcon: Icon.IconCreditCardFilled,
-    activeClass: "",
-    matchType: "exact" as const,
-    cloudOnly: true,
-  },
 ];
 
 const edition = import.meta.env.VITE_SAYR_EDITION ?? "community";
 const isCloud = edition === "cloud";
 
 export const orgSettingsNavigation = _orgSettingsNavigation.filter(
-  (item) => !("cloudOnly" in item && item.cloudOnly) || isCloud,
+  (entry) => !("cloudOnly" in entry && entry.cloudOnly) || isCloud,
 );
