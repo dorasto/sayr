@@ -7,7 +7,7 @@ sidebar:
 
 AI Task Summary gives you an instant overview of any task — what it's about, what's happened, and where things stand — without reading through the full description, comments, and timeline.
 
-This feature is available on **Sayr Cloud** plans only.
+This feature is available on **Sayr Cloud** and on **self-hosted instances** (Community and Enterprise) when a `MISTRAL_API_KEY` is configured.
 
 ## How It Works
 
@@ -48,7 +48,9 @@ If you have a task open and new activity comes in via real-time updates, the sum
 | Edition | Available |
 |---------|-----------|
 | Cloud | Yes |
-| Community (self-hosted) | No |
-| Enterprise (self-hosted) | No |
+| Community (self-hosted) | Yes, when `MISTRAL_API_KEY` is set |
+| Enterprise (self-hosted) | Yes, when `MISTRAL_API_KEY` is set |
 
-AI features are part of the Sayr Cloud offering. Self-hosted instances do not include AI summaries.
+On Sayr Cloud, AI is managed and ready to use with no configuration. On self-hosted instances, set the `MISTRAL_API_KEY` environment variable to enable AI features. See the [self-hosting configuration guide](/docs/self-hosting) for details.
+
+Once enabled, organization admins can control AI features per-organization from **Settings → AI**.

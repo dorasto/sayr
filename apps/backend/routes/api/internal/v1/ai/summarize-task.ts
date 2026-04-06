@@ -1,6 +1,6 @@
 import { getTaskById, getMergedTaskActivity, getOrganization, getUserById, resolveOrgAiStatus, updateTaskAiSummaryMeta, type OrganizationSettings } from "@repo/database";
 import { streamText, MISTRAL_MODELS, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
-import { isCloud } from "@repo/edition";
+import { isAiEnabled } from "@repo/edition";
 import { polarClient } from "@repo/auth";
 import { getRedis } from "@repo/queue";
 import { Hono } from "hono";
@@ -39,9 +39,9 @@ summarizeTaskRoute.post("/", async (c) => {
     return c.json(errorResponse("Unauthorized"), 401);
   }
 
-  if (!isCloud()) {
+  if (!isAiEnabled()) {
     return c.json(
-      errorResponse("AI features are only available on Sayr Cloud"),
+      errorResponse("AI features are not available on this instance. Set MISTRAL_API_KEY to enable AI on self-hosted editions."),
       403,
     );
   }

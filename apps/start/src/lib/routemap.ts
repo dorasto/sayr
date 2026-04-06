@@ -79,6 +79,8 @@ export type OrgSettingsNavItem = {
   activeClass: string;
   matchType: "exact" | "includes";
   cloudOnly?: boolean;
+  /** Show only when AI is enabled on this instance (runtime check). */
+  aiOnly?: boolean;
 };
 
 export type OrgSettingsNavEntry = OrgSettingsNavItem | OrgSettingsNavLabel;
@@ -135,7 +137,7 @@ const _orgSettingsNavigation: OrgSettingsNavEntry[] = [
     activeIcon: Icon.IconSparkles,
     activeClass: "fill-primary text-primary",
     matchType: "exact" as const,
-    cloudOnly: true,
+    aiOnly: true,
   },
 
   { label: "Customization" },
@@ -176,6 +178,10 @@ const _orgSettingsNavigation: OrgSettingsNavEntry[] = [
 const edition = import.meta.env.VITE_SAYR_EDITION ?? "community";
 const isCloud = edition === "cloud";
 
-export const orgSettingsNavigation = _orgSettingsNavigation.filter(
-  (entry) => !("cloudOnly" in entry && entry.cloudOnly) || isCloud,
-);
+export const orgSettingsNavigation = _orgSettingsNavigation.filter((entry) => {
+  if (!("cloudOnly" in entry && entry.cloudOnly) || isCloud) {
+    // aiOnly items are kept in the list; runtime filtering happens in consuming components
+    return true;
+  }
+  return false;
+});

@@ -64,7 +64,7 @@ function AiRateLimitedNotice({ until }: { until: Date | null }) {
 }
 
 export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
-  const { account, organizations } = useLayoutData();
+  const { account, organizations, aiEnabled } = useLayoutData();
   const [summary, setSummary] = useState<string | null>(null);
   const [renderedHtml, setRenderedHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -164,8 +164,8 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
   // Keep the ref current so the mount effect always calls the latest version.
   handleGenerateRef.current = handleGenerate;
 
-  // Only render on Sayr Cloud
-  if (import.meta.env.VITE_SAYR_EDITION !== "cloud") {
+  // Hide if AI is not available on this instance
+  if (!aiEnabled) {
     return null;
   }
 

@@ -41,7 +41,7 @@ import { useEffect, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { navigationStore } from "@/lib/navigation-store";
 import { orgSettingsNavigation, settingsNavigation } from "@/lib/routemap";
-import type { OrgSettingsNavLabel } from "@/lib/routemap";
+import type { OrgSettingsNavLabel, OrgSettingsNavItem } from "@/lib/routemap";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import UserDropdown from "./user-dropdown";
 
@@ -51,7 +51,7 @@ export function SettingsSidebar() {
   const pathname = location.pathname;
   const { isCollapsed } = useSidebar(sidebarId);
   const isSidebarOpen = !isCollapsed;
-  const { organizations } = useLayoutData();
+  const { organizations, aiEnabled } = useLayoutData();
   const isMobile = useIsMobile();
   const lastDashboardRoute = useStore(
     navigationStore,
@@ -248,7 +248,9 @@ export function SettingsSidebar() {
                       </SidebarGroupLabel>
                     );
                   }
-                  const item = entry;
+                  const item = entry as OrgSettingsNavItem;
+                  // Hide AI-only items when AI is not enabled on this instance
+                  if (item.aiOnly && !aiEnabled) return null;
                   const baseUrl = `/settings/org/${selectedOrg.id}`;
                   const url = item.slug ? `${baseUrl}/${item.slug}` : baseUrl;
                   const isActive =

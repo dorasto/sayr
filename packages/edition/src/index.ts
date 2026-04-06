@@ -11,6 +11,7 @@ export {
 	isSelfHosted,
 	isCommunity,
 	isEnterprise,
+	isAiEnabled,
 	_resetEditionCache,
 } from "./edition";
 

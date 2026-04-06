@@ -104,3 +104,16 @@ export function isCommunity(): boolean {
 export function isEnterprise(): boolean {
 	return getEdition() === "enterprise";
 }
+
+/**
+ * Check if AI features are available on this instance.
+ *
+ * AI is available when:
+ * - Running on cloud (sayr.io), OR
+ * - Running on community/enterprise AND a MISTRAL_API_KEY is configured
+ *
+ * **Server-side only** — reads process.env.MISTRAL_API_KEY.
+ */
+export function isAiEnabled(): boolean {
+	return isCloud() || !!process.env.MISTRAL_API_KEY;
+}

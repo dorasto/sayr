@@ -1,5 +1,5 @@
 import { getTaskSummaryMeta, resolveOrgAiStatus, getOrganization, schema, db } from "@repo/database";
-import { isCloud } from "@repo/edition";
+import { isAiEnabled } from "@repo/edition";
 import { getRedis } from "@repo/queue";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -21,8 +21,8 @@ taskSummaryStatusRoute.get("/", async (c) => {
 		return c.json(errorResponse("Unauthorized"), 401);
 	}
 
-	if (!isCloud()) {
-		return c.json(errorResponse("AI features are only available on Sayr Cloud"), 403);
+	if (!isAiEnabled()) {
+		return c.json(errorResponse("AI features are not available on this instance. Set MISTRAL_API_KEY to enable AI on self-hosted editions."), 403);
 	}
 
 	const parsed = querySchema.safeParse({
