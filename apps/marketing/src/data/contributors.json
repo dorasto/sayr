@@ -14,7 +14,7 @@
     "author": {
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
-      "commits": 6,
+      "commits": 7,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"
@@ -467,6 +467,17 @@
       "name": "Tommy Lundy",
       "email": "tommerty@doras.to",
       "commits": 2,
+      "github": "tommerty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
+      "profile_url": "https://github.com/tommerty"
+    },
+    "contributors": []
+  },
+  "src/content/docs/docs/ai/task-summary.md": {
+    "author": {
+      "name": "Tommy Lundy",
+      "email": "tommerty@doras.to",
+      "commits": 3,
       "github": "tommerty",
       "avatar_url": "https://avatars.githubusercontent.com/u/86270372?v=4",
       "profile_url": "https://github.com/tommerty"

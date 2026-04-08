@@ -1,5 +1,6 @@
 import { getTaskById, getMergedTaskActivity, getOrganization, getUserById, resolveOrgAiStatus, updateTaskAiSummaryMeta, type OrganizationSettings } from "@repo/database";
-import { streamText, MISTRAL_MODELS, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
+import { streamText, streamAgent, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
+import { taskSummaryPrompt } from "@repo/ai-prompts";
 import { isAiEnabled } from "@repo/edition";
 import { polarClient } from "@repo/auth";
 import { getRedis } from "@repo/queue";
@@ -16,344 +17,377 @@ import { emitEvent } from "../../../../../clickhouse";
 export const summarizeTaskRoute = new Hono<AppEnv>();
 
 const requestSchema = z.object({
-  taskId: z.string().min(1),
-  orgId: z.string().min(1),
+	taskId: z.string().min(1),
+	orgId: z.string().min(1),
 });
 
-const SYSTEM_PROMPT = `You are a project management assistant embedded in a task view. Write a 3-4 sentence plain-English summary of what this task is and where it currently stands.
-
-Rules:
-- Lead with what the task is trying to achieve, not how it's being implemented
-- Only mention status, blockers, or key decisions if they materially change what a reader needs to know
-- Ignore Git commits, branch events, PR numbers, and label/assignee changes — these are noise un less deemed highly relevant with context
-- Do not list steps taken or implementation details
-- Do not use bullet points, headers, or markdown formatting other than bold for critical terms
-- Write as if leaving a few-line sticky note for a colleague who has never seen this task`;
-
-/** Maximum number of timeline items to include in the prompt. */
-const MAX_TIMELINE_ITEMS = 50;
+/**
+ * Sanitises org-supplied custom prompt instructions before appending them to
+ * the base system prompt.
+ *
+ * - Strips null bytes and ASCII control characters (preserves \n, \r, \t)
+ * - Trims surrounding whitespace
+ * - Enforces the per-prompt character cap defined in the prompt config
+ * - Returns null for empty or whitespace-only input
+ */
+function sanitizeCustomPrompt(input: string | null | undefined, maxLength: number): string | null {
+	if (!input) return null;
+	// Strip null bytes and control chars except newline (\x0A), carriage return (\x0D), tab (\x09)
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — stripping control chars for prompt safety
+	const stripped = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+	if (!stripped) return null;
+	return stripped.slice(0, maxLength);
+}
 
 summarizeTaskRoute.post("/", async (c) => {
-  const session = c.get("session");
-  if (!session?.userId) {
-    return c.json(errorResponse("Unauthorized"), 401);
-  }
+	const session = c.get("session");
+	if (!session?.userId) {
+		return c.json(errorResponse("Unauthorized"), 401);
+	}
 
-  if (!isAiEnabled()) {
-    return c.json(
-      errorResponse("AI features are not available on this instance. Set MISTRAL_API_KEY to enable AI on self-hosted editions."),
-      403,
-    );
-  }
+	if (!isAiEnabled()) {
+		return c.json(
+			errorResponse("AI features are not available on this instance. Set MISTRAL_API_KEY to enable AI on self-hosted editions."),
+			403,
+		);
+	}
 
-  const recordWideError = c.get("recordWideError");
+	const recordWideError = c.get("recordWideError");
 
-  let body: z.infer<typeof requestSchema>;
-  try {
-    const raw = await c.req.json();
-    body = requestSchema.parse(raw);
-  } catch {
-    return c.json(errorResponse("Invalid request body"), 400);
-  }
+	let body: z.infer<typeof requestSchema>;
+	try {
+		const raw = await c.req.json();
+		body = requestSchema.parse(raw);
+	} catch {
+		return c.json(errorResponse("Invalid request body"), 400);
+	}
 
-  const { taskId, orgId } = body;
+	const { taskId, orgId } = body;
 
-  const isAuthorized = await traceOrgPermissionCheck(
-    session.userId,
-    orgId,
-    "members",
-  );
-  if (!isAuthorized) {
-    return c.json(errorResponse("Permission denied"), 403);
-  }
+	const isAuthorized = await traceOrgPermissionCheck(
+		session.userId,
+		orgId,
+		"members",
+	);
+	if (!isAuthorized) {
+		return c.json(errorResponse("Permission denied"), 403);
+	}
 
-  let task: Awaited<ReturnType<typeof getTaskById>>;
-  let activity: Awaited<ReturnType<typeof getMergedTaskActivity>>;
-  let polarCustomerId: string | null = null;
-  let orgSlug: string = "";
-  let triggeredBy: string = "";
-  let orgSettings: OrganizationSettings | null = null;
+	let task: Awaited<ReturnType<typeof getTaskById>>;
+	let activity: Awaited<ReturnType<typeof getMergedTaskActivity>>;
+	let polarCustomerId: string | null = null;
+	let orgSlug: string = "";
+	let triggeredBy: string = "";
+	let orgSettings: OrganizationSettings | null = null;
 
-  try {
-    const [taskResult, activityResult, org, user] = await Promise.all([
-      getTaskById(orgId, taskId),
-      getMergedTaskActivity(orgId, taskId, false),
-      getOrganization(orgId, session.userId),
-      getUserById(session.userId),
-    ]);
-    task = taskResult;
-    activity = activityResult;
-    polarCustomerId = org?.polarCustomerId ?? null;
-    orgSlug = org?.slug ?? "";
-    orgSettings = org?.settings ?? null;
-    triggeredBy = user?.displayName ?? user?.name ?? session.userId;
-  } catch (err) {
-    await recordWideError({
-      name: "ai.summarize-task.fetch-failed",
-      error: err,
-      code: "AI_SUMMARIZE_TASK_FETCH_FAILED",
-      message: "Failed to fetch task data for AI summary",
-      contextData: { taskId, orgId },
-    });
-    return c.json(errorResponse("Failed to load task data"), 500);
-  }
+	try {
+		const [taskResult, activityResult, org, user] = await Promise.all([
+			getTaskById(orgId, taskId),
+			getMergedTaskActivity(orgId, taskId, false),
+			getOrganization(orgId, session.userId),
+			getUserById(session.userId),
+		]);
+		task = taskResult;
+		activity = activityResult;
+		polarCustomerId = org?.polarCustomerId ?? null;
+		orgSlug = org?.slug ?? "";
+		orgSettings = org?.settings ?? null;
+		triggeredBy = user?.displayName ?? user?.name ?? session.userId;
+	} catch (err) {
+		await recordWideError({
+			name: "ai.summarize-task.fetch-failed",
+			error: err,
+			code: "AI_SUMMARIZE_TASK_FETCH_FAILED",
+			message: "Failed to fetch task data for AI summary",
+			contextData: { taskId, orgId },
+		});
+		return c.json(errorResponse("Failed to load task data"), 500);
+	}
 
-  if (!task) {
-    return c.json(errorResponse("Task not found"), 404);
-  }
+	if (!task) {
+		return c.json(errorResponse("Task not found"), 404);
+	}
 
-  // Check org-level AI settings
-  const aiStatus = resolveOrgAiStatus(orgSettings);
-  if (aiStatus.aiDisabled) {
-    return c.json(errorResponse("AI features are disabled for this organization"), 403);
-  }
-  if (aiStatus.aiRateLimited) {
-    return c.json(
-      { success: false, error: "AI features are temporarily rate limited for this organization", until: aiStatus.rateLimitUntil?.toISOString() },
-      429,
-    );
-  }
-  if (!aiStatus.taskSummaryEnabled) {
-    return c.json(errorResponse("AI task summary is disabled for this organization"), 403);
-  }
+	// Check org-level AI settings
+	const aiStatus = resolveOrgAiStatus(orgSettings);
+	if (aiStatus.aiDisabled) {
+		return c.json(errorResponse("AI features are disabled for this organization"), 403);
+	}
+	if (aiStatus.aiRateLimited) {
+		return c.json(
+			{ success: false, error: "AI features are temporarily rate limited for this organization", until: aiStatus.rateLimitUntil?.toISOString() },
+			429,
+		);
+	}
+	if (!aiStatus.taskSummaryEnabled) {
+		return c.json(errorResponse("AI task summary is disabled for this organization"), 403);
+	}
 
-  const descriptionText = task.description
-    ? extractPlainText(task.description)
-    : "No description provided.";
+	const descriptionText = task.description
+		? extractPlainText(task.description)
+		: "No description provided.";
 
-  // Build lookup maps from data already on the task — no extra DB queries.
-  const labelMap = new Map<string, string>(
-    (task.labels ?? []).map((l) => [l.id, l.name]),
-  );
-  const assigneeMap = new Map<string, string>(
-    (task.assignees ?? []).map((a) => [
-      a.id,
-      a.displayName ?? a.name ?? "Unknown",
-    ]),
-  );
+	// Build lookup maps from data already on the task — no extra DB queries.
+	const labelMap = new Map<string, string>(
+		(task.labels ?? []).map((l) => [l.id, l.name]),
+	);
+	const assigneeMap = new Map<string, string>(
+		(task.assignees ?? []).map((a) => [
+			a.id,
+			a.displayName ?? a.name ?? "Unknown",
+		]),
+	);
 
-  const timelineText =
-    activity
-      ?.slice(0, MAX_TIMELINE_ITEMS)
-      .map((item) => buildTimelineLine(item, labelMap, assigneeMap))
-      .filter(Boolean)
-      .join("\n") ?? "";
+	const timelineText =
+		activity
+			?.slice(0, taskSummaryPrompt.maxTimelineItems)
+			.map((item) => buildTimelineLine(item, labelMap, assigneeMap))
+			.filter(Boolean)
+			.join("\n") ?? "";
 
-  const model = MISTRAL_MODELS.SMALL;
-  const userPrompt = buildUserPrompt(task, descriptionText, timelineText);
+	const userPrompt = buildUserPrompt(task, descriptionText, timelineText);
 
-  // ---------------------------------------------------------------------------
-  // Redis cache check
-  // ---------------------------------------------------------------------------
-  const contentHash = createHash("sha256").update(userPrompt).digest("hex");
-  const cacheKey = `ai:summary:${taskId}:${contentHash}`;
+	// ---------------------------------------------------------------------------
+	// Build the effective system prompt.
+	// Custom org instructions are appended after the immutable base prompt with
+	// an explicit separator so they can only add tone/style guidance — they
+	// cannot overwrite, precede, or reference the base instructions.
+	// ---------------------------------------------------------------------------
+	const customInstructions = sanitizeCustomPrompt(
+		orgSettings?.ai?.taskSummaryCustomPrompt,
+		taskSummaryPrompt.maxCustomPromptLength,
+	);
+	const effectiveSystemPrompt = customInstructions
+		? `${taskSummaryPrompt.systemPrompt}\n\n---\nAdditional tone instructions from organization settings:\n${customInstructions}`
+		: taskSummaryPrompt.systemPrompt;
 
-  try {
-    const redis = getRedis();
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      // Stream the cached text back in chunks so the client behaves identically
-      // to a live generation. No Mistral call, no Polar billing event.
-      const CHUNK_SIZE = 80;
-      const cacheStream = new ReadableStream({
-        async start(controller) {
-          const encoder = new TextEncoder();
-          // Emit a sentinel prompt event (empty) so the client parser doesn't choke.
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "prompt", systemPrompt: SYSTEM_PROMPT, userPrompt, cached: true })}\n\n`,
-            ),
-          );
-          for (let i = 0; i < cached.length; i += CHUNK_SIZE) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ chunk: cached.slice(i, i + CHUNK_SIZE) })}\n\n`,
-              ),
-            );
-          }
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+	// ---------------------------------------------------------------------------
+	// Web search capability gate.
+	// Resolved here (before the cache check) so activeModel is available in both
+	// the cache-hit path and the live generation path.
+	// ---------------------------------------------------------------------------
+	const useWebSearch =
+		taskSummaryPrompt.capabilities.webSearch &&
+		aiStatus.webSearchEnabled &&
+		!!process.env.MISTRAL_TASK_SUMMARY_AGENT_ID;
 
-          emitEvent({
-            event_type: "ai.summary_requested",
-            actor_id: session.userId,
-            target_id: taskId,
-            org_id: orgId,
-            metadata: {
-              model,
-              input_tokens: 0,
-              output_tokens: 0,
-              total_tokens: 0,
-              cost_cents: 0,
-              timeline_items: activity?.length ?? 0,
-              cache_hit: true,
-              success: true,
-            },
-          });
+	const activeModel = useWebSearch
+		? (taskSummaryPrompt.webSearchModel ?? taskSummaryPrompt.model)
+		: taskSummaryPrompt.model;
 
-          controller.close();
-        },
-      });
+	// ---------------------------------------------------------------------------
+	// Redis cache check.
+	// The hash covers both the system prompt (which includes any custom
+	// instructions) and the user prompt so that changing org instructions
+	// correctly invalidates cached summaries.
+	// ---------------------------------------------------------------------------
+	const contentHash = createHash("sha256").update(effectiveSystemPrompt + userPrompt).digest("hex");
+	const cacheKey = `ai:summary:${taskId}:${contentHash}`;
 
-      return new Response(cacheStream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache, no-transform",
-          Connection: "keep-alive",
-        },
-      });
-    }
-  } catch {
-    // Redis unavailable — fall through to Mistral as normal.
-  }
+	try {
+		const redis = getRedis();
+		const cached = await redis.get(cacheKey);
+		if (cached) {
+			// Stream the cached text back in chunks so the client behaves identically
+			// to a live generation. No Mistral call, no Polar billing event.
+			const CHUNK_SIZE = 80;
+			const cacheStream = new ReadableStream({
+				async start(controller) {
+					const encoder = new TextEncoder();
+					// Emit a sentinel prompt event (empty) so the client parser doesn't choke.
+					controller.enqueue(
+						encoder.encode(
+							`data: ${JSON.stringify({ type: "prompt", systemPrompt: effectiveSystemPrompt, userPrompt, cached: true })}\n\n`,
+						),
+					);
+					for (let i = 0; i < cached.length; i += CHUNK_SIZE) {
+						controller.enqueue(
+							encoder.encode(
+								`data: ${JSON.stringify({ chunk: cached.slice(i, i + CHUNK_SIZE) })}\n\n`,
+							),
+						);
+					}
+					controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
-  const tokenStream = streamText({
-    model,
-    systemPrompt: SYSTEM_PROMPT,
-    userPrompt,
-  });
+					emitEvent({
+						event_type: "ai.summary_requested",
+						actor_id: session.userId,
+						target_id: taskId,
+						org_id: orgId,
+						metadata: {
+							model: activeModel,
+						},
+					});
 
-  const responseBody = new ReadableStream({
-    async start(controller) {
-      const encoder = new TextEncoder();
-      let outputText = "";
-      let streamError = false;
-      let promptTokens = 0;
-      let completionTokens = 0;
-      let totalTokens = 0;
-      try {
-        // Emit the exact prompts first so clients can display/debug what was sent.
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ type: "prompt", systemPrompt: SYSTEM_PROMPT, userPrompt })}\n\n`,
-          ),
-        );
+					controller.close();
+				},
+			});
 
-        for await (const item of tokenStream) {
-          if (item.type === "chunk") {
-            outputText += item.text;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ chunk: item.text })}\n\n`),
-            );
-          } else if (item.type === "done") {
-            promptTokens = item.usage.promptTokens;
-            completionTokens = item.usage.completionTokens;
-            totalTokens = item.usage.totalTokens;
-          }
-        }
+			return new Response(cacheStream, {
+				headers: {
+					"Content-Type": "text/event-stream",
+					"Cache-Control": "no-cache, no-transform",
+					Connection: "keep-alive",
+				},
+			});
+		}
+	} catch {
+		// Redis unavailable — fall through to Mistral as normal.
+	}
 
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      } catch (err) {
-        streamError = true;
-        await recordWideError({
-          name: "ai.summarize-task.stream-failed",
-          error: err,
-          code: "AI_SUMMARIZE_TASK_STREAM_FAILED",
-          message: "Error during AI summary stream",
-          contextData: { taskId, orgId },
-        });
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ error: "Stream failed" })}\n\n`,
-          ),
-        );
-      } finally {
-        // Write to Redis cache and persist metadata on successful generation.
-        if (!streamError && outputText) {
-          try {
-            const redis = getRedis();
-            await redis.set(cacheKey, outputText, "EX", 60 * 60 * 24 * 7); // 7 days
-            await updateTaskAiSummaryMeta(orgId, taskId, contentHash, new Date());
-          } catch {
-            // Cache write failure is non-fatal — the summary was already streamed.
-          }
-        }
+	const tokenStream = useWebSearch
+		? streamAgent({
+				agentId: process.env.MISTRAL_TASK_SUMMARY_AGENT_ID as string,
+				inputs: `${effectiveSystemPrompt}\n\n${userPrompt}`,
+			})
+		: streamText({
+				model: activeModel,
+				systemPrompt: effectiveSystemPrompt,
+				userPrompt,
+			});
 
-        // Calculate cost in USD cents using per-model pricing constants.
-        const pricing = MISTRAL_MODEL_PRICING[model];
-        const costCents =
-          promptTokens * pricing.inputCentsPerToken +
-          completionTokens * pricing.outputCentsPerToken;
+	const responseBody = new ReadableStream({
+		async start(controller) {
+			const encoder = new TextEncoder();
+			let outputText = "";
+			let streamError = false;
+			let promptTokens = 0;
+			let completionTokens = 0;
+			let totalTokens = 0;
+			try {
+				// Emit the exact prompts first so clients can display/debug what was sent.
+				controller.enqueue(
+					encoder.encode(
+						`data: ${JSON.stringify({ type: "prompt", systemPrompt: effectiveSystemPrompt, userPrompt })}\n\n`,
+					),
+				);
 
-        // Emit cost event to Polar for paid orgs that have a Polar customer.
-        // Free orgs (no polarCustomerId) are silently skipped — they still appear in ClickHouse.
-        if (polarCustomerId && polarClient && !streamError) {
-          await polarClient.events
-            .ingest({
-              events: [
-                {
-                  name: "ai.task_summary",
-                  customerId: polarCustomerId,
-                  metadata: {
-                    _cost: { amount: costCents, currency: "usd" } as any,
-                    _llm: {
-                      vendor: "mistral",
-                      model,
-                      input_tokens: promptTokens,
-                      output_tokens: completionTokens,
-                      total_tokens: totalTokens,
-                    } as any,
-                    org_id: orgId,
-                    task_id: taskId,
-                    task_url: `https://${orgSlug}.${process.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
-                    triggered_by: triggeredBy,
-                    timeline_items: activity?.length ?? 0,
-                  },
-                },
-              ],
-            })
-            .catch((err: unknown) => {
-              console.error("[polar] Failed to ingest AI cost event:", err);
-            });
-        }
+				for await (const item of tokenStream) {
+					if (item.type === "chunk") {
+						outputText += item.text;
+						controller.enqueue(
+							encoder.encode(`data: ${JSON.stringify({ chunk: item.text })}\n\n`),
+						);
+					} else if (item.type === "done") {
+						promptTokens = item.usage.promptTokens;
+						completionTokens = item.usage.completionTokens;
+						totalTokens = item.usage.totalTokens;
+					}
+				}
 
-        emitEvent({
-          event_type: "ai.summary_requested",
-          actor_id: session.userId,
-          target_id: taskId,
-          org_id: orgId,
-          metadata: {
-            model,
-            input_tokens: promptTokens,
-            output_tokens: completionTokens,
-            total_tokens: totalTokens,
-            cost_cents: costCents,
-            timeline_items: activity?.length ?? 0,
-            cache_hit: false,
-            prompt: { systemPrompt: SYSTEM_PROMPT, userPrompt },
-            output_text: outputText,
-            success: !streamError,
-          },
-        });
+				controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+			} catch (err) {
+				streamError = true;
+				await recordWideError({
+					name: "ai.summarize-task.stream-failed",
+					error: err,
+					code: "AI_SUMMARIZE_TASK_STREAM_FAILED",
+					message: "Error during AI summary stream",
+					contextData: { taskId, orgId },
+				});
+				controller.enqueue(
+					encoder.encode(
+						`data: ${JSON.stringify({ error: "Stream failed" })}\n\n`,
+					),
+				);
+			} finally {
+				// Write to Redis cache and persist metadata on successful generation.
+				if (!streamError && outputText) {
+					try {
+						const redis = getRedis();
+						await redis.set(cacheKey, outputText, "EX", 60 * 60 * 24 * 7); // 7 days
+						await updateTaskAiSummaryMeta(orgId, taskId, contentHash, new Date());
+					} catch {
+						// Cache write failure is non-fatal — the summary was already streamed.
+					}
+				}
 
-        controller.close();
-      }
-    },
-  });
+				// Calculate cost in USD cents using per-model pricing constants.
+			const pricing = MISTRAL_MODEL_PRICING[activeModel];
+			const costCents =
+				promptTokens * pricing.inputCentsPerToken +
+				completionTokens * pricing.outputCentsPerToken;
 
-  return new Response(responseBody, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  });
+			// Emit cost event to Polar for paid orgs that have a Polar customer.
+			// Free orgs (no polarCustomerId) are silently skipped — they still appear in ClickHouse.
+			if (polarCustomerId && polarClient && !streamError) {
+				await polarClient.events
+					.ingest({
+						events: [
+							{
+								name: "ai.task_summary",
+								customerId: polarCustomerId,
+								metadata: {
+									_cost: { amount: costCents, currency: "usd" } as any,
+									_llm: {
+										vendor: "mistral",
+										model: activeModel,
+										input_tokens: promptTokens,
+										output_tokens: completionTokens,
+										total_tokens: totalTokens,
+									} as any,
+									org_id: orgId,
+									task_id: taskId,
+									task_url: `https://${orgSlug}.${process.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
+									triggered_by: triggeredBy,
+									timeline_items: activity?.length ?? 0,
+								},
+							},
+						],
+					})
+					.catch((err: unknown) => {
+						console.error("[polar] Failed to ingest AI cost event:", err);
+					});
+			}
+
+			emitEvent({
+				event_type: "ai.summary_requested",
+				actor_id: session.userId,
+				target_id: taskId,
+				org_id: orgId,
+				metadata: {
+					model: activeModel,
+						input_tokens: promptTokens,
+						output_tokens: completionTokens,
+						total_tokens: totalTokens,
+						cost_cents: costCents,
+						timeline_items: activity?.length ?? 0,
+						cache_hit: false,
+						prompt: { systemPrompt: effectiveSystemPrompt, userPrompt },
+						output_text: outputText,
+						success: !streamError,
+					},
+				});
+
+				controller.close();
+			}
+		},
+	});
+
+	return new Response(responseBody, {
+		headers: {
+			"Content-Type": "text/event-stream",
+			"Cache-Control": "no-cache, no-transform",
+			Connection: "keep-alive",
+		},
+	});
 });
 
 function buildUserPrompt(
-  task: NonNullable<Awaited<ReturnType<typeof getTaskById>>>,
-  descriptionText: string,
-  timelineText: string,
+	task: NonNullable<Awaited<ReturnType<typeof getTaskById>>>,
+	descriptionText: string,
+	timelineText: string,
 ): string {
-  const lines = [
-    `Title: ${task.title}`,
-    `Status: ${task.status ?? "unknown"}`,
-    `Priority: ${task.priority ?? "none"}`,
-    `Description:\n${descriptionText}`,
-  ];
+	const lines = [
+		`Title: ${task.title}`,
+		`Status: ${task.status ?? "unknown"}`,
+		`Priority: ${task.priority ?? "none"}`,
+		`Description:\n${descriptionText}`,
+	];
 
-  if (timelineText.trim()) {
-    lines.push(`Timeline:\n${timelineText}`);
-  }
+	if (timelineText.trim()) {
+		lines.push(`Timeline:\n${timelineText}`);
+	}
 
-  return lines.join("\n\n");
+	return lines.join("\n\n");
 }

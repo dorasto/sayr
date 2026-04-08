@@ -57,6 +57,9 @@ importers:
       '@repo/ai-mistral':
         specifier: workspace:*
         version: link:../../packages/ai-mistral
+      '@repo/ai-prompts':
+        specifier: workspace:*
+        version: link:../../packages/ai-prompts
       '@repo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -518,21 +521,6 @@ importers:
         specifier: ^5.3.3
         version: 5.8.3
 
-  packages/ai-mistral:
-    dependencies:
-      '@mistralai/mistralai':
-        specifier: ^1.7.2
-        version: 1.15.1
-    devDependencies:
-      '@biomejs/biome':
-        specifier: ^2.1.1
-        version: 2.1.1
-      '@repo/typescript-config':
-        specifier: workspace:*
-        version: link:../typescript-config
-      '@types/node':
-        specifier: ^24.0.14
-        version: 24.0.14
   integrations:
     dependencies:
       '@repo/integrations':
@@ -603,6 +591,38 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
+
+  packages/ai-mistral:
+    dependencies:
+      '@mistralai/mistralai':
+        specifier: ^1.7.2
+        version: 1.15.1
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^2.1.1
+        version: 2.1.1
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
+
+  packages/ai-prompts:
+    dependencies:
+      '@repo/ai-mistral':
+        specifier: workspace:*
+        version: link:../ai-mistral
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^2.1.1
+        version: 2.1.1
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
 
   packages/auth:
     dependencies:

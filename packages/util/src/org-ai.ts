@@ -29,12 +29,28 @@ export interface OrgAiSettings {
 	rateLimited: OrgAiRateLimit | null;
 	/** When false, the AI task summary panel is hidden for this org. */
 	taskSummary: boolean;
+	/**
+	 * Optional additional instructions appended to the system prompt for task summaries.
+	 * Intended for tone and style guidance only (e.g. "Use formal language.").
+	 * Sanitised and length-capped server-side before use — cannot override the base
+	 * system prompt or inject into the task data user prompt.
+	 */
+	taskSummaryCustomPrompt?: string | null;
+	/**
+	 * When true, AI features that support web search will use a web-search-enabled
+	 * agent instead of standard chat completions. Only takes effect for prompt
+	 * configs where `capabilities.webSearch` is true.
+	 * Defaults to false — opt-in, as it incurs higher cost and latency.
+	 */
+	webSearchEnabled?: boolean;
 }
 
 export const defaultOrgAiSettings: OrgAiSettings = {
 	disabled: false,
 	rateLimited: null,
 	taskSummary: true,
+	taskSummaryCustomPrompt: null,
+	webSearchEnabled: false,
 };
 
 /**
@@ -56,17 +72,19 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 	rateLimitUntil: Date | null;
 	/** When false, the AI task summary feature should be hidden. */
 	taskSummaryEnabled: boolean;
+	/** When true, AI features that support web search will use a web-search agent. */
+	webSearchEnabled: boolean;
 } {
 	const ai = settings?.ai ?? defaultOrgAiSettings;
 
 	if (ai.disabled) {
-		return { aiDisabled: true, aiRateLimited: false, rateLimitUntil: null, taskSummaryEnabled: false };
+		return { aiDisabled: true, aiRateLimited: false, rateLimitUntil: null, taskSummaryEnabled: false, webSearchEnabled: false };
 	}
 
 	if (ai.rateLimited) {
 		const until = new Date(ai.rateLimited.until);
 		if (until > new Date()) {
-			return { aiDisabled: false, aiRateLimited: true, rateLimitUntil: until, taskSummaryEnabled: ai.taskSummary };
+			return { aiDisabled: false, aiRateLimited: true, rateLimitUntil: until, taskSummaryEnabled: ai.taskSummary, webSearchEnabled: ai.webSearchEnabled ?? false };
 		}
 	}
 
@@ -75,5 +93,6 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 		aiRateLimited: false,
 		rateLimitUntil: null,
 		taskSummaryEnabled: ai.taskSummary,
+		webSearchEnabled: ai.webSearchEnabled ?? false,
 	};
 }
