@@ -213,20 +213,20 @@ export default function AiSettingsPage() {
           <div className="border-t border-border mx-4" />
           <Tile className="md:w-full" variant="transparent">
             <TileHeader className="md:w-full">
-              <TileTitle className="text-sm">Enable web search</TileTitle>
+              <TileTitle className="text-sm">Enable URL fetching</TileTitle>
               <TileDescription className="text-xs leading-normal!">
-                Allow AI features that support it to search the web for
-                up-to-date information. Uses a web-search agent and may increase
-                cost and response time. Only applies to features with web search
-                capability.
+                Allow AI features that support it to fetch and read the content
+                of external URLs found in task descriptions and comments (e.g.
+                GitHub commits and PRs). May increase cost and response time.
+                Only applies to features with URL fetch capability.
               </TileDescription>
             </TileHeader>
             <div className="flex items-center justify-end pl-4">
               <Switch
-                checked={aiSettings.webSearchEnabled ?? false}
+                checked={aiSettings.urlFetchEnabled ?? false}
                 disabled={!isAdmin || aiSettings.disabled}
                 onCheckedChange={(checked) =>
-                  handleToggle("webSearchEnabled", checked)
+                  handleToggle("urlFetchEnabled", checked)
                 }
               />
             </div>

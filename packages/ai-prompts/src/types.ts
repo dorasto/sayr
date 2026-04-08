@@ -3,19 +3,19 @@ import type { MistralModel } from "@repo/ai-mistral";
 /** Capabilities that a prompt/feature may utilise. */
 export interface PromptCapabilities {
 	/**
-	 * Whether this prompt supports Mistral web search.
-	 * When true and the org has web search enabled, the agent execution path
-	 * is used instead of the plain chat path (requires medium+ model).
+	 * Whether this prompt supports URL fetching via DocumentURLChunk.
+	 * When true and the org has URL fetching enabled, external URLs extracted
+	 * from task content are embedded as document chunks in the user message so
+	 * the model can read the actual page content.
 	 */
-	webSearch: boolean;
+	urlFetch: boolean;
 }
 
 /**
  * The complete configuration for a single AI feature/prompt.
  *
- * Co-locates model choice, system prompt text, tuning parameters, and
- * capability flags in one place so route handlers never need to hardcode
- * any of these values.
+ * Co-locates model choice, system prompt text, tuning parameters, and capability
+ * flags in one place so route handlers never need to hardcode any of these values.
  */
 export interface PromptConfig {
 	/** Unique identifier used in logging, cache keys, and debug output. */
@@ -23,18 +23,15 @@ export interface PromptConfig {
 	/** Human-readable description surfaced in admin UIs and observability tooling. */
 	description: string;
 	/**
-	 * The Mistral model to use for standard (non-agent) execution.
-	 * Overridden by webSearchModel when the agent path is active.
+	 * The Mistral model to use for standard execution.
 	 */
 	model: MistralModel;
 	/**
-	 * The model to use when the agent/web-search path is active.
-	 * Must be mistral-medium-latest or mistral-large-latest — web search is
-	 * not supported on mistral-small.
-	 * Falls back to `model` if omitted, which effectively disables web search
-	 * even if the capability flag is true.
+	 * Optional override model to use when URL fetching is active.
+	 * Larger context windows may be needed when embedding external page content.
+	 * Falls back to `model` if omitted.
 	 */
-	webSearchModel?: MistralModel;
+	urlFetchModel?: MistralModel;
 	/**
 	 * The immutable base system prompt.
 	 * Org-supplied custom instructions are appended after this string server-side
@@ -48,6 +45,6 @@ export interface PromptConfig {
 	 * Enforced server-side via sanitisation before appending to the system prompt.
 	 */
 	maxCustomPromptLength: number;
-	/** Capability flags that determine which execution path and tools are used. */
+	/** Capability flags that determine which execution path is used. */
 	capabilities: PromptCapabilities;
 }

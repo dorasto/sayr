@@ -49,12 +49,13 @@ export interface OrgAiSettings {
 	 */
 	taskSummaryCustomPrompt?: string | null;
 	/**
-	 * When true, AI features that support web search will use a web-search-enabled
-	 * agent instead of standard chat completions. Only takes effect for prompt
-	 * configs where `capabilities.webSearch` is true.
+	 * When true, AI features that support URL fetching will embed external URLs
+	 * found in task content as document chunks in the prompt, so the model can
+	 * read the actual page content. Only takes effect for prompt configs where
+	 * `capabilities.urlFetch` is true.
 	 * Defaults to false — opt-in, as it incurs higher cost and latency.
 	 */
-	webSearchEnabled?: boolean;
+	urlFetchEnabled?: boolean;
 }
 
 export const defaultOrgAiSettings: OrgAiSettings = {
@@ -62,7 +63,7 @@ export const defaultOrgAiSettings: OrgAiSettings = {
 	rateLimited: null,
 	taskSummary: true,
 	taskSummaryCustomPrompt: null,
-	webSearchEnabled: false,
+	urlFetchEnabled: false,
 };
 
 export interface OrganizationSettings {

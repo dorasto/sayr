@@ -14,12 +14,11 @@ export const releaseNotesPrompt: PromptConfig = {
 	id: "release-notes",
 	description: "Generates structured release notes from a milestone's completed tasks.",
 	model: MISTRAL_MODELS.SMALL,
-	webSearchModel: MISTRAL_MODELS.MEDIUM,
 	// TODO: Implement system prompt when the release-notes route is built.
 	systemPrompt: "",
 	maxTimelineItems: 0,
 	maxCustomPromptLength: 500,
 	capabilities: {
-		webSearch: false,
+		urlFetch: false,
 	},
 };

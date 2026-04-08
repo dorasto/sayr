@@ -37,12 +37,13 @@ export interface OrgAiSettings {
 	 */
 	taskSummaryCustomPrompt?: string | null;
 	/**
-	 * When true, AI features that support web search will use a web-search-enabled
-	 * agent instead of standard chat completions. Only takes effect for prompt
-	 * configs where `capabilities.webSearch` is true.
+	 * When true, AI features that support URL fetching will embed external URLs
+	 * found in task content as document chunks in the prompt, so the model can
+	 * read the actual page content. Only takes effect for prompt configs where
+	 * `capabilities.urlFetch` is true.
 	 * Defaults to false — opt-in, as it incurs higher cost and latency.
 	 */
-	webSearchEnabled?: boolean;
+	urlFetchEnabled?: boolean;
 }
 
 export const defaultOrgAiSettings: OrgAiSettings = {
@@ -50,7 +51,7 @@ export const defaultOrgAiSettings: OrgAiSettings = {
 	rateLimited: null,
 	taskSummary: true,
 	taskSummaryCustomPrompt: null,
-	webSearchEnabled: false,
+	urlFetchEnabled: false,
 };
 
 /**
@@ -72,19 +73,19 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 	rateLimitUntil: Date | null;
 	/** When false, the AI task summary feature should be hidden. */
 	taskSummaryEnabled: boolean;
-	/** When true, AI features that support web search will use a web-search agent. */
-	webSearchEnabled: boolean;
+	/** When true, AI features that support URL fetching will embed external URLs found in task content. */
+	urlFetchEnabled: boolean;
 } {
 	const ai = settings?.ai ?? defaultOrgAiSettings;
 
 	if (ai.disabled) {
-		return { aiDisabled: true, aiRateLimited: false, rateLimitUntil: null, taskSummaryEnabled: false, webSearchEnabled: false };
+		return { aiDisabled: true, aiRateLimited: false, rateLimitUntil: null, taskSummaryEnabled: false, urlFetchEnabled: false };
 	}
 
 	if (ai.rateLimited) {
 		const until = new Date(ai.rateLimited.until);
 		if (until > new Date()) {
-			return { aiDisabled: false, aiRateLimited: true, rateLimitUntil: until, taskSummaryEnabled: ai.taskSummary, webSearchEnabled: ai.webSearchEnabled ?? false };
+			return { aiDisabled: false, aiRateLimited: true, rateLimitUntil: until, taskSummaryEnabled: ai.taskSummary, urlFetchEnabled: ai.urlFetchEnabled ?? false };
 		}
 	}
 
@@ -93,6 +94,6 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 		aiRateLimited: false,
 		rateLimitUntil: null,
 		taskSummaryEnabled: ai.taskSummary,
-		webSearchEnabled: ai.webSearchEnabled ?? false,
+		urlFetchEnabled: ai.urlFetchEnabled ?? false,
 	};
 }

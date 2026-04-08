@@ -128,7 +128,7 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
     };
   }, [task.id, orgId]);
 
-  const handleGenerate = () => {
+  const handleGenerate = (forceRefresh = false) => {
     setSummary(null);
     setRenderedHtml(null);
     setError(null);
@@ -150,14 +150,16 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
           return next;
         });
       },
+      () => {}, // citations no longer emitted — noop
       () => {
         setLoading(false);
         setGeneratedAt(new Date().toISOString());
       },
-      (err) => {
+      (err: string) => {
         setError(err);
         setLoading(false);
       },
+      forceRefresh,
     );
   };
 
@@ -197,7 +199,7 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
             variant="ghost"
             size="sm"
             className="h-6 px-2 text-xs"
-            onClick={handleGenerate}
+            onClick={() => handleGenerate(true)}
             disabled={loading}
           >
             {loading ? (
@@ -235,6 +237,14 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
             {promptDebug ? (
               <div className="flex flex-col gap-2 mt-1.5 max-h-48 overflow-y-auto">
                 <div>
+                  <div className="flex items-center gap-1.5 px-3 pt-1 pb-0.5">
+                    <span className="text-xs text-muted-foreground font-mono">
+                      url_fetch:{" "}
+                      <span className={promptDebug.urlFetchEnabled ? "text-green-500" : "text-destructive"}>
+                        {promptDebug.urlFetchEnabled ? `enabled (${promptDebug.urlCount ?? 0} url${(promptDebug.urlCount ?? 0) !== 1 ? "s" : ""})` : "disabled"}
+                      </span>
+                    </span>
+                  </div>
                   <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
                     {promptDebug.systemPrompt}
                   </pre>

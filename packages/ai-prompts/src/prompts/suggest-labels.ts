@@ -14,12 +14,11 @@ export const suggestLabelsPrompt: PromptConfig = {
 	id: "suggest-labels",
 	description: "Suggests relevant labels for a task based on its content and the organisation's label library.",
 	model: MISTRAL_MODELS.SMALL,
-	webSearchModel: MISTRAL_MODELS.MEDIUM,
 	// TODO: Implement system prompt when the suggest-labels route is built.
 	systemPrompt: "",
 	maxTimelineItems: 0,
 	maxCustomPromptLength: 0,
 	capabilities: {
-		webSearch: false,
+		urlFetch: false,
 	},
 };

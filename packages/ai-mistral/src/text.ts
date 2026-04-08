@@ -5,6 +5,14 @@ export interface GenerateTextOptions {
 	model?: MistralModel;
 	systemPrompt: string;
 	userPrompt: string;
+	/**
+	 * Optional list of external URLs to embed as DocumentURLChunks in the user
+	 * message so the model can read the actual page content.
+	 * When provided the user message becomes a ContentChunk array rather than a
+	 * plain string: one DocumentURLChunk per URL followed by a TextChunk
+	 * containing the user prompt.
+	 */
+	urls?: string[];
 }
 
 export interface StreamTokenUsage {
@@ -15,14 +23,7 @@ export interface StreamTokenUsage {
 
 export type StreamChunk =
 	| { type: "chunk"; text: string }
-	| { type: "done"; usage: StreamTokenUsage };
-
-export interface StreamAgentOptions {
-	/** The Mistral agent ID to run (created via client.beta.agents.create). */
-	agentId: string;
-	/** The user input / prompt to send to the agent. */
-	inputs: string;
-}
+	| { type: "done"; usage: StreamTokenUsage; urlFetchUsed: boolean };
 
 export async function generateText(options: GenerateTextOptions): Promise<string> {
 	const { model = MISTRAL_MODELS.SMALL, systemPrompt, userPrompt } = options;
@@ -44,15 +45,40 @@ export async function generateText(options: GenerateTextOptions): Promise<string
 	return typeof content === "string" ? content : content.map((c) => ("text" in c ? c.text : "")).join("");
 }
 
+/**
+ * Streams a Mistral chat completion and yields `StreamChunk` values.
+ *
+ * When `urls` are provided, the user message is built as a `ContentChunk`
+ * array: one `document_url` chunk per URL (so the model fetches and reads
+ * each page) followed by a `text` chunk containing the actual user prompt.
+ * This is the DocumentURLChunk path — no conversations API, no tool use.
+ */
 export async function* streamText(options: GenerateTextOptions): AsyncGenerator<StreamChunk> {
-	const { model = MISTRAL_MODELS.SMALL, systemPrompt, userPrompt } = options;
+	const { model = MISTRAL_MODELS.SMALL, systemPrompt, userPrompt, urls } = options;
 	const client = getMistralClient();
+
+	const urlFetchUsed = (urls?.length ?? 0) > 0;
+
+	// Build the user message content: plain string OR DocumentURLChunks + text.
+	const userContent = urlFetchUsed
+		? [
+				...(urls ?? []).map((url) => ({
+					type: "document_url" as const,
+					documentUrl: url,
+				})),
+				{ type: "text" as const, text: userPrompt },
+			]
+		: userPrompt;
+
+	if (urlFetchUsed) {
+		console.log(`[ai-mistral:streamText] url-fetch path — model=${model} urls=${(urls ?? []).length}`);
+	}
 
 	const stream = await client.chat.stream({
 		model,
 		messages: [
 			{ role: "system", content: systemPrompt },
-			{ role: "user", content: userPrompt },
+			{ role: "user", content: userContent },
 		],
 	});
 
@@ -78,58 +104,6 @@ export async function* streamText(options: GenerateTextOptions): AsyncGenerator<
 	yield {
 		type: "done",
 		usage: lastUsage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-	};
-}
-
-/**
- * Runs a pre-created Mistral agent (e.g. one with `web_search` enabled) and
- * streams the response back as the same `StreamChunk` type used by `streamText`.
- *
- * The agent must already exist on the Mistral platform. Use
- * `client.beta.agents.create({ tools: [{ type: "web_search" }], ... })` to
- * provision one and persist the returned `agentId`.
- *
- * Usage tokens are not always available from the conversations streaming API
- * — they default to zero when absent rather than blocking the stream.
- */
-export async function* streamAgent(options: StreamAgentOptions): AsyncGenerator<StreamChunk> {
-	const { agentId, inputs } = options;
-	const client = getMistralClient();
-
-	const stream = await client.beta.conversations.startStream({
-		agentId,
-		inputs,
-	});
-
-	let lastUsage: StreamTokenUsage | null = null;
-
-	for await (const event of stream) {
-		// The conversations streaming API emits typed events. We care about
-		// message delta events that carry text content.
-		const eventType = (event as { type?: string }).type;
-
-		if (eventType === "conversation.response.delta") {
-			const delta = (event as { delta?: { content?: string } }).delta?.content;
-			if (typeof delta === "string" && delta.length > 0) {
-				yield { type: "chunk", text: delta };
-			}
-		}
-
-		// Capture usage if the API surfaces it on a done/complete event.
-		if (eventType === "conversation.response.done") {
-			const usage = (event as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage;
-			if (usage) {
-				lastUsage = {
-					promptTokens: usage.promptTokens ?? 0,
-					completionTokens: usage.completionTokens ?? 0,
-					totalTokens: usage.totalTokens ?? 0,
-				};
-			}
-		}
-	}
-
-	yield {
-		type: "done",
-		usage: lastUsage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+		urlFetchUsed,
 	};
 }

@@ -1,5 +1,5 @@
 import { getTaskById, getMergedTaskActivity, getOrganization, getUserById, resolveOrgAiStatus, updateTaskAiSummaryMeta, type OrganizationSettings } from "@repo/database";
-import { streamText, streamAgent, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
+import { streamText, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
 import { taskSummaryPrompt } from "@repo/ai-prompts";
 import { isAiEnabled } from "@repo/edition";
 import { polarClient } from "@repo/auth";
@@ -19,6 +19,7 @@ export const summarizeTaskRoute = new Hono<AppEnv>();
 const requestSchema = z.object({
 	taskId: z.string().min(1),
 	orgId: z.string().min(1),
+	forceRefresh: z.boolean().optional(),
 });
 
 /**
@@ -37,6 +38,18 @@ function sanitizeCustomPrompt(input: string | null | undefined, maxLength: numbe
 	const stripped = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 	if (!stripped) return null;
 	return stripped.slice(0, maxLength);
+}
+
+/**
+ * Extracts unique http/https URLs from a block of plain text.
+ * Matches URLs ending at whitespace, quotes, angle brackets, or common
+ * punctuation that would not be part of the URL itself.
+ */
+function extractUrls(text: string): string[] {
+	const urlRegex = /https?:\/\/[^\s"'<>)]+/g;
+	const matches = text.match(urlRegex) ?? [];
+	// Deduplicate while preserving order
+	return [...new Set(matches)];
 }
 
 summarizeTaskRoute.post("/", async (c) => {
@@ -62,7 +75,7 @@ summarizeTaskRoute.post("/", async (c) => {
 		return c.json(errorResponse("Invalid request body"), 400);
 	}
 
-	const { taskId, orgId } = body;
+	const { taskId, orgId, forceRefresh } = body;
 
 	const isAuthorized = await traceOrgPermissionCheck(
 		session.userId,
@@ -162,18 +175,28 @@ summarizeTaskRoute.post("/", async (c) => {
 		: taskSummaryPrompt.systemPrompt;
 
 	// ---------------------------------------------------------------------------
-	// Web search capability gate.
-	// Resolved here (before the cache check) so activeModel is available in both
-	// the cache-hit path and the live generation path.
+	// URL fetch capability gate.
+	// Active when: prompt declares the capability and org has enabled it.
+	// External URLs are extracted from description + timeline text and embedded
+	// as DocumentURLChunks so the model can read the actual page content.
 	// ---------------------------------------------------------------------------
-	const useWebSearch =
-		taskSummaryPrompt.capabilities.webSearch &&
-		aiStatus.webSearchEnabled &&
-		!!process.env.MISTRAL_TASK_SUMMARY_AGENT_ID;
+	const useUrlFetch =
+		taskSummaryPrompt.capabilities.urlFetch &&
+		aiStatus.urlFetchEnabled;
 
-	const activeModel = useWebSearch
-		? (taskSummaryPrompt.webSearchModel ?? taskSummaryPrompt.model)
+	const urls: string[] = useUrlFetch
+		? extractUrls(`${descriptionText}\n${timelineText}`)
+		: [];
+
+	console.log(`[ai:summarize-task] taskId=${taskId} orgId=${orgId} model=${taskSummaryPrompt.model} urlFetch=${useUrlFetch} (orgEnabled=${aiStatus.urlFetchEnabled}) urls=${urls.length}`);
+
+	const activeModel = useUrlFetch
+		? (taskSummaryPrompt.urlFetchModel ?? taskSummaryPrompt.model)
 		: taskSummaryPrompt.model;
+
+	if (useUrlFetch && urls.length > 0) {
+		console.log(`[ai:summarize-task] url-fetch path — model=${activeModel} embedding ${urls.length} url(s): ${urls.join(", ")}`);
+	}
 
 	// ---------------------------------------------------------------------------
 	// Redis cache check.
@@ -181,13 +204,16 @@ summarizeTaskRoute.post("/", async (c) => {
 	// instructions) and the user prompt so that changing org instructions
 	// correctly invalidates cached summaries.
 	// ---------------------------------------------------------------------------
-	const contentHash = createHash("sha256").update(effectiveSystemPrompt + userPrompt).digest("hex");
+	const contentHash = createHash("sha256")
+		.update(effectiveSystemPrompt + userPrompt + (useUrlFetch ? `:uf:${urls.join(",")}` : ""))
+		.digest("hex");
 	const cacheKey = `ai:summary:${taskId}:${contentHash}`;
 
 	try {
 		const redis = getRedis();
-		const cached = await redis.get(cacheKey);
+		const cached = forceRefresh ? null : await redis.get(cacheKey);
 		if (cached) {
+			console.log(`[ai:summarize-task] cache hit for taskId=${taskId} (forceRefresh=${forceRefresh})`);
 			// Stream the cached text back in chunks so the client behaves identically
 			// to a live generation. No Mistral call, no Polar billing event.
 			const CHUNK_SIZE = 80;
@@ -216,6 +242,8 @@ summarizeTaskRoute.post("/", async (c) => {
 						org_id: orgId,
 						metadata: {
 							model: activeModel,
+							cache_hit: true,
+							success: true,
 						},
 					});
 
@@ -233,18 +261,17 @@ summarizeTaskRoute.post("/", async (c) => {
 		}
 	} catch {
 		// Redis unavailable — fall through to Mistral as normal.
+		console.warn(`[ai:summarize-task] Redis unavailable for taskId=${taskId} — falling through to Mistral`);
 	}
 
-	const tokenStream = useWebSearch
-		? streamAgent({
-				agentId: process.env.MISTRAL_TASK_SUMMARY_AGENT_ID as string,
-				inputs: `${effectiveSystemPrompt}\n\n${userPrompt}`,
-			})
-		: streamText({
-				model: activeModel,
-				systemPrompt: effectiveSystemPrompt,
-				userPrompt,
-			});
+	console.log(`[ai:summarize-task] starting Mistral call — path=${useUrlFetch && urls.length > 0 ? "streamText (chat + DocumentURLChunks)" : "streamText (chat)"} taskId=${taskId}`);
+
+	const tokenStream = streamText({
+		model: activeModel,
+		systemPrompt: effectiveSystemPrompt,
+		userPrompt,
+		urls: useUrlFetch ? urls : undefined,
+	});
 
 	const responseBody = new ReadableStream({
 		async start(controller) {
@@ -254,11 +281,12 @@ summarizeTaskRoute.post("/", async (c) => {
 			let promptTokens = 0;
 			let completionTokens = 0;
 			let totalTokens = 0;
+			let urlFetchUsed = false;
 			try {
 				// Emit the exact prompts first so clients can display/debug what was sent.
 				controller.enqueue(
 					encoder.encode(
-						`data: ${JSON.stringify({ type: "prompt", systemPrompt: effectiveSystemPrompt, userPrompt })}\n\n`,
+						`data: ${JSON.stringify({ type: "prompt", systemPrompt: effectiveSystemPrompt, userPrompt, urlFetchEnabled: useUrlFetch, urlCount: urls.length })}\n\n`,
 					),
 				);
 
@@ -272,6 +300,8 @@ summarizeTaskRoute.post("/", async (c) => {
 						promptTokens = item.usage.promptTokens;
 						completionTokens = item.usage.completionTokens;
 						totalTokens = item.usage.totalTokens;
+						urlFetchUsed = item.urlFetchUsed;
+						console.log(`[ai:summarize-task] stream done — tokens=${totalTokens} (${promptTokens}in/${completionTokens}out) urlFetchUsed=${urlFetchUsed}`);
 					}
 				}
 
@@ -303,60 +333,69 @@ summarizeTaskRoute.post("/", async (c) => {
 				}
 
 				// Calculate cost in USD cents using per-model pricing constants.
-			const pricing = MISTRAL_MODEL_PRICING[activeModel];
-			const costCents =
-				promptTokens * pricing.inputCentsPerToken +
-				completionTokens * pricing.outputCentsPerToken;
+				const pricing = MISTRAL_MODEL_PRICING[activeModel];
+				const costCents =
+					promptTokens * pricing.inputCentsPerToken +
+					completionTokens * pricing.outputCentsPerToken;
 
-			// Emit cost event to Polar for paid orgs that have a Polar customer.
-			// Free orgs (no polarCustomerId) are silently skipped — they still appear in ClickHouse.
-			if (polarCustomerId && polarClient && !streamError) {
-				await polarClient.events
-					.ingest({
-						events: [
-							{
-								name: "ai.task_summary",
-								customerId: polarCustomerId,
-								metadata: {
-									_cost: { amount: costCents, currency: "usd" } as any,
-									_llm: {
-										vendor: "mistral",
-										model: activeModel,
-										input_tokens: promptTokens,
-										output_tokens: completionTokens,
-										total_tokens: totalTokens,
-									} as any,
-									org_id: orgId,
-									task_id: taskId,
-									task_url: `https://${orgSlug}.${process.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
-									triggered_by: triggeredBy,
-									timeline_items: activity?.length ?? 0,
+				// Emit cost event to Polar for paid orgs that have a Polar customer.
+				// Free orgs (no polarCustomerId) are silently skipped — they still appear in ClickHouse.
+				if (polarCustomerId && polarClient && !streamError) {
+					await polarClient.events
+						.ingest({
+							events: [
+								{
+									name: "ai.task_summary",
+									customerId: polarCustomerId,
+									metadata: {
+										_cost: { amount: costCents, currency: "usd" } as any,
+										_llm: {
+											vendor: "mistral",
+											model: activeModel,
+											input_tokens: promptTokens,
+											output_tokens: completionTokens,
+											total_tokens: totalTokens,
+										} as any,
+										org_id: orgId,
+										task_id: taskId,
+										task_url: `https://${orgSlug}.${process.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
+										triggered_by: triggeredBy,
+										timeline_items: activity?.length ?? 0,
+									},
 								},
-							},
-						],
-					})
-					.catch((err: unknown) => {
-						console.error("[polar] Failed to ingest AI cost event:", err);
-					});
-			}
+							],
+						})
+						.catch((err: unknown) => {
+							console.error("[polar] Failed to ingest AI cost event:", err);
+						});
+				}
 
-			emitEvent({
-				event_type: "ai.summary_requested",
-				actor_id: session.userId,
-				target_id: taskId,
-				org_id: orgId,
-				metadata: {
-					model: activeModel,
-						input_tokens: promptTokens,
-						output_tokens: completionTokens,
-						total_tokens: totalTokens,
-						cost_cents: costCents,
-						timeline_items: activity?.length ?? 0,
-						cache_hit: false,
-						prompt: { systemPrompt: effectiveSystemPrompt, userPrompt },
-						output_text: outputText,
-						success: !streamError,
-					},
+				// Await the ClickHouse emit so it completes before the stream closes.
+				await new Promise<void>((resolve) => {
+					try {
+						emitEvent({
+							event_type: "ai.summary_requested",
+							actor_id: session.userId,
+							target_id: taskId,
+							org_id: orgId,
+					metadata: {
+							model: activeModel,
+							input_tokens: promptTokens,
+							output_tokens: completionTokens,
+							total_tokens: totalTokens,
+							cost_cents: costCents,
+							timeline_items: activity?.length ?? 0,
+							cache_hit: false,
+							output_text: outputText,
+							success: !streamError,
+							url_fetch_used: urlFetchUsed,
+							url_count: urls.length,
+						},
+						});
+					} catch {
+						// Never block the stream for analytics failures.
+					}
+					setTimeout(resolve, 50);
 				});
 
 				controller.close();

@@ -6,6 +6,14 @@ const API_URL =
 export interface AiPromptDebugInfo {
   systemPrompt: string;
   userPrompt: string;
+  urlFetchEnabled?: boolean;
+  urlCount?: number;
+}
+
+export interface CitationItem {
+  title: string;
+  url: string | null;
+  favicon: string | null;
 }
 
 export type TaskSummaryStatus =
@@ -39,24 +47,27 @@ export async function fetchTaskSummaryStatus(
  * Streams an AI-generated summary for a task.
  *
  * Callbacks:
- * - `onPrompt`  — called once with the exact prompts sent to Mistral (for debugging)
- * - `onChunk`   — called for each streamed token
- * - `onDone`    — called when the stream completes
- * - `onError`   — called on any failure
+ * - `onPrompt`     — called once with the exact prompts sent to Mistral (for debugging)
+ * - `onChunk`      — called for each streamed token
+ * - `onCitations`  — called once with the list of web search citations (may be empty)
+ * - `onDone`       — called when the stream completes
+ * - `onError`      — called on any failure
  */
 export async function streamSummarizeTask(
   taskId: string,
   orgId: string,
   onPrompt: (info: AiPromptDebugInfo) => void,
   onChunk: (chunk: string) => void,
+  onCitations: (items: CitationItem[]) => void,
   onDone: () => void,
   onError: (error: string) => void,
+  forceRefresh = false,
 ): Promise<void> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/v1/ai/summarize-task`, {
       method: "POST",
-      body: JSON.stringify({ taskId, orgId }),
+      body: JSON.stringify({ taskId, orgId, forceRefresh }),
       headers: { "Content-Type": "application/json" },
       credentials: "include",
     });
@@ -112,7 +123,10 @@ export async function streamSummarizeTask(
             type?: string;
             systemPrompt?: string;
             userPrompt?: string;
+            urlFetchEnabled?: boolean;
+            urlCount?: number;
             chunk?: string;
+            items?: CitationItem[];
             error?: string;
           };
 
@@ -124,7 +138,13 @@ export async function streamSummarizeTask(
             onPrompt({
               systemPrompt: parsed.systemPrompt,
               userPrompt: parsed.userPrompt,
+              urlFetchEnabled: parsed.urlFetchEnabled,
+              urlCount: parsed.urlCount,
             });
+            continue;
+          }
+          if (parsed.type === "citations" && Array.isArray(parsed.items)) {
+            onCitations(parsed.items);
             continue;
           }
           if (parsed.error) {
