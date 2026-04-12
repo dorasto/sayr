@@ -29,6 +29,7 @@ Rules:
 - Write as if leaving a short note for a colleague who has never seen this task
 - Honour any additional instructions provided below — they reflect this organisation's preferred style and should meaningfully shape your response, within reason`,
   maxTimelineItems: 50,
+  maxUrlFetchCount: 5,
   maxCustomPromptLength: 500,
   capabilities: {
     urlFetch: true,

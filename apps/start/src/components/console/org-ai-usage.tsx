@@ -319,23 +319,37 @@ export default function OrgAiUsage({ orgId, settings }: Props) {
 		return ai ?? { disabled: false, rateLimited: null, taskSummary: true };
 	});
 
+	// Keep aiSettings in sync when settings change from the parent (settings prop is per-org).
+	useEffect(() => {
+		setAiSettings(settings?.ai ?? { disabled: false, rateLimited: null, taskSummary: true });
+	}, [settings]);
+
 	useEffect(() => {
 		let cancelled = false;
 		setLoading(true);
 		setError(null);
 
-		getConsoleOrgAiUsage(orgId, days).then((result) => {
-			if (cancelled) return;
-			if (!result.success || !result.data) {
-				setError(result.error || "Failed to load AI usage data");
+		getConsoleOrgAiUsage(orgId, days)
+			.then((result) => {
+				if (cancelled) return;
+				if (!result.success || !result.data) {
+					setError(result.error || "Failed to load AI usage data");
+					setRows([]);
+					setMonthlySummary([]);
+				} else {
+					setRows(result.data.rows);
+					setMonthlySummary(result.data.monthlySummary);
+				}
+			})
+			.catch((err: unknown) => {
+				if (cancelled) return;
+				setError((err instanceof Error ? err.message : null) || "Failed to load AI usage data");
 				setRows([]);
 				setMonthlySummary([]);
-			} else {
-				setRows(result.data.rows);
-				setMonthlySummary(result.data.monthlySummary);
-			}
-			setLoading(false);
-		});
+			})
+			.finally(() => {
+				if (!cancelled) setLoading(false);
+			});
 
 		return () => {
 			cancelled = true;
@@ -352,6 +366,7 @@ export default function OrgAiUsage({ orgId, settings }: Props) {
 		<div className="space-y-4">
 			{/* AI Controls */}
 			<AiControlsCard
+				key={orgId}
 				orgId={orgId}
 				initialAi={aiSettings}
 				onSettingsChange={setAiSettings}

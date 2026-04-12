@@ -125,39 +125,43 @@ apiRouteAdmin.post("/invite", async (c) => {
     return c.json({ success: false, error: "Unknown invite type" }, 400);
   }
 
-  // ✅ Update invite status for audit trail (shared path)
-  await traceAsync(
-    "invite.response.update_status",
-    () =>
-      db
-        .update(schema.invite)
-        .set({ status: type === "accept" ? "accepted" : "declined" })
-        .where(
-          and(
-            eq(schema.invite.id, invite.id),
-            eq(schema.invite.organizationId, invite.organizationId),
-          ),
-        ),
-    {
-      description: "Updating invite status",
-      data: {
-        invite_id: invite.id,
-        user: { id: session.userId },
-        organization: { id: invite.organizationId },
-        action: type,
-      },
-    },
-  );
+  // ✅ Re-fetch the invite from the database to prevent forged request bodies
+  // from mutating invites that don't belong to the caller.
+  const fetchedInvite = await db.query.invite.findFirst({
+    where: and(
+      eq(schema.invite.id, invite.id),
+      eq(schema.invite.organizationId, invite.organizationId),
+    ),
+  });
+
+  if (!fetchedInvite) {
+    return c.json({ success: false, error: "Invite not found" }, 404);
+  }
+
+  if (fetchedInvite.status !== "pending") {
+    return c.json({ success: false, error: "Invite is no longer pending" }, 409);
+  }
+
+  // Validate that this invite is actually intended for the authenticated user.
+  const inviteTargetsUser =
+    (fetchedInvite.recipientId && fetchedInvite.recipientId === session.userId) ||
+    (fetchedInvite.recipientEmail &&
+      (await db.query.user.findFirst({ where: eq(schema.user.id, session.userId) }))?.email?.toLowerCase() ===
+        fetchedInvite.recipientEmail.toLowerCase());
+
+  if (!inviteTargetsUser) {
+    return c.json({ success: false, error: "This invite is not for your account" }, 403);
+  }
 
   if (type === "accept") {
     const org = await db.query.organization.findFirst({
-      where: eq(schema.organization.id, invite.organizationId),
+      where: eq(schema.organization.id, fetchedInvite.organizationId),
     });
 
     // Enforce seat limit before accepting
     const assignedMembers = await db.query.member.findMany({
       where: and(
-        eq(schema.member.organizationId, invite.organizationId),
+        eq(schema.member.organizationId, fetchedInvite.organizationId),
         eq(schema.member.seatAssigned, true),
       ),
       columns: { id: true },
@@ -166,24 +170,32 @@ apiRouteAdmin.post("/invite", async (c) => {
       getEffectiveLimits(org?.plan).members ?? org?.seatCount ?? Infinity;
     const hasAvailableSeat = assignedMembers.length < seatLimit;
 
+    // ✅ Atomic transaction: mark invite accepted AND create membership together
     await traceAsync(
-      "invite.response.create_member",
+      "invite.response.accept_transaction",
       () =>
-        db.insert(schema.member).values({
-          id: randomUUID(),
-          userId: session.userId,
-          organizationId: invite.organizationId,
-          seatAssigned: hasAvailableSeat,
+        db.transaction(async (tx) => {
+          await tx
+            .update(schema.invite)
+            .set({ status: "accepted" })
+            .where(eq(schema.invite.id, fetchedInvite.id));
+          await tx.insert(schema.member).values({
+            id: randomUUID(),
+            userId: session.userId,
+            organizationId: fetchedInvite.organizationId,
+            seatAssigned: hasAvailableSeat,
+          });
         }),
       {
-        description: "Creating organization membership",
+        description: "Accepting invite and creating organization membership",
         data: {
+          invite_id: fetchedInvite.id,
           user: { id: session.userId },
-          organization: { id: invite.organizationId },
+          organization: { id: fetchedInvite.organizationId },
           seatAssigned: hasAvailableSeat,
         },
         onSuccess: () => ({
-          outcome: "Membership created",
+          outcome: "Invite accepted and membership created",
         }),
       },
     );
@@ -203,7 +215,7 @@ apiRouteAdmin.post("/invite", async (c) => {
           immediateClaim: true,
           metadata: {
             userId: session.userId,
-            organizationId: invite.organizationId,
+            organizationId: fetchedInvite.organizationId,
             action: "invite_accept_seat_assignment",
           },
         });
@@ -217,7 +229,7 @@ apiRouteAdmin.post("/invite", async (c) => {
       description: "User accepted organization invite",
       data: {
         user: { id: session.userId },
-        organization: { id: invite.organizationId },
+        organization: { id: fetchedInvite.organizationId },
       },
     });
 
@@ -225,26 +237,43 @@ apiRouteAdmin.post("/invite", async (c) => {
       event_type: "member.invite_accepted",
       actor_id: session.userId,
       target_id: session.userId,
-      org_id: invite.organizationId,
-      metadata: { invite_id: invite.id },
+      org_id: fetchedInvite.organizationId,
+      metadata: { invite_id: fetchedInvite.id },
     });
 
     emitEvent({
       event_type: "member.joined",
       actor_id: session.userId,
       target_id: session.userId,
-      org_id: invite.organizationId,
+      org_id: fetchedInvite.organizationId,
     });
 
     return c.json({ success: true });
   }
 
-  // ✅ type === "deny"
+  // ✅ type === "deny" — update status and record event
+  await traceAsync(
+    "invite.response.deny_status",
+    () =>
+      db
+        .update(schema.invite)
+        .set({ status: "declined" })
+        .where(eq(schema.invite.id, fetchedInvite.id)),
+    {
+      description: "Declining invite",
+      data: {
+        invite_id: fetchedInvite.id,
+        user: { id: session.userId },
+        organization: { id: fetchedInvite.organizationId },
+      },
+    },
+  );
+
   await traceAsync("invite.response.denied", async () => {}, {
     description: "User denied organization invite",
     data: {
       user: { id: session.userId },
-      organization: { id: invite.organizationId },
+      organization: { id: fetchedInvite.organizationId },
     },
   });
 
@@ -252,8 +281,8 @@ apiRouteAdmin.post("/invite", async (c) => {
     event_type: "member.invite_declined",
     actor_id: session.userId,
     target_id: session.userId,
-    org_id: invite.organizationId,
-    metadata: { invite_id: invite.id },
+    org_id: fetchedInvite.organizationId,
+    metadata: { invite_id: fetchedInvite.id },
   });
 
   return c.json({ success: true });

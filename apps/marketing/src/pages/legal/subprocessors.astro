@@ -36,11 +36,14 @@ const subprocessors = subprocessorsData.subprocessors as Subprocessor[];
             <p class="mt-2 text-sm text-muted-foreground">
                 Last updated: <time datetime={lastUpdated}
                     >{
-                        new Date(lastUpdated).toLocaleDateString("en-GB", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                        })
+                        (() => {
+                            const [year, month, day] = lastUpdated.split("-").map(Number);
+                            return new Date(year, month - 1, day).toLocaleDateString("en-GB", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                            });
+                        })()
                     }</time
                 >
             </p>

@@ -102,6 +102,16 @@
       "dpaUrl": "https://usesend.com/privacy"
     },
     {
+      "name": "Mistral AI SAS",
+      "type": "AI Processing",
+      "purpose": "Large language model inference for AI-powered features (task summarization and related AI capabilities)",
+      "dataProcessed": "Task titles, descriptions, comments, and timeline activity submitted to the AI summarization endpoint",
+      "dataSharedWhen": "Only when AI features are enabled and a user requests an AI task summary",
+      "location": "EU (France)",
+      "website": "https://mistral.ai",
+      "dpaUrl": "https://mistral.ai/terms/#data-processing-agreement"
+    },
+    {
       "name": "PostHog, Inc. (EU)",
       "type": "Analytics & Observability",
       "purpose": "Product analytics",
@@ -120,6 +130,16 @@
       "location": "United States",
       "website": "https://axiom.co",
       "dpaUrl": "https://axiom.co/privacy"
+    },
+    {
+      "name": "ClickHouse, Inc.",
+      "type": "Analytics & Observability",
+      "purpose": "AI usage tracking and reporting — stores aggregated AI request events (token counts, model, cost) for admin observability",
+      "dataProcessed": "AI usage events including organization identifiers, token counts, model identifiers, and cost estimates",
+      "dataSharedWhen": "Always — core infrastructure used for all users on Cloud",
+      "location": "United States",
+      "website": "https://clickhouse.com",
+      "dpaUrl": "https://clickhouse.com/legal/privacy-policy"
     }
   ]
 }

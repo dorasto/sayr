@@ -67,7 +67,7 @@ function AiRateLimitedNotice({ until }: { until: Date | null }) {
 
 const AI_UPSELL_DISMISSED_KEY = "sayr:ai-upsell-dismissed";
 
-function AiProUpsell() {
+function AiProUpsell({ orgId }: { orgId: string }) {
   // Start hidden; show only after confirming the user hasn't dismissed it.
   // This avoids a flash-of-content on page load for users who already dismissed.
   const [dismissed, setDismissed] = useState(true);
@@ -115,7 +115,7 @@ function AiProUpsell() {
         <span>
           AI features are available on the{" "}
           <a
-            href="/settings/billing"
+            href={`/settings/org/${orgId}/billing`}
             className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
           >
             Pro plan
@@ -252,7 +252,7 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
   const isOrgOnCloud = editionRaw === "cloud";
   const isOrgPro = org?.plan === "pro";
   if (isOrgOnCloud && !isOrgPro) {
-    return <AiProUpsell />;
+    return <AiProUpsell orgId={orgId} />;
   }
 
   const { aiDisabled, aiRateLimited, rateLimitUntil, taskSummaryEnabled } =

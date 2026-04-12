@@ -76,7 +76,7 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 	/** When true, AI features that support URL fetching will embed external URLs found in task content. */
 	urlFetchEnabled: boolean;
 } {
-	const ai = settings?.ai ?? defaultOrgAiSettings;
+	const ai: OrgAiSettings = { ...defaultOrgAiSettings, ...(settings?.ai ?? {}) };
 
 	if (ai.disabled) {
 		return { aiDisabled: true, aiRateLimited: false, rateLimitUntil: null, taskSummaryEnabled: false, urlFetchEnabled: false };

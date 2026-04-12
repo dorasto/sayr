@@ -44,7 +44,7 @@ function RouteComponent() {
 function SettingsHeader() {
   const location = useLocation();
   const pathname = location.pathname;
-  const { organizations } = useLayoutData();
+  const { organizations, aiEnabled } = useLayoutData();
   const isMobile = useIsMobile();
 
   const orgSettingsMatch = useMatch({
@@ -66,7 +66,7 @@ function SettingsHeader() {
     const baseUrl = `/settings/org/${orgId}`;
 
     const orgNavItems = orgSettingsNavigation.filter(
-      (entry): entry is OrgSettingsNavItem => !("label" in entry),
+      (entry): entry is OrgSettingsNavItem => !("label" in entry) && !(entry.aiOnly && !aiEnabled),
     );
 
     const getCurrentOrgSubPage = () => {

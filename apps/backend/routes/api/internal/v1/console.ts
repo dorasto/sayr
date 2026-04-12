@@ -757,24 +757,54 @@ apiRouteConsole.get("/organizations/mrr-summary", async (c) => {
 			return c.json(successResponse([]));
 		}
 
-		// Batch-fetch each subscription from Polar admin API
-		const results = await Promise.allSettled(
-			orgsWithSub.map(async (org) => {
-				const sub = await polarClient!.subscriptions.get({ id: org.polarSubscriptionId! });
-				const isYearly = sub.recurringInterval === "year";
-				const mrrCents = Math.round(sub.amount / (isYearly ? 12 : 1));
-				return {
-					org_id: org.id,
-					mrr_cents: mrrCents,
-					currency: sub.currency ?? "usd",
-					status: sub.status,
-					seats: (sub as Record<string, unknown>).seats as number | null ?? null,
-					recurring_interval: sub.recurringInterval,
-				};
-			}),
-		);
+		// Batch-fetch each subscription from Polar admin API with bounded concurrency
+		// (process in chunks of 5 to avoid Polar rate limits).
+		const CHUNK_SIZE = 5;
+		const settled: PromiseSettledResult<{
+			org_id: string;
+			mrr_cents: number;
+			currency: string;
+			status: string;
+			seats: number | null;
+			recurring_interval: string;
+		}>[] = [];
 
-		const summaries = results
+		for (let i = 0; i < orgsWithSub.length; i += CHUNK_SIZE) {
+			const chunk = orgsWithSub.slice(i, i + CHUNK_SIZE);
+			const chunkResults = await Promise.allSettled(
+				chunk.map(async (org) => {
+					const sub = await polarClient!.subscriptions.get({ id: org.polarSubscriptionId! });
+					const isYearly = sub.recurringInterval === "year";
+					const mrrCents = Math.round(sub.amount / (isYearly ? 12 : 1));
+					return {
+						org_id: org.id,
+						mrr_cents: mrrCents,
+						currency: sub.currency ?? "usd",
+						status: sub.status,
+						seats: (sub as Record<string, unknown>).seats as number | null ?? null,
+						recurring_interval: sub.recurringInterval,
+					};
+				}),
+			);
+			settled.push(...chunkResults);
+		}
+
+		const failedCount = settled.filter((r) => r.status === "rejected").length;
+		const failureRate = orgsWithSub.length > 0 ? failedCount / orgsWithSub.length : 0;
+
+		// Surface systemic failures (>50% rejected) as a 503 so callers are aware.
+		if (failureRate > 0.5) {
+			await recordWideError({
+				name: "console.organizations.mrr_summary.systemic_failure",
+				error: new Error(`${failedCount}/${orgsWithSub.length} Polar subscription fetches failed`),
+				code: "CONSOLE_ORG_MRR_SUMMARY_SYSTEMIC_FAILURE",
+				message: "Too many Polar subscription fetches failed — possible rate limit or outage",
+				contextData: { failedCount, total: orgsWithSub.length },
+			});
+			return c.json({ success: false, error: "Subscription data temporarily unavailable" }, 503);
+		}
+
+		const summaries = settled
 			.filter((r): r is PromiseFulfilledResult<{
 				org_id: string;
 				mrr_cents: number;
@@ -794,7 +824,7 @@ apiRouteConsole.get("/organizations/mrr-summary", async (c) => {
 			message: "Failed to fetch MRR summary from Polar",
 			contextData: {},
 		});
-		return c.json(successResponse([]));
+		return c.json({ success: false, error: "Failed to fetch subscription data" }, 503);
 	}
 });
 

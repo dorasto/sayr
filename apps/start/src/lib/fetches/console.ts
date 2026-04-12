@@ -475,6 +475,10 @@ export type OrgAiSettingsPatch = {
 	rateLimited?: { until: string; reason?: string } | null;
 	/** When false, the AI task summary panel is hidden for the org. */
 	taskSummary?: boolean;
+	/** Optional additional instructions appended to the system prompt for task summaries. */
+	taskSummaryCustomPrompt?: string | null;
+	/** When true, AI features that support URL fetching will embed external URLs in the prompt. */
+	urlFetchEnabled?: boolean | null;
 };
 
 /**

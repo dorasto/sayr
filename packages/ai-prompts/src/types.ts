@@ -41,6 +41,16 @@ export interface PromptConfig {
 	/** Maximum number of timeline items to include in the user prompt. */
 	maxTimelineItems: number;
 	/**
+	 * Maximum number of external URLs to embed as DocumentURLChunks per request.
+	 * URLs are prioritised: description URLs first (in order of appearance), then
+	 * comment URLs newest-first. Only URLs from the task description and
+	 * user-written comments are considered — structured GitHub timeline events
+	 * (commits, PRs, branches) are already represented as formatted text and are
+	 * excluded to avoid double-processing their pages.
+	 * Defaults to 3 if omitted.
+	 */
+	maxUrlFetchCount?: number;
+	/**
 	 * Maximum character length allowed for org-supplied custom instructions.
 	 * Enforced server-side via sanitisation before appending to the system prompt.
 	 */

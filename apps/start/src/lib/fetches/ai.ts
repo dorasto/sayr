@@ -102,7 +102,14 @@ export async function streamSummarizeTask(
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      let done: boolean;
+      let value: Uint8Array | undefined;
+      try {
+        ({ done, value } = await reader.read());
+      } catch (readErr) {
+        onError(readErr instanceof Error ? readErr.message : "Stream read error");
+        return;
+      }
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });

@@ -32,10 +32,6 @@ export const Route = createFileRoute("/(admin)/console/organizations/$orgId")({
 });
 
 function RouteComponent() {
-  const { account } = Route.useRouteContext();
-  if (account?.role !== "admin") {
-    throw redirect({ to: "/" });
-  }
   const data = Route.useLoaderData() as ConsoleOrgDetail;
   return (
     <SubWrapper

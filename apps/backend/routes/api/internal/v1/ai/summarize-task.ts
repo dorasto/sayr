@@ -52,6 +52,62 @@ function extractUrls(text: string): string[] {
 	return [...new Set(matches)];
 }
 
+/**
+ * Selects the best URLs to embed as DocumentURLChunks for the AI summary.
+ *
+ * Priority order:
+ *   1. URLs found in the task description (in order of appearance — most
+ *      intentional, placed by the task author).
+ *   2. URLs found in user-written comments, sorted newest-first (most recent
+ *      activity is most relevant).
+ *
+ * Structured GitHub timeline events (commits, PRs, branches) are intentionally
+ * excluded: they are already represented as concise formatted text lines in the
+ * timeline, so fetching their full pages would duplicate context and waste tokens.
+ *
+ * The result is deduplicated across both sources and capped at `maxCount`.
+ */
+function selectUrlsForFetch(
+	descriptionText: string,
+	activity: Awaited<ReturnType<typeof getMergedTaskActivity>>,
+	maxCount: number,
+): string[] {
+	const seen = new Set<string>();
+	const selected: string[] = [];
+
+	const add = (url: string) => {
+		if (selected.length >= maxCount) return;
+		if (seen.has(url)) return;
+		seen.add(url);
+		selected.push(url);
+	};
+
+	// 1. Description URLs — highest priority
+	for (const url of extractUrls(descriptionText)) {
+		add(url);
+	}
+
+	// 2. Comment URLs — newest-first (comments only; GitHub structured events excluded)
+	const comments = activity
+		.filter((item) => item.eventType === "comment" && item.content)
+		.slice() // avoid mutating the original array
+		.sort((a, b) => {
+			const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+			const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+			return bt - at;
+		});
+
+	for (const comment of comments) {
+		if (selected.length >= maxCount) break;
+		const text = comment.content ? extractPlainText(comment.content) : "";
+		for (const url of extractUrls(text)) {
+			add(url);
+		}
+	}
+
+	return selected;
+}
+
 summarizeTaskRoute.post("/", async (c) => {
 	const session = c.get("session");
 	if (!session?.userId) {
@@ -188,18 +244,35 @@ summarizeTaskRoute.post("/", async (c) => {
 	// ---------------------------------------------------------------------------
 	// URL fetch capability gate.
 	// Active when: prompt declares the capability and org has enabled it.
-	// External URLs are extracted from description + timeline text and embedded
-	// as DocumentURLChunks so the model can read the actual page content.
+	// URLs are selected via selectUrlsForFetch, which sources from the task
+	// description (highest priority) and user-written comments (newest-first),
+	// capped at maxUrlFetchCount. Structured GitHub timeline events are excluded
+	// since they are already represented as formatted text in the timeline.
 	// ---------------------------------------------------------------------------
 	const useUrlFetch =
 		taskSummaryPrompt.capabilities.urlFetch &&
 		aiStatus.urlFetchEnabled;
 
+	const maxUrlFetchCount = taskSummaryPrompt.maxUrlFetchCount ?? 3;
 	const urls: string[] = useUrlFetch
-		? extractUrls(`${descriptionText}\n${timelineText}`)
+		? selectUrlsForFetch(descriptionText, activity ?? [], maxUrlFetchCount)
 		: [];
 
-	console.log(`[ai:summarize-task] taskId=${taskId} orgId=${orgId} model=${taskSummaryPrompt.model} urlFetch=${useUrlFetch} (orgEnabled=${aiStatus.urlFetchEnabled}) urls=${urls.length}`);
+	const totalUrlsFound = useUrlFetch
+		? (() => {
+				const seen = new Set<string>();
+				for (const u of extractUrls(descriptionText)) seen.add(u);
+				for (const item of (activity ?? []).filter((i) => i.eventType === "comment" && i.content)) {
+					const text = item.content ? extractPlainText(item.content) : "";
+					for (const u of extractUrls(text)) seen.add(u);
+				}
+				return seen.size;
+			})()
+		: 0;
+
+	console.log(
+		`[ai:summarize-task] taskId=${taskId} orgId=${orgId} model=${taskSummaryPrompt.model} urlFetch=${useUrlFetch} (orgEnabled=${aiStatus.urlFetchEnabled}) urlsFound=${totalUrlsFound} urlsSelected=${urls.length}/${maxUrlFetchCount}`,
+	);
 
 	// Only upgrade to the URL-fetch model when there are actually URLs to embed.
 	// useUrlFetch may be true even when extractUrls returns nothing, so base the
@@ -210,7 +283,7 @@ summarizeTaskRoute.post("/", async (c) => {
 		: taskSummaryPrompt.model;
 
 	if (useUrlFetch && urls.length > 0) {
-		console.log(`[ai:summarize-task] url-fetch path — model=${activeModel} embedding ${urls.length} url(s): ${urls.join(", ")}`);
+		console.log(`[ai:summarize-task] url-fetch path — model=${activeModel} embedding ${urls.length}/${maxUrlFetchCount} url(s): ${urls.join(", ")}`);
 	}
 
 	// ---------------------------------------------------------------------------
