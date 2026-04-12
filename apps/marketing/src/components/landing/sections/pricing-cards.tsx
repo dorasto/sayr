@@ -117,6 +117,7 @@ function getHighlightsForTier(tierId: string): string[] {
       return [
         "Everything in Free",
         "Unlimited members",
+        "AI task summaries",
         "Releases & milestones",
         "Unlimited saved views",
         "Unlimited issue templates",

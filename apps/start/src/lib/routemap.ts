@@ -81,6 +81,12 @@ export type OrgSettingsNavItem = {
   cloudOnly?: boolean;
   /** Show only when AI is enabled on this instance (runtime check). */
   aiOnly?: boolean;
+  /**
+   * Show only for Pro plan organizations on cloud.
+   * On self-hosted editions this flag is ignored — all features are available.
+   * Runtime filtering happens in consuming components.
+   */
+  proOnly?: boolean;
 };
 
 export type OrgSettingsNavEntry = OrgSettingsNavItem | OrgSettingsNavLabel;

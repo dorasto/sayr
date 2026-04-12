@@ -1,7 +1,7 @@
 import { getTaskById, getMergedTaskActivity, getOrganization, getUserById, resolveOrgAiStatus, updateTaskAiSummaryMeta, type OrganizationSettings } from "@repo/database";
 import { streamText, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
 import { taskSummaryPrompt } from "@repo/ai-prompts";
-import { isAiEnabled } from "@repo/edition";
+import { isAiEnabled, isAiAllowedForOrg } from "@repo/edition";
 import { polarClient } from "@repo/auth";
 import { getRedis } from "@repo/queue";
 import { Hono } from "hono";
@@ -92,6 +92,7 @@ summarizeTaskRoute.post("/", async (c) => {
 	let orgSlug: string = "";
 	let triggeredBy: string = "";
 	let orgSettings: OrganizationSettings | null = null;
+	let orgPlan: string | null = null;
 
 	try {
 		const [taskResult, activityResult, org, user] = await Promise.all([
@@ -105,6 +106,7 @@ summarizeTaskRoute.post("/", async (c) => {
 		polarCustomerId = org?.polarCustomerId ?? null;
 		orgSlug = org?.slug ?? "";
 		orgSettings = org?.settings ?? null;
+		orgPlan = org?.plan ?? null;
 		triggeredBy = user?.displayName ?? user?.name ?? session.userId;
 	} catch (err) {
 		await recordWideError({
@@ -119,6 +121,15 @@ summarizeTaskRoute.post("/", async (c) => {
 
 	if (!task) {
 		return c.json(errorResponse("Task not found"), 404);
+	}
+
+	// On cloud, AI is a Pro plan feature. Self-hosted instances are unrestricted
+	// (availability is already controlled by MISTRAL_API_KEY via isAiEnabled()).
+	if (!isAiAllowedForOrg(orgPlan)) {
+		return c.json(
+			errorResponse("AI features are only available on the Pro plan. Please upgrade to access this feature."),
+			403,
+		);
 	}
 
 	// Check org-level AI settings

@@ -58,6 +58,7 @@ export const CLOUD_PLAN_LIMITS: Record<string, PlanLimits> = {
 		issueTemplates: 3,
 		teams: 1,
 		releases: 0,
+		aiEnabled: false,
 	},
 	pro: {
 		members: 1000,
@@ -65,6 +66,7 @@ export const CLOUD_PLAN_LIMITS: Record<string, PlanLimits> = {
 		issueTemplates: null,
 		teams: null,
 		releases: null,
+		aiEnabled: true,
 	},
 };
 
@@ -78,6 +80,7 @@ export const SELF_HOSTED_LIMITS: PlanLimits = {
 	issueTemplates: null,
 	teams: null,
 	releases: null,
+	aiEnabled: true,
 };
 
 export const FREE_LIMITS: PlanLimits = {
@@ -86,11 +89,19 @@ export const FREE_LIMITS: PlanLimits = {
 	issueTemplates: 3,
 	teams: 1,
 	releases: 0,
+	aiEnabled: false,
 };
 
 // ---------------------------------------------------------------------------
 // Pure functions (no process.env -- safe for browser use)
 // ---------------------------------------------------------------------------
+
+/**
+ * Numeric resource fields in PlanLimits (excludes boolean flags like aiEnabled).
+ * Used to constrain the generic count-based helpers so they don't accidentally
+ * receive a boolean field.
+ */
+export type NumericPlanResource = Exclude<keyof PlanLimits, "aiEnabled">;
 
 /**
  * Get the effective resource limits for an organization given a known edition.
@@ -113,6 +124,19 @@ export function getLimitsForEdition(edition: Edition, plan: string | null | unde
 }
 
 /**
+ * Check whether AI features are available for an organization given a known edition and plan.
+ *
+ * - Self-hosted: always true (AI availability is controlled by MISTRAL_API_KEY at the instance level).
+ * - Cloud free: false — AI is a Pro feature.
+ * - Cloud pro: true.
+ *
+ * Pure function -- safe for browser use.
+ */
+export function canOrgUseAi(edition: Edition, plan: string | null | undefined): boolean {
+	return getLimitsForEdition(edition, plan).aiEnabled;
+}
+
+/**
  * Check if a specific resource can be created given the current count, edition, and plan.
  * Returns `true` if creation is allowed, `false` if the limit would be exceeded.
  *
@@ -120,7 +144,7 @@ export function getLimitsForEdition(edition: Edition, plan: string | null | unde
  */
 export function canCreate(
 	edition: Edition,
-	resource: keyof PlanLimits,
+	resource: NumericPlanResource,
 	currentCount: number,
 	plan: string | null | undefined,
 ): boolean {
@@ -144,7 +168,7 @@ export function canCreate(
  */
 export function isOverLimit(
 	edition: Edition,
-	resource: keyof PlanLimits,
+	resource: NumericPlanResource,
 	currentCount: number,
 	plan: string | null | undefined,
 ): boolean {
@@ -166,7 +190,7 @@ export function isOverLimit(
  */
 export function getResourceLimitMessage(
 	edition: Edition,
-	resource: keyof PlanLimits,
+	resource: NumericPlanResource,
 	plan: string | null | undefined,
 ): string {
 	const limits = getLimitsForEdition(edition, plan);
@@ -204,11 +228,26 @@ export function getEffectiveLimits(plan: string | null | undefined): PlanLimits 
  * For browser use, call canCreate(edition, resource, count, plan) instead.
  */
 export function canCreateResource(
-	resource: keyof PlanLimits,
+	resource: NumericPlanResource,
 	currentCount: number,
 	plan: string | null | undefined,
 ): boolean {
 	return canCreate(getEdition(), resource, currentCount, plan);
+}
+
+/**
+ * Check whether AI features are available for an organization given its plan.
+ * Returns `true` if the org's plan allows AI, `false` otherwise.
+ *
+ * - Self-hosted: always true (AI availability is controlled by MISTRAL_API_KEY).
+ * - Cloud free: false.
+ * - Cloud pro: true.
+ *
+ * **Server-side only** -- calls getEdition() which reads process.env.
+ * For browser use, call canOrgUseAi(edition, plan) instead.
+ */
+export function isAiAllowedForOrg(plan: string | null | undefined): boolean {
+	return canOrgUseAi(getEdition(), plan);
 }
 
 /**
@@ -217,7 +256,7 @@ export function canCreateResource(
  * **Server-side only** -- calls getEdition() which reads process.env.
  * For browser use, call getResourceLimitMessage(edition, resource, plan) instead.
  */
-export function getLimitReachedMessage(resource: keyof PlanLimits, plan: string | null | undefined): string {
+export function getLimitReachedMessage(resource: NumericPlanResource, plan: string | null | undefined): string {
 	return getResourceLimitMessage(getEdition(), resource, plan);
 }
 
@@ -225,7 +264,7 @@ export function getLimitReachedMessage(resource: keyof PlanLimits, plan: string 
 // Helpers
 // ---------------------------------------------------------------------------
 
-export function formatResourceName(resource: keyof PlanLimits): string {
+export function formatResourceName(resource: NumericPlanResource): string {
 	switch (resource) {
 		case "members":
 			return "Members";

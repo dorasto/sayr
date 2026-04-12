@@ -17,8 +17,9 @@ import {
   TileDescription,
 } from "@repo/ui/components/doras-ui/tile";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconDeviceFloppy, IconLock } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconLock, IconSparkles } from "@tabler/icons-react";
 import { Badge } from "@repo/ui/components/badge";
+import { Link } from "@tanstack/react-router";
 import type { OrganizationSettings } from "@repo/database";
 import { type OrgAiSettings, defaultOrgAiSettings } from "@repo/util";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
@@ -27,7 +28,7 @@ import { updateOrganizationAction } from "@/lib/fetches/organization";
 
 const CUSTOM_PROMPT_MAX_LENGTH = 500;
 
-export default function AiSettingsPage() {
+export default function AiSettingsPage({ locked }: { locked?: boolean }) {
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { organization, setOrganization } = useLayoutOrganizationSettings();
   const { account } = useLayoutData();
@@ -176,8 +177,27 @@ export default function AiSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Pro plan required notice */}
+      {locked && (
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+          <IconSparkles className="size-3.5 shrink-0 mt-0.5" />
+          <span>
+            AI features require the{" "}
+            <Link
+              to="/settings/org/$orgId/billing"
+              params={{ orgId: organization.id }}
+              className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+            >
+              Pro plan
+            </Link>
+            . Upgrade to enable AI task summaries, custom instructions, and
+            more.
+          </span>
+        </div>
+      )}
+
       {/* Read-only notice for non-admins */}
-      {!isAdmin && (
+      {!isAdmin && !locked && (
         <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
           <IconLock className="size-3.5 shrink-0" />
           <span>
@@ -201,13 +221,13 @@ export default function AiSettingsPage() {
               </TileDescription>
             </TileHeader>
             <div className="flex items-center justify-end pl-4">
-              <Switch
-                checked={!aiSettings.disabled}
-                disabled={!isAdmin}
-                onCheckedChange={(checked) =>
-                  handleToggle("disabled", !checked)
-                }
-              />
+                <Switch
+                  checked={!aiSettings.disabled}
+                  disabled={!isAdmin || locked}
+                  onCheckedChange={(checked) =>
+                    handleToggle("disabled", !checked)
+                  }
+                />
             </div>
           </Tile>
           <div className="border-t border-border mx-4" />
@@ -222,13 +242,13 @@ export default function AiSettingsPage() {
               </TileDescription>
             </TileHeader>
             <div className="flex items-center justify-end pl-4">
-              <Switch
-                checked={aiSettings.urlFetchEnabled ?? false}
-                disabled={!isAdmin || aiSettings.disabled}
-                onCheckedChange={(checked) =>
-                  handleToggle("urlFetchEnabled", checked)
-                }
-              />
+                <Switch
+                  checked={aiSettings.urlFetchEnabled ?? false}
+                  disabled={!isAdmin || aiSettings.disabled || locked}
+                  onCheckedChange={(checked) =>
+                    handleToggle("urlFetchEnabled", checked)
+                  }
+                />
             </div>
           </Tile>
         </div>
@@ -278,7 +298,7 @@ export default function AiSettingsPage() {
                     <div className="flex items-center justify-end pl-4">
                       <Switch
                         checked={aiSettings.taskSummary}
-                        disabled={!isAdmin || aiSettings.disabled}
+                        disabled={!isAdmin || aiSettings.disabled || locked}
                         onCheckedChange={(checked) =>
                           handleToggle("taskSummary", checked)
                         }
@@ -319,7 +339,8 @@ export default function AiSettingsPage() {
                         disabled={
                           !isAdmin ||
                           aiSettings.disabled ||
-                          !aiSettings.taskSummary
+                          !aiSettings.taskSummary ||
+                          locked
                         }
                         className="resize-none text-sm bg-accent rounded-lg"
                       />
@@ -333,7 +354,7 @@ export default function AiSettingsPage() {
                             variant="primary"
                             className="h-7 px-2.5 text-xs"
                             onClick={handleSaveCustomPrompt}
-                            disabled={customPromptSaving || !isAdmin}
+                            disabled={customPromptSaving || !isAdmin || locked}
                           >
                             <IconDeviceFloppy className="size-3.5" />
                             Save

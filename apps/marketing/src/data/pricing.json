@@ -197,6 +197,38 @@
       ]
     },
     {
+      "name": "AI",
+      "features": [
+        {
+          "name": "AI task summaries",
+          "tiers": {
+            "free": false,
+            "pro": true,
+            "enterprise": true,
+            "self-hosted": "With API key"
+          }
+        },
+        {
+          "name": "Custom AI instructions",
+          "tiers": {
+            "free": false,
+            "pro": true,
+            "enterprise": true,
+            "self-hosted": "With API key"
+          }
+        },
+        {
+          "name": "URL context fetching",
+          "tiers": {
+            "free": false,
+            "pro": true,
+            "enterprise": true,
+            "self-hosted": "With API key"
+          }
+        }
+      ]
+    },
+    {
       "name": "Organization",
       "features": [
         {

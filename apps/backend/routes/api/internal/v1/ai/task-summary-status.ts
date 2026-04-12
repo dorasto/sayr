@@ -1,5 +1,5 @@
 import { getTaskSummaryMeta, resolveOrgAiStatus, getOrganization, schema, db } from "@repo/database";
-import { isAiEnabled } from "@repo/edition";
+import { isAiEnabled, isAiAllowedForOrg } from "@repo/edition";
 import { getRedis } from "@repo/queue";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -42,6 +42,15 @@ taskSummaryStatusRoute.get("/", async (c) => {
 
 	// Check org-level AI settings
 	const org = await getOrganization(orgId, session.userId);
+
+	// On cloud, AI is a Pro plan feature. Self-hosted instances are unrestricted.
+	if (!isAiAllowedForOrg(org?.plan ?? null)) {
+		return c.json(
+			errorResponse("AI features are only available on the Pro plan. Please upgrade to access this feature."),
+			403,
+		);
+	}
+
 	const aiStatus = resolveOrgAiStatus(org?.settings ?? null);
 	if (aiStatus.aiDisabled || !aiStatus.taskSummaryEnabled) {
 		return c.json(errorResponse("AI task summary is disabled for this organization"), 403);

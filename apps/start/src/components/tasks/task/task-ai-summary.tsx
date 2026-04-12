@@ -13,8 +13,10 @@ import {
   IconChevronRight,
   IconInfoCircle,
   IconClock,
+  IconLock,
+  IconX,
 } from "@tabler/icons-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import parse from "html-react-parser";
 import {
   streamSummarizeTask,
@@ -57,6 +59,68 @@ function AiRateLimitedNotice({ until }: { until: Date | null }) {
             </>
           ) : null}
           .
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const AI_UPSELL_DISMISSED_KEY = "sayr:ai-upsell-dismissed";
+
+function AiProUpsell() {
+  // Start hidden; show only after confirming the user hasn't dismissed it.
+  // This avoids a flash-of-content on page load for users who already dismissed.
+  const [dismissed, setDismissed] = useState(true);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(AI_UPSELL_DISMISSED_KEY) !== "1") {
+        setDismissed(false);
+      }
+    } catch {
+      setDismissed(false);
+    }
+  }, []);
+
+  const dismiss = useCallback(() => {
+    try {
+      localStorage.setItem(AI_UPSELL_DISMISSED_KEY, "1");
+    } catch {
+      // ignore
+    }
+    setDismissed(true);
+  }, []);
+
+  if (dismissed) return null;
+
+  return (
+    <div className="rounded-xl border border-dashed border-border bg-card p-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+          <IconSparkles className="size-3.5" />
+          <span>AI Summary</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+          onClick={dismiss}
+          aria-label="Dismiss"
+        >
+          <IconX className="size-3" />
+        </Button>
+      </div>
+      <div className="flex items-start gap-2 text-xs text-muted-foreground">
+        <IconLock className="size-3.5 mt-0.5 shrink-0" />
+        <span>
+          AI features are available on the{" "}
+          <a
+            href="/settings/billing"
+            className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+          >
+            Pro plan
+          </a>
+          . Upgrade to unlock AI-powered task summaries and more.
         </span>
       </div>
     </div>
@@ -173,6 +237,15 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
 
   // Resolve AI status from org settings
   const org = organizations.find((o) => o.id === orgId);
+
+  // On cloud, AI is a Pro plan feature. Show upsell for free orgs.
+  const editionRaw = import.meta.env.VITE_SAYR_EDITION as string | undefined;
+  const isOrgOnCloud = editionRaw === "cloud";
+  const isOrgPro = org?.plan === "pro";
+  if (isOrgOnCloud && !isOrgPro) {
+    return <AiProUpsell />;
+  }
+
   const { aiDisabled, aiRateLimited, rateLimitUntil, taskSummaryEnabled } =
     resolveOrgAiStatus(org?.settings);
 

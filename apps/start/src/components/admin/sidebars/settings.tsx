@@ -251,6 +251,9 @@ export function SettingsSidebar() {
                   const item = entry as OrgSettingsNavItem;
                   // Hide AI-only items when AI is not enabled on this instance
                   if (item.aiOnly && !aiEnabled) return null;
+                  // On cloud, hide Pro-only items for free-plan orgs
+                  const isCloudEdition = (import.meta.env.VITE_SAYR_EDITION as string | undefined) === "cloud";
+                  if (item.proOnly && isCloudEdition && selectedOrg.plan !== "pro") return null;
                   const baseUrl = `/settings/org/${selectedOrg.id}`;
                   const url = item.slug ? `${baseUrl}/${item.slug}` : baseUrl;
                   const isActive =

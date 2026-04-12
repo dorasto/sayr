@@ -30,7 +30,7 @@ export function BillingUpgradePrompt() {
         </TileIcon>
         <TileTitle>Upgrade to Pro</TileTitle>
         <TileDescription>
-          $3/seat/mo &mdash; Unlimited members, releases, views, and more.
+          $3/seat/mo &mdash; AI summaries, unlimited members, releases, views, and more.
         </TileDescription>
       </TileHeader>
       <TileAction>
