@@ -2,77 +2,132 @@
 import Layout from "../../layouts/Layout.astro";
 import subprocessorsData from "../../data/subprocessors.json";
 
-const { lastUpdated, subprocessors } = subprocessorsData;
+interface Subprocessor {
+    name: string;
+    type: string;
+    purpose: string;
+    dataProcessed: string;
+    dataSharedWhen: string;
+    location: string;
+    website: string;
+    dpaUrl: string | null;
+}
+
+const { lastUpdated } = subprocessorsData;
+const subprocessors = subprocessorsData.subprocessors as Subprocessor[];
 ---
 
-<Layout title="Subprocessors - Sayr" description="List of third-party subprocessors that process data on behalf of Sayr.">
-	<div class="mx-auto max-w-4xl px-6 py-16 sm:py-24">
-		<div class="mb-12">
-			<h1 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Subprocessors</h1>
-			<p class="mt-4 text-lg text-muted-foreground">
-				Sayr uses the following third-party subprocessors to deliver our services. Each subprocessor has been
-				selected with data protection in mind.
-			</p>
-			<p class="mt-2 text-sm text-muted-foreground">
-				Last updated: <time datetime={lastUpdated}>{new Date(lastUpdated).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</time>
-			</p>
-		</div>
+<Layout
+    title="Subprocessors - Sayr"
+    description="List of third-party subprocessors that process data on behalf of Sayr."
+>
+    <div class="mx-auto max-w-7xl px-6 py-16 sm:py-24">
+        <div class="mb-12">
+            <h1
+                class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+            >
+                Subprocessors
+            </h1>
+            <p class="mt-4 text-lg text-muted-foreground">
+                Sayr uses the following third-party subprocessors to deliver our
+                services. Each subprocessor has been selected with data
+                protection in mind.
+            </p>
+            <p class="mt-2 text-sm text-muted-foreground">
+                Last updated: <time datetime={lastUpdated}
+                    >{
+                        new Date(lastUpdated).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                        })
+                    }</time
+                >
+            </p>
+        </div>
 
-		<div class="overflow-x-auto rounded-lg border border-border">
-			<table class="w-full text-sm text-left">
-				<thead class="bg-muted/50 text-muted-foreground">
-					<tr>
-						<th class="px-4 py-3 font-medium">Subprocessor</th>
-						<th class="px-4 py-3 font-medium whitespace-nowrap">Type</th>
-						<th class="px-4 py-3 font-medium">Purpose</th>
-						<th class="px-4 py-3 font-medium">Data Processed</th>
-						<th class="px-4 py-3 font-medium">Location</th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-border">
-					{subprocessors.map((sp, i) => (
-						<>
-							{(i === 0 || sp.type !== subprocessors[i - 1].type) && (
-								<tr class="bg-muted/30">
-									<td colspan={5} class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-										{sp.type}
-									</td>
-								</tr>
-							)}
-							<tr class="text-foreground">
-								<td class="px-4 py-3 font-medium">
-									<a href={sp.website} target="_blank" rel="noopener noreferrer" class="hover:underline">
-										{sp.name}
-									</a>
-									{sp.dpaUrl && (
-										<a
-											href={sp.dpaUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="block text-xs text-muted-foreground hover:underline mt-0.5"
-										>
-											DPA / Privacy
-										</a>
-									)}
-								</td>
-								<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">{sp.type}</td>
-								<td class="px-4 py-3 text-muted-foreground">{sp.purpose}</td>
-								<td class="px-4 py-3 text-muted-foreground">{sp.dataProcessed}</td>
-								<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">{sp.location}</td>
-							</tr>
-						</>
-					))}
-				</tbody>
-			</table>
-		</div>
+        <div class="overflow-x-auto rounded-lg border border-border">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-muted/50 text-muted-foreground">
+                    <tr>
+                        <th class="px-4 py-3 font-medium">Subprocessor</th>
+                        <th class="px-4 py-3 font-medium">Purpose & Data Processed</th>
+                        <th class="px-4 py-3 font-medium whitespace-nowrap">Data Shared When</th>
+                        <th class="px-4 py-3 font-medium whitespace-nowrap">Location</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    {
+                        subprocessors.map((sp, i) => (
+                            <>
+                                {(i === 0 ||
+                                    sp.type !== subprocessors[i - 1].type) && (
+                                    <tr class="bg-muted/30">
+                                        <td
+                                            colspan={4}
+                                            class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                                        >
+                                            {sp.type}
+                                        </td>
+                                    </tr>
+                                )}
+                                <tr class="text-foreground">
+                                    <td class="px-4 py-3 font-medium align-top whitespace-nowrap">
+                                        <a
+                                            href={sp.website}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="hover:underline"
+                                        >
+                                            {sp.name}
+                                        </a>
+                                        {sp.dpaUrl && (
+                                            <a
+                                                href={sp.dpaUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="block text-xs text-muted-foreground hover:underline mt-0.5"
+                                            >
+                                                DPA / Privacy
+                                            </a>
+                                        )}
+                                    </td>
+                                    <td class="px-4 py-3 align-top">
+                                        <span class="text-foreground">{sp.purpose}</span>
+                                        <span class="block text-xs text-muted-foreground mt-1">{sp.dataProcessed}</span>
+                                    </td>
+                                    <td class="px-4 py-3 align-top">
+                                        <span class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${sp.dataSharedWhen.startsWith("Always") ? "bg-muted text-muted-foreground" : "bg-amber-500/10 text-amber-500"}`}>
+                                            {sp.dataSharedWhen.startsWith("Always") ? "Always" : "Conditional"}
+                                        </span>
+                                        {!sp.dataSharedWhen.startsWith("Always") && (
+                                            <span class="block text-xs text-muted-foreground mt-1">{sp.dataSharedWhen}</span>
+                                        )}
+                                    </td>
+                                    <td class="px-4 py-3 text-muted-foreground whitespace-nowrap align-top">
+                                        {sp.location}
+                                    </td>
+                                </tr>
+                            </>
+                        ))
+                    }
+                </tbody>
+            </table>
+        </div>
 
-		<div class="mt-12 rounded-lg border border-border bg-muted/30 p-6">
-			<h2 class="text-lg font-semibold text-foreground">Changes to this list</h2>
-			<p class="mt-2 text-sm text-muted-foreground">
-				We may update this list from time to time as our infrastructure evolves. If you have questions about our
-				subprocessors, please contact us at{" "}
-				<a href="mailto:support@sayr.io" class="text-foreground hover:underline">support@sayr.io</a>.
-			</p>
-		</div>
-	</div>
+        <div class="mt-12 rounded-lg border border-border bg-muted/30 p-6">
+            <h2 class="text-lg font-semibold text-foreground">
+                Changes to this list
+            </h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+                We may update this list from time to time as our infrastructure
+                evolves. If you have questions about our subprocessors, please
+                contact us at{" "}
+                <a
+                    href="mailto:support@sayr.io"
+                    class="text-foreground hover:underline">support@sayr.io</a
+                >.
+            </p>
+        </div>
+    </div>
 </Layout>
