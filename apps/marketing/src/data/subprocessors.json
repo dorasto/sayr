@@ -130,16 +130,6 @@
       "location": "United States",
       "website": "https://axiom.co",
       "dpaUrl": "https://axiom.co/privacy"
-    },
-    {
-      "name": "ClickHouse, Inc.",
-      "type": "Analytics & Observability",
-      "purpose": "AI usage tracking and reporting — stores aggregated AI request events (token counts, model, cost) for admin observability",
-      "dataProcessed": "AI usage events including organization identifiers, token counts, model identifiers, and cost estimates",
-      "dataSharedWhen": "Always — core infrastructure used for all users on Cloud",
-      "location": "United States",
-      "website": "https://clickhouse.com",
-      "dpaUrl": "https://clickhouse.com/legal/privacy-policy"
     }
   ]
 }
