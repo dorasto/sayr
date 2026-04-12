@@ -742,11 +742,11 @@ export function HeroSection() {
             asChild
           >
             <a
-              href="https://github.com/dorasto/sayr"
+              href="https://platform.sayr.io/releases/0.3.0"
               target="_blank"
               rel="noreferrer"
             >
-              Source Available & Self-Hostable{" "}
+              v0.3 dropped bringing AI to your tasks
               <ArrowUpRight className="ml-1 size-3.5" />
             </a>
           </Badge>

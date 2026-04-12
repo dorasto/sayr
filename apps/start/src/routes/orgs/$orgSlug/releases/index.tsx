@@ -307,7 +307,9 @@ function TimelineRow({
                 )}
               </TileIcon>
               <TileTitle className="text-xl">{release.name}</TileTitle>
-              <TileDescription>{descriptionPreview}</TileDescription>
+              <TileDescription className="line-clamp-3">
+                {descriptionPreview}
+              </TileDescription>
               {/* Mobile: show status + date inline */}
               <TileDescription className="flex md:hidden items-center gap-2 mt-0.5">
                 <span
