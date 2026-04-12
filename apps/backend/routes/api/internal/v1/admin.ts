@@ -125,12 +125,13 @@ apiRouteAdmin.post("/invite", async (c) => {
     return c.json({ success: false, error: "Unknown invite type" }, 400);
   }
 
-  // ✅ Delete invite (shared path)
+  // ✅ Update invite status for audit trail (shared path)
   await traceAsync(
-    "invite.response.delete",
+    "invite.response.update_status",
     () =>
       db
-        .delete(schema.invite)
+        .update(schema.invite)
+        .set({ status: type === "accept" ? "accepted" : "declined" })
         .where(
           and(
             eq(schema.invite.id, invite.id),
@@ -138,7 +139,7 @@ apiRouteAdmin.post("/invite", async (c) => {
           ),
         ),
     {
-      description: "Deleting invite record",
+      description: "Updating invite status",
       data: {
         invite_id: invite.id,
         user: { id: session.userId },
@@ -221,6 +222,14 @@ apiRouteAdmin.post("/invite", async (c) => {
     });
 
     emitEvent({
+      event_type: "member.invite_accepted",
+      actor_id: session.userId,
+      target_id: session.userId,
+      org_id: invite.organizationId,
+      metadata: { invite_id: invite.id, email: invite.email },
+    });
+
+    emitEvent({
       event_type: "member.joined",
       actor_id: session.userId,
       target_id: session.userId,
@@ -237,6 +246,14 @@ apiRouteAdmin.post("/invite", async (c) => {
       user: { id: session.userId },
       organization: { id: invite.organizationId },
     },
+  });
+
+  emitEvent({
+    event_type: "member.invite_declined",
+    actor_id: session.userId,
+    target_id: session.userId,
+    org_id: invite.organizationId,
+    metadata: { invite_id: invite.id, email: invite.email },
   });
 
   return c.json({ success: true });

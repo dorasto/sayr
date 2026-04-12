@@ -15,9 +15,9 @@ export const Route = createFileRoute("/(admin)/home")({
 });
 
 function HomeLayout() {
-	const { tasks, labels, views, categories, releases } = Route.useLoaderData();
+	const { tasks, labels, views, categories, releases, permissionsByOrg } = Route.useLoaderData();
 	return (
-		<RootProviderMyTasks tasks={tasks} labels={labels} views={views} categories={categories} releases={releases}>
+		<RootProviderMyTasks tasks={tasks} labels={labels} views={views} categories={categories} releases={releases} permissionsByOrg={permissionsByOrg}>
 			<Outlet />
 		</RootProviderMyTasks>
 	);

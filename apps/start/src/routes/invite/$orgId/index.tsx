@@ -5,7 +5,7 @@ import { db, getOrganizationPublicById, type schema } from "@repo/database";
 import { getAccess } from "@/getAccess";
 import { InvitationActions } from "@/components/invitation";
 import { SubWrapper } from "@/components/generic/wrapper";
-import { or } from "drizzle-orm";
+import { and, gt, or } from "drizzle-orm";
 import { seo, getOgImageUrl } from "@/seo";
 
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
@@ -19,11 +19,12 @@ const fetchInvite = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType; orgId: string; code: string }) => data)
 	.handler(async ({ data }) => {
 		const invite = await db.query.invite.findFirst({
-			where: (invites, { eq, and }) =>
+			where: (invites, { eq }) =>
 				and(
 					eq(invites.organizationId, data.orgId),
 					eq(invites.inviteCode, data.code),
 					eq(invites.status, "pending"),
+					gt(invites.expiresAt, new Date()),
 					or(eq(invites.userId, data.account.id), eq(invites.email, data.account.email))
 				),
 		});
@@ -39,17 +40,25 @@ export const Route = createFileRoute("/invite/$orgId/")({
 		};
 	},
 	loader: async ({ context, params, location }) => {
+		const code = (location.search as { code?: string })?.code as string | undefined;
+
 		if (!context.account) {
-			throw redirect({ to: "/auth/login" });
+			const redirectPath = `/invite/${params.orgId}${code ? `?code=${code}` : ""}`;
+			throw redirect({
+				to: "/auth/login",
+				headers: {
+					"Set-Cookie": `post_login_redirect=${encodeURIComponent(redirectPath)}; Path=/; HttpOnly; SameSite=Lax`,
+				},
+			});
 		}
-		if (((location.search as { code?: string })?.code as string) === undefined) {
+		if (code === undefined) {
 			throw redirect({ to: `/` });
 		}
 		return await fetchInvite({
 			data: {
 				account: context.account,
 				orgId: params.orgId,
-				code: (location.search as { code?: string })?.code as string,
+				code,
 			},
 		});
 	},
@@ -92,12 +101,6 @@ function RouteComponent() {
 				) : (
 					<p className="text-sm text-muted-foreground">This invite is no longer valid or has expired.</p>
 				)}
-				{/* <div className="max-w-2xl mx-auto">
-					<h1 className="text-3xl font-bold mb-4">Invite Organization {org_id}</h1>
-					<h1 className="text-3xl font-bold mb-4">Invite code {search.code}</h1>
-					<span>{invite ? "Invite is valid" : "Invite not found or expired"}</span> <br />
-					<span>{account ? `Account: ${account.email}` : "No account information available"}</span>
-				</div> */}
 			</SubWrapper>
 		</div>
 	);

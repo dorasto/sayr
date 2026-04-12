@@ -29,6 +29,8 @@ import { SubWrapper } from "@/components/generic/wrapper";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import SayrIcon from "@repo/ui/components/brand-icon";
 import { Separator } from "@repo/ui/components/separator";
+import { PendingInvitesSection } from "./pending-invites";
+import type { PendingInviteWithOrg } from "@/routes/(admin)/home/index";
 
 // Priority order for sorting tasks
 const priorityOrder: Record<string, number> = {
@@ -39,7 +41,7 @@ const priorityOrder: Record<string, number> = {
   none: 4,
 };
 
-export default function AdminHomePage() {
+export default function AdminHomePage({ pendingInvites }: { pendingInvites: PendingInviteWithOrg[] }) {
   const { serverEvents, account, organizations } = useLayoutData();
   const { tasks } = useMyTasks();
   useServerEventsSubscription({
@@ -112,6 +114,9 @@ export default function AdminHomePage() {
             )}
           </div>
         )}
+
+        {/* Pending Invites */}
+        <PendingInvitesSection invites={pendingInvites} />
 
         {/* Organizations Quick Access */}
         <section className="flex flex-col gap-3">

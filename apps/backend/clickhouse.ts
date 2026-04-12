@@ -12,6 +12,8 @@ export type PlatformEventType =
 	| "org.created"
 	| "org.settings_changed"
 	| "member.invited"
+	| "member.invite_accepted"
+	| "member.invite_declined"
 	| "member.joined"
 	| "member.removed"
 	| "task.created"
