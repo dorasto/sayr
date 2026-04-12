@@ -26,14 +26,31 @@ export type StreamChunk =
 	| { type: "done"; usage: StreamTokenUsage; urlFetchUsed: boolean };
 
 export async function generateText(options: GenerateTextOptions): Promise<string> {
-	const { model = MISTRAL_MODELS.SMALL, systemPrompt, userPrompt } = options;
+	const { model = MISTRAL_MODELS.SMALL, systemPrompt, userPrompt, urls } = options;
 	const client = getMistralClient();
+
+	const urlFetchUsed = (urls?.length ?? 0) > 0;
+
+	// Build the user message content: plain string OR DocumentURLChunks + text.
+	const userContent = urlFetchUsed
+		? [
+				...(urls ?? []).map((url) => ({
+					type: "document_url" as const,
+					documentUrl: url,
+				})),
+				{ type: "text" as const, text: userPrompt },
+			]
+		: userPrompt;
+
+	if (urlFetchUsed) {
+		console.log(`[ai-mistral:generateText] url-fetch path — model=${model} urls=${(urls ?? []).length}`);
+	}
 
 	const response = await client.chat.complete({
 		model,
 		messages: [
 			{ role: "system", content: systemPrompt },
-			{ role: "user", content: userPrompt },
+			{ role: "user", content: userContent },
 		],
 	});
 

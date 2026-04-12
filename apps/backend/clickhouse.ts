@@ -280,11 +280,15 @@ export interface AiOrgSummary {
 	total_tokens: number;
 	input_tokens: number;
 	output_tokens: number;
+	/** Sum of the persisted cost_cents values stored at event-emit time. */
+	total_cost_cents: number;
 }
 
 /**
  * Returns per-org AI usage aggregates for the last `days` days.
  * Returns null when ClickHouse is unavailable.
+ * Includes total_cost_cents so callers can compute accurate costs without
+ * needing to know the model mix.
  */
 export async function queryAiUsageSummaryAllOrgs(
 	days: number,
@@ -298,10 +302,11 @@ export async function queryAiUsageSummaryAllOrgs(
 		query: `
 			SELECT
 				org_id,
-				count()                                               AS requests,
-				sum(JSONExtractInt(metadata, 'input_tokens'))         AS input_tokens,
-				sum(JSONExtractInt(metadata, 'output_tokens'))        AS output_tokens,
-				sum(JSONExtractInt(metadata, 'total_tokens'))         AS total_tokens
+				count()                                                    AS requests,
+				sum(JSONExtractInt(metadata, 'input_tokens'))              AS input_tokens,
+				sum(JSONExtractInt(metadata, 'output_tokens'))             AS output_tokens,
+				sum(JSONExtractInt(metadata, 'total_tokens'))              AS total_tokens,
+				sum(JSONExtractFloat(metadata, 'cost_cents'))              AS total_cost_cents
 			FROM platform_events
 			WHERE event_type = 'ai.summary_requested'
 				AND created_at >= now() - INTERVAL ${safeDays} DAY

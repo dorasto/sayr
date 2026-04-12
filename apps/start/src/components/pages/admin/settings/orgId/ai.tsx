@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { Switch } from "@repo/ui/components/switch";
@@ -70,6 +70,16 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
   );
   const [customPromptSaving, setCustomPromptSaving] = useState(false);
 
+  // Per-key saving state to prevent concurrent toggle race conditions.
+  const [savingKeys, setSavingKeys] = useState<Set<keyof OrgAiSettings>>(new Set());
+  // Always-current ref so toggle handlers don't close over stale aiSettings.
+  const aiSettingsRef = useRef(aiSettings);
+  const orgSettingsRef = useRef(orgSettings);
+  const organizationRef = useRef(organization);
+  useEffect(() => { aiSettingsRef.current = aiSettings; }, [aiSettings]);
+  useEffect(() => { orgSettingsRef.current = orgSettings; }, [orgSettings]);
+  useEffect(() => { organizationRef.current = organization; }, [organization]);
+
   // Sync draft when the org settings change externally (e.g. SSE-driven update).
   useEffect(() => {
     setCustomPromptDraft(aiSettings.taskSummaryCustomPrompt ?? "");
@@ -84,45 +94,60 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
   // ---------------------------------------------------------------------------
   const handleToggle = useCallback(
     async (key: keyof OrgAiSettings, checked: boolean) => {
-      const updatedAi: OrgAiSettings = { ...aiSettings, [key]: checked };
+      // Prevent concurrent saves for the same key
+      if (savingKeys.has(key)) return;
+
+      // Read latest values from refs to avoid stale closures
+      const currentAi = aiSettingsRef.current;
+      const currentOrgSettings = orgSettingsRef.current;
+      const currentOrg = organizationRef.current;
+
+      const updatedAi: OrgAiSettings = { ...currentAi, [key]: checked };
       const updatedSettings: OrganizationSettings = {
-        ...orgSettings,
+        ...currentOrgSettings,
         ai: updatedAi,
       };
 
       // Optimistic update
-      setOrganization({ ...organization, settings: updatedSettings });
+      setOrganization({ ...currentOrg, settings: updatedSettings });
+      setSavingKeys((prev) => new Set(prev).add(key));
 
       try {
         const result = await updateOrganizationAction(
-          organization.id,
+          currentOrg.id,
           {
-            name: organization.name,
-            slug: organization.slug,
-            shortId: organization.shortId,
-            logo: organization.logo || undefined,
-            bannerImg: organization.bannerImg || undefined,
-            description: organization.description || undefined,
+            name: currentOrg.name,
+            slug: currentOrg.slug,
+            shortId: currentOrg.shortId,
+            logo: currentOrg.logo || undefined,
+            bannerImg: currentOrg.bannerImg || undefined,
+            description: currentOrg.description || undefined,
             settings: updatedSettings,
           },
           sseClientId,
         );
 
         if (result.success) {
-          setOrganization({ ...result.data, members: organization.members });
+          setOrganization({ ...result.data, members: currentOrg.members });
           headlessToast.success({ title: "Setting updated" });
         } else {
-          setOrganization({ ...organization, settings: orgSettings });
+          setOrganization({ ...currentOrg, settings: currentOrgSettings });
           headlessToast.error({
             title: result.error || "Failed to update setting",
           });
         }
       } catch {
-        setOrganization({ ...organization, settings: orgSettings });
+        setOrganization({ ...currentOrg, settings: currentOrgSettings });
         headlessToast.error({ title: "Failed to update setting" });
+      } finally {
+        setSavingKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
       }
     },
-    [organization, aiSettings, orgSettings, sseClientId, setOrganization],
+    [savingKeys, sseClientId, setOrganization],
   );
 
   const handleSaveCustomPrompt = useCallback(async () => {
@@ -223,7 +248,7 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
             <div className="flex items-center justify-end pl-4">
                 <Switch
                   checked={!aiSettings.disabled}
-                  disabled={!isAdmin || locked}
+                  disabled={!isAdmin || locked || savingKeys.has("disabled")}
                   onCheckedChange={(checked) =>
                     handleToggle("disabled", !checked)
                   }
@@ -244,7 +269,7 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
             <div className="flex items-center justify-end pl-4">
                 <Switch
                   checked={aiSettings.urlFetchEnabled ?? false}
-                  disabled={!isAdmin || aiSettings.disabled || locked}
+                  disabled={!isAdmin || aiSettings.disabled || locked || savingKeys.has("urlFetchEnabled")}
                   onCheckedChange={(checked) =>
                     handleToggle("urlFetchEnabled", checked)
                   }
@@ -298,7 +323,7 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
                     <div className="flex items-center justify-end pl-4">
                       <Switch
                         checked={aiSettings.taskSummary}
-                        disabled={!isAdmin || aiSettings.disabled || locked}
+                        disabled={!isAdmin || aiSettings.disabled || locked || savingKeys.has("taskSummary")}
                         onCheckedChange={(checked) =>
                           handleToggle("taskSummary", checked)
                         }

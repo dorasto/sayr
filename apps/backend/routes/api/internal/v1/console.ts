@@ -1085,6 +1085,8 @@ const orgAiSettingsPatchSchema = z.object({
 		])
 		.optional(),
 	taskSummary: z.boolean().optional(),
+	taskSummaryCustomPrompt: z.string().max(500).nullable().optional(),
+	urlFetchEnabled: z.boolean().optional(),
 });
 
 apiRouteConsole.patch("/organizations/:orgId/ai-settings", async (c) => {
@@ -1134,6 +1136,8 @@ apiRouteConsole.patch("/organizations/:orgId/ai-settings", async (c) => {
 					...(patch.disabled !== undefined ? { disabled: patch.disabled } : {}),
 					...(patch.rateLimited !== undefined ? { rateLimited: patch.rateLimited } : {}),
 					...(patch.taskSummary !== undefined ? { taskSummary: patch.taskSummary } : {}),
+					...(patch.taskSummaryCustomPrompt !== undefined ? { taskSummaryCustomPrompt: patch.taskSummaryCustomPrompt } : {}),
+					...(patch.urlFetchEnabled !== undefined ? { urlFetchEnabled: patch.urlFetchEnabled } : {}),
 				};
 
 				const currentSettings: OrganizationSettings = {

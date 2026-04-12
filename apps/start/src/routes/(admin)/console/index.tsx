@@ -53,6 +53,9 @@ export const Route = createFileRoute("/(admin)/console/")({
 		if (!context.account) {
 			throw redirect({ to: "/auth/login" });
 		}
+		if (context.account.role !== "admin") {
+			throw redirect({ to: "/" });
+		}
 		// Initial load: fetch page 1 server-side via direct DB access
 		const [usersResult, orgsResult] = await Promise.all([
 			getConsoleUsersServer({ data: { page: 1, limit: 25 } }),
@@ -81,10 +84,6 @@ export const Route = createFileRoute("/(admin)/console/")({
 });
 
 function RouteComponent() {
-	const { account } = Route.useRouteContext();
-	if (account?.role !== "admin") {
-		throw redirect({ to: "/" });
-	}
 	const { users, pagination, orgs, orgsPagination } = Route.useLoaderData();
 	const [activeTab, setActiveTab] = useState("users");
 

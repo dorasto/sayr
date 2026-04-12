@@ -42,9 +42,6 @@ const DAYS_OPTIONS: { value: DaysOption; label: string }[] = [
 	{ value: 90, label: "Last 90 days" },
 ];
 
-function centsToDollars(cents: number): string {
-	return `$${(cents / 100).toFixed(4)}`;
-}
 
 /**
  * EUR per-token pricing for Mistral models.
@@ -348,7 +345,7 @@ export default function OrgAiUsage({ orgId, settings }: Props) {
 	// Aggregate totals across the window
 	const totalRequests = rows.length;
 	const totalTokens = rows.reduce((sum, r) => sum + Number(r.total_tokens), 0);
-	const totalEur = rows.reduce((sum, r) => sum + (computeEurCost(r) ?? 0), 0);
+	const totalEur = rows.reduce((sum, r) => sum + (computeEurCost(r) ?? Number(r.cost_cents) / 100), 0);
 	const failedCount = rows.filter((r) => Number(r.success) === 0).length;
 
 	return (
@@ -459,10 +456,7 @@ export default function OrgAiUsage({ orgId, settings }: Props) {
 													<TableCell className="text-right text-sm">{Number(row.requests).toLocaleString()}</TableCell>
 													<TableCell className="text-right text-sm">{formatTokenCount(Number(row.total_tokens))}</TableCell>
 													<TableCell className="text-right text-sm font-mono">
-													{formatEur(
-														Number(row.input_tokens) * (MISTRAL_EUR_PRICING["mistral-small-latest"]?.inputEurPerToken ?? 0) +
-														Number(row.output_tokens) * (MISTRAL_EUR_PRICING["mistral-small-latest"]?.outputEurPerToken ?? 0)
-													)}
+													{formatEur(Number(row.cost_cents) / 100)}
 												</TableCell>
 												</TableRow>
 											))}
@@ -532,10 +526,7 @@ export default function OrgAiUsage({ orgId, settings }: Props) {
 													<TableCell className="text-right text-xs">{Number(row.output_tokens).toLocaleString()}</TableCell>
 													<TableCell className="text-right text-xs font-medium">{formatTokenCount(Number(row.total_tokens))}</TableCell>
 													<TableCell className="text-right text-xs font-mono">
-													{(() => {
-														const eur = computeEurCost(row);
-														return eur !== null ? formatEur(eur) : centsToDollars(Number(row.cost_cents));
-													})()}
+													{formatEur(computeEurCost(row) ?? Number(row.cost_cents) / 100)}
 												</TableCell>
 													<TableCell>
 														{Number(row.success) === 1 ? (

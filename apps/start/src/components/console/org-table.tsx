@@ -112,12 +112,9 @@ const MISTRAL_EUR_PRICING: Record<
 };
 
 function computeOrgEurCost(summary: ConsoleOrgAiSummary): number {
-  // All current usage is mistral-small-latest; approximate with its pricing.
-  const pricing = MISTRAL_EUR_PRICING["mistral-small-latest"]!;
-  return (
-    Number(summary.input_tokens) * pricing.inputEurPerToken +
-    Number(summary.output_tokens) * pricing.outputEurPerToken
-  );
+  // Use the persisted cost_cents from ClickHouse (stored at event-emit time in EUR cents)
+  // so the figure is accurate regardless of model mix.
+  return Number(summary.total_cost_cents) / 100;
 }
 
 function formatTokenCount(n: number): string {
@@ -434,9 +431,11 @@ export default function OrgTable({ initialData }: OrgTableProps) {
       const next = typeof updater === "function" ? updater(sorting) : updater;
       setSorting(next);
       const nextCol = next[0];
+      // Always reset to page 1 when sorting changes so the user sees the
+      // first page of results for both client-side and server-side sorts.
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
       if (!nextCol || !AI_SORT_COLS.has(nextCol.id)) {
-        // Server-side column: reset to page 1 and refetch
-        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+        // Server-side column: trigger a refetch from page 1
       }
     },
     enableSortingRemoval: false,

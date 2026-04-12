@@ -3,6 +3,15 @@ import type { OrganizationSettings, TeamPermissions, OrgAiSettings, OrgAiRateLim
 
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
+/** Safely parse a Response body as JSON; returns null if parsing fails (e.g. HTML error pages). */
+async function readJsonSafe(res: Response): Promise<unknown> {
+	try {
+		return await res.json();
+	} catch {
+		return null;
+	}
+}
+
 // ──────────────────────────────────────────────
 // Types
 // ──────────────────────────────────────────────
@@ -293,11 +302,11 @@ export async function getConsoleOrgs(
 		credentials: "include",
 	});
 
-	const json = await res.json();
+	const json = await readJsonSafe(res) as Record<string, unknown> | null;
 	if (!res.ok) {
-		return { success: false, data: [], error: json?.error || "Failed to fetch organizations" };
+		return { success: false, data: [], error: (json as { error?: string } | null)?.error || "Failed to fetch organizations" };
 	}
-	return json;
+	return json as { success: boolean; data: ConsoleOrg[]; pagination?: ConsolePaginationMeta; error?: string };
 }
 
 /**
@@ -311,11 +320,11 @@ export async function getConsoleOrg(
 		credentials: "include",
 	});
 
-	const json = await res.json();
+	const json = await readJsonSafe(res) as Record<string, unknown> | null;
 	if (!res.ok) {
-		return { success: false, error: json?.error || "Failed to fetch organization" };
+		return { success: false, error: (json as { error?: string } | null)?.error || "Failed to fetch organization" };
 	}
-	return json;
+	return json as { success: boolean; data?: ConsoleOrgDetail; error?: string };
 }
 
 // ──────────────────────────────────────────────
@@ -369,11 +378,11 @@ export async function getConsoleOrgAiUsage(
 		credentials: "include",
 	});
 
-	const json = await res.json();
+	const json = await readJsonSafe(res) as Record<string, unknown> | null;
 	if (!res.ok) {
-		return { success: false, error: json?.error || "Failed to fetch AI usage" };
+		return { success: false, error: (json as { error?: string } | null)?.error || "Failed to fetch AI usage" };
 	}
-	return json;
+	return json as { success: boolean; data?: { rows: ConsoleAiUsageRow[]; monthlySummary: ConsoleAiMonthlySummary[] }; error?: string };
 }
 
 // ──────────────────────────────────────────────
@@ -386,6 +395,8 @@ export type ConsoleOrgAiSummary = {
 	total_tokens: number;
 	input_tokens: number;
 	output_tokens: number;
+	/** Sum of persisted cost_cents at event-emit time — accurate across all model variants. */
+	total_cost_cents: number;
 };
 
 /**
@@ -398,8 +409,11 @@ export async function getConsoleOrgsAiSummary(): Promise<ConsoleOrgAiSummary[]> 
 			method: "GET",
 			credentials: "include",
 		});
-		if (!res.ok) return [];
-		const json = await res.json();
+		// Treat ClickHouse-unavailable cases (204, 404) as an empty result.
+		// Propagate auth or server errors so callers are aware of the problem.
+		if (res.status === 204 || res.status === 404) return [];
+		if (!res.ok) throw new Error(`AI summary fetch failed: ${res.status}`);
+		const json = await readJsonSafe(res) as { data?: ConsoleOrgAiSummary[] } | null;
 		return json?.data ?? [];
 	} catch {
 		return [];
@@ -433,8 +447,11 @@ export async function getConsoleOrgsMrrSummary(): Promise<ConsoleOrgMrrSummary[]
 			method: "GET",
 			credentials: "include",
 		});
-		if (!res.ok) return [];
-		const json = await res.json();
+		// Treat Polar-unavailable/not-configured cases (204, 404) as an empty result.
+		// Propagate auth or server errors so callers are aware of the problem.
+		if (res.status === 204 || res.status === 404) return [];
+		if (!res.ok) throw new Error(`MRR summary fetch failed: ${res.status}`);
+		const json = await readJsonSafe(res) as { data?: ConsoleOrgMrrSummary[] } | null;
 		return json?.data ?? [];
 	} catch {
 		return [];
@@ -474,9 +491,9 @@ export async function updateConsoleOrgAiSettings(
 		body: JSON.stringify(patch),
 	});
 
-	const json = await res.json();
+	const json = await readJsonSafe(res) as Record<string, unknown> | null;
 	if (!res.ok) {
-		return { success: false, error: json?.error || "Failed to update AI settings" };
+		return { success: false, error: (json as { error?: string } | null)?.error || "Failed to update AI settings" };
 	}
-	return json;
+	return json as { success: boolean; data?: { ai: OrgAiSettings }; error?: string };
 }

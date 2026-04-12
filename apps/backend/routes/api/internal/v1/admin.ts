@@ -226,7 +226,7 @@ apiRouteAdmin.post("/invite", async (c) => {
       actor_id: session.userId,
       target_id: session.userId,
       org_id: invite.organizationId,
-      metadata: { invite_id: invite.id, email: invite.email },
+      metadata: { invite_id: invite.id },
     });
 
     emitEvent({
@@ -253,7 +253,7 @@ apiRouteAdmin.post("/invite", async (c) => {
     actor_id: session.userId,
     target_id: session.userId,
     org_id: invite.organizationId,
-    metadata: { invite_id: invite.id, email: invite.email },
+    metadata: { invite_id: invite.id },
   });
 
   return c.json({ success: true });

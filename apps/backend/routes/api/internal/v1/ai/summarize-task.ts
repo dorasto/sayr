@@ -201,7 +201,11 @@ summarizeTaskRoute.post("/", async (c) => {
 
 	console.log(`[ai:summarize-task] taskId=${taskId} orgId=${orgId} model=${taskSummaryPrompt.model} urlFetch=${useUrlFetch} (orgEnabled=${aiStatus.urlFetchEnabled}) urls=${urls.length}`);
 
-	const activeModel = useUrlFetch
+	// Only upgrade to the URL-fetch model when there are actually URLs to embed.
+	// useUrlFetch may be true even when extractUrls returns nothing, so base the
+	// model choice on urls.length to avoid paying for an alternate model
+	// on plain-text prompts.
+	const activeModel = (useUrlFetch && urls.length > 0)
 		? (taskSummaryPrompt.urlFetchModel ?? taskSummaryPrompt.model)
 		: taskSummaryPrompt.model;
 
@@ -397,7 +401,7 @@ summarizeTaskRoute.post("/", async (c) => {
 							cost_cents: costCents,
 							timeline_items: activity?.length ?? 0,
 							cache_hit: false,
-							output_text: outputText,
+							output_text_length: outputText?.length ?? 0,
 							success: !streamError,
 							url_fetch_used: urlFetchUsed,
 							url_count: urls.length,

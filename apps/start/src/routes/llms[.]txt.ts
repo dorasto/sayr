@@ -5,6 +5,10 @@ export const Route = createFileRoute("/llms.txt")({
 	server: {
 		handlers: {
 			GET: async () => {
+				// Derive base URLs from env so this works across all deployments.
+				const rootDomain = import.meta.env.VITE_ROOT_DOMAIN || "sayr.io";
+				const apiBase = `https://api.${rootDomain}`;
+
 				const content = `# ${SITE_CONFIG.name}
 
 > ${SITE_CONFIG.description}
@@ -15,7 +19,7 @@ Organizations can create tasks, track work, and share progress publicly.
 ## Public Task Pages
 
 Each task has a public URL in the format:
-  https://<org-slug>.sayr.io/<short-id>
+  https://<org-slug>.${rootDomain}/<short-id>
 
 These pages are server-side rendered and contain:
 - Task title, status, and priority
@@ -29,7 +33,7 @@ The page HTML <head> includes:
 
 ## API
 
-Public REST API base: https://api.sayr.io/api/public/v1/
+Public REST API base: ${apiBase}/api/public/v1/
 
 ### Get a task
 GET /api/public/v1/organization/:slug/tasks/:shortId

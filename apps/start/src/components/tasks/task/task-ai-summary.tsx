@@ -145,6 +145,10 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
   // Stable ref to handleGenerate so the mount effect can call it without
   // listing it as a dependency (avoids infinite re-trigger).
   const handleGenerateRef = useRef<() => void>(() => {});
+  // Monotonically-increasing request counter — each generate() stamps its own
+  // ID into the callbacks so stale streams from previous task/generate calls
+  // cannot write into the current request's state.
+  const requestIdRef = useRef(0);
 
   // Re-render markdown whenever the summary text changes.
   useEffect(() => {
@@ -193,6 +197,7 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
   }, [task.id, orgId]);
 
   const handleGenerate = (forceRefresh = false) => {
+    const myRequestId = ++requestIdRef.current;
     setSummary(null);
     setRenderedHtml(null);
     setError(null);
@@ -205,9 +210,11 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
       task.id,
       orgId,
       (info) => {
+        if (requestIdRef.current !== myRequestId) return;
         setPromptDebug(info);
       },
       (chunk) => {
+        if (requestIdRef.current !== myRequestId) return;
         setSummary((prev) => {
           const next = (prev ?? "") + chunk;
           latestSummaryRef.current = next;
@@ -216,10 +223,12 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
       },
       () => {}, // citations no longer emitted — noop
       () => {
+        if (requestIdRef.current !== myRequestId) return;
         setLoading(false);
         setGeneratedAt(new Date().toISOString());
       },
       (err: string) => {
+        if (requestIdRef.current !== myRequestId) return;
         setError(err);
         setLoading(false);
       },

@@ -34,13 +34,17 @@ export async function fetchTaskSummaryStatus(
   orgId: string,
 ): Promise<TaskSummaryStatus> {
   const params = new URLSearchParams({ taskId, orgId });
-  const res = await fetch(`${API_URL}/v1/ai/task-summary-status?${params}`, {
-    credentials: "include",
-  });
-  if (!res.ok) {
+  try {
+    const res = await fetch(`${API_URL}/v1/ai/task-summary-status?${params}`, {
+      credentials: "include",
+    });
+    if (!res.ok) {
+      return { hasCachedSummary: false };
+    }
+    return res.json() as Promise<TaskSummaryStatus>;
+  } catch {
     return { hasCachedSummary: false };
   }
-  return res.json() as Promise<TaskSummaryStatus>;
 }
 
 /**

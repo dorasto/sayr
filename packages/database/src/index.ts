@@ -19,7 +19,7 @@ export { type OrgAiSettings, type OrgAiRateLimit, defaultOrgAiSettings, resolveO
 
 import { and, eq, inArray } from "drizzle-orm";
 import { member, memberTeam, team, defaultTeamPermissions as defaultPerms, type TeamPermissions, organization, type OrganizationSettings, defaultOrganizationSettings } from "../schema";
-import { defaultOrgAiSettings, type OrgAiSettings } from "@repo/util";
+import { type OrgAiSettings } from "@repo/util";
 
 import { user } from "../schema/auth";
 import { db } from "./database";
