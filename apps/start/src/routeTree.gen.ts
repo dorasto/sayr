@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
@@ -78,6 +79,11 @@ const ProsekitTestRoute = ProsekitTestRouteImport.update({
 const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
   id: '/manifest.webmanifest',
   path: '/manifest.webmanifest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthRoute = HealthRouteImport.update({
@@ -398,6 +404,7 @@ const adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/$orgId': typeof adminOrgIdRouteRouteWithChildren
@@ -459,6 +466,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/health': typeof HealthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
@@ -512,6 +520,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(admin)': typeof adminRouteRouteWithChildren
   '/health': typeof HealthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
@@ -575,6 +584,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/health'
+    | '/llms.txt'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/$orgId'
@@ -636,6 +646,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/health'
+    | '/llms.txt'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/api/image-preview'
@@ -688,6 +699,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/(admin)'
     | '/health'
+    | '/llms.txt'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/(admin)/$orgId'
@@ -751,6 +763,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   adminRouteRoute: typeof adminRouteRouteWithChildren
   HealthRoute: typeof HealthRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ProsekitTestRoute: typeof ProsekitTestRoute
   OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
@@ -780,6 +793,13 @@ declare module '@tanstack/react-router' {
       path: '/manifest.webmanifest'
       fullPath: '/manifest.webmanifest'
       preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health': {
@@ -1410,6 +1430,7 @@ const OrgsOrgSlugRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   adminRouteRoute: adminRouteRouteWithChildren,
   HealthRoute: HealthRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ProsekitTestRoute: ProsekitTestRoute,
   OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,

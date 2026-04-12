@@ -1,5 +1,5 @@
 import { PublicTaskContent } from "@/components/public/public-task-content";
-import { getOrganizationPublic, getTaskByShortId } from "@repo/database";
+import { getOrganizationPublic, getTaskByShortId, getTaskComments } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
@@ -11,20 +11,55 @@ import {
   IconLayoutSidebarRightFilled,
 } from "@tabler/icons-react";
 import { useState } from "react";
+import { createEditor } from "prosekit/core";
+import { defineExtension } from "@/components/prosekit/extensions/index";
+import type { NodeJSON } from "prosekit/core";
+
+function prosekitNodeToText(doc: NodeJSON | null | undefined): string {
+  if (!doc) return "";
+  try {
+    const schema = createEditor({ extension: defineExtension({ readonly: true }) }).schema;
+    return schema.nodeFromJSON(doc).textContent;
+  } catch {
+    return "";
+  }
+}
 
 const fetchPublicTask = createServerFn({ method: "GET" })
   .inputValidator((data: { slug: string; shortId: number }) => data)
   .handler(async ({ data }) => {
     const organization = await getOrganizationPublic(data.slug);
-    if (!organization) return { task: null, org: null };
+    if (!organization) return { task: null, org: null, descriptionText: "", commentsText: [] };
     const task = await getTaskByShortId(
       organization.id,
       data.shortId,
       "public",
     );
+
+    if (!task) {
+      return { task: null, org: { name: organization.name, logo: organization.logo }, descriptionText: "", commentsText: [] };
+    }
+
+    // Extract plain text from the ProseMirror JSON description (server-side, SSR)
+    const descriptionText = prosekitNodeToText(task.description as NodeJSON | null | undefined);
+
+    // Fetch public comments and extract their plain text
+    const commentsResult = await getTaskComments(organization.id, task.id, { limit: 10 });
+    const commentsText = commentsResult
+      ? commentsResult.comments
+        .filter((c) => c.visibility === "public")
+        .map((c) => ({
+          author: c.createdBy?.name ?? "Unknown",
+          text: prosekitNodeToText(c.content as NodeJSON | null | undefined),
+        }))
+        .filter((c) => c.text.length > 0)
+      : [];
+
     return {
       task,
       org: { name: organization.name, logo: organization.logo },
+      descriptionText,
+      commentsText,
     };
   });
 
@@ -45,21 +80,66 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
     });
   },
   component: RouteComponent,
-  head: ({ loaderData }) => ({
-    meta: seo({
-      title: loaderData?.task
-        ? `#${loaderData.task.shortId} - ${loaderData.task.title} | ${loaderData.org?.name}`
-        : "Task Not Available",
-      image: loaderData?.task
-        ? getOgImageUrl({
-            title: loaderData.task.title || undefined,
-            subtitle: `#${loaderData.task.shortId}`,
-            meta: loaderData.org?.name || undefined,
-            logo: loaderData.org?.logo || undefined,
-          })
-        : undefined,
-    }),
-  }),
+  head: ({ loaderData }) => {
+    const task = loaderData?.task;
+    const org = loaderData?.org;
+    const descriptionText = loaderData?.descriptionText ?? "";
+    const commentsText = loaderData?.commentsText ?? [];
+
+    const ogDescription = task
+      ? descriptionText.trim().slice(0, 160) || `Task #${task.shortId} in ${org?.name ?? "Sayr"}`
+      : undefined;
+
+    const jsonLd = task
+      ? {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: `#${task.shortId} - ${task.title}`,
+          description: descriptionText.trim() || undefined,
+          keywords: [
+            task.status,
+            task.priority,
+            ...(Array.isArray(task.labels) ? task.labels.map((l) => l.name) : []),
+          ]
+            .filter(Boolean)
+            .join(", "),
+          ...(commentsText.length > 0
+            ? {
+                comment: commentsText.map((c) => ({
+                  "@type": "Comment",
+                  author: { "@type": "Person", name: c.author },
+                  text: c.text,
+                })),
+              }
+            : {}),
+        }
+      : null;
+
+    return {
+      meta: seo({
+        title: task
+          ? `#${task.shortId} - ${task.title} | ${org?.name}`
+          : "Task Not Available",
+        description: ogDescription,
+        image: task
+          ? getOgImageUrl({
+              title: task.title || undefined,
+              subtitle: `#${task.shortId}`,
+              meta: org?.name || undefined,
+              logo: org?.logo || undefined,
+            })
+          : undefined,
+      }),
+      scripts: jsonLd
+        ? [
+            {
+              type: "application/ld+json",
+              children: JSON.stringify(jsonLd),
+            },
+          ]
+        : [],
+    };
+  },
 });
 
 function RouteComponent() {
