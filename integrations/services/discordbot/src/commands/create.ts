@@ -1,4 +1,4 @@
-import { getIntegrationConfigByValue, getIntegrationStorage } from "@repo/database";
+import { getIntegrationConfigsByValue, getIntegrationStorage } from "@repo/database";
 
 import {
 	SlashCommandSubcommandBuilder,
@@ -27,17 +27,40 @@ export const data = (sub: SlashCommandSubcommandBuilder) =>
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function getOrgAndTemplates(guildId: string | null) {
-	if (!guildId) return null;
+	if (!guildId) return [];
 
-	const settings = await getIntegrationConfigByValue<integrationConfigValueType>("settings", "discordbot", "guildId", guildId)
-	if (!settings) return null;
-	if (!settings?.value?.enabled) return null;
+	const settingsList =
+		await getIntegrationConfigsByValue<integrationConfigValueType>(
+			"settings",
+			"discordbot",
+			"guildId",
+			guildId
+		);
 
-	const storage = await getIntegrationStorage(settings.organizationId, "discordbot");
-	const storageData = (storage?.data ?? {}) as Record<string, unknown>;
-	const templates = (storageData.templates ?? []) as DiscordTemplate[];
+	if (settingsList.length === 0) return [];
 
-	return { settings, templates };
+	const enabledSettings = settingsList.filter(
+		(s) => s.value?.enabled
+	);
+
+	const results: Array<{
+		settings: typeof enabledSettings[number];
+		templates: DiscordTemplate[];
+	}> = [];
+
+	for (const settings of enabledSettings) {
+		const storage = await getIntegrationStorage(
+			settings.organizationId,
+			"discordbot"
+		);
+
+		const storageData = (storage?.data ?? {}) as Record<string, unknown>;
+		const templates = (storageData.templates ?? []) as DiscordTemplate[];
+
+		results.push({ settings, templates });
+	}
+
+	return results;
 }
 
 function buildModal(template: DiscordTemplate) {
@@ -93,7 +116,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	const { templates } = result;
+	const templates = result.flatMap((r) => r.templates);
 
 	if (templates.length === 0) {
 		await interaction.reply({
@@ -108,21 +131,49 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.showModal(buildModal(templates[0]!));
 		return;
 	}
+	if (result.length > 1) {
+		const orgSelect = new StringSelectMenuBuilder()
+			.setCustomId("sayr-org-select")
+			.setPlaceholder("Choose an organisation...")
+			.addOptions(
+				result.map((org) => {
+					return new StringSelectMenuOptionBuilder()
+						.setLabel(org.settings.value.orgName || "")
+						.setValue(org.settings.organizationId)
+						.setDescription("Select this organisation");
+				})
+			);
+
+		const orgRow =
+			new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(orgSelect);
+
+		await interaction.reply({
+			content: "Select an organisation:",
+			components: [orgRow],
+			flags: MessageFlags.Ephemeral,
+		});
+		return;
+	}
 
 	// Multiple templates — show a select menu first
 	const select = new StringSelectMenuBuilder()
 		.setCustomId("sayr-template-select")
 		.setPlaceholder("Choose a template...")
 		.addOptions(
-			templates.map((t) =>
-				new StringSelectMenuOptionBuilder()
-					.setLabel(t.name)
+			templates.map((t) => {
+				return new StringSelectMenuOptionBuilder()
+					.setLabel(`${t.name}`)
 					.setValue(t.id)
 					.setDescription(
-						t.description
-							? t.description.slice(0, 100)
-							: `Status: ${t.defaults.status} | Priority: ${t.defaults.priority}`,
-					),
+						[
+							t.description
+								? t.description.slice(0, 100)
+								: `Status: ${t.defaults.status} | Priority: ${t.defaults.priority}`
+						]
+							.filter(Boolean)
+							.join(" • ")
+					)
+			}
 			),
 		);
 
@@ -155,8 +206,9 @@ export function registerModalHandler(client: Client) {
 			});
 			return;
 		}
+		const allTemplates = result.flatMap((r) => r.templates);
 
-		const template = result.templates.find((t) => t.id === templateId);
+		const template = allTemplates.find((t) => t.id === templateId);
 		if (!template) {
 			await menuInteraction.reply({
 				content: "Template not found. It may have been deleted.",
@@ -166,6 +218,75 @@ export function registerModalHandler(client: Client) {
 		}
 
 		await menuInteraction.showModal(buildModal(template));
+	});
+
+	client.on(Events.InteractionCreate, async (interaction) => {
+		if (!interaction.isStringSelectMenu()) return;
+		if (interaction.customId !== "sayr-org-select") return;
+
+		const menuInteraction = interaction as StringSelectMenuInteraction;
+		const orgId = menuInteraction.values[0];
+		if (!orgId) return;
+
+		const result = await getOrgAndTemplates(menuInteraction.guildId);
+		if (!result) {
+			await menuInteraction.reply({
+				content: "This integration is not enabled.",
+				flags: MessageFlags.Ephemeral
+			});
+			return;
+		}
+
+		// find org entry
+		const orgEntry = result.find((r) => r.settings.organizationId === orgId);
+		if (!orgEntry) {
+			await menuInteraction.reply({
+				content: "Org not found.",
+				flags: MessageFlags.Ephemeral
+			});
+			return;
+		}
+
+		const templates = orgEntry.templates;
+
+		// If only one template → jump straight to modal
+		if (templates.length === 1) {
+			await menuInteraction.showModal(buildModal(templates[0]!));
+			return;
+		}
+
+		// Build template select for this org
+		const select = new StringSelectMenuBuilder()
+			.setCustomId("sayr-template-select")
+			.setPlaceholder("Choose a template...")
+			.addOptions(
+				templates.map((t) => {
+					return new StringSelectMenuOptionBuilder()
+						.setLabel(t.name)
+						.setValue(t.id)
+						.setDescription(
+							[
+								orgEntry.settings.value.orgName
+									? `Org: ${orgEntry.settings.value.orgName}`
+									: null,
+								t.description
+									? t.description.slice(0, 100)
+									: `Status: ${t.defaults.status} | Priority: ${t.defaults.priority}`
+							]
+								.filter(Boolean)
+								.join(" • ")
+						);
+				})
+			);
+
+		const row =
+			new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+
+		await menuInteraction.reply({
+			content: "Select a template to use:",
+			components: [row],
+			flags: MessageFlags.Ephemeral
+		});
 	});
 
 	// Handle modal submit
@@ -184,10 +305,14 @@ export function registerModalHandler(client: Client) {
 			return;
 		}
 
-		const { settings, templates } = result;
-		const template = templates.find((t) => t.id === templateId);
+		const match = result.find((r) =>
+			r.templates.some((t) => t.id === templateId)
+		);
 
-		if (!template) {
+		const template = match?.templates.find((t) => t.id === templateId);
+		const settings = match?.settings;
+
+		if (!template || !settings) {
 			await interaction.reply({
 				content: "Template not found. It may have been deleted. Please run /sayr create again.",
 				flags: MessageFlags.Ephemeral,

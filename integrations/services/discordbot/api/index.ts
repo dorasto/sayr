@@ -80,17 +80,15 @@ apiRoute.patch("/settings", async (c) => {
 	}
 
 	if (body.guildId !== undefined) {
-		const ownerOrg = await getGuildOwner(INTEGRATION_ID, body.guildId)
-
-		if (ownerOrg && ownerOrg !== orgId) {
-			return c.json({ error: "Guild already in use" }, 400)
-		}
-
 		updated.guildId = body.guildId // safe for snowflakes
 	}
 
 	if (body.channelId !== undefined) {
 		updated.channelId = body.channelId // safe for snowflakes
+	}
+
+	if (body.orgName !== undefined) {
+		updated.orgName = body.orgName;
 	}
 
 	// Save once

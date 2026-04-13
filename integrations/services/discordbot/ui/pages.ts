@@ -32,6 +32,13 @@ export const settingsPage: UIPage = {
           description: "Channel to send notifications to by default",
           placeholder: "123456789012345678",
         },
+        {
+          name: "orgName",
+          type: "string",
+          label: "Organisation Name",
+          description: "A friendly name used to identify this organisation",
+          placeholder: "Acme Corp",
+        }
       ],
       actions: [
         {
