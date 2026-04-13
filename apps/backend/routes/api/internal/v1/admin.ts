@@ -89,6 +89,7 @@ apiRouteAdmin.post("/invite", async (c) => {
   const recordWideError = c.get("recordWideError");
 
   const session = c.get("session");
+  const user = c.get("user");
 
   if (!session?.userId) {
     return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -144,10 +145,8 @@ apiRouteAdmin.post("/invite", async (c) => {
 
   // Validate that this invite is actually intended for the authenticated user.
   const inviteTargetsUser =
-    (fetchedInvite.recipientId && fetchedInvite.recipientId === session.userId) ||
-    (fetchedInvite.recipientEmail &&
-      (await db.query.user.findFirst({ where: eq(schema.user.id, session.userId) }))?.email?.toLowerCase() ===
-        fetchedInvite.recipientEmail.toLowerCase());
+    (fetchedInvite.userId && fetchedInvite.userId === session.userId) ||
+    (fetchedInvite.email && user.email?.toLowerCase() === fetchedInvite.email.toLowerCase())
 
   if (!inviteTargetsUser) {
     return c.json({ success: false, error: "This invite is not for your account" }, 403);
@@ -225,7 +224,7 @@ apiRouteAdmin.post("/invite", async (c) => {
     }
 
     // ✅ Trace acceptance event
-    await traceAsync("invite.response.accepted", async () => {}, {
+    await traceAsync("invite.response.accepted", async () => { }, {
       description: "User accepted organization invite",
       data: {
         user: { id: session.userId },
@@ -269,7 +268,7 @@ apiRouteAdmin.post("/invite", async (c) => {
     },
   );
 
-  await traceAsync("invite.response.denied", async () => {}, {
+  await traceAsync("invite.response.denied", async () => { }, {
     description: "User denied organization invite",
     data: {
       user: { id: session.userId },
@@ -290,27 +289,27 @@ apiRouteAdmin.post("/invite", async (c) => {
 
 // Manually trigger a platform snapshot (cloud only)
 apiRouteAdmin.post("/snapshots/trigger", async (c) => {
-	const session = c.get("session");
+  const session = c.get("session");
 
-	if (!session?.userId) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-	}
+  if (!session?.userId) {
+    return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+  }
 
-	const { clickhouseEnabled } = getEditionCapabilities();
-	if (!clickhouseEnabled) {
-		return c.json({ success: false, error: "Not available on this edition" }, 403);
-	}
+  const { clickhouseEnabled } = getEditionCapabilities();
+  if (!clickhouseEnabled) {
+    return c.json({ success: false, error: "Not available on this edition" }, 403);
+  }
 
-	const body = await c.req.json().catch(() => ({}));
-	const date: string | undefined = typeof body?.date === "string" ? body.date : undefined;
+  const body = await c.req.json().catch(() => ({}));
+  const date: string | undefined = typeof body?.date === "string" ? body.date : undefined;
 
-	try {
-		const result = await collectAndInsertSnapshots(date);
-		return c.json({ success: true, ...result, date: date ?? new Date().toISOString().slice(0, 10) });
-	} catch (err) {
-		console.error("[snapshots] Manual trigger failed:", err);
-		return c.json({ success: false, error: "Failed to insert snapshots" }, 500);
-	}
+  try {
+    const result = await collectAndInsertSnapshots(date);
+    return c.json({ success: true, ...result, date: date ?? new Date().toISOString().slice(0, 10) });
+  } catch (err) {
+    console.error("[snapshots] Manual trigger failed:", err);
+    return c.json({ success: false, error: "Failed to insert snapshots" }, 500);
+  }
 });
 
 // Organization routes
