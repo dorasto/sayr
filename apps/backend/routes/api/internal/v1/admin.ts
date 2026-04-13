@@ -146,7 +146,7 @@ apiRouteAdmin.post("/invite", async (c) => {
   // Validate that this invite is actually intended for the authenticated user.
   const inviteTargetsUser =
     (fetchedInvite.userId && fetchedInvite.userId === session.userId) ||
-    (fetchedInvite.email && user.email?.toLowerCase() === fetchedInvite.email.toLowerCase())
+    (fetchedInvite.email && user && user.email?.toLowerCase() === fetchedInvite.email.toLowerCase())
 
   if (!inviteTargetsUser) {
     return c.json({ success: false, error: "This invite is not for your account" }, 403);
