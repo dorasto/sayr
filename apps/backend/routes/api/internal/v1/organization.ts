@@ -19,7 +19,7 @@ import {
 import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl, isSlugBanned } from "@repo/util";
 import { getInstallationDetailsWithRepos, createAppJWT } from "@repo/util/github/auth";
-import { and, count, eq, ilike, ne } from "drizzle-orm";
+import { and, count, eq, ilike, ne, or } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { apiRouteAdminProjectTask } from "./task";
@@ -2432,7 +2432,7 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 							userId: user?.id ?? null,
 							invitedById: session?.userId || "",
 							status: "pending",
-							role: "user",
+							role: "member",
 							inviteCode,
 							expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
 						})
@@ -2843,6 +2843,13 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 		},
 		{ description: "Broadcasting member removal" }
 	);
+
+	const user = await db.query.user.findFirst({
+		where: eq(auth.user.id, userId)
+	})
+	if (user) {
+		await db.delete(schema.invite).where(and(or(eq(schema.invite.userId, user.id), eq(schema.invite.email, user.email)), eq(schema.invite.organizationId, orgId)))
+	}
 
 	return c.json({
 		success: true,

@@ -10,6 +10,8 @@ interface ContextType {
 	organizations: schema.OrganizationWithMembers[];
 	setOrganizations: (newVaule: ContextType["organizations"]) => void;
 	serverEvents: ReturnType<typeof useServerEvents>;
+	/** Whether AI features are available on this instance (key configured + edition allows it). */
+	aiEnabled: boolean;
 }
 
 const RootContext = createContext<ContextType | undefined>(undefined);
@@ -18,10 +20,12 @@ export function RootProvider({
 	children,
 	account,
 	organizations,
+	aiEnabled,
 }: {
 	children: ReactNode;
 	account: ContextType["account"];
 	organizations: ContextType["organizations"];
+	aiEnabled: boolean;
 }) {
 	const { value: Newaccount, setValue: setAccount } = useStateManagement("account", account);
 	const { value: NewOrganizations, setValue: setOrganizations } = useStateManagement("organizations", organizations);
@@ -68,7 +72,7 @@ export function RootProvider({
 
 	return (
 		<RootContext.Provider
-			value={{ account: Newaccount, setAccount, organizations: NewOrganizations, setOrganizations, serverEvents }}
+			value={{ account: Newaccount, setAccount, organizations: NewOrganizations, setOrganizations, serverEvents, aiEnabled }}
 		>
 			{children}
 		</RootContext.Provider>

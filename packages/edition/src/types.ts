@@ -19,6 +19,8 @@ export interface PlanLimits {
 	issueTemplates: number | null;
 	teams: number | null;
 	releases: number | null;
+	/** Whether AI features are available for this organization's plan. */
+	aiEnabled: boolean;
 }
 
 /**

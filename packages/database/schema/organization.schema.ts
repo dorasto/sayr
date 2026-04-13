@@ -18,6 +18,54 @@ export interface PublicTaskFieldSettings {
 	priority: boolean;
 }
 
+/** Active rate limit applied to an org's AI features. */
+export interface OrgAiRateLimit {
+	/** ISO 8601 date-time string — rate limit is active until this moment. */
+	until: string;
+	/** Optional human-readable reason shown to admins. */
+	reason?: string;
+}
+
+/** AI-feature settings for an organization. */
+export interface OrgAiSettings {
+	/**
+	 * When true, all AI features are hidden entirely for this org.
+	 * Takes precedence over rateLimited and individual feature flags.
+	 */
+	disabled: boolean;
+	/**
+	 * When set and `until` is in the future, AI generation is blocked but the
+	 * UI shows a "temporarily unavailable" message instead of hiding the feature.
+	 * Set to null to remove the rate limit.
+	 */
+	rateLimited: OrgAiRateLimit | null;
+	/** When false, the AI task summary panel is hidden for this org. */
+	taskSummary: boolean;
+	/**
+	 * Optional additional instructions appended to the system prompt for task summaries.
+	 * Intended for tone and style guidance only (e.g. "Use formal language.").
+	 * Sanitised and length-capped server-side before use — cannot override the base
+	 * system prompt or inject into the task data user prompt.
+	 */
+	taskSummaryCustomPrompt?: string | null;
+	/**
+	 * When true, AI features that support URL fetching will embed external URLs
+	 * found in task content as document chunks in the prompt, so the model can
+	 * read the actual page content. Only takes effect for prompt configs where
+	 * `capabilities.urlFetch` is true.
+	 * Defaults to false — opt-in, as it incurs higher cost and latency.
+	 */
+	urlFetchEnabled?: boolean;
+}
+
+export const defaultOrgAiSettings: OrgAiSettings = {
+	disabled: false,
+	rateLimited: null,
+	taskSummary: true,
+	taskSummaryCustomPrompt: null,
+	urlFetchEnabled: false,
+};
+
 export interface OrganizationSettings {
 	/** When false, users without privileges cannot comment on or modify closed tasks. */
 	allowActionsOnClosedTasks: boolean;
@@ -29,6 +77,8 @@ export interface OrganizationSettings {
 	publicTaskAllowBlank: boolean;
 	/** Controls which fields public users may set when creating a task. */
 	publicTaskFields: PublicTaskFieldSettings;
+	/** AI feature controls. Missing on older orgs — treated as all-defaults. */
+	ai?: OrgAiSettings;
 }
 
 export const defaultPublicTaskFieldSettings: PublicTaskFieldSettings = {
@@ -44,6 +94,7 @@ export const defaultOrganizationSettings: OrganizationSettings = {
 	enablePublicPage: true,
 	publicTaskAllowBlank: true,
 	publicTaskFields: defaultPublicTaskFieldSettings,
+	ai: defaultOrgAiSettings,
 };
 
 export const organization = table("organization", {

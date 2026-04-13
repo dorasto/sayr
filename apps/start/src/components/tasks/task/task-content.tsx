@@ -27,6 +27,7 @@ import {
   TaskRelationsSection,
 } from "./task-hierarchy-sections";
 import { TaskContextBanner } from "./task-context-banner";
+import { AiTaskSummary } from "./task-ai-summary";
 import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 import { InlineLabel } from "../shared";
 import { getMatchedIntegrations } from "../shared/integration-registry";
@@ -347,7 +348,7 @@ export function TaskContentMain({
           setTasks={setTasks}
           setSelectedTask={setSelectedTask}
         />
-
+        <AiTaskSummary task={task} orgId={organization.id} />
         <GlobalTimeline
           task={task}
           labels={labels}

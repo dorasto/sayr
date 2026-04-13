@@ -89,6 +89,7 @@ apiRouteAdmin.post("/invite", async (c) => {
   const recordWideError = c.get("recordWideError");
 
   const session = c.get("session");
+  const user = c.get("user");
 
   if (!session?.userId) {
     return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
@@ -125,38 +126,41 @@ apiRouteAdmin.post("/invite", async (c) => {
     return c.json({ success: false, error: "Unknown invite type" }, 400);
   }
 
-  // ✅ Delete invite (shared path)
-  await traceAsync(
-    "invite.response.delete",
-    () =>
-      db
-        .delete(schema.invite)
-        .where(
-          and(
-            eq(schema.invite.id, invite.id),
-            eq(schema.invite.organizationId, invite.organizationId),
-          ),
-        ),
-    {
-      description: "Deleting invite record",
-      data: {
-        invite_id: invite.id,
-        user: { id: session.userId },
-        organization: { id: invite.organizationId },
-        action: type,
-      },
-    },
-  );
+  // ✅ Re-fetch the invite from the database to prevent forged request bodies
+  // from mutating invites that don't belong to the caller.
+  const fetchedInvite = await db.query.invite.findFirst({
+    where: and(
+      eq(schema.invite.id, invite.id),
+      eq(schema.invite.organizationId, invite.organizationId),
+    ),
+  });
+
+  if (!fetchedInvite) {
+    return c.json({ success: false, error: "Invite not found" }, 404);
+  }
+
+  if (fetchedInvite.status !== "pending") {
+    return c.json({ success: false, error: "Invite is no longer pending" }, 409);
+  }
+
+  // Validate that this invite is actually intended for the authenticated user.
+  const inviteTargetsUser =
+    (fetchedInvite.userId && fetchedInvite.userId === session.userId) ||
+    (fetchedInvite.email && user && user.email?.toLowerCase() === fetchedInvite.email.toLowerCase())
+
+  if (!inviteTargetsUser) {
+    return c.json({ success: false, error: "This invite is not for your account" }, 403);
+  }
 
   if (type === "accept") {
     const org = await db.query.organization.findFirst({
-      where: eq(schema.organization.id, invite.organizationId),
+      where: eq(schema.organization.id, fetchedInvite.organizationId),
     });
 
     // Enforce seat limit before accepting
     const assignedMembers = await db.query.member.findMany({
       where: and(
-        eq(schema.member.organizationId, invite.organizationId),
+        eq(schema.member.organizationId, fetchedInvite.organizationId),
         eq(schema.member.seatAssigned, true),
       ),
       columns: { id: true },
@@ -165,24 +169,32 @@ apiRouteAdmin.post("/invite", async (c) => {
       getEffectiveLimits(org?.plan).members ?? org?.seatCount ?? Infinity;
     const hasAvailableSeat = assignedMembers.length < seatLimit;
 
+    // ✅ Atomic transaction: mark invite accepted AND create membership together
     await traceAsync(
-      "invite.response.create_member",
+      "invite.response.accept_transaction",
       () =>
-        db.insert(schema.member).values({
-          id: randomUUID(),
-          userId: session.userId,
-          organizationId: invite.organizationId,
-          seatAssigned: hasAvailableSeat,
+        db.transaction(async (tx) => {
+          await tx
+            .update(schema.invite)
+            .set({ status: "accepted" })
+            .where(eq(schema.invite.id, fetchedInvite.id));
+          await tx.insert(schema.member).values({
+            id: randomUUID(),
+            userId: session.userId,
+            organizationId: fetchedInvite.organizationId,
+            seatAssigned: hasAvailableSeat,
+          });
         }),
       {
-        description: "Creating organization membership",
+        description: "Accepting invite and creating organization membership",
         data: {
+          invite_id: fetchedInvite.id,
           user: { id: session.userId },
-          organization: { id: invite.organizationId },
+          organization: { id: fetchedInvite.organizationId },
           seatAssigned: hasAvailableSeat,
         },
         onSuccess: () => ({
-          outcome: "Membership created",
+          outcome: "Invite accepted and membership created",
         }),
       },
     );
@@ -202,7 +214,7 @@ apiRouteAdmin.post("/invite", async (c) => {
           immediateClaim: true,
           metadata: {
             userId: session.userId,
-            organizationId: invite.organizationId,
+            organizationId: fetchedInvite.organizationId,
             action: "invite_accept_seat_assignment",
           },
         });
@@ -212,31 +224,64 @@ apiRouteAdmin.post("/invite", async (c) => {
     }
 
     // ✅ Trace acceptance event
-    await traceAsync("invite.response.accepted", async () => {}, {
+    await traceAsync("invite.response.accepted", async () => { }, {
       description: "User accepted organization invite",
       data: {
         user: { id: session.userId },
-        organization: { id: invite.organizationId },
+        organization: { id: fetchedInvite.organizationId },
       },
+    });
+
+    emitEvent({
+      event_type: "member.invite_accepted",
+      actor_id: session.userId,
+      target_id: session.userId,
+      org_id: fetchedInvite.organizationId,
+      metadata: { invite_id: fetchedInvite.id },
     });
 
     emitEvent({
       event_type: "member.joined",
       actor_id: session.userId,
       target_id: session.userId,
-      org_id: invite.organizationId,
+      org_id: fetchedInvite.organizationId,
     });
 
     return c.json({ success: true });
   }
 
-  // ✅ type === "deny"
-  await traceAsync("invite.response.denied", async () => {}, {
+  // ✅ type === "deny" — update status and record event
+  await traceAsync(
+    "invite.response.deny_status",
+    () =>
+      db
+        .update(schema.invite)
+        .set({ status: "declined" })
+        .where(eq(schema.invite.id, fetchedInvite.id)),
+    {
+      description: "Declining invite",
+      data: {
+        invite_id: fetchedInvite.id,
+        user: { id: session.userId },
+        organization: { id: fetchedInvite.organizationId },
+      },
+    },
+  );
+
+  await traceAsync("invite.response.denied", async () => { }, {
     description: "User denied organization invite",
     data: {
       user: { id: session.userId },
-      organization: { id: invite.organizationId },
+      organization: { id: fetchedInvite.organizationId },
     },
+  });
+
+  emitEvent({
+    event_type: "member.invite_declined",
+    actor_id: session.userId,
+    target_id: session.userId,
+    org_id: fetchedInvite.organizationId,
+    metadata: { invite_id: fetchedInvite.id },
   });
 
   return c.json({ success: true });
@@ -244,27 +289,27 @@ apiRouteAdmin.post("/invite", async (c) => {
 
 // Manually trigger a platform snapshot (cloud only)
 apiRouteAdmin.post("/snapshots/trigger", async (c) => {
-	const session = c.get("session");
+  const session = c.get("session");
 
-	if (!session?.userId) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-	}
+  if (!session?.userId) {
+    return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+  }
 
-	const { clickhouseEnabled } = getEditionCapabilities();
-	if (!clickhouseEnabled) {
-		return c.json({ success: false, error: "Not available on this edition" }, 403);
-	}
+  const { clickhouseEnabled } = getEditionCapabilities();
+  if (!clickhouseEnabled) {
+    return c.json({ success: false, error: "Not available on this edition" }, 403);
+  }
 
-	const body = await c.req.json().catch(() => ({}));
-	const date: string | undefined = typeof body?.date === "string" ? body.date : undefined;
+  const body = await c.req.json().catch(() => ({}));
+  const date: string | undefined = typeof body?.date === "string" ? body.date : undefined;
 
-	try {
-		const result = await collectAndInsertSnapshots(date);
-		return c.json({ success: true, ...result, date: date ?? new Date().toISOString().slice(0, 10) });
-	} catch (err) {
-		console.error("[snapshots] Manual trigger failed:", err);
-		return c.json({ success: false, error: "Failed to insert snapshots" }, 500);
-	}
+  try {
+    const result = await collectAndInsertSnapshots(date);
+    return c.json({ success: true, ...result, date: date ?? new Date().toISOString().slice(0, 10) });
+  } catch (err) {
+    console.error("[snapshots] Manual trigger failed:", err);
+    return c.json({ success: false, error: "Failed to insert snapshots" }, 500);
+  }
 });
 
 // Organization routes

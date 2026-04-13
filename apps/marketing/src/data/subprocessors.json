@@ -1,11 +1,12 @@
 {
-  "lastUpdated": "2026-03-22",
+  "lastUpdated": "2026-04-12",
   "subprocessors": [
     {
       "name": "Zerops",
       "type": "Infrastructure",
       "purpose": "Primary cloud hosting platform — application compute (backend, frontend, marketing, workers), managed PostgreSQL database, Redis",
       "dataProcessed": "All user data, application data, database contents",
+      "dataSharedWhen": "Always — core infrastructure used for all users",
       "location": "EU (Czechia)",
       "website": "https://zerops.io",
       "dpaUrl": "https://docs.google.com/document/d/e/2PACX-1vShf30OdwdQDQgasDJIx39jpcC9KJ5bMQVM2POUrGN0CIN0X60TTpeDv6XqoW9w64JcmKhjJ5A_Q7--/pub"
@@ -15,6 +16,7 @@
       "type": "Infrastructure",
       "purpose": "S3-compatible object storage and internal administrative tooling (Grafana, observability infrastructure)",
       "dataProcessed": "User-uploaded files, internal metrics and observability data",
+      "dataSharedWhen": "Always — core infrastructure used for all users",
       "location": "EU (Germany, Finland)",
       "website": "https://hetzner.com",
       "dpaUrl": "https://docs.hetzner.com/general/general-terms-and-conditions/data-privacy-faq/"
@@ -24,6 +26,7 @@
       "type": "Infrastructure",
       "purpose": "Content delivery network for static assets and user-uploaded files",
       "dataProcessed": "Cached static assets, user-uploaded files, request metadata",
+      "dataSharedWhen": "Always — core infrastructure used for all users",
       "location": "EU (Slovenia)",
       "website": "https://bunny.net",
       "dpaUrl": "https://bunny.net/gdpr/"
@@ -31,8 +34,9 @@
     {
       "name": "Cloudflare, Inc.",
       "type": "Infrastructure",
-      "purpose": "DNS management, DDoS protection, traffic proxying",
-      "dataProcessed": "Network request metadata, IP addresses",
+      "purpose": "DNS registrar and DNS management",
+      "dataProcessed": "Domain name records",
+      "dataSharedWhen": "Always — core infrastructure used for all users",
       "location": "United States",
       "website": "https://cloudflare.com",
       "dpaUrl": "https://www.cloudflare.com/cloudflare-customer-dpa/"
@@ -42,6 +46,7 @@
       "type": "Integrations",
       "purpose": "OAuth authentication provider and GitHub App integration for linking repositories, syncing issues and pull requests, and posting comments",
       "dataProcessed": "User profile information, email address, authentication tokens, repository metadata, issue and pull request data, webhook payloads",
+      "dataSharedWhen": "Only if you sign in with GitHub or connect a GitHub repository",
       "location": "United States",
       "website": "https://github.com",
       "dpaUrl": "https://github.com/customer-terms/github-data-protection-agreement"
@@ -51,6 +56,7 @@
       "type": "Integrations",
       "purpose": "OAuth authentication provider",
       "dataProcessed": "User profile information, email address, authentication tokens",
+      "dataSharedWhen": "Only if you sign in with Discord",
       "location": "United States",
       "website": "https://discord.com",
       "dpaUrl": "https://discord.com/privacy"
@@ -60,6 +66,7 @@
       "type": "Integrations",
       "purpose": "OAuth authentication provider",
       "dataProcessed": "User profile information, email address, authentication tokens",
+      "dataSharedWhen": "Only if you sign in with Slack",
       "location": "United States",
       "website": "https://slack.com",
       "dpaUrl": "https://slack.com/gdpr"
@@ -69,6 +76,7 @@
       "type": "Integrations",
       "purpose": "OAuth authentication provider",
       "dataProcessed": "User profile information, email address, authentication tokens",
+      "dataSharedWhen": "Only if you sign in with Doras",
       "location": "EU (Germany, Finland)",
       "website": "https://doras.to",
       "dpaUrl": null
@@ -78,6 +86,7 @@
       "type": "Payments",
       "purpose": "Payment processing (Merchant of Record)",
       "dataProcessed": "Billing information, payment details, email addresses",
+      "dataSharedWhen": "Only if you subscribe to a paid plan",
       "location": "EU (Sweden)",
       "website": "https://polar.sh",
       "dpaUrl": "https://polar.sh/legal/privacy"
@@ -87,15 +96,27 @@
       "type": "Email",
       "purpose": "Transactional email delivery",
       "dataProcessed": "Email addresses, email content",
+      "dataSharedWhen": "Always — used to deliver transactional emails to all users",
       "location": "United States",
       "website": "https://usesend.com",
       "dpaUrl": "https://usesend.com/privacy"
+    },
+    {
+      "name": "Mistral AI SAS",
+      "type": "AI Processing",
+      "purpose": "Large language model inference for AI-powered features (task summarization and related AI capabilities)",
+      "dataProcessed": "Task titles, descriptions, comments, and timeline activity submitted to the AI summarization endpoint",
+      "dataSharedWhen": "Only when AI features are enabled and a user requests an AI task summary",
+      "location": "EU (France)",
+      "website": "https://mistral.ai",
+      "dpaUrl": "https://mistral.ai/terms/#data-processing-agreement"
     },
     {
       "name": "PostHog, Inc. (EU)",
       "type": "Analytics & Observability",
       "purpose": "Product analytics",
       "dataProcessed": "Usage events, anonymized user behavior data",
+      "dataSharedWhen": "Always — core infrastructure used for all users",
       "location": "EU (Germany)",
       "website": "https://posthog.com",
       "dpaUrl": "https://posthog.com/docs/privacy/gdpr-compliance"
@@ -105,18 +126,10 @@
       "type": "Analytics & Observability",
       "purpose": "Log management and observability",
       "dataProcessed": "Application logs, which may contain user identifiers and request metadata",
+      "dataSharedWhen": "Always — core infrastructure used for all users",
       "location": "United States",
       "website": "https://axiom.co",
       "dpaUrl": "https://axiom.co/privacy"
-    },
-    {
-      "name": "ClickHouse, Inc.",
-      "type": "Analytics & Observability",
-      "purpose": "Analytics event store — captures platform events and aggregate metrics for internal reporting",
-      "dataProcessed": "User IDs, organisation IDs, event types and timestamps, aggregate platform metrics",
-      "location": "EU (Czechia)",
-      "website": "https://clickhouse.com",
-      "dpaUrl": "https://clickhouse.com/legal/privacy-policy"
     }
   ]
 }

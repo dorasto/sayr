@@ -1249,3 +1249,39 @@ export async function getTaskRelations(
 
 	return results;
 }
+
+// ---------------------------------------------------------------------------
+// AI summary cache metadata
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches only the AI summary cache columns for a task.
+ * Lightweight alternative to getTaskById — used by the summary status endpoint
+ * to check staleness without loading the full task graph.
+ */
+export async function getTaskSummaryMeta(orgId: string, taskId: string) {
+	return db.query.task.findFirst({
+		where: (t) => and(eq(t.organizationId, orgId), eq(t.id, taskId)),
+		columns: {
+			aiSummaryHash: true,
+			aiSummaryGeneratedAt: true,
+		},
+	});
+}
+
+/**
+ * Persists the hash and generation timestamp after a successful Mistral stream.
+ * Does NOT update `updatedAt` — this is internal cache bookkeeping, not a
+ * user-visible task edit, so it must not invalidate the cache it is recording.
+ */
+export async function updateTaskAiSummaryMeta(
+	orgId: string,
+	taskId: string,
+	hash: string,
+	generatedAt: Date,
+): Promise<void> {
+	await db
+		.update(schema.task)
+		.set({ aiSummaryHash: hash, aiSummaryGeneratedAt: generatedAt })
+		.where(and(eq(schema.task.organizationId, orgId), eq(schema.task.id, taskId)));
+}

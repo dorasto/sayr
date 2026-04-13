@@ -24,6 +24,7 @@ import {
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { orgSettingsNavigation, settingsNavigation } from "@/lib/routemap";
+import type { OrgSettingsNavItem } from "@/lib/routemap";
 
 export const Route = createFileRoute("/(admin)/settings")({
   component: RouteComponent,
@@ -43,7 +44,7 @@ function RouteComponent() {
 function SettingsHeader() {
   const location = useLocation();
   const pathname = location.pathname;
-  const { organizations } = useLayoutData();
+  const { organizations, aiEnabled } = useLayoutData();
   const isMobile = useIsMobile();
 
   const orgSettingsMatch = useMatch({
@@ -64,8 +65,12 @@ function SettingsHeader() {
   if (organization && orgId) {
     const baseUrl = `/settings/org/${orgId}`;
 
+    const orgNavItems = orgSettingsNavigation.filter(
+      (entry): entry is OrgSettingsNavItem => !("label" in entry) && !(entry.aiOnly && !aiEnabled),
+    );
+
     const getCurrentOrgSubPage = () => {
-      for (const item of orgSettingsNavigation) {
+      for (const item of orgNavItems) {
         const url = item.slug ? `${baseUrl}/${item.slug}` : baseUrl;
         const isActive =
           item.matchType === "includes"
@@ -73,7 +78,7 @@ function SettingsHeader() {
             : pathname === url;
         if (isActive) return item;
       }
-      if (pathname === baseUrl) return orgSettingsNavigation[0];
+      if (pathname === baseUrl) return orgNavItems[0];
       return null;
     };
 
@@ -164,7 +169,7 @@ function SettingsHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {orgSettingsNavigation.map((item) => {
+              {orgNavItems.map((item) => {
                 const url = item.slug ? `${baseUrl}/${item.slug}` : baseUrl;
                 const isActive =
                   item.matchType === "includes"

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
@@ -48,6 +49,7 @@ import { Route as adminOrgIdViewsIndexRouteImport } from './routes/(admin)/$orgI
 import { Route as adminOrgIdTasksIndexRouteImport } from './routes/(admin)/$orgId/tasks/index'
 import { Route as adminOrgIdReleasesIndexRouteImport } from './routes/(admin)/$orgId/releases/index'
 import { Route as adminConsoleUsersUserIdRouteImport } from './routes/(admin)/console/users/$userId'
+import { Route as adminConsoleOrganizationsOrgIdRouteImport } from './routes/(admin)/console/organizations/$orgId'
 import { Route as adminOrgIdReleasesReleaseSlugRouteImport } from './routes/(admin)/$orgId/releases/$releaseSlug'
 import { Route as adminSettingsOrgOrgIdRouteRouteImport } from './routes/(admin)/settings/org/$orgId/route'
 import { Route as adminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/route'
@@ -62,6 +64,7 @@ import { Route as adminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/(
 import { Route as adminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/index'
 import { Route as adminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/categories/index'
 import { Route as adminSettingsOrgOrgIdBillingIndexRouteImport } from './routes/(admin)/settings/org/$orgId/billing/index'
+import { Route as adminSettingsOrgOrgIdAiIndexRouteImport } from './routes/(admin)/settings/org/$orgId/ai/index'
 import { Route as adminSettingsOrgOrgIdTeamsNewRouteImport } from './routes/(admin)/settings/org/$orgId/teams/new'
 import { Route as adminSettingsOrgOrgIdViewsViewIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/$viewId/index'
 import { Route as adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/$teamId/index'
@@ -76,6 +79,11 @@ const ProsekitTestRoute = ProsekitTestRouteImport.update({
 const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
   id: '/manifest.webmanifest',
   path: '/manifest.webmanifest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthRoute = HealthRouteImport.update({
@@ -267,6 +275,12 @@ const adminConsoleUsersUserIdRoute = adminConsoleUsersUserIdRouteImport.update({
   path: '/console/users/$userId',
   getParentRoute: () => adminRouteRoute,
 } as any)
+const adminConsoleOrganizationsOrgIdRoute =
+  adminConsoleOrganizationsOrgIdRouteImport.update({
+    id: '/console/organizations/$orgId',
+    path: '/console/organizations/$orgId',
+    getParentRoute: () => adminRouteRoute,
+  } as any)
 const adminOrgIdReleasesReleaseSlugRoute =
   adminOrgIdReleasesReleaseSlugRouteImport.update({
     id: '/releases/$releaseSlug',
@@ -351,6 +365,12 @@ const adminSettingsOrgOrgIdBillingIndexRoute =
     path: '/billing/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
+const adminSettingsOrgOrgIdAiIndexRoute =
+  adminSettingsOrgOrgIdAiIndexRouteImport.update({
+    id: '/ai/',
+    path: '/ai/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
 const adminSettingsOrgOrgIdTeamsNewRoute =
   adminSettingsOrgOrgIdTeamsNewRouteImport.update({
     id: '/teams/new',
@@ -384,6 +404,7 @@ const adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/$orgId': typeof adminOrgIdRouteRouteWithChildren
@@ -415,6 +436,7 @@ export interface FileRoutesByFullPath {
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
   '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/console/organizations/$orgId': typeof adminConsoleOrganizationsOrgIdRoute
   '/console/users/$userId': typeof adminConsoleUsersUserIdRoute
   '/$orgId/releases/': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
@@ -428,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/settings/org/$orgId/ai/': typeof adminSettingsOrgOrgIdAiIndexRoute
   '/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
@@ -443,6 +466,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/health': typeof HealthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/api/image-preview': typeof ApiImagePreviewRoute
@@ -464,6 +488,7 @@ export interface FileRoutesByTo {
   '/invite/$orgId': typeof InviteOrgIdIndexRoute
   '/orgs/$orgSlug': typeof OrgsOrgSlugIndexRoute
   '/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/console/organizations/$orgId': typeof adminConsoleOrganizationsOrgIdRoute
   '/console/users/$userId': typeof adminConsoleUsersUserIdRoute
   '/$orgId/releases': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksIndexRoute
@@ -477,6 +502,7 @@ export interface FileRoutesByTo {
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/settings/org/$orgId/ai': typeof adminSettingsOrgOrgIdAiIndexRoute
   '/settings/org/$orgId/billing': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/settings/org/$orgId/categories': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/settings/org/$orgId/connections': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
@@ -494,6 +520,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(admin)': typeof adminRouteRouteWithChildren
   '/health': typeof HealthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/prosekit-test': typeof ProsekitTestRoute
   '/(admin)/$orgId': typeof adminOrgIdRouteRouteWithChildren
@@ -525,6 +552,7 @@ export interface FileRoutesById {
   '/(admin)/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdRouteRouteWithChildren
   '/(admin)/settings/org/$orgId': typeof adminSettingsOrgOrgIdRouteRouteWithChildren
   '/(admin)/$orgId/releases/$releaseSlug': typeof adminOrgIdReleasesReleaseSlugRoute
+  '/(admin)/console/organizations/$orgId': typeof adminConsoleOrganizationsOrgIdRoute
   '/(admin)/console/users/$userId': typeof adminConsoleUsersUserIdRoute
   '/(admin)/$orgId/releases/': typeof adminOrgIdReleasesIndexRoute
   '/(admin)/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
@@ -538,6 +566,7 @@ export interface FileRoutesById {
   '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
   '/(admin)/settings/org/$orgId/teams/new': typeof adminSettingsOrgOrgIdTeamsNewRoute
+  '/(admin)/settings/org/$orgId/ai/': typeof adminSettingsOrgOrgIdAiIndexRoute
   '/(admin)/settings/org/$orgId/billing/': typeof adminSettingsOrgOrgIdBillingIndexRoute
   '/(admin)/settings/org/$orgId/categories/': typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   '/(admin)/settings/org/$orgId/connections/': typeof adminSettingsOrgOrgIdConnectionsIndexRoute
@@ -555,6 +584,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/health'
+    | '/llms.txt'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/$orgId'
@@ -586,6 +616,7 @@ export interface FileRouteTypes {
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
     | '/$orgId/releases/$releaseSlug'
+    | '/console/organizations/$orgId'
     | '/console/users/$userId'
     | '/$orgId/releases/'
     | '/$orgId/tasks/'
@@ -599,6 +630,7 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/'
     | '/orgs/$orgSlug/releases/$releaseSlug/'
     | '/settings/org/$orgId/teams/new'
+    | '/settings/org/$orgId/ai/'
     | '/settings/org/$orgId/billing/'
     | '/settings/org/$orgId/categories/'
     | '/settings/org/$orgId/connections/'
@@ -614,6 +646,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/health'
+    | '/llms.txt'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/api/image-preview'
@@ -635,6 +668,7 @@ export interface FileRouteTypes {
     | '/invite/$orgId'
     | '/orgs/$orgSlug'
     | '/$orgId/releases/$releaseSlug'
+    | '/console/organizations/$orgId'
     | '/console/users/$userId'
     | '/$orgId/releases'
     | '/$orgId/tasks'
@@ -648,6 +682,7 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId'
     | '/orgs/$orgSlug/releases/$releaseSlug'
     | '/settings/org/$orgId/teams/new'
+    | '/settings/org/$orgId/ai'
     | '/settings/org/$orgId/billing'
     | '/settings/org/$orgId/categories'
     | '/settings/org/$orgId/connections'
@@ -664,6 +699,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/(admin)'
     | '/health'
+    | '/llms.txt'
     | '/manifest.webmanifest'
     | '/prosekit-test'
     | '/(admin)/$orgId'
@@ -695,6 +731,7 @@ export interface FileRouteTypes {
     | '/(admin)/$orgId/tasks/$taskShortId'
     | '/(admin)/settings/org/$orgId'
     | '/(admin)/$orgId/releases/$releaseSlug'
+    | '/(admin)/console/organizations/$orgId'
     | '/(admin)/console/users/$userId'
     | '/(admin)/$orgId/releases/'
     | '/(admin)/$orgId/tasks/'
@@ -708,6 +745,7 @@ export interface FileRouteTypes {
     | '/(admin)/settings/org/$orgId/'
     | '/orgs/$orgSlug/releases/$releaseSlug/'
     | '/(admin)/settings/org/$orgId/teams/new'
+    | '/(admin)/settings/org/$orgId/ai/'
     | '/(admin)/settings/org/$orgId/billing/'
     | '/(admin)/settings/org/$orgId/categories/'
     | '/(admin)/settings/org/$orgId/connections/'
@@ -725,6 +763,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   adminRouteRoute: typeof adminRouteRouteWithChildren
   HealthRoute: typeof HealthRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ProsekitTestRoute: typeof ProsekitTestRoute
   OrgsOrgSlugRouteRoute: typeof OrgsOrgSlugRouteRouteWithChildren
@@ -754,6 +793,13 @@ declare module '@tanstack/react-router' {
       path: '/manifest.webmanifest'
       fullPath: '/manifest.webmanifest'
       preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health': {
@@ -1015,6 +1061,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminConsoleUsersUserIdRouteImport
       parentRoute: typeof adminRouteRoute
     }
+    '/(admin)/console/organizations/$orgId': {
+      id: '/(admin)/console/organizations/$orgId'
+      path: '/console/organizations/$orgId'
+      fullPath: '/console/organizations/$orgId'
+      preLoaderRoute: typeof adminConsoleOrganizationsOrgIdRouteImport
+      parentRoute: typeof adminRouteRoute
+    }
     '/(admin)/$orgId/releases/$releaseSlug': {
       id: '/(admin)/$orgId/releases/$releaseSlug'
       path: '/releases/$releaseSlug'
@@ -1111,6 +1164,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/settings/org/$orgId/billing/'
       preLoaderRoute: typeof adminSettingsOrgOrgIdBillingIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/ai/': {
+      id: '/(admin)/settings/org/$orgId/ai/'
+      path: '/ai'
+      fullPath: '/settings/org/$orgId/ai/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdAiIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/teams/new': {
@@ -1252,6 +1312,7 @@ const adminSettingsConnectionsRouteRouteWithChildren =
 interface adminSettingsOrgOrgIdRouteRouteChildren {
   adminSettingsOrgOrgIdIndexRoute: typeof adminSettingsOrgOrgIdIndexRoute
   adminSettingsOrgOrgIdTeamsNewRoute: typeof adminSettingsOrgOrgIdTeamsNewRoute
+  adminSettingsOrgOrgIdAiIndexRoute: typeof adminSettingsOrgOrgIdAiIndexRoute
   adminSettingsOrgOrgIdBillingIndexRoute: typeof adminSettingsOrgOrgIdBillingIndexRoute
   adminSettingsOrgOrgIdCategoriesIndexRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRoute
   adminSettingsOrgOrgIdConnectionsIndexRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRoute
@@ -1270,6 +1331,7 @@ const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteCh
   {
     adminSettingsOrgOrgIdIndexRoute: adminSettingsOrgOrgIdIndexRoute,
     adminSettingsOrgOrgIdTeamsNewRoute: adminSettingsOrgOrgIdTeamsNewRoute,
+    adminSettingsOrgOrgIdAiIndexRoute: adminSettingsOrgOrgIdAiIndexRoute,
     adminSettingsOrgOrgIdBillingIndexRoute:
       adminSettingsOrgOrgIdBillingIndexRoute,
     adminSettingsOrgOrgIdCategoriesIndexRoute:
@@ -1325,6 +1387,7 @@ interface adminRouteRouteChildren {
   adminSettingsRouteRoute: typeof adminSettingsRouteRouteWithChildren
   adminIndexRoute: typeof adminIndexRoute
   adminConsoleIndexRoute: typeof adminConsoleIndexRoute
+  adminConsoleOrganizationsOrgIdRoute: typeof adminConsoleOrganizationsOrgIdRoute
   adminConsoleUsersUserIdRoute: typeof adminConsoleUsersUserIdRoute
   adminConsoleConnectionsIndexRoute: typeof adminConsoleConnectionsIndexRoute
 }
@@ -1337,6 +1400,7 @@ const adminRouteRouteChildren: adminRouteRouteChildren = {
   adminSettingsRouteRoute: adminSettingsRouteRouteWithChildren,
   adminIndexRoute: adminIndexRoute,
   adminConsoleIndexRoute: adminConsoleIndexRoute,
+  adminConsoleOrganizationsOrgIdRoute: adminConsoleOrganizationsOrgIdRoute,
   adminConsoleUsersUserIdRoute: adminConsoleUsersUserIdRoute,
   adminConsoleConnectionsIndexRoute: adminConsoleConnectionsIndexRoute,
 }
@@ -1366,6 +1430,7 @@ const OrgsOrgSlugRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   adminRouteRoute: adminRouteRouteWithChildren,
   HealthRoute: HealthRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ProsekitTestRoute: ProsekitTestRoute,
   OrgsOrgSlugRouteRoute: OrgsOrgSlugRouteRouteWithChildren,

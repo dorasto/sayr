@@ -54,6 +54,12 @@ importers:
       '@opentelemetry/api':
         specifier: ^1.9.0
         version: 1.9.0
+      '@repo/ai-mistral':
+        specifier: workspace:*
+        version: link:../../packages/ai-mistral
+      '@repo/ai-prompts':
+        specifier: workspace:*
+        version: link:../../packages/ai-prompts
       '@repo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -585,6 +591,38 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
+
+  packages/ai-mistral:
+    dependencies:
+      '@mistralai/mistralai':
+        specifier: ^1.7.2
+        version: 1.15.1
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^2.1.1
+        version: 2.1.1
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
+
+  packages/ai-prompts:
+    dependencies:
+      '@repo/ai-mistral':
+        specifier: workspace:*
+        version: link:../ai-mistral
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^2.1.1
+        version: 2.1.1
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
 
   packages/auth:
     dependencies:
@@ -2845,6 +2883,9 @@ packages:
 
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
+
+  '@mistralai/mistralai@1.15.1':
+    resolution: {integrity: sha512-fb995eiz3r0KsBGtRjFV+/iLbX+UpfalxpF+YitT3R6ukrPD4PN+FGwwmYcRFhNAzVzDUtTVxQYnjQWEnwV5nw==}
 
   '@napi-rs/wasm-runtime@1.1.1':
     resolution: {integrity: sha512-p64ah1M1ld8xjWv3qbvFwHiFVWrq1yFvV4f7w+mzaqiR4IlSgkqhcRdHwsGgomwzBH51sRY4NEowLxnaBjcW/A==}
@@ -13016,6 +13057,15 @@ snapshots:
       vfile: 6.0.3
     transitivePeerDependencies:
       - supports-color
+
+  '@mistralai/mistralai@1.15.1':
+    dependencies:
+      ws: 8.20.0
+      zod: 4.3.6
+      zod-to-json-schema: 3.25.1(zod@4.3.6)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   '@napi-rs/wasm-runtime@1.1.1':
     dependencies:
@@ -23972,6 +24022,10 @@ snapshots:
     dependencies:
       zod: 4.1.5
     optional: true
+
+  zod-to-json-schema@3.25.1(zod@4.3.6):
+    dependencies:
+      zod: 4.3.6
 
   zod-to-ts@1.2.0(typescript@5.9.3)(zod@3.25.76):
     dependencies:

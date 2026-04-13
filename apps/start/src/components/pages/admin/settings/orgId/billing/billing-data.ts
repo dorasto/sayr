@@ -26,6 +26,7 @@ export const PLANS: Plan[] = [
 			{ name: "3 issue templates", included: true },
 			{ name: "1 team", included: true },
 			{ name: "Releases", included: false },
+			{ name: "AI task summaries", included: false },
 		],
 	},
 	{
@@ -39,6 +40,7 @@ export const PLANS: Plan[] = [
 			{ name: "Unlimited issue templates", included: true },
 			{ name: "Unlimited teams", included: true },
 			{ name: "Unlimited releases", included: true },
+			{ name: "AI task summaries", included: true },
 		],
 	},
 ];

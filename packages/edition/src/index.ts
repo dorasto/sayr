@@ -11,6 +11,7 @@ export {
 	isSelfHosted,
 	isCommunity,
 	isEnterprise,
+	isAiEnabled,
 	_resetEditionCache,
 } from "./edition";
 
@@ -19,13 +20,17 @@ export {
 	getEditionCapabilities,
 	getEffectiveLimits,
 	canCreateResource,
+	isAiAllowedForOrg,
 	getLimitReachedMessage,
 	// Pure functions (no process.env -- safe for browser use)
 	getLimitsForEdition,
 	canCreate,
+	canOrgUseAi,
 	isOverLimit,
 	getResourceLimitMessage,
 	formatResourceName,
+	// Types
+	type NumericPlanResource,
 	// Limit constants
 	CLOUD_PLAN_LIMITS,
 	SELF_HOSTED_LIMITS,

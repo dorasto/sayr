@@ -41,6 +41,7 @@ import { useStore } from "@tanstack/react-store";
 import { useState } from "react";
 import { sidebarStore } from "@/lib/sidebar/sidebar-store";
 import { orgSettingsNavigation } from "@/lib/routemap";
+import { useLayoutData } from "@/components/generic/Context";
 
 // import UpdateOrgDialog from "@/app/components/admin/global/org/management/update/edit-org-dialog"; // TODO: Port this
 // import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog"; // TODO: Port this
@@ -81,7 +82,10 @@ export default function OrgSection({
     }
   };
 
-  const orgSubItems = orgSettingsNavigation.filter((item) => item.slug !== "");
+  const { aiEnabled } = useLayoutData();
+  const orgSubItems = orgSettingsNavigation.filter(
+    (item) => "slug" in item && item.slug !== "" && (!("aiOnly" in item && item.aiOnly) || aiEnabled),
+  );
 
   // Desktop + Sidebar Open: Collapsible with full content
   const renderCollapsibleView = () => (

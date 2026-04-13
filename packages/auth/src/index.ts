@@ -173,6 +173,8 @@ export const auth = betterAuth({
 		},
 	},
 	emailVerification: {
+		autoSignInAfterVerification: true,
+		callbackURL: "/auth/auth-check",
 		sendVerificationEmail: async ({ user, url, token }, request) => {
 			void sendEmail({
 				to: user.email,

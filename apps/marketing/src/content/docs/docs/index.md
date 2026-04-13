@@ -72,6 +72,12 @@ hero:
 |------|-------------|
 | [GitHub](/docs/integrations/github) | Connect repositories and sync issues with Sayr tasks |
 
+### AI Features
+
+| Page | Description |
+|------|-------------|
+| [AI Task Summary](/docs/ai/task-summary) | Automatically summarize any task's activity and context (Cloud managed; self-hosted requires `MISTRAL_API_KEY`) |
+
 ### Self-Hosting
 | Page | Description |
 |------|-------------|

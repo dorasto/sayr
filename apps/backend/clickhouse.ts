@@ -12,6 +12,8 @@ export type PlatformEventType =
 	| "org.created"
 	| "org.settings_changed"
 	| "member.invited"
+	| "member.invite_accepted"
+	| "member.invite_declined"
 	| "member.joined"
 	| "member.removed"
 	| "task.created"
@@ -33,7 +35,8 @@ export type PlatformEventType =
 	| "task.github_pr_linked"
 	| "task.github_pr_merged"
 	| "task.github_commit_ref"
-	| "task.github_branch_linked";
+	| "task.github_branch_linked"
+	| "ai.summary_requested";
 
 export interface PlatformEvent {
 	event_type: PlatformEventType;
@@ -175,4 +178,142 @@ export async function collectAndInsertSnapshots(dateOverride?: string): Promise<
 	});
 
 	return { inserted: rows.length };
+}
+
+// ---------------------------------------------------------------------------
+// AI Usage — read queries (cloud-only)
+// ---------------------------------------------------------------------------
+
+export interface AiUsageRow {
+	event_time: string;
+	event_type: string;
+	actor_id: string;
+	target_id: string;
+	model: string;
+	input_tokens: number;
+	output_tokens: number;
+	total_tokens: number;
+	cost_cents: number;
+	success: number; // ClickHouse Bool returns 0/1
+}
+
+export interface AiMonthlySummary {
+	month: string; // 'YYYY-MM'
+	requests: number;
+	input_tokens: number;
+	output_tokens: number;
+	total_tokens: number;
+	cost_cents: number;
+}
+
+/**
+ * Query AI usage events for a specific org from ClickHouse.
+ * Returns null when ClickHouse is unavailable (CE, missing env vars, etc.).
+ */
+export async function queryAiUsageByOrg(
+	orgId: string,
+	days: number,
+): Promise<{ rows: AiUsageRow[]; monthlySummary: AiMonthlySummary[] } | null> {
+	const ch = getClient();
+	if (!ch) return null;
+
+	const safeDays = Math.min(Math.max(Math.floor(days), 1), 365);
+	// Sanitize orgId — must be a UUID (alphanumeric + hyphens only)
+	if (!/^[a-zA-Z0-9\-_]+$/.test(orgId)) return null;
+
+	const [rowsResult, summaryResult] = await Promise.all([
+		ch.query({
+			query: `
+				SELECT
+					toString(created_at) AS event_time,
+					event_type,
+					actor_id,
+					target_id,
+					JSONExtractString(metadata, 'model')         AS model,
+					JSONExtractInt(metadata, 'input_tokens')     AS input_tokens,
+					JSONExtractInt(metadata, 'output_tokens')    AS output_tokens,
+					JSONExtractInt(metadata, 'total_tokens')     AS total_tokens,
+					JSONExtractFloat(metadata, 'cost_cents')     AS cost_cents,
+					JSONExtractBool(metadata, 'success')         AS success
+				FROM platform_events
+				WHERE event_type = 'ai.summary_requested'
+					AND org_id = '${orgId}'
+					AND created_at >= now() - INTERVAL ${safeDays} DAY
+				ORDER BY created_at DESC
+				LIMIT 500
+			`,
+			format: "JSONEachRow",
+		}),
+		ch.query({
+			query: `
+				SELECT
+					formatDateTime(created_at, '%Y-%m') AS month,
+					count()                                                    AS requests,
+					sum(JSONExtractInt(metadata, 'input_tokens'))              AS input_tokens,
+					sum(JSONExtractInt(metadata, 'output_tokens'))             AS output_tokens,
+					sum(JSONExtractInt(metadata, 'total_tokens'))              AS total_tokens,
+					sum(JSONExtractFloat(metadata, 'cost_cents'))              AS cost_cents
+				FROM platform_events
+				WHERE event_type = 'ai.summary_requested'
+					AND org_id = '${orgId}'
+					AND created_at >= now() - INTERVAL ${safeDays} DAY
+				GROUP BY month
+				ORDER BY month DESC
+			`,
+			format: "JSONEachRow",
+		}),
+	]);
+
+	const rows = await rowsResult.json<AiUsageRow>();
+	const monthlySummary = await summaryResult.json<AiMonthlySummary>();
+
+	return { rows, monthlySummary };
+}
+
+// ---------------------------------------------------------------------------
+// AI Usage Summary — all orgs, last N days (cloud-only, for org table)
+// ---------------------------------------------------------------------------
+
+export interface AiOrgSummary {
+	org_id: string;
+	requests: number;
+	total_tokens: number;
+	input_tokens: number;
+	output_tokens: number;
+	/** Sum of the persisted cost_cents values stored at event-emit time. */
+	total_cost_cents: number;
+}
+
+/**
+ * Returns per-org AI usage aggregates for the last `days` days.
+ * Returns null when ClickHouse is unavailable.
+ * Includes total_cost_cents so callers can compute accurate costs without
+ * needing to know the model mix.
+ */
+export async function queryAiUsageSummaryAllOrgs(
+	days: number,
+): Promise<AiOrgSummary[] | null> {
+	const ch = getClient();
+	if (!ch) return null;
+
+	const safeDays = Math.min(Math.max(Math.floor(days), 1), 365);
+
+	const result = await ch.query({
+		query: `
+			SELECT
+				org_id,
+				count()                                                    AS requests,
+				sum(JSONExtractInt(metadata, 'input_tokens'))              AS input_tokens,
+				sum(JSONExtractInt(metadata, 'output_tokens'))             AS output_tokens,
+				sum(JSONExtractInt(metadata, 'total_tokens'))              AS total_tokens,
+				sum(JSONExtractFloat(metadata, 'cost_cents'))              AS total_cost_cents
+			FROM platform_events
+			WHERE event_type = 'ai.summary_requested'
+				AND created_at >= now() - INTERVAL ${safeDays} DAY
+			GROUP BY org_id
+		`,
+		format: "JSONEachRow",
+	});
+
+	return result.json<AiOrgSummary>();
 }

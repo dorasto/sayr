@@ -7,6 +7,7 @@ import { NavigationTracker } from "@/components/generic/NavigationTracker";
 import { Wrapper, AdminSidebar } from "@/components/generic/wrapper";
 import { getAccess } from "@/getAccess";
 import { getOrganizations, type schema } from "@repo/database";
+import { isAiEnabled } from "@repo/edition";
 import { seo, getOgImageUrl } from "@/seo";
 import { PostHogUserSync } from "@/components/PostHogProvider";
 import { GlobalCreateTaskDialog } from "@/components/generic/GlobalCreateTaskDialog";
@@ -35,6 +36,11 @@ export const getUserOrganizations = createServerFn({ method: "GET" })
       throw redirect({ to: "/auth/login" });
     }
   });
+
+// Fetch instance-level capabilities for the current deployment
+const getServerCapabilities = createServerFn({ method: "GET" }).handler(async () => {
+  return { aiEnabled: isAiEnabled() };
+});
 
 // --- CLIENT-SIDE AUTH CACHE ---
 
@@ -140,9 +146,12 @@ export const Route = createFileRoute("/(admin)")({
       throw redirect({ to: "/auth/login" });
     }
 
-    return await getUserOrganizations({
-      data: { account: context.account },
-    });
+    const [orgsResult, capabilities] = await Promise.all([
+      getUserOrganizations({ data: { account: context.account } }),
+      getServerCapabilities(),
+    ]);
+
+    return { ...orgsResult, aiEnabled: capabilities.aiEnabled };
   },
   component: AdminLayout,
 });
@@ -150,11 +159,11 @@ export const Route = createFileRoute("/(admin)")({
 // --- COMPONENT ---
 
 function AdminLayout() {
-  const { account, organizations } = Route.useLoaderData();
+  const { account, organizations, aiEnabled } = Route.useLoaderData();
 
   return (
     <div className="flex h-dvh max-h-dvh flex-row bg-sidebar overflow-hidden">
-      <RootProvider account={account} organizations={organizations}>
+      <RootProvider account={account} organizations={organizations} aiEnabled={aiEnabled}>
         <PostHogUserSync
           user={
             account
