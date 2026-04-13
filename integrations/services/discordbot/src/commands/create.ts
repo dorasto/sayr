@@ -1,4 +1,4 @@
-import { getIntegrationConfigByValue, getIntegrationConfigsByValue, getIntegrationStorage } from "@repo/database";
+import { getIntegrationConfigsByValue, getIntegrationStorage } from "@repo/database";
 
 import {
 	SlashCommandSubcommandBuilder,
