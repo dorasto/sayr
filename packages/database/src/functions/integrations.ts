@@ -62,6 +62,34 @@ export async function getIntegrationConfigByValue<TValue = unknown>(
 	}
 }
 
+export async function getIntegrationConfigsByValue<TValue = unknown>(
+	key: string,
+	integrationId: string,
+	valueKey: string,
+	value: string
+): Promise<Array<Omit<integrationConfigType, "value"> & { value: TValue }>> {
+	const result = await db
+		.select()
+		.from(integrationConfig)
+		.where(
+			and(
+				eq(integrationConfig.integrationId, integrationId),
+				eq(integrationConfig.key, key),
+				sql`${integrationConfig.value} ->> ${valueKey} = ${value}`
+			)
+		);
+
+	if (!result.length) return [];
+
+	return result.map((row) => {
+		const base = row as integrationConfigType;
+		return {
+			...base,
+			value: base.value as TValue
+		};
+	});
+}
+
 export async function setIntegrationConfig<TValue = unknown>(
 	orgId: string,
 	integrationId: string,
