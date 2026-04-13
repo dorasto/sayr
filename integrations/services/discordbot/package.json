@@ -15,7 +15,7 @@
     "@sayrio/public": "^1.0.8",
     "discord.js": "^14.18.0",
     "eventsource": "^4.1.0",
-    "hono": "^4.12.7"
+    "hono": "^4.12.12"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

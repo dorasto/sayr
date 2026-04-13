@@ -29,7 +29,7 @@
     "@repo/util": "workspace:*",
     "@scalar/hono-api-reference": "^0.9.25",
     "drizzle-zod": "^0.8.3",
-    "hono": "^4.12.7",
+    "hono": "^4.12.12",
     "hono-openapi": "^1.1.1",
     "jsdom": "^27.2.0",
     "markdown-it": "^14.1.1",

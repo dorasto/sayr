@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@repo/integrations": "workspace:*",
-    "hono": "^4.12.7"
+    "hono": "^4.12.12"
   },
   "devDependencies": {
     "@hono/node-server": "^1.19.10",
