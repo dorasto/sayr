@@ -116,8 +116,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       '@hono/node-server':
-        specifier: ^1.19.10
-        version: 1.19.10(hono@4.12.14)
+        specifier: ^1.19.13
+        version: 1.19.13(hono@4.12.14)
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -531,8 +531,8 @@ importers:
         version: 4.12.14
     devDependencies:
       '@hono/node-server':
-        specifier: ^1.19.10
-        version: 1.19.10(hono@4.12.14)
+        specifier: ^1.19.13
+        version: 1.19.13(hono@4.12.14)
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../packages/typescript-config
@@ -2641,8 +2641,8 @@ packages:
   '@hexagon/base64@1.1.28':
     resolution: {integrity: sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw==}
 
-  '@hono/node-server@1.19.10':
-    resolution: {integrity: sha512-hZ7nOssGqRgyV3FVVQdfi+U4q02uB23bpnYpdvNXkYTRRyWx84b7yf1ans+dnJ/7h41sGL3CeQTfO+ZGxuO+Iw==}
+  '@hono/node-server@1.19.13':
+    resolution: {integrity: sha512-TsQLe4i2gvoTtrHje625ngThGBySOgSK3Xo2XRYOdqGN1teR8+I7vchQC46uLJi8OF62YTYA3AhSpumtkhsaKQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -12811,7 +12811,7 @@ snapshots:
 
   '@hexagon/base64@1.1.28': {}
 
-  '@hono/node-server@1.19.10(hono@4.12.14)':
+  '@hono/node-server@1.19.13(hono@4.12.14)':
     dependencies:
       hono: 4.12.14
 
