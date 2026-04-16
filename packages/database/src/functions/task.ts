@@ -781,6 +781,7 @@ export async function searchTasksByOrganization(
 		status: string;
 		priority: string;
 		parentId: string | null;
+		releaseId: string | null;
 		subtaskCount: number | null;
 	}[]
 > {
@@ -826,12 +827,14 @@ export async function searchTasksByOrganization(
 			status: schema.task.status,
 			priority: schema.task.priority,
 			parentId: schema.task.parentId,
+			releaseId: schema.task.releaseId,
 			subtaskCount: sql<number>`(SELECT COUNT(*) FROM task AS child WHERE child.parent_id = ${schema.task.id})`.as("subtask_count"),
 		})
 		.from(schema.task)
 		.where(and(...conditions))
 		.orderBy(
 			sql`CASE WHEN ${schema.task.status} IN ('done', 'canceled') THEN 1 ELSE 0 END`,
+			sql`CASE WHEN ${schema.task.releaseId} IS NOT NULL THEN 1 ELSE 0 END`,
 			...(isShortIdQuery
 				? [
 						sql`CASE WHEN ${schema.task.shortId} = ${Number.parseInt(trimmedQuery.replace("#", ""), 10)} THEN 0 ELSE 1 END`,

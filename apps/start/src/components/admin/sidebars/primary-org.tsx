@@ -217,6 +217,7 @@ export default function OrgSection({
               <Link
                 to={`/$orgId/releases`}
                 params={{ orgId: organization.id }}
+                search={{ status: undefined, targetDateFrom: undefined, targetDateTo: undefined, releasedFrom: undefined, releasedTo: undefined }}
                 className="w-full cursor-pointer"
               >
                 <SidebarMenuButton

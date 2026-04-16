@@ -1,5 +1,3 @@
-"use client";
-
 import type { schema } from "@repo/database";
 import {
   Avatar,
@@ -14,6 +12,7 @@ import { ensureCdnUrl, extractHslValues } from "@repo/util";
 import {
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
+  IconPlus,
   IconRocket,
   IconUsers,
 } from "@tabler/icons-react";
@@ -54,6 +53,8 @@ import { extractTextContent, useToastAction } from "@/lib/util";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Label } from "@repo/ui/components/label";
 import Loader from "@/components/Loader";
+import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
+import { commandActions } from "@/lib/command-store";
 
 interface ReleaseDetailPageProps {
   release: schema.releaseType;
@@ -84,6 +85,9 @@ function ReleaseDetailPageContent() {
   );
   const useMobile = useIsMobile();
   const loadedReleaseIdRef = useRef<string | null>(null);
+
+  // Register release-specific command palette commands
+  useReleaseCommands(release, tasks, setTasks);
 
   // Memoize to prevent unnecessary re-renders of Editor
   const availableUsers = useMemo(
@@ -182,8 +186,7 @@ function ReleaseDetailPageContent() {
     },
   };
 
-  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-  });
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 
   useEffect(() => {
     if (!serverEvents.event) return;
@@ -278,17 +281,22 @@ function ReleaseDetailPageContent() {
           },
         },
         () =>
-          updateReleaseAction(organization.id, release.id, updates, sseClientId),
+          updateReleaseAction(
+            organization.id,
+            release.id,
+            updates,
+            sseClientId,
+          ),
       );
 
       if (result?.success && result.data) {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              status: result.data.status,
-              releasedAt: result.data.releasedAt,
-            }
+                ...prev,
+                status: result.data.status,
+                releasedAt: result.data.releasedAt,
+              }
             : null,
         );
       }
@@ -334,9 +342,9 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              targetDate: result.data.targetDate,
-            }
+                ...prev,
+                targetDate: result.data.targetDate,
+              }
             : null,
         );
       }
@@ -382,9 +390,9 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              releasedAt: result.data.releasedAt,
-            }
+                ...prev,
+                releasedAt: result.data.releasedAt,
+              }
             : null,
         );
       }
@@ -421,58 +429,10 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              name: result.data.name,
-              slug: result.data.slug,
-            }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
-
-  // Handle header update (includes icon and color)
-  const handleHeaderUpdate = useCallback(
-    async (data: {
-      name: string;
-      slug: string;
-      icon: string;
-      color: string;
-    }) => {
-      if (!release) return;
-
-      const result = await runWithToast(
-        "update-release-header",
-        {
-          loading: {
-            title: "Saving...",
-            description: "Updating release information.",
-          },
-          success: {
-            title: "Saved",
-            description: "Release information updated successfully.",
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update release information.",
-          },
-        },
-        () =>
-          updateReleaseAction(organization.id, release.id, data, sseClientId),
-      );
-
-      if (result?.success && result.data) {
-        // Only update the fields that were changed, preserve tasks and createdBy
-        setRelease((prev) =>
-          prev
-            ? {
-              ...prev,
-              name: result.data.name,
-              slug: result.data.slug,
-              icon: result.data.icon,
-              color: result.data.color,
-            }
+                ...prev,
+                name: result.data.name,
+                slug: result.data.slug,
+              }
             : null,
         );
       }
@@ -533,11 +493,11 @@ function ReleaseDetailPageContent() {
         <div className="flex flex-col gap-3">
           <ReleaseInfo
             release={release}
-            onUpdate={handleHeaderUpdate}
             onStatusUpdate={handleStatusUpdate}
             onTargetDateUpdate={handleTargetDateUpdate}
+            onReleasedAtUpdate={handleReleasedAtUpdate}
           />
-          <Label>Status</Label>
+          {tasks.length > 0 && <Label>Status</Label>}
           <ReleaseSidebar
             tasks={tasks}
             taskStats={taskStats}
@@ -552,20 +512,34 @@ function ReleaseDetailPageContent() {
         <PageHeader>
           <PageHeader.Identity
             actions={
-              <Button
-                variant="accent"
-                className={cn(
-                  "gap-2 h-6 w-fit bg-accent border-transparent p-1",
-                  !isChartsPanelOpen && "bg-transparent",
-                )}
-                onClick={() => releaseChartsActions.toggle()}
-              >
-                {isChartsPanelOpen ? (
-                  <IconLayoutSidebarRightFilled className="w-3 h-3" />
-                ) : (
-                  <IconLayoutSidebarRight className="w-3 h-3" />
-                )}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="accent"
+                  className="gap-1.5 h-6 w-fit bg-transparent border-transparent px-1.5 text-xs"
+                  onClick={() => {
+                    const viewId = `release-add-tasks-${release.id}`;
+                    commandActions.setInitialView(viewId, "Add tasks");
+                    commandActions.open();
+                  }}
+                >
+                  <IconPlus className="w-3 h-3" />
+                  <span>Add tasks</span>
+                </Button>
+                <Button
+                  variant="accent"
+                  className={cn(
+                    "gap-2 h-6 w-fit bg-accent border-transparent p-1",
+                    !isChartsPanelOpen && "bg-transparent",
+                  )}
+                  onClick={() => releaseChartsActions.toggle()}
+                >
+                  {isChartsPanelOpen ? (
+                    <IconLayoutSidebarRightFilled className="w-3 h-3" />
+                  ) : (
+                    <IconLayoutSidebarRight className="w-3 h-3" />
+                  )}
+                </Button>
+              </div>
             }
           >
             {!useMobile && (
@@ -593,7 +567,17 @@ function ReleaseDetailPageContent() {
                   </Button>
                 </Link>
                 <span className="text-muted-foreground text-xs">/</span>
-                <Link to="/$orgId/releases" params={{ orgId: organization.id }}>
+                <Link
+                  to="/$orgId/releases"
+                  params={{ orgId: organization.id }}
+                  search={{
+                    status: undefined,
+                    targetDateFrom: undefined,
+                    targetDateTo: undefined,
+                    releasedFrom: undefined,
+                    releasedTo: undefined,
+                  }}
+                >
                   <Button
                     variant={"ghost"}
                     className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"

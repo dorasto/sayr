@@ -169,6 +169,7 @@ export async function updateRelease(
 		description: schema.NodeJSON;
 		status: "planned" | "in-progress" | "released" | "archived";
 		targetDate: Date | null;
+		releasedAt: Date | null;
 		color: string;
 		icon: string;
 	}>
