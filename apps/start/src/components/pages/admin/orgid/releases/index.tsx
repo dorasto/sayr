@@ -1,296 +1,264 @@
 import { useLayoutData } from "@/components/generic/Context";
-import { SubWrapper } from "@/components/generic/wrapper";
 import { PageHeader } from "@/components/generic/PageHeader";
+import { PanelWrapper } from "@/components/generic/wrapper";
 import { PlanLimitBanner } from "@/components/generic/PlanLimitBanner";
-import RenderIcon from "@/components/generic/RenderIcon";
+import { ReleasesListPanelContent, ReleasesListPanelHeader } from "@/components/admin/panels/releases-list";
+import { ReleasesKanban } from "@/components/releases/ReleasesKanban";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
-  useWSMessageHandler,
-  type WSMessageHandler,
+	useWSMessageHandler,
+	type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
+	releasesListPanelActions,
+	releasesListPanelStore,
+} from "@/lib/stores/releases-list-panel-store";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
 } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import {
-  Tile,
-  TileAction,
-  TileDescription,
-  TileHeader,
-  TileIcon,
-  TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
 } from "@repo/ui/components/tooltip";
-import { cn } from "@repo/ui/lib/utils";
-import { ensureCdnUrl, extractTaskText } from "@repo/util";
+import { ensureCdnUrl } from "@repo/util";
 import {
-  IconLock,
-  IconPlus,
-  IconRocket,
-  IconSettings,
-  IconUsers,
+	IconLayoutSidebarRight,
+	IconLayoutSidebarRightFilled,
+	IconLock,
+	IconPlus,
+	IconRocket,
+	IconUsers,
 } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Link, useSearch } from "@tanstack/react-router";
+import { useStore } from "@tanstack/react-store";
+import { useEffect, useMemo, useState } from "react";
 import { CreateReleaseDialog } from "./create-release-dialog";
-import { Label } from "@repo/ui/components/label";
+
+type ReleaseSearch = {
+	status?: string;
+	targetDateFrom?: string;
+	targetDateTo?: string;
+	releasedFrom?: string;
+	releasedTo?: string;
+};
 
 export default function OrganizationReleasesPage() {
-  const { serverEvents } = useLayoutData();
-  const { organization, setOrganization, releases, setReleases } =
-    useLayoutOrganization();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const { canCreateResource, getLimitMessage } = usePlanLimits();
-  const canCreateRelease = canCreateResource("releases");
-  const releaseLimitMessage = getLimitMessage("releases");
+	const { serverEvents } = useLayoutData();
+	const { organization, setOrganization, releases, setReleases } = useLayoutOrganization();
+	const [createDialogOpen, setCreateDialogOpen] = useState(false);
+	const { canCreateResource, getLimitMessage } = usePlanLimits();
+	const canCreateRelease = canCreateResource("releases");
+	const releaseLimitMessage = getLimitMessage("releases");
+	const { isOpen } = useStore(releasesListPanelStore);
+	const search = useSearch({ strict: false }) as ReleaseSearch;
 
-  useServerEventsSubscription({
-    serverEvents,
-    orgId: organization.id,
-    organization: organization,
-    channel: "admin",
-    setOrganization: setOrganization,
-  });
+	useServerEventsSubscription({
+		serverEvents,
+		orgId: organization.id,
+		organization: organization,
+		channel: "admin",
+		setOrganization: setOrganization,
+	});
 
-  const handlers: WSMessageHandler<ServerEventMessage> = {
-    UPDATE_RELEASES: (msg) => {
-      if (msg.scope === "CHANNEL") {
-        setReleases(msg.data);
-      }
-    },
-  };
+	const handlers: WSMessageHandler<ServerEventMessage> = {
+		UPDATE_RELEASES: (msg) => {
+			if (msg.scope === "CHANNEL") {
+				setReleases(msg.data);
+			}
+		},
+	};
 
-  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 
-  useEffect(() => {
-    if (!serverEvents.event) return;
-    serverEvents.event.addEventListener("message", handleMessage);
-    return () => {
-      serverEvents.event?.removeEventListener("message", handleMessage);
-    };
-  }, [serverEvents.event, handleMessage]);
+	useEffect(() => {
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		return () => {
+			serverEvents.event?.removeEventListener("message", handleMessage);
+		};
+	}, [serverEvents.event, handleMessage]);
 
-  if (!organization) {
-    return null;
-  }
+	// Filter releases based on query params
+	const filteredReleases = useMemo(() => {
+		let filtered = releases;
+		if (search.status) {
+			filtered = filtered.filter((r) => r.status === search.status);
+		}
+		if (search.targetDateFrom) {
+			const from = new Date(search.targetDateFrom);
+			filtered = filtered.filter((r) => r.targetDate && new Date(r.targetDate) >= from);
+		}
+		if (search.targetDateTo) {
+			const to = new Date(search.targetDateTo);
+			filtered = filtered.filter((r) => r.targetDate && new Date(r.targetDate) <= to);
+		}
+		if (search.releasedFrom) {
+			const from = new Date(search.releasedFrom);
+			filtered = filtered.filter((r) => r.releasedAt && new Date(r.releasedAt) >= from);
+		}
+		if (search.releasedTo) {
+			const to = new Date(search.releasedTo);
+			filtered = filtered.filter((r) => r.releasedAt && new Date(r.releasedAt) <= to);
+		}
+		return filtered;
+	}, [releases, search]);
 
-  // console.log("📦 Releases data:", releases);
+	if (!organization) {
+		return null;
+	}
 
-  // Group releases by status
-  const plannedReleases = releases.filter((r) => r.status === "planned");
-  const activeReleases = releases.filter((r) => r.status === "in-progress");
-  const releasedReleases = releases.filter((r) => r.status === "released");
-  const archivedReleases = releases.filter((r) => r.status === "archived");
+	return (
+		<div className="relative flex flex-col h-full max-h-full">
+			<PageHeader>
+				<PageHeader.Identity
+					actions={
+						<div className="flex items-center gap-2">
+							{canCreateRelease ? (
+								<Button
+									variant="default"
+									size="sm"
+									className="gap-2"
+									onClick={() => setCreateDialogOpen(true)}
+								>
+									<IconPlus className="size-4" />
+									New Release
+								</Button>
+							) : (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="default"
+											size="sm"
+											className="gap-2 opacity-50 cursor-not-allowed"
+											disabled
+										>
+											<IconLock className="size-4" />
+											New Release
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>{releaseLimitMessage}</TooltipContent>
+								</Tooltip>
+							)}
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-8 w-8"
+								onClick={() => releasesListPanelActions.toggle()}
+							>
+								{isOpen ? (
+									<IconLayoutSidebarRightFilled className="size-4" />
+								) : (
+									<IconLayoutSidebarRight className="size-4" />
+								)}
+							</Button>
+						</div>
+					}
+				>
+					<Link to="/$orgId" params={{ orgId: organization.id }}>
+						<Button
+							variant={"primary"}
+							className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+							size={"sm"}
+						>
+							<Avatar className="h-4 w-4">
+								<AvatarImage
+									src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
+									alt={organization.name}
+								/>
+								<AvatarFallback className="rounded-md uppercase text-xs">
+									<IconUsers className="h-4 w-4" />
+								</AvatarFallback>
+							</Avatar>
+							<span>{organization.name}</span>
+						</Button>
+					</Link>
+					<span className="text-muted-foreground text-xs">/</span>
+					<Button
+						variant={"primary"}
+						className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent gap-1"
+						size={"sm"}
+					>
+						<IconRocket className="size-3.5 text-muted-foreground" />
+						<span>Releases</span>
+					</Button>
+				</PageHeader.Identity>
+			</PageHeader>
 
-  const renderReleasesList = (releasesList: typeof releases, title: string) => {
-    if (releasesList.length === 0) return null;
-    return (
-      <div className="flex flex-col gap-3">
-        <Label variant={"heading"} className="text-lg">
-          {title}
-        </Label>
-        <div className="flex flex-col gap-3">
-          {releasesList.map((release) => {
-            const descriptionPreview = extractTaskText(release.description);
-            return (
-              <Tile
-                className={cn(
-                  "bg-card hover:bg-accent md:w-full transition-colors cursor-pointer h-full p-0 gap-0",
-                )}
-                key={release.id}
-              >
-                <Link
-                  to="/$orgId/releases/$releaseSlug"
-                  params={{ orgId: organization.id, releaseSlug: release.slug }}
-                  className="w-full h-full p-6"
-                >
-                  <TileHeader className="flex items-center gap-3 w-full">
-                    <TileIcon className={cn("shrink-0 p-0")}>
-                      {release.icon ? (
-                        <RenderIcon
-                          iconName={release.icon}
-                          color={release.color || "#ffffff"}
-                          button
-                          className={cn("size-5! [&_svg]:size-4! border-0")}
-                        />
-                      ) : (
-                        <div
-                          className="size-8 rounded-full flex items-center justify-center"
-                          style={{
-                            backgroundColor: release.color || "#cccccc",
-                          }}
-                        >
-                          <IconRocket className="size-4 text-white" />
-                        </div>
-                      )}
-                    </TileIcon>
-                    <TileTitle className="text-base font-semibold">
-                      {release.name}
-                    </TileTitle>
-                    {descriptionPreview && (
-                      <TileDescription className="line-clamp-2">
-                        {descriptionPreview}
-                      </TileDescription>
-                    )}
-                    <div className="flex flex-col gap-1 w-full" />
-                  </TileHeader>
-                </Link>
-                <TileAction className="p-3">
-                  <Link
-                    to="/$orgId/releases/$releaseSlug"
-                    params={{
-                      orgId: organization.id,
-                      releaseSlug: release.slug,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    className=""
-                  >
-                    <Button variant="primary" size="icon" className="">
-                      <IconSettings />
-                    </Button>
-                  </Link>
-                </TileAction>
-              </Tile>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+			<PanelWrapper
+				isOpen={isOpen}
+				setOpen={(open) => (open ? releasesListPanelActions.open() : releasesListPanelActions.close())}
+				panelHeader={<ReleasesListPanelHeader />}
+				panelBody={<ReleasesListPanelContent />}
+				panelDefaultSize={25}
+				panelMinSize={15}
+			>
+				<div className="flex flex-col h-full overflow-hidden">
+					{!canCreateRelease && (
+						<div className="px-4 pt-3">
+							<PlanLimitBanner title="Releases unavailable" description={releaseLimitMessage} />
+						</div>
+					)}
 
-  return (
-    <div className="relative flex flex-col h-full">
-      <PageHeader>
-        <PageHeader.Identity
-          actions={
-            canCreateRelease ? (
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-2"
-                onClick={() => setCreateDialogOpen(true)}
-              >
-                <IconPlus className="size-4" />
-                New Release
-              </Button>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="gap-2 opacity-50 cursor-not-allowed"
-                    disabled
-                  >
-                    <IconLock className="size-4" />
-                    New Release
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{releaseLimitMessage}</TooltipContent>
-              </Tooltip>
-            )
-          }
-        >
-          <Link to="/$orgId" params={{ orgId: organization.id }}>
-            <Button
-              variant={"primary"}
-              className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-              size={"sm"}
-            >
-              <Avatar className="h-4 w-4">
-                <AvatarImage
-                  src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
-                  alt={organization.name}
-                />
-                <AvatarFallback className="rounded-md uppercase text-xs">
-                  <IconUsers className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-              <span>{organization.name}</span>
-            </Button>
-          </Link>
-          <span className="text-muted-foreground text-xs">/</span>
-          <Button
-            variant={"primary"}
-            className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent gap-1"
-            size={"sm"}
-          >
-            <IconRocket className="size-3.5 text-muted-foreground" />
-            <span>Releases</span>
-          </Button>
-        </PageHeader.Identity>
-      </PageHeader>
-      <SubWrapper title="Releases" description="Manage and track your releases">
-        {!canCreateRelease && (
-          <PlanLimitBanner
-            title="Releases unavailable"
-            description={releaseLimitMessage}
-          />
-        )}
-        {/* Releases Lists */}
-        <div className="flex flex-col gap-6">
-          {renderReleasesList(plannedReleases, "Planned")}
-          {renderReleasesList(activeReleases, "In Progress")}
-          {renderReleasesList(releasedReleases, "Released")}
-          {renderReleasesList(archivedReleases, "Archived")}
-        </div>
+					{releases.length === 0 ? (
+						<div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg border-dashed bg-muted/20 m-4">
+							<IconRocket className="size-12 text-muted-foreground mb-4" />
+							<h3 className="text-lg font-semibold mb-2">No releases yet</h3>
+							<p className="text-sm text-muted-foreground mb-4 max-w-md">
+								Create releases to track which tasks ship in each version. Releases help you organize
+								work by milestones and communicate what's coming.
+							</p>
+							{canCreateRelease ? (
+								<Button
+									variant="default"
+									size="sm"
+									className="gap-2"
+									onClick={() => setCreateDialogOpen(true)}
+								>
+									<IconPlus className="size-4" />
+									Create Your First Release
+								</Button>
+							) : (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="default"
+											size="sm"
+											className="gap-2 opacity-50 cursor-not-allowed"
+											disabled
+										>
+											<IconLock className="size-4" />
+											Create Your First Release
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>{releaseLimitMessage}</TooltipContent>
+								</Tooltip>
+							)}
+						</div>
+					) : (
+						<div className="flex-1 overflow-auto">
+							<ReleasesKanban
+								releases={filteredReleases}
+								setReleases={setReleases}
+								orgId={organization.id}
+							/>
+						</div>
+					)}
+				</div>
+			</PanelWrapper>
 
-        {/* Empty State */}
-        {releases.length === 0 && (
-          <div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg border-dashed bg-muted/20">
-            <IconRocket className="size-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No releases yet</h3>
-            <p className="text-sm text-muted-foreground mb-4 max-w-md">
-              Create releases to track which tasks ship in each version.
-              Releases help you organize work by milestones and communicate
-              what's coming.
-            </p>
-            {canCreateRelease ? (
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-2"
-                onClick={() => setCreateDialogOpen(true)}
-              >
-                <IconPlus className="size-4" />
-                Create Your First Release
-              </Button>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="gap-2 opacity-50 cursor-not-allowed"
-                    disabled
-                  >
-                    <IconLock className="size-4" />
-                    Create Your First Release
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{releaseLimitMessage}</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        )}
-
-        {/* Create Dialog */}
-        <CreateReleaseDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          disabled={!canCreateRelease}
-          disabledMessage={releaseLimitMessage}
-        />
-      </SubWrapper>
-    </div>
-  );
+			<CreateReleaseDialog
+				open={createDialogOpen}
+				onOpenChange={setCreateDialogOpen}
+				disabled={!canCreateRelease}
+				disabledMessage={releaseLimitMessage}
+			/>
+		</div>
+	);
 }

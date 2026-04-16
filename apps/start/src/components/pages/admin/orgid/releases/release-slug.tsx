@@ -593,7 +593,7 @@ function ReleaseDetailPageContent() {
                   </Button>
                 </Link>
                 <span className="text-muted-foreground text-xs">/</span>
-                <Link to="/$orgId/releases" params={{ orgId: organization.id }}>
+                <Link to="/$orgId/releases" params={{ orgId: organization.id }} search={{ status: undefined, targetDateFrom: undefined, targetDateTo: undefined, releasedFrom: undefined, releasedTo: undefined }}>
                   <Button
                     variant={"ghost"}
                     className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
