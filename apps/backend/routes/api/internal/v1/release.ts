@@ -199,6 +199,7 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 		description: schema.NodeJSON;
 		status: "planned" | "in-progress" | "released" | "archived";
 		targetDate: Date | null;
+		releasedAt: Date | null;
 		color: string;
 		icon: string;
 	}> = {};
@@ -210,6 +211,8 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 	if (updates.status !== undefined) updateData.status = updates.status;
 	if (updates.targetDate !== undefined)
 		updateData.targetDate = updates.targetDate ? new Date(updates.targetDate) : null;
+	if (updates.releasedAt !== undefined)
+		updateData.releasedAt = updates.releasedAt ? new Date(updates.releasedAt) : null;
 	if (updates.color !== undefined) updateData.color = updates.color;
 	if (updates.icon !== undefined) updateData.icon = updates.icon;
 
