@@ -61,7 +61,6 @@ export function ReleasesKanbanCard({
             className="leading-tight line-clamp-1 cursor-pointer max-w-4/5"
           >
             {release.name}
-            foijsdf
           </Label>
           <Label
             variant={"description"}

@@ -1,5 +1,3 @@
-"use client";
-
 import type { schema } from "@repo/database";
 import {
   Avatar,
@@ -182,8 +180,7 @@ function ReleaseDetailPageContent() {
     },
   };
 
-  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-  });
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 
   useEffect(() => {
     if (!serverEvents.event) return;
@@ -278,17 +275,22 @@ function ReleaseDetailPageContent() {
           },
         },
         () =>
-          updateReleaseAction(organization.id, release.id, updates, sseClientId),
+          updateReleaseAction(
+            organization.id,
+            release.id,
+            updates,
+            sseClientId,
+          ),
       );
 
       if (result?.success && result.data) {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              status: result.data.status,
-              releasedAt: result.data.releasedAt,
-            }
+                ...prev,
+                status: result.data.status,
+                releasedAt: result.data.releasedAt,
+              }
             : null,
         );
       }
@@ -334,9 +336,9 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              targetDate: result.data.targetDate,
-            }
+                ...prev,
+                targetDate: result.data.targetDate,
+              }
             : null,
         );
       }
@@ -382,9 +384,9 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              releasedAt: result.data.releasedAt,
-            }
+                ...prev,
+                releasedAt: result.data.releasedAt,
+              }
             : null,
         );
       }
@@ -421,10 +423,10 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              name: result.data.name,
-              slug: result.data.slug,
-            }
+                ...prev,
+                name: result.data.name,
+                slug: result.data.slug,
+              }
             : null,
         );
       }
@@ -467,12 +469,12 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-              ...prev,
-              name: result.data.name,
-              slug: result.data.slug,
-              icon: result.data.icon,
-              color: result.data.color,
-            }
+                ...prev,
+                name: result.data.name,
+                slug: result.data.slug,
+                icon: result.data.icon,
+                color: result.data.color,
+              }
             : null,
         );
       }
@@ -593,7 +595,17 @@ function ReleaseDetailPageContent() {
                   </Button>
                 </Link>
                 <span className="text-muted-foreground text-xs">/</span>
-                <Link to="/$orgId/releases" params={{ orgId: organization.id }} search={{ status: undefined, targetDateFrom: undefined, targetDateTo: undefined, releasedFrom: undefined, releasedTo: undefined }}>
+                <Link
+                  to="/$orgId/releases"
+                  params={{ orgId: organization.id }}
+                  search={{
+                    status: undefined,
+                    targetDateFrom: undefined,
+                    targetDateTo: undefined,
+                    releasedFrom: undefined,
+                    releasedTo: undefined,
+                  }}
+                >
                   <Button
                     variant={"ghost"}
                     className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
