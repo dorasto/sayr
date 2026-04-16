@@ -40,6 +40,7 @@ export type OrgTaskSearchResult = {
 	priority: string;
 	parentId: string | null;
 	subtaskCount: number | null;
+	releaseId: string | null;
 };
 
 /**

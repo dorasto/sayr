@@ -1,5 +1,17 @@
 import { Store } from "@tanstack/react-store";
+import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
 import type { CommandMap } from "@/types/command";
+
+export interface TaskAssignmentContext {
+	/** The sub-view ID that triggers assignment mode */
+	viewId: string;
+	/** Org to search tasks within */
+	orgId: string;
+	/** IDs of tasks currently assigned to the release */
+	assignedTaskIds: string[];
+	onAssign: (task: OrgTaskSearchResult) => Promise<void>;
+	onRemove: (taskId: string) => Promise<void>;
+}
 
 export interface CommandStoreState {
 	open: boolean;
@@ -13,6 +25,8 @@ export interface CommandStoreState {
 		viewId: string;
 		label: string;
 	} | null;
+	/** When set, the active sub-view operates in task-assignment mode */
+	taskAssignmentContext: TaskAssignmentContext | null;
 }
 
 export const commandStore = new Store<CommandStoreState>({
@@ -22,6 +36,7 @@ export const commandStore = new Store<CommandStoreState>({
 		open: false,
 	},
 	initialView: null,
+	taskAssignmentContext: null,
 });
 
 export const commandActions = {
@@ -83,6 +98,20 @@ export const commandActions = {
 		commandStore.setState((state) => ({
 			...state,
 			initialView: null,
+		}));
+	},
+
+	setTaskAssignmentContext: (ctx: TaskAssignmentContext) => {
+		commandStore.setState((state) => ({
+			...state,
+			taskAssignmentContext: ctx,
+		}));
+	},
+
+	clearTaskAssignmentContext: () => {
+		commandStore.setState((state) => ({
+			...state,
+			taskAssignmentContext: null,
 		}));
 	},
 };
