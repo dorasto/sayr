@@ -86,52 +86,11 @@
                                                 "description": {
                                                     "type": "string"
                                                 },
-                                                "settings": {
-                                                    "anyOf": [
-                                                        {
-                                                            "anyOf": [
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "number"
-                                                                },
-                                                                {
-                                                                    "type": "boolean"
-                                                                },
-                                                                {
-                                                                    "type": "null"
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "object",
-                                                            "propertyNames": {
-                                                                "type": "string"
-                                                            },
-                                                            "additionalProperties": {}
-                                                        },
-                                                        {
-                                                            "type": "array",
-                                                            "items": {}
-                                                        }
-                                                    ]
-                                                },
                                                 "createdAt": {
                                                     "type": "string"
                                                 },
                                                 "updatedAt": {
                                                     "type": "string"
-                                                },
-                                                "plan": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
                                                 },
                                                 "shortId": {
                                                     "type": "string"
@@ -204,10 +163,8 @@
                                                 "logo",
                                                 "bannerImg",
                                                 "description",
-                                                "settings",
                                                 "createdAt",
                                                 "updatedAt",
-                                                "plan",
                                                 "shortId",
                                                 "eventsUrl",
                                                 "members"
@@ -708,6 +665,19 @@
                                                             }
                                                         ]
                                                     },
+                                                    "aiSummaryHash": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "aiSummaryGeneratedAt": {
+                                                        "type": "string"
+                                                    },
                                                     "descriptionHtml": {
                                                         "type": "string"
                                                     },
@@ -731,6 +701,8 @@
                                                     "releaseId",
                                                     "voteCount",
                                                     "parentId",
+                                                    "aiSummaryHash",
+                                                    "aiSummaryGeneratedAt",
                                                     "descriptionHtml",
                                                     "descriptionMarkdown"
                                                 ]
@@ -1039,6 +1011,19 @@
                                                         }
                                                     ]
                                                 },
+                                                "aiSummaryHash": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "aiSummaryGeneratedAt": {
+                                                    "type": "string"
+                                                },
                                                 "descriptionHtml": {
                                                     "type": "string"
                                                 },
@@ -1062,6 +1047,8 @@
                                                 "releaseId",
                                                 "voteCount",
                                                 "parentId",
+                                                "aiSummaryHash",
+                                                "aiSummaryGeneratedAt",
                                                 "descriptionHtml",
                                                 "descriptionMarkdown"
                                             ]
@@ -2001,6 +1988,19 @@
                                                                     }
                                                                 ]
                                                             },
+                                                            "aiSummaryHash": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "aiSummaryGeneratedAt": {
+                                                                "type": "string"
+                                                            },
                                                             "descriptionHtml": {
                                                                 "type": "string"
                                                             },
@@ -2024,6 +2024,8 @@
                                                             "releaseId",
                                                             "voteCount",
                                                             "parentId",
+                                                            "aiSummaryHash",
+                                                            "aiSummaryGeneratedAt",
                                                             "descriptionHtml",
                                                             "descriptionMarkdown"
                                                         ]
@@ -2389,6 +2391,505 @@
                                                     "members"
                                                 ]
                                             }
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/task": {
+            "post": {
+                "operationId": "postMeTask",
+                "summary": "Create Task",
+                "description": "Create a new task in the organization.",
+                "tags": [
+                    "Tasks"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "title",
+                                    "orgId"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "backlog",
+                                            "todo",
+                                            "in-progress",
+                                            "done",
+                                            "canceled"
+                                        ]
+                                    },
+                                    "priority": {
+                                        "type": "string",
+                                        "enum": [
+                                            "none",
+                                            "low",
+                                            "medium",
+                                            "high",
+                                            "urgent"
+                                        ]
+                                    },
+                                    "category": {
+                                        "type": "string"
+                                    },
+                                    "orgId": {
+                                        "type": "string"
+                                    },
+                                    "integration": {
+                                        "oneOf": [
+                                            {
+                                                "type": "object",
+                                                "required": [
+                                                    "id",
+                                                    "name",
+                                                    "platform"
+                                                ],
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "platform": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "createdBy": {
+                                        "oneOf": [
+                                            {
+                                                "type": "object",
+                                                "required": [
+                                                    "type",
+                                                    "userId"
+                                                ],
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "github",
+                                                            "doras",
+                                                            "discord",
+                                                            "slack"
+                                                        ]
+                                                    },
+                                                    "userId": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            "example": {
+                                "title": "My Task",
+                                "description": "Task description",
+                                "orgId": "abc123"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "title": {
+                                                    "type": "string"
+                                                },
+                                                "shortId": {
+                                                    "type": "string"
+                                                },
+                                                "orgSlug": {
+                                                    "type": "string"
+                                                },
+                                                "publicPortalUrl": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "title",
+                                                "shortId",
+                                                "orgSlug",
+                                                "publicPortalUrl"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/timeline_event": {
+            "post": {
+                "operationId": "postMeTimeline_event",
+                "summary": "Create Timeline Event",
+                "description": "Create a new timeline event for a task.",
+                "tags": [
+                    "Tasks"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "taskId",
+                                    "orgId",
+                                    "type",
+                                    "id",
+                                    "name"
+                                ],
+                                "properties": {
+                                    "taskId": {
+                                        "type": "string"
+                                    },
+                                    "orgId": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    },
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "data": {
+                                        "type": "object"
+                                    },
+                                    "createdBy": {
+                                        "oneOf": [
+                                            {
+                                                "type": "object",
+                                                "required": [
+                                                    "type",
+                                                    "userId"
+                                                ],
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "github",
+                                                            "doras",
+                                                            "discord",
+                                                            "slack"
+                                                        ]
+                                                    },
+                                                    "userId": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            "example": {
+                                "taskId": "abc123",
+                                "orgId": "abc123",
+                                "type": "sidebar",
+                                "id": "integrationId",
+                                "name": "Integration Name",
+                                "data": {}
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/create_comment": {
+            "post": {
+                "operationId": "postMeCreate_comment",
+                "summary": "Create Task Comment",
+                "description": "Create a new comment on a task.",
+                "tags": [
+                    "Tasks"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "taskId",
+                                    "orgId",
+                                    "content"
+                                ],
+                                "properties": {
+                                    "taskId": {
+                                        "type": "string"
+                                    },
+                                    "orgId": {
+                                        "type": "string"
+                                    },
+                                    "content": {
+                                        "type": "string"
+                                    },
+                                    "visibility": {
+                                        "type": "string",
+                                        "enum": [
+                                            "public",
+                                            "internal"
+                                        ],
+                                        "default": "public"
+                                    },
+                                    "createdBy": {
+                                        "oneOf": [
+                                            {
+                                                "type": "object",
+                                                "required": [
+                                                    "type",
+                                                    "userId"
+                                                ],
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "github",
+                                                            "doras",
+                                                            "discord",
+                                                            "slack"
+                                                        ]
+                                                    },
+                                                    "userId": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "profileUrl": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            "example": {
+                                "taskId": "abc123",
+                                "orgId": "abc123",
+                                "content": "## Comment Title",
+                                "visibility": "public"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id"
+                                            ]
                                         }
                                     },
                                     "required": [
