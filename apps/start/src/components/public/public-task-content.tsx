@@ -337,6 +337,37 @@ export function PublicTaskContent({
                 </Tile>
               </Link>
             )}
+            {category && (
+              <Link
+                to="/orgs/$orgSlug"
+                params={{ orgSlug }}
+                search={{ category: generateSlug(category.name) }}
+              >
+                <Tile className="bg-card w-full select-none hover:bg-accent cursor-pointer md:w-full">
+                  <TileHeader className="w-full">
+                    <div className="flex flex-row gap-3 w-full">
+                      <TileTitle className="flex items-center gap-2">
+                        <TileIcon
+                          style={{
+                            background: category.color
+                              ? `hsla(${extractHslValues(category.color)}, 0.1)`
+                              : undefined,
+                          }}
+                        >
+                          <RenderIcon
+                            iconName={category.icon || "IconCategory"}
+                            size={16}
+                            color={category.color || undefined}
+                            raw
+                          />
+                        </TileIcon>
+                        {category.name}
+                      </TileTitle>
+                    </div>
+                  </TileHeader>
+                </Tile>
+              </Link>
+            )}
 
             {/* Labels */}
             {task.labels && task.labels.length > 0 && (

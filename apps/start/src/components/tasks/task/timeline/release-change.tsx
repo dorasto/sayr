@@ -5,6 +5,7 @@ import RenderIcon from "@/components/generic/RenderIcon";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
+import { Link } from "@tanstack/react-router";
 
 export function TimelineReleaseChange({
   item,
@@ -43,25 +44,33 @@ export function TimelineReleaseChange({
           />{" "}
           added this to{" "}
           {toRelease ? (
-            <InlineLabel
-              className="text-muted-foreground hover:text-foreground"
-              text={toRelease.name}
-              icon={
-                toRelease.icon ? (
-                  <RenderIcon
-                    iconName={toRelease.icon}
-                    size={12}
-                    color={toRelease.color || undefined}
-                    raw
-                  />
-                ) : (
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: toRelease.color || "#cccccc" }}
-                  />
-                )
-              }
-            />
+            <Link
+              to="/$orgId/releases/$releaseSlug"
+              params={{
+                orgId: toRelease.organizationId,
+                releaseSlug: toRelease.slug,
+              }}
+            >
+              <InlineLabel
+                className="text-muted-foreground hover:text-foreground"
+                text={toRelease.name}
+                icon={
+                  toRelease.icon ? (
+                    <RenderIcon
+                      iconName={toRelease.icon}
+                      size={12}
+                      color={toRelease.color || undefined}
+                      raw
+                    />
+                  ) : (
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: toRelease.color || "#cccccc" }}
+                    />
+                  )
+                }
+              />
+            </Link>
           ) : (
             <InlineLabel
               className="text-muted-foreground hover:text-foreground"
@@ -84,25 +93,35 @@ export function TimelineReleaseChange({
           />{" "}
           removed this from{" "}
           {fromRelease ? (
-            <InlineLabel
-              className="text-muted-foreground hover:text-foreground"
-              text={fromRelease.name}
-              icon={
-                fromRelease.icon ? (
-                  <RenderIcon
-                    iconName={fromRelease.icon}
-                    size={12}
-                    color={fromRelease.color || undefined}
-                    raw
-                  />
-                ) : (
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: fromRelease.color || "#cccccc" }}
-                  />
-                )
-              }
-            />
+            <Link
+              to="/$orgId/releases/$releaseSlug"
+              params={{
+                orgId: fromRelease.organizationId,
+                releaseSlug: fromRelease.slug,
+              }}
+            >
+              <InlineLabel
+                className="text-muted-foreground hover:text-foreground"
+                text={fromRelease.name}
+                icon={
+                  fromRelease.icon ? (
+                    <RenderIcon
+                      iconName={fromRelease.icon}
+                      size={12}
+                      color={fromRelease.color || undefined}
+                      raw
+                    />
+                  ) : (
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{
+                        backgroundColor: fromRelease.color || "#cccccc",
+                      }}
+                    />
+                  )
+                }
+              />
+            </Link>
           ) : (
             <InlineLabel
               className="text-muted-foreground hover:text-foreground"
@@ -126,25 +145,35 @@ export function TimelineReleaseChange({
         {fromRelease ? (
           <>
             from{" "}
-            <InlineLabel
-              className="text-muted-foreground hover:text-foreground"
-              text={fromRelease.name}
-              icon={
-                fromRelease.icon ? (
-                  <RenderIcon
-                    iconName={fromRelease.icon}
-                    size={12}
-                    color={fromRelease.color || undefined}
-                    raw
-                  />
-                ) : (
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: fromRelease.color || "#cccccc" }}
-                  />
-                )
-              }
-            />{" "}
+            <Link
+              to="/$orgId/releases/$releaseSlug"
+              params={{
+                orgId: fromRelease.organizationId,
+                releaseSlug: fromRelease.slug,
+              }}
+            >
+              <InlineLabel
+                className="text-muted-foreground hover:text-foreground"
+                text={fromRelease.name}
+                icon={
+                  fromRelease.icon ? (
+                    <RenderIcon
+                      iconName={fromRelease.icon}
+                      size={12}
+                      color={fromRelease.color || undefined}
+                      raw
+                    />
+                  ) : (
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{
+                        backgroundColor: fromRelease.color || "#cccccc",
+                      }}
+                    />
+                  )
+                }
+              />
+            </Link>{" "}
           </>
         ) : fromId ? (
           <>
@@ -159,25 +188,33 @@ export function TimelineReleaseChange({
         {toRelease ? (
           <>
             to{" "}
-            <InlineLabel
-              className="text-muted-foreground hover:text-foreground"
-              text={toRelease.name}
-              icon={
-                toRelease.icon ? (
-                  <RenderIcon
-                    iconName={toRelease.icon}
-                    size={12}
-                    color={toRelease.color || undefined}
-                    raw
-                  />
-                ) : (
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: toRelease.color || "#cccccc" }}
-                  />
-                )
-              }
-            />
+            <Link
+              to="/$orgId/releases/$releaseSlug"
+              params={{
+                orgId: toRelease.organizationId,
+                releaseSlug: toRelease.slug,
+              }}
+            >
+              <InlineLabel
+                className="text-muted-foreground hover:text-foreground"
+                text={toRelease.name}
+                icon={
+                  toRelease.icon ? (
+                    <RenderIcon
+                      iconName={toRelease.icon}
+                      size={12}
+                      color={toRelease.color || undefined}
+                      raw
+                    />
+                  ) : (
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: toRelease.color || "#cccccc" }}
+                    />
+                  )
+                }
+              />
+            </Link>
           </>
         ) : toId ? (
           <>

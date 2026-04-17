@@ -17,6 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
+import { Link } from "@tanstack/react-router";
+import { IconExternalLink } from "@tabler/icons-react";
 
 import GlobalTaskAssignees from "./assignee";
 import GlobalTaskCategory from "./category";
@@ -227,11 +229,11 @@ export default function TaskFieldToolbar({
       ...(style.useCustomTrigger
         ? {}
         : {
-          showLabel: fieldShowLabel,
-          showChevron: fieldShowChevron,
-          compact: fieldCompact,
-          className: fieldClassName || undefined,
-        }),
+            showLabel: fieldShowLabel,
+            showChevron: fieldShowChevron,
+            compact: fieldCompact,
+            className: fieldClassName || undefined,
+          }),
     };
   };
 
@@ -270,9 +272,9 @@ export default function TaskFieldToolbar({
         onLabelsChange={onChange?.labels}
         {...(style.useCustomTrigger
           ? {
-            customTrigger: creatorLabelsTrigger(cfg, selectedLabels),
-            customChildren: true,
-          }
+              customTrigger: creatorLabelsTrigger(cfg, selectedLabels),
+              customChildren: true,
+            }
           : {})}
       />
     ),
@@ -319,22 +321,43 @@ export default function TaskFieldToolbar({
       // Support controlled open from overflow menu
       const isOverflowTriggered = overflowOpenField === "release";
       return (
-        <GlobalTaskRelease
-          {...buildSharedProps(cfg)}
-          releases={releases}
-          onChange={onChange?.release}
-          {...(style.useCustomTrigger
-            ? { customTrigger: creatorReleaseTrigger(cfg, selectedRelease) }
-            : {})}
-          {...(isOverflowTriggered
-            ? {
-              open: true,
-              setOpen: (open: boolean) => {
-                if (!open) setOverflowOpenField(null);
-              },
-            }
-            : {})}
-        />
+        <div className="relative group/release-link flex items-center gap-1">
+          <GlobalTaskRelease
+            {...buildSharedProps(cfg)}
+            releases={releases}
+            onChange={onChange?.release}
+            {...(style.useCustomTrigger
+              ? { customTrigger: creatorReleaseTrigger(cfg, selectedRelease) }
+              : {})}
+            {...(isOverflowTriggered
+              ? {
+                  open: true,
+                  setOpen: (open: boolean) => {
+                    if (!open) setOverflowOpenField(null);
+                  },
+                }
+              : {})}
+          />
+          {!style.useCustomTrigger && selectedRelease?.slug && (
+            <Link
+              to="/$orgId/releases/$releaseSlug"
+              params={{
+                orgId: task.organizationId,
+                releaseSlug: selectedRelease.slug,
+              }}
+              className="opacity-0 group-hover/release-link:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-[26px] aspect-square p-0 rounded-lg"
+              >
+                <IconExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          )}
+        </div>
       );
     },
 
@@ -348,8 +371,8 @@ export default function TaskFieldToolbar({
           organizationId={task.organizationId}
           sseClientId={sseClientId}
           tasks={tasks}
-          setTasks={setTasks ?? (() => { })}
-          setSelectedTask={setSelectedTask ?? (() => { })}
+          setTasks={setTasks ?? (() => {})}
+          setSelectedTask={setSelectedTask ?? (() => {})}
           compact={fieldCompact}
           iconOnly={isIconOnly}
           className={cn(
