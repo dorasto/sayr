@@ -253,153 +253,6 @@ function ReleaseDetailPageContent() {
     return currentText !== savedText;
   }, [description, savedDescription]);
 
-  // Handle status update
-  const handleStatusUpdate = useCallback(
-    async (newStatus: schema.releaseType["status"]) => {
-      if (!release || newStatus === release.status) return;
-
-      // Auto-set releasedAt when marking as released
-      const updates: any = { status: newStatus };
-      if (newStatus === "released" && !release.releasedAt) {
-        updates.releasedAt = new Date();
-      }
-
-      const result = await runWithToast(
-        "update-release-status",
-        {
-          loading: {
-            title: "Updating status...",
-            description: "Changing release status.",
-          },
-          success: {
-            title: "Status updated",
-            description: `Release status changed to ${newStatus}.`,
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update release status.",
-          },
-        },
-        () =>
-          updateReleaseAction(
-            organization.id,
-            release.id,
-            updates,
-            sseClientId,
-          ),
-      );
-
-      if (result?.success && result.data) {
-        setRelease((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: result.data.status,
-                releasedAt: result.data.releasedAt,
-              }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
-
-  // Handle target date update
-  const handleTargetDateUpdate = useCallback(
-    async (date: Date | null) => {
-      if (!release) return;
-
-      const result = await runWithToast(
-        "update-release-target-date",
-        {
-          loading: {
-            title: "Updating target date...",
-            description: date
-              ? "Setting target date."
-              : "Clearing target date.",
-          },
-          success: {
-            title: date ? "Target date set" : "Target date cleared",
-            description: date
-              ? `Target date set to ${date.toLocaleDateString()}.`
-              : "Target date has been cleared.",
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update target date.",
-          },
-        },
-        () =>
-          updateReleaseAction(
-            organization.id,
-            release.id,
-            { targetDate: date },
-            sseClientId,
-          ),
-      );
-
-      if (result?.success && result.data) {
-        setRelease((prev) =>
-          prev
-            ? {
-                ...prev,
-                targetDate: result.data.targetDate,
-              }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
-
-  // Handle released date update (admin only)
-  const handleReleasedAtUpdate = useCallback(
-    async (date: Date | null) => {
-      if (!release) return;
-
-      const result = await runWithToast(
-        "update-release-released-date",
-        {
-          loading: {
-            title: "Updating release date...",
-            description: date
-              ? "Setting release date."
-              : "Clearing release date.",
-          },
-          success: {
-            title: date ? "Release date set" : "Release date cleared",
-            description: date
-              ? `Release date set to ${date.toLocaleDateString()}.`
-              : "Release date has been cleared.",
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update release date.",
-          },
-        },
-        () =>
-          updateReleaseAction(
-            organization.id,
-            release.id,
-            { releasedAt: date },
-            sseClientId,
-          ),
-      );
-
-      if (result?.success && result.data) {
-        setRelease((prev) =>
-          prev
-            ? {
-                ...prev,
-                releasedAt: result.data.releasedAt,
-              }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
-
   // Handle name and slug update from header
   const handleNameSlugUpdate = useCallback(
     async (data: { name: string; slug: string }) => {
@@ -493,9 +346,6 @@ function ReleaseDetailPageContent() {
         <div className="flex flex-col gap-3">
           <ReleaseInfo
             release={release}
-            onStatusUpdate={handleStatusUpdate}
-            onTargetDateUpdate={handleTargetDateUpdate}
-            onReleasedAtUpdate={handleReleasedAtUpdate}
           />
           {tasks.length > 0 && <Label>Status</Label>}
           <ReleaseSidebar
@@ -620,9 +470,6 @@ function ReleaseDetailPageContent() {
           <div className="flex flex-col gap-3 p-3">
             <ReleaseHeader
               release={release}
-              onStatusUpdate={handleStatusUpdate}
-              onTargetDateUpdate={handleTargetDateUpdate}
-              onReleasedAtUpdate={handleReleasedAtUpdate}
               onUpdate={handleNameSlugUpdate}
             />
 

@@ -18,6 +18,11 @@ export function useLayoutRelease() {
 	return context;
 }
 
+/** Safe version — returns null when called outside the provider. */
+export function useLayoutReleaseOptional() {
+	return useContext(LayoutReleaseContext) ?? null;
+}
+
 export function LayoutReleaseProvider({
 	children,
 	initialRelease,
