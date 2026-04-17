@@ -1,6 +1,7 @@
 import type { schema } from "@repo/database";
 import {
   Tile,
+  TileDescription,
   TileHeader,
   TileIcon,
   TileTitle,
@@ -11,7 +12,7 @@ import {
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/button";
-import { extractHslValues, generateSlug } from "@repo/util";
+import { extractHslValues, formatDate, generateSlug } from "@repo/util";
 import {
   IconArrowUpRight,
   IconChevronUp,
@@ -25,6 +26,7 @@ import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { useIsOrgMember } from "@/hooks/useIsOrgMember";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import RenderIcon from "@/components/generic/RenderIcon";
+import { getReleaseStatusConfig } from "@/components/releases/config";
 
 import { CreateTaskVoteAction } from "@/lib/fetches/task";
 import { headlessToast } from "@repo/ui/components/headless-toast";
@@ -37,11 +39,13 @@ import { PublicComments } from "./public-comments";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { PanelWrapper } from "@/components/generic/wrapper";
 import { Label } from "@repo/ui/components/label";
+import { InlineLabel } from "../tasks";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 interface PublicTaskContentProps {
   task: schema.TaskWithLabels;
+  release?: schema.releaseType | null;
   panelOpen: boolean;
   setPanelOpen: (open: boolean) => void;
 }
@@ -53,6 +57,7 @@ const baseApiUrl =
 
 export function PublicTaskContent({
   task: initialTask,
+  release,
   panelOpen,
   setPanelOpen,
 }: PublicTaskContentProps) {
@@ -337,37 +342,84 @@ export function PublicTaskContent({
                 </Tile>
               </Link>
             )}
-            {category && (
-              <Link
-                to="/orgs/$orgSlug"
-                params={{ orgSlug }}
-                search={{ category: generateSlug(category.name) }}
-              >
-                <Tile className="bg-card w-full select-none hover:bg-accent cursor-pointer md:w-full">
-                  <TileHeader className="w-full">
-                    <div className="flex flex-row gap-3 w-full">
-                      <TileTitle className="flex items-center gap-2">
-                        <TileIcon
-                          style={{
-                            background: category.color
-                              ? `hsla(${extractHslValues(category.color)}, 0.1)`
-                              : undefined,
-                          }}
-                        >
-                          <RenderIcon
-                            iconName={category.icon || "IconCategory"}
-                            size={16}
-                            color={category.color || undefined}
-                            raw
-                          />
-                        </TileIcon>
-                        {category.name}
-                      </TileTitle>
-                    </div>
-                  </TileHeader>
-                </Tile>
-              </Link>
-            )}
+            {/* Release */}
+            {release &&
+              (() => {
+                const releaseCfg = getReleaseStatusConfig(release.status);
+                const releaseDateLabel = (() => {
+                  if (release.status === "released" && release.releasedAt) {
+                    return `${formatDate(release.releasedAt)}`;
+                  }
+                  if (release.targetDate) {
+                    return `Target ${formatDate(release.targetDate)}`;
+                  }
+                  return null;
+                })();
+                return (
+                  <>
+                    <Link
+                      to="/orgs/$orgSlug/releases/$releaseSlug"
+                      params={{ orgSlug, releaseSlug: release.slug }}
+                    >
+                      <Tile
+                        className="bg-card w-full flex-col gap-1 items-start select-none hover:bg-accent cursor-pointer md:w-full"
+                        style={{
+                          border: `1px solid hsla(${extractHslValues(releaseCfg.hsla)}, 0.5)`,
+                        }}
+                      >
+                        <TileHeader className="w-full gap-3">
+                          <div className="flex flex-row gap-3 w-full">
+                            <TileTitle className="flex items-center gap-2 w-full min-w-0">
+                              <TileIcon
+                              // style={{
+                              //   background: release.color
+                              //     ? `hsla(${extractHslValues(release.color)}, 0.1)`
+                              //     : undefined,
+                              // }}
+                              >
+                                <RenderIcon
+                                  iconName={release.icon || "IconRocket"}
+                                  size={16}
+                                  color={
+                                    release.status === "released"
+                                      ? releaseCfg.hsla
+                                      : release.color || undefined
+                                  }
+                                  raw
+                                />
+                              </TileIcon>
+                              <div className="flex flex-col min-w-0 w-full">
+                                <div className="flex items-center justify-between gap-2 min-w-0">
+                                  <span className="truncate min-w-0">
+                                    {release.name}
+                                  </span>
+                                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                                    {release.slug}
+                                  </span>
+                                </div>
+                              </div>
+                            </TileTitle>
+                          </div>
+                        </TileHeader>
+                        <TileDescription asChild>
+                          <div className="flex items-center gap-2">
+                            {releaseCfg && (
+                              <InlineLabel
+                                text={`${releaseCfg.label} ${releaseDateLabel && ` - ${releaseDateLabel}`}`}
+                                icon={releaseCfg.icon("size-3")}
+                                className={cn(
+                                  "rounded-xl pe-3 border pointer-events-none",
+                                  releaseCfg.badgeClassName,
+                                )}
+                              />
+                            )}
+                          </div>
+                        </TileDescription>
+                      </Tile>
+                    </Link>
+                  </>
+                );
+              })()}
 
             {/* Labels */}
             {task.labels && task.labels.length > 0 && (
