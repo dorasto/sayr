@@ -1,4 +1,4 @@
-import { createReleaseAction } from "@/lib/fetches/release";
+import { createReleaseAction, updateReleaseAction } from "@/lib/fetches/release";
 import { updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
@@ -92,6 +92,7 @@ export function CreateReleaseDialog({
   const [icon, setIcon] = useState<string>("IconRocket");
   const [status, setStatus] = useState<ReleaseStatusKey>("planned");
   const [targetDate, setTargetDate] = useState<Date | null>(null);
+  const [releasedAt, setReleasedAt] = useState<Date | null>(null);
   const [description, setDescription] = useState<NodeJSON | undefined>(
     undefined,
   );
@@ -104,6 +105,7 @@ export function CreateReleaseDialog({
     setIcon("IconRocket");
     setStatus("planned");
     setTargetDate(null);
+    setReleasedAt(null);
     setDescription(undefined);
     setSelectedTasks([]);
     setExpand(false);
@@ -158,9 +160,11 @@ export function CreateReleaseDialog({
 
     if (data?.success && data.data) {
       // Link any pre-selected tasks to the new release
+      const postCreation: Promise<unknown>[] = [];
+
       if (selectedTasks.length > 0) {
-        await Promise.all(
-          selectedTasks.map((t) =>
+        postCreation.push(
+          ...selectedTasks.map((t) =>
             updateTaskAction(
               organization.id,
               t.id,
@@ -170,6 +174,20 @@ export function CreateReleaseDialog({
           ),
         );
       }
+
+      // If status is "released" and releasedAt is set, persist it via update
+      if (status === "released" && releasedAt) {
+        postCreation.push(
+          updateReleaseAction(
+            organization.id,
+            data.data.id,
+            { releasedAt },
+            sseClientId,
+          ),
+        );
+      }
+
+      await Promise.all(postCreation);
       setReleases([...releases, data.data]);
       resetForm();
       onOpenChange(false);
@@ -195,7 +213,7 @@ export function CreateReleaseDialog({
     id: "draft",
     status,
     targetDate: targetDate ? targetDate.toISOString() : null,
-    releasedAt: null,
+    releasedAt: releasedAt ? releasedAt.toISOString() : null,
   } as unknown as import("@repo/database").schema.releaseType;
 
   return (
@@ -376,10 +394,16 @@ export function CreateReleaseDialog({
                   <ReleaseFieldToolbar
                     release={draftRelease}
                     variant="toolbar"
-                    fields={["status", "targetDate", "tasks"]}
+                    fields={[
+                      "status",
+                      "targetDate",
+                      ...(status === "released" ? (["releasedAt"] as const) : []),
+                      "tasks",
+                    ]}
                     onChange={{
                       status: (s) => setStatus(s),
                       targetDate: (d) => setTargetDate(d),
+                      releasedAt: (d) => setReleasedAt(d),
                       tasks: (t) => setSelectedTasks(t),
                     }}
                   />

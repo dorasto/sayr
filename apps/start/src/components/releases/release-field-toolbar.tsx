@@ -9,6 +9,7 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { formatDate } from "@repo/util";
 import {
+  IconCalendarCheck,
   IconCalendarEvent,
   IconCalendarStats,
   IconCalendarTime,
@@ -494,33 +495,36 @@ export function ReleaseFieldToolbar({
                 release.releasedAt ? "" : "text-muted-foreground",
               )}
             >
-              <IconCalendarEvent className="h-3.5 w-3.5" />
+              <IconCalendarCheck className="h-3.5 w-3.5" />
               {release.releasedAt
                 ? formatDate(release.releasedAt)
                 : "Release date"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
+            <div className="p-2 flex items-center gap-2 bg-accent">
+              <Label variant={"subheading"}>Release date</Label>
+              <Button
+                variant="primary"
+                size="sm"
+                className={cn(
+                  "border-transparent! bg-transparent rounded-lg cursor-pointer gap-1 justify-start text-xs h-auto p-1 w-fit ml-auto",
+                  !release.releasedAt && "invisible",
+                )}
+                onClick={() => handleReleasedAtChange(null)}
+              >
+                <IconX className="" />
+                Clear
+              </Button>
+            </div>
             <Calendar
               mode="single"
               selected={
                 release.releasedAt ? new Date(release.releasedAt) : undefined
               }
               onSelect={(d) => handleReleasedAtChange(d)}
+              className="bg-card"
             />
-            {release.releasedAt && (
-              <div className="p-2 border-t">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="border-transparent! bg-transparent rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
-                  onClick={() => handleReleasedAtChange(null)}
-                >
-                  <IconX className="w-3 h-3 mr-1" />
-                  Clear date
-                </Button>
-              </div>
-            )}
           </PopoverContent>
         </Popover>
       )}
