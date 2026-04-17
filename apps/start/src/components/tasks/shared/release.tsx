@@ -179,8 +179,11 @@ export default function GlobalTaskRelease({
                 disabled={!selectedRelease}
                 side="bottom"
                 align="center"
-                openDelay={0}
-                tasks={selectedRelease ? tasks.filter((t) => t.releaseId === selectedRelease.id) : undefined}
+                tasks={
+                  selectedRelease
+                    ? tasks.filter((t) => t.releaseId === selectedRelease.id)
+                    : undefined
+                }
               >
                 <div>{renderTriggerContent()}</div>
               </ReleaseHoverCard>
