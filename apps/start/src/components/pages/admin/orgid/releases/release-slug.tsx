@@ -12,6 +12,7 @@ import { ensureCdnUrl, extractHslValues } from "@repo/util";
 import {
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
+  IconLink,
   IconPlus,
   IconRocket,
   IconUsers,
@@ -55,6 +56,7 @@ import { Label } from "@repo/ui/components/label";
 import Loader from "@/components/Loader";
 import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
 import { commandActions } from "@/lib/command-store";
+import { Separator } from "@repo/ui/components/separator";
 
 interface ReleaseDetailPageProps {
   release: schema.releaseType;
@@ -344,9 +346,7 @@ function ReleaseDetailPageContent() {
       panelHeader={<Label>Information</Label>}
       panelBody={
         <div className="flex flex-col gap-3">
-          <ReleaseInfo
-            release={release}
-          />
+          <ReleaseInfo release={release} />
           {tasks.length > 0 && <Label>Status</Label>}
           <ReleaseSidebar
             tasks={tasks}
@@ -468,10 +468,7 @@ function ReleaseDetailPageContent() {
         <div className="flex-1 overflow-y-auto h-full flex flex-col relative">
           {/* Header Section */}
           <div className="flex flex-col gap-3 p-3">
-            <ReleaseHeader
-              release={release}
-              onUpdate={handleNameSlugUpdate}
-            />
+            <ReleaseHeader release={release} onUpdate={handleNameSlugUpdate} />
 
             {/* Description Section */}
             <div className="flex flex-col gap-3">

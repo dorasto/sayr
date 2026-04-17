@@ -2,9 +2,9 @@
 
 import { Button } from "@repo/ui/components/button";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@repo/ui/components/popover";
 import { extractHslValues } from "@repo/util";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
@@ -16,8 +16,13 @@ import { Input } from "@repo/ui/components/input";
 import { ReleaseFieldToolbar } from "./release-field-toolbar";
 
 interface ReleaseHeaderProps {
-	release: schema.ReleaseWithTasks;
-	onUpdate: (data: { name: string; slug: string; icon?: string; color?: string }) => void;
+  release: schema.ReleaseWithTasks;
+  onUpdate: (data: {
+    name: string;
+    slug: string;
+    icon?: string;
+    color?: string;
+  }) => void;
 }
 
 export function ReleaseHeader({ release, onUpdate }: ReleaseHeaderProps) {
@@ -138,10 +143,7 @@ export function ReleaseHeader({ release, onUpdate }: ReleaseHeaderProps) {
                 />
               </div>
               <div className="px-3">
-                <IconPicker
-                  value={editIcon}
-                  update={handleIconChange}
-                />
+                <IconPicker value={editIcon} update={handleIconChange} />
               </div>
             </div>
           </PopoverContent>
@@ -173,7 +175,11 @@ export function ReleaseHeader({ release, onUpdate }: ReleaseHeaderProps) {
 
       {/* Actions Row */}
       <div className="flex items-center gap-2 flex-wrap">
-        <ReleaseFieldToolbar release={release} variant="toolbar" fields={["status", "targetDate", "releasedAt"]} />
+        <ReleaseFieldToolbar
+          release={release}
+          variant="toolbar"
+          fields={["status", "targetDate", "releasedAt"]}
+        />
       </div>
     </div>
   );

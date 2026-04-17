@@ -13,6 +13,7 @@ import {
   IconCalendarEvent,
   IconCalendarStats,
   IconCalendarTime,
+  IconLink,
   IconListCheck,
   IconX,
 } from "@tabler/icons-react";
@@ -54,7 +55,12 @@ import { IconLoader2 } from "@tabler/icons-react";
 import { TaskPickerItem } from "@/components/tasks/shared/task-picker";
 import { Label } from "@repo/ui/components/label";
 
-type ReleaseFieldKey = "status" | "targetDate" | "releasedAt" | "tasks";
+type ReleaseFieldKey =
+  | "status"
+  | "targetDate"
+  | "releasedAt"
+  | "tasks"
+  | "publicPage";
 
 interface ReleaseFieldToolbarProps {
   release: schema.releaseType | schema.ReleaseWithTasks;
@@ -401,6 +407,22 @@ export function ReleaseFieldToolbar({
             )}
           </div>
         )}
+        {showField("publicPage") && (
+          <a
+            href={`https://${organization.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/releases/${release.slug}`}
+          >
+            <Button
+              variant="primary"
+              size="sm"
+              className={cn(
+                "border-transparent! rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+              )}
+            >
+              <IconLink className="w-3 h-3" />
+              Public page
+            </Button>
+          </a>
+        )}
       </div>
     );
   }
@@ -585,6 +607,22 @@ export function ReleaseFieldToolbar({
             </ComboBoxList>
           </ComboBoxContent>
         </ComboBox>
+      )}
+      {showField("publicPage") && (
+        <a
+          href={`https://${organization.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/releases/${release.slug}`}
+        >
+          <Button
+            variant="primary"
+            size="sm"
+            className={cn(
+              "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2",
+            )}
+          >
+            <IconLink className="h-3.5 w-3.5" />
+            Public page
+          </Button>
+        </a>
       )}
     </div>
   );
