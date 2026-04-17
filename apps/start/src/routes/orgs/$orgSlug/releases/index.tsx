@@ -1,15 +1,14 @@
-import { getOrganizationPublic, getReleases } from "@repo/database";
+import { getOrganizationPublic } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { SubWrapper } from "@/components/generic/wrapper";
+
 import { ReleasesChangelog } from "@/components/public/releases/releases-changelog";
 import { getOgImageUrl, seo } from "@/seo";
 
-const fetchPublicReleases = createServerFn({ method: "GET" })
+const fetchPublicOrgMeta = createServerFn({ method: "GET" })
 	.inputValidator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
-		// Resolve system org for single-tenant installs
 		const { multiTenantEnabled } = getEditionCapabilities();
 		let resolvedSlug = data.slug;
 
@@ -23,24 +22,16 @@ const fetchPublicReleases = createServerFn({ method: "GET" })
 		}
 
 		const org = await getOrganizationPublic(resolvedSlug);
-		if (!org?.settings?.enablePublicPage) return { releases: [], org: null };
+		if (!org?.settings?.enablePublicPage) return { org: null, resolvedSlug };
 
-		const all = await getReleases(org.id);
-		// Non-archived first, archived last
-		const sorted = [
-			...all.filter((r) => r.status !== "archived"),
-			...all.filter((r) => r.status === "archived"),
-		];
-		return { releases: sorted, org: { name: org.name, logo: org.logo } };
+		return { org: { name: org.name, logo: org.logo }, resolvedSlug };
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug/releases/")({
 	loader: async ({ params, context }) =>
-		fetchPublicReleases({
+		fetchPublicOrgMeta({
 			data: {
-				slug:
-					(context as { systemSlug?: string | null })?.systemSlug ||
-					params.orgSlug,
+				slug: (context as { systemSlug?: string | null })?.systemSlug || params.orgSlug,
 			},
 		}),
 	head: ({ loaderData }) => ({
@@ -58,21 +49,8 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/")({
 });
 
 function ReleasesListPage() {
-	const { releases } = Route.useLoaderData();
 	const params = Route.useParams();
 	const orgSlug = params.orgSlug;
 
-	if (releases.length === 0) {
-		return (
-			<SubWrapper title="Releases" top={false}>
-				<p className="text-muted-foreground">No releases yet.</p>
-			</SubWrapper>
-		);
-	}
-
-	return (
-		<SubWrapper title="Releases" top={false} className="md:pt-6">
-			<ReleasesChangelog releases={releases} orgSlug={orgSlug} />
-		</SubWrapper>
-	);
+	return <ReleasesChangelog orgSlug={orgSlug} />;
 }

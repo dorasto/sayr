@@ -288,7 +288,7 @@ export function ReleaseFieldToolbar({
                         : "text-muted-foreground",
                     )}
                   >
-                    <IconCalendarEvent className="w-3 h-3" />
+                    <IconCalendarStats className="w-3 h-3" />
                     {release.targetDate
                       ? formatDate(release.targetDate)
                       : "No target date"}
@@ -353,7 +353,7 @@ export function ReleaseFieldToolbar({
                         : "text-muted-foreground",
                     )}
                   >
-                    <IconCalendarEvent className="w-3 h-3" />
+                    <IconCalendarCheck className="w-3 h-3" />
                     {release.releasedAt
                       ? formatDate(release.releasedAt)
                       : "No release date"}
