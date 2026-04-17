@@ -182,7 +182,7 @@ function ComboBoxContent({
   if (!isMobile) {
     return (
       <PopoverContent
-        className={cn("w-full p-0 w-72", className)}
+        className={cn("w-full p-0 w-72 rounded-xl", className)}
         align={align}
         side={side}
         // onOpenAutoFocus={(e) => e.preventDefault()}
@@ -191,7 +191,9 @@ function ComboBoxContent({
           e.stopPropagation();
         }}
       >
-        <Command shouldFilter={shouldFilter}>{children}</Command>
+        <Command shouldFilter={shouldFilter} className="rounded-xl!">
+          {children}
+        </Command>
       </PopoverContent>
     );
   }
@@ -275,7 +277,7 @@ interface ComboBoxListProps {
 }
 
 function ComboBoxList({ children, className }: ComboBoxListProps) {
-  return <CommandList className={className}>{children}</CommandList>;
+  return <CommandList className={cn("", className)}>{children}</CommandList>;
 }
 
 // Empty component
@@ -307,6 +309,7 @@ interface ComboBoxItemProps {
   onSelect?: (value: string) => void;
   searchValue?: string;
   showCheck?: boolean;
+  className?: string;
 }
 
 function ComboBoxItem({
@@ -316,6 +319,7 @@ function ComboBoxItem({
   onSelect,
   searchValue,
   showCheck = true,
+  className,
 }: ComboBoxItemProps) {
   const {
     value: selectedValue,
@@ -351,7 +355,12 @@ function ComboBoxItem({
   };
 
   return (
-    <CommandItem value={itemValue} disabled={disabled} onSelect={handleSelect}>
+    <CommandItem
+      value={itemValue}
+      disabled={disabled}
+      onSelect={handleSelect}
+      className={cn("rounded-xl my-1", className)}
+    >
       {children}
       {showCheck && isSelected && <CheckIcon className="h-4 w-4 ml-auto" />}
     </CommandItem>
