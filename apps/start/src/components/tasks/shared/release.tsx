@@ -19,6 +19,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconRocket } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import RenderIcon from "@/components/generic/RenderIcon";
+import { ReleaseHoverCard } from "@/components/hover-cards/release/ReleaseHoverCard";
 import {
   getReleaseOptions,
   getReleaseDisplay,
@@ -173,7 +174,16 @@ export default function GlobalTaskRelease({
         >
           <ComboBoxTrigger disabled={!editable} className={className}>
             <ComboBoxValue placeholder="Select release">
-              {renderTriggerContent()}
+              <ReleaseHoverCard
+                release={selectedRelease}
+                disabled={!selectedRelease}
+                side="bottom"
+                align="center"
+                openDelay={0}
+                tasks={selectedRelease ? tasks.filter((t) => t.releaseId === selectedRelease.id) : undefined}
+              >
+                <div>{renderTriggerContent()}</div>
+              </ReleaseHoverCard>
             </ComboBoxValue>
             {showChevron && <ComboBoxIcon />}
           </ComboBoxTrigger>
