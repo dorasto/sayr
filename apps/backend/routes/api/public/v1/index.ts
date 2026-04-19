@@ -93,7 +93,7 @@ const OrganizationMemberSchema = z.object({
 
 //@ts-expect-error
 const OrganizationSchema = createSelectSchema(schema.organization)
-	.omit({ privateId: true, isSystemOrg: true, createdBy: true, polarCustomerId: true, polarSubscriptionId: true, seatCount: true, currentPeriodEnd: true })
+	.omit({ privateId: true, isSystemOrg: true, createdBy: true, polarCustomerId: true, polarSubscriptionId: true, seatCount: true, currentPeriodEnd: true, settings: true, plan: true })
 	.extend({
 		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
@@ -149,7 +149,7 @@ apiPublicRouteV1.get(
 		}
 
 		// biome-ignore lint/correctness/noUnusedVariables: <needed>
-		const { privateId, isSystemOrg, createdBy, polarCustomerId, polarSubscriptionId, seatCount, currentPeriodEnd, ...publicOrg } = organization;
+		const { privateId, isSystemOrg, createdBy, polarCustomerId, polarSubscriptionId, seatCount, currentPeriodEnd, plan, settings, ...publicOrg } = organization;
 		const sanitizedMembers = organization.members.map((m) => ({
 			id: m.id,
 			userId: m.userId,
@@ -321,6 +321,7 @@ const TaskSchema = createSelectSchema(schema.task).extend({
 	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 	descriptionHtml: z.string(),
 	descriptionMarkdown: z.string(),
+	aiSummaryGeneratedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
 });
 apiPublicRouteV1.get(
 	"/organization/:org_slug/tasks",
@@ -949,5 +950,5 @@ apiPublicRouteV1.get(
 		);
 	});
 
-//ME routes
+// ME routes
 apiPublicRouteV1.route("/me", apiPublicMeV1);
