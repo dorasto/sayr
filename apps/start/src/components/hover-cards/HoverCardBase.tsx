@@ -70,7 +70,10 @@ export function HoverCardBase({
         side={side}
         align={align}
         sideOffset={sideOffset}
-        className={cn("w-72 p-0 overflow-hidden rounded-2xl", className)}
+        className={cn(
+          "w-72 md:w-96 p-0 overflow-hidden rounded-2xl",
+          className,
+        )}
       >
         {children}
       </HoverCardContent>

@@ -21,6 +21,7 @@ import {
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
+import { InlineLabel } from "@/components/tasks";
 
 /**
  * Extracts plain text from a ProseMirror NodeJSON tree.
@@ -191,20 +192,6 @@ export function ReleaseHoverCard({
                   )}
                 </div>
               </div>
-              {/*<TileDescription asChild>
-                {statusConfig && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-xs gap-1 h-5 w-fit",
-                      statusConfig.badgeClassName,
-                    )}
-                  >
-                    {statusConfig.icon("h-3 w-3")}
-                    {statusConfig.label}
-                  </Badge>
-                )}
-              </TileDescription>*/}
             </TileHeader>
           </Tile>
         </Link>
@@ -218,57 +205,45 @@ export function ReleaseHoverCard({
             {descText}
           </Label>
         )}
-
-        <div className="flex flex-wrap gap-2 w-full">
-          {/*status*/}
-          {statusConfig && (
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-xs gap-1 h-5 w-fit",
-                statusConfig.badgeClassName,
-              )}
-            >
-              {statusConfig.icon("h-3 w-3")}
-              {statusConfig.label}
-            </Badge>
-          )}
-          {/* Date */}
-          {displayDate && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground w-fit">
-              {isReleased ? (
-                <IconCalendarCheck size={12} />
-              ) : (
-                <IconCalendarEvent size={12} />
-              )}
-              <span>
-                {isReleased ? "Released" : "Target"} {formatDate(displayDate)}
-              </span>
-            </div>
-          )}
-
-          {/* Task progress — only rendered when tasks prop is provided */}
-          {tasks !== undefined && (
-            <div className="flex items-center gap-2 w-full">
-              <TaskDonutChart pct={progressPct} />
-              <span className="text-xs text-muted-foreground">
-                {doneTasks} of {totalTasks} tasks done
-              </span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Footer */}
       <div className="border-t border-border p-2">
-        <Link
-          to="/$orgId/releases/$releaseSlug"
-          params={{ orgId: release.organizationId, releaseSlug: release.slug }}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
-        >
-          <IconRocket size={11} />
-          <span>View release</span>
-        </Link>
+        <div className="flex flex-wrap gap-2 w-full">
+          {/*status*/}
+          {statusConfig && (
+            <InlineLabel
+              text={statusConfig.label}
+              icon={statusConfig.icon("size-5")}
+              className={cn(
+                "ps-7 h-6 bg-accent rounded-2xl pe-3 border",
+                statusConfig.badgeClassName,
+              )}
+            />
+          )}
+          {/* Date */}
+          {displayDate && (
+            <InlineLabel
+              text={`${isReleased ? "Released" : "Target"} ${formatDate(displayDate)}`}
+              icon={
+                isReleased ? (
+                  <IconCalendarCheck className="size-5" />
+                ) : (
+                  <IconCalendarEvent className="size-5" />
+                )
+              }
+              className="ps-7 h-6 bg-accent rounded-2xl pe-3 border"
+            />
+          )}
+
+          {tasks !== undefined && (
+            <InlineLabel
+              text={`${doneTasks} of ${totalTasks} tasks done`}
+              icon={<TaskDonutChart pct={progressPct} />}
+              className="ps-7 h-6 bg-accent rounded-2xl pe-3 border"
+            />
+          )}
+        </div>
       </div>
     </HoverCardBase>
   );
