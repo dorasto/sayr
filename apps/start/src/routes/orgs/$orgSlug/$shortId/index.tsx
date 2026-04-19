@@ -1,5 +1,5 @@
 import { PublicTaskContent } from "@/components/public/public-task-content";
-import { getOrganizationPublic, getTaskByShortId, getTaskComments } from "@repo/database";
+import { getOrganizationPublic, getTaskByShortId, getTaskComments, getRelease } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
@@ -29,7 +29,7 @@ const fetchPublicTask = createServerFn({ method: "GET" })
   .inputValidator((data: { slug: string; shortId: number }) => data)
   .handler(async ({ data }) => {
     const organization = await getOrganizationPublic(data.slug);
-    if (!organization) return { task: null, org: null, descriptionText: "", commentsText: [] };
+    if (!organization) return { task: null, release: null, org: null, descriptionText: "", commentsText: [] };
     const task = await getTaskByShortId(
       organization.id,
       data.shortId,
@@ -37,7 +37,7 @@ const fetchPublicTask = createServerFn({ method: "GET" })
     );
 
     if (!task) {
-      return { task: null, org: { name: organization.name, logo: organization.logo }, descriptionText: "", commentsText: [] };
+      return { task: null, release: null, org: { name: organization.name, logo: organization.logo }, descriptionText: "", commentsText: [] };
     }
 
     // Extract plain text from the ProseMirror JSON description (server-side, SSR)
@@ -55,8 +55,11 @@ const fetchPublicTask = createServerFn({ method: "GET" })
         .filter((c) => c.text.length > 0)
       : [];
 
+    const release = task.releaseId ? await getRelease(task.releaseId) : null;
+
     return {
       task,
+      release,
       org: { name: organization.name, logo: organization.logo },
       descriptionText,
       commentsText,
@@ -146,7 +149,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 });
 
 function RouteComponent() {
-  const { task } = Route.useLoaderData();
+  const { task, release } = Route.useLoaderData();
   const { orgSlug } = Route.useParams();
   const [panelOpen, setPanelOpen] = useState(true);
 
@@ -206,6 +209,7 @@ function RouteComponent() {
       <div className="flex-1 min-h-0">
         <PublicTaskContent
           task={task}
+          release={release}
           panelOpen={panelOpen}
           setPanelOpen={setPanelOpen}
         />

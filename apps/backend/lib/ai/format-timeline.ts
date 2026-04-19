@@ -89,11 +89,12 @@ export function buildTimelineLine(
 		}
 
 		case "github_commit_ref": {
-			const d = item.toValue as { message?: string; commitSha?: string; repo?: string } | null;
+			const d = item.toValue as { message?: string; commitSha?: string; commitUrl?: string; repo?: string } | null;
 			const msg = d?.message ?? "";
 			const sha = d?.commitSha ? d.commitSha.slice(0, 7) : "";
 			const repo = d?.repo ?? "";
-			return `${prefix} committed: "${msg}"${sha ? ` (${sha})` : ""}${repo ? ` in ${repo}` : ""}`;
+			const url = d?.commitUrl ?? "";
+			return `${prefix} committed: "${msg}"${sha ? ` (${sha})` : ""}${repo ? ` in ${repo}` : ""}${url ? ` — ${url}` : ""}`;
 		}
 
 		case "github_branch_linked": {

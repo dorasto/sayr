@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, not, or } from "drizzle-orm";
+import { SQL, and, asc, desc, eq, inArray, isNull, not, or, sql } from "drizzle-orm";
 import { db, schema } from "..";
 import { getUsersByIds, userSummaryColumns } from "./index";
 
@@ -48,6 +48,87 @@ export async function getReleases(orgId: string): Promise<schema.releaseType[]> 
 	});
 
 	return releases;
+}
+
+export type ReleaseStatus = "planned" | "in-progress" | "released" | "archived";
+
+/**
+ * Fetches a paginated list of releases for an organization.
+ *
+ * Sort logic per status:
+ *  - planned / in-progress: targetDate ASC NULLS LAST (nearest upcoming first)
+ *  - released: releasedAt DESC (most recently shipped first)
+ *  - archived: updatedAt DESC
+ *
+ * @param orgId  - The organization ID
+ * @param opts   - Pagination + filter options
+ */
+export async function getReleasesPage(
+	orgId: string,
+	opts: {
+		page?: number;
+		limit?: number;
+		status?: ReleaseStatus | "all";
+	} = {},
+): Promise<{
+	releases: schema.releaseType[];
+	pagination: {
+		page: number;
+		limit: number;
+		totalItems: number;
+		totalPages: number;
+		hasMore: boolean;
+	};
+}> {
+	const page = Math.max(opts.page ?? 1, 1);
+	const limit = Math.min(opts.limit ?? 10, 50);
+	const offset = (page - 1) * limit;
+	const status = opts.status ?? "all";
+
+	const whereClause =
+		status === "all"
+			? eq(schema.release.organizationId, orgId)
+			: and(eq(schema.release.organizationId, orgId), eq(schema.release.status, status));
+
+	const [countResult] = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(schema.release)
+		.where(whereClause);
+
+	const totalItems = Number(countResult?.count ?? 0);
+	const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
+
+	// Build sort order based on requested status (or default for "all")
+	let orderBy: SQL[];
+	if (status === "released") {
+		orderBy = [desc(schema.release.releasedAt), desc(schema.release.updatedAt)];
+	} else if (status === "archived") {
+		orderBy = [desc(schema.release.updatedAt)];
+	} else {
+		// planned, in-progress, or "all" — soonest target date first, nulls last
+		orderBy = [
+			sql`${schema.release.targetDate} ASC NULLS LAST`,
+			asc(schema.release.slug),
+		];
+	}
+
+	const releases = await db.query.release.findMany({
+		where: whereClause,
+		orderBy,
+		limit,
+		offset,
+	});
+
+	return {
+		releases,
+		pagination: {
+			page,
+			limit,
+			totalItems,
+			totalPages,
+			hasMore: page < totalPages,
+		},
+	};
 }
 
 /**

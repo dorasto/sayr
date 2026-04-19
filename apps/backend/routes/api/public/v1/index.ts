@@ -2,8 +2,8 @@ import {
 	db,
 	getBlockedUserIds,
 	getOrganizationPublic,
+	getReleasesPage,
 	getTaskByShortId,
-	getReleases,
 	getReleaseBySlug,
 	schema,
 	userSummaryColumns,
@@ -840,14 +840,24 @@ const Releaseschema = createSelectSchema(schema.release)
 	});
 /**
  * GET /organization/:org_slug/releases
- * Returns all releases for an org (non-archived first, archived last).
+ * Returns paginated releases for an org.
+ * Query params: page (default 1), limit (default 10, max 50), status (all|planned|in-progress|released|archived)
  */
 apiPublicRouteV1.get(
 	"/organization/:org_slug/releases",
 	describeOkNotFound({
 		summary: "Get Organization Releases",
-		description: "Retrieve all releases for the specified organization.",
-		dataSchema: z.array(Releaseschema),
+		description: "Retrieve paginated releases for the specified organization.",
+		dataSchema: z.object({
+			releases: z.array(Releaseschema),
+			pagination: z.object({
+				page: z.number(),
+				limit: z.number(),
+				totalItems: z.number(),
+				totalPages: z.number(),
+				hasMore: z.boolean(),
+			}),
+		}),
 		tags: ["Organization"],
 	}),
 	async (c) => {
@@ -862,15 +872,17 @@ apiPublicRouteV1.get(
 			return c.json(errorResponse("Organization not available"), 404);
 		}
 
-		const releases = await getReleases(org.id);
+		const pageParam = Number(c.req.query("page") ?? "1");
+		const limitParam = Number(c.req.query("limit") ?? "10");
+		const statusParam = (c.req.query("status") ?? "all") as "all" | "planned" | "in-progress" | "released" | "archived";
 
-		// Sort: non-archived first (preserving existing order), archived last
-		const sorted = [
-			...releases.filter((r) => r.status !== "archived"),
-			...releases.filter((r) => r.status === "archived"),
-		];
+		const result = await getReleasesPage(org.id, {
+			page: pageParam,
+			limit: limitParam,
+			status: statusParam,
+		});
 
-		return c.json(successResponse(sorted));
+		return c.json(successResponse(result));
 	});
 
 /**
