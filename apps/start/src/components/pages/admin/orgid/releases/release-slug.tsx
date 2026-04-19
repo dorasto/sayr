@@ -12,7 +12,6 @@ import { ensureCdnUrl, extractHslValues } from "@repo/util";
 import {
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
-  IconLink,
   IconPlus,
   IconRocket,
   IconUsers,
@@ -30,6 +29,8 @@ import processUploads from "@/components/prosekit/upload";
 import { ReleaseInfo } from "@/components/releases/ReleaseInfo";
 import { ReleaseHeader } from "@/components/releases/ReleaseHeader";
 import { ReleaseSidebar } from "@/components/releases/ReleaseSidebar";
+import { ReleaseStatusUpdatesFeed } from "@/components/releases/ReleaseStatusUpdatesFeed";
+import { ReleaseDiscussion } from "@/components/releases/ReleaseDiscussion";
 import { UnifiedTaskView } from "@/components/tasks/views/unified-task-view";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import {
@@ -56,20 +57,21 @@ import { Label } from "@repo/ui/components/label";
 import Loader from "@/components/Loader";
 import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
 import { commandActions } from "@/lib/command-store";
-import { Separator } from "@repo/ui/components/separator";
 
 interface ReleaseDetailPageProps {
   release: schema.releaseType;
 }
 
 function ReleaseDetailPageContent() {
-  const { serverEvents } = useLayoutData();
+  const { serverEvents, account } = useLayoutData();
   const { organization, setOrganization, categories, releases, setReleases } =
     useLayoutOrganization();
   const { release, setRelease } = useLayoutRelease();
 
   const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
+  const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
   const [description, setDescription] = useState<NodeJSON | undefined>(
     release?.description || undefined,
   );
@@ -184,6 +186,16 @@ function ReleaseDetailPageContent() {
           // Task was removed from this release
           setTasks((prevTasks) => prevTasks.filter((t) => t.id !== task.id));
         }
+      }
+    },
+    UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
+      if ("data" in msg && (msg.data as { releaseId?: string })?.releaseId === release?.id) {
+        setStatusUpdatesRefreshKey((k) => k + 1);
+      }
+    },
+    UPDATE_RELEASE_COMMENTS: (msg) => {
+      if ("data" in msg && (msg.data as { releaseId?: string })?.releaseId === release?.id) {
+        setCommentsRefreshKey((k) => k + 1);
       }
     },
   };
@@ -497,6 +509,24 @@ function ReleaseDetailPageContent() {
               </div>
             </div>
           </div>
+          {/* Status Updates & Discussion */}
+          <div className="flex flex-col gap-6 px-3 pb-3">
+            <ReleaseStatusUpdatesFeed
+              releaseId={release.id}
+              orgId={organization.id}
+              currentUserId={account?.id}
+              canManage={true}
+              refreshKey={statusUpdatesRefreshKey}
+            />
+            <ReleaseDiscussion
+              releaseId={release.id}
+              orgId={organization.id}
+              currentUserId={account?.id}
+              canComment={true}
+              canManage={true}
+              refreshKey={commentsRefreshKey}
+            />
+          </div>
           {/* Tasks Section */}
           <UnifiedTaskView
             tasks={tasks}
@@ -520,12 +550,12 @@ export default function ReleaseDetailPage({
   release: initialRelease,
 }: ReleaseDetailPageProps) {
   const [release, setRelease] = useState<schema.ReleaseWithTasks | null>(
-    () => ({ ...initialRelease, tasks: [], createdBy: null }) as any,
+    () => ({ ...initialRelease, tasks: [], createdBy: null, labels: [], lead: null }) as any,
   );
 
   // Update release when initialRelease changes
   useEffect(() => {
-    setRelease({ ...initialRelease, tasks: [], createdBy: null } as any);
+    setRelease({ ...initialRelease, tasks: [], createdBy: null, labels: [], lead: null } as any);
   }, [initialRelease]);
 
   return (

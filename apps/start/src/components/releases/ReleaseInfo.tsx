@@ -12,7 +12,7 @@ export function ReleaseInfo({ release, editable = true }: ReleaseInfoProps) {
       release={release}
       variant="sidebar"
       editable={editable}
-      fields={["status", "targetDate", "releasedAt", "publicPage"]}
+      fields={["status", "targetDate", "releasedAt", "lead", "labels", "publicPage"]}
     />
   );
 }

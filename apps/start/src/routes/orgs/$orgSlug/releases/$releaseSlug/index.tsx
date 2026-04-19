@@ -516,7 +516,7 @@ function TaskRow({ task, orgSlug }: { task: PublicTask; orgSlug: string }) {
           </TileDescription>
         </TileHeader>
         <TileAction asChild>
-          <Label variant={"description"}>
+          <Label variant={"description"} className="shrink-0">
             {formatCount(task.voteCount)} votes
           </Label>
         </TileAction>

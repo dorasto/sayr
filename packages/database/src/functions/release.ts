@@ -1,7 +1,6 @@
 import { SQL, and, asc, desc, eq, inArray, isNull, not, or, sql } from "drizzle-orm";
 import { db, schema } from "..";
 import { getUsersByIds, userSummaryColumns } from "./index";
-
 /**
  * Fetches a single release by its ID.
  *
@@ -132,7 +131,7 @@ export async function getReleasesPage(
 }
 
 /**
- * Fetches a release with all its associated tasks.
+ * Fetches a release with all its associated tasks, lead, labels, status updates and comments.
  *
  * @param releaseId - The unique ID of the release
  * @returns Promise resolving to release with tasks or null if not found
@@ -185,10 +184,28 @@ export async function getReleaseWithTasks(releaseId: string): Promise<schema.Rel
 		}
 	}
 
+	// Get lead info if available
+	let lead: schema.UserSummary | null = null;
+	if (release.leadId) {
+		const leads = await getUsersByIds([release.leadId]);
+		if (leads[0]) {
+			lead = leads[0];
+		}
+	}
+
+	// Fetch labels
+	const labelAssignments = await db.query.releaseLabelAssignment.findMany({
+		where: eq(schema.releaseLabelAssignment.releaseId, releaseId),
+		with: { label: true },
+	});
+	const labels = labelAssignments.map((la) => la.label);
+
 	const result: schema.ReleaseWithTasks = {
 		...release,
 		tasks: tasksWithLabels,
 		createdBy,
+		lead,
+		labels,
 	};
 
 	return result;
@@ -210,6 +227,7 @@ export async function createRelease(data: {
 	targetDate?: Date;
 	color?: string;
 	icon?: string;
+	leadId?: string;
 	createdBy?: string;
 }): Promise<schema.releaseType> {
 	const [release] = await db
@@ -224,6 +242,7 @@ export async function createRelease(data: {
 			targetDate: data.targetDate,
 			color: data.color || "hsla(0, 0%, 0%, 1)",
 			icon: data.icon,
+			leadId: data.leadId,
 			createdBy: data.createdBy,
 		})
 		.returning();
@@ -253,6 +272,7 @@ export async function updateRelease(
 		releasedAt: Date | null;
 		color: string;
 		icon: string;
+		leadId: string | null;
 	}>
 ): Promise<schema.releaseType> {
 	const [release] = await db
@@ -341,4 +361,201 @@ export async function markReleaseAsReleased(
 		release,
 		updatedTaskIds: taskIds,
 	};
+}
+
+// ─── Release Labels ───────────────────────────────────────────────────────────
+
+export async function addReleaseLabel(releaseId: string, organizationId: string, labelId: string): Promise<void> {
+	await db
+		.insert(schema.releaseLabelAssignment)
+		.values({ releaseId, organizationId, labelId })
+		.onConflictDoNothing();
+}
+
+export async function removeReleaseLabel(releaseId: string, labelId: string): Promise<void> {
+	await db
+		.delete(schema.releaseLabelAssignment)
+		.where(
+			and(
+				eq(schema.releaseLabelAssignment.releaseId, releaseId),
+				eq(schema.releaseLabelAssignment.labelId, labelId)
+			)
+		);
+}
+
+export async function getReleaseLabels(releaseId: string): Promise<schema.labelType[]> {
+	const assignments = await db.query.releaseLabelAssignment.findMany({
+		where: eq(schema.releaseLabelAssignment.releaseId, releaseId),
+		with: { label: true },
+	});
+	return assignments.map((a) => a.label);
+}
+
+// ─── Release Status Updates ───────────────────────────────────────────────────
+
+export async function createReleaseStatusUpdate(data: {
+	releaseId: string;
+	organizationId: string;
+	authorId: string;
+	content?: schema.NodeJSON;
+	health: "on_track" | "at_risk" | "off_track";
+	visibility: "public" | "internal";
+}): Promise<schema.releaseStatusUpdateType> {
+	const [update] = await db.insert(schema.releaseStatusUpdate).values(data).returning();
+	if (!update) throw new Error("Failed to create release status update");
+	return update;
+}
+
+export async function getReleaseStatusUpdates(
+	releaseId: string,
+	visibility?: "public" | "internal" | "all"
+): Promise<schema.ReleaseStatusUpdateWithAuthor[]> {
+	const updates = await db.query.releaseStatusUpdate.findMany({
+		where:
+			!visibility || visibility === "all"
+				? eq(schema.releaseStatusUpdate.releaseId, releaseId)
+				: and(
+						eq(schema.releaseStatusUpdate.releaseId, releaseId),
+						eq(schema.releaseStatusUpdate.visibility, visibility)
+					),
+		orderBy: [desc(schema.releaseStatusUpdate.createdAt)],
+		with: {
+			author: { columns: userSummaryColumns },
+		},
+	});
+
+	return updates.map((u) => ({
+		...u,
+		author: u.author ?? null,
+	}));
+}
+
+export async function updateReleaseStatusUpdate(
+	updateId: string,
+	data: Partial<{
+		content: schema.NodeJSON;
+		health: "on_track" | "at_risk" | "off_track";
+		visibility: "public" | "internal";
+	}>
+): Promise<schema.releaseStatusUpdateType> {
+	const [updated] = await db
+		.update(schema.releaseStatusUpdate)
+		.set({ ...data, updatedAt: new Date() })
+		.where(eq(schema.releaseStatusUpdate.id, updateId))
+		.returning();
+	if (!updated) throw new Error("Failed to update release status update");
+	return updated;
+}
+
+export async function deleteReleaseStatusUpdate(updateId: string): Promise<void> {
+	await db.delete(schema.releaseStatusUpdate).where(eq(schema.releaseStatusUpdate.id, updateId));
+}
+
+// ─── Release Comments ─────────────────────────────────────────────────────────
+
+export async function createReleaseComment(data: {
+	releaseId: string;
+	organizationId: string;
+	createdBy: string;
+	content: schema.NodeJSON;
+	visibility: "public" | "internal";
+	statusUpdateId?: string;
+	parentId?: string;
+}): Promise<schema.releaseCommentType> {
+	const [comment] = await db.insert(schema.releaseComment).values(data).returning();
+	if (!comment) throw new Error("Failed to create release comment");
+	return comment;
+}
+
+export async function getReleaseComments(
+	releaseId: string,
+	opts: { statusUpdateId?: string | null; visibility?: "public" | "internal" | "all" } = {}
+): Promise<schema.ReleaseCommentWithAuthor[]> {
+	const conditions = [eq(schema.releaseComment.releaseId, releaseId)];
+
+	if (opts.statusUpdateId !== undefined) {
+		conditions.push(
+			opts.statusUpdateId === null
+				? isNull(schema.releaseComment.statusUpdateId)
+				: eq(schema.releaseComment.statusUpdateId, opts.statusUpdateId)
+		);
+	}
+
+	if (opts.visibility && opts.visibility !== "all") {
+		conditions.push(eq(schema.releaseComment.visibility, opts.visibility));
+	}
+
+	const comments = await db.query.releaseComment.findMany({
+		where: and(...conditions),
+		orderBy: [asc(schema.releaseComment.createdAt)],
+		with: {
+			createdBy: { columns: userSummaryColumns },
+			reactions: true,
+		},
+	});
+
+	return comments.map((c) => ({
+		...c,
+		createdBy: c.createdBy ?? null,
+		content: c.content as schema.NodeJSON,
+		reactions: buildReactionSummary(c.reactions),
+	}));
+}
+
+function buildReactionSummary(reactions: schema.releaseCommentReactionType[]): schema.ReleaseCommentWithAuthor["reactions"] {
+	if (!reactions.length) return { total: 0, reactions: {} };
+	const map: Record<string, { count: number; users: string[] }> = {};
+	for (const r of reactions) {
+		const entry = map[r.emoji];
+		if (!entry) {
+			map[r.emoji] = { count: 1, users: [r.userId] };
+		} else {
+			entry.count++;
+			entry.users.push(r.userId);
+		}
+	}
+	return { total: reactions.length, reactions: map };
+}
+
+export async function updateReleaseComment(
+	commentId: string,
+	data: Partial<{ content: schema.NodeJSON; visibility: "public" | "internal" }>
+): Promise<schema.releaseCommentType> {
+	const [updated] = await db
+		.update(schema.releaseComment)
+		.set({ ...data, updatedAt: new Date() })
+		.where(eq(schema.releaseComment.id, commentId))
+		.returning();
+	if (!updated) throw new Error("Failed to update release comment");
+	return updated;
+}
+
+export async function deleteReleaseComment(commentId: string): Promise<void> {
+	await db.delete(schema.releaseComment).where(eq(schema.releaseComment.id, commentId));
+}
+
+// ─── Release Comment Reactions ────────────────────────────────────────────────
+
+export async function addReleaseCommentReaction(
+	organizationId: string,
+	commentId: string,
+	userId: string,
+	emoji: string
+): Promise<void> {
+	await db
+		.insert(schema.releaseCommentReaction)
+		.values({ organizationId, commentId, userId, emoji })
+		.onConflictDoNothing();
+}
+
+export async function removeReleaseCommentReaction(commentId: string, userId: string, emoji: string): Promise<void> {
+	await db
+		.delete(schema.releaseCommentReaction)
+		.where(
+			and(
+				eq(schema.releaseCommentReaction.commentId, commentId),
+				eq(schema.releaseCommentReaction.userId, userId),
+				eq(schema.releaseCommentReaction.emoji, emoji)
+			)
+		);
 }

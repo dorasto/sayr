@@ -14,6 +14,11 @@ import { githubPullRequestType } from "./github_pull_request.schema";
 import type { blockedUserType } from "./blockedUser.schema";
 import type { taskRelationType } from "./taskRelation.schema";
 
+import type { releaseStatusUpdateType } from "./release_status_update.schema";
+import type { releaseCommentType } from "./release_comment.schema";
+export * from "./release_status_update.schema";
+export * from "./release_comment.schema";
+export * from "./release_comment_reaction.schema";
 export * from "./category.schema";
 export * from "./github_installation.schema";
 export * from "./github_installation_org.schema";
@@ -172,6 +177,26 @@ export type issueTemplateWithRelations = issueTemplateType & {
 export type ReleaseWithTasks = Omit<releaseType, "createdBy"> & {
 	tasks: TaskWithLabels[];
 	createdBy?: UserSummary | null;
+	lead?: UserSummary | null;
+	labels: labelType[];
+	statusUpdates?: ReleaseStatusUpdateWithAuthor[];
+	comments?: ReleaseCommentWithAuthor[];
+};
+
+export type ReleaseStatusUpdateWithAuthor = Omit<releaseStatusUpdateType, "authorId"> & {
+	author?: UserSummary | null;
+	comments?: ReleaseCommentWithAuthor[];
+};
+
+export type ReleaseCommentWithAuthor = Omit<releaseCommentType, "createdBy"> & {
+	createdBy?: UserSummary | null;
+	content: NodeJSON;
+	parentId?: string | null;
+	replyCount?: number;
+	reactions?: {
+		total: number;
+		reactions: Record<string, { count: number; users: string[] }>;
+	};
 };
 
 export type NotificationWithDetails = notificationType & {
