@@ -31,9 +31,10 @@ import {
   TileIcon,
   TileTitle,
   TileDescription,
+  TileAction,
 } from "@repo/ui/components/doras-ui/tile";
 import { Separator } from "@repo/ui/components/separator";
-import { extractHslValues, extractTaskText } from "@repo/util";
+import { extractHslValues, extractTaskText, formatCount } from "@repo/util";
 import { InlineLabel } from "@/components/tasks";
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
@@ -514,6 +515,11 @@ function TaskRow({ task, orgSlug }: { task: PublicTask; orgSlug: string }) {
             {descriptionPreview}
           </TileDescription>
         </TileHeader>
+        <TileAction asChild>
+          <Label variant={"description"}>
+            {formatCount(task.voteCount)} votes
+          </Label>
+        </TileAction>
       </Tile>
       {/*<div className="flex items-center gap-3">
         <span className="flex-1 min-w-0 text-sm font-medium truncate group-hover:text-foreground">
