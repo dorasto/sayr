@@ -26,32 +26,20 @@ export interface Pagination {
  * Organization
  * ======================= */
 
-export interface OrganizationUser {
+export interface OrganizationMember {
     id: string;
     name: string;
     image: string | null;
-    createdAt: string;
-}
-
-export interface OrganizationMember {
-    id: string;
-    userId: string;
-    organizationId: string;
-    createdAt: string;
-    user: OrganizationUser;
 }
 
 export interface Organization {
     id: string;
-    name: string;
     slug: string;
+    name: string;
     logo: string | null;
     bannerImg: string | null;
-    description: string;
-    createdAt: string;
-    updatedAt: string;
-    members: OrganizationMember[];
     eventsUrl: string;
+    members: OrganizationMember[];
 }
 
 /* =======================
@@ -63,6 +51,7 @@ export interface Label {
     organizationId: string;
     name: string;
     color: string | null;
+    visible: "public" | "private";
     createdAt: string;
 }
 
@@ -108,9 +97,17 @@ export interface Task {
     description: unknown | null;
     status: TaskStatus;
     priority: TaskPriority;
-    createdBy: string | null;
-    category: string | null;
+    createdBy: {
+        id: string;
+        name: string | null;
+        displayName: string | null;
+        image: string | null;
+    } | null;
+    category: Category | null;
+    labels: Label[];
+    releaseId: string | null;
     voteCount: number;
+    parentId: string | null;
     descriptionHtml: string;
     descriptionMarkdown: string;
 }
@@ -118,11 +115,6 @@ export interface Task {
 /* =======================
  * Comments
  * ======================= */
-
-export interface CommentUser {
-    name: string | null;
-    image: string | null;
-}
 
 export interface CommentReaction {
     count: number;
@@ -136,12 +128,36 @@ export interface Comment {
     createdAt: string;
     updatedAt: string;
     content: unknown | null;
-    visibility: "public" | "internal";
     contentHtml: string;
     contentMarkdown: string;
-    createdBy: CommentUser | null;
+    createdBy: {
+        name: string | null;
+        image: string | null;
+    } | null;
+    visibility: "public" | "internal";
+    source: "sayr" | "github";
+    parentId: string | null;
     reactions?: {
         total: number;
         reactions: Record<string, CommentReaction>;
     };
+}
+
+export interface Release {
+    id: string;
+    organizationId: string;
+    name: string;
+    slug: string;
+    description: unknown | null;
+    status: "planned" | "in-progress" | "released" | "archived";
+    targetDate: string;
+    releasedAt: string | null;
+    color: string | null;
+    icon: string | null;
+    createdBy: {
+        id: string;
+        name: string;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
 }
