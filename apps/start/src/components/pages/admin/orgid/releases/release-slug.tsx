@@ -57,6 +57,7 @@ import { Label } from "@repo/ui/components/label";
 import Loader from "@/components/Loader";
 import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
 import { commandActions } from "@/lib/command-store";
+import { Separator } from "@repo/ui/components/separator";
 
 interface ReleaseDetailPageProps {
   release: schema.releaseType;
@@ -383,18 +384,6 @@ function ReleaseDetailPageContent() {
               <div className="flex items-center gap-1">
                 <Button
                   variant="accent"
-                  className="gap-1.5 h-6 w-fit bg-transparent border-transparent px-1.5 text-xs"
-                  onClick={() => {
-                    const viewId = `release-add-tasks-${release.id}`;
-                    commandActions.setInitialView(viewId, "Add tasks");
-                    commandActions.open();
-                  }}
-                >
-                  <IconPlus className="w-3 h-3" />
-                  <span>Add tasks</span>
-                </Button>
-                <Button
-                  variant="accent"
                   className={cn(
                     "gap-2 h-6 w-fit bg-accent border-transparent p-1",
                     !isChartsPanelOpen && "bg-transparent",
@@ -483,9 +472,9 @@ function ReleaseDetailPageContent() {
             </div>
           </PageHeader.Identity>
         </PageHeader>
-        <div className="flex-1 overflow-y-auto h-full flex flex-col relative">
+        <div className="flex-1 overflow-y-scroll h-full flex flex-col relative px-3">
           {/* Header Section */}
-          <div className="flex flex-col gap-3 p-3">
+          <div className="flex flex-col gap-3 py-3">
             <ReleaseHeader release={release} onUpdate={handleNameSlugUpdate} />
 
             {/* Description Section */}
@@ -516,7 +505,7 @@ function ReleaseDetailPageContent() {
             </div>
           </div>
           {/* Status Updates & Discussion */}
-          <div className="flex flex-col gap-6 px-3 pb-3">
+          <div className="flex flex-col gap-6 pb-3">
             <ReleaseStatusUpdatesFeed
               releaseId={release.id}
               orgId={organization.id}
@@ -535,18 +524,39 @@ function ReleaseDetailPageContent() {
             />*/}
           </div>
           {/* Tasks Section */}
-          <UnifiedTaskView
-            tasks={tasks}
-            setTasks={setTasks}
-            serverEvents={serverEvents}
-            availableUsers={availableUsers}
-            organization={organization}
-            categories={categories}
-            releases={releases}
-            compact={true}
-            forceShowCompleted={true}
-            className="h-auto overflow-visible"
-          />
+          <div className="bg-card rounded-xl overflow-clip border p-3 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label variant={"subheading"}>Tasks</Label>
+              <Button
+                variant="accent"
+                className="gap-1.5 h-6 w-fit bg-transparent border-transparent px-1.5 text-xs"
+                onClick={() => {
+                  const viewId = `release-add-tasks-${release.id}`;
+                  commandActions.setInitialView(viewId, "Add tasks");
+                  commandActions.open();
+                }}
+              >
+                <IconPlus className="w-3 h-3" />
+                <span>Add tasks</span>
+              </Button>
+            </div>
+
+            <Separator />
+            <UnifiedTaskView
+              tasks={tasks}
+              setTasks={setTasks}
+              serverEvents={serverEvents}
+              availableUsers={availableUsers}
+              organization={organization}
+              categories={categories}
+              releases={releases}
+              compact={true}
+              forceShowCompleted={true}
+              className="h-auto overflow-visible"
+              overviewLayout={true}
+              showGroupHeaders={false}
+            />
+          </div>
         </div>
       </div>
     </PanelWrapper>

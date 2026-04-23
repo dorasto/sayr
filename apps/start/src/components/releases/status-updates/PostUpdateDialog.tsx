@@ -22,16 +22,10 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@repo/ui/components/avatar";
-import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
 import { getDisplayName } from "@repo/util";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import {
-  IconArrowBack,
-  IconLock,
-  IconLockOpen2,
-  IconX,
-} from "@tabler/icons-react";
+import { IconLock, IconLockOpen2, IconX } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { motion } from "motion/react";
 import { type Health, type Visibility, healthConfig } from "./types";

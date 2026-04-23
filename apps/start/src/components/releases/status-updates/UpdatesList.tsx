@@ -61,20 +61,14 @@ export function UpdatesList({
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-accent/30">
+    <div className="flex flex-col gap-2 rounded-xl border bg-card">
       {/* Header row */}
       <div className="flex items-center justify-between px-3 pt-3">
-        <Label
-          variant="description"
-          className="text-xs text-muted-foreground uppercase tracking-wide"
-        >
-          Latest update
-        </Label>
+        <Label variant={"subheading"}>Latest update</Label>
         {canManage && onPostUpdate && (
           <Button
-            variant="primary"
-            size="sm"
-            className="text-xs h-6 gap-1"
+            variant="accent"
+            className="gap-1.5 h-6 w-fit bg-transparent border-transparent px-1.5 text-xs"
             onClick={onPostUpdate}
           >
             <IconSquarePlus2 size={12} />
@@ -114,12 +108,7 @@ export function UpdatesList({
           {previousOpen && (
             <div className="flex flex-col gap-0 border-t border-border/60">
               <div className="px-3 pt-2 pb-1">
-                <Label
-                  variant="description"
-                  className="text-xs text-muted-foreground uppercase tracking-wide"
-                >
-                  Previous updates
-                </Label>
+                <Label variant={"subheading"}>Previous updates</Label>
               </div>
               <div className="flex flex-col divide-y divide-border/40 px-3 pb-3">
                 {previous.map((u) => (
