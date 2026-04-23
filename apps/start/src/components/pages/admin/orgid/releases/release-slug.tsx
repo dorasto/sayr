@@ -541,7 +541,6 @@ function ReleaseDetailPageContent() {
               </Button>
             </div>
 
-            <Separator />
             <UnifiedTaskView
               tasks={tasks}
               setTasks={setTasks}
