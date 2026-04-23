@@ -23,7 +23,7 @@ import { Label } from "@repo/ui/components/label";
 import { Toggle } from "@repo/ui/components/toggle";
 import { cn } from "@repo/ui/lib/utils";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { formatDateTimeFromNow, getDisplayName } from "@repo/util";
+import { formatDate, formatDateTimeFromNow, getDisplayName } from "@repo/util";
 import {
   IconAlertTriangle,
   IconArrowBack,
@@ -260,27 +260,91 @@ function StatusUpdateCard({
       <div
         className={cn(
           "rounded-lg border bg-accent/50 relative overflow-hidden p-2 group/update flex flex-col gap-3",
-          health.cardClassName,
+          // health.cardClassName,
           // update.visibility === "internal" && "border-primary/30 bg-primary/5",
         )}
       >
         <div className="flex items-center gap-3">
-          <Badge
-            variant="outline"
-            className={cn(
-              "gap-1 text-xs border pointer-events-none w-fit",
-              health.className,
-            )}
-          >
-            {health.icon} {health.label}
-          </Badge>
-          {update.visibility === "internal" && (
-            <Badge
-              variant="outline"
-              className="gap-1 text-xs pointer-events-none"
-            >
-              <IconLock size={12} /> Internal
-            </Badge>
+          {isEditing ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "gap-1 text-xs cursor-pointer border",
+                      healthConfig[editHealth].className,
+                    )}
+                  >
+                    {healthConfig[editHealth].icon}{" "}
+                    {healthConfig[editHealth].label}
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {(["on_track", "at_risk", "off_track"] as Health[]).map(
+                    (h) => (
+                      <DropdownMenuItem
+                        key={h}
+                        onClick={() => setEditHealth(h)}
+                        className={cn(
+                          "flex items-center gap-2 w-full",
+                          healthConfig[h].className,
+                          "bg-transparent! hover:bg-accent!",
+                        )}
+                      >
+                        {healthConfig[h].icon} {healthConfig[h].label}
+                      </DropdownMenuItem>
+                    ),
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className="gap-1 text-xs cursor-pointer"
+                  >
+                    {editVisibility === "internal" ? (
+                      <IconLock size={12} />
+                    ) : (
+                      <IconLockOpen2 size={12} />
+                    )}
+                    {editVisibility === "public" ? "Public" : "Internal"}
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setEditVisibility("public")}>
+                    <IconLockOpen2 size={12} />
+                    Public
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setEditVisibility("internal")}
+                  >
+                    <IconLock size={12} /> Internal
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "gap-1 text-xs border pointer-events-none w-fit",
+                  health.className,
+                )}
+              >
+                {health.icon} {health.label}
+              </Badge>
+              {update.visibility === "internal" && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 text-xs pointer-events-none"
+                >
+                  <IconLock size={12} /> Internal
+                </Badge>
+              )}
+            </>
           )}
           <div className="flex items-center gap-1 ml-auto opacity-0 group-hover/update:opacity-100 has-data-[state=open]:opacity-100 transition-all">
             {!isEditing && (
@@ -335,83 +399,14 @@ function StatusUpdateCard({
                 >
                   {authorName}
                 </Label>
-                {isEditing ? (
-                  <>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "gap-1 text-xs cursor-pointer border",
-                            healthConfig[editHealth].className,
-                          )}
-                        >
-                          {healthConfig[editHealth].icon}{" "}
-                          {healthConfig[editHealth].label}
-                        </Badge>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {(["on_track", "at_risk", "off_track"] as Health[]).map(
-                          (h) => (
-                            <DropdownMenuItem
-                              key={h}
-                              onClick={() => setEditHealth(h)}
-                              className={cn(
-                                "flex items-center gap-2 w-full",
-                                healthConfig[h].className,
-                                "bg-transparent! hover:bg-accent!",
-                              )}
-                            >
-                              {healthConfig[h].icon} {healthConfig[h].label}
-                            </DropdownMenuItem>
-                          ),
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Badge
-                          variant="outline"
-                          className="gap-1 text-xs cursor-pointer"
-                        >
-                          {editVisibility === "internal" ? (
-                            <IconLock size={12} />
-                          ) : null}
-                          {editVisibility === "public" ? "Public" : "Internal"}
-                        </Badge>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem
-                          onClick={() => setEditVisibility("public")}
-                        >
-                          Public
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setEditVisibility("internal")}
-                        >
-                          <IconLock size={12} /> Internal
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </>
-                ) : (
-                  <>
-                    {update.visibility === "internal" && (
-                      <Badge
-                        variant="outline"
-                        className="gap-1 text-xs pointer-events-none"
-                      >
-                        <IconLock size={12} /> Internal
-                      </Badge>
-                    )}
-                  </>
-                )}
+
                 {update.createdAt && (
                   <Label
                     variant="description"
                     className="text-muted-foreground"
                   >
-                    {formatDateTimeFromNow(update.createdAt)}
+                    {formatDateTimeFromNow(update.createdAt)} (
+                    {formatDate(update.createdAt)})
                   </Label>
                 )}
               </div>
