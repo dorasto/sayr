@@ -1,8 +1,7 @@
 import type { schema } from "@repo/database";
-import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconLoader2, IconPlus } from "@tabler/icons-react";
+import { IconLoader2, IconPencil } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
 import {
 	createReleaseStatusUpdateAction,
@@ -13,7 +12,7 @@ import {
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutData } from "@/components/generic/Context";
 import { type Health, type Visibility } from "./status-updates/types";
-import { UpdateComposer } from "./status-updates/UpdateComposer";
+import { PostUpdateDialog } from "./status-updates/PostUpdateDialog";
 import { UpdatesList } from "./status-updates/UpdatesList";
 
 interface Props {
@@ -41,7 +40,7 @@ export function ReleaseStatusUpdatesFeed({
 
 	const [updates, setUpdates] = useState<schema.ReleaseStatusUpdateWithAuthor[]>([]);
 	const [loading, setLoading] = useState(false);
-	const [composerOpen, setComposerOpen] = useState(false);
+	const [dialogOpen, setDialogOpen] = useState(false);
 
 	const availableUsers = organization.members.map((m) => m.user as schema.UserSummary);
 
@@ -69,7 +68,7 @@ export function ReleaseStatusUpdatesFeed({
 				sseClientId,
 			);
 			if (result.success) {
-				setComposerOpen(false);
+				setDialogOpen(false);
 				await loadUpdates();
 			}
 		},
@@ -97,44 +96,49 @@ export function ReleaseStatusUpdatesFeed({
 	if (!loading && updates.length === 0 && !canManage) return null;
 
 	return (
-		<div className="flex flex-col gap-3">
-			<div className="flex items-center justify-between">
-				<Label variant="subheading">Status updates</Label>
-				{canManage && !composerOpen && (
-					<Button variant="primary" size="sm" className="text-xs h-7 gap-1" onClick={() => setComposerOpen(true)}>
-						<IconPlus size={14} />
-						Post update
-					</Button>
-				)}
+		<>
+			<div className="flex flex-col gap-3">
+				{loading ? (
+					<div className="flex items-center justify-center py-6">
+						<IconLoader2 className="animate-spin size-5 text-muted-foreground" />
+					</div>
+				) : updates.length === 0 && canManage ? (
+					/* Empty state CTA */
+					<button
+						type="button"
+						onClick={() => setDialogOpen(true)}
+						className="flex items-center justify-center gap-2 w-full rounded-lg border border-dashed border-border/60 py-4 px-4 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors cursor-pointer bg-transparent"
+					>
+						<IconPencil size={14} />
+						Post first status update
+					</button>
+				) : updates.length > 0 ? (
+					<div className="flex flex-col gap-3">
+						<Label variant="subheading">Status updates</Label>
+						<UpdatesList
+							updates={updates}
+							releaseId={releaseId}
+							orgId={orgId}
+							sseClientId={sseClientId}
+							currentUserId={currentUserId}
+							canManage={canManage}
+							availableUsers={availableUsers}
+							onDelete={handleDelete}
+							onEdit={handleEdit}
+							commentsRefreshKey={commentsRefreshKey}
+							onPostUpdate={() => setDialogOpen(true)}
+						/>
+					</div>
+				) : null}
 			</div>
 
-			{composerOpen && (
-				<UpdateComposer
-					account={account}
-					availableUsers={availableUsers}
-					onPost={handlePost}
-					onCancel={() => setComposerOpen(false)}
-				/>
-			)}
-
-			{loading ? (
-				<div className="flex items-center justify-center py-6">
-					<IconLoader2 className="animate-spin size-5 text-muted-foreground" />
-				</div>
-			) : updates.length > 0 ? (
-				<UpdatesList
-					updates={updates}
-					releaseId={releaseId}
-					orgId={orgId}
-					sseClientId={sseClientId}
-					currentUserId={currentUserId}
-					canManage={canManage}
-					availableUsers={availableUsers}
-					onDelete={handleDelete}
-					onEdit={handleEdit}
-					commentsRefreshKey={commentsRefreshKey}
-				/>
-			) : null}
-		</div>
+			<PostUpdateDialog
+				open={dialogOpen}
+				onOpenChange={setDialogOpen}
+				account={account}
+				availableUsers={availableUsers}
+				onPost={handlePost}
+			/>
+		</>
 	);
 }

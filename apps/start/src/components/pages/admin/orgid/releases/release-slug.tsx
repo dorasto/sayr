@@ -189,12 +189,18 @@ function ReleaseDetailPageContent() {
       }
     },
     UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
-      if ("data" in msg && (msg.data as { releaseId?: string })?.releaseId === release?.id) {
+      if (
+        "data" in msg &&
+        (msg.data as { releaseId?: string })?.releaseId === release?.id
+      ) {
         setStatusUpdatesRefreshKey((k) => k + 1);
       }
     },
     UPDATE_RELEASE_COMMENTS: (msg) => {
-      if ("data" in msg && (msg.data as { releaseId?: string })?.releaseId === release?.id) {
+      if (
+        "data" in msg &&
+        (msg.data as { releaseId?: string })?.releaseId === release?.id
+      ) {
         setCommentsRefreshKey((k) => k + 1);
       }
     },
@@ -519,14 +525,14 @@ function ReleaseDetailPageContent() {
               refreshKey={statusUpdatesRefreshKey}
               commentsRefreshKey={commentsRefreshKey}
             />
-            <ReleaseDiscussion
+            {/*<ReleaseDiscussion
               releaseId={release.id}
               orgId={organization.id}
               currentUserId={account?.id}
               canComment={true}
               canManage={true}
               refreshKey={commentsRefreshKey}
-            />
+            />*/}
           </div>
           {/* Tasks Section */}
           <UnifiedTaskView
@@ -551,12 +557,25 @@ export default function ReleaseDetailPage({
   release: initialRelease,
 }: ReleaseDetailPageProps) {
   const [release, setRelease] = useState<schema.ReleaseWithTasks | null>(
-    () => ({ ...initialRelease, tasks: [], createdBy: null, labels: [], lead: null }) as any,
+    () =>
+      ({
+        ...initialRelease,
+        tasks: [],
+        createdBy: null,
+        labels: [],
+        lead: null,
+      }) as any,
   );
 
   // Update release when initialRelease changes
   useEffect(() => {
-    setRelease({ ...initialRelease, tasks: [], createdBy: null, labels: [], lead: null } as any);
+    setRelease({
+      ...initialRelease,
+      tasks: [],
+      createdBy: null,
+      labels: [],
+      lead: null,
+    } as any);
   }, [initialRelease]);
 
   return (
