@@ -632,16 +632,22 @@ apiRouteAdminRelease.get("/:releaseId/comments", async (c) => {
 	const releaseId = c.req.param("releaseId");
 	const orgId = c.req.query("org_id") || "";
 	const statusUpdateId = c.req.query("statusUpdateId");
+	const limitParam = c.req.query("limit");
+	const offsetParam = c.req.query("offset");
+	const directionParam = c.req.query("direction");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
-	const comments = await getReleaseComments(releaseId, {
+	const { comments, total } = await getReleaseComments(releaseId, {
 		statusUpdateId: statusUpdateId === "null" ? null : statusUpdateId,
 		visibility: "all",
+		limit: limitParam ? Number(limitParam) : undefined,
+		offset: offsetParam ? Number(offsetParam) : undefined,
+		direction: directionParam === "desc" ? "desc" : directionParam === "asc" ? "asc" : undefined,
 	});
 
-	return c.json({ success: true, data: comments });
+	return c.json({ success: true, data: comments, total });
 });
 
 // POST /release/:releaseId/comments

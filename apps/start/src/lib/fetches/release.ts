@@ -284,10 +284,18 @@ export async function deleteReleaseStatusUpdateAction(
 export async function getReleaseCommentsAction(
 	orgId: string,
 	releaseId: string,
-	statusUpdateId?: string | null
-): Promise<{ success: boolean; data: schema.ReleaseCommentWithAuthor[]; error?: string }> {
+	statusUpdateId?: string | null,
+	pagination?: { limit?: number; offset?: number; direction?: "asc" | "desc" }
+): Promise<{ success: boolean; data: schema.ReleaseCommentWithAuthor[]; total: number; error?: string }> {
 	const qs = statusUpdateId !== undefined ? `&statusUpdateId=${statusUpdateId ?? "null"}` : "";
-	return fetch(`${BASE}/${releaseId}/comments?org_id=${orgId}${qs}`, {
+	const paginationQs = pagination
+		? [
+				pagination.limit !== undefined ? `&limit=${pagination.limit}` : "",
+				pagination.offset !== undefined ? `&offset=${pagination.offset}` : "",
+				pagination.direction ? `&direction=${pagination.direction}` : "",
+			].join("")
+		: "";
+	return fetch(`${BASE}/${releaseId}/comments?org_id=${orgId}${qs}${paginationQs}`, {
 		credentials: "include",
 	}).then((r) => r.json());
 }

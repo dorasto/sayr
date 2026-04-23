@@ -472,9 +472,9 @@ function ReleaseDetailPageContent() {
             </div>
           </PageHeader.Identity>
         </PageHeader>
-        <div className="flex-1 overflow-y-scroll h-full flex flex-col relative px-3">
+        <div className="flex-1 overflow-y-scroll h-full flex flex-col relative px-3 gap-3">
           {/* Header Section */}
-          <div className="flex flex-col gap-3 py-3">
+          <div className="flex flex-col gap-3">
             <ReleaseHeader release={release} onUpdate={handleNameSlugUpdate} />
 
             {/* Description Section */}
@@ -505,7 +505,7 @@ function ReleaseDetailPageContent() {
             </div>
           </div>
           {/* Status Updates & Discussion */}
-          <div className="flex flex-col gap-6 pb-3">
+          <div className="flex flex-col gap-6">
             <ReleaseStatusUpdatesFeed
               releaseId={release.id}
               orgId={organization.id}
@@ -514,14 +514,6 @@ function ReleaseDetailPageContent() {
               refreshKey={statusUpdatesRefreshKey}
               commentsRefreshKey={commentsRefreshKey}
             />
-            {/*<ReleaseDiscussion
-              releaseId={release.id}
-              orgId={organization.id}
-              currentUserId={account?.id}
-              canComment={true}
-              canManage={true}
-              refreshKey={commentsRefreshKey}
-            />*/}
           </div>
           {/* Tasks Section */}
           <div className="bg-card rounded-xl overflow-clip border p-3 flex flex-col gap-2">
@@ -554,6 +546,16 @@ function ReleaseDetailPageContent() {
               className="h-auto overflow-visible"
               overviewLayout={true}
               showGroupHeaders={false}
+            />
+          </div>
+          <div className="border border-transparent p-3 flex flex-col gap-2">
+            <ReleaseDiscussion
+              releaseId={release.id}
+              orgId={organization.id}
+              currentUserId={account?.id}
+              canComment={true}
+              canManage={true}
+              refreshKey={commentsRefreshKey}
             />
           </div>
         </div>

@@ -522,8 +522,14 @@ export async function createReleaseComment(data: {
 
 export async function getReleaseComments(
 	releaseId: string,
-	opts: { statusUpdateId?: string | null; visibility?: "public" | "internal" | "all" } = {}
-): Promise<schema.ReleaseCommentWithAuthor[]> {
+	opts: {
+		statusUpdateId?: string | null;
+		visibility?: "public" | "internal" | "all";
+		limit?: number;
+		offset?: number;
+		direction?: "asc" | "desc";
+	} = {}
+): Promise<{ comments: schema.ReleaseCommentWithAuthor[]; total: number }> {
 	const conditions = [eq(schema.releaseComment.releaseId, releaseId)];
 
 	if (opts.statusUpdateId !== undefined) {
@@ -538,21 +544,38 @@ export async function getReleaseComments(
 		conditions.push(eq(schema.releaseComment.visibility, opts.visibility));
 	}
 
-	const comments = await db.query.releaseComment.findMany({
-		where: and(...conditions),
-		orderBy: [asc(schema.releaseComment.createdAt)],
-		with: {
-			createdBy: { columns: userSummaryColumns },
-			reactions: true,
-		},
-	});
+	const whereClause = and(...conditions);
 
-	return comments.map((c) => ({
-		...c,
-		createdBy: c.createdBy ?? null,
-		content: c.content as schema.NodeJSON,
-		reactions: buildReactionSummary(c.reactions),
-	}));
+	// Run count and data fetch in parallel
+	const [countResult, rows] = await Promise.all([
+		db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(schema.releaseComment)
+			.where(whereClause)
+			.then((r) => r[0]?.count ?? 0),
+		db.query.releaseComment.findMany({
+			where: whereClause,
+			orderBy: opts.direction === "desc"
+				? [desc(schema.releaseComment.createdAt)]
+				: [asc(schema.releaseComment.createdAt)],
+			limit: opts.limit,
+			offset: opts.offset,
+			with: {
+				createdBy: { columns: userSummaryColumns },
+				reactions: true,
+			},
+		}),
+	]);
+
+	return {
+		comments: rows.map((c) => ({
+			...c,
+			createdBy: c.createdBy ?? null,
+			content: c.content as schema.NodeJSON,
+			reactions: buildReactionSummary(c.reactions),
+		})),
+		total: countResult,
+	};
 }
 
 function buildReactionSummary(reactions: schema.releaseCommentReactionType[]): schema.ReleaseCommentWithAuthor["reactions"] {
