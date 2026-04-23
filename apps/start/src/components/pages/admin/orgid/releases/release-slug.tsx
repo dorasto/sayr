@@ -517,6 +517,7 @@ function ReleaseDetailPageContent() {
               currentUserId={account?.id}
               canManage={true}
               refreshKey={statusUpdatesRefreshKey}
+              commentsRefreshKey={commentsRefreshKey}
             />
             <ReleaseDiscussion
               releaseId={release.id}

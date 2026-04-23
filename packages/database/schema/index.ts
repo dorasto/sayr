@@ -186,6 +186,8 @@ export type ReleaseWithTasks = Omit<releaseType, "createdBy"> & {
 export type ReleaseStatusUpdateWithAuthor = Omit<releaseStatusUpdateType, "authorId"> & {
 	author?: UserSummary | null;
 	comments?: ReleaseCommentWithAuthor[];
+	commentCount?: number;
+	commentAuthors?: UserSummary[];
 };
 
 export type ReleaseCommentWithAuthor = Omit<releaseCommentType, "createdBy"> & {

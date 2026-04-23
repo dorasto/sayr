@@ -406,6 +406,40 @@ export async function createReleaseStatusUpdate(data: {
 	return update;
 }
 
+/**
+ * For a batch of status update IDs, fetches up to 3 unique comment authors per update
+ * (most-recent-first, deduplicated by user ID). Returns a Map keyed by statusUpdateId.
+ */
+async function getStatusUpdateCommentAuthors(statusUpdateIds: string[]): Promise<Map<string, schema.UserSummary[]>> {
+	const result = new Map<string, schema.UserSummary[]>();
+	if (statusUpdateIds.length === 0) return result;
+
+	const MAX_VISIBLE = 3;
+
+	for (const updateId of statusUpdateIds) {
+		const comments = await db.query.releaseComment.findMany({
+			where: and(eq(schema.releaseComment.statusUpdateId, updateId), isNull(schema.releaseComment.parentId)),
+			with: {
+				createdBy: { columns: userSummaryColumns },
+			},
+			orderBy: (c, { desc }) => [desc(c.createdAt)],
+		});
+
+		const seen = new Set<string>();
+		const authors: schema.UserSummary[] = [];
+		for (const c of comments) {
+			if (c.createdBy && !seen.has(c.createdBy.id)) {
+				seen.add(c.createdBy.id);
+				authors.push(c.createdBy);
+				if (authors.length >= MAX_VISIBLE) break;
+			}
+		}
+		result.set(updateId, authors);
+	}
+
+	return result;
+}
+
 export async function getReleaseStatusUpdates(
 	releaseId: string,
 	visibility?: "public" | "internal" | "all"
@@ -424,9 +458,28 @@ export async function getReleaseStatusUpdates(
 		},
 	});
 
+	if (updates.length === 0) return [];
+
+	const updateIds = updates.map((u) => u.id);
+	const counts = await db
+		.select({
+			statusUpdateId: schema.releaseComment.statusUpdateId,
+			count: sql<number>`cast(count(*) as int)`,
+		})
+		.from(schema.releaseComment)
+		.where(inArray(schema.releaseComment.statusUpdateId, updateIds))
+		.groupBy(schema.releaseComment.statusUpdateId);
+
+	const countMap = new Map(counts.map((c) => [c.statusUpdateId, c.count]));
+
+	// Fetch up to 3 unique comment authors per status update (most recent first)
+	const authorsMap = await getStatusUpdateCommentAuthors(updateIds);
+
 	return updates.map((u) => ({
 		...u,
 		author: u.author ?? null,
+		commentCount: countMap.get(u.id) ?? 0,
+		commentAuthors: authorsMap.get(u.id) ?? [],
 	}));
 }
 
