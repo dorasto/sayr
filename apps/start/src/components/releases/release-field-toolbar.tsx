@@ -68,7 +68,10 @@ import {
   removeReleaseLabelAction,
   updateReleaseAction,
 } from "@/lib/fetches/release";
-import { RenderLabel, InlineCreateLabelForm } from "@/components/tasks/shared/label";
+import {
+  RenderLabel,
+  InlineCreateLabelForm,
+} from "@/components/tasks/shared/label";
 import { useToastAction } from "@/lib/util";
 import { useMatch } from "@tanstack/react-router";
 

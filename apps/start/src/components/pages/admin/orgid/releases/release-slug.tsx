@@ -18,14 +18,12 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
-import type { NodeJSON } from "prosekit/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { PanelWrapper } from "@/components/generic/wrapper";
 import RenderIcon from "@/components/generic/RenderIcon";
-import Editor from "@/components/prosekit/editor";
-import processUploads from "@/components/prosekit/upload";
+import { ReleaseDescriptionEditor } from "@/components/releases/ReleaseDescriptionEditor";
 import { ReleaseInfo } from "@/components/releases/ReleaseInfo";
 import { ReleaseHeader } from "@/components/releases/ReleaseHeader";
 import { ReleaseSidebar } from "@/components/releases/ReleaseSidebar";
@@ -43,15 +41,12 @@ import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import {
-  getReleaseWithTasksAction,
-  updateReleaseAction,
-} from "@/lib/fetches/release";
+import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
 import {
   releaseChartsActions,
   releaseChartsStore,
 } from "@/lib/stores/release-charts-store";
-import { extractTextContent, useToastAction } from "@/lib/util";
+import { useToastAction } from "@/lib/util";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Label } from "@repo/ui/components/label";
 import Loader from "@/components/Loader";
@@ -73,13 +68,6 @@ function ReleaseDetailPageContent() {
   const [loading, setLoading] = useState(true);
   const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
   const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
-  const [description, setDescription] = useState<NodeJSON | undefined>(
-    release?.description || undefined,
-  );
-  const [savedDescription, setSavedDescription] = useState<
-    NodeJSON | undefined
-  >(undefined);
-  const [isSavingDescription, setIsSavingDescription] = useState(false);
   const { runWithToast } = useToastAction();
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { setValue: setMentionContext } =
@@ -135,9 +123,6 @@ function ReleaseDetailPageContent() {
         if (result.success && result.data) {
           setRelease(result.data);
           setTasks(result.data.tasks);
-          const desc = result.data.description as NodeJSON | undefined;
-          setDescription(desc);
-          setSavedDescription(desc);
           loadedReleaseIdRef.current = release.id;
         }
       } catch (error) {
@@ -216,63 +201,6 @@ function ReleaseDetailPageContent() {
       serverEvents.event?.removeEventListener("message", handleMessage);
     };
   }, [serverEvents.event, handleMessage]);
-
-  const handleDescriptionSave = useCallback(
-    async (content: NodeJSON | undefined) => {
-      if (!release || !content) return;
-
-      try {
-        setIsSavingDescription(true);
-        const processedContent = await processUploads(
-          content,
-          "public",
-          organization.id,
-          "update-release-description",
-        );
-
-        const result = await runWithToast(
-          "update-release-description",
-          {
-            loading: {
-              title: "Saving...",
-              description: "Updating release description.",
-            },
-            success: {
-              title: "Saved",
-              description: "Description updated successfully.",
-            },
-            error: {
-              title: "Failed",
-              description: "Could not save description.",
-            },
-          },
-          () =>
-            updateReleaseAction(
-              organization.id,
-              release.id,
-              { description: processedContent },
-              sseClientId,
-            ),
-        );
-
-        if (result?.success) {
-          setDescription(processedContent);
-          setSavedDescription(processedContent);
-        }
-      } finally {
-        setIsSavingDescription(false);
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast],
-  );
-
-  // Check if description has unsaved changes
-  const hasUnsavedChanges = useMemo(() => {
-    const currentText = extractTextContent(description);
-    const savedText = extractTextContent(savedDescription);
-
-    return currentText !== savedText;
-  }, [description, savedDescription]);
 
   // Handle name and slug update from header
   const handleNameSlugUpdate = useCallback(
@@ -479,29 +407,12 @@ function ReleaseDetailPageContent() {
 
             {/* Description Section */}
             <div className="flex flex-col gap-3">
-              <div className="w-full min-w-full">
-                <Editor
-                  defaultContent={release?.description || undefined}
-                  onChange={setDescription}
-                  placeholder="Add a description for this release..."
-                  categories={categories}
-                  tasks={tasks}
-                  hideBlockHandle={true}
-                />
-                <div className="flex w-full">
-                  {hasUnsavedChanges && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="text-xs py-1 h-auto ml-auto"
-                      onClick={() => handleDescriptionSave(description)}
-                      disabled={isSavingDescription}
-                    >
-                      {isSavingDescription ? "Saving..." : "Update"}
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <ReleaseDescriptionEditor
+                release={release}
+                organizationId={organization.id}
+                categories={categories}
+                tasks={tasks}
+              />
             </div>
           </div>
           {/* Status Updates & Discussion */}
