@@ -1,13 +1,28 @@
-import type { schema, TeamPermissions, OrganizationSettings } from "@repo/database";
+import type {
+  schema,
+  TeamPermissions,
+  OrganizationSettings,
+} from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import {
   useStateManagement,
   useStateManagementInfiniteFetch,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
-import { useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { authClient } from "@repo/auth/client";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { useIsOrgMember } from "@/hooks/useIsOrgMember";
@@ -79,13 +94,16 @@ export function PublicComments({
   const { data: session } = authClient.useSession();
   const { organization, categories } = usePublicOrganizationLayout();
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-  const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
+  const { setValue: setMentionContext } =
+    useStateManagement<MentionContext | null>("mentionContext", null);
   const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(
     undefined,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
-  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
+    new Set(),
+  );
 
   const toggleThread = useCallback((commentId: string) => {
     setExpandedThreads((prev) => {
@@ -347,7 +365,12 @@ export function PublicComments({
   const handleEditComment = useCallback(
     async (commentId: string, content: NodeJSON) => {
       try {
-        const processedContent = await processUploads(content, "public", organizationId, "public-comment-edit");
+        const processedContent = await processUploads(
+          content,
+          "public",
+          organizationId,
+          "public-comment-edit",
+        );
         const result = await UpdateTaskCommentAction(
           organizationId,
           taskId,
@@ -429,7 +452,12 @@ export function PublicComments({
 
     setIsSubmitting(true);
     try {
-      const processedContent = await processUploads(commentContent, "public", organizationId, "public-comment-upload");
+      const processedContent = await processUploads(
+        commentContent,
+        "public",
+        organizationId,
+        "public-comment-upload",
+      );
       const result = await CreateTaskCommentAction(
         organizationId,
         taskId,
@@ -475,7 +503,7 @@ export function PublicComments({
           <IconLoader2 className="animate-spin text-muted-foreground" />
         </div>
       ) : allComments.length === 0 ? (
-        <div className="text-muted-foreground text-sm py-4 text-center border rounded-lg bg-card/50 border-dashed">
+        <div className="text-muted-foreground text-sm py-4 text-center border rounded-xl bg-card/50 border-dashed">
           No comments yet. Be the first to comment!
         </div>
       ) : (
@@ -485,30 +513,31 @@ export function PublicComments({
             const replyCount = comment.replyCount ?? 0;
             const isExpanded = expandedThreads.has(comment.id);
 
-            const threadFooter = (replyCount > 0 || isExpanded) ? (
-              <>
-                <PublicCommentThreadTrigger
-                  replyCount={replyCount}
-                  replyAuthors={comment.replyAuthors}
-                  expanded={isExpanded}
-                  onToggle={() => toggleThread(comment.id)}
-                />
-                {isExpanded && (
-                  <PublicCommentThreadBody
-                    parentComment={comment}
-                    memberHighestTeam={memberHighestTeam}
-                    users={orgUsers}
-                    currentUserId={session?.user?.id}
-                    onEdit={canAct ? handleEditComment : undefined}
-                    onDelete={session?.user ? handleDeleteComment : undefined}
-                    categories={categories}
-                    blockedUserIds={blockedUserIds}
-                    isOrgMember={isOrgMember}
-                    canAct={canAct}
+            const threadFooter =
+              replyCount > 0 || isExpanded ? (
+                <>
+                  <PublicCommentThreadTrigger
+                    replyCount={replyCount}
+                    replyAuthors={comment.replyAuthors}
+                    expanded={isExpanded}
+                    onToggle={() => toggleThread(comment.id)}
                   />
-                )}
-              </>
-            ) : undefined;
+                  {isExpanded && (
+                    <PublicCommentThreadBody
+                      parentComment={comment}
+                      memberHighestTeam={memberHighestTeam}
+                      users={orgUsers}
+                      currentUserId={session?.user?.id}
+                      onEdit={canAct ? handleEditComment : undefined}
+                      onDelete={session?.user ? handleDeleteComment : undefined}
+                      categories={categories}
+                      blockedUserIds={blockedUserIds}
+                      isOrgMember={isOrgMember}
+                      canAct={canAct}
+                    />
+                  )}
+                </>
+              ) : undefined;
 
             return (
               <PublicCommentItem
@@ -519,20 +548,22 @@ export function PublicComments({
                     ? (memberHighestTeam.get(comment.createdBy.id) ?? null)
                     : null
                 }
-                onToggleReaction={
-                  canAct ? handleToggleReaction : undefined
-                }
+                onToggleReaction={canAct ? handleToggleReaction : undefined}
                 users={orgUsers}
                 currentUserId={session?.user?.id}
                 onEdit={canAct ? handleEditComment : undefined}
                 onDelete={session?.user ? handleDeleteComment : undefined}
                 categories={categories}
                 footer={threadFooter}
-                onReply={canAct ? () => {
-                  if (!expandedThreads.has(comment.id)) {
-                    toggleThread(comment.id);
-                  }
-                } : undefined}
+                onReply={
+                  canAct
+                    ? () => {
+                        if (!expandedThreads.has(comment.id)) {
+                          toggleThread(comment.id);
+                        }
+                      }
+                    : undefined
+                }
                 blockedUserIds={blockedUserIds}
                 isOrgMember={isOrgMember}
               />
@@ -565,30 +596,31 @@ export function PublicComments({
             const replyCount = comment.replyCount ?? 0;
             const isExpanded = expandedThreads.has(comment.id);
 
-            const threadFooter = (replyCount > 0 || isExpanded) ? (
-              <>
-                <PublicCommentThreadTrigger
-                  replyCount={replyCount}
-                  replyAuthors={comment.replyAuthors}
-                  expanded={isExpanded}
-                  onToggle={() => toggleThread(comment.id)}
-                />
-                {isExpanded && (
-                  <PublicCommentThreadBody
-                    parentComment={comment}
-                    memberHighestTeam={memberHighestTeam}
-                    users={orgUsers}
-                    currentUserId={session?.user?.id}
-                    onEdit={canAct ? handleEditComment : undefined}
-                    onDelete={session?.user ? handleDeleteComment : undefined}
-                    categories={categories}
-                    blockedUserIds={blockedUserIds}
-                    isOrgMember={isOrgMember}
-                    canAct={canAct}
+            const threadFooter =
+              replyCount > 0 || isExpanded ? (
+                <>
+                  <PublicCommentThreadTrigger
+                    replyCount={replyCount}
+                    replyAuthors={comment.replyAuthors}
+                    expanded={isExpanded}
+                    onToggle={() => toggleThread(comment.id)}
                   />
-                )}
-              </>
-            ) : undefined;
+                  {isExpanded && (
+                    <PublicCommentThreadBody
+                      parentComment={comment}
+                      memberHighestTeam={memberHighestTeam}
+                      users={orgUsers}
+                      currentUserId={session?.user?.id}
+                      onEdit={canAct ? handleEditComment : undefined}
+                      onDelete={session?.user ? handleDeleteComment : undefined}
+                      categories={categories}
+                      blockedUserIds={blockedUserIds}
+                      isOrgMember={isOrgMember}
+                      canAct={canAct}
+                    />
+                  )}
+                </>
+              ) : undefined;
 
             return (
               <PublicCommentItem
@@ -599,20 +631,22 @@ export function PublicComments({
                     ? (memberHighestTeam.get(comment.createdBy.id) ?? null)
                     : null
                 }
-                onToggleReaction={
-                  canAct ? handleToggleReaction : undefined
-                }
+                onToggleReaction={canAct ? handleToggleReaction : undefined}
                 users={orgUsers}
                 currentUserId={session?.user?.id}
                 onEdit={canAct ? handleEditComment : undefined}
                 onDelete={session?.user ? handleDeleteComment : undefined}
                 categories={categories}
                 footer={threadFooter}
-                onReply={canAct ? () => {
-                  if (!expandedThreads.has(comment.id)) {
-                    toggleThread(comment.id);
-                  }
-                } : undefined}
+                onReply={
+                  canAct
+                    ? () => {
+                        if (!expandedThreads.has(comment.id)) {
+                          toggleThread(comment.id);
+                        }
+                      }
+                    : undefined
+                }
                 blockedUserIds={blockedUserIds}
                 isOrgMember={isOrgMember}
               />
@@ -623,7 +657,7 @@ export function PublicComments({
 
       {/* Comment input */}
       {canAct ? (
-        <div className="border rounded-lg bg-card overflow-hidden">
+        <div className="border rounded-xl bg-card overflow-hidden">
           <Suspense
             fallback={<div className="h-20 animate-pulse bg-muted rounded" />}
           >
@@ -653,11 +687,11 @@ export function PublicComments({
           </div>
         </div>
       ) : (
-        <div className="border rounded-lg p-6 bg-card/50 border-dashed text-center">
+        <div className="border rounded-xl p-6 bg-card/50 border-dashed text-center">
           <p className="text-muted-foreground text-sm">
             {!session?.user
               ? "Sign in to leave a comment."
-              : (taskStatus === "done" || taskStatus === "canceled")
+              : taskStatus === "done" || taskStatus === "canceled"
                 ? "This task is closed. Comments are disabled."
                 : "This organization has disabled public actions."}
           </p>

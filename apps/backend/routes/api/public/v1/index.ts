@@ -1095,16 +1095,20 @@ apiPublicRouteV1.get(
 		const limitParam = Number(c.req.query("limit") ?? "10");
 		const pageParam = Number(c.req.query("page") ?? "1");
 		const directionParam = c.req.query("direction");
+		const statusUpdateIdParam = c.req.query("statusUpdateId");
 
 		const limit = Math.min(limitParam, API_LIMITS.comments);
 		const page = Math.max(pageParam, 1);
 		const offset = (page - 1) * limit;
 
+		// When statusUpdateId is provided, fetch comments for that update
+		// When not provided, fetch only release-level comments (statusUpdateId IS NULL)
 		const { comments, total } = await getReleaseComments(release.id, {
 			visibility: "public",
 			limit,
 			offset,
 			direction: directionParam === "desc" ? "desc" : directionParam === "asc" ? "asc" : undefined,
+			statusUpdateId: statusUpdateIdParam !== undefined ? statusUpdateIdParam : null,
 			topLevelOnly: true,
 		});
 

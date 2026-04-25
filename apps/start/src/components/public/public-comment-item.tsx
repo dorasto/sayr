@@ -67,7 +67,8 @@ export function PublicCommentItem({
   blockedUserIds,
   isOrgMember,
 }: PublicCommentItemProps) {
-  const isBlocked = !!comment.createdBy && !!blockedUserIds?.has(comment.createdBy.id);
+  const isBlocked =
+    !!comment.createdBy && !!blockedUserIds?.has(comment.createdBy.id);
 
   const authorName = comment.createdBy
     ? getDisplayName(comment.createdBy)
@@ -122,7 +123,7 @@ export function PublicCommentItem({
     <>
       <div
         className={cn(
-          "rounded-lg bg-muted border",
+          "rounded-xl bg-muted border",
           isReply
             ? "p-2 border-0 bg-transparent group/public-reply"
             : "p-3 group/public-comment",
@@ -316,7 +317,6 @@ export function PublicCommentItem({
                 </div>
               )
             )}
-
           </div>
         </div>
 
@@ -326,9 +326,7 @@ export function PublicCommentItem({
             {onToggleReaction ? (
               <ReactionDisplay
                 reactions={reactions}
-                toggleReaction={(emoji) =>
-                  onToggleReaction(comment.id, emoji)
-                }
+                toggleReaction={(emoji) => onToggleReaction(comment.id, emoji)}
                 users={users}
                 currentUserId={currentUserId}
               />
@@ -343,9 +341,7 @@ export function PublicCommentItem({
                     )}
                   >
                     <span className="text-base leading-none">{emoji}</span>
-                    <span className="text-xs font-medium">
-                      {info.count}
-                    </span>
+                    <span className="text-xs font-medium">{info.count}</span>
                   </span>
                 ))}
               </div>

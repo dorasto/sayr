@@ -298,7 +298,7 @@ function ReleaseDetailPage() {
         <Link to={`/orgs/${orgSlug}/releases`}>
           <Button
             variant="ghost"
-            className="w-fit text-xs p-1 h-auto rounded-lg"
+            className="w-fit text-xs p-1 h-auto rounded-xl"
             size="sm"
           >
             <IconArrowLeft className="size-3!" />
