@@ -975,14 +975,7 @@ export function ReleaseDiscussion({
         });
       }
     },
-    [
-      currentUserId,
-      applyReaction,
-      allComments,
-      orgId,
-      releaseId,
-      sseClientId,
-    ],
+    [currentUserId, applyReaction, allComments, orgId, releaseId, sseClientId],
   );
 
   // ── Render ───────────────────────────────────────────────────────────────

@@ -73,7 +73,7 @@ interface GlobalTaskLabelsProps {
 }
 
 /** Compact inline create-label form rendered inside the ComboBoxEmpty slot */
-function InlineCreateLabelForm({
+export function InlineCreateLabelForm({
   orgId,
   searchValue,
   onCreated,

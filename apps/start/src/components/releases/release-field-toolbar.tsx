@@ -14,6 +14,7 @@ import {
   IconCalendarStats,
   IconLink,
   IconListCheck,
+  IconPlus,
   IconTag,
   IconUser,
   IconX,
@@ -67,8 +68,9 @@ import {
   removeReleaseLabelAction,
   updateReleaseAction,
 } from "@/lib/fetches/release";
-import { RenderLabel } from "@/components/tasks/shared/label";
+import { RenderLabel, InlineCreateLabelForm } from "@/components/tasks/shared/label";
 import { useToastAction } from "@/lib/util";
+import { useMatch } from "@tanstack/react-router";
 
 type ReleaseFieldKey =
   | "status"
@@ -153,10 +155,19 @@ export function ReleaseFieldToolbar({
   const [selectedTasks, setSelectedTasks] = useState<OrgTaskSearchResult[]>([]);
 
   // ── Lead + Labels state ───────────────────────────────────────────
-  const releaseWithTasks = "lead" in release ? (release as schema.ReleaseWithTasks) : null;
+  const releaseWithTasks =
+    "lead" in release ? (release as schema.ReleaseWithTasks) : null;
   const currentLead = releaseWithTasks?.lead ?? null;
   const currentLabels = releaseWithTasks?.labels ?? [];
   const { labels: orgLabels } = useLayoutOrganization();
+  const [labelSearch, setLabelSearch] = useState("");
+
+  // ── Permissions ───────────────────────────────────────────────────
+  const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
+  const permissions = orgMatch?.context?.permissions;
+  const canCreateLabel =
+    permissions?.admin?.administrator === true ||
+    permissions?.content?.manageLabels === true;
 
   // ── Status ────────────────────────────────────────────────────────
 
@@ -251,7 +262,8 @@ export function ReleaseFieldToolbar({
     async (memberId: string | null) => {
       if (release.id === "draft") return;
       const member = memberId
-        ? organization.members.find((m) => m.user.id === memberId)?.user ?? null
+        ? (organization.members.find((m) => m.user.id === memberId)?.user ??
+          null)
         : null;
       await runWithToast(
         "update-release-lead",
@@ -260,10 +272,23 @@ export function ReleaseFieldToolbar({
           success: { title: "Lead updated", description: "" },
           error: { title: "Failed", description: "Could not update lead." },
         },
-        () => updateReleaseAction(organization.id, release.id, { leadId: memberId }, sseClientId),
+        () =>
+          updateReleaseAction(
+            organization.id,
+            release.id,
+            { leadId: memberId },
+            sseClientId,
+          ),
       );
       setRelease((prev) =>
-        prev ? { ...prev, lead: member ? { id: member.id, name: member.name, image: member.image } : null } : null,
+        prev
+          ? {
+              ...prev,
+              lead: member
+                ? { id: member.id, name: member.name, image: member.image }
+                : null,
+            }
+          : null,
       );
     },
     [release.id, organization, sseClientId, runWithToast, setRelease],
@@ -277,7 +302,12 @@ export function ReleaseFieldToolbar({
       const prevIds = currentLabels.map((l) => l.id);
       // Added labels
       for (const id of newIds.filter((id) => !prevIds.includes(id))) {
-        await addReleaseLabelAction(organization.id, release.id, id, sseClientId);
+        await addReleaseLabelAction(
+          organization.id,
+          release.id,
+          id,
+          sseClientId,
+        );
       }
       // Removed labels
       for (const id of prevIds.filter((id) => !newIds.includes(id))) {
@@ -286,7 +316,14 @@ export function ReleaseFieldToolbar({
       const nextLabels = orgLabels.filter((l) => newIds.includes(l.id));
       setRelease((prev) => (prev ? { ...prev, labels: nextLabels } : null));
     },
-    [release.id, organization.id, sseClientId, currentLabels, orgLabels, setRelease],
+    [
+      release.id,
+      organization.id,
+      sseClientId,
+      currentLabels,
+      orgLabels,
+      setRelease,
+    ],
   );
 
   // ── Render ────────────────────────────────────────────────────────
@@ -506,20 +543,34 @@ export function ReleaseFieldToolbar({
                   >
                     {currentLead?.image ? (
                       <Avatar className="h-3 w-3">
-                        <AvatarImage src={ensureCdnUrl(currentLead.image)} alt={currentLead.name} />
-                        <AvatarFallback className="text-xs">{currentLead.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarImage
+                          src={ensureCdnUrl(currentLead.image)}
+                          alt={currentLead.name}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {currentLead.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
                       </Avatar>
                     ) : (
                       <IconUser className="w-3 h-3 text-muted-foreground" />
                     )}
-                    <span className={currentLead ? "text-foreground" : "text-muted-foreground"}>
+                    <span
+                      className={
+                        currentLead
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      }
+                    >
                       {currentLead ? getDisplayName(currentLead) : "No lead"}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                   {currentLead && (
-                    <DropdownMenuItem onClick={() => handleLeadChange(null)} className="cursor-pointer text-muted-foreground">
+                    <DropdownMenuItem
+                      onClick={() => handleLeadChange(null)}
+                      className="cursor-pointer text-muted-foreground"
+                    >
                       No lead
                     </DropdownMenuItem>
                   )}
@@ -530,8 +581,13 @@ export function ReleaseFieldToolbar({
                       className="cursor-pointer"
                     >
                       <Avatar className="h-4 w-4 mr-2">
-                        <AvatarImage src={ensureCdnUrl(m.user.image ?? "")} alt={m.user.name} />
-                        <AvatarFallback className="text-xs">{m.user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarImage
+                          src={ensureCdnUrl(m.user.image ?? "")}
+                          alt={m.user.name}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {m.user.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
                       </Avatar>
                       {getDisplayName(m.user)}
                     </DropdownMenuItem>
@@ -539,7 +595,12 @@ export function ReleaseFieldToolbar({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <span className={cn("text-xs flex items-center gap-1.5", currentLead ? "text-foreground" : "text-muted-foreground")}>
+              <span
+                className={cn(
+                  "text-xs flex items-center gap-1.5",
+                  currentLead ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
                 <IconUser className="w-3 h-3" />
                 {currentLead ? getDisplayName(currentLead) : "No lead"}
               </span>
@@ -550,55 +611,78 @@ export function ReleaseFieldToolbar({
         {/* Labels */}
         {showField("labels") && (
           <div className="flex flex-col gap-1.5">
-            <ComboBox values={currentLabels.map((l) => l.id)} onValuesChange={handleLabelToggle}>
-              <ComboBoxTrigger asChild disabled={!editable}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="border-transparent! bg-transparent rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
-                >
-                  <IconTag className="w-3 h-3 text-muted-foreground shrink-0" />
-                  {currentLabels.length === 0 ? (
-                    <span className="text-muted-foreground">No labels</span>
-                  ) : (
-                    <span className="flex items-center gap-1 flex-wrap">
-                      {currentLabels.map((l) => (
-                        <span key={l.id} className="inline-flex items-center gap-0.5">
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: l.color ?? "#ccc" }} />
-                          {l.name}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                </Button>
-              </ComboBoxTrigger>
-              <ComboBoxContent>
-                <ComboBoxSearch placeholder="Search labels..." />
-                <ComboBoxList>
-                  <ComboBoxEmpty>No labels found</ComboBoxEmpty>
-                  <ComboBoxGroup>
-                    {orgLabels.map((l) => (
-                      <ComboBoxItem key={l.id} value={l.id} searchValue={l.name}>
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: l.color ?? "#ccc" }} />
-                        <span className="ml-2">{l.name}</span>
-                      </ComboBoxItem>
-                    ))}
-                  </ComboBoxGroup>
-                </ComboBoxList>
-              </ComboBoxContent>
-            </ComboBox>
-            {currentLabels.length > 0 && (
-              <div className="flex flex-wrap gap-1 pl-1">
-                {currentLabels.map((l) => (
-                  <RenderLabel
-                    key={l.id}
-                    label={l}
-                    showRemove={editable}
-                    onRemove={(id) => handleLabelToggle(currentLabels.map((x) => x.id).filter((x) => x !== id))}
+            <div className="flex flex-wrap gap-1">
+              {currentLabels.map((l) => (
+                <RenderLabel
+                  key={l.id}
+                  label={l}
+                  showRemove={editable}
+                  onRemove={(id) =>
+                    handleLabelToggle(
+                      currentLabels.map((x) => x.id).filter((x) => x !== id),
+                    )
+                  }
+                />
+              ))}
+              <ComboBox
+                values={currentLabels.map((l) => l.id)}
+                onValuesChange={handleLabelToggle}
+              >
+                <ComboBoxTrigger asChild disabled={!editable}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="h-6 w-6 aspect-square p-0 justify-center rounded-full"
+                  >
+                    <IconPlus className="w-3.5 h-3.5" />
+                  </Button>
+                </ComboBoxTrigger>
+                <ComboBoxContent>
+                  <ComboBoxSearch
+                    placeholder="Search labels..."
+                    onValueChange={setLabelSearch}
                   />
-                ))}
-              </div>
-            )}
+                  <ComboBoxList>
+                    <ComboBoxEmpty className="p-0">
+                      {canCreateLabel && labelSearch.trim().length > 0 ? (
+                        <InlineCreateLabelForm
+                          orgId={organization.id}
+                          searchValue={labelSearch.trim()}
+                          onCreated={(newLabels) => {
+                            setLabelSearch("");
+                            // Refresh org labels and add new label to release
+                            const newLabel = newLabels[0];
+                            if (newLabel) {
+                              handleLabelToggle([
+                                ...currentLabels.map((l) => l.id),
+                                newLabel.id,
+                              ]);
+                            }
+                          }}
+                        />
+                      ) : (
+                        "No labels found."
+                      )}
+                    </ComboBoxEmpty>
+                    <ComboBoxGroup>
+                      {orgLabels.map((l) => (
+                        <ComboBoxItem
+                          key={l.id}
+                          value={l.id}
+                          searchValue={l.name}
+                        >
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: l.color ?? "#ccc" }}
+                          />
+                          <span className="ml-2">{l.name}</span>
+                        </ComboBoxItem>
+                      ))}
+                    </ComboBoxGroup>
+                  </ComboBoxList>
+                </ComboBoxContent>
+              </ComboBox>
+            </div>
           </div>
         )}
       </div>
@@ -813,8 +897,13 @@ export function ReleaseFieldToolbar({
             >
               {currentLead?.image ? (
                 <Avatar className="h-3.5 w-3.5">
-                  <AvatarImage src={ensureCdnUrl(currentLead.image)} alt={currentLead.name} />
-                  <AvatarFallback className="text-xs">{currentLead.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarImage
+                    src={ensureCdnUrl(currentLead.image)}
+                    alt={currentLead.name}
+                  />
+                  <AvatarFallback className="text-xs">
+                    {currentLead.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
               ) : (
                 <IconUser className="h-3.5 w-3.5" />
@@ -824,7 +913,10 @@ export function ReleaseFieldToolbar({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             {currentLead && (
-              <DropdownMenuItem onClick={() => handleLeadChange(null)} className="cursor-pointer text-muted-foreground">
+              <DropdownMenuItem
+                onClick={() => handleLeadChange(null)}
+                className="cursor-pointer text-muted-foreground"
+              >
                 No lead
               </DropdownMenuItem>
             )}
@@ -835,8 +927,13 @@ export function ReleaseFieldToolbar({
                 className="cursor-pointer"
               >
                 <Avatar className="h-4 w-4 mr-2">
-                  <AvatarImage src={ensureCdnUrl(m.user.image ?? "")} alt={m.user.name} />
-                  <AvatarFallback className="text-xs">{m.user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarImage
+                    src={ensureCdnUrl(m.user.image ?? "")}
+                    alt={m.user.name}
+                  />
+                  <AvatarFallback className="text-xs">
+                    {m.user.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 {getDisplayName(m.user)}
               </DropdownMenuItem>
@@ -846,13 +943,18 @@ export function ReleaseFieldToolbar({
       )}
 
       {showField("labels") && (
-        <ComboBox values={currentLabels.map((l) => l.id)} onValuesChange={handleLabelToggle}>
+        <ComboBox
+          values={currentLabels.map((l) => l.id)}
+          onValuesChange={handleLabelToggle}
+        >
           <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 flex items-center gap-2">
             <ComboBoxValue placeholder="Labels">
               <div className="flex items-center gap-1.5">
                 <IconTag className="h-3.5 w-3.5" />
                 <span>
-                  {currentLabels.length > 0 ? `${currentLabels.length} label${currentLabels.length === 1 ? "" : "s"}` : "Labels"}
+                  {currentLabels.length > 0
+                    ? `${currentLabels.length} label${currentLabels.length === 1 ? "" : "s"}`
+                    : "Labels"}
                 </span>
               </div>
             </ComboBoxValue>
@@ -865,7 +967,10 @@ export function ReleaseFieldToolbar({
               <ComboBoxGroup>
                 {orgLabels.map((l) => (
                   <ComboBoxItem key={l.id} value={l.id} searchValue={l.name}>
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: l.color ?? "#ccc" }} />
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: l.color ?? "#ccc" }}
+                    />
                     <span className="ml-2">{l.name}</span>
                   </ComboBoxItem>
                 ))}

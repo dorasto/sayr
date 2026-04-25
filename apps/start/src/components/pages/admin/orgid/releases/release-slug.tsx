@@ -472,7 +472,7 @@ function ReleaseDetailPageContent() {
             </div>
           </PageHeader.Identity>
         </PageHeader>
-        <div className="flex-1 overflow-y-scroll h-full flex flex-col relative px-3 gap-3">
+        <div className="flex-1 overflow-y-scroll h-full flex flex-col relative p-3 gap-3">
           {/* Header Section */}
           <div className="flex flex-col gap-3">
             <ReleaseHeader release={release} onUpdate={handleNameSlugUpdate} />
@@ -548,7 +548,8 @@ function ReleaseDetailPageContent() {
               showGroupHeaders={false}
             />
           </div>
-          <div className="border border-transparent p-3 flex flex-col gap-2">
+          <Separator />
+          <div className="rounded-xl overflow-clip p-3 flex flex-col gap-2">
             <ReleaseDiscussion
               releaseId={release.id}
               orgId={organization.id}
