@@ -863,6 +863,8 @@ const ReleaseAPISchema = z.object({
 	name: z.string().describe("Release name"),
 	slug: z.string().describe("Release slug used in URLs"),
 	description: z.string().describe("Release description in blocknote JSON format"),
+	descriptionHtml: z.string().describe("Release description rendered as HTML"),
+	descriptionMarkdown: z.string().describe("Release description rendered as Markdown"),
 	status: z.enum(["planned", "in-progress", "released", "archived"]).describe("Release status"),
 	targetDate: z.string().describe("Release target date in ISO format"),
 	releasedAt: z.string().nullable().describe("Release date in ISO format, null if not released yet"),
@@ -910,6 +912,11 @@ apiPublicRouteV1.get(
 			limit: limitParam,
 			status: statusParam,
 		});
+		result.releases = result.releases.map((release) => ({
+			...release,
+			descriptionHtml: release.description ? prosekitJSONToHTML(release.description) : "",
+			descriptionMarkdown: release.description ? prosekitJSONToMarkdown(release.description) : "",
+		}));
 
 		return c.json(successResponse(result));
 	});
@@ -990,10 +997,36 @@ apiPublicRouteV1.get(
 		return c.json(
 			successResponse({
 				...release,
+				descriptionHtml: release.description ? prosekitJSONToHTML(release.description) : "",
+				descriptionMarkdown: release.description ? prosekitJSONToMarkdown(release.description) : "",
 				tasks: tasksWithLabels,
 			})
 		);
 	});
+
+const ReleaseStatusUpdateAPISchema = z.object({
+	updates: z.array(
+		z.object({
+			id: z.string().describe("Status update UUID"),
+			releaseId: z.string().describe("ID of the release this status update belongs to"),
+			organizationId: z.string().describe("ID of the organization this status update belongs to"),
+			content: z.any().nullable().describe("Content of the status update in BlockNote JSON format"),
+			contentHtml: z.string().nullable().describe("Content of the status update rendered as HTML"),
+			contentMarkdown: z.string().nullable().describe("Content of the status update rendered as Markdown"),
+			health: z.enum(["on_track", "at_risk", "off_track"]).describe("Health status of the release"),
+			visibility: z.enum(["public", "internal"]).describe("Visibility of the status update"),
+			createdAt: z.string().describe("Timestamp when the status update was created"),
+			updatedAt: z.string().describe("Timestamp when the status update was last updated"),
+			author: z.object({
+				id: z.string().describe("User ID of the author"),
+				name: z.string().describe("Name of the author"),
+				image: z.string().nullable().describe("Image URL of the author"),
+				createdAt: z.string().describe("Timestamp when the author was created"),
+			}).nullable(),
+			commentCount: z.number().describe("Number of comments on the status update"),
+		})
+	),
+});
 
 /**
  * GET /organization/:org_slug/releases/:release_slug/status-updates
@@ -1004,27 +1037,7 @@ apiPublicRouteV1.get(
 	describeOkNotFound({
 		summary: "Get Release Status Updates",
 		description: "Retrieve public status updates for the specified release.",
-		dataSchema: z.object({
-			updates: z.array(
-				z.object({
-					id: z.string(),
-					releaseId: z.string(),
-					organizationId: z.string(),
-					content: z.any().nullable(),
-					health: z.enum(["on_track", "at_risk", "off_track"]),
-					visibility: z.enum(["public", "internal"]),
-					createdAt: z.string(),
-					updatedAt: z.string(),
-					author: z.object({
-						id: z.string(),
-						name: z.string(),
-						image: z.string().nullable(),
-						createdAt: z.string(),
-					}).nullable(),
-					commentCount: z.number(),
-				})
-			),
-		}),
+		dataSchema: ReleaseStatusUpdateAPISchema,
 		tags: ["Organization"],
 	}),
 	async (c) => {
@@ -1054,6 +1067,8 @@ apiPublicRouteV1.get(
 					releaseId: u.releaseId,
 					organizationId: u.organizationId,
 					content: u.content,
+					contentHtml: u.content ? prosekitJSONToHTML(u.content) : "",
+					contentMarkdown: u.content ? prosekitJSONToMarkdown(u.content) : "",
 					health: u.health,
 					visibility: u.visibility,
 					createdAt: u.createdAt?.toISOString() ?? "",
@@ -1066,6 +1081,40 @@ apiPublicRouteV1.get(
 	}
 );
 
+const ReleaseCommentAPISchema = z.object({
+	comments: z.array(
+		z.object({
+			id: z.string().describe("Comment UUID"),
+			releaseId: z.string().describe("ID of the release this comment belongs to"),
+			organizationId: z.string().describe("ID of the organization this comment belongs to"),
+			createdBy: z.object({
+				id: z.string().describe("User ID of the author"),
+				name: z.string().describe("Name of the author"),
+				image: z.string().nullable().describe("Image URL of the author"),
+				createdAt: z.string().describe("Timestamp when the author was created"),
+			}).nullable(),
+			content: z.any().describe("Content of the comment in BlockNote JSON format"),
+			contentHtml: z.string().describe("Content of the comment rendered as HTML"),
+			contentMarkdown: z.string().describe("Content of the comment rendered as Markdown"),
+			visibility: z.enum(["public", "internal"]).describe("Visibility of the comment"),
+			parentId: z.string().nullable().describe("ID of the parent comment, if this is a reply"),
+			statusUpdateId: z.string().nullable().describe("ID of the status update this comment belongs to"),
+			replyCount: z.number().describe("Number of replies to this comment"),
+			reactions: z.object({
+				total: z.number().describe("Total number of reactions"),
+				reactions: z.record(
+					z.string(),
+					z.object({
+						count: z.number().describe("Number of reactions of this type"),
+						users: z.array(z.string()).describe("List of users who reacted"),
+					})
+				),
+			}).nullable(),
+			createdAt: z.string().describe("Timestamp when the comment was created"),
+			updatedAt: z.string().describe("Timestamp when the comment was last updated"),
+		})
+	),
+})
 /**
  * GET /organization/:org_slug/releases/:release_slug/comments
  * Returns paginated public comments for a release.
@@ -1073,48 +1122,10 @@ apiPublicRouteV1.get(
  */
 apiPublicRouteV1.get(
 	"/organization/:org_slug/releases/:release_slug/comments",
-	describeOkNotFound({
+	describePaginatedRoute({
 		summary: "Get Release Comments",
 		description: "Retrieve paginated public comments for the specified release.",
-		dataSchema: z.object({
-			comments: z.array(
-				z.object({
-					id: z.string(),
-					releaseId: z.string(),
-					organizationId: z.string(),
-					createdBy: z.object({
-						id: z.string(),
-						name: z.string(),
-						image: z.string().nullable(),
-						createdAt: z.string(),
-					}).nullable(),
-					content: z.any(),
-					visibility: z.enum(["public", "internal"]),
-					parentId: z.string().nullable(),
-					statusUpdateId: z.string().nullable(),
-					replyCount: z.number(),
-					reactions: z.object({
-						total: z.number(),
-						reactions: z.record(
-							z.string(),
-							z.object({
-								count: z.number(),
-								users: z.array(z.string()),
-							})
-						),
-					}).nullable(),
-					createdAt: z.string(),
-					updatedAt: z.string(),
-				})
-			),
-			pagination: z.object({
-				page: z.number(),
-				limit: z.number(),
-				total: z.number(),
-				totalPages: z.number(),
-				hasMore: z.boolean(),
-			}),
-		}),
+		dataSchema: ReleaseCommentAPISchema,
 		tags: ["Organization"],
 	}),
 	async (c) => {
@@ -1194,6 +1205,8 @@ apiPublicRouteV1.get(
 					reactions: c.reactions,
 					createdAt: c.createdAt?.toISOString() ?? "",
 					updatedAt: c.updatedAt?.toISOString() ?? "",
+					contentHtml: c.content ? prosekitJSONToHTML(c.content) : "",
+					contentMarkdown: c.content ? prosekitJSONToMarkdown(c.content) : "",
 				})),
 				pagination: {
 					page,
@@ -1207,6 +1220,40 @@ apiPublicRouteV1.get(
 	}
 );
 
+const ReleaseCommentReplyAPISchema = z.object({
+	replies: z.array(
+		z.object({
+			id: z.string().describe("Reply UUID"),
+			releaseId: z.string().describe("ID of the release this reply belongs to"),
+			organizationId: z.string().describe("ID of the organization this reply belongs to"),
+			createdBy: z.object({
+				id: z.string().describe("User ID of the author"),
+				name: z.string().describe("Name of the author"),
+				image: z.string().nullable().describe("Image URL of the author"),
+				createdAt: z.string().describe("Timestamp when the author was created"),
+			}).nullable(),
+			content: z.any().describe("Content of the reply in BlockNote JSON format"),
+			contentHtml: z.string().describe("Content of the reply rendered as HTML"),
+			contentMarkdown: z.string().describe("Content of the reply rendered as Markdown"),
+			visibility: z.enum(["public", "internal"]).describe("Visibility of the reply"),
+			parentId: z.string().nullable().describe("ID of the parent comment, if this is a reply"),
+			statusUpdateId: z.string().nullable().describe("ID of the status update this reply belongs to"),
+			replyCount: z.number().describe("Number of replies to this comment"),
+			reactions: z.object({
+				total: z.number().describe("Total number of reactions"),
+				reactions: z.record(
+					z.string(),
+					z.object({
+						count: z.number().describe("Number of reactions of this type"),
+						users: z.array(z.string()).describe("List of users who reacted"),
+					})
+				),
+			}).nullable(),
+			createdAt: z.string().describe("Timestamp when the reply was created"),
+			updatedAt: z.string().describe("Timestamp when the reply was last updated"),
+		})
+	),
+});
 /**
  * GET /organization/:org_slug/releases/:release_slug/comments/:commentId/replies
  * Returns replies for a specific comment.
@@ -1216,38 +1263,7 @@ apiPublicRouteV1.get(
 	describeOkNotFound({
 		summary: "Get Comment Replies",
 		description: "Retrieve public replies for the specified comment.",
-		dataSchema: z.object({
-			replies: z.array(
-				z.object({
-					id: z.string(),
-					releaseId: z.string(),
-					organizationId: z.string(),
-					createdBy: z.object({
-						id: z.string(),
-						name: z.string(),
-						image: z.string().nullable(),
-						createdAt: z.string(),
-					}).nullable(),
-					content: z.any(),
-					visibility: z.enum(["public", "internal"]),
-					parentId: z.string().nullable(),
-					statusUpdateId: z.string().nullable(),
-					replyCount: z.number(),
-					reactions: z.object({
-						total: z.number(),
-						reactions: z.record(
-							z.string(),
-							z.object({
-								count: z.number(),
-								users: z.array(z.string()),
-							})
-						),
-					}).nullable(),
-					createdAt: z.string(),
-					updatedAt: z.string(),
-				})
-			),
-		}),
+		dataSchema: ReleaseCommentReplyAPISchema,
 		tags: ["Organization"],
 	}),
 	async (c) => {
@@ -1287,6 +1303,8 @@ apiPublicRouteV1.get(
 					reactions: r.reactions,
 					createdAt: r.createdAt?.toISOString() ?? "",
 					updatedAt: r.updatedAt?.toISOString() ?? "",
+					contentHtml: r.content ? prosekitJSONToHTML(r.content) : "",
+					contentMarkdown: r.content ? prosekitJSONToMarkdown(r.content) : "",
 				})),
 			})
 		);
