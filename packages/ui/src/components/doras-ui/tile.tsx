@@ -6,7 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 const tileVariants = cva(
-  "rounded-lg p-3 transition-all flex items-center justify-between gap-9 md:w-fit w-full",
+  "rounded-xl p-3 transition-all flex items-center justify-between gap-9 md:w-fit w-full",
   {
     variants: {
       variant: {

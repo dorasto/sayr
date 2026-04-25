@@ -5,10 +5,13 @@ import {
 	getReleasesPage,
 	getTaskByShortId,
 	getReleaseBySlug,
+	getReleaseStatusUpdates,
+	getReleaseComments,
+	getReleaseCommentReplies,
 	schema,
 	userSummaryColumns,
 } from "@repo/database";
-import { and, eq, notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -949,6 +952,300 @@ apiPublicRouteV1.get(
 			})
 		);
 	});
+
+/**
+ * GET /organization/:org_slug/releases/:release_slug/status-updates
+ * Returns public status updates for a release.
+ */
+apiPublicRouteV1.get(
+	"/organization/:org_slug/releases/:release_slug/status-updates",
+	describeOkNotFound({
+		summary: "Get Release Status Updates",
+		description: "Retrieve public status updates for the specified release.",
+		dataSchema: z.object({
+			updates: z.array(
+				z.object({
+					id: z.string(),
+					releaseId: z.string(),
+					organizationId: z.string(),
+					content: z.any().nullable(),
+					health: z.enum(["on_track", "at_risk", "off_track"]),
+					visibility: z.enum(["public", "internal"]),
+					createdAt: z.string(),
+					updatedAt: z.string(),
+					author: z.object({
+						id: z.string(),
+						name: z.string(),
+						image: z.string().nullable(),
+						createdAt: z.string(),
+					}).nullable(),
+					commentCount: z.number(),
+				})
+			),
+		}),
+		tags: ["Organization"],
+	}),
+	async (c) => {
+		const { org_slug, release_slug } = c.req.param();
+
+		const org = await getOrganizationPublic(org_slug);
+		if (!org) {
+			return c.json(errorResponse("Organization not found"), 404);
+		}
+
+		if (!org.settings?.enablePublicPage) {
+			return c.json(errorResponse("Organization not available"), 404);
+		}
+
+		const release = await getReleaseBySlug(org.id, release_slug);
+		if (!release) {
+			return c.json(errorResponse("Release not found"), 404);
+		}
+
+		// Fetch only public status updates
+		const updates = await getReleaseStatusUpdates(release.id, "public");
+
+		return c.json(
+			successResponse({
+				updates: updates.map((u) => ({
+					id: u.id,
+					releaseId: u.releaseId,
+					organizationId: u.organizationId,
+					content: u.content,
+					health: u.health,
+					visibility: u.visibility,
+					createdAt: u.createdAt?.toISOString() ?? "",
+					updatedAt: u.updatedAt?.toISOString() ?? "",
+					author: u.author,
+					commentCount: u.commentCount ?? 0,
+				})),
+			})
+		);
+	}
+);
+
+/**
+ * GET /organization/:org_slug/releases/:release_slug/comments
+ * Returns paginated public comments for a release.
+ * Query params: page (default 1), limit (default 10, max 30), direction (asc|desc)
+ */
+apiPublicRouteV1.get(
+	"/organization/:org_slug/releases/:release_slug/comments",
+	describeOkNotFound({
+		summary: "Get Release Comments",
+		description: "Retrieve paginated public comments for the specified release.",
+		dataSchema: z.object({
+			comments: z.array(
+				z.object({
+					id: z.string(),
+					releaseId: z.string(),
+					organizationId: z.string(),
+					createdBy: z.object({
+						id: z.string(),
+						name: z.string(),
+						image: z.string().nullable(),
+						createdAt: z.string(),
+					}).nullable(),
+					content: z.any(),
+					visibility: z.enum(["public", "internal"]),
+					parentId: z.string().nullable(),
+					statusUpdateId: z.string().nullable(),
+					replyCount: z.number(),
+					reactions: z.object({
+						total: z.number(),
+						reactions: z.record(
+							z.string(),
+							z.object({
+								count: z.number(),
+								users: z.array(z.string()),
+							})
+						),
+					}).nullable(),
+					createdAt: z.string(),
+					updatedAt: z.string(),
+				})
+			),
+			pagination: z.object({
+				page: z.number(),
+				limit: z.number(),
+				total: z.number(),
+				totalPages: z.number(),
+				hasMore: z.boolean(),
+			}),
+		}),
+		tags: ["Organization"],
+	}),
+	async (c) => {
+		const { org_slug, release_slug } = c.req.param();
+
+		const org = await getOrganizationPublic(org_slug);
+		if (!org) {
+			return c.json(errorResponse("Organization not found"), 404);
+		}
+
+		if (!org.settings?.enablePublicPage) {
+			return c.json(errorResponse("Organization not available"), 404);
+		}
+
+		const release = await getReleaseBySlug(org.id, release_slug);
+		if (!release) {
+			return c.json(errorResponse("Release not found"), 404);
+		}
+
+		const limitParam = Number(c.req.query("limit") ?? "10");
+		const pageParam = Number(c.req.query("page") ?? "1");
+		const directionParam = c.req.query("direction");
+
+		const limit = Math.min(limitParam, API_LIMITS.comments);
+		const page = Math.max(pageParam, 1);
+		const offset = (page - 1) * limit;
+
+		const { comments, total } = await getReleaseComments(release.id, {
+			visibility: "public",
+			limit,
+			offset,
+			direction: directionParam === "desc" ? "desc" : directionParam === "asc" ? "asc" : undefined,
+			topLevelOnly: true,
+		});
+
+		// Override reply counts to only count public replies
+		const commentIds = comments.map((c) => c.id);
+		let publicReplyCounts = new Map<string, number>();
+		if (commentIds.length > 0) {
+			const counts = await db
+				.select({
+					parentId: schema.releaseComment.parentId,
+					count: sql<number>`count(*)::int`,
+				})
+				.from(schema.releaseComment)
+				.where(and(
+					eq(schema.releaseComment.releaseId, release.id),
+					eq(schema.releaseComment.visibility, "public"),
+					inArray(schema.releaseComment.parentId, commentIds)
+				))
+				.groupBy(schema.releaseComment.parentId);
+			publicReplyCounts = new Map(
+				counts
+					.filter((c) => c.parentId !== null)
+					.map((c) => [c.parentId as string, c.count])
+			);
+		}
+
+		const totalPages = Math.max(Math.ceil(total / limit), 1);
+
+		return c.json(
+			successResponse({
+				comments: comments.map((c) => ({
+					id: c.id,
+					releaseId: c.releaseId,
+					organizationId: c.organizationId,
+					createdBy: c.createdBy,
+					content: c.content,
+					visibility: c.visibility,
+					parentId: c.parentId,
+					statusUpdateId: c.statusUpdateId,
+					replyCount: publicReplyCounts.get(c.id) ?? 0,
+					reactions: c.reactions,
+					createdAt: c.createdAt?.toISOString() ?? "",
+					updatedAt: c.updatedAt?.toISOString() ?? "",
+				})),
+				pagination: {
+					page,
+					limit,
+					total,
+					totalPages,
+					hasMore: page < totalPages,
+				},
+			})
+		);
+	}
+);
+
+/**
+ * GET /organization/:org_slug/releases/:release_slug/comments/:commentId/replies
+ * Returns replies for a specific comment.
+ */
+apiPublicRouteV1.get(
+	"/organization/:org_slug/releases/:release_slug/comments/:commentId/replies",
+	describeOkNotFound({
+		summary: "Get Comment Replies",
+		description: "Retrieve public replies for the specified comment.",
+		dataSchema: z.object({
+			replies: z.array(
+				z.object({
+					id: z.string(),
+					releaseId: z.string(),
+					organizationId: z.string(),
+					createdBy: z.object({
+						id: z.string(),
+						name: z.string(),
+						image: z.string().nullable(),
+						createdAt: z.string(),
+					}).nullable(),
+					content: z.any(),
+					visibility: z.enum(["public", "internal"]),
+					parentId: z.string().nullable(),
+					statusUpdateId: z.string().nullable(),
+					replyCount: z.number(),
+					reactions: z.object({
+						total: z.number(),
+						reactions: z.record(
+							z.string(),
+							z.object({
+								count: z.number(),
+								users: z.array(z.string()),
+							})
+						),
+					}).nullable(),
+					createdAt: z.string(),
+					updatedAt: z.string(),
+				})
+			),
+		}),
+		tags: ["Organization"],
+	}),
+	async (c) => {
+		const { org_slug, release_slug, commentId } = c.req.param();
+
+		const org = await getOrganizationPublic(org_slug);
+		if (!org) {
+			return c.json(errorResponse("Organization not found"), 404);
+		}
+
+		if (!org.settings?.enablePublicPage) {
+			return c.json(errorResponse("Organization not available"), 404);
+		}
+
+		const release = await getReleaseBySlug(org.id, release_slug);
+		if (!release) {
+			return c.json(errorResponse("Release not found"), 404);
+		}
+
+		const replies = await getReleaseCommentReplies(release.id, commentId);
+
+		// Filter to public-only replies
+		const publicReplies = replies.filter((r) => r.visibility === "public");
+
+		return c.json(
+			successResponse({
+				replies: publicReplies.map((r) => ({
+					id: r.id,
+					releaseId: r.releaseId,
+					organizationId: r.organizationId,
+					createdBy: r.createdBy,
+					content: r.content,
+					visibility: r.visibility,
+					parentId: r.parentId,
+					statusUpdateId: r.statusUpdateId,
+					replyCount: r.replyCount ?? 0,
+					reactions: r.reactions,
+					createdAt: r.createdAt?.toISOString() ?? "",
+					updatedAt: r.updatedAt?.toISOString() ?? "",
+				})),
+			})
+		);
+	}
+);
 
 // ME routes
 apiPublicRouteV1.route("/me", apiPublicMeV1);

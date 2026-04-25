@@ -20,6 +20,7 @@ import {
   IconArrowUpRight,
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
+  IconMessage,
   IconTrendingUp,
 } from "@tabler/icons-react";
 import { authClient } from "@repo/auth/client";
@@ -34,8 +35,9 @@ import {
   TileAction,
 } from "@repo/ui/components/doras-ui/tile";
 import { Separator } from "@repo/ui/components/separator";
-import { extractHslValues, extractTaskText, formatCount } from "@repo/util";
-import { InlineLabel } from "@/components/tasks";
+import { extractTaskText, formatCount } from "@repo/util";
+import { PublicReleaseDiscussion } from "@/components/public/releases/public-release-discussion";
+import { PublicReleaseStatusUpdates } from "@/components/public/releases/public-release-status-updates";
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
   .inputValidator((data: { orgSlug: string; releaseSlug: string }) => data)
@@ -350,13 +352,9 @@ function ReleaseDetailPage() {
             </div>
           }
           panelBody={
-            tasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-1 py-4 text-center">
-                No public tasks in this release.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {/* Progress chart */}
+            <div className="flex flex-col gap-4">
+              {/* Progress chart */}
+              {tasks.length > 0 && (
                 <Tile className="md:w-full flex-col items-start gap-3">
                   <TileHeader className="w-full">
                     <TileIcon>
@@ -420,8 +418,18 @@ function ReleaseDetailPage() {
                     )}
                   </div>
                 </Tile>
+              )}
+
+              {/* Status Updates */}
+              <div className="flex flex-col gap-2">
+                <Label variant="subheading">Updates</Label>
+                <PublicReleaseStatusUpdates
+                  organizationId={org?.id ?? ""}
+                  orgSlug={orgSlug}
+                  releaseSlug={params.releaseSlug}
+                />
               </div>
-            )
+            </div>
           }
           className="h-full"
         >
@@ -472,6 +480,24 @@ function ReleaseDetailPage() {
                     <TaskRow key={task.id} task={task} orgSlug={orgSlug} />
                   )),
                 )}
+              </div>
+
+              {/* Discussion Section */}
+              <div className="flex flex-col gap-3 pt-4">
+                <div className="flex items-center justify-between">
+                  <Label variant="subheading">Discussion</Label>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <IconMessage size={14} />
+                    <span>Join the conversation</span>
+                  </div>
+                </div>
+                <Separator />
+                <PublicReleaseDiscussion
+                  releaseId={release.id}
+                  releaseSlug={params.releaseSlug}
+                  organizationId={org?.id ?? ""}
+                  orgSlug={orgSlug}
+                />
               </div>
             </div>
           </div>
