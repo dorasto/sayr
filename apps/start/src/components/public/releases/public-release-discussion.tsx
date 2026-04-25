@@ -28,6 +28,10 @@ import {
   PublicCommentThreadTrigger,
   PublicCommentThreadBody,
 } from "../public-comment-thread";
+import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { ServerEventMessage } from "@/lib/serverEvents";
+import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { task } from "node_modules/@repo/database/schema/task.schema";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -103,7 +107,7 @@ export function PublicReleaseDiscussion({
 }: PublicReleaseDiscussionProps) {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const { organization, categories } = usePublicOrganizationLayout();
+  const { organization, categories, serverEvents } = usePublicOrganizationLayout();
   const { value: sseClientId } = useStateManagement<string>("sseClientId", "");
   const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
   const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(undefined);
@@ -578,7 +582,39 @@ export function PublicReleaseDiscussion({
       />
     );
   };
-
+  // SSE handlers for real-time updates on this task
+  const handlers: WSMessageHandler<ServerEventMessage> = {
+    UPDATE_RELEASE_COMMENTS: (msg) => {
+      if (
+        msg.scope === "PUBLIC" &&
+        msg.meta?.orgId === organization.id &&
+        msg.data.releaseId === releaseId
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: ["public-release-comments", releaseId, organizationId],
+        });
+      }
+    },
+  };
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
+  useEffect(() => {
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
+    return () => {
+      serverEvents.event?.removeEventListener("message", handleMessage);
+    };
+  }, [serverEvents.event, handleMessage]);
+  useEffect(() => {
+    const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
+      if (msg.type === "SSE_RECONNECTED") {
+        console.log("🟢 Global SSE reconnected — refreshing data");
+        queryClient.invalidateQueries({
+          queryKey: ["public-release-comments", releaseId, organizationId],
+        });
+      }
+    });
+    return unsubscribe;
+  }, [releaseId, queryClient, organizationId]);
   return (
     <div className="flex flex-col gap-4">
       {isLoading ? (
