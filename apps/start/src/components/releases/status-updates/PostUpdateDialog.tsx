@@ -65,7 +65,7 @@ export function PostUpdateDialog({
 }: PostUpdateDialogProps) {
   const isMobile = useIsMobile();
   const [health, setHealth] = useState<Health>("on_track");
-  const [visibility, setVisibility] = useState<Visibility>("internal");
+  const [visibility, setVisibility] = useState<Visibility>("public");
   const [content, setContent] = useState<schema.NodeJSON | undefined>();
   const [editorKey, setEditorKey] = useState(0);
   const [isPosting, setIsPosting] = useState(false);
@@ -75,7 +75,7 @@ export function PostUpdateDialog({
   const resetForm = () => {
     setContent(undefined);
     setHealth("on_track");
-    setVisibility("internal");
+    setVisibility("public");
     setEditorKey((k) => k + 1);
   };
 
@@ -121,7 +121,7 @@ export function PostUpdateDialog({
         >
           <AdaptiveDialogHeader className={cn(!isMobile && "pb-0!")}>
             <AdaptiveDialogTitle asChild>
-              <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3 w-full">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Badge
@@ -152,10 +152,59 @@ export function PostUpdateDialog({
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {/* visibility */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "gap-1 text-xs cursor-pointer border",
+                        // healthConfig[health].className,
+                      )}
+                    >
+                      {visibility === "internal" ? (
+                        <>
+                          <IconLock size={14} />
+                          <span>Internal only</span>
+                        </>
+                      ) : (
+                        <>
+                          <IconLockOpen2 size={14} />
+                          <span>Public</span>
+                        </>
+                      )}
+                    </Badge>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {(["public", "internal"] as Visibility[]).map((v) => (
+                      <DropdownMenuItem
+                        key={v}
+                        onClick={() => setVisibility(v)}
+                        className={cn(
+                          "flex items-center gap-2",
+                          // v === "internal" ? "bg-internal!" : "",
+                          // "bg-transparent! hover:bg-accent!",
+                        )}
+                      >
+                        {v === "internal" ? (
+                          <>
+                            <IconLock size={14} />
+                            <span>Internal only</span>
+                          </>
+                        ) : (
+                          <>
+                            <IconLockOpen2 size={14} />
+                            <span>Public</span>
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-7 w-7 ml-auto"
                   onClick={handleClose}
                 >
                   <IconX className="size-4" />
@@ -228,7 +277,7 @@ export function PostUpdateDialog({
                     Create
                     {/*<IconArrowBack className="size-3.5" />*/}
                   </Button>
-                  <Toggle
+                  {/*<Toggle
                     aria-label="Toggle visibility"
                     size="sm"
                     className="h-7 border-0 bg-accent hover:bg-secondary"
@@ -243,7 +292,7 @@ export function PostUpdateDialog({
                     ) : (
                       <IconLockOpen2 className="size-3.5" />
                     )}
-                  </Toggle>
+                  </Toggle>*/}
                 </ButtonGroup>
               </div>
             </div>

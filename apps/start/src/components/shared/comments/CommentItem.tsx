@@ -121,8 +121,9 @@ export function CommentItem({
             text={authorName}
             image={comment.createdBy?.image ?? ""}
             avatarClassName="size-5!"
+            className="w-full"
             textNode={
-              <div className="flex items-center gap-2 pl-2">
+              <div className="flex items-center gap-2 pl-2 w-full">
                 <Label
                   className="text-xs text-foreground"
                   variant="description"
@@ -238,7 +239,7 @@ export function CommentItem({
         {!isEditing &&
           onReactionToggle &&
           (comment.reactions?.total ?? 0) > 0 && (
-            <div className="mt-1 pl-1">
+            <div className="pb-3">
               <ReactionDisplay
                 reactions={comment.reactions?.reactions}
                 toggleReaction={(e) => onReactionToggle(comment.id, e)}

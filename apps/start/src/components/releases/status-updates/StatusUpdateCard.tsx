@@ -29,7 +29,14 @@ import {
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   addReleaseCommentReactionAction,
   createReleaseCommentAction,
@@ -274,11 +281,7 @@ export function StatusUpdateCard({
         false;
       try {
         if (hasReacted) {
-          await removeReleaseCommentReactionAction(
-            releaseId,
-            commentId,
-            emoji,
-          );
+          await removeReleaseCommentReactionAction(releaseId, commentId, emoji);
         } else {
           await addReleaseCommentReactionAction(
             orgId,
@@ -415,7 +418,7 @@ export function StatusUpdateCard({
         {!isEditing && commentsOpen && (
           <div
             className={cn(
-              "border-t mt-2",
+              "",
               update.visibility === "internal"
                 ? "border-primary/20"
                 : "border-border",
@@ -426,19 +429,39 @@ export function StatusUpdateCard({
                 <IconLoader2 className="animate-spin size-4 text-muted-foreground" />
               </div>
             ) : (
-              <div className="flex flex-col divide-y divide-border">
-                {comments.map((c) => (
-                  <CommentItem
+              <div
+                className={cn(
+                  "flex flex-col border rounded-xl overflow-hidden",
+                  comments.some((c) => c.visibility === "internal") &&
+                    "border-internal-border",
+                )}
+              >
+                {comments.map((c, index) => (
+                  <div
                     key={c.id}
-                    comment={c}
-                    availableUsers={availableUsers}
-                    isOwn={!!currentUserId && c.createdBy?.id === currentUserId}
-                    canManage={canManage}
-                    currentUserId={currentUserId}
-                    onEdit={handleEditComment}
-                    onDelete={handleDeleteComment}
-                    onReactionToggle={handleReactionToggle}
-                  />
+                    className={cn(
+                      "px-3",
+                      c.visibility === "internal" ? "bg-internal" : "bg-card",
+                      index < comments.length - 1 && "border-b border-border",
+                      index < comments.length - 1 && c.visibility === "internal"
+                        ? "border-internal-border"
+                        : undefined,
+                    )}
+                  >
+                    <CommentItem
+                      comment={c}
+                      availableUsers={availableUsers}
+                      isOwn={
+                        !!currentUserId && c.createdBy?.id === currentUserId
+                      }
+                      canManage={canManage}
+                      currentUserId={currentUserId}
+                      onEdit={handleEditComment}
+                      onDelete={handleDeleteComment}
+                      onReactionToggle={handleReactionToggle}
+                      className="rounded-none border-0"
+                    />
+                  </div>
                 ))}
               </div>
             )}

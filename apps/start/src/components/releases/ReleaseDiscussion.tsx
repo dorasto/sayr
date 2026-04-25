@@ -807,6 +807,12 @@ export function ReleaseDiscussion({
       );
       if (result.success) {
         setAllComments((list) => applyOptimisticCommentDelete(list, commentId));
+        // Also remove replies from cache if this was a top-level comment
+        setRepliesCache((prev) => {
+          const next = new Map(prev);
+          next.delete(commentId);
+          return next;
+        });
       }
       return result.success;
     },
@@ -832,9 +838,11 @@ export function ReleaseDiscussion({
           createdBy: currentUserSummary,
           reactions: { total: 0, reactions: {} },
         };
-        setAllComments((list) =>
-          applyOptimisticCommentCreate(list, optimisticReply),
-        );
+        // Only update replies cache - replies should NOT be in allComments
+        setRepliesCache((prev) => {
+          const existing = prev.get(parentId) ?? [];
+          return new Map(prev).set(parentId, [...existing, optimisticReply]);
+        });
         // Update reply count on parent
         setAllComments((list) =>
           list.map((c) =>
@@ -859,11 +867,19 @@ export function ReleaseDiscussion({
         sseClientId,
       );
       if (result.success && result.data) {
-        setAllComments((list) =>
-          applyOptimisticCommentUpdate(list, replyId, {
-            content: result.data.content as schema.NodeJSON,
-          }),
-        );
+        // Only update in replies cache - replies are not in allComments
+        setRepliesCache((prev) => {
+          const next = new Map(prev);
+          for (const [parentId, replies] of next) {
+            const updated = replies.map((r) =>
+              r.id === replyId
+                ? { ...r, content: result.data.content as schema.NodeJSON }
+                : r,
+            );
+            next.set(parentId, updated);
+          }
+          return next;
+        });
       }
       return result.success;
     },
@@ -878,18 +894,29 @@ export function ReleaseDiscussion({
         replyId,
       );
       if (result.success) {
-        // Find the parent to decrement reply count
-        setAllComments((list) => {
-          const reply = list.find((c) => c.id === replyId);
-          if (reply?.parentId) {
-            return list.map((c) =>
-              c.id === reply.parentId
+        // Find the parent from replies cache to decrement reply count
+        let parentId: string | undefined;
+        setRepliesCache((prev) => {
+          const next = new Map(prev);
+          for (const [pid, replies] of next) {
+            if (replies.some((r) => r.id === replyId)) {
+              parentId = pid;
+              const filtered = replies.filter((r) => r.id !== replyId);
+              next.set(pid, filtered);
+            }
+          }
+          return next;
+        });
+        // Update reply count on parent
+        if (parentId) {
+          setAllComments((list) =>
+            list.map((c) =>
+              c.id === parentId
                 ? { ...c, replyCount: Math.max(0, (c.replyCount ?? 0) - 1) }
                 : c,
-            );
-          }
-          return list.filter((c) => c.id !== replyId);
-        });
+            ),
+          );
+        }
       }
       return result.success;
     },
@@ -900,8 +927,20 @@ export function ReleaseDiscussion({
     async (commentId: string, emoji: ReactionEmoji) => {
       if (!currentUserId) return;
 
-      // Optimistic update
+      // Optimistic update on allComments
       applyReaction(commentId, emoji, currentUserId);
+
+      // Also update in replies cache
+      setRepliesCache((prev) => {
+        const next = new Map(prev);
+        for (const [parentId, replies] of next) {
+          const updated = replies.map((r) =>
+            applyOptimisticReaction(r, commentId, emoji, currentUserId),
+          );
+          next.set(parentId, updated);
+        }
+        return next;
+      });
 
       // Determine if we're adding or removing
       const target = allComments.find((c) => c.id === commentId);
@@ -924,9 +963,26 @@ export function ReleaseDiscussion({
       } catch {
         // Revert on failure
         applyReaction(commentId, emoji, currentUserId);
+        setRepliesCache((prev) => {
+          const next = new Map(prev);
+          for (const [parentId, replies] of next) {
+            const updated = replies.map((r) =>
+              applyOptimisticReaction(r, commentId, emoji, currentUserId),
+            );
+            next.set(parentId, updated);
+          }
+          return next;
+        });
       }
     },
-    [currentUserId, applyReaction, allComments, orgId, releaseId, sseClientId],
+    [
+      currentUserId,
+      applyReaction,
+      allComments,
+      orgId,
+      releaseId,
+      sseClientId,
+    ],
   );
 
   // ── Render ───────────────────────────────────────────────────────────────
