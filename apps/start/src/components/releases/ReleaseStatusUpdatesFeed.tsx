@@ -1,5 +1,4 @@
 import type { schema } from "@repo/database";
-import { Label } from "@repo/ui/components/label";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconLoader2, IconPencil } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
@@ -62,6 +61,20 @@ export function ReleaseStatusUpdatesFeed({
   useEffect(() => {
     void loadUpdates();
   }, [loadUpdates, refreshKey]);
+
+  // Optimistically increment commentCount on all updates when a comment event arrives.
+  // Individual StatusUpdateCards will handle their own comment list refresh.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: commentsRefreshKey intentionally triggers update
+  useEffect(() => {
+    if (commentsRefreshKey > 0) {
+      setUpdates((prev) =>
+        prev.map((u) => ({
+          ...u,
+          commentCount: (u.commentCount ?? 0) + 1,
+        })),
+      );
+    }
+  }, [commentsRefreshKey]);
 
   const handlePost = useCallback(
     async (

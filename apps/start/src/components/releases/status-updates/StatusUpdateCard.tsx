@@ -29,17 +29,20 @@ import {
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
+  addReleaseCommentReactionAction,
   createReleaseCommentAction,
   deleteReleaseCommentAction,
   getReleaseCommentsAction,
+  removeReleaseCommentReactionAction,
   updateReleaseCommentAction,
 } from "@/lib/fetches/release";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { CommentItem } from "@/components/shared/comments/CommentItem";
 import { CommentInput } from "@/components/shared/comments/CommentInput";
 import { ReplyThreadTrigger } from "@/components/shared/comments/ReplyThreadTrigger";
+import { type ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { type Health, type Visibility, healthConfig } from "./types";
 import { EditUpdateDialog } from "./EditUpdateDialog";
 
@@ -87,7 +90,6 @@ export function StatusUpdateCard({
   );
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsLoaded, setCommentsLoaded] = useState(false);
-  // Seed from server-provided count so the trigger renders immediately
   const [knownCount, setKnownCount] = useState(update.commentCount ?? 0);
 
   const loadComments = useCallback(async () => {
@@ -114,12 +116,17 @@ export function StatusUpdateCard({
     if (next && !commentsLoaded) await loadComments();
   }, [commentsOpen, commentsLoaded, loadComments]);
 
-  // Only refresh via SSE if the thread has already been opened — avoids eager
-  // fetching all cards on mount which would saturate the connection pool.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: commentsRefreshKey intentionally triggers a re-fetch
+  // SSE comment refresh: always update knownCount, only fetch if thread is open
   useEffect(() => {
-    if (commentsRefreshKey > 0 && commentsLoaded) void loadComments();
-  }, [commentsRefreshKey]);
+    if (commentsRefreshKey > 0) {
+      if (commentsLoaded) {
+        void loadComments();
+      } else {
+        // Increment knownCount optimistically so the badge updates
+        setKnownCount((prev) => Math.max(prev, (update.commentCount ?? 0) + 1));
+      }
+    }
+  }, [commentsRefreshKey, commentsLoaded, loadComments, update.commentCount]);
 
   const handleSaveEdit = useCallback(
     async (data: {
@@ -145,6 +152,50 @@ export function StatusUpdateCard({
     setDeleteDialogOpen(false);
   }, [onDelete, update.id]);
 
+  // ── Optimistic comment helpers ──────────────────────────────────────────
+  const applyOptimisticReaction = useCallback(
+    (
+      comment: schema.ReleaseCommentWithAuthor,
+      commentId: string,
+      emoji: ReactionEmoji,
+      userId: string,
+    ): schema.ReleaseCommentWithAuthor => {
+      if (comment.id !== commentId) return comment;
+      const current = comment.reactions?.reactions ?? {};
+      const emojiData = current[emoji] ?? { count: 0, users: [] };
+      const hasReacted = emojiData.users.includes(userId);
+      const updated = hasReacted
+        ? {
+            count: Math.max(0, emojiData.count - 1),
+            users: emojiData.users.filter((id) => id !== userId),
+          }
+        : { count: emojiData.count + 1, users: [...emojiData.users, userId] };
+      const newReactions = { ...current };
+      if (updated.count === 0) {
+        delete newReactions[emoji];
+      } else {
+        newReactions[emoji] = updated;
+      }
+      const total = Object.values(newReactions).reduce(
+        (sum, r) => sum + r.count,
+        0,
+      );
+      return {
+        ...comment,
+        reactions:
+          total > 0
+            ? { total, reactions: newReactions }
+            : { total: 0, reactions: {} },
+      };
+    },
+    [],
+  );
+
+  const currentUserSummary = useMemo(
+    () => availableUsers.find((u) => u.id === currentUserId),
+    [availableUsers, currentUserId],
+  );
+
   const handleEditComment = useCallback(
     async (commentId: string, content: schema.NodeJSON) => {
       const result = await updateReleaseCommentAction(
@@ -154,10 +205,18 @@ export function StatusUpdateCard({
         { content },
         sseClientId,
       );
-      if (result.success) await loadComments();
+      if (result.success && result.data) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === commentId
+              ? { ...c, content: result.data.content as schema.NodeJSON }
+              : c,
+          ),
+        );
+      }
       return result.success;
     },
-    [orgId, releaseId, sseClientId, loadComments],
+    [orgId, releaseId, sseClientId],
   );
 
   const handleDeleteComment = useCallback(
@@ -167,10 +226,13 @@ export function StatusUpdateCard({
         releaseId,
         commentId,
       );
-      if (result.success) await loadComments();
+      if (result.success) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        setKnownCount((prev) => Math.max(0, prev - 1));
+      }
       return result.success;
     },
-    [orgId, releaseId, loadComments],
+    [orgId, releaseId],
   );
 
   const handlePostComment = useCallback(
@@ -181,17 +243,74 @@ export function StatusUpdateCard({
         { content, visibility, statusUpdateId: update.id },
         sseClientId,
       );
-      if (result.success) await loadComments();
+      if (result.success && result.data && currentUserSummary) {
+        const optimisticComment: schema.ReleaseCommentWithAuthor = {
+          ...result.data,
+          content,
+          createdBy: currentUserSummary,
+          reactions: { total: 0, reactions: {} },
+        };
+        setComments((prev) => [...prev, optimisticComment]);
+        setKnownCount((prev) => prev + 1);
+      }
       return result.success;
     },
-    [orgId, releaseId, update.id, sseClientId, loadComments],
+    [orgId, releaseId, update.id, sseClientId, currentUserSummary],
+  );
+
+  const handleReactionToggle = useCallback(
+    async (commentId: string, emoji: ReactionEmoji) => {
+      if (!currentUserId) return;
+      // Optimistic update
+      setComments((prev) =>
+        prev.map((c) =>
+          applyOptimisticReaction(c, commentId, emoji, currentUserId),
+        ),
+      );
+      // Determine server action from pre-optimistic state
+      const target = comments.find((c) => c.id === commentId);
+      const hasReacted =
+        target?.reactions?.reactions?.[emoji]?.users.includes(currentUserId) ??
+        false;
+      try {
+        if (hasReacted) {
+          await removeReleaseCommentReactionAction(
+            releaseId,
+            commentId,
+            emoji,
+          );
+        } else {
+          await addReleaseCommentReactionAction(
+            orgId,
+            releaseId,
+            commentId,
+            emoji,
+            sseClientId,
+          );
+        }
+      } catch {
+        // Revert on failure
+        setComments((prev) =>
+          prev.map((c) =>
+            applyOptimisticReaction(c, commentId, emoji, currentUserId),
+          ),
+        );
+      }
+    },
+    [
+      currentUserId,
+      comments,
+      applyOptimisticReaction,
+      orgId,
+      releaseId,
+      sseClientId,
+    ],
   );
 
   const isOwn = !!currentUserId && update.author?.id === currentUserId;
   const health = healthConfig[update.health as Health] ?? healthConfig.on_track;
   const authorName = update.author ? getDisplayName(update.author) : "Unknown";
 
-  // Use live-loaded comment authors when available, fall back to server-seeded preview
   const previewAuthors = commentsLoaded
     ? Array.from(
         new Map(
@@ -315,8 +434,10 @@ export function StatusUpdateCard({
                     availableUsers={availableUsers}
                     isOwn={!!currentUserId && c.createdBy?.id === currentUserId}
                     canManage={canManage}
+                    currentUserId={currentUserId}
                     onEdit={handleEditComment}
                     onDelete={handleDeleteComment}
+                    onReactionToggle={handleReactionToggle}
                   />
                 ))}
               </div>

@@ -528,6 +528,7 @@ export async function getReleaseComments(
 		limit?: number;
 		offset?: number;
 		direction?: "asc" | "desc";
+		topLevelOnly?: boolean;
 	} = {}
 ): Promise<{ comments: schema.ReleaseCommentWithAuthor[]; total: number }> {
 	const conditions = [eq(schema.releaseComment.releaseId, releaseId)];
@@ -542,6 +543,10 @@ export async function getReleaseComments(
 
 	if (opts.visibility && opts.visibility !== "all") {
 		conditions.push(eq(schema.releaseComment.visibility, opts.visibility));
+	}
+
+	if (opts.topLevelOnly) {
+		conditions.push(isNull(schema.releaseComment.parentId));
 	}
 
 	const whereClause = and(...conditions);
@@ -567,13 +572,29 @@ export async function getReleaseComments(
 		}),
 	]);
 
+	// If topLevelOnly, enrich with reply metadata
+	let comments = rows.map((c) => ({
+		...c,
+		createdBy: c.createdBy ?? null,
+		content: c.content as schema.NodeJSON,
+		reactions: buildReactionSummary(c.reactions),
+	}));
+
+	if (opts.topLevelOnly && comments.length > 0) {
+		const commentIds = comments.map((c) => c.id);
+		const replyData = await getReleaseCommentReplyCountBatch(releaseId, commentIds);
+		comments = comments.map((comment) => {
+			const data = replyData.get(comment.id);
+			return {
+				...comment,
+				replyCount: data?.replyCount ?? 0,
+				replyAuthors: data?.replyAuthors ?? [],
+			};
+		});
+	}
+
 	return {
-		comments: rows.map((c) => ({
-			...c,
-			createdBy: c.createdBy ?? null,
-			content: c.content as schema.NodeJSON,
-			reactions: buildReactionSummary(c.reactions),
-		})),
+		comments,
 		total: countResult,
 	};
 }
@@ -591,6 +612,103 @@ function buildReactionSummary(reactions: schema.releaseCommentReactionType[]): s
 		}
 	}
 	return { total: reactions.length, reactions: map };
+}
+
+/**
+ * Fetches reply counts and authors for a batch of top-level release comments.
+ * @param releaseId - The release ID
+ * @param commentIds - Array of top-level comment IDs
+ * @returns A Map of commentId -> { replyCount, replyAuthors }
+ */
+export async function getReleaseCommentReplyCountBatch(
+	releaseId: string,
+	commentIds: string[]
+): Promise<Map<string, { replyCount: number; replyAuthors: schema.UserSummary[] }>> {
+	const result = new Map<string, { replyCount: number; replyAuthors: schema.UserSummary[] }>();
+
+	if (commentIds.length === 0) return result;
+
+	// Get reply counts per parent
+	const replyCounts = await db
+		.select({
+			parentId: schema.releaseComment.parentId,
+			replyCount: sql<number>`count(*)::int`,
+		})
+		.from(schema.releaseComment)
+		.where(and(eq(schema.releaseComment.releaseId, releaseId), inArray(schema.releaseComment.parentId, commentIds)))
+		.groupBy(schema.releaseComment.parentId);
+
+	// Initialize all comment IDs with zero counts
+	for (const id of commentIds) {
+		result.set(id, { replyCount: 0, replyAuthors: [] });
+	}
+
+	// For parents that have replies, get unique authors
+	const parentIdsWithReplies = replyCounts
+		.filter((r) => r.replyCount > 0 && r.parentId !== null)
+		.map((r) => r.parentId as string);
+
+	for (const parentId of parentIdsWithReplies) {
+		const countEntry = replyCounts.find((r) => r.parentId === parentId);
+		const replyCount = countEntry?.replyCount ?? 0;
+
+		// Fetch replies with authors to extract unique participants
+		const replies = await db.query.releaseComment.findMany({
+			where: and(
+				eq(schema.releaseComment.releaseId, releaseId),
+				eq(schema.releaseComment.parentId, parentId)
+			),
+			with: {
+				createdBy: { columns: userSummaryColumns },
+			},
+			orderBy: (c, { desc }) => [desc(c.createdAt)],
+		});
+
+		// Deduplicate authors by id, preserve most-recent-first order
+		const seen = new Set<string>();
+		const uniqueAuthors: schema.UserSummary[] = [];
+		for (const reply of replies) {
+			if (reply.createdBy && !seen.has(reply.createdBy.id)) {
+				seen.add(reply.createdBy.id);
+				uniqueAuthors.push(reply.createdBy);
+				if (uniqueAuthors.length >= 5) break;
+			}
+		}
+
+		result.set(parentId, { replyCount, replyAuthors: uniqueAuthors });
+	}
+
+	return result;
+}
+
+/**
+ * Fetches all replies for a specific top-level release comment.
+ * @param releaseId - The release ID
+ * @param parentId - The parent comment ID
+ * @returns Array of replies with author and reaction data
+ */
+export async function getReleaseCommentReplies(
+	releaseId: string,
+	parentId: string
+): Promise<schema.ReleaseCommentWithAuthor[]> {
+	const rows = await db.query.releaseComment.findMany({
+		where: and(
+			eq(schema.releaseComment.releaseId, releaseId),
+			eq(schema.releaseComment.parentId, parentId)
+		),
+		orderBy: [asc(schema.releaseComment.createdAt)],
+		with: {
+			createdBy: { columns: userSummaryColumns },
+			reactions: true,
+		},
+	});
+
+	return rows.map((c) => ({
+		...c,
+		createdBy: c.createdBy ?? null,
+		content: c.content as schema.NodeJSON,
+		reactions: buildReactionSummary(c.reactions),
+	}));
 }
 
 export async function updateReleaseComment(

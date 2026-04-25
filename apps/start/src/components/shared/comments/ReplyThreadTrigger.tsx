@@ -38,7 +38,7 @@ export function ReplyThreadTrigger({
     <button
       type="button"
       className={cn(
-        "flex items-center gap-2 mt-2 pt-2 border-t w-full text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer",
+        "flex items-center gap-2 mt-2 py-2 border-t w-full text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer",
         isInternal ? "border-primary/20" : "border-border/50",
         className,
       )}

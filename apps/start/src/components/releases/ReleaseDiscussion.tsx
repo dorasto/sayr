@@ -47,6 +47,7 @@ import {
   addReleaseCommentReactionAction,
   createReleaseCommentAction,
   deleteReleaseCommentAction,
+  getReleaseCommentRepliesAction,
   getReleaseCommentsAction,
   removeReleaseCommentReactionAction,
   updateReleaseCommentAction,
@@ -63,7 +64,7 @@ import {
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -109,35 +110,91 @@ function applyOptimisticReaction(
   };
 }
 
+function applyOptimisticCommentCreate(
+  list: schema.ReleaseCommentWithAuthor[],
+  newComment: schema.ReleaseCommentWithAuthor,
+): schema.ReleaseCommentWithAuthor[] {
+  if (newComment.parentId) {
+    return [
+      ...list.map((c) =>
+        c.id === newComment.parentId
+          ? { ...c, replyCount: (c.replyCount ?? 0) + 1 }
+          : c,
+      ),
+      newComment,
+    ];
+  }
+  return [...list, newComment];
+}
+
+function applyOptimisticCommentUpdate(
+  list: schema.ReleaseCommentWithAuthor[],
+  commentId: string,
+  updates: Partial<schema.ReleaseCommentWithAuthor>,
+): schema.ReleaseCommentWithAuthor[] {
+  return list.map((c) => (c.id === commentId ? { ...c, ...updates } : c));
+}
+
+function applyOptimisticCommentDelete(
+  list: schema.ReleaseCommentWithAuthor[],
+  commentId: string,
+): schema.ReleaseCommentWithAuthor[] {
+  const target = list.find((c) => c.id === commentId);
+  if (target?.parentId) {
+    return list.map((c) =>
+      c.id === target.parentId
+        ? { ...c, replyCount: Math.max(0, (c.replyCount ?? 0) - 1) }
+        : c,
+    );
+  }
+  return list.filter((c) => c.id !== commentId);
+}
+
 // ---------------------------------------------------------------------------
 // TopLevelCommentCard
 // ---------------------------------------------------------------------------
 interface TopLevelCommentCardProps {
   comment: schema.ReleaseCommentWithAuthor;
   replies: schema.ReleaseCommentWithAuthor[];
+  onLoadReplies: () => Promise<void>;
+  repliesLoading: boolean;
   availableUsers: schema.UserSummary[];
   currentUserId?: string;
   canManage: boolean;
   orgId: string;
   releaseId: string;
   sseClientId: string;
-  onReload: () => void;
   onReactionToggle: (commentId: string, emoji: ReactionEmoji) => void;
   onReplyReactionToggle: (replyId: string, emoji: ReactionEmoji) => void;
+  onPostReply: (
+    parentId: string,
+    content: schema.NodeJSON,
+    visibility: "public" | "internal",
+  ) => Promise<boolean>;
+  onEditReply: (replyId: string, content: schema.NodeJSON) => Promise<boolean>;
+  onDeleteReply: (replyId: string) => Promise<boolean>;
+  onEditComment: (
+    commentId: string,
+    content: schema.NodeJSON,
+  ) => Promise<boolean>;
+  onDeleteComment: (commentId: string) => Promise<boolean>;
 }
 
 function TopLevelCommentCard({
   comment,
   replies,
+  onLoadReplies,
+  repliesLoading,
   availableUsers,
   currentUserId,
   canManage,
-  orgId,
-  releaseId,
-  sseClientId,
-  onReload,
   onReactionToggle,
   onReplyReactionToggle,
+  onPostReply,
+  onEditReply,
+  onDeleteReply,
+  onEditComment,
+  onDeleteComment,
 }: TopLevelCommentCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState<schema.NodeJSON | undefined>(
@@ -147,6 +204,9 @@ function TopLevelCommentCard({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
+  const [replyInputVisibility, setReplyInputVisibility] = useState<
+    "public" | "internal"
+  >("public");
 
   const authorName = comment.createdBy
     ? getDisplayName(comment.createdBy)
@@ -170,72 +230,39 @@ function TopLevelCommentCard({
   const handleSave = useCallback(async () => {
     if (!editContent) return;
     setIsSaving(true);
-    const result = await updateReleaseCommentAction(
-      orgId,
-      releaseId,
-      comment.id,
-      { content: editContent },
-      sseClientId,
-    );
+    const success = await onEditComment(comment.id, editContent);
     setIsSaving(false);
-    if (result.success) {
+    if (success) {
       setIsEditing(false);
-      onReload();
     }
-  }, [editContent, orgId, releaseId, comment.id, sseClientId, onReload]);
+  }, [editContent, comment.id, onEditComment]);
 
   const handleDelete = useCallback(async () => {
     setIsDeleting(true);
-    const result = await deleteReleaseCommentAction(
-      orgId,
-      releaseId,
-      comment.id,
-    );
+    await onDeleteComment(comment.id);
     setIsDeleting(false);
     setDeleteDialogOpen(false);
-    if (result.success) onReload();
-  }, [orgId, releaseId, comment.id, onReload]);
+  }, [comment.id, onDeleteComment]);
 
-  const handlePostReply = useCallback(
-    async (content: schema.NodeJSON) => {
-      const result = await createReleaseCommentAction(
-        orgId,
-        releaseId,
-        { content, visibility: "internal", parentId: comment.id },
-        sseClientId,
-      );
-      if (result.success) onReload();
-      return result.success;
+  const handlePostReplyLocal = useCallback(
+    async (content: schema.NodeJSON, visibility: "public" | "internal") => {
+      return onPostReply(comment.id, content, visibility);
     },
-    [orgId, releaseId, comment.id, sseClientId, onReload],
+    [comment.id, onPostReply],
   );
 
-  const handleEditReply = useCallback(
+  const handleEditReplyLocal = useCallback(
     async (replyId: string, content: schema.NodeJSON) => {
-      const result = await updateReleaseCommentAction(
-        orgId,
-        releaseId,
-        replyId,
-        { content },
-        sseClientId,
-      );
-      if (result.success) onReload();
-      return result.success;
+      return onEditReply(replyId, content);
     },
-    [orgId, releaseId, sseClientId, onReload],
+    [onEditReply],
   );
 
-  const handleDeleteReply = useCallback(
+  const handleDeleteReplyLocal = useCallback(
     async (replyId: string) => {
-      const result = await deleteReleaseCommentAction(
-        orgId,
-        releaseId,
-        replyId,
-      );
-      if (result.success) onReload();
-      return result.success;
+      return onDeleteReply(replyId);
     },
-    [orgId, releaseId, onReload],
+    [onDeleteReply],
   );
 
   return (
@@ -243,7 +270,8 @@ function TopLevelCommentCard({
       <div
         className={cn(
           "border bg-card relative overflow-hidden group/comment rounded-xl px-3",
-          comment.visibility === "internal" && "bg-primary/5 border-primary/30",
+          comment.visibility === "internal" &&
+            "bg-internal border-internal-border",
         )}
       >
         {/* Header + content */}
@@ -278,7 +306,16 @@ function TopLevelCommentCard({
                     variant="ghost"
                     size="icon"
                     className="p-1 h-auto w-auto aspect-square"
-                    onClick={() => setShowReplies((v) => !v)}
+                    onClick={() => {
+                      setShowReplies((v) => !v);
+                      if (
+                        !showReplies &&
+                        comment.replyCount &&
+                        comment.replyCount > 0
+                      ) {
+                        void onLoadReplies();
+                      }
+                    }}
                     title="Reply"
                   >
                     <IconMessage size={14} />
@@ -386,10 +423,15 @@ function TopLevelCommentCard({
         {!showReplies && (
           <div className="pb-2">
             <ReplyThreadTrigger
-              count={replies.length}
+              count={comment.replyCount ?? replies.length}
               replyAuthors={replyAuthors}
               isInternal={comment.visibility === "internal"}
-              onClick={() => setShowReplies(true)}
+              onClick={() => {
+                setShowReplies(true);
+                if (comment.replyCount && comment.replyCount > 0) {
+                  void onLoadReplies();
+                }
+              }}
               className="px-0!"
             />
           </div>
@@ -398,7 +440,11 @@ function TopLevelCommentCard({
         {/* Expanded reply thread */}
         {showReplies && (
           <>
-            {replies.length > 0 && (
+            {repliesLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <IconLoader2 className="animate-spin size-4 text-muted-foreground" />
+              </div>
+            ) : replies.length > 0 ? (
               <>
                 <div className="">
                   <ReplyThreadTrigger
@@ -409,9 +455,28 @@ function TopLevelCommentCard({
                     onClick={() => setShowReplies(false)}
                   />
                 </div>
-                <div className="flex flex-col mt-1">
-                  {replies.map((reply) => (
-                    <div key={reply.id} className="px-3 py-0.5">
+                <div
+                  className={cn(
+                    "flex flex-col mt-1 border rounded-xl overflow-hidden",
+                    replies.some((r) => r.visibility === "internal") &&
+                      "border-internal-border",
+                  )}
+                >
+                  {replies.map((reply, index) => (
+                    <div
+                      key={reply.id}
+                      className={cn(
+                        "px-3",
+                        reply.visibility === "internal"
+                          ? "bg-internal"
+                          : "bg-card",
+                        index < replies.length - 1 && "border-b border-border",
+                        index < replies.length - 1 &&
+                          reply.visibility === "internal"
+                          ? "border-internal-border"
+                          : undefined,
+                      )}
+                    >
                       <CommentItem
                         comment={reply}
                         availableUsers={availableUsers}
@@ -421,21 +486,34 @@ function TopLevelCommentCard({
                         }
                         canManage={canManage}
                         currentUserId={currentUserId}
-                        onEdit={handleEditReply}
-                        onDelete={handleDeleteReply}
+                        onEdit={handleEditReplyLocal}
+                        onDelete={handleDeleteReplyLocal}
                         onReactionToggle={onReplyReactionToggle}
+                        className="rounded-none border-0"
                       />
                     </div>
                   ))}
                 </div>
               </>
+            ) : (
+              <div className="flex items-center justify-center py-4">
+                <IconLoader2 className="animate-spin size-4 text-muted-foreground" />
+              </div>
             )}
 
-            <div className="">
+            <div
+              className={cn(
+                "rounded-xl mb-3 mt-1",
+                replyInputVisibility === "internal"
+                  ? "bg-internal border border-internal-border"
+                  : "bg-card border border-border",
+              )}
+            >
               <CommentInput
                 availableUsers={availableUsers}
                 placeholder="Reply..."
-                onPost={handlePostReply}
+                onPost={handlePostReplyLocal}
+                onVisibilityChange={setReplyInputVisibility}
               />
             </div>
           </>
@@ -499,62 +577,37 @@ export function ReleaseDiscussion({
     (m) => m.user as schema.UserSummary,
   );
 
-  // ── Pagination state ────────────────────────────────────────────────────
-  const [total, setTotal] = useState(0);
-  const [firstComments, setFirstComments] = useState<
+  // ── Pagination state (converging pointer pattern) ─────────────────────────
+  const [allComments, setAllComments] = useState<
     schema.ReleaseCommentWithAuthor[]
   >([]);
-  const [lastComments, setLastComments] = useState<
-    schema.ReleaseCommentWithAuthor[]
-  >([]);
-  const [middleComments, setMiddleComments] = useState<
-    schema.ReleaseCommentWithAuthor[]
-  >([]);
-  const [nextMiddleOffset, setNextMiddleOffset] = useState(PAGE_SIZE);
-  const [lastOffset, setLastOffset] = useState(0); // position where "last page" starts
+  const [pageFromStart, setPageFromStart] = useState(1);
+  const [pageFromEnd, setPageFromEnd] = useState<number | null>(null);
+  const [_totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [mainInputVisibility, setMainInputVisibility] = useState<
+    "public" | "internal"
+  >("public");
 
   // Tracks the refreshKey that was last used so we know when to reset
   const prevRefreshKey = useRef<number | null>(null);
 
-  // All top-level comments in order (firstComments + middleComments + lastComments), deduped
-  const allTopLevel = useMemo(() => {
-    const seen = new Set<string>();
-    const result: schema.ReleaseCommentWithAuthor[] = [];
-    for (const c of [...firstComments, ...middleComments, ...lastComments]) {
-      if (!c.parentId && !seen.has(c.id)) {
-        seen.add(c.id);
-        result.push(c);
-      }
-    }
-    return result;
-  }, [firstComments, middleComments, lastComments]);
-
-  // All replies keyed by parentId (drawn from all loaded comment sets)
-  const repliesByParent = useMemo(() => {
-    const all = [...firstComments, ...middleComments, ...lastComments];
-    const map = new Map<string, schema.ReleaseCommentWithAuthor[]>();
-    for (const c of all) {
-      if (c.parentId) {
-        const arr = map.get(c.parentId) ?? [];
-        // dedup within each parent
-        if (!arr.some((r) => r.id === c.id)) arr.push(c);
-        map.set(c.parentId, arr);
-      }
-    }
-    return map;
-  }, [firstComments, middleComments, lastComments]);
-
-  const hasMoreMiddle = nextMiddleOffset < lastOffset;
+  // Replies cache: parentId -> replies
+  const [repliesCache, setRepliesCache] = useState<
+    Map<string, schema.ReleaseCommentWithAuthor[]>
+  >(new Map());
+  const [loadingReplies, setLoadingReplies] = useState<Set<string>>(new Set());
 
   // ── Initial / refresh load ───────────────────────────────────────────────
   const loadInitial = useCallback(async () => {
     setLoading(true);
-    setFirstComments([]);
-    setLastComments([]);
-    setMiddleComments([]);
-    setNextMiddleOffset(PAGE_SIZE);
+    setAllComments([]);
+    setPageFromStart(1);
+    setPageFromEnd(null);
+    setTotalPages(1);
+    setHasMore(false);
 
     try {
       // First page (oldest)
@@ -564,44 +617,60 @@ export function ReleaseDiscussion({
         null,
         {
           limit: PAGE_SIZE,
-          offset: 0,
+          page: 1,
           direction: "asc",
         },
       );
 
       if (!firstResult.success) return;
 
-      const totalCount = firstResult.total ?? 0;
-      setTotal(totalCount);
-      // Filter to top-level for display; replies are included too (they're embedded)
-      setFirstComments(firstResult.data);
+      const tp = firstResult.pagination?.totalPages ?? 1;
+      setTotalPages(tp);
+      setPageFromEnd(tp);
 
-      if (totalCount <= PAGE_SIZE) {
-        // All comments fit in the first page
-        setLastOffset(PAGE_SIZE); // no last page needed; nextMiddleOffset (PAGE_SIZE) >= lastOffset
+      // Merge and deduplicate
+      const merged = [...firstResult.data];
+      const unique = Array.from(
+        new Map(merged.map((c) => [c.id, c])).values(),
+      ).sort(
+        (a, b) =>
+          new Date(a.createdAt ?? 0).getTime() -
+          new Date(b.createdAt ?? 0).getTime(),
+      );
+      setAllComments(unique);
+
+      if (tp <= 1) {
+        setHasMore(false);
         setLoading(false);
         return;
       }
 
-      // Calculate last page offset (start after the first page, no earlier)
-      const lo = Math.max(PAGE_SIZE, totalCount - PAGE_SIZE);
-      setLastOffset(lo);
-      setNextMiddleOffset(PAGE_SIZE);
-
-      // Last page (newest)
-      const lastResult = await getReleaseCommentsAction(
-        orgId,
-        releaseId,
-        null,
-        {
-          limit: PAGE_SIZE,
-          offset: lo,
-          direction: "asc",
-        },
-      );
-      if (lastResult.success) {
-        setLastComments(lastResult.data);
+      // Last page (newest) - only if different from first
+      if (tp > 1) {
+        const lastResult = await getReleaseCommentsAction(
+          orgId,
+          releaseId,
+          null,
+          {
+            limit: PAGE_SIZE,
+            page: tp,
+            direction: "asc",
+          },
+        );
+        if (lastResult.success) {
+          const allMerged = [...unique, ...lastResult.data];
+          const allUnique = Array.from(
+            new Map(allMerged.map((c) => [c.id, c])).values(),
+          ).sort(
+            (a, b) =>
+              new Date(a.createdAt ?? 0).getTime() -
+              new Date(b.createdAt ?? 0).getTime(),
+          );
+          setAllComments(allUnique);
+        }
       }
+
+      setHasMore(2 <= tp - 1);
     } finally {
       setLoading(false);
     }
@@ -618,35 +687,70 @@ export function ReleaseDiscussion({
     void loadInitial();
   }, [loadInitial, refreshKey]);
 
-  // ── Load more (middle) ───────────────────────────────────────────────────
+  // ── Load more (converging inward) ────────────────────────────────────────
   const loadMore = useCallback(async () => {
-    if (!hasMoreMiddle || loadingMore) return;
+    if (!hasMore || loadingMore || pageFromEnd === null) return;
     setLoadingMore(true);
     try {
-      const limit = Math.min(PAGE_SIZE, lastOffset - nextMiddleOffset);
-      const result = await getReleaseCommentsAction(orgId, releaseId, null, {
-        limit,
-        offset: nextMiddleOffset,
-        direction: "asc",
-      });
-      if (result.success) {
-        setMiddleComments((prev) => {
+      const nextStart = pageFromStart + 1;
+      const nextEnd = pageFromEnd - 1;
+
+      const [startResult, endResult] = await Promise.all([
+        getReleaseCommentsAction(orgId, releaseId, null, {
+          limit: PAGE_SIZE,
+          page: nextStart,
+          direction: "asc",
+        }),
+        nextEnd > nextStart
+          ? getReleaseCommentsAction(orgId, releaseId, null, {
+              limit: PAGE_SIZE,
+              page: nextEnd,
+              direction: "asc",
+            })
+          : Promise.resolve({ success: true, data: [] }),
+      ]);
+
+      if (startResult.success || endResult.success) {
+        const newComments = [
+          ...(startResult.success ? startResult.data : []),
+          ...(endResult.success ? endResult.data : []),
+        ];
+        setAllComments((prev) => {
           const existing = new Set(prev.map((c) => c.id));
-          return [...prev, ...result.data.filter((c) => !existing.has(c.id))];
+          const merged = [
+            ...prev,
+            ...newComments.filter((c) => !existing.has(c.id)),
+          ];
+          return merged.sort(
+            (a, b) =>
+              new Date(a.createdAt ?? 0).getTime() -
+              new Date(b.createdAt ?? 0).getTime(),
+          );
         });
-        setNextMiddleOffset((o) => o + limit);
       }
+
+      setPageFromStart(nextStart);
+      setPageFromEnd(nextEnd);
+      setHasMore(nextStart <= nextEnd);
     } finally {
       setLoadingMore(false);
     }
-  }, [
-    hasMoreMiddle,
-    loadingMore,
-    orgId,
-    releaseId,
-    nextMiddleOffset,
-    lastOffset,
-  ]);
+  }, [hasMore, loadingMore, pageFromStart, pageFromEnd, orgId, releaseId]);
+
+  // ── Reactions (optimistic) ───────────────────────────────────────────────
+  const applyReaction = useCallback(
+    (commentId: string, emoji: ReactionEmoji, userId: string) => {
+      setAllComments((list) =>
+        list.map((c) => applyOptimisticReaction(c, commentId, emoji, userId)),
+      );
+    },
+    [],
+  );
+
+  const currentUserSummary = useMemo(
+    () => availableUsers.find((u) => u.id === currentUserId),
+    [availableUsers, currentUserId],
+  );
 
   // ── Post new comment ─────────────────────────────────────────────────────
   const handlePostComment = useCallback(
@@ -657,22 +761,139 @@ export function ReleaseDiscussion({
         { content, visibility },
         sseClientId,
       );
-      if (result.success) void loadInitial();
+      if (result.success && result.data && currentUserSummary) {
+        const optimisticComment: schema.ReleaseCommentWithAuthor = {
+          ...result.data,
+          content,
+          createdBy: currentUserSummary,
+          reactions: { total: 0, reactions: {} },
+        };
+        setAllComments((list) =>
+          applyOptimisticCommentCreate(list, optimisticComment),
+        );
+      }
       return result.success;
     },
-    [orgId, releaseId, sseClientId, loadInitial],
+    [orgId, releaseId, sseClientId, currentUserSummary],
   );
 
-  // ── Reactions (optimistic) ───────────────────────────────────────────────
-  const applyReaction = useCallback(
-    (commentId: string, emoji: ReactionEmoji, userId: string) => {
-      const apply = (list: schema.ReleaseCommentWithAuthor[]) =>
-        list.map((c) => applyOptimisticReaction(c, commentId, emoji, userId));
-      setFirstComments(apply);
-      setMiddleComments(apply);
-      setLastComments(apply);
+  const handleEditComment = useCallback(
+    async (commentId: string, content: schema.NodeJSON) => {
+      const result = await updateReleaseCommentAction(
+        orgId,
+        releaseId,
+        commentId,
+        { content },
+        sseClientId,
+      );
+      if (result.success && result.data) {
+        setAllComments((list) =>
+          applyOptimisticCommentUpdate(list, commentId, {
+            content: result.data.content as schema.NodeJSON,
+          }),
+        );
+      }
+      return result.success;
     },
-    [],
+    [orgId, releaseId, sseClientId],
+  );
+
+  const handleDeleteComment = useCallback(
+    async (commentId: string) => {
+      const result = await deleteReleaseCommentAction(
+        orgId,
+        releaseId,
+        commentId,
+      );
+      if (result.success) {
+        setAllComments((list) => applyOptimisticCommentDelete(list, commentId));
+      }
+      return result.success;
+    },
+    [orgId, releaseId],
+  );
+
+  const handlePostReply = useCallback(
+    async (
+      parentId: string,
+      content: schema.NodeJSON,
+      visibility: "public" | "internal",
+    ) => {
+      const result = await createReleaseCommentAction(
+        orgId,
+        releaseId,
+        { content, visibility, parentId },
+        sseClientId,
+      );
+      if (result.success && result.data && currentUserSummary) {
+        const optimisticReply: schema.ReleaseCommentWithAuthor = {
+          ...result.data,
+          content,
+          createdBy: currentUserSummary,
+          reactions: { total: 0, reactions: {} },
+        };
+        setAllComments((list) =>
+          applyOptimisticCommentCreate(list, optimisticReply),
+        );
+        // Update reply count on parent
+        setAllComments((list) =>
+          list.map((c) =>
+            c.id === parentId
+              ? { ...c, replyCount: (c.replyCount ?? 0) + 1 }
+              : c,
+          ),
+        );
+      }
+      return result.success;
+    },
+    [orgId, releaseId, sseClientId, currentUserSummary],
+  );
+
+  const handleEditReply = useCallback(
+    async (replyId: string, content: schema.NodeJSON) => {
+      const result = await updateReleaseCommentAction(
+        orgId,
+        releaseId,
+        replyId,
+        { content },
+        sseClientId,
+      );
+      if (result.success && result.data) {
+        setAllComments((list) =>
+          applyOptimisticCommentUpdate(list, replyId, {
+            content: result.data.content as schema.NodeJSON,
+          }),
+        );
+      }
+      return result.success;
+    },
+    [orgId, releaseId, sseClientId],
+  );
+
+  const handleDeleteReply = useCallback(
+    async (replyId: string) => {
+      const result = await deleteReleaseCommentAction(
+        orgId,
+        releaseId,
+        replyId,
+      );
+      if (result.success) {
+        // Find the parent to decrement reply count
+        setAllComments((list) => {
+          const reply = list.find((c) => c.id === replyId);
+          if (reply?.parentId) {
+            return list.map((c) =>
+              c.id === reply.parentId
+                ? { ...c, replyCount: Math.max(0, (c.replyCount ?? 0) - 1) }
+                : c,
+            );
+          }
+          return list.filter((c) => c.id !== replyId);
+        });
+      }
+      return result.success;
+    },
+    [orgId, releaseId],
   );
 
   const handleReactionToggle = useCallback(
@@ -683,11 +904,6 @@ export function ReleaseDiscussion({
       applyReaction(commentId, emoji, currentUserId);
 
       // Determine if we're adding or removing
-      const allComments = [
-        ...firstComments,
-        ...middleComments,
-        ...lastComments,
-      ];
       const target = allComments.find((c) => c.id === commentId);
       const hasReacted =
         target?.reactions?.reactions?.[emoji]?.users.includes(currentUserId) ??
@@ -695,8 +911,6 @@ export function ReleaseDiscussion({
 
       try {
         if (hasReacted) {
-          // Already has the reaction (before optimistic), so we're removing — but optimistic already toggled
-          // Re-check: optimistic toggled it, so if it WAS reacted, now it's not → call remove
           await removeReleaseCommentReactionAction(releaseId, commentId, emoji);
         } else {
           await addReleaseCommentReactionAction(
@@ -712,57 +926,61 @@ export function ReleaseDiscussion({
         applyReaction(commentId, emoji, currentUserId);
       }
     },
-    [
-      currentUserId,
-      applyReaction,
-      firstComments,
-      middleComments,
-      lastComments,
-      orgId,
-      releaseId,
-      sseClientId,
-    ],
+    [currentUserId, applyReaction, allComments, orgId, releaseId, sseClientId],
   );
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  // Split allTopLevel into "first section" (firstComments top-level) and "last section" (lastComments top-level)
-  // for rendering the load-more button in between
-  const firstTopLevel = useMemo(() => {
-    const firstIds = new Set(firstComments.map((c) => c.id));
-    return allTopLevel.filter((c) => !c.parentId && firstIds.has(c.id));
-  }, [allTopLevel, firstComments]);
+  // Split at midpoint for "Load More" button placement
+  const halfway = Math.floor(allComments.length / 2);
+  const topItems = allComments.slice(0, halfway);
+  const bottomItems = allComments.slice(halfway);
 
-  const middleTopLevel = useMemo(() => {
-    const firstIds = new Set(firstComments.map((c) => c.id));
-    const lastIds = new Set(lastComments.map((c) => c.id));
-    return allTopLevel.filter(
-      (c) => !c.parentId && !firstIds.has(c.id) && !lastIds.has(c.id),
-    );
-  }, [allTopLevel, firstComments, lastComments]);
-
-  const lastTopLevel = useMemo(() => {
-    const firstIds = new Set(firstComments.map((c) => c.id));
-    const lastIds = new Set(lastComments.map((c) => c.id));
-    return allTopLevel.filter(
-      (c) => !c.parentId && !firstIds.has(c.id) && lastIds.has(c.id),
-    );
-  }, [allTopLevel, firstComments, lastComments]);
+  // On-demand reply loading
+  const loadReplies = useCallback(
+    async (commentId: string) => {
+      if (repliesCache.has(commentId) || loadingReplies.has(commentId)) return;
+      setLoadingReplies((prev) => new Set(prev).add(commentId));
+      try {
+        const result = await getReleaseCommentRepliesAction(
+          orgId,
+          releaseId,
+          commentId,
+        );
+        if (result.success) {
+          setRepliesCache((prev) => new Map(prev).set(commentId, result.data));
+        }
+      } finally {
+        setLoadingReplies((prev) => {
+          const next = new Set(prev);
+          next.delete(commentId);
+          return next;
+        });
+      }
+    },
+    [orgId, releaseId, repliesCache, loadingReplies],
+  );
 
   const renderCard = (c: schema.ReleaseCommentWithAuthor) => (
     <TopLevelCommentCard
       key={c.id}
       comment={c}
-      replies={repliesByParent.get(c.id) ?? []}
+      replies={repliesCache.get(c.id) ?? []}
+      onLoadReplies={() => loadReplies(c.id)}
+      repliesLoading={loadingReplies.has(c.id)}
       availableUsers={availableUsers}
       currentUserId={currentUserId}
       canManage={canManage}
       orgId={orgId}
       releaseId={releaseId}
       sseClientId={sseClientId}
-      onReload={loadInitial}
       onReactionToggle={handleReactionToggle}
       onReplyReactionToggle={handleReactionToggle}
+      onPostReply={handlePostReply}
+      onEditReply={handleEditReply}
+      onDeleteReply={handleDeleteReply}
+      onEditComment={handleEditComment}
+      onDeleteComment={handleDeleteComment}
     />
   );
 
@@ -774,21 +992,18 @@ export function ReleaseDiscussion({
         <div className="flex items-center justify-center py-6">
           <IconLoader2 className="animate-spin size-5 text-muted-foreground" />
         </div>
-      ) : allTopLevel.length === 0 ? (
+      ) : allComments.length === 0 ? (
         <p className="text-xs text-muted-foreground py-2">
           No comments yet. Be the first to start the discussion.
         </p>
       ) : (
         <div className="flex flex-col gap-1">
-          {/* Oldest comments */}
-          {firstTopLevel.map(renderCard)}
-
-          {/* Middle comments (loaded on demand) */}
-          {middleTopLevel.map(renderCard)}
+          {/* Top half */}
+          {topItems.map(renderCard)}
 
           {/* Load more button */}
-          {hasMoreMiddle && (
-            <div className="flex justify-center py-1">
+          {hasMore && (
+            <div className="flex justify-center py-1 w-full">
               <Button
                 variant="ghost"
                 size="sm"
@@ -801,26 +1016,33 @@ export function ReleaseDiscussion({
                 ) : (
                   <IconChevronDown size={14} />
                 )}
-                {loadingMore
-                  ? "Loading..."
-                  : `Load ${Math.min(PAGE_SIZE, lastOffset - nextMiddleOffset)} more`}
+                {loadingMore ? "Loading..." : "Load more"}
               </Button>
             </div>
           )}
 
-          {/* Newest comments */}
-          {lastTopLevel.map(renderCard)}
+          {/* Bottom half */}
+          {bottomItems.map(renderCard)}
         </div>
       )}
 
       {canComment && (
-        <CommentInput
-          availableUsers={availableUsers}
-          placeholder="Write a comment..."
-          submitLabel="Post"
-          onPost={handlePostComment}
-          className="rounded-xl bg-card"
-        />
+        <div
+          className={cn(
+            "rounded-xl",
+            mainInputVisibility === "internal"
+              ? "bg-internal border border-internal-border"
+              : "bg-card border border-border",
+          )}
+        >
+          <CommentInput
+            availableUsers={availableUsers}
+            placeholder="Write a comment..."
+            submitLabel="Post"
+            onPost={handlePostComment}
+            onVisibilityChange={setMainInputVisibility}
+          />
+        </div>
       )}
     </div>
   );

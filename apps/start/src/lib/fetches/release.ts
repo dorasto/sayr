@@ -285,17 +285,32 @@ export async function getReleaseCommentsAction(
 	orgId: string,
 	releaseId: string,
 	statusUpdateId?: string | null,
-	pagination?: { limit?: number; offset?: number; direction?: "asc" | "desc" }
-): Promise<{ success: boolean; data: schema.ReleaseCommentWithAuthor[]; total: number; error?: string }> {
+	pagination?: { limit?: number; page?: number; direction?: "asc" | "desc" }
+): Promise<{
+	success: boolean;
+	data: schema.ReleaseCommentWithAuthor[];
+	pagination: { page: number; limit: number; total: number; totalPages: number; hasMore: boolean };
+	error?: string;
+}> {
 	const qs = statusUpdateId !== undefined ? `&statusUpdateId=${statusUpdateId ?? "null"}` : "";
 	const paginationQs = pagination
 		? [
 				pagination.limit !== undefined ? `&limit=${pagination.limit}` : "",
-				pagination.offset !== undefined ? `&offset=${pagination.offset}` : "",
+				pagination.page !== undefined ? `&page=${pagination.page}` : "",
 				pagination.direction ? `&direction=${pagination.direction}` : "",
 			].join("")
 		: "";
 	return fetch(`${BASE}/${releaseId}/comments?org_id=${orgId}${qs}${paginationQs}`, {
+		credentials: "include",
+	}).then((r) => r.json());
+}
+
+export async function getReleaseCommentRepliesAction(
+	orgId: string,
+	releaseId: string,
+	commentId: string
+): Promise<{ success: boolean; data: schema.ReleaseCommentWithAuthor[]; error?: string }> {
+	return fetch(`${BASE}/${releaseId}/comments/${commentId}/replies?org_id=${orgId}`, {
 		credentials: "include",
 	}).then((r) => r.json());
 }

@@ -15,10 +15,21 @@ import {
   IconLock,
   IconLockOpen2,
 } from "@tabler/icons-react";
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import type { NodeJSON } from "prosekit/core";
 import { useLayoutData } from "@/components/generic/Context";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
+
+function isMultiline(doc: NodeJSON | undefined): boolean {
+  if (!doc?.content) return false;
+  if (doc.content.length > 1) return true;
+  const first = doc.content[0];
+  if (first?.content) {
+    return first.content.some((node) => node.type === "hardBreak");
+  }
+  return false;
+}
 
 interface CommentInputProps {
   availableUsers: schema.UserSummary[];
@@ -27,6 +38,8 @@ interface CommentInputProps {
   /** Whether to show the internal/public visibility toggle. Defaults to true. */
   showVisibilityToggle?: boolean;
   defaultVisibility?: "public" | "internal";
+  /** Called whenever the visibility toggle changes. */
+  onVisibilityChange?: (visibility: "public" | "internal") => void;
   onPost: (
     content: schema.NodeJSON,
     visibility: "public" | "internal",
@@ -40,6 +53,7 @@ export function CommentInput({
   submitLabel,
   showVisibilityToggle = true,
   defaultVisibility = "public",
+  onVisibilityChange,
   onPost,
   className,
 }: CommentInputProps) {
@@ -52,6 +66,7 @@ export function CommentInput({
   );
 
   const displayName = account ? getDisplayName(account) : "You";
+  const multiline = useMemo(() => isMultiline(content), [content]);
 
   const handlePost = useCallback(async () => {
     if (!content) return;
@@ -67,10 +82,72 @@ export function CommentInput({
     }
   }, [content, visibility, onPost]);
 
+  const actionButtons = (
+    <ButtonGroup>
+      {submitLabel ? (
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={!content || isPosting}
+          onClick={handlePost}
+          className={cn(
+            "border-0 h-7",
+            showVisibilityToggle &&
+              visibility === "internal" &&
+              "bg-internal/50 hover:bg-internal",
+          )}
+        >
+          {isPosting ? (
+            <IconLoader2 className="animate-spin size-4" />
+          ) : (
+            submitLabel
+          )}
+          {!isPosting && <IconArrowBack size={14} />}
+        </Button>
+      ) : (
+        <Button
+          variant="primary"
+          size="icon"
+          disabled={!content || isPosting}
+          onClick={handlePost}
+          className="h-7 w-7 shrink-0"
+        >
+          {isPosting ? (
+            <IconLoader2 className="animate-spin size-4" />
+          ) : (
+            <IconArrowBack size={14} />
+          )}
+        </Button>
+      )}
+      {showVisibilityToggle && (
+        <Toggle
+          aria-label="Toggle visibility"
+          className={cn(
+            "border-0 bg-accent hover:bg-secondary h-7! w-7! min-w-7!",
+            visibility === "internal" && "bg-primary/10! hover:bg-primary/20!",
+          )}
+          variant="primary"
+          pressed={visibility === "internal"}
+          onPressedChange={(pressed) => {
+            const newVisibility = pressed ? "internal" : "public";
+            setVisibility(newVisibility);
+            onVisibilityChange?.(newVisibility);
+          }}
+        >
+          {visibility === "internal" ? (
+            <IconLock size={14} />
+          ) : (
+            <IconLockOpen2 size={14} />
+          )}
+        </Toggle>
+      )}
+    </ButtonGroup>
+  );
+
   return (
     <div
       className={cn(
-        "text-foreground transition-all flex gap-2 items-start px-3 py-2",
+        "text-foreground transition-all flex gap-2 items-start p-2",
         className,
       )}
     >
@@ -80,8 +157,13 @@ export function CommentInput({
           {displayName.slice(0, 2)}
         </AvatarFallback>
       </Avatar>
-      <div className="flex-1 min-w-0 flex items-center gap-2">
-        <div className="flex-1 min-w-0">
+      <div
+        className={cn(
+          "flex-1 min-w-0",
+          !multiline && "flex items-center gap-2",
+        )}
+      >
+        <div className={cn(!multiline && "flex-1 min-w-0")}>
           <Suspense
             fallback={<div className="h-8 animate-pulse bg-muted rounded" />}
           >
@@ -95,65 +177,13 @@ export function CommentInput({
             />
           </Suspense>
         </div>
-        <ButtonGroup>
-          {submitLabel ? (
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={!content || isPosting}
-              onClick={handlePost}
-              className={cn(
-                "border-0 h-7",
-                showVisibilityToggle &&
-                  visibility === "internal" &&
-                  "bg-primary/10 hover:bg-primary/20",
-              )}
-            >
-              {isPosting ? (
-                <IconLoader2 className="animate-spin size-4" />
-              ) : (
-                submitLabel
-              )}
-              {!isPosting && <IconArrowBack size={14} />}
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="icon"
-              disabled={!content || isPosting}
-              onClick={handlePost}
-              className="h-7 w-7 shrink-0"
-            >
-              {isPosting ? (
-                <IconLoader2 className="animate-spin size-4" />
-              ) : (
-                <IconArrowBack size={14} />
-              )}
-            </Button>
-          )}
-          {showVisibilityToggle && (
-            <Toggle
-              aria-label="Toggle visibility"
-              // size="sm"
-              className={cn(
-                "border-0 bg-accent hover:bg-secondary h-7! w-7! min-w-7!",
-                visibility === "internal" &&
-                  "bg-primary/10! hover:bg-primary/20!",
-              )}
-              variant="primary"
-              pressed={visibility === "internal"}
-              onPressedChange={(pressed) =>
-                setVisibility(pressed ? "internal" : "public")
-              }
-            >
-              {visibility === "internal" ? (
-                <IconLock size={14} />
-              ) : (
-                <IconLockOpen2 size={14} />
-              )}
-            </Toggle>
-          )}
-        </ButtonGroup>
+        {multiline ? (
+          <div className="flex items-center justify-end mt-1">
+            {actionButtons}
+          </div>
+        ) : (
+          actionButtons
+        )}
       </div>
     </div>
   );

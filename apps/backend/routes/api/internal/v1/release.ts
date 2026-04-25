@@ -11,6 +11,7 @@ import {
 	deleteReleaseStatusUpdate,
 	getRelease,
 	getReleaseBySlug,
+	getReleaseCommentReplies,
 	getReleaseComments,
 	getReleaseStatusUpdates,
 	getReleaseWithTasks,
@@ -633,21 +634,53 @@ apiRouteAdminRelease.get("/:releaseId/comments", async (c) => {
 	const orgId = c.req.query("org_id") || "";
 	const statusUpdateId = c.req.query("statusUpdateId");
 	const limitParam = c.req.query("limit");
-	const offsetParam = c.req.query("offset");
+	const pageParam = c.req.query("page");
 	const directionParam = c.req.query("direction");
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
+	const limit = Math.min(Number(limitParam) || 10, 50);
+	const page = Math.max(Number(pageParam) || 1, 1);
+	const offset = (page - 1) * limit;
+
 	const { comments, total } = await getReleaseComments(releaseId, {
 		statusUpdateId: statusUpdateId === "null" ? null : statusUpdateId,
 		visibility: "all",
-		limit: limitParam ? Number(limitParam) : undefined,
-		offset: offsetParam ? Number(offsetParam) : undefined,
+		limit,
+		offset,
 		direction: directionParam === "desc" ? "desc" : directionParam === "asc" ? "asc" : undefined,
+		topLevelOnly: true,
 	});
 
-	return c.json({ success: true, data: comments, total });
+	const totalPages = Math.max(Math.ceil(total / limit), 1);
+
+	return c.json({
+		success: true,
+		data: comments,
+		pagination: {
+			page,
+			limit,
+			total,
+			totalPages,
+			hasMore: page < totalPages,
+		},
+	});
+});
+
+// GET /release/:releaseId/comments/:commentId/replies
+apiRouteAdminRelease.get("/:releaseId/comments/:commentId/replies", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const commentId = c.req.param("commentId");
+	const orgId = c.req.query("org_id") || "";
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const replies = await getReleaseCommentReplies(releaseId, commentId);
+
+	return c.json({ success: true, data: replies });
 });
 
 // POST /release/:releaseId/comments

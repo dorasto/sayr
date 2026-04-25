@@ -371,7 +371,44 @@ export function UnifiedTaskItem({
                 </button>
               }
             />
-            <div className="shrink-0 min-w-9 w-9 max-w-9">
+            <div className="shrink-0 w-24 min-w-24">
+              <GlobalTaskStatus
+                task={task}
+                editable={fieldPermissions?.status ?? true}
+                onChange={handleStatusChange}
+                tasks={tasks}
+                setTasks={setTasks}
+                open={statusPopoverOpen}
+                setOpen={handleStatusPopoverChange}
+                data-no-propagate
+                customTrigger={
+                  <Badge
+                    variant={"outline"}
+                    // className="h-4 place-items-center shrink-0 cursor-pointer flex items-center"
+                    className={
+                      (cn(
+                        statusConfig[task.status as keyof typeof statusConfig]
+                          .className,
+                      ),
+                      "px-0 h-5")
+                    }
+                    data-no-propagate
+                  >
+                    <InlineLabel
+                      text={status.label}
+                      icon={status.icon(
+                        `h-3.5 w-3.5 ${status?.className || ""}`,
+                      )}
+                      className="pe-2"
+                    />
+                    {/*{status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)}
+                  {status.label}*/}
+                  </Badge>
+                }
+              />
+            </div>
+
+            <div className="shrink-0 max-w-9">
               <div className="flex items-center space-x-2">
                 <span className="text-xs font-medium text-muted-foreground truncate">
                   #{task.shortId}
@@ -413,38 +450,7 @@ export function UnifiedTaskItem({
               className="hidden sm:flex h-5 gap-1 max-w-[300px] overflow-x-auto"
               overflowStyle="count"
             />
-            <GlobalTaskStatus
-              task={task}
-              editable={fieldPermissions?.status ?? true}
-              onChange={handleStatusChange}
-              tasks={tasks}
-              setTasks={setTasks}
-              open={statusPopoverOpen}
-              setOpen={handleStatusPopoverChange}
-              data-no-propagate
-              customTrigger={
-                <Badge
-                  variant={"outline"}
-                  // className="h-4 place-items-center shrink-0 cursor-pointer flex items-center"
-                  className={
-                    (cn(
-                      statusConfig[task.status as keyof typeof statusConfig]
-                        .className,
-                    ),
-                    "px-0 h-5")
-                  }
-                  data-no-propagate
-                >
-                  <InlineLabel
-                    text={status.label}
-                    icon={status.icon(`h-3.5 w-3.5 ${status?.className || ""}`)}
-                    className="pe-2"
-                  />
-                  {/*{status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)}
-                  {status.label}*/}
-                </Badge>
-              }
-            />
+
             {/* Assignees */}
             <GlobalTaskAssignees
               task={task}

@@ -58,6 +58,7 @@ interface CommentItemProps {
   onEdit?: (id: string, content: schema.NodeJSON) => Promise<boolean>;
   onDelete?: (id: string) => Promise<boolean>;
   onReactionToggle?: (id: string, emoji: ReactionEmoji) => void;
+  className?: string;
 }
 
 export function CommentItem({
@@ -69,6 +70,7 @@ export function CommentItem({
   onEdit,
   onDelete,
   onReactionToggle,
+  className,
 }: CommentItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState<schema.NodeJSON | undefined>(
@@ -110,7 +112,8 @@ export function CommentItem({
         className={cn(
           "flex flex-col group/comment-item pt-2 rounded-xl",
           comment.visibility === "internal" &&
-            "bg-primary/5 px-1 border border-primary/20",
+            "bg-internal px-1 border border-internal-border",
+          className,
         )}
       >
         <div className="flex items-center gap-3">
