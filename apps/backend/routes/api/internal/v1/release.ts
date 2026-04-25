@@ -707,7 +707,9 @@ apiRouteAdminRelease.post("/:releaseId/comments", async (c) => {
 	const found = findClientBysseId(sseClientId);
 	const data = { type: "UPDATE_RELEASE_COMMENTS" as ServerEventBaseMessage["type"], data: { releaseId } };
 	sseBroadcastToRoom(orgId, "releases", data, found?.id);
-	sseBroadcastPublic(orgId, { ...data });
+	if (visibility === "public") {
+		sseBroadcastPublic(orgId, { ...data });
+	}
 
 	return c.json({ success: true, data: comment });
 });
@@ -733,7 +735,9 @@ apiRouteAdminRelease.patch("/:releaseId/comments/:commentId", async (c) => {
 	const found = findClientBysseId(sseClientId);
 	const data = { type: "UPDATE_RELEASE_COMMENTS" as ServerEventBaseMessage["type"], data: { releaseId } };
 	sseBroadcastToRoom(orgId, "releases", data, found?.id);
-	sseBroadcastPublic(orgId, { ...data });
+	if (visibility === "public") {
+		sseBroadcastPublic(orgId, { ...data });
+	}
 
 	return c.json({ success: true, data: updated });
 });
@@ -758,7 +762,9 @@ apiRouteAdminRelease.delete("/:releaseId/comments/:commentId", async (c) => {
 
 	const data = { type: "UPDATE_RELEASE_COMMENTS" as ServerEventBaseMessage["type"], data: { releaseId } };
 	sseBroadcastToRoom(orgId, "releases", data);
-	sseBroadcastPublic(orgId, { ...data });
+	if (existingComment.visibility === "public") {
+		sseBroadcastPublic(orgId, { ...data });
+	}
 
 	return c.json({ success: true });
 });
