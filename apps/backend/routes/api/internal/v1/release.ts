@@ -735,7 +735,7 @@ apiRouteAdminRelease.patch("/:releaseId/comments/:commentId", async (c) => {
 	const found = findClientBysseId(sseClientId);
 	const data = { type: "UPDATE_RELEASE_COMMENTS" as ServerEventBaseMessage["type"], data: { releaseId } };
 	sseBroadcastToRoom(orgId, "releases", data, found?.id);
-	if (visibility === "public") {
+	if (updated.visibility === "public") {
 		sseBroadcastPublic(orgId, { ...data });
 	}
 
