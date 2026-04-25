@@ -203,62 +203,7 @@ function StatusUpdateCard({ update }: StatusUpdateCardProps) {
             </div>
           )}
         </div>
-
-        {/*<div className="flex items-center gap-1.5">
-          {update.author?.image && (
-            <img
-              src={update.author.image}
-              alt={authorName}
-              className="size-4 rounded-full"
-            />
-          )}
-          <span className="text-xs font-medium">{authorName}</span>
-          {update.createdAt && (
-            <span className="text-[10px] text-muted-foreground">
-              {formatDate(update.createdAt)}
-            </span>
-          )}
-        </div>*/}
       </TileHeader>
     </Tile>
-    // <div className="rounded-xl border bg-accent/50 p-2.5 flex flex-col gap-2">
-    //   <div className="flex items-center gap-2 flex-wrap">
-    //     <Badge
-    //       variant="outline"
-    //       className={cn(
-    //         "gap-1 text-[10px] border pointer-events-none",
-    //         health.className,
-    //       )}
-    //     >
-    //       {health.icon} {health.label}
-    //     </Badge>
-    //     {update.createdAt && (
-    //       <Label variant="description" className="text-[10px]">
-    //         {update.createdAt && (
-    //           <span className="text-[10px] text-muted-foreground">
-    //             {formatDate(update.createdAt)}
-    //           </span>
-    //         )}{" "}
-    //         - {formatDateTimeFromNow(update.createdAt)}
-    //       </Label>
-    //     )}
-
-    //   </div>
-
-    //   {update.content && (
-    //     <Suspense
-    //       fallback={
-    //         <div className="h-4 animate-pulse bg-muted rounded w-3/4" />
-    //       }
-    //     >
-    //       <Editor
-    //         readonly
-    //         defaultContent={update.content as schema.NodeJSON}
-    //         hideBlockHandle
-    //         className="text-xs"
-    //       />
-    //     </Suspense>
-    //   )}
-    // </div>
   );
 }
