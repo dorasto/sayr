@@ -52,6 +52,7 @@ import { ReplyThreadTrigger } from "@/components/shared/comments/ReplyThreadTrig
 import { type ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { type Health, type Visibility, healthConfig } from "./types";
 import { EditUpdateDialog } from "./EditUpdateDialog";
+import processUploads from "@/components/prosekit/upload";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -173,9 +174,9 @@ export function StatusUpdateCard({
       const hasReacted = emojiData.users.includes(userId);
       const updated = hasReacted
         ? {
-            count: Math.max(0, emojiData.count - 1),
-            users: emojiData.users.filter((id) => id !== userId),
-          }
+          count: Math.max(0, emojiData.count - 1),
+          users: emojiData.users.filter((id) => id !== userId),
+        }
         : { count: emojiData.count + 1, users: [...emojiData.users, userId] };
       const newReactions = { ...current };
       if (updated.count === 0) {
@@ -244,16 +245,22 @@ export function StatusUpdateCard({
 
   const handlePostComment = useCallback(
     async (content: schema.NodeJSON, visibility: "public" | "internal") => {
+      const updatedContent = await processUploads(
+        content,
+        visibility,
+        orgId,
+        "create-release-comment",
+      );
       const result = await createReleaseCommentAction(
         orgId,
         releaseId,
-        { content, visibility, statusUpdateId: update.id },
+        { content: updatedContent, visibility, statusUpdateId: update.id },
         sseClientId,
       );
       if (result.success && result.data && currentUserSummary) {
         const optimisticComment: schema.ReleaseCommentWithAuthor = {
           ...result.data,
-          content,
+          content: updatedContent,
           createdBy: currentUserSummary,
           reactions: { total: 0, reactions: {} },
         };
@@ -316,12 +323,12 @@ export function StatusUpdateCard({
 
   const previewAuthors = commentsLoaded
     ? Array.from(
-        new Map(
-          comments
-            .map((c) => [c.createdBy?.id, c.createdBy])
-            .filter((e): e is [string, schema.UserSummary] => !!e[1]),
-        ).values(),
-      ).slice(0, 3)
+      new Map(
+        comments
+          .map((c) => [c.createdBy?.id, c.createdBy])
+          .filter((e): e is [string, schema.UserSummary] => !!e[1]),
+      ).values(),
+    ).slice(0, 3)
     : (update.commentAuthors ?? []);
 
   return (
@@ -433,7 +440,7 @@ export function StatusUpdateCard({
                 className={cn(
                   "flex flex-col border rounded-xl overflow-hidden",
                   comments.some((c) => c.visibility === "internal") &&
-                    "border-internal-border",
+                  "border-internal-border",
                 )}
               >
                 {comments.map((c, index) => (

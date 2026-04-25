@@ -99,7 +99,7 @@ function ReleaseDetailPageContent() {
     serverEvents,
     orgId: organization.id,
     organization: organization,
-    channel: "admin",
+    channel: "releases",
     setOrganization: setOrganization,
   });
 
@@ -231,10 +231,10 @@ function ReleaseDetailPageContent() {
         setRelease((prev) =>
           prev
             ? {
-                ...prev,
-                name: result.data.name,
-                slug: result.data.slug,
-              }
+              ...prev,
+              name: result.data.name,
+              slug: result.data.slug,
+            }
             : null,
         );
       }

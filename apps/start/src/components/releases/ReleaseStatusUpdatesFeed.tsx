@@ -13,6 +13,7 @@ import { useLayoutData } from "@/components/generic/Context";
 import { type Health, type Visibility } from "./status-updates/types";
 import { PostUpdateDialog } from "./status-updates/PostUpdateDialog";
 import { UpdatesList } from "./status-updates/UpdatesList";
+import processUploads from "../prosekit/upload";
 
 interface Props {
   releaseId: string;
@@ -82,10 +83,16 @@ export function ReleaseStatusUpdatesFeed({
       health: Health,
       visibility: Visibility,
     ) => {
+      const updatedContent = await processUploads(
+        content,
+        visibility,
+        orgId,
+        "create-release-comment",
+      );
       const result = await createReleaseStatusUpdateAction(
         orgId,
         releaseId,
-        { content, health, visibility },
+        { content: updatedContent, health, visibility },
         sseClientId,
       );
       if (result.success) {

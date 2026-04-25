@@ -61,6 +61,7 @@ import {
   ReactionPicker,
   type ReactionEmoji,
 } from "@/components/tasks/task/timeline/reactions";
+import processUploads from "../prosekit/upload";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -84,9 +85,9 @@ function applyOptimisticReaction(
 
   const updated = hasReacted
     ? {
-        count: Math.max(0, emojiData.count - 1),
-        users: emojiData.users.filter((id) => id !== userId),
-      }
+      count: Math.max(0, emojiData.count - 1),
+      users: emojiData.users.filter((id) => id !== userId),
+    }
     : { count: emojiData.count + 1, users: [...emojiData.users, userId] };
 
   const newReactions = { ...current };
@@ -223,8 +224,8 @@ function TopLevelCommentCard({
 
   const existingReactions: ReactionEmoji[] = currentUserId
     ? (Object.entries(comment.reactions?.reactions ?? {})
-        .filter(([, data]) => data.users.includes(currentUserId))
-        .map(([emoji]) => emoji) as ReactionEmoji[])
+      .filter(([, data]) => data.users.includes(currentUserId))
+      .map(([emoji]) => emoji) as ReactionEmoji[])
     : [];
 
   const handleSave = useCallback(async () => {
@@ -271,7 +272,7 @@ function TopLevelCommentCard({
         className={cn(
           "border bg-card relative overflow-hidden group/comment rounded-xl px-3",
           comment.visibility === "internal" &&
-            "bg-internal border-internal-border",
+          "bg-internal border-internal-border",
         )}
       >
         {/* Header + content */}
@@ -459,7 +460,7 @@ function TopLevelCommentCard({
                   className={cn(
                     "flex flex-col mt-1 border rounded-xl overflow-hidden",
                     replies.some((r) => r.visibility === "internal") &&
-                      "border-internal-border",
+                    "border-internal-border",
                   )}
                 >
                   {replies.map((reply, index) => (
@@ -703,10 +704,10 @@ export function ReleaseDiscussion({
         }),
         nextEnd > nextStart
           ? getReleaseCommentsAction(orgId, releaseId, null, {
-              limit: PAGE_SIZE,
-              page: nextEnd,
-              direction: "asc",
-            })
+            limit: PAGE_SIZE,
+            page: nextEnd,
+            direction: "asc",
+          })
           : Promise.resolve({ success: true, data: [] }),
       ]);
 
@@ -755,16 +756,22 @@ export function ReleaseDiscussion({
   // ── Post new comment ─────────────────────────────────────────────────────
   const handlePostComment = useCallback(
     async (content: schema.NodeJSON, visibility: "public" | "internal") => {
+      const updatedContent = await processUploads(
+        content,
+        visibility,
+        orgId,
+        "create-release-comment",
+      );
       const result = await createReleaseCommentAction(
         orgId,
         releaseId,
-        { content, visibility },
+        { content: updatedContent, visibility },
         sseClientId,
       );
       if (result.success && result.data && currentUserSummary) {
         const optimisticComment: schema.ReleaseCommentWithAuthor = {
           ...result.data,
-          content,
+          content: updatedContent,
           createdBy: currentUserSummary,
           reactions: { total: 0, reactions: {} },
         };
@@ -825,16 +832,22 @@ export function ReleaseDiscussion({
       content: schema.NodeJSON,
       visibility: "public" | "internal",
     ) => {
+      const updatedContent = await processUploads(
+        content,
+        visibility,
+        orgId,
+        "create-release-comment",
+      );
       const result = await createReleaseCommentAction(
         orgId,
         releaseId,
-        { content, visibility, parentId },
+        { content: updatedContent, visibility, parentId },
         sseClientId,
       );
       if (result.success && result.data && currentUserSummary) {
         const optimisticReply: schema.ReleaseCommentWithAuthor = {
           ...result.data,
-          content,
+          content: updatedContent,
           createdBy: currentUserSummary,
           reactions: { total: 0, reactions: {} },
         };
