@@ -1,6 +1,7 @@
 ---
 import type { ParsedEndpoint } from "../lib/openapi";
 import ParameterTable from "./ParameterTable.astro";
+import BodyTable from "./BodyTable.astro";
 import ResponseSection from "./ResponseSection.astro";
 import { RequestTester } from "./RequestTester";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +111,13 @@ const testerParams = allParameters.map((p) => ({
                     )
                 }
             </div>
-
+            {method === "POST" &&
+                operation.requestBody?.content?.["application/json"]?.schema && (
+                <BodyTable
+                    title="Request Body"
+                    schema={operation.requestBody.content["application/json"].schema}
+                />
+            )}
             <!-- Parameters Section -->
             {
                 allParameters.length > 0 && (

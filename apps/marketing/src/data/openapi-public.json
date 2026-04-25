@@ -55,15 +55,19 @@
                                             "type": "object",
                                             "properties": {
                                                 "id": {
-                                                    "type": "string"
-                                                },
-                                                "name": {
+                                                    "description": "Organization UUID",
                                                     "type": "string"
                                                 },
                                                 "slug": {
+                                                    "description": "Organization slug used in URLs",
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "description": "Organization name",
                                                     "type": "string"
                                                 },
                                                 "logo": {
+                                                    "description": "Organization logo URL",
                                                     "anyOf": [
                                                         {
                                                             "type": "string"
@@ -74,6 +78,7 @@
                                                     ]
                                                 },
                                                 "bannerImg": {
+                                                    "description": "Organization banner image URL",
                                                     "anyOf": [
                                                         {
                                                             "type": "string"
@@ -83,89 +88,50 @@
                                                         }
                                                     ]
                                                 },
-                                                "description": {
-                                                    "type": "string"
-                                                },
-                                                "createdAt": {
-                                                    "type": "string"
-                                                },
-                                                "updatedAt": {
-                                                    "type": "string"
-                                                },
-                                                "shortId": {
-                                                    "type": "string"
-                                                },
                                                 "eventsUrl": {
+                                                    "description": "Public: URL to fetch organization events for live updates",
                                                     "type": "string"
                                                 },
                                                 "members": {
+                                                    "description": "List of organization members with public info",
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
                                                             "id": {
+                                                                "description": "User ID",
                                                                 "type": "string"
                                                             },
-                                                            "userId": {
+                                                            "name": {
+                                                                "description": "member name",
                                                                 "type": "string"
                                                             },
-                                                            "organizationId": {
-                                                                "type": "string"
-                                                            },
-                                                            "createdAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "user": {
-                                                                "type": "object",
-                                                                "properties": {
-                                                                    "id": {
+                                                            "image": {
+                                                                "description": "avatar URL",
+                                                                "anyOf": [
+                                                                    {
                                                                         "type": "string"
                                                                     },
-                                                                    "name": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "image": {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "type": "string"
-                                                                            },
-                                                                            {
-                                                                                "type": "null"
-                                                                            }
-                                                                        ]
-                                                                    },
-                                                                    "createdAt": {
-                                                                        "type": "string"
+                                                                    {
+                                                                        "type": "null"
                                                                     }
-                                                                },
-                                                                "required": [
-                                                                    "id",
-                                                                    "name",
-                                                                    "image",
-                                                                    "createdAt"
                                                                 ]
                                                             }
                                                         },
                                                         "required": [
                                                             "id",
-                                                            "userId",
-                                                            "organizationId",
-                                                            "createdAt",
-                                                            "user"
+                                                            "name",
+                                                            "image"
                                                         ]
                                                     }
                                                 }
                                             },
                                             "required": [
                                                 "id",
-                                                "name",
                                                 "slug",
+                                                "name",
                                                 "logo",
                                                 "bannerImg",
-                                                "description",
-                                                "createdAt",
-                                                "updatedAt",
-                                                "shortId",
                                                 "eventsUrl",
                                                 "members"
                                             ]
@@ -244,26 +210,23 @@
                                                 "type": "object",
                                                 "properties": {
                                                     "id": {
+                                                        "description": "Label UUID",
                                                         "type": "string"
                                                     },
                                                     "organizationId": {
+                                                        "description": "ID of the organization this label belongs to",
                                                         "type": "string"
                                                     },
                                                     "name": {
-                                                        "type": "string",
-                                                        "maxLength": 100
+                                                        "description": "Label name",
+                                                        "type": "string"
                                                     },
                                                     "color": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
+                                                        "description": "Label color in hsla code",
+                                                        "type": "string"
                                                     },
                                                     "visible": {
+                                                        "description": "Label visibility",
                                                         "type": "string",
                                                         "enum": [
                                                             "public",
@@ -271,6 +234,7 @@
                                                         ]
                                                     },
                                                     "createdAt": {
+                                                        "description": "Label creation timestamp in ISO format",
                                                         "type": "string"
                                                     }
                                                 },
@@ -372,25 +336,23 @@
                                                 "type": "object",
                                                 "properties": {
                                                     "id": {
+                                                        "description": "Category UUID",
                                                         "type": "string"
                                                     },
                                                     "organizationId": {
+                                                        "description": "ID of the organization this category belongs to",
                                                         "type": "string"
                                                     },
                                                     "name": {
+                                                        "description": "Category name",
                                                         "type": "string"
                                                     },
                                                     "color": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
+                                                        "description": "Category color in hsla code",
+                                                        "type": "string"
                                                     },
                                                     "icon": {
+                                                        "description": "Category icon URL or identifier",
                                                         "anyOf": [
                                                             {
                                                                 "type": "string"
@@ -401,6 +363,7 @@
                                                         ]
                                                     },
                                                     "createdAt": {
+                                                        "description": "Category creation timestamp in ISO format",
                                                         "type": "string"
                                                     }
                                                 },
@@ -522,95 +485,53 @@
                                                 "type": "object",
                                                 "properties": {
                                                     "id": {
+                                                        "description": "Task UUID",
                                                         "type": "string"
                                                     },
                                                     "organizationId": {
+                                                        "description": "ID of the organization this task belongs to",
                                                         "type": "string"
                                                     },
                                                     "shortId": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "integer",
-                                                                "minimum": -2147483648,
-                                                                "maximum": 2147483647
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
+                                                        "description": "Short numeric ID unique within the organization",
+                                                        "type": "number"
                                                     },
                                                     "visible": {
+                                                        "description": "Task visibility",
                                                         "type": "string",
                                                         "enum": [
-                                                            "public",
-                                                            "private"
+                                                            "public"
                                                         ]
                                                     },
                                                     "createdAt": {
+                                                        "description": "Task creation timestamp in ISO format",
                                                         "type": "string"
                                                     },
                                                     "updatedAt": {
+                                                        "description": "Task last update timestamp in ISO format",
                                                         "type": "string"
                                                     },
                                                     "title": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
+                                                        "description": "Task title",
+                                                        "type": "string"
                                                     },
                                                     "description": {
-                                                        "anyOf": [
-                                                            {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "type": "string"
-                                                                            },
-                                                                            {
-                                                                                "type": "number"
-                                                                            },
-                                                                            {
-                                                                                "type": "boolean"
-                                                                            },
-                                                                            {
-                                                                                "type": "null"
-                                                                            }
-                                                                        ]
-                                                                    },
-                                                                    {
-                                                                        "type": "object",
-                                                                        "propertyNames": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "additionalProperties": {}
-                                                                    },
-                                                                    {
-                                                                        "type": "array",
-                                                                        "items": {}
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
+                                                        "description": "Task description in blocknote JSON format",
+                                                        "type": "string"
                                                     },
                                                     "status": {
+                                                        "description": "Task status",
                                                         "type": "string",
                                                         "enum": [
                                                             "backlog",
                                                             "todo",
                                                             "in-progress",
                                                             "done",
-                                                            "canceled"
+                                                            "cancelled"
                                                         ]
                                                     },
                                                     "priority": {
+                                                        "description": "Task priority",
                                                         "type": "string",
                                                         "enum": [
                                                             "none",
@@ -621,9 +542,48 @@
                                                         ]
                                                     },
                                                     "createdBy": {
+                                                        "description": "User who created the task",
                                                         "anyOf": [
                                                             {
-                                                                "type": "string"
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "description": "User ID",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "name": {
+                                                                        "description": "User name",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "displayName": {
+                                                                        "description": "User display name",
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "image": {
+                                                                        "description": "User avatar URL",
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "name",
+                                                                    "displayName",
+                                                                    "image"
+                                                                ]
                                                             },
                                                             {
                                                                 "type": "null"
@@ -631,16 +591,104 @@
                                                         ]
                                                     },
                                                     "category": {
+                                                        "description": "Category associated with the task",
                                                         "anyOf": [
                                                             {
-                                                                "type": "string"
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "description": "Category UUID",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "organizationId": {
+                                                                        "description": "ID of the organization this category belongs to",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "name": {
+                                                                        "description": "Category name",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "color": {
+                                                                        "description": "Category color in hsla code",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "icon": {
+                                                                        "description": "Category icon URL or identifier",
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "createdAt": {
+                                                                        "description": "Category creation timestamp in ISO format",
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "organizationId",
+                                                                    "name",
+                                                                    "color",
+                                                                    "icon",
+                                                                    "createdAt"
+                                                                ]
                                                             },
                                                             {
                                                                 "type": "null"
                                                             }
                                                         ]
                                                     },
+                                                    "labels": {
+                                                        "description": "List of labels associated with the task",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "description": "Label UUID",
+                                                                    "type": "string"
+                                                                },
+                                                                "organizationId": {
+                                                                    "description": "ID of the organization this label belongs to",
+                                                                    "type": "string"
+                                                                },
+                                                                "name": {
+                                                                    "description": "Label name",
+                                                                    "type": "string"
+                                                                },
+                                                                "color": {
+                                                                    "description": "Label color in hsla code",
+                                                                    "type": "string"
+                                                                },
+                                                                "visible": {
+                                                                    "description": "Label visibility",
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "public",
+                                                                        "private"
+                                                                    ]
+                                                                },
+                                                                "createdAt": {
+                                                                    "description": "Label creation timestamp in ISO format",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "organizationId",
+                                                                "name",
+                                                                "color",
+                                                                "visible",
+                                                                "createdAt"
+                                                            ]
+                                                        }
+                                                    },
                                                     "releaseId": {
+                                                        "description": "ID of the release this task is associated with",
                                                         "anyOf": [
                                                             {
                                                                 "type": "string"
@@ -651,11 +699,11 @@
                                                         ]
                                                     },
                                                     "voteCount": {
-                                                        "type": "integer",
-                                                        "minimum": -2147483648,
-                                                        "maximum": 2147483647
+                                                        "description": "Number of votes the task has received",
+                                                        "type": "number"
                                                     },
                                                     "parentId": {
+                                                        "description": "ID of the parent task if this is a subtask",
                                                         "anyOf": [
                                                             {
                                                                 "type": "string"
@@ -664,24 +712,13 @@
                                                                 "type": "null"
                                                             }
                                                         ]
-                                                    },
-                                                    "aiSummaryHash": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "aiSummaryGeneratedAt": {
-                                                        "type": "string"
                                                     },
                                                     "descriptionHtml": {
+                                                        "description": "Task description rendered as HTML",
                                                         "type": "string"
                                                     },
                                                     "descriptionMarkdown": {
+                                                        "description": "Task description rendered as Markdown",
                                                         "type": "string"
                                                     }
                                                 },
@@ -698,11 +735,10 @@
                                                     "priority",
                                                     "createdBy",
                                                     "category",
+                                                    "labels",
                                                     "releaseId",
                                                     "voteCount",
                                                     "parentId",
-                                                    "aiSummaryHash",
-                                                    "aiSummaryGeneratedAt",
                                                     "descriptionHtml",
                                                     "descriptionMarkdown"
                                                 ]
@@ -868,95 +904,53 @@
                                             "type": "object",
                                             "properties": {
                                                 "id": {
+                                                    "description": "Task UUID",
                                                     "type": "string"
                                                 },
                                                 "organizationId": {
+                                                    "description": "ID of the organization this task belongs to",
                                                     "type": "string"
                                                 },
                                                 "shortId": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "integer",
-                                                            "minimum": -2147483648,
-                                                            "maximum": 2147483647
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
+                                                    "description": "Short numeric ID unique within the organization",
+                                                    "type": "number"
                                                 },
                                                 "visible": {
+                                                    "description": "Task visibility",
                                                     "type": "string",
                                                     "enum": [
-                                                        "public",
-                                                        "private"
+                                                        "public"
                                                     ]
                                                 },
                                                 "createdAt": {
+                                                    "description": "Task creation timestamp in ISO format",
                                                     "type": "string"
                                                 },
                                                 "updatedAt": {
+                                                    "description": "Task last update timestamp in ISO format",
                                                     "type": "string"
                                                 },
                                                 "title": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
+                                                    "description": "Task title",
+                                                    "type": "string"
                                                 },
                                                 "description": {
-                                                    "anyOf": [
-                                                        {
-                                                            "anyOf": [
-                                                                {
-                                                                    "anyOf": [
-                                                                        {
-                                                                            "type": "string"
-                                                                        },
-                                                                        {
-                                                                            "type": "number"
-                                                                        },
-                                                                        {
-                                                                            "type": "boolean"
-                                                                        },
-                                                                        {
-                                                                            "type": "null"
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "type": "object",
-                                                                    "propertyNames": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "additionalProperties": {}
-                                                                },
-                                                                {
-                                                                    "type": "array",
-                                                                    "items": {}
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
+                                                    "description": "Task description in blocknote JSON format",
+                                                    "type": "string"
                                                 },
                                                 "status": {
+                                                    "description": "Task status",
                                                     "type": "string",
                                                     "enum": [
                                                         "backlog",
                                                         "todo",
                                                         "in-progress",
                                                         "done",
-                                                        "canceled"
+                                                        "cancelled"
                                                     ]
                                                 },
                                                 "priority": {
+                                                    "description": "Task priority",
                                                     "type": "string",
                                                     "enum": [
                                                         "none",
@@ -967,9 +961,48 @@
                                                     ]
                                                 },
                                                 "createdBy": {
+                                                    "description": "User who created the task",
                                                     "anyOf": [
                                                         {
-                                                            "type": "string"
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "description": "User ID",
+                                                                    "type": "string"
+                                                                },
+                                                                "name": {
+                                                                    "description": "User name",
+                                                                    "type": "string"
+                                                                },
+                                                                "displayName": {
+                                                                    "description": "User display name",
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "image": {
+                                                                    "description": "User avatar URL",
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "name",
+                                                                "displayName",
+                                                                "image"
+                                                            ]
                                                         },
                                                         {
                                                             "type": "null"
@@ -977,16 +1010,104 @@
                                                     ]
                                                 },
                                                 "category": {
+                                                    "description": "Category associated with the task",
                                                     "anyOf": [
                                                         {
-                                                            "type": "string"
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "description": "Category UUID",
+                                                                    "type": "string"
+                                                                },
+                                                                "organizationId": {
+                                                                    "description": "ID of the organization this category belongs to",
+                                                                    "type": "string"
+                                                                },
+                                                                "name": {
+                                                                    "description": "Category name",
+                                                                    "type": "string"
+                                                                },
+                                                                "color": {
+                                                                    "description": "Category color in hsla code",
+                                                                    "type": "string"
+                                                                },
+                                                                "icon": {
+                                                                    "description": "Category icon URL or identifier",
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "createdAt": {
+                                                                    "description": "Category creation timestamp in ISO format",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "organizationId",
+                                                                "name",
+                                                                "color",
+                                                                "icon",
+                                                                "createdAt"
+                                                            ]
                                                         },
                                                         {
                                                             "type": "null"
                                                         }
                                                     ]
                                                 },
+                                                "labels": {
+                                                    "description": "List of labels associated with the task",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "description": "Label UUID",
+                                                                "type": "string"
+                                                            },
+                                                            "organizationId": {
+                                                                "description": "ID of the organization this label belongs to",
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "description": "Label name",
+                                                                "type": "string"
+                                                            },
+                                                            "color": {
+                                                                "description": "Label color in hsla code",
+                                                                "type": "string"
+                                                            },
+                                                            "visible": {
+                                                                "description": "Label visibility",
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "public",
+                                                                    "private"
+                                                                ]
+                                                            },
+                                                            "createdAt": {
+                                                                "description": "Label creation timestamp in ISO format",
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "organizationId",
+                                                            "name",
+                                                            "color",
+                                                            "visible",
+                                                            "createdAt"
+                                                        ]
+                                                    }
+                                                },
                                                 "releaseId": {
+                                                    "description": "ID of the release this task is associated with",
                                                     "anyOf": [
                                                         {
                                                             "type": "string"
@@ -997,11 +1118,11 @@
                                                     ]
                                                 },
                                                 "voteCount": {
-                                                    "type": "integer",
-                                                    "minimum": -2147483648,
-                                                    "maximum": 2147483647
+                                                    "description": "Number of votes the task has received",
+                                                    "type": "number"
                                                 },
                                                 "parentId": {
+                                                    "description": "ID of the parent task if this is a subtask",
                                                     "anyOf": [
                                                         {
                                                             "type": "string"
@@ -1010,24 +1131,13 @@
                                                             "type": "null"
                                                         }
                                                     ]
-                                                },
-                                                "aiSummaryHash": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
-                                                },
-                                                "aiSummaryGeneratedAt": {
-                                                    "type": "string"
                                                 },
                                                 "descriptionHtml": {
+                                                    "description": "Task description rendered as HTML",
                                                     "type": "string"
                                                 },
                                                 "descriptionMarkdown": {
+                                                    "description": "Task description rendered as Markdown",
                                                     "type": "string"
                                                 }
                                             },
@@ -1044,11 +1154,10 @@
                                                 "priority",
                                                 "createdBy",
                                                 "category",
+                                                "labels",
                                                 "releaseId",
                                                 "voteCount",
                                                 "parentId",
-                                                "aiSummaryHash",
-                                                "aiSummaryGeneratedAt",
                                                 "descriptionHtml",
                                                 "descriptionMarkdown"
                                             ]
@@ -1169,66 +1278,38 @@
                                                 "type": "object",
                                                 "properties": {
                                                     "id": {
+                                                        "description": "Comment UUID",
                                                         "type": "string"
                                                     },
                                                     "organizationId": {
+                                                        "description": "ID of the organization this comment belongs to",
                                                         "type": "string"
                                                     },
                                                     "taskId": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
+                                                        "description": "ID of the task this comment is associated with",
+                                                        "type": "string"
                                                     },
                                                     "createdAt": {
+                                                        "description": "Comment creation timestamp in ISO format",
                                                         "type": "string"
                                                     },
                                                     "updatedAt": {
+                                                        "description": "Comment last update timestamp in ISO format",
                                                         "type": "string"
                                                     },
                                                     "content": {
-                                                        "anyOf": [
-                                                            {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "type": "string"
-                                                                            },
-                                                                            {
-                                                                                "type": "number"
-                                                                            },
-                                                                            {
-                                                                                "type": "boolean"
-                                                                            },
-                                                                            {
-                                                                                "type": "null"
-                                                                            }
-                                                                        ]
-                                                                    },
-                                                                    {
-                                                                        "type": "object",
-                                                                        "propertyNames": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "additionalProperties": {}
-                                                                    },
-                                                                    {
-                                                                        "type": "array",
-                                                                        "items": {}
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
+                                                        "description": "Comment content in BlockNote JSON format"
+                                                    },
+                                                    "contentHtml": {
+                                                        "description": "Comment content rendered as HTML",
+                                                        "type": "string"
+                                                    },
+                                                    "contentMarkdown": {
+                                                        "description": "Comment content rendered as Markdown",
+                                                        "type": "string"
                                                     },
                                                     "createdBy": {
+                                                        "description": "User who created the comment, or null if user data is not available",
                                                         "anyOf": [
                                                             {
                                                                 "type": "object",
@@ -1265,6 +1346,7 @@
                                                         ]
                                                     },
                                                     "visibility": {
+                                                        "description": "Comment visibility level",
                                                         "type": "string",
                                                         "enum": [
                                                             "public",
@@ -1272,6 +1354,7 @@
                                                         ]
                                                     },
                                                     "source": {
+                                                        "description": "Source of the comment",
                                                         "type": "string",
                                                         "enum": [
                                                             "sayr",
@@ -1279,6 +1362,7 @@
                                                         ]
                                                     },
                                                     "parentId": {
+                                                        "description": "ID of the parent comment if this is a reply, null if top-level",
                                                         "anyOf": [
                                                             {
                                                                 "type": "string"
@@ -1287,66 +1371,6 @@
                                                                 "type": "null"
                                                             }
                                                         ]
-                                                    },
-                                                    "externalAuthorLogin": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "externalAuthorUrl": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "externalIssueNumber": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "integer",
-                                                                "minimum": -2147483648,
-                                                                "maximum": 2147483647
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "externalCommentId": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "integer",
-                                                                "minimum": -9007199254740991,
-                                                                "maximum": 9007199254740991
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "externalCommentUrl": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "contentHtml": {
-                                                        "type": "string"
-                                                    },
-                                                    "contentMarkdown": {
-                                                        "type": "string"
                                                     },
                                                     "reactions": {
                                                         "type": "object",
@@ -1392,16 +1416,12 @@
                                                     "createdAt",
                                                     "updatedAt",
                                                     "content",
+                                                    "contentHtml",
+                                                    "contentMarkdown",
+                                                    "createdBy",
                                                     "visibility",
                                                     "source",
-                                                    "parentId",
-                                                    "externalAuthorLogin",
-                                                    "externalAuthorUrl",
-                                                    "externalIssueNumber",
-                                                    "externalCommentId",
-                                                    "externalCommentUrl",
-                                                    "contentHtml",
-                                                    "contentMarkdown"
+                                                    "parentId"
                                                 ]
                                             }
                                         },
@@ -1527,13 +1547,43 @@
             "get": {
                 "operationId": "getOrganization:org_slugReleases",
                 "summary": "Get Organization Releases",
-                "description": "Retrieve all releases for the specified organization.",
+                "description": "Retrieve paginated releases for the specified organization.",
                 "tags": [
                     "Organization"
                 ],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50,
+                            "default": 5
+                        },
+                        "description": "Number of items per page"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Page number (starting from 1)"
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "org_slug",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Paginated list",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1549,56 +1599,27 @@
                                                 "type": "object",
                                                 "properties": {
                                                     "id": {
+                                                        "description": "Release UUID",
                                                         "type": "string"
                                                     },
                                                     "organizationId": {
+                                                        "description": "ID of the organization this release belongs to",
                                                         "type": "string"
                                                     },
                                                     "name": {
+                                                        "description": "Release name",
                                                         "type": "string"
                                                     },
                                                     "slug": {
+                                                        "description": "Release slug used in URLs",
                                                         "type": "string"
                                                     },
                                                     "description": {
-                                                        "anyOf": [
-                                                            {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "type": "string"
-                                                                            },
-                                                                            {
-                                                                                "type": "number"
-                                                                            },
-                                                                            {
-                                                                                "type": "boolean"
-                                                                            },
-                                                                            {
-                                                                                "type": "null"
-                                                                            }
-                                                                        ]
-                                                                    },
-                                                                    {
-                                                                        "type": "object",
-                                                                        "propertyNames": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "additionalProperties": {}
-                                                                    },
-                                                                    {
-                                                                        "type": "array",
-                                                                        "items": {}
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
+                                                        "description": "Release description in blocknote JSON format",
+                                                        "type": "string"
                                                     },
                                                     "status": {
+                                                        "description": "Release status",
                                                         "type": "string",
                                                         "enum": [
                                                             "planned",
@@ -1608,12 +1629,11 @@
                                                         ]
                                                     },
                                                     "targetDate": {
+                                                        "description": "Release target date in ISO format",
                                                         "type": "string"
                                                     },
                                                     "releasedAt": {
-                                                        "type": "string"
-                                                    },
-                                                    "color": {
+                                                        "description": "Release date in ISO format, null if not released yet",
                                                         "anyOf": [
                                                             {
                                                                 "type": "string"
@@ -1623,7 +1643,12 @@
                                                             }
                                                         ]
                                                     },
+                                                    "color": {
+                                                        "description": "Release color in hsla code",
+                                                        "type": "string"
+                                                    },
                                                     "icon": {
+                                                        "description": "Release icon URL or identifier",
                                                         "anyOf": [
                                                             {
                                                                 "type": "string"
@@ -1634,9 +1659,24 @@
                                                         ]
                                                     },
                                                     "createdBy": {
+                                                        "description": "User who created the release, or null if user data is not available",
                                                         "anyOf": [
                                                             {
-                                                                "type": "string"
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "description": "User ID",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "name": {
+                                                                        "description": "User name",
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "name"
+                                                                ]
                                                             },
                                                             {
                                                                 "type": "null"
@@ -1644,9 +1684,11 @@
                                                         ]
                                                     },
                                                     "createdAt": {
+                                                        "description": "Release creation timestamp in ISO format",
                                                         "type": "string"
                                                     },
                                                     "updatedAt": {
+                                                        "description": "Release last update timestamp in ISO format",
                                                         "type": "string"
                                                     }
                                                 },
@@ -1666,11 +1708,65 @@
                                                     "updatedAt"
                                                 ]
                                             }
+                                        },
+                                        "pagination": {
+                                            "type": "object",
+                                            "properties": {
+                                                "limit": {
+                                                    "type": "number"
+                                                },
+                                                "page": {
+                                                    "type": "number"
+                                                },
+                                                "totalPages": {
+                                                    "type": "number"
+                                                },
+                                                "totalItems": {
+                                                    "type": "number"
+                                                },
+                                                "hasMore": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "limit",
+                                                "page",
+                                                "totalPages",
+                                                "totalItems",
+                                                "hasMore"
+                                            ]
                                         }
                                     },
                                     "required": [
                                         "success",
-                                        "data"
+                                        "data",
+                                        "pagination"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid pagination parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
                                     ]
                                 }
                             }
@@ -1701,18 +1797,34 @@
                                 }
                             }
                         }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
                     }
-                },
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "path",
-                        "name": "org_slug",
-                        "required": true
-                    }
-                ]
+                }
             }
         },
         "/organization/{org_slug}/releases/{release_slug}": {
@@ -1739,56 +1851,27 @@
                                             "type": "object",
                                             "properties": {
                                                 "id": {
+                                                    "description": "Release UUID",
                                                     "type": "string"
                                                 },
                                                 "organizationId": {
+                                                    "description": "ID of the organization this release belongs to",
                                                     "type": "string"
                                                 },
                                                 "name": {
+                                                    "description": "Release name",
                                                     "type": "string"
                                                 },
                                                 "slug": {
+                                                    "description": "Release slug used in URLs",
                                                     "type": "string"
                                                 },
                                                 "description": {
-                                                    "anyOf": [
-                                                        {
-                                                            "anyOf": [
-                                                                {
-                                                                    "anyOf": [
-                                                                        {
-                                                                            "type": "string"
-                                                                        },
-                                                                        {
-                                                                            "type": "number"
-                                                                        },
-                                                                        {
-                                                                            "type": "boolean"
-                                                                        },
-                                                                        {
-                                                                            "type": "null"
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "type": "object",
-                                                                    "propertyNames": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "additionalProperties": {}
-                                                                },
-                                                                {
-                                                                    "type": "array",
-                                                                    "items": {}
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
+                                                    "description": "Release description in blocknote JSON format",
+                                                    "type": "string"
                                                 },
                                                 "status": {
+                                                    "description": "Release status",
                                                     "type": "string",
                                                     "enum": [
                                                         "planned",
@@ -1798,12 +1881,11 @@
                                                     ]
                                                 },
                                                 "targetDate": {
+                                                    "description": "Release target date in ISO format",
                                                     "type": "string"
                                                 },
                                                 "releasedAt": {
-                                                    "type": "string"
-                                                },
-                                                "color": {
+                                                    "description": "Release date in ISO format, null if not released yet",
                                                     "anyOf": [
                                                         {
                                                             "type": "string"
@@ -1813,7 +1895,12 @@
                                                         }
                                                     ]
                                                 },
+                                                "color": {
+                                                    "description": "Release color in hsla code",
+                                                    "type": "string"
+                                                },
                                                 "icon": {
+                                                    "description": "Release icon URL or identifier",
                                                     "anyOf": [
                                                         {
                                                             "type": "string"
@@ -1824,9 +1911,24 @@
                                                     ]
                                                 },
                                                 "createdBy": {
+                                                    "description": "User who created the release, or null if user data is not available",
                                                     "anyOf": [
                                                         {
-                                                            "type": "string"
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "description": "User ID",
+                                                                    "type": "string"
+                                                                },
+                                                                "name": {
+                                                                    "description": "User name",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "name"
+                                                            ]
                                                         },
                                                         {
                                                             "type": "null"
@@ -1834,9 +1936,11 @@
                                                     ]
                                                 },
                                                 "createdAt": {
+                                                    "description": "Release creation timestamp in ISO format",
                                                     "type": "string"
                                                 },
                                                 "updatedAt": {
+                                                    "description": "Release last update timestamp in ISO format",
                                                     "type": "string"
                                                 },
                                                 "tasks": {
@@ -1845,95 +1949,53 @@
                                                         "type": "object",
                                                         "properties": {
                                                             "id": {
+                                                                "description": "Task UUID",
                                                                 "type": "string"
                                                             },
                                                             "organizationId": {
+                                                                "description": "ID of the organization this task belongs to",
                                                                 "type": "string"
                                                             },
                                                             "shortId": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "type": "integer",
-                                                                        "minimum": -2147483648,
-                                                                        "maximum": 2147483647
-                                                                    },
-                                                                    {
-                                                                        "type": "null"
-                                                                    }
-                                                                ]
+                                                                "description": "Short numeric ID unique within the organization",
+                                                                "type": "number"
                                                             },
                                                             "visible": {
+                                                                "description": "Task visibility",
                                                                 "type": "string",
                                                                 "enum": [
-                                                                    "public",
-                                                                    "private"
+                                                                    "public"
                                                                 ]
                                                             },
                                                             "createdAt": {
+                                                                "description": "Task creation timestamp in ISO format",
                                                                 "type": "string"
                                                             },
                                                             "updatedAt": {
+                                                                "description": "Task last update timestamp in ISO format",
                                                                 "type": "string"
                                                             },
                                                             "title": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "type": "null"
-                                                                    }
-                                                                ]
+                                                                "description": "Task title",
+                                                                "type": "string"
                                                             },
                                                             "description": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "anyOf": [
-                                                                                    {
-                                                                                        "type": "string"
-                                                                                    },
-                                                                                    {
-                                                                                        "type": "number"
-                                                                                    },
-                                                                                    {
-                                                                                        "type": "boolean"
-                                                                                    },
-                                                                                    {
-                                                                                        "type": "null"
-                                                                                    }
-                                                                                ]
-                                                                            },
-                                                                            {
-                                                                                "type": "object",
-                                                                                "propertyNames": {
-                                                                                    "type": "string"
-                                                                                },
-                                                                                "additionalProperties": {}
-                                                                            },
-                                                                            {
-                                                                                "type": "array",
-                                                                                "items": {}
-                                                                            }
-                                                                        ]
-                                                                    },
-                                                                    {
-                                                                        "type": "null"
-                                                                    }
-                                                                ]
+                                                                "description": "Task description in blocknote JSON format",
+                                                                "type": "string"
                                                             },
                                                             "status": {
+                                                                "description": "Task status",
                                                                 "type": "string",
                                                                 "enum": [
                                                                     "backlog",
                                                                     "todo",
                                                                     "in-progress",
                                                                     "done",
-                                                                    "canceled"
+                                                                    "cancelled"
                                                                 ]
                                                             },
                                                             "priority": {
+                                                                "description": "Task priority",
                                                                 "type": "string",
                                                                 "enum": [
                                                                     "none",
@@ -1944,9 +2006,48 @@
                                                                 ]
                                                             },
                                                             "createdBy": {
+                                                                "description": "User who created the task",
                                                                 "anyOf": [
                                                                     {
-                                                                        "type": "string"
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "description": "User ID",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "name": {
+                                                                                "description": "User name",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "displayName": {
+                                                                                "description": "User display name",
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "image": {
+                                                                                "description": "User avatar URL",
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "id",
+                                                                            "name",
+                                                                            "displayName",
+                                                                            "image"
+                                                                        ]
                                                                     },
                                                                     {
                                                                         "type": "null"
@@ -1954,16 +2055,104 @@
                                                                 ]
                                                             },
                                                             "category": {
+                                                                "description": "Category associated with the task",
                                                                 "anyOf": [
                                                                     {
-                                                                        "type": "string"
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "description": "Category UUID",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "organizationId": {
+                                                                                "description": "ID of the organization this category belongs to",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "name": {
+                                                                                "description": "Category name",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "color": {
+                                                                                "description": "Category color in hsla code",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "icon": {
+                                                                                "description": "Category icon URL or identifier",
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "createdAt": {
+                                                                                "description": "Category creation timestamp in ISO format",
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "id",
+                                                                            "organizationId",
+                                                                            "name",
+                                                                            "color",
+                                                                            "icon",
+                                                                            "createdAt"
+                                                                        ]
                                                                     },
                                                                     {
                                                                         "type": "null"
                                                                     }
                                                                 ]
                                                             },
+                                                            "labels": {
+                                                                "description": "List of labels associated with the task",
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "id": {
+                                                                            "description": "Label UUID",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "organizationId": {
+                                                                            "description": "ID of the organization this label belongs to",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "name": {
+                                                                            "description": "Label name",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "color": {
+                                                                            "description": "Label color in hsla code",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "visible": {
+                                                                            "description": "Label visibility",
+                                                                            "type": "string",
+                                                                            "enum": [
+                                                                                "public",
+                                                                                "private"
+                                                                            ]
+                                                                        },
+                                                                        "createdAt": {
+                                                                            "description": "Label creation timestamp in ISO format",
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "id",
+                                                                        "organizationId",
+                                                                        "name",
+                                                                        "color",
+                                                                        "visible",
+                                                                        "createdAt"
+                                                                    ]
+                                                                }
+                                                            },
                                                             "releaseId": {
+                                                                "description": "ID of the release this task is associated with",
                                                                 "anyOf": [
                                                                     {
                                                                         "type": "string"
@@ -1974,11 +2163,11 @@
                                                                 ]
                                                             },
                                                             "voteCount": {
-                                                                "type": "integer",
-                                                                "minimum": -2147483648,
-                                                                "maximum": 2147483647
+                                                                "description": "Number of votes the task has received",
+                                                                "type": "number"
                                                             },
                                                             "parentId": {
+                                                                "description": "ID of the parent task if this is a subtask",
                                                                 "anyOf": [
                                                                     {
                                                                         "type": "string"
@@ -1987,24 +2176,13 @@
                                                                         "type": "null"
                                                                     }
                                                                 ]
-                                                            },
-                                                            "aiSummaryHash": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "type": "null"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            "aiSummaryGeneratedAt": {
-                                                                "type": "string"
                                                             },
                                                             "descriptionHtml": {
+                                                                "description": "Task description rendered as HTML",
                                                                 "type": "string"
                                                             },
                                                             "descriptionMarkdown": {
+                                                                "description": "Task description rendered as Markdown",
                                                                 "type": "string"
                                                             }
                                                         },
@@ -2021,11 +2199,10 @@
                                                             "priority",
                                                             "createdBy",
                                                             "category",
+                                                            "labels",
                                                             "releaseId",
                                                             "voteCount",
                                                             "parentId",
-                                                            "aiSummaryHash",
-                                                            "aiSummaryGeneratedAt",
                                                             "descriptionHtml",
                                                             "descriptionMarkdown"
                                                         ]

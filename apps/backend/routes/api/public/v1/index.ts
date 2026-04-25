@@ -72,43 +72,29 @@ apiPublicRouteV1.get(
 	})
 );
 
-
-/**
- * Public user inside organization member
- */
-const OrganizationMemberUserSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	image: z.string().nullable(),
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+const OrganizationAPISchema = z.object({
+	id: z.string().describe("Organization UUID"),
+	slug: z.string().describe("Organization slug used in URLs"),
+	name: z.string().describe("Organization name"),
+	logo: z.string().nullable().describe("Organization logo URL"),
+	bannerImg: z.string().nullable().describe("Organization banner image URL"),
+	eventsUrl: z.string().describe("Public: URL to fetch organization events for live updates"),
+	members: z
+		.array(
+			z.object({
+				id: z.string().describe("User ID"),
+				name: z.string().describe("member name"),
+				image: z.string().nullable().describe("avatar URL"),
+			})
+		)
+		.describe("List of organization members with public info"),
 });
-
-/**
- * Organization member
- */
-const OrganizationMemberSchema = z.object({
-	id: z.string(),
-	userId: z.string(),
-	organizationId: z.string(),
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	user: OrganizationMemberUserSchema,
-});
-
-//@ts-expect-error
-const OrganizationSchema = createSelectSchema(schema.organization)
-	.omit({ privateId: true, isSystemOrg: true, createdBy: true, polarCustomerId: true, polarSubscriptionId: true, seatCount: true, currentPeriodEnd: true, settings: true, plan: true })
-	.extend({
-		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-		eventsUrl: z.string(),
-		members: z.array(OrganizationMemberSchema),
-	});
 apiPublicRouteV1.get(
 	"/organization/:org_slug",
 	describeOkNotFound({
 		summary: "Get organization",
 		description: "Retrieve public information for an organization identified by its slug.",
-		dataSchema: OrganizationSchema,
+		dataSchema: OrganizationAPISchema,
 		parameters: [
 			{
 				name: "org_slug",
@@ -124,7 +110,7 @@ apiPublicRouteV1.get(
 		const recordWideError = c.get("recordWideError");
 		const orgSlug = c.req.param("org_slug");
 
-		const organization = await traceAsync("organization.public.fetch", () => getOrganizationPublic(orgSlug), {
+		const organization = await traceAsync("public.organization.fetch", () => getOrganizationPublic(orgSlug), {
 			description: "Fetching public organization by slug",
 			data: { orgSlug },
 			onSuccess: (result) =>
@@ -142,7 +128,7 @@ apiPublicRouteV1.get(
 
 		if (!organization) {
 			await recordWideError({
-				name: "organization.public.notfound",
+				name: "public.organization.notfound",
 				error: new Error("Organization not found"),
 				code: "NOT_FOUND",
 				message: "No organization found for given slug",
@@ -150,45 +136,40 @@ apiPublicRouteV1.get(
 			});
 			return c.json(errorResponse("No organization found"), 404);
 		}
-
-		// biome-ignore lint/correctness/noUnusedVariables: <needed>
-		const { privateId, isSystemOrg, createdBy, polarCustomerId, polarSubscriptionId, seatCount, currentPeriodEnd, plan, settings, ...publicOrg } = organization;
 		const sanitizedMembers = organization.members.map((m) => ({
+			name: m.user.name,
+			image: m.user.image,
 			id: m.id,
-			userId: m.userId,
-			organizationId: m.organizationId,
-			createdAt: m.createdAt,
-			user: m.user,
-			teams: m.teams?.map((t) => ({
-				id: t.id,
-				memberId: t.memberId,
-				teamId: t.teamId,
-				team: {
-					id: t.team.id,
-					name: t.team.name,
-				},
-			})),
 		}));
 		return c.json(
 			successResponse({
-				...publicOrg,
+				id: organization.id,
+				slug: organization.slug,
+				name: organization.name,
+				logo: organization.logo,
+				bannerImg: organization.bannerImg,
 				members: sanitizedMembers,
-				eventsUrl: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/events?orgId=${publicOrg.id}&ref=publicApi`,
+				eventsUrl: `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468/api` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}/events?orgId=${organization.id}&ref=publicApi`,
 			})
 		);
 	}
 );
 
-//@ts-expect-error
-const LabelSchema = createSelectSchema(schema.label).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+const LabelAPISchema = z.object({
+	id: z.string().describe("Label UUID"),
+	organizationId: z.string().describe("ID of the organization this label belongs to"),
+	name: z.string().describe("Label name"),
+	color: z.string().describe("Label color in hsla code"),
+	visible: z.enum(["public", "private"]).describe("Label visibility"),
+	createdAt: z.string().describe("Label creation timestamp in ISO format"),
 });
+
 apiPublicRouteV1.get(
 	"/organization/:org_slug/labels",
 	describeOkNotFound({
 		summary: "List organization labels",
 		description: "Retrieve all public labels associated with an organization.",
-		dataSchema: z.array(LabelSchema),
+		dataSchema: z.array(LabelAPISchema),
 		parameters: [
 			{
 				name: "org_slug",
@@ -204,7 +185,7 @@ apiPublicRouteV1.get(
 		const recordWideError = c.get("recordWideError");
 		const orgSlug = c.req.param("org_slug");
 
-		const organization = await traceAsync("organization.labels.org_lookup", () => getOrganizationPublic(orgSlug), {
+		const organization = await traceAsync("public.organization.labels.org_lookup", () => getOrganizationPublic(orgSlug), {
 			description: "Finding organization by slug",
 			data: { orgSlug },
 		});
@@ -215,7 +196,7 @@ apiPublicRouteV1.get(
 
 		if (!organization) {
 			await recordWideError({
-				name: "organization.labels.notfound",
+				name: "public.organization.labels.notfound",
 				error: new Error("Organization not found"),
 				code: "NOT_FOUND",
 				message: "No organization found for labels",
@@ -224,7 +205,7 @@ apiPublicRouteV1.get(
 			return c.json(errorResponse("No organization found"), 404);
 		}
 
-		const labels = await traceAsync("organization.labels.fetch", () => db.query.label.findMany({
+		const labels = await traceAsync("public.organization.labels.fetch", () => db.query.label.findMany({
 			where: (label) => and(eq(label.organizationId, organization.id), eq(label.visible, "public")),
 		}), {
 			description: "Fetching organization labels",
@@ -239,16 +220,21 @@ apiPublicRouteV1.get(
 	}
 );
 
-//@ts-expect-error
-const CategorySchema = createSelectSchema(schema.category).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-});
+const categoriesAPISchema = z.object({
+	id: z.string().describe("Category UUID"),
+	organizationId: z.string().describe("ID of the organization this category belongs to"),
+	name: z.string().describe("Category name"),
+	color: z.string().describe("Category color in hsla code"),
+	icon: z.string().nullable().describe("Category icon URL or identifier"),
+	createdAt: z.string().describe("Category creation timestamp in ISO format"),
+})
+
 apiPublicRouteV1.get(
 	"/organization/:org_slug/categories",
 	describeOkNotFound({
 		summary: "List organization categories",
 		description: "Retrieve all public categories associated with an organization.",
-		dataSchema: z.array(CategorySchema),
+		dataSchema: z.array(categoriesAPISchema),
 		parameters: [
 			{
 				name: "org_slug",
@@ -318,20 +304,37 @@ apiPublicRouteV1.get(
 	}
 );
 
-//@ts-expect-error
-const TaskSchema = createSelectSchema(schema.task).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	descriptionHtml: z.string(),
-	descriptionMarkdown: z.string(),
-	aiSummaryGeneratedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-});
+const TaskAPISchema = z.object({
+	id: z.string().describe("Task UUID"),
+	organizationId: z.string().describe("ID of the organization this task belongs to"),
+	shortId: z.number().describe("Short numeric ID unique within the organization"),
+	visible: z.enum(["public"]).describe("Task visibility"),
+	createdAt: z.string().describe("Task creation timestamp in ISO format"),
+	updatedAt: z.string().describe("Task last update timestamp in ISO format"),
+	title: z.string().describe("Task title"),
+	description: z.string().describe("Task description in blocknote JSON format"),
+	status: z.enum(["backlog", "todo", "in-progress", "done", "cancelled"]).describe("Task status"),
+	priority: z.enum(["none", "low", "medium", "high", "urgent"]).describe("Task priority"),
+	createdBy: z.object({
+		id: z.string().describe("User ID"),
+		name: z.string().describe("User name"),
+		displayName: z.string().nullable().describe("User display name"),
+		image: z.string().nullable().describe("User avatar URL"),
+	}).nullable().describe("User who created the task"),
+	category: categoriesAPISchema.nullable().describe("Category associated with the task"),
+	labels: LabelAPISchema.array().describe("List of labels associated with the task"),
+	releaseId: z.string().nullable().describe("ID of the release this task is associated with"),
+	voteCount: z.number().describe("Number of votes the task has received"),
+	parentId: z.string().nullable().describe("ID of the parent task if this is a subtask"),
+	descriptionHtml: z.string().describe("Task description rendered as HTML"),
+	descriptionMarkdown: z.string().describe("Task description rendered as Markdown"),
+})
 apiPublicRouteV1.get(
 	"/organization/:org_slug/tasks",
 	describePaginatedRoute({
 		summary: "List organization tasks",
 		description: "Retrieve a paginated list of public tasks for an organization.",
-		dataSchema: TaskSchema,
+		dataSchema: TaskAPISchema,
 		parameters: [
 			{
 				name: "org_slug",
@@ -367,7 +370,7 @@ apiPublicRouteV1.get(
 			const limit = Math.min(requestedLimit || 5, API_LIMITS.tasks);
 			const offset = (page - 1) * limit;
 
-			const organization = await traceAsync("organization.tasks.org_lookup", () => getOrganizationPublic(orgSlug), {
+			const organization = await traceAsync("public.organization.tasks.org_lookup", () => getOrganizationPublic(orgSlug), {
 				description: "Finding organization by slug",
 				data: { orgSlug },
 			});
@@ -378,7 +381,7 @@ apiPublicRouteV1.get(
 
 			if (!organization) {
 				await recordWideError({
-					name: "organization.tasks.notfound",
+					name: "public.organization.tasks.notfound",
 					error: new Error("Organization not found"),
 					code: "NOT_FOUND",
 					message: "No organization found for tasks",
@@ -389,7 +392,7 @@ apiPublicRouteV1.get(
 
 			if (requestedLimit > API_LIMITS.tasks) {
 				await recordWideError({
-					name: "organization.tasks.limit_overflow",
+					name: "public.organization.tasks.limit_overflow",
 					error: new Error("Limit overflow"),
 					code: "LIMIT_OVERFLOW",
 					message: `Requested limit ${requestedLimit} exceeds max ${API_LIMITS.tasks}`,
@@ -405,7 +408,7 @@ apiPublicRouteV1.get(
 			}
 
 			const totalItems = await traceAsync(
-				"organization.tasks.count",
+				"public.organization.tasks.count",
 				async () => {
 					const [result] = await db
 						.select({ count: sql<number>`count(*)` })
@@ -423,7 +426,7 @@ apiPublicRouteV1.get(
 
 			if (page > totalPages && totalItems > 0) {
 				await recordWideError({
-					name: "organization.tasks.page_overflow",
+					name: "public.organization.tasks.page_overflow",
 					error: new Error("Page overflow"),
 					code: "PAGE_OVERFLOW",
 					message: `Requested page ${page} exceeds total ${totalPages}`,
@@ -433,7 +436,7 @@ apiPublicRouteV1.get(
 			}
 
 			const tasks = await traceAsync(
-				"organization.tasks.fetch",
+				"public.organization.tasks.fetch",
 				async () => {
 					const rows = await db.query.task.findMany({
 						orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
@@ -448,6 +451,8 @@ apiPublicRouteV1.get(
 
 					return rows.map((t) => ({
 						...t,
+						aiSummaryGeneratedAt: null,
+						aiSummaryHash: null,
 						descriptionHtml: t.description && prosekitJSONToHTML(t.description),
 						descriptionMarkdown: t.description && prosekitJSONToMarkdown(t.description),
 					}));
@@ -473,7 +478,7 @@ apiPublicRouteV1.get(
 			);
 		} catch (err) {
 			await recordWideError({
-				name: "organization.tasks.error",
+				name: "public.organization.tasks.error",
 				error: err,
 				message: "Failed to fetch organization tasks",
 				contextData: { path: c.req.path, query: c.req.query() },
@@ -488,7 +493,7 @@ apiPublicRouteV1.get(
 	describeOkNotFound({
 		summary: "Get task",
 		description: "Retrieve a public task by its short identifier.",
-		dataSchema: TaskSchema,
+		dataSchema: TaskAPISchema,
 		parameters: [
 			{
 				name: "org_slug",
@@ -566,10 +571,23 @@ apiPublicRouteV1.get(
 			});
 			return c.json(errorResponse("No Task found"), 404);
 		}
-		const { githubIssue, githubPullRequest, ...publicTask } = task;
 		return c.json(
 			successResponse({
-				...publicTask,
+				id: task.id,
+				organizationId: task.organizationId,
+				shortId: task.shortId,
+				visible: task.visible,
+				createdAt: task.createdAt?.toISOString(),
+				updatedAt: task.updatedAt?.toISOString(),
+				title: task.title,
+				description: task.description,
+				status: task.status,
+				priority: task.priority,
+				createdBy: task.createdBy,
+				category: task.category,
+				releaseId: task.releaseId,
+				voteCount: task.voteCount,
+				parentId: task.parentId,
 				descriptionHtml: task.description && prosekitJSONToHTML(task.description),
 				descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
 			})
@@ -577,19 +595,25 @@ apiPublicRouteV1.get(
 	}
 );
 
-//@ts-expect-error
-const CommentSchema = createSelectSchema(schema.taskComment).extend({
-	createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
+const CommentAPISchema = z.object({
+	id: z.string().describe("Comment UUID"),
+	organizationId: z.string().describe("ID of the organization this comment belongs to"),
+	taskId: z.string().describe("ID of the task this comment is associated with"),
+	createdAt: z.string().describe("Comment creation timestamp in ISO format"),
+	updatedAt: z.string().describe("Comment last update timestamp in ISO format"),
+	content: z.any().describe("Comment content in BlockNote JSON format"),
+	contentHtml: z.string().describe("Comment content rendered as HTML"),
+	contentMarkdown: z.string().describe("Comment content rendered as Markdown"),
 	createdBy: z
 		.object({
 			name: z.string().nullable(),
 			image: z.string().nullable(),
 		})
 		.nullable()
-		.optional(),
-	contentHtml: z.string(),
-	contentMarkdown: z.string(),
+		.describe("User who created the comment, or null if user data is not available"),
+	visibility: z.enum(["public", "internal"]).describe("Comment visibility level"),
+	source: z.enum(["sayr", "github"]).describe("Source of the comment"),
+	parentId: z.string().nullable().describe("ID of the parent comment if this is a reply, null if top-level"),
 	reactions: z
 		.object({
 			total: z.number(),
@@ -602,13 +626,13 @@ const CommentSchema = createSelectSchema(schema.taskComment).extend({
 			),
 		})
 		.optional(),
-});
+})
 apiPublicRouteV1.get(
 	"/organization/:org_slug/tasks/:task_short_id/comments",
 	describePaginatedRoute({
 		summary: "List task comments",
 		description: "Retrieve a paginated list of public comments for a task.",
-		dataSchema: CommentSchema,
+		dataSchema: CommentAPISchema,
 		parameters: [
 			{
 				name: "org_slug",
@@ -832,15 +856,25 @@ apiPublicRouteV1.get(
 		}
 	}
 );
-//@ts-expect-error
-const Releaseschema = createSelectSchema(schema.release)
-	.omit({})
-	.extend({
-		createdAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-		updatedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-		targetDate: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-		releasedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string()),
-	});
+
+const ReleaseAPISchema = z.object({
+	id: z.string().describe("Release UUID"),
+	organizationId: z.string().describe("ID of the organization this release belongs to"),
+	name: z.string().describe("Release name"),
+	slug: z.string().describe("Release slug used in URLs"),
+	description: z.string().describe("Release description in blocknote JSON format"),
+	status: z.enum(["planned", "in-progress", "released", "archived"]).describe("Release status"),
+	targetDate: z.string().describe("Release target date in ISO format"),
+	releasedAt: z.string().nullable().describe("Release date in ISO format, null if not released yet"),
+	color: z.string().describe("Release color in hsla code"),
+	icon: z.string().nullable().describe("Release icon URL or identifier"),
+	createdBy: z.object({
+		id: z.string().describe("User ID"),
+		name: z.string().describe("User name"),
+	}).nullable().describe("User who created the release, or null if user data is not available"),
+	createdAt: z.string().describe("Release creation timestamp in ISO format"),
+	updatedAt: z.string().describe("Release last update timestamp in ISO format"),
+})
 /**
  * GET /organization/:org_slug/releases
  * Returns paginated releases for an org.
@@ -848,19 +882,11 @@ const Releaseschema = createSelectSchema(schema.release)
  */
 apiPublicRouteV1.get(
 	"/organization/:org_slug/releases",
-	describeOkNotFound({
+	describePaginatedRoute({
 		summary: "Get Organization Releases",
 		description: "Retrieve paginated releases for the specified organization.",
-		dataSchema: z.object({
-			releases: z.array(Releaseschema),
-			pagination: z.object({
-				page: z.number(),
-				limit: z.number(),
-				totalItems: z.number(),
-				totalPages: z.number(),
-				hasMore: z.boolean(),
-			}),
-		}),
+		dataSchema: ReleaseAPISchema,
+		maxLimit: 50,
 		tags: ["Organization"],
 	}),
 	async (c) => {
@@ -898,8 +924,8 @@ apiPublicRouteV1.get(
 		summary: "Get Release",
 		description: "Retrieve the specified release for the organization.",
 		dataSchema: z.object({
-			...Releaseschema.shape,
-			tasks: z.array(TaskSchema)
+			...ReleaseAPISchema.shape,
+			tasks: z.array(TaskAPISchema)
 		}),
 		tags: ["Organization"]
 	}),
@@ -940,7 +966,23 @@ apiPublicRouteV1.get(
 		});
 
 		const tasksWithLabels = tasks.map((task) => ({
-			...task,
+			id: task.id,
+			organizationId: task.organizationId,
+			shortId: task.shortId,
+			visible: task.visible,
+			createdAt: task.createdAt?.toISOString(),
+			updatedAt: task.updatedAt?.toISOString(),
+			title: task.title,
+			description: task.description,
+			status: task.status,
+			priority: task.priority,
+			createdBy: task.createdBy,
+			category: task.category,
+			releaseId: task.releaseId,
+			voteCount: task.voteCount,
+			parentId: task.parentId,
+			descriptionHtml: task.description && prosekitJSONToHTML(task.description),
+			descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
 			labels: task.labels.map((l) => l.label),
 			assignees: task.assignees.map((a) => a.user),
 		}));

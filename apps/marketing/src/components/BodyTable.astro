@@ -1,0 +1,129 @@
+---
+import { Badge } from "@/components/ui/badge";
+import { Frame } from "@/components/ui/frame";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+interface Props {
+    title?: string;
+    schema: any;
+    indent?: number;
+}
+
+const { title = "", schema, indent = 0 } = Astro.props;
+
+// Resolve oneOf (ex: object | null)
+function resolveSchema(s:any) {
+    if (!s) return s;
+
+    if (s.oneOf) {
+        const objectSchema = s.oneOf.find((o:any) => o.type === "object");
+        const nullSchema = s.oneOf.find((o:any) => o.type === "null");
+
+        return {
+            ...objectSchema,
+            nullable: !!nullSchema
+        };
+    }
+
+    return s;
+}
+
+function formatType(s:any) {
+    if (!s) return "-";
+
+    const r = resolveSchema(s);
+
+    if (r.enum) {
+        return r.enum.map((v:any) => `"${v}"`).join(" | ");
+    }
+
+    let base = r.type || "object";
+
+    if (base === "array") {
+        const inner = r.items?.type || "object";
+        base = `array<${inner}>`;
+    }
+
+    if (r.nullable) {
+        return `${base} | null`;
+    }
+
+    return base;
+}
+
+function extractFields(schema:any) {
+    const r = resolveSchema(schema);
+
+    if (!r?.properties) return [];
+
+    const required = r.required || [];
+
+    return Object.entries(r.properties).map(([name, prop]) => ({
+        name,
+        schema: prop,
+        required: required.includes(name)
+    }));
+}
+
+const fields = extractFields(schema);
+---
+
+<div style={`margin-left: ${indent}px`}>
+    {title && (
+        <h4 class="text-sm font-semibold text-foreground mb-2">
+            {title}
+        </h4>
+    )}
+
+    <Frame className="w-full">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Required</TableHead>
+                </TableRow>
+            </TableHeader>
+
+            <TableBody>
+                {fields.map((field) => {
+                    const resolved = resolveSchema(field.schema);
+                    const isObject =
+                        resolved?.type === "object" && resolved.properties;
+
+                    return (
+                        <>
+                            <TableRow>
+                                <TableCell>
+                                    <code class="text-[0.78rem] px-1 py-0.5 bg-[--sl-color-bg] rounded">
+                                        {field.name}
+                                    </code>
+                                </TableCell>
+
+                                <TableCell>
+                                    <code class="text-[0.78rem] px-1 py-0.5 bg-[--sl-color-bg] rounded text-blue-400">
+                                        {formatType(field.schema)}
+                                    </code>
+                                </TableCell>
+
+                                <TableCell>
+                                    {field.required ? (
+                                        <Badge variant="outline">
+                                            <span class="size-1.5 rounded-full bg-red-500" />
+                                            Yes
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="outline">
+                                            <span class="size-1.5 rounded-full bg-muted-foreground/64" />
+                                            No
+                                        </Badge>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        </>
+                    );
+                })}
+            </TableBody>
+        </Table>
+    </Frame>
+</div>
