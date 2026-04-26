@@ -13,12 +13,13 @@ const isDev = process.env.NODE_ENV !== "production";
 const env = loadEnv(isDev ? "development" : "production", process.cwd(), "");
 
 const config = defineConfig({
-  legacy: {
-    inconsistentCjsInterop: true,
-  },
   build: {
     minify: false,
     sourcemap: true,
+    target: "esnext",
+  },
+  optimizeDeps: {
+    include: ["tslib"],
   },
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
@@ -54,13 +55,21 @@ const config = defineConfig({
       }
       : undefined,
   },
+  ssr: {
+    noExternal: true,
+    target: "node",
+    // shiki uses onig.wasm which cannot be bundled — keep it external
+    external: ["shiki"],
+  },
   plugins: [
     devtools(),
     !isDev &&
     nitro({
+      exportConditions: ["import", "module", "default"],
+      noExternals: true,
       // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
       externals: {
-        inline: ["@tabler/icons-react", "lucide-react", "tslib"],
+        inline: ["@tabler/icons-react", "lucide-react"],
       },
       routeRules: {
         "/api/auth/**": {}, // local auth
