@@ -91,20 +91,21 @@ zerops:
         # PostHog: baked into the client bundle at build time
         VITE_PUBLIC_POSTHOG_KEY: ${VITE_PUBLIC_POSTHOG_KEY}
         VITE_PUBLIC_POSTHOG_HOST: ${VITE_PUBLIC_POSTHOG_HOST}
-        # PostHog CLI: used by the sourcemap inject step below
-        POSTHOG_CLI_TOKEN: ${POSTHOG_CLI_TOKEN}
-        POSTHOG_CLI_ENV_ID: ${POSTHOG_CLI_ENV_ID}
+        # PostHog CLI: remap Zerops env vars to names the CLI expects
+        POSTHOG_CLI_API_KEY: ${POSTHOG_CLI_TOKEN}
+        POSTHOG_CLI_PROJECT_ID: ${POSTHOG_CLI_ENV_ID}
+        POSTHOG_CLI_HOST: ${VITE_PUBLIC_POSTHOG_HOST}
       prepareCommands:
         # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
         - pnpm i
         - pnpm -F start zerops:build
-        - echo POSTHOG_CLI_TOKEN=${POSTHOG_CLI_TOKEN} POSTHOG_CLI_ENV_ID=${POSTHOG_CLI_ENV_ID}
+        - echo POSTHOG_CLI_API_KEY=${POSTHOG_CLI_API_KEY} POSTHOG_CLI_PROJECT_ID=${POSTHOG_CLI_PROJECT_ID} POSTHOG_CLI_HOST=${POSTHOG_CLI_HOST}
         - ls -la apps/start/.output/public/ 2>/dev/null || echo WARNING:.output/public not found
-        - npx --yes @posthog/cli sourcemap inject --directory apps/start/.output/public --project sayr-start --verbose || echo WARNING:sourcemap inject failed
+        - npx --yes @posthog/cli sourcemap inject --directory apps/start/.output/public --verbose || echo WARNING:sourcemap inject failed
         - find apps/start/.output/public -name "*.map" | head -5
-        - npx --yes @posthog/cli sourcemap upload --directory apps/start/.output/public --project sayr-start --verbose || echo WARNING:sourcemap upload failed
+        - npx --yes @posthog/cli sourcemap upload --directory apps/start/.output/public --release-name sayr-start --verbose || echo WARNING:sourcemap upload failed
       deployFiles:
         # Strip apps/start/ prefix so .output/ lands at container root
         - apps/start/~.output
