@@ -5,7 +5,7 @@ zerops:
   # ===============================
   - setup: marketing
     build:
-      base: nodejs@20
+      base: nodejs@22
       buildCommands:
         - pnpm i
         - pnpm -F marketing build
@@ -20,7 +20,7 @@ zerops:
           port: 3000
           path: /
     run:
-      base: nodejs@20
+      base: nodejs@22
       ports:
         - port: 3000
           httpSupport: true
