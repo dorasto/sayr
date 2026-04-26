@@ -426,8 +426,7 @@ export function UnifiedTaskItem({
                   </span>
                 </span>
               ) : (
-                task.title +
-                "oasidf joasidjf oasidjf oasidjf oasidjfoaisjdf oiasjdof iajsdo fijasodi"
+                task.title
               )}
             </p>
           </div>
