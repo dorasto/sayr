@@ -4,9 +4,9 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { getReleaseStatusConfig } from "@/components/releases/config";
 import { statusConfig } from "@/components/tasks/shared/config";
 import { db, schema } from "@repo/database";
@@ -38,6 +38,10 @@ import { Separator } from "@repo/ui/components/separator";
 import { extractTaskText, formatCount } from "@repo/util";
 import { PublicReleaseDiscussion } from "@/components/public/releases/public-release-discussion";
 import { PublicReleaseStatusUpdates } from "@/components/public/releases/public-release-status-updates";
+import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import type { ServerEventMessage } from "@/lib/serverEvents";
+import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
   .inputValidator((data: { orgSlug: string; releaseSlug: string }) => data)
@@ -170,6 +174,52 @@ function ReleaseDetailPage() {
   const orgSlug = params.orgSlug;
   const [panelOpen, setPanelOpen] = useState(true);
   const { data: session } = authClient.useSession();
+  const router = useRouter();
+  const { serverEvents, organization } = usePublicOrganizationLayout();
+  const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
+
+  // SSE handlers for real-time release updates
+  const handlers: WSMessageHandler<ServerEventMessage> = {
+    UPDATE_RELEASES: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        router.invalidate();
+      }
+    },
+    UPDATE_TASK: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        router.invalidate();
+      }
+    },
+    UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
+      if (
+        msg.scope === "PUBLIC" &&
+        msg.meta?.orgId === organization.id &&
+        (msg.data as { releaseId?: string })?.releaseId === release?.id
+      ) {
+        setStatusUpdatesRefreshKey((k) => k + 1);
+      }
+    },
+  };
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
+
+  // Attach SSE listener
+  useEffect(() => {
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
+    return () => {
+      serverEvents.event?.removeEventListener("message", handleMessage);
+    };
+  }, [serverEvents.event, handleMessage]);
+
+  // Handle SSE reconnection — refetch all data
+  useEffect(() => {
+    const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
+      if (msg.type === "SSE_RECONNECTED") {
+        router.invalidate();
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const taskStats = useMemo(() => {
     const COMPLETED_STATUSES = ["done", "canceled"];
@@ -427,6 +477,8 @@ function ReleaseDetailPage() {
                   organizationId={org?.id ?? ""}
                   orgSlug={orgSlug}
                   releaseSlug={params.releaseSlug}
+                  releaseId={release?.id ?? ""}
+                  refreshKey={statusUpdatesRefreshKey}
                 />
               </div>
             </div>

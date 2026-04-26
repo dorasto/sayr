@@ -561,6 +561,7 @@ interface Props {
   canComment?: boolean;
   canManage?: boolean;
   refreshKey?: number;
+  onRegisterRefresh?: (refreshFn: () => Promise<void>) => void;
 }
 
 export function ReleaseDiscussion({
@@ -570,6 +571,7 @@ export function ReleaseDiscussion({
   canComment = true,
   canManage = false,
   refreshKey = 0,
+  onRegisterRefresh,
 }: Props) {
   const { organization } = useLayoutOrganization();
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
@@ -600,6 +602,12 @@ export function ReleaseDiscussion({
     Map<string, schema.ReleaseCommentWithAuthor[]>
   >(new Map());
   const [loadingReplies, setLoadingReplies] = useState<Set<string>>(new Set());
+
+  // Ref so refreshIncremental can access cached parent IDs without being a stale closure dep
+  const repliesCacheKeysRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    repliesCacheKeysRef.current = new Set(repliesCache.keys());
+  }, [repliesCache]);
 
   // ── Initial / refresh load ───────────────────────────────────────────────
   const loadInitial = useCallback(async () => {
@@ -687,6 +695,65 @@ export function ReleaseDiscussion({
     prevRefreshKey.current = refreshKey;
     void loadInitial();
   }, [loadInitial, refreshKey]);
+
+  // ── Incremental refresh (for SSE events) ──────────────────────────────────
+  // Fetches latest comments and merges them without clearing state or resetting pagination
+  const refreshIncremental = useCallback(async () => {
+    try {
+      // 1. Fetch latest top-level comments — add new ones and update replyCount on existing
+      const result = await getReleaseCommentsAction(orgId, releaseId, null, {
+        limit: PAGE_SIZE,
+        page: 1,
+        direction: "desc",
+      });
+      if (result.success && result.data.length > 0) {
+        setAllComments((prev) => {
+          const existingIds = new Set(prev.map((c) => c.id));
+          const newComments = result.data.filter((c) => !existingIds.has(c.id));
+          // Update replyCount on existing top-level comments in case a reply was added
+          const updated = prev.map((c) => {
+            const fresh = result.data.find((r) => r.id === c.id);
+            return fresh ? { ...c, replyCount: fresh.replyCount } : c;
+          });
+          if (newComments.length === 0) return updated;
+          return [...newComments, ...updated].sort(
+            (a, b) =>
+              new Date(a.createdAt ?? 0).getTime() -
+              new Date(b.createdAt ?? 0).getTime(),
+          );
+        });
+      }
+
+      // 2. Refresh all currently-expanded reply threads so new replies appear immediately
+      const cachedParentIds = repliesCacheKeysRef.current;
+      if (cachedParentIds.size > 0) {
+        const refreshResults = await Promise.all(
+          Array.from(cachedParentIds).map((parentId) =>
+            getReleaseCommentRepliesAction(orgId, releaseId, parentId).then((r) => ({
+              parentId,
+              result: r,
+            }))
+          ),
+        );
+        setRepliesCache((prev) => {
+          const next = new Map(prev);
+          for (const { parentId, result: r } of refreshResults) {
+            if (r.success) {
+              next.set(parentId, r.data);
+            }
+          }
+          return next;
+        });
+      }
+    } catch (error) {
+      console.error("Failed to refresh comments:", error);
+    }
+  }, [orgId, releaseId]);
+
+  // Register the incremental refresh function with the parent
+  useEffect(() => {
+    onRegisterRefresh?.(refreshIncremental);
+  }, [onRegisterRefresh, refreshIncremental]);
 
   // ── Load more (converging inward) ────────────────────────────────────────
   const loadMore = useCallback(async () => {

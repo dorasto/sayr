@@ -16,7 +16,7 @@ import {
   IconMessage,
   IconX,
 } from "@tabler/icons-react";
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { authClient } from "@repo/auth/client";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import {
@@ -43,6 +43,9 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createReleaseCommentAction } from "@/lib/fetches/release";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import type { ServerEventMessage } from "@/lib/serverEvents";
+import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -55,6 +58,8 @@ interface PublicReleaseStatusUpdatesProps {
   organizationId: string;
   orgSlug: string;
   releaseSlug: string;
+  releaseId: string;
+  refreshKey?: number;
 }
 
 interface StatusUpdateData {
@@ -99,12 +104,16 @@ export function PublicReleaseStatusUpdates({
   organizationId,
   orgSlug,
   releaseSlug,
+  releaseId,
+  refreshKey,
 }: PublicReleaseStatusUpdatesProps) {
   const [updates, setUpdates] = useState<StatusUpdateData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [selectedUpdate, setSelectedUpdate] = useState<StatusUpdateData | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { serverEvents, organization } = usePublicOrganizationLayout();
+  const queryClient = useQueryClient();
 
   const loadUpdates = useCallback(async () => {
     setLoading(true);
@@ -124,6 +133,40 @@ export function PublicReleaseStatusUpdates({
 
   useMemo(() => {
     void loadUpdates();
+  }, [loadUpdates, refreshKey]);
+
+  // SSE handlers for real-time status update and comment events
+  const handlers: WSMessageHandler<ServerEventMessage> = {
+    UPDATE_RELEASE_COMMENTS: (msg) => {
+      if (
+        msg.scope === "PUBLIC" &&
+        msg.meta?.orgId === organization.id &&
+        (msg.data as { releaseId?: string })?.releaseId === releaseId
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: ["status-update-comments"],
+        });
+        void loadUpdates();
+      }
+    },
+  };
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
+
+  useEffect(() => {
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
+    return () => {
+      serverEvents.event?.removeEventListener("message", handleMessage);
+    };
+  }, [serverEvents.event, handleMessage]);
+
+  useEffect(() => {
+    const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
+      if (msg.type === "SSE_RECONNECTED") {
+        void loadUpdates();
+      }
+    });
+    return unsubscribe;
   }, [loadUpdates]);
 
   const visibleUpdates = expanded

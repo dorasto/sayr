@@ -505,6 +505,9 @@ export function PublicReleaseDiscussion({
           queryClient.invalidateQueries({
             queryKey: ["public-release-comments", releaseId, organizationId],
           });
+          queryClient.invalidateQueries({
+            queryKey: ["comment-replies", parentId, organizationId],
+          });
           return true;
         }
         headlessToast.error({
@@ -593,6 +596,9 @@ export function PublicReleaseDiscussion({
         queryClient.invalidateQueries({
           queryKey: ["public-release-comments", releaseId, organizationId],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["comment-replies"],
+        });
       }
     },
   };
@@ -610,6 +616,9 @@ export function PublicReleaseDiscussion({
         console.log("🟢 Global SSE reconnected — refreshing data");
         queryClient.invalidateQueries({
           queryKey: ["public-release-comments", releaseId, organizationId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["comment-replies"],
         });
       }
     });

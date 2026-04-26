@@ -78,6 +78,10 @@ function ReleaseDetailPageContent() {
   );
   const useMobile = useIsMobile();
   const loadedReleaseIdRef = useRef<string | null>(null);
+  const refreshCommentsRef = useRef<(() => Promise<void>) | null>(null);
+  const handleRegisterRefresh = useCallback((fn: () => Promise<void>) => {
+    refreshCommentsRef.current = fn;
+  }, []);
 
   // Register release-specific command palette commands
   useReleaseCommands(release, tasks, setTasks);
@@ -187,6 +191,7 @@ function ReleaseDetailPageContent() {
         "data" in msg &&
         (msg.data as { releaseId?: string })?.releaseId === release?.id
       ) {
+        refreshCommentsRef.current?.();
         setCommentsRefreshKey((k) => k + 1);
       }
     },
@@ -467,7 +472,7 @@ function ReleaseDetailPageContent() {
               currentUserId={account?.id}
               canComment={true}
               canManage={true}
-              refreshKey={commentsRefreshKey}
+              onRegisterRefresh={handleRegisterRefresh}
             />
           </div>
         </div>
