@@ -66,7 +66,6 @@ const config = defineConfig({
     !isDev &&
     nitro({
       exportConditions: ["import", "module", "default"],
-      noExternals: true,
       // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],
