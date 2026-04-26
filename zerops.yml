@@ -88,12 +88,20 @@ zerops:
         # These VITE_* / define vars are baked into the bundle at build time (see vite.config.ts)
         APP_ENV: production
         SAYR_EDITION: cloud
+        # PostHog: baked into the client bundle at build time
+        VITE_PUBLIC_POSTHOG_KEY: ${VITE_PUBLIC_POSTHOG_KEY}
+        VITE_PUBLIC_POSTHOG_HOST: ${VITE_PUBLIC_POSTHOG_HOST}
+        # PostHog CLI: used by the sourcemap inject step below
+        POSTHOG_CLI_TOKEN: ${POSTHOG_CLI_TOKEN}
+        POSTHOG_CLI_ENV_ID: ${POSTHOG_CLI_ENV_ID}
       prepareCommands:
         # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
         - pnpm i
         - pnpm -F start zerops:build
+        # Inject PostHog chunk IDs into sourcemaps (required for upload matching to work)
+        - npx --yes @posthog/cli sourcemap inject --directory apps/start/.output/public --project sayr-start || true
       deployFiles:
         # Strip apps/start/ prefix so .output/ lands at container root
         - apps/start/~.output
