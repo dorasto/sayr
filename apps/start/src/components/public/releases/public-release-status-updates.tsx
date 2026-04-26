@@ -16,7 +16,15 @@ import {
   IconMessage,
   IconX,
 } from "@tabler/icons-react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { authClient } from "@repo/auth/client";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import {
@@ -43,7 +51,10 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createReleaseCommentAction } from "@/lib/fetches/release";
-import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import {
+  useWSMessageHandler,
+  type WSMessageHandler,
+} from "@/hooks/useWSMessageHandler";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
@@ -110,7 +121,9 @@ export function PublicReleaseStatusUpdates({
   const [updates, setUpdates] = useState<StatusUpdateData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
-  const [selectedUpdate, setSelectedUpdate] = useState<StatusUpdateData | null>(null);
+  const [selectedUpdate, setSelectedUpdate] = useState<StatusUpdateData | null>(
+    null,
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
   const { serverEvents, organization } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
@@ -134,6 +147,22 @@ export function PublicReleaseStatusUpdates({
   useMemo(() => {
     void loadUpdates();
   }, [loadUpdates, refreshKey]);
+
+  // Keep selectedUpdate in sync with the latest fetched data so the open dialog
+  // always reflects the current commentCount and other fields.
+  // A ref is used to read the current selectedUpdate.id without making it a dep
+  // (which would cause an infinite update loop since setSelectedUpdate triggers re-render).
+  const selectedUpdateIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    selectedUpdateIdRef.current = selectedUpdate?.id ?? null;
+  }, [selectedUpdate]);
+
+  useEffect(() => {
+    const id = selectedUpdateIdRef.current;
+    if (!id) return;
+    const fresh = updates.find((u) => u.id === id);
+    if (fresh) setSelectedUpdate(fresh);
+  }, [updates]);
 
   // SSE handlers for real-time status update and comment events
   const handlers: WSMessageHandler<ServerEventMessage> = {
@@ -164,10 +193,11 @@ export function PublicReleaseStatusUpdates({
     const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
       if (msg.type === "SSE_RECONNECTED") {
         void loadUpdates();
+        queryClient.invalidateQueries({ queryKey: ["status-update-comments"] });
       }
     });
     return unsubscribe;
-  }, [loadUpdates]);
+  }, [loadUpdates, queryClient]);
 
   const visibleUpdates = expanded
     ? updates
@@ -258,7 +288,10 @@ function StatusUpdateCard({ update, onClick }: StatusUpdateCardProps) {
   const descriptionPreview = extractTaskText(update.content);
 
   return (
-    <Tile className="md:w-full cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
+    <Tile
+      className="md:w-full cursor-pointer hover:bg-accent/50 transition-colors"
+      onClick={onClick}
+    >
       <TileHeader className="w-full flex flex-row md:flex-row items-center">
         <div className="flex items-center justify-between">
           <Badge
@@ -283,22 +316,11 @@ function StatusUpdateCard({ update, onClick }: StatusUpdateCardProps) {
         <TileDescription asChild>
           <Label
             variant={"description"}
-            className="pt-2 line-clamp-2 text-foreground"
+            className="pt-2 line-clamp-2 text-foreground pl-2"
           >
             {descriptionPreview}
           </Label>
         </TileDescription>
-        <div className="flex items-center justify-between mt-3">
-          <TileDescription asChild>
-            <InlineLabel text={authorName} image={update.author?.image} />
-          </TileDescription>
-          {update.commentCount > 0 && (
-            <div className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground">
-              <IconMessage size={12} />
-              {update.commentCount}
-            </div>
-          )}
-        </div>
       </TileHeader>
     </Tile>
   );
@@ -325,12 +347,18 @@ function StatusUpdateDialog({
   const { categories } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   const { value: sseClientId } = useStateManagement<string>("sseClientId", "");
-  const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(undefined);
+  const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(
+    undefined,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
 
   // Fetch comments for this status update
-  const { data: commentsData, isLoading: commentsLoading, refetch } = useQuery({
+  const {
+    data: commentsData,
+    isLoading: commentsLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["status-update-comments", update.id],
     queryFn: async () => {
       const res = await fetch(
@@ -475,8 +503,12 @@ function StatusUpdateDialog({
               <div className="flex items-center justify-between">
                 <Label variant="subheading">Comments</Label>
                 {comments.length > 0 && (
-                  <Label variant="description" className="text-xs text-muted-foreground">
-                    {comments.length} {comments.length === 1 ? "comment" : "comments"}
+                  <Label
+                    variant="description"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {comments.length}{" "}
+                    {comments.length === 1 ? "comment" : "comments"}
                   </Label>
                 )}
               </div>
@@ -537,7 +569,9 @@ function StatusUpdateDialog({
           {canComment && (
             <div className="border-t p-3">
               <Suspense
-                fallback={<div className="h-16 animate-pulse bg-muted rounded" />}
+                fallback={
+                  <div className="h-16 animate-pulse bg-muted rounded" />
+                }
               >
                 <Editor
                   key={editorKey}
