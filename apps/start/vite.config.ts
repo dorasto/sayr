@@ -13,6 +13,9 @@ const isDev = process.env.NODE_ENV !== "production";
 const env = loadEnv(isDev ? "development" : "production", process.cwd(), "");
 
 const config = defineConfig({
+  legacy: {
+    inconsistentCjsInterop: true,
+  },
   build: {
     minify: false,
     sourcemap: true,
