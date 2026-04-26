@@ -385,13 +385,12 @@ export function UnifiedTaskItem({
                   <Badge
                     variant={"outline"}
                     // className="h-4 place-items-center shrink-0 cursor-pointer flex items-center"
-                    className={
-                      (cn(
-                        statusConfig[task.status as keyof typeof statusConfig]
-                          .className,
-                      ),
-                      "px-0 h-5")
-                    }
+                    className={cn(
+                      statusConfig[task.status as keyof typeof statusConfig]
+                        .className,
+
+                      "px-0 h-5",
+                    )}
                     data-no-propagate
                   >
                     <InlineLabel
