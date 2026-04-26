@@ -55,10 +55,9 @@ const config = defineConfig({
     devtools(),
     !isDev &&
     nitro({
-      // @ts-expect-error - externals.inline/external are not in NitroPluginConfig types but exist at runtime
+      // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
       externals: {
-        inline: ["@tabler/icons-react", "lucide-react"],
-        external: ["tslib", "prosekit", /^prosekit\//],
+        inline: ["@tabler/icons-react", "lucide-react", "tslib"],
       },
       routeRules: {
         "/api/auth/**": {}, // local auth
