@@ -53,6 +53,44 @@ function extractUrls(text: string): string[] {
 }
 
 /**
+ * Extracts structured GitHub URLs directly from typed timeline event payloads.
+ *
+ * Covers:
+ *   - github_commit_ref   → commitUrl field
+ *   - github_pr_linked    → constructed from repo owner/name + PR number
+ *   - github_pr_merged    → constructed from repo owner/name + PR number
+ *   - github_pr_commit    → commitSha + repo (if commitUrl present)
+ */
+function extractGithubEventUrls(activity: Awaited<ReturnType<typeof getMergedTaskActivity>>): string[] {
+	const urls: string[] = [];
+	for (const item of activity) {
+		switch (item.eventType) {
+			case "github_commit_ref":
+			case "github_pr_commit": {
+				const d = item.toValue as { commitUrl?: string } | null;
+				if (d?.commitUrl) urls.push(d.commitUrl);
+				break;
+			}
+			case "github_pr_linked":
+			case "github_pr_merged": {
+				const d = item.toValue as {
+					pullRequest?: { number?: number; url?: string };
+					repository?: { owner?: string; name?: string };
+				} | null;
+				const prUrl = d?.pullRequest?.url;
+				if (prUrl) {
+					urls.push(prUrl);
+				} else if (d?.repository?.owner && d?.repository?.name && d?.pullRequest?.number) {
+					urls.push(`https://github.com/${d.repository.owner}/${d.repository.name}/pull/${d.pullRequest.number}`);
+				}
+				break;
+			}
+		}
+	}
+	return urls;
+}
+
+/**
  * Selects the best URLs to embed as DocumentURLChunks for the AI summary.
  *
  * Priority order:
@@ -60,12 +98,11 @@ function extractUrls(text: string): string[] {
  *      intentional, placed by the task author).
  *   2. URLs found in user-written comments, sorted newest-first (most recent
  *      activity is most relevant).
+ *   3. URLs from structured GitHub timeline events (commit refs, PR links,
+ *      merged PRs) — extracted directly from their typed JSON payloads so the
+ *      AI can fetch the page and understand what the commit/PR contains.
  *
- * Structured GitHub timeline events (commits, PRs, branches) are intentionally
- * excluded: they are already represented as concise formatted text lines in the
- * timeline, so fetching their full pages would duplicate context and waste tokens.
- *
- * The result is deduplicated across both sources and capped at `maxCount`.
+ * The result is deduplicated across all sources and capped at `maxCount`.
  */
 function selectUrlsForFetch(
 	descriptionText: string,
@@ -87,7 +124,7 @@ function selectUrlsForFetch(
 		add(url);
 	}
 
-	// 2. Comment URLs — newest-first (comments only; GitHub structured events excluded)
+	// 2. Comment URLs — newest-first
 	const comments = activity
 		.filter((item) => item.eventType === "comment" && item.content)
 		.slice() // avoid mutating the original array
@@ -103,6 +140,11 @@ function selectUrlsForFetch(
 		for (const url of extractUrls(text)) {
 			add(url);
 		}
+	}
+
+	// 3. GitHub structured event URLs — commit refs, PR links, merged PRs
+	for (const url of extractGithubEventUrls(activity)) {
+		add(url);
 	}
 
 	return selected;

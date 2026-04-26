@@ -6,8 +6,6 @@ import v1 from "./api/v1";
 /* ────────────────────────────
    Realtime
 ──────────────────────────── */
-import { ws } from "./ws";
-import { WS_EVENTS } from "./ws/types";
 import { sse } from "./events";
 import { ServerEvent_EVENTS } from "./events/types";
 

@@ -105,7 +105,7 @@ export function useOrgCommands() {
 								/>
 							),
 							action: () =>
-								navigate({ to: "/$orgId/releases", params: { orgId } }),
+								navigate({ to: "/$orgId/releases", params: { orgId }, search: { status: undefined, targetDateFrom: undefined, targetDateTo: undefined, releasedFrom: undefined, releasedTo: undefined } }),
 							keywords: "versions milestones",
 						},
 						{

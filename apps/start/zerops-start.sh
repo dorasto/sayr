@@ -58,3 +58,18 @@ if [ "$patched" -gt 0 ] && [ -n "$sed_script" ]; then
     printf '%s' "$sed_script" | sed -i -f /dev/stdin "$MANIFEST"
 fi
 echo "Asset manifest patched ($patched files updated)."
+
+# Upload source maps to PostHog (first startup only)
+SOURCEMAP_MARKER="/tmp/.posthog_sourcemaps_uploaded"
+if [ -n "$POSTHOG_CLI_TOKEN" ] && [ -n "$POSTHOG_CLI_ENV_ID" ] && [ ! -f "$SOURCEMAP_MARKER" ]; then
+    echo "Uploading source maps to PostHog..."
+    POSTHOG_HOST="${VITE_PUBLIC_POSTHOG_HOST:-https://us.posthog.com}"
+    if POSTHOG_CLI_HOST="$POSTHOG_HOST" npx --yes @posthog/cli sourcemap upload --directory "$OUTPUT_DIR/public"; then
+        touch "$SOURCEMAP_MARKER"
+        echo "Source maps uploaded successfully to $POSTHOG_HOST"
+    else
+        echo "Source map upload failed (non-fatal, continuing...)"
+    fi
+elif [ -f "$SOURCEMAP_MARKER" ]; then
+    echo "Source maps already uploaded, skipping..."
+fi

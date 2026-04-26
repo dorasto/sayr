@@ -5,8 +5,10 @@ import { type TeamPermissions } from "@repo/database";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { Polar, validateEvent, Subscription, CustomerSeat } from "@repo/auth";
 import { sseBroadcastByUserId } from "../events";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { AppEnv } from "@/index";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 const polarClient = new Polar({
     accessToken: process.env.POLAR_ACCESS_TOKEN!,
@@ -19,7 +21,19 @@ function headersToRecord(headers: Headers): Record<string, string> {
     return result;
 }
 app.post("/", async (c) => {
+    const traceAsync = createTraceAsync();
+    const recordWideError = c.get("recordWideError");
     const rawBody = await c.req.text();
+    if (!process.env.POLAR_WEBHOOK_SECRET) {
+        console.error("❌ Polar webhook secret not configured");
+        await recordWideError({
+            name: "webhook.polar.secretNotConfigured",
+            error: new Error("Polar webhook secret not configured"),
+            code: "SecretNotConfigured",
+            message: "Polar webhook secret is not configured",
+        });
+        return c.text("Webhook secret not configured", 500);
+    }
     let event;
     try {
         event = validateEvent(
@@ -29,33 +43,86 @@ app.post("/", async (c) => {
         );
     } catch (err) {
         console.error("❌ Webhook verification failed:", err);
+        await recordWideError({
+            name: "webhook.polar.verificationFailed",
+            error: err,
+            code: "VerificationFailed",
+            message: "Polar webhook signature verification failed",
+            contextData: {
+                eventType: event?.type,
+            },
+        });
         return c.text("Invalid signature", 400);
     }
 
     try {
         switch (event.type) {
             case "subscription.created":
-                await handleSubscriptionCreated(event.data);
+                await traceAsync("handleSubscriptionCreated", async () => {
+                    await handleSubscriptionCreated(event.data);
+                }, {
+                    description: "Handling Polar subscription.created event",
+                    data: {
+                        eventType: event.type,
+                    },
+                });
                 break;
 
             case "subscription.updated":
-                await handleSubscriptionUpdated(event.data);
+                await traceAsync("handleSubscriptionUpdated", async () => {
+                    await handleSubscriptionUpdated(event.data);
+                }, {
+                    description: "Handling Polar subscription.updated event",
+                    data: {
+                        eventType: event.type,
+                    },
+                });
                 break;
 
             case "subscription.canceled":
-                await handleSubscriptionCanceled(event.data);
+                await traceAsync("handleSubscriptionCanceled", async () => {
+                    await handleSubscriptionCanceled(event.data);
+                }, {
+                    description: "Handling Polar subscription.canceled event",
+                    data: {
+                        eventType: event.type,
+                    },
+                });
                 break;
             case "customer_seat.revoked":
-                await handleSeatRevoked(event.data);
+                await traceAsync("handleSeatRevoked", async () => {
+                    await handleSeatRevoked(event.data);
+                }, {
+                    description: "Handling Polar customer_seat.revoked event",
+                    data: {
+                        eventType: event.type,
+                    },
+                });
                 break;
             case "customer_seat.claimed":
-                await handleSeatClaimed(event.data);
+                await traceAsync("handleSeatClaimed", async () => {
+                    await handleSeatClaimed(event.data);
+                }, {
+                    description: "Handling Polar customer_seat.claimed event",
+                    data: {
+                        eventType: event.type,
+                    },
+                });
                 break;
             default:
                 console.warn("⚠️ Unhandled event type:", event.type);
         }
     } catch (err) {
         console.error("❌ Webhook handler error:", err);
+        await recordWideError({
+            name: "webhook.polar.handlerError",
+            error: err,
+            code: "HandlerError",
+            message: `Error handling Polar webhook event: ${(err as Error).message}`,
+            contextData: {
+                eventType: event.type,
+            },
+        });
         return c.text("Handler error", 500);
     }
 
