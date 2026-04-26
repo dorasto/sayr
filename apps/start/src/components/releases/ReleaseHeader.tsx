@@ -108,7 +108,7 @@ export function ReleaseHeader({ release, onUpdate }: ReleaseHeaderProps) {
   return (
     <div className="flex flex-col gap-1">
       {/* Title Input with Icon */}
-      <div className="relative flex items-center ">
+      <div className="relative flex items-center">
         {/* Icon Popover */}
         <Popover modal>
           <PopoverTrigger asChild>

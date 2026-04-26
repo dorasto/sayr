@@ -7,14 +7,16 @@ import {
   PopoverTrigger,
 } from "@repo/ui/components/popover";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDate } from "@repo/util";
+import { formatDate, getDisplayName } from "@repo/util";
 import {
   IconCalendarCheck,
   IconCalendarEvent,
   IconCalendarStats,
-  IconCalendarTime,
   IconLink,
   IconListCheck,
+  IconPlus,
+  IconTag,
+  IconUser,
   IconX,
 } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
@@ -54,13 +56,33 @@ import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { IconLoader2 } from "@tabler/icons-react";
 import { TaskPickerItem } from "@/components/tasks/shared/task-picker";
 import { Label } from "@repo/ui/components/label";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/avatar";
+import { ensureCdnUrl } from "@repo/util";
+import {
+  addReleaseLabelAction,
+  removeReleaseLabelAction,
+  updateReleaseAction,
+} from "@/lib/fetches/release";
+import {
+  RenderLabel,
+  InlineCreateLabelForm,
+} from "@/components/tasks/shared/label";
+import { useToastAction } from "@/lib/util";
+import { useMatch } from "@tanstack/react-router";
 
 type ReleaseFieldKey =
   | "status"
   | "targetDate"
   | "releasedAt"
   | "tasks"
-  | "publicPage";
+  | "publicPage"
+  | "lead"
+  | "labels";
 
 interface ReleaseFieldToolbarProps {
   release: schema.releaseType | schema.ReleaseWithTasks;
@@ -127,11 +149,28 @@ export function ReleaseFieldToolbar({
 
   // ── Task picker state (toolbar variant only) ───────────────────────
   const { organization } = useLayoutOrganization();
+  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
+  const { runWithToast } = useToastAction();
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
   const [taskSearch, setTaskSearch] = useState("");
   const [taskResults, setTaskResults] = useState<OrgTaskSearchResult[]>([]);
   const [taskSearchLoading, setTaskSearchLoading] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<OrgTaskSearchResult[]>([]);
+
+  // ── Lead + Labels state ───────────────────────────────────────────
+  const releaseWithTasks =
+    "lead" in release ? (release as schema.ReleaseWithTasks) : null;
+  const currentLead = releaseWithTasks?.lead ?? null;
+  const currentLabels = releaseWithTasks?.labels ?? [];
+  const { labels: orgLabels } = useLayoutOrganization();
+  const [labelSearch, setLabelSearch] = useState("");
+
+  // ── Permissions ───────────────────────────────────────────────────
+  const orgMatch = useMatch({ from: "/(admin)/$orgId", shouldThrow: false });
+  const permissions = orgMatch?.context?.permissions;
+  const canCreateLabel =
+    permissions?.admin?.administrator === true ||
+    permissions?.content?.manageLabels === true;
 
   // ── Status ────────────────────────────────────────────────────────
 
@@ -218,6 +257,76 @@ export function ReleaseFieldToolbar({
       onChange?.tasks?.(next);
     },
     [selectedTasks, taskResults, onChange],
+  );
+
+  // ── Lead ──────────────────────────────────────────────────────────
+
+  const handleLeadChange = useCallback(
+    async (memberId: string | null) => {
+      if (release.id === "draft") return;
+      const member = memberId
+        ? (organization.members.find((m) => m.user.id === memberId)?.user ??
+          null)
+        : null;
+      await runWithToast(
+        "update-release-lead",
+        {
+          loading: { title: "Saving...", description: "Updating lead." },
+          success: { title: "Lead updated", description: "" },
+          error: { title: "Failed", description: "Could not update lead." },
+        },
+        () =>
+          updateReleaseAction(
+            organization.id,
+            release.id,
+            { leadId: memberId },
+            sseClientId,
+          ),
+      );
+      setRelease((prev) =>
+        prev
+          ? {
+              ...prev,
+              lead: member
+                ? { id: member.id, name: member.name, image: member.image }
+                : null,
+            }
+          : null,
+      );
+    },
+    [release.id, organization, sseClientId, runWithToast, setRelease],
+  );
+
+  // ── Labels ────────────────────────────────────────────────────────
+
+  const handleLabelToggle = useCallback(
+    async (newIds: string[]) => {
+      if (release.id === "draft") return;
+      const prevIds = currentLabels.map((l) => l.id);
+      // Added labels
+      for (const id of newIds.filter((id) => !prevIds.includes(id))) {
+        await addReleaseLabelAction(
+          organization.id,
+          release.id,
+          id,
+          sseClientId,
+        );
+      }
+      // Removed labels
+      for (const id of prevIds.filter((id) => !newIds.includes(id))) {
+        await removeReleaseLabelAction(organization.id, release.id, id);
+      }
+      const nextLabels = orgLabels.filter((l) => newIds.includes(l.id));
+      setRelease((prev) => (prev ? { ...prev, labels: nextLabels } : null));
+    },
+    [
+      release.id,
+      organization.id,
+      sseClientId,
+      currentLabels,
+      orgLabels,
+      setRelease,
+    ],
   );
 
   // ── Render ────────────────────────────────────────────────────────
@@ -423,6 +532,162 @@ export function ReleaseFieldToolbar({
             </Button>
           </a>
         )}
+
+        {/* Lead */}
+        {showField("lead") && (
+          <div className="flex flex-col gap-1.5">
+            {editable ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="border-transparent! bg-transparent rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
+                  >
+                    {currentLead?.image ? (
+                      <Avatar className="h-3 w-3">
+                        <AvatarImage
+                          src={ensureCdnUrl(currentLead.image)}
+                          alt={currentLead.name}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {currentLead.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <IconUser className="w-3 h-3 text-muted-foreground" />
+                    )}
+                    <span
+                      className={
+                        currentLead
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      }
+                    >
+                      {currentLead ? getDisplayName(currentLead) : "No lead"}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {currentLead && (
+                    <DropdownMenuItem
+                      onClick={() => handleLeadChange(null)}
+                      className="cursor-pointer text-muted-foreground"
+                    >
+                      No lead
+                    </DropdownMenuItem>
+                  )}
+                  {organization.members.map((m) => (
+                    <DropdownMenuItem
+                      key={m.user.id}
+                      onClick={() => handleLeadChange(m.user.id)}
+                      className="cursor-pointer"
+                    >
+                      <Avatar className="h-4 w-4 mr-2">
+                        <AvatarImage
+                          src={ensureCdnUrl(m.user.image ?? "")}
+                          alt={m.user.name}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {m.user.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {getDisplayName(m.user)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <span
+                className={cn(
+                  "text-xs flex items-center gap-1.5",
+                  currentLead ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <IconUser className="w-3 h-3" />
+                {currentLead ? getDisplayName(currentLead) : "No lead"}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Labels */}
+        {showField("labels") && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap gap-1">
+              {currentLabels.map((l) => (
+                <RenderLabel
+                  key={l.id}
+                  label={l}
+                  showRemove={editable}
+                  onRemove={(id) =>
+                    handleLabelToggle(
+                      currentLabels.map((x) => x.id).filter((x) => x !== id),
+                    )
+                  }
+                />
+              ))}
+              <ComboBox
+                values={currentLabels.map((l) => l.id)}
+                onValuesChange={handleLabelToggle}
+              >
+                <ComboBoxTrigger asChild disabled={!editable}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="h-6 w-6 aspect-square p-0 justify-center rounded-full"
+                  >
+                    <IconPlus className="w-3.5 h-3.5" />
+                  </Button>
+                </ComboBoxTrigger>
+                <ComboBoxContent>
+                  <ComboBoxSearch
+                    placeholder="Search labels..."
+                    onValueChange={setLabelSearch}
+                  />
+                  <ComboBoxList>
+                    <ComboBoxEmpty className="p-0">
+                      {canCreateLabel && labelSearch.trim().length > 0 ? (
+                        <InlineCreateLabelForm
+                          orgId={organization.id}
+                          searchValue={labelSearch.trim()}
+                          onCreated={(newLabels) => {
+                            setLabelSearch("");
+                            // Refresh org labels and add new label to release
+                            const newLabel = newLabels[0];
+                            if (newLabel) {
+                              handleLabelToggle([
+                                ...currentLabels.map((l) => l.id),
+                                newLabel.id,
+                              ]);
+                            }
+                          }}
+                        />
+                      ) : (
+                        "No labels found."
+                      )}
+                    </ComboBoxEmpty>
+                    <ComboBoxGroup>
+                      {orgLabels.map((l) => (
+                        <ComboBoxItem
+                          key={l.id}
+                          value={l.id}
+                          searchValue={l.name}
+                        >
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: l.color ?? "#ccc" }}
+                          />
+                          <span className="ml-2">{l.name}</span>
+                        </ComboBoxItem>
+                      ))}
+                    </ComboBoxGroup>
+                  </ComboBoxList>
+                </ComboBoxContent>
+              </ComboBox>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -623,6 +888,99 @@ export function ReleaseFieldToolbar({
             Public page
           </Button>
         </a>
+      )}
+
+      {showField("lead") && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2"
+            >
+              {currentLead?.image ? (
+                <Avatar className="h-3.5 w-3.5">
+                  <AvatarImage
+                    src={ensureCdnUrl(currentLead.image)}
+                    alt={currentLead.name}
+                  />
+                  <AvatarFallback className="text-xs">
+                    {currentLead.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <IconUser className="h-3.5 w-3.5" />
+              )}
+              {currentLead ? getDisplayName(currentLead) : "Lead"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {currentLead && (
+              <DropdownMenuItem
+                onClick={() => handleLeadChange(null)}
+                className="cursor-pointer text-muted-foreground"
+              >
+                No lead
+              </DropdownMenuItem>
+            )}
+            {organization.members.map((m) => (
+              <DropdownMenuItem
+                key={m.user.id}
+                onClick={() => handleLeadChange(m.user.id)}
+                className="cursor-pointer"
+              >
+                <Avatar className="h-4 w-4 mr-2">
+                  <AvatarImage
+                    src={ensureCdnUrl(m.user.image ?? "")}
+                    alt={m.user.name}
+                  />
+                  <AvatarFallback className="text-xs">
+                    {m.user.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {getDisplayName(m.user)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      {showField("labels") && (
+        <ComboBox
+          values={currentLabels.map((l) => l.id)}
+          onValuesChange={handleLabelToggle}
+        >
+          <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 flex items-center gap-2">
+            <ComboBoxValue placeholder="Labels">
+              <div className="flex items-center gap-1.5">
+                <IconTag className="h-3.5 w-3.5" />
+                <span>
+                  {currentLabels.length > 0
+                    ? `${currentLabels.length} label${currentLabels.length === 1 ? "" : "s"}`
+                    : "Labels"}
+                </span>
+              </div>
+            </ComboBoxValue>
+            <ComboBoxIcon />
+          </ComboBoxTrigger>
+          <ComboBoxContent>
+            <ComboBoxSearch placeholder="Search labels..." />
+            <ComboBoxList>
+              <ComboBoxEmpty>No labels found</ComboBoxEmpty>
+              <ComboBoxGroup>
+                {orgLabels.map((l) => (
+                  <ComboBoxItem key={l.id} value={l.id} searchValue={l.name}>
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: l.color ?? "#ccc" }}
+                    />
+                    <span className="ml-2">{l.name}</span>
+                  </ComboBoxItem>
+                ))}
+              </ComboBoxGroup>
+            </ComboBoxList>
+          </ComboBoxContent>
+        </ComboBox>
       )}
     </div>
   );

@@ -24,7 +24,7 @@ import {
 import { KanbanCard } from "@repo/ui/components/kibo-ui/kanban/index";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { formatCount, formatDateCompact } from "@repo/util";
+import { extractHslValues, formatCount, formatDateCompact } from "@repo/util";
 import {
   IconAppWindow,
   IconArrowRight,
@@ -77,6 +77,8 @@ import {
 interface UnifiedTaskItemProps {
   task: schema.TaskWithLabels;
   viewMode: "list" | "kanban";
+  overviewLayout?: boolean;
+  className?: string;
 
   // Data props
   tasks: schema.TaskWithLabels[];
@@ -139,6 +141,8 @@ export function UnifiedTaskItem({
   personal = false,
   columnId,
   compact = false,
+  overviewLayout = false,
+  className = "",
 }: UnifiedTaskItemProps) {
   const taskId = String(task.shortId);
   const status = statusConfig[task.status as keyof typeof statusConfig];
@@ -324,6 +328,7 @@ export function UnifiedTaskItem({
     <Link
       className={cn(
         "block cursor-pointer w-full text-left bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        // className,
       )}
       to="/$orgId/tasks/$taskShortId"
       params={{ orgId: task.organizationId, taskShortId: taskId }}
@@ -333,12 +338,16 @@ export function UnifiedTaskItem({
       <div
         className={cn(
           "p-1 px-2 group/list-block h-10 max-h-10 relative flex gap-2 bg-transparent hover:bg-muted text-sm transition-colors flex-row items-center data-[state=open]:bg-accent",
+          className,
           hasOpenPopover && "bg-accent",
           // task.status === "backlog" && "hover:bg-accent/15",
           // task.status === "todo" && "hover:bg-secondary/15",
           // task.status === "in-progress" && "hover:bg-primary/15",
           // task.status === "done" && "hover:bg-success/15",
         )}
+        style={{
+          border: `1px solid hsla(${extractHslValues(status.hsla || "#404040")}, 0.5)`,
+        }}
       >
         {/* Left section - task ID, status, and title */}
         <div className="flex gap-2 w-full truncate">
@@ -362,7 +371,50 @@ export function UnifiedTaskItem({
                 </button>
               }
             />
+            <div className="shrink-0 w-24 min-w-24">
+              <GlobalTaskStatus
+                task={task}
+                editable={fieldPermissions?.status ?? true}
+                onChange={handleStatusChange}
+                tasks={tasks}
+                setTasks={setTasks}
+                open={statusPopoverOpen}
+                setOpen={handleStatusPopoverChange}
+                data-no-propagate
+                customTrigger={
+                  <Badge
+                    variant={"outline"}
+                    // className="h-4 place-items-center shrink-0 cursor-pointer flex items-center"
+                    className={
+                      (cn(
+                        statusConfig[task.status as keyof typeof statusConfig]
+                          .className,
+                      ),
+                      "px-0 h-5")
+                    }
+                    data-no-propagate
+                  >
+                    <InlineLabel
+                      text={status.label}
+                      icon={status.icon(
+                        `h-3.5 w-3.5 ${status?.className || ""}`,
+                      )}
+                      className="pe-2"
+                    />
+                    {/*{status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)}
+                  {status.label}*/}
+                  </Badge>
+                }
+              />
+            </div>
 
+            <div className="shrink-0 max-w-9">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-medium text-muted-foreground truncate">
+                  #{task.shortId}
+                </span>
+              </div>
+            </div>
             {/* Title */}
             <p className="truncate cursor-pointer text-sm text-foreground w-fit">
               {parentTask ? (
@@ -374,7 +426,8 @@ export function UnifiedTaskItem({
                   </span>
                 </span>
               ) : (
-                task.title
+                task.title +
+                "oasidf joasidjf oasidjf oasidjf oasidjfoaisjdf oiasjdof iajsdo fijasodi"
               )}
             </p>
           </div>
@@ -393,7 +446,7 @@ export function UnifiedTaskItem({
             {/* Labels */}
             <TaskLabelsInline
               labels={task.labels || []}
-              maxVisible={2}
+              maxVisible={1}
               className="hidden sm:flex h-5 gap-1 max-w-[300px] overflow-x-auto"
               overflowStyle="count"
             />

@@ -1,14 +1,27 @@
 import { randomUUID } from "node:crypto";
 import {
+	addReleaseCommentReaction,
+	addReleaseLabel,
 	createRelease,
+	createReleaseComment,
+	createReleaseStatusUpdate,
 	db,
 	deleteRelease,
+	deleteReleaseComment,
+	deleteReleaseStatusUpdate,
 	getRelease,
 	getReleaseBySlug,
+	getReleaseCommentReplies,
+	getReleaseComments,
+	getReleaseStatusUpdates,
 	getReleaseWithTasks,
 	markReleaseAsReleased,
+	removeReleaseCommentReaction,
+	removeReleaseLabel,
 	schema,
 	updateRelease,
+	updateReleaseComment,
+	updateReleaseStatusUpdate,
 } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { Hono } from "hono";
@@ -202,6 +215,7 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 		releasedAt: Date | null;
 		color: string;
 		icon: string;
+		leadId: string | null;
 	}> = {};
 
 	// Only include allowed fields
@@ -215,6 +229,7 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 		updateData.releasedAt = updates.releasedAt ? new Date(updates.releasedAt) : null;
 	if (updates.color !== undefined) updateData.color = updates.color;
 	if (updates.icon !== undefined) updateData.icon = updates.icon;
+	if ("leadId" in updates) updateData.leadId = updates.leadId ?? null;
 
 	// Update the release
 	const updatedRelease = await traceAsync("release.update.save", () => updateRelease(releaseId, updateData), {
@@ -488,4 +503,303 @@ apiRouteAdminRelease.get("/:releaseId", async (c) => {
 	}
 
 	return c.json({ success: true, data: release });
+});
+
+// ─── Release Labels ───────────────────────────────────────────────────────────
+
+// POST /release/:releaseId/labels  — add a label
+apiRouteAdminRelease.post("/:releaseId/labels", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const { org_id: orgId, sseClientId, labelId } = await c.req.json();
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const existing = await getRelease(releaseId);
+	if (!existing || existing.organizationId !== orgId) return c.json({ success: false, error: "Release not found" }, 404);
+
+	await addReleaseLabel(releaseId, orgId, labelId);
+
+	const data = { type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"], data: { releaseId } };
+	const found = findClientBysseId(sseClientId);
+	sseBroadcastToRoom(orgId, "releases", data, found?.id);
+
+	return c.json({ success: true });
+});
+
+// DELETE /release/:releaseId/labels/:labelId — remove a label
+apiRouteAdminRelease.delete("/:releaseId/labels/:labelId", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const labelId = c.req.param("labelId");
+	const orgId = c.req.query("org_id") || "";
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	await removeReleaseLabel(releaseId, labelId);
+
+	return c.json({ success: true });
+});
+
+// ─── Release Status Updates ───────────────────────────────────────────────────
+
+// GET /release/:releaseId/status-updates
+apiRouteAdminRelease.get("/:releaseId/status-updates", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const orgId = c.req.query("org_id") || "";
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const updates = await getReleaseStatusUpdates(releaseId, "all");
+	return c.json({ success: true, data: updates });
+});
+
+// POST /release/:releaseId/status-updates
+apiRouteAdminRelease.post("/:releaseId/status-updates", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const { org_id: orgId, sseClientId, content, health, visibility } = await c.req.json();
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+
+	const update = await createReleaseStatusUpdate({
+		releaseId,
+		organizationId: orgId,
+		authorId: session.userId,
+		content,
+		health: health || "on_track",
+		visibility: visibility || "public",
+	});
+
+	const found = findClientBysseId(sseClientId);
+	const data = { type: "UPDATE_RELEASE_STATUS_UPDATES" as ServerEventBaseMessage["type"], data: { releaseId } };
+	sseBroadcastToRoom(orgId, "releases", data, found?.id);
+	sseBroadcastPublic(orgId, { ...data });
+
+	return c.json({ success: true, data: update });
+});
+
+// PATCH /release/:releaseId/status-updates/:updateId
+apiRouteAdminRelease.patch("/:releaseId/status-updates/:updateId", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const updateId = c.req.param("updateId");
+	const { org_id: orgId, sseClientId, content, health, visibility } = await c.req.json();
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const updated = await updateReleaseStatusUpdate(updateId, { content, health, visibility });
+
+	const found = findClientBysseId(sseClientId);
+	const data = { type: "UPDATE_RELEASE_STATUS_UPDATES" as ServerEventBaseMessage["type"], data: { releaseId } };
+	sseBroadcastToRoom(orgId, "releases", data, found?.id);
+	sseBroadcastPublic(orgId, { ...data });
+
+	return c.json({ success: true, data: updated });
+});
+
+// DELETE /release/:releaseId/status-updates/:updateId
+apiRouteAdminRelease.delete("/:releaseId/status-updates/:updateId", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const updateId = c.req.param("updateId");
+	const orgId = c.req.query("org_id") || "";
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	await deleteReleaseStatusUpdate(updateId);
+
+	const data = { type: "UPDATE_RELEASE_STATUS_UPDATES" as ServerEventBaseMessage["type"], data: { releaseId } };
+	sseBroadcastToRoom(orgId, "releases", data);
+	sseBroadcastPublic(orgId, { ...data });
+
+	return c.json({ success: true });
+});
+
+// ─── Release Comments ─────────────────────────────────────────────────────────
+
+// GET /release/:releaseId/comments
+apiRouteAdminRelease.get("/:releaseId/comments", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const orgId = c.req.query("org_id") || "";
+	const statusUpdateId = c.req.query("statusUpdateId");
+	const limitParam = c.req.query("limit");
+	const pageParam = c.req.query("page");
+	const directionParam = c.req.query("direction");
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const limit = Math.min(Number(limitParam) || 10, 50);
+	const page = Math.max(Number(pageParam) || 1, 1);
+	const offset = (page - 1) * limit;
+
+	const { comments, total } = await getReleaseComments(releaseId, {
+		statusUpdateId: statusUpdateId === "null" ? null : statusUpdateId,
+		visibility: "all",
+		limit,
+		offset,
+		direction: directionParam === "desc" ? "desc" : directionParam === "asc" ? "asc" : undefined,
+		topLevelOnly: true,
+	});
+
+	const totalPages = Math.max(Math.ceil(total / limit), 1);
+
+	return c.json({
+		success: true,
+		data: comments,
+		pagination: {
+			page,
+			limit,
+			total,
+			totalPages,
+			hasMore: page < totalPages,
+		},
+	});
+});
+
+// GET /release/:releaseId/comments/:commentId/replies
+apiRouteAdminRelease.get("/:releaseId/comments/:commentId/replies", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const commentId = c.req.param("commentId");
+	const orgId = c.req.query("org_id") || "";
+
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const replies = await getReleaseCommentReplies(releaseId, commentId);
+
+	return c.json({ success: true, data: replies });
+});
+
+// POST /release/:releaseId/comments
+apiRouteAdminRelease.post("/:releaseId/comments", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const { org_id: orgId, sseClientId, content, visibility, statusUpdateId, parentId } = await c.req.json();
+
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const comment = await createReleaseComment({
+		releaseId,
+		organizationId: orgId,
+		createdBy: session.userId,
+		content,
+		visibility: visibility || "public",
+		statusUpdateId: statusUpdateId || undefined,
+		parentId: parentId || undefined,
+	});
+
+	const found = findClientBysseId(sseClientId);
+	const data = { type: "UPDATE_RELEASE_COMMENTS" as ServerEventBaseMessage["type"], data: { releaseId } };
+	sseBroadcastToRoom(orgId, "releases", data, found?.id);
+	if (visibility === "public") {
+		sseBroadcastPublic(orgId, { ...data });
+	}
+
+	return c.json({ success: true, data: comment });
+});
+
+// PATCH /release/:releaseId/comments/:commentId
+apiRouteAdminRelease.patch("/:releaseId/comments/:commentId", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const commentId = c.req.param("commentId");
+	const { org_id: orgId, sseClientId, content, visibility } = await c.req.json();
+
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+
+	const existingComment = await db.query.releaseComment.findFirst({ where: eq(schema.releaseComment.id, commentId) });
+	if (!existingComment) return c.json({ success: false, error: "Comment not found" }, 404);
+
+	const isOwner = existingComment.createdBy === session.userId;
+	const canManage = await traceOrgPermissionCheck(session.userId, orgId, "moderation.manageComments");
+	if (!isOwner && !canManage) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const updated = await updateReleaseComment(commentId, { content, visibility });
+
+	const found = findClientBysseId(sseClientId);
+	const data = { type: "UPDATE_RELEASE_COMMENTS" as ServerEventBaseMessage["type"], data: { releaseId } };
+	sseBroadcastToRoom(orgId, "releases", data, found?.id);
+	if (updated.visibility === "public") {
+		sseBroadcastPublic(orgId, { ...data });
+	}
+
+	return c.json({ success: true, data: updated });
+});
+
+// DELETE /release/:releaseId/comments/:commentId
+apiRouteAdminRelease.delete("/:releaseId/comments/:commentId", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const commentId = c.req.param("commentId");
+	const orgId = c.req.query("org_id") || "";
+
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+
+	const existingComment = await db.query.releaseComment.findFirst({ where: eq(schema.releaseComment.id, commentId) });
+	if (!existingComment) return c.json({ success: false, error: "Comment not found" }, 404);
+
+	const isOwner = existingComment.createdBy === session.userId;
+	const canManage = await traceOrgPermissionCheck(session.userId, orgId, "moderation.manageComments");
+	if (!isOwner && !canManage) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	await deleteReleaseComment(commentId);
+
+	const data = { type: "UPDATE_RELEASE_COMMENTS" as ServerEventBaseMessage["type"], data: { releaseId } };
+	sseBroadcastToRoom(orgId, "releases", data);
+	if (existingComment.visibility === "public") {
+		sseBroadcastPublic(orgId, { ...data });
+	}
+
+	return c.json({ success: true });
+});
+
+// ─── Release Comment Reactions ────────────────────────────────────────────────
+
+// POST /release/:releaseId/comments/:commentId/reactions
+apiRouteAdminRelease.post("/:releaseId/comments/:commentId/reactions", async (c) => {
+	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
+	const commentId = c.req.param("commentId");
+	const { org_id: orgId, sseClientId, emoji } = await c.req.json();
+
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	await addReleaseCommentReaction(orgId, commentId, session.userId, emoji);
+
+	const found = findClientBysseId(sseClientId);
+	const data = { type: "UPDATE_RELEASE_COMMENTS" as ServerEventBaseMessage["type"], data: { releaseId } };
+	sseBroadcastToRoom(orgId, "releases", data, found?.id);
+
+	return c.json({ success: true });
+});
+
+// DELETE /release/:releaseId/comments/:commentId/reactions/:emoji
+apiRouteAdminRelease.delete("/:releaseId/comments/:commentId/reactions/:emoji", async (c) => {
+	const session = c.get("session");
+	const commentId = c.req.param("commentId");
+	const emoji = c.req.param("emoji");
+
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+
+	await removeReleaseCommentReaction(commentId, session.userId, emoji);
+
+	return c.json({ success: true });
 });

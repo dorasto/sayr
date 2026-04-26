@@ -4,9 +4,9 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { getReleaseStatusConfig } from "@/components/releases/config";
 import { statusConfig } from "@/components/tasks/shared/config";
 import { db, schema } from "@repo/database";
@@ -20,6 +20,7 @@ import {
   IconArrowUpRight,
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
+  IconMessage,
   IconTrendingUp,
 } from "@tabler/icons-react";
 import { authClient } from "@repo/auth/client";
@@ -34,8 +35,13 @@ import {
   TileAction,
 } from "@repo/ui/components/doras-ui/tile";
 import { Separator } from "@repo/ui/components/separator";
-import { extractHslValues, extractTaskText, formatCount } from "@repo/util";
-import { InlineLabel } from "@/components/tasks";
+import { extractTaskText, formatCount } from "@repo/util";
+import { PublicReleaseDiscussion } from "@/components/public/releases/public-release-discussion";
+import { PublicReleaseStatusUpdates } from "@/components/public/releases/public-release-status-updates";
+import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import type { ServerEventMessage } from "@/lib/serverEvents";
+import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
   .inputValidator((data: { orgSlug: string; releaseSlug: string }) => data)
@@ -168,6 +174,52 @@ function ReleaseDetailPage() {
   const orgSlug = params.orgSlug;
   const [panelOpen, setPanelOpen] = useState(true);
   const { data: session } = authClient.useSession();
+  const router = useRouter();
+  const { serverEvents, organization } = usePublicOrganizationLayout();
+  const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
+
+  // SSE handlers for real-time release updates
+  const handlers: WSMessageHandler<ServerEventMessage> = {
+    UPDATE_RELEASES: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        router.invalidate();
+      }
+    },
+    UPDATE_TASK: (msg) => {
+      if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id) {
+        router.invalidate();
+      }
+    },
+    UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
+      if (
+        msg.scope === "PUBLIC" &&
+        msg.meta?.orgId === organization.id &&
+        (msg.data as { releaseId?: string })?.releaseId === release?.id
+      ) {
+        setStatusUpdatesRefreshKey((k) => k + 1);
+      }
+    },
+  };
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
+
+  // Attach SSE listener
+  useEffect(() => {
+    if (!serverEvents.event) return;
+    serverEvents.event.addEventListener("message", handleMessage);
+    return () => {
+      serverEvents.event?.removeEventListener("message", handleMessage);
+    };
+  }, [serverEvents.event, handleMessage]);
+
+  // Handle SSE reconnection — refetch all data
+  useEffect(() => {
+    const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
+      if (msg.type === "SSE_RECONNECTED") {
+        router.invalidate();
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const taskStats = useMemo(() => {
     const COMPLETED_STATUSES = ["done", "canceled"];
@@ -296,7 +348,7 @@ function ReleaseDetailPage() {
         <Link to={`/orgs/${orgSlug}/releases`}>
           <Button
             variant="ghost"
-            className="w-fit text-xs p-1 h-auto rounded-lg"
+            className="w-fit text-xs p-1 h-auto rounded-xl"
             size="sm"
           >
             <IconArrowLeft className="size-3!" />
@@ -350,13 +402,9 @@ function ReleaseDetailPage() {
             </div>
           }
           panelBody={
-            tasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-1 py-4 text-center">
-                No public tasks in this release.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {/* Progress chart */}
+            <div className="flex flex-col gap-4">
+              {/* Progress chart */}
+              {tasks.length > 0 && (
                 <Tile className="md:w-full flex-col items-start gap-3">
                   <TileHeader className="w-full">
                     <TileIcon>
@@ -420,8 +468,20 @@ function ReleaseDetailPage() {
                     )}
                   </div>
                 </Tile>
+              )}
+
+              {/* Status Updates */}
+              <div className="flex flex-col gap-2">
+                <Label variant="subheading">Updates</Label>
+                <PublicReleaseStatusUpdates
+                  organizationId={org?.id ?? ""}
+                  orgSlug={orgSlug}
+                  releaseSlug={params.releaseSlug}
+                  releaseId={release?.id ?? ""}
+                  refreshKey={statusUpdatesRefreshKey}
+                />
               </div>
-            )
+            </div>
           }
           className="h-full"
         >
@@ -473,6 +533,24 @@ function ReleaseDetailPage() {
                   )),
                 )}
               </div>
+
+              {/* Discussion Section */}
+              <div className="flex flex-col gap-3 pt-4">
+                <div className="flex items-center justify-between">
+                  <Label variant="subheading">Discussion</Label>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <IconMessage size={14} />
+                    <span>Join the conversation</span>
+                  </div>
+                </div>
+                <Separator />
+                <PublicReleaseDiscussion
+                  releaseId={release.id}
+                  releaseSlug={params.releaseSlug}
+                  organizationId={org?.id ?? ""}
+                  orgSlug={orgSlug}
+                />
+              </div>
             </div>
           </div>
         </PanelWrapper>
@@ -516,7 +594,7 @@ function TaskRow({ task, orgSlug }: { task: PublicTask; orgSlug: string }) {
           </TileDescription>
         </TileHeader>
         <TileAction asChild>
-          <Label variant={"description"}>
+          <Label variant={"description"} className="shrink-0">
             {formatCount(task.voteCount)} votes
           </Label>
         </TileAction>

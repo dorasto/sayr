@@ -4,6 +4,7 @@ import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
+import { release } from "./release.schema";
 
 // Label visibility enum - reuses the existing "visible" PostgreSQL enum
 // (same DB enum as task.visible, but defined here to avoid circular imports)
@@ -52,12 +53,38 @@ export const taskLabelAssignment = table("task_labels", {
 
 export type taskLabelType = typeof taskLabelAssignment.$inferSelect;
 
+export const releaseLabelAssignment = table(
+	"release_labels",
+	{
+		id: v
+			.text("id")
+			.primaryKey()
+			.$defaultFn(() => randomUUID()),
+		releaseId: v
+			.text("release_id")
+			.notNull()
+			.references(() => release.id, { onDelete: "cascade" }),
+		organizationId: v
+			.text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		labelId: v
+			.text("label_id")
+			.notNull()
+			.references(() => label.id, { onDelete: "cascade" }),
+	},
+	(t) => [v.unique("release_label_unique").on(t.releaseId, t.labelId)]
+);
+
+export type releaseLabelType = typeof releaseLabelAssignment.$inferSelect;
+
 export const labelRelations = relations(label, ({ one, many }) => ({
 	organization: one(organization, {
 		fields: [label.organizationId],
 		references: [organization.id],
 	}),
 	taskAssignments: many(taskLabelAssignment),
+	releaseAssignments: many(releaseLabelAssignment),
 }));
 
 export const taskLabelRelations = relations(taskLabelAssignment, ({ one }) => ({
@@ -67,6 +94,17 @@ export const taskLabelRelations = relations(taskLabelAssignment, ({ one }) => ({
 	}),
 	label: one(label, {
 		fields: [taskLabelAssignment.labelId],
+		references: [label.id],
+	}),
+}));
+
+export const releaseLabelRelations = relations(releaseLabelAssignment, ({ one }) => ({
+	release: one(release, {
+		fields: [releaseLabelAssignment.releaseId],
+		references: [release.id],
+	}),
+	label: one(label, {
+		fields: [releaseLabelAssignment.labelId],
 		references: [label.id],
 	}),
 }));

@@ -46,7 +46,10 @@ import {
 } from "../shared/nested-grouping";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
-import { getTaskFieldPermissions, type FieldPermissions } from "../shared/task-field-toolbar-types";
+import {
+  getTaskFieldPermissions,
+  type FieldPermissions,
+} from "../shared/task-field-toolbar-types";
 import { BulkActionBar, type BulkUpdateAddRemove } from "./bulk-action-bar";
 import Loader from "@/components/Loader";
 import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
@@ -75,6 +78,9 @@ interface UnifiedTaskViewProps {
   permissionsByOrg?: Record<string, TeamPermissions>;
   /** The current user's ID. Required alongside permissionsByOrg for field-level gating. */
   accountId?: string;
+  overviewLayout?: boolean;
+  /** When false, hides the TaskGroupSectionHeader for each group. Defaults to true. */
+  showGroupHeaders?: boolean;
 }
 
 export function UnifiedTaskView({
@@ -94,6 +100,8 @@ export function UnifiedTaskView({
   onActiveDialogTaskChange,
   permissionsByOrg,
   accountId,
+  overviewLayout = false,
+  showGroupHeaders = true,
 }: UnifiedTaskViewProps) {
   // console.log("[RENDER] UnifiedTaskView");
   const [mounted, setMounted] = useState(false);
@@ -115,21 +123,17 @@ export function UnifiedTaskView({
 
   // Task open mode preference
   const taskOpenMode = useStore(userPreferencesStore, (s) => s.taskOpenMode);
-  const [dialogTask, setDialogTask] = useState<schema.TaskWithLabels | null>(null);
-
-  const handleTaskClick = useCallback(
-    (task: schema.TaskWithLabels) => {
-      setDialogTask(task);
-    },
-    [],
+  const [dialogTask, setDialogTask] = useState<schema.TaskWithLabels | null>(
+    null,
   );
 
-  const handleOpenInDialog = useCallback(
-    (task: schema.TaskWithLabels) => {
-      setDialogTask(task);
-    },
-    [],
-  );
+  const handleTaskClick = useCallback((task: schema.TaskWithLabels) => {
+    setDialogTask(task);
+  }, []);
+
+  const handleOpenInDialog = useCallback((task: schema.TaskWithLabels) => {
+    setDialogTask(task);
+  }, []);
 
   // Notify parent when the active dialog task changes (for SSE channel switching)
   useEffect(() => {
@@ -205,17 +209,31 @@ export function UnifiedTaskView({
         await runWithToast(
           `update-task-${payload.field}`,
           payload.toastMessages,
-          () => updateTaskAction(orgId, payload.optimisticTask.id, payload.updateData, sseClientId),
+          () =>
+            updateTaskAction(
+              orgId,
+              payload.optimisticTask.id,
+              payload.updateData,
+              sseClientId,
+            ),
         );
         break;
       }
       case "multi":
       case "parent": {
-        await runWithToast(payload.actionId, payload.toastMessages, payload.apiFn);
+        await runWithToast(
+          payload.actionId,
+          payload.toastMessages,
+          payload.apiFn,
+        );
         break;
       }
       case "relation": {
-        await runWithToast(payload.actionId, payload.toastMessages, payload.apiFn);
+        await runWithToast(
+          payload.actionId,
+          payload.toastMessages,
+          payload.apiFn,
+        );
         break;
       }
     }
@@ -243,22 +261,38 @@ export function UnifiedTaskView({
     }
     if (updates.assignees) {
       await dispatchPayload(
-        getAssigneeBulkUpdatePayload(task, updates.assignees.map((u) => u.id), availableUsers, sseClientId),
+        getAssigneeBulkUpdatePayload(
+          task,
+          updates.assignees.map((u) => u.id),
+          availableUsers,
+          sseClientId,
+        ),
       );
     }
     if (updates.labels) {
       await dispatchPayload(
-        getLabelBulkUpdatePayload(task, updates.labels.map((l) => l.id), availableLabels, sseClientId),
+        getLabelBulkUpdatePayload(
+          task,
+          updates.labels.map((l) => l.id),
+          availableLabels,
+          sseClientId,
+        ),
       );
     }
     if (updates.category !== undefined) {
-      await dispatchPayload(getCategoryUpdatePayload(task, updates.category, categories));
+      await dispatchPayload(
+        getCategoryUpdatePayload(task, updates.category, categories),
+      );
     }
     if (updates.releaseId !== undefined) {
-      await dispatchPayload(getReleaseUpdatePayload(task, updates.releaseId, releases));
+      await dispatchPayload(
+        getReleaseUpdatePayload(task, updates.releaseId, releases),
+      );
     }
     if (updates.parentId !== undefined) {
-      await dispatchPayload(getParentUpdatePayload(task, updates.parentId, tasks, sseClientId));
+      await dispatchPayload(
+        getParentUpdatePayload(task, updates.parentId, tasks, sseClientId),
+      );
     }
   };
 
@@ -269,7 +303,9 @@ export function UnifiedTaskView({
   ) => {
     const task = tasks.find((t) => t.id === sourceTaskId);
     if (!task) return;
-    await dispatchPayload(getRelationUpdatePayload(task, targetTaskId, type, tasks, sseClientId));
+    await dispatchPayload(
+      getRelationUpdatePayload(task, targetTaskId, type, tasks, sseClientId),
+    );
   };
 
   // Bulk update handler - iterates over selected tasks in parallel
@@ -430,7 +466,11 @@ export function UnifiedTaskView({
     // Compute field permissions when cross-org permission data is available
     const fieldPerms: FieldPermissions | undefined =
       permissionsByOrg && accountId
-        ? getTaskFieldPermissions(task, accountId, permissionsByOrg[task.organizationId])
+        ? getTaskFieldPermissions(
+            task,
+            accountId,
+            permissionsByOrg[task.organizationId],
+          )
         : undefined;
 
     return (
@@ -456,17 +496,24 @@ export function UnifiedTaskView({
         categories={categories}
         releases={releases}
         compact={compact}
+        overviewLayout={overviewLayout}
         personal={personal}
         fieldPermissions={fieldPerms}
+        className={cn(
+          overviewLayout
+            ? "bg-accent hover:bg-secondary! rounded-xl mb-1"
+            : undefined,
+        )}
       />
     );
   };
 
-  const renderEmptyGroup = () => (
-    <div className="px-4 py-3 text-xs text-muted-foreground">
-      No tasks in this group
-    </div>
-  );
+  const renderEmptyGroup = () =>
+    showGroupHeaders ? (
+      <div className="px-4 py-3 text-xs text-muted-foreground">
+        No tasks in this group
+      </div>
+    ) : null;
 
   const renderEmptyState = () => (
     <div className="flex items-center justify-center">No issues found</div>
@@ -485,11 +532,11 @@ export function UnifiedTaskView({
     // Transform subGroups into GridBoard rows (if they exist)
     const gridRows: GridBoardRowData[] | undefined = hasKanbanSubGroups
       ? groupedTasks[0]?.subGroups?.map((sg) => ({
-        id: sg.id,
-        label: sg.label,
-        icon: sg.icon,
-        accentClassName: sg.accentClassName,
-      }))
+          id: sg.id,
+          label: sg.label,
+          icon: sg.icon,
+          accentClassName: sg.accentClassName,
+        }))
       : undefined;
 
     // Build a flat list of items with columnId and rowId for GridBoard
@@ -653,12 +700,19 @@ export function UnifiedTaskView({
 
       if (updates.assignees !== undefined) {
         await dispatchPayload(
-          getAssigneeBulkUpdatePayload(task, updates.assignees.map((u) => u.id), availableUsers, sseClientId),
+          getAssigneeBulkUpdatePayload(
+            task,
+            updates.assignees.map((u) => u.id),
+            availableUsers,
+            sseClientId,
+          ),
         );
       }
 
       if (updates.category !== undefined) {
-        await dispatchPayload(getCategoryUpdatePayload(task, updates.category, categories));
+        await dispatchPayload(
+          getCategoryUpdatePayload(task, updates.category, categories),
+        );
       }
     };
 
@@ -666,7 +720,11 @@ export function UnifiedTaskView({
     const renderDragOverlay = (item: GridItem) => {
       const dragFieldPerms: FieldPermissions | undefined =
         permissionsByOrg && accountId
-          ? getTaskFieldPermissions(item, accountId, permissionsByOrg[item.organizationId])
+          ? getTaskFieldPermissions(
+              item,
+              accountId,
+              permissionsByOrg[item.organizationId],
+            )
           : undefined;
 
       return (
@@ -743,21 +801,23 @@ export function UnifiedTaskView({
 
     return (
       <div key={subGroup.id}>
-        <TaskGroupSectionHeader
-          group={subGroup}
-          isCollapsed={subGroupCollapsed}
-          onToggleCollapse={() => handleToggleSection(subGroup.id)}
-          isSubGroup={true}
-          className="py-1"
-          rootClassName="bg-muted/0 hover:bg-muted/20 transition-all"
-          compact={compact}
-        />
+        {showGroupHeaders && (
+          <TaskGroupSectionHeader
+            group={subGroup}
+            isCollapsed={subGroupCollapsed}
+            onToggleCollapse={() => handleToggleSection(subGroup.id)}
+            isSubGroup={true}
+            className="py-1"
+            rootClassName="bg-muted/0 hover:bg-muted/20 transition-all"
+            compact={compact}
+          />
+        )}
         {!subGroupCollapsed && (
           <div className="py-1 flex flex-col gap-1">
             {subGroup.tasks.length > 0
               ? subGroup.tasks.map((task) =>
-                renderTaskItem(task, group.id, "list"),
-              )
+                  renderTaskItem(task, group.id, "list"),
+                )
               : renderEmptyGroup()}
           </div>
         )}
@@ -785,13 +845,15 @@ export function UnifiedTaskView({
 
     return (
       <div key={group.id}>
-        <TaskGroupSectionHeader
-          group={group}
-          isCollapsed={isCollapsed}
-          onToggleCollapse={() => handleToggleSection(group.id)}
-          isSticky={true}
-          compact={compact}
-        />
+        {showGroupHeaders && (
+          <TaskGroupSectionHeader
+            group={group}
+            isCollapsed={isCollapsed}
+            onToggleCollapse={() => handleToggleSection(group.id)}
+            isSticky={true}
+            compact={compact}
+          />
+        )}
         {!isCollapsed && (
           <div className="flex flex-col gap-0">{renderGroupContent()}</div>
         )}
@@ -860,7 +922,11 @@ export function UnifiedTaskView({
         organization={organization}
         fieldPermissions={
           dialogTask && permissionsByOrg && accountId
-            ? getTaskFieldPermissions(dialogTask, accountId, permissionsByOrg[dialogTask.organizationId])
+            ? getTaskFieldPermissions(
+                dialogTask,
+                accountId,
+                permissionsByOrg[dialogTask.organizationId],
+              )
             : undefined
         }
       />
