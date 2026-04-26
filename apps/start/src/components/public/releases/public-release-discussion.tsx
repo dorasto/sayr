@@ -31,7 +31,6 @@ import {
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { ServerEventMessage } from "@/lib/serverEvents";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
-import { task } from "node_modules/@repo/database/schema/task.schema";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
