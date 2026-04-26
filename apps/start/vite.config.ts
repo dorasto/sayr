@@ -55,14 +55,9 @@ const config = defineConfig({
     devtools(),
     !isDev &&
     nitro({
-      // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
+      // @ts-expect-error - externals.inline/external are not in NitroPluginConfig types but exist at runtime
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],
-      },
-      // Workaround for Nitro issue #4113: Rolldown CJS-to-ESM interop crash
-      // with packages that use tslib (like prosekit). Externalizing prosekit
-      // avoids the __toESM(...).default undefined error at runtime.
-      rolldownConfig: {
         external: ["prosekit", /^prosekit\//],
       },
       routeRules: {

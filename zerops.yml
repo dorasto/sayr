@@ -100,8 +100,11 @@ zerops:
       buildCommands:
         - pnpm i
         - pnpm -F start zerops:build
-        # Inject PostHog chunk IDs into sourcemaps (required for upload matching to work)
-        - npx --yes @posthog/cli sourcemap inject --directory apps/start/.output/public --project sayr-start || true
+        - echo POSTHOG_CLI_TOKEN=${POSTHOG_CLI_TOKEN} POSTHOG_CLI_ENV_ID=${POSTHOG_CLI_ENV_ID}
+        - ls -la apps/start/.output/public/ 2>/dev/null || echo WARNING:.output/public not found
+        - npx --yes @posthog/cli sourcemap inject --directory apps/start/.output/public --project sayr-start --verbose || echo WARNING:sourcemap inject failed
+        - find apps/start/.output/public -name "*.map" | head -5
+        - npx --yes @posthog/cli sourcemap upload --directory apps/start/.output/public --project sayr-start --verbose || echo WARNING:sourcemap upload failed
       deployFiles:
         # Strip apps/start/ prefix so .output/ lands at container root
         - apps/start/~.output
