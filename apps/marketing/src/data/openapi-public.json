@@ -23,7 +23,7 @@
     "paths": {
         "/organization/{org_slug}": {
             "get": {
-                "operationId": "getOrganization:org_slug",
+                "operationId": "getOrganizationByOrgSlug",
                 "summary": "Get organization",
                 "description": "Retrieve public information for an organization identified by its slug.",
                 "parameters": [
@@ -176,7 +176,7 @@
         },
         "/organization/{org_slug}/labels": {
             "get": {
-                "operationId": "getOrganization:org_slugLabels",
+                "operationId": "getOrganizationByOrgSlugLabels",
                 "summary": "List organization labels",
                 "description": "Retrieve all public labels associated with an organization.",
                 "parameters": [
@@ -288,7 +288,7 @@
         },
         "/organization/{org_slug}/categories": {
             "get": {
-                "operationId": "getOrganization:org_slugCategories",
+                "operationId": "getOrganizationByOrgSlugCategories",
                 "summary": "List organization categories",
                 "description": "Retrieve all public categories associated with an organization.",
                 "parameters": [
@@ -417,7 +417,7 @@
         },
         "/organization/{org_slug}/tasks": {
             "get": {
-                "operationId": "getOrganization:org_slugTasks",
+                "operationId": "getOrganizationByOrgSlugTasks",
                 "summary": "List organization tasks",
                 "description": "Retrieve a paginated list of public tasks for an organization.",
                 "tags": [
@@ -864,7 +864,7 @@
         },
         "/organization/{org_slug}/tasks/{task_short_id}": {
             "get": {
-                "operationId": "getOrganization:org_slugTasks:task_short_id",
+                "operationId": "getOrganizationByOrgSlugTasksByTaskShortId",
                 "summary": "Get task",
                 "description": "Retrieve a public task by its short identifier.",
                 "parameters": [
@@ -1202,7 +1202,7 @@
         },
         "/organization/{org_slug}/tasks/{task_short_id}/comments": {
             "get": {
-                "operationId": "getOrganization:org_slugTasks:task_short_idComments",
+                "operationId": "getOrganizationByOrgSlugTasksByTaskShortIdComments",
                 "summary": "List task comments",
                 "description": "Retrieve a paginated list of public comments for a task.",
                 "tags": [
@@ -1545,7 +1545,7 @@
         },
         "/organization/{org_slug}/releases": {
             "get": {
-                "operationId": "getOrganization:org_slugReleases",
+                "operationId": "getOrganizationByOrgSlugReleases",
                 "summary": "Get Organization Releases",
                 "description": "Retrieve paginated releases for the specified organization.",
                 "tags": [
@@ -1616,6 +1616,14 @@
                                                     },
                                                     "description": {
                                                         "description": "Release description in blocknote JSON format",
+                                                        "type": "string"
+                                                    },
+                                                    "descriptionHtml": {
+                                                        "description": "Release description rendered as HTML",
+                                                        "type": "string"
+                                                    },
+                                                    "descriptionMarkdown": {
+                                                        "description": "Release description rendered as Markdown",
                                                         "type": "string"
                                                     },
                                                     "status": {
@@ -1698,6 +1706,8 @@
                                                     "name",
                                                     "slug",
                                                     "description",
+                                                    "descriptionHtml",
+                                                    "descriptionMarkdown",
                                                     "status",
                                                     "targetDate",
                                                     "releasedAt",
@@ -1829,7 +1839,7 @@
         },
         "/organization/{org_slug}/releases/{release_slug}": {
             "get": {
-                "operationId": "getOrganization:org_slugReleases:release_slug",
+                "operationId": "getOrganizationByOrgSlugReleasesByReleaseSlug",
                 "summary": "Get Release",
                 "description": "Retrieve the specified release for the organization.",
                 "tags": [
@@ -1868,6 +1878,14 @@
                                                 },
                                                 "description": {
                                                     "description": "Release description in blocknote JSON format",
+                                                    "type": "string"
+                                                },
+                                                "descriptionHtml": {
+                                                    "description": "Release description rendered as HTML",
+                                                    "type": "string"
+                                                },
+                                                "descriptionMarkdown": {
+                                                    "description": "Release description rendered as Markdown",
                                                     "type": "string"
                                                 },
                                                 "status": {
@@ -2215,6 +2233,8 @@
                                                 "name",
                                                 "slug",
                                                 "description",
+                                                "descriptionHtml",
+                                                "descriptionMarkdown",
                                                 "status",
                                                 "targetDate",
                                                 "releasedAt",
@@ -2277,6 +2297,856 @@
                         },
                         "in": "path",
                         "name": "release_slug",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        "/organization/{org_slug}/releases/{release_slug}/status-updates": {
+            "get": {
+                "operationId": "getOrganizationByOrgSlugReleasesByReleaseSlugStatusUpdates",
+                "summary": "Get Release Status Updates",
+                "description": "Retrieve public status updates for the specified release.",
+                "tags": [
+                    "Organization"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "updates": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "description": "Status update UUID",
+                                                                "type": "string"
+                                                            },
+                                                            "releaseId": {
+                                                                "description": "ID of the release this status update belongs to",
+                                                                "type": "string"
+                                                            },
+                                                            "organizationId": {
+                                                                "description": "ID of the organization this status update belongs to",
+                                                                "type": "string"
+                                                            },
+                                                            "content": {
+                                                                "description": "Content of the status update in BlockNote JSON format",
+                                                                "anyOf": [
+                                                                    {},
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "contentHtml": {
+                                                                "description": "Content of the status update rendered as HTML",
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "contentMarkdown": {
+                                                                "description": "Content of the status update rendered as Markdown",
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "health": {
+                                                                "description": "Health status of the release",
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "on_track",
+                                                                    "at_risk",
+                                                                    "off_track"
+                                                                ]
+                                                            },
+                                                            "visibility": {
+                                                                "description": "Visibility of the status update",
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "public",
+                                                                    "internal"
+                                                                ]
+                                                            },
+                                                            "createdAt": {
+                                                                "description": "Timestamp when the status update was created",
+                                                                "type": "string"
+                                                            },
+                                                            "updatedAt": {
+                                                                "description": "Timestamp when the status update was last updated",
+                                                                "type": "string"
+                                                            },
+                                                            "author": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "description": "User ID of the author",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "name": {
+                                                                                "description": "Name of the author",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "image": {
+                                                                                "description": "Image URL of the author",
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "createdAt": {
+                                                                                "description": "Timestamp when the author was created",
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "id",
+                                                                            "name",
+                                                                            "image",
+                                                                            "createdAt"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "commentCount": {
+                                                                "description": "Number of comments on the status update",
+                                                                "type": "number"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "releaseId",
+                                                            "organizationId",
+                                                            "content",
+                                                            "contentHtml",
+                                                            "contentMarkdown",
+                                                            "health",
+                                                            "visibility",
+                                                            "createdAt",
+                                                            "updatedAt",
+                                                            "author",
+                                                            "commentCount"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "updates"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "org_slug",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "release_slug",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        "/organization/{org_slug}/releases/{release_slug}/comments": {
+            "get": {
+                "operationId": "getOrganizationByOrgSlugReleasesByReleaseSlugComments",
+                "summary": "Get Release Comments",
+                "description": "Retrieve paginated public comments for the specified release.",
+                "tags": [
+                    "Organization"
+                ],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50,
+                            "default": 5
+                        },
+                        "description": "Number of items per page"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Page number (starting from 1)"
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "org_slug",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "release_slug",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "comments": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "description": "Comment UUID",
+                                                                    "type": "string"
+                                                                },
+                                                                "releaseId": {
+                                                                    "description": "ID of the release this comment belongs to",
+                                                                    "type": "string"
+                                                                },
+                                                                "organizationId": {
+                                                                    "description": "ID of the organization this comment belongs to",
+                                                                    "type": "string"
+                                                                },
+                                                                "createdBy": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "id": {
+                                                                                    "description": "User ID of the author",
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "name": {
+                                                                                    "description": "Name of the author",
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "image": {
+                                                                                    "description": "Image URL of the author",
+                                                                                    "anyOf": [
+                                                                                        {
+                                                                                            "type": "string"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "null"
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                "createdAt": {
+                                                                                    "description": "Timestamp when the author was created",
+                                                                                    "type": "string"
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "id",
+                                                                                "name",
+                                                                                "image",
+                                                                                "createdAt"
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "content": {
+                                                                    "description": "Content of the comment in BlockNote JSON format"
+                                                                },
+                                                                "contentHtml": {
+                                                                    "description": "Content of the comment rendered as HTML",
+                                                                    "type": "string"
+                                                                },
+                                                                "contentMarkdown": {
+                                                                    "description": "Content of the comment rendered as Markdown",
+                                                                    "type": "string"
+                                                                },
+                                                                "visibility": {
+                                                                    "description": "Visibility of the comment",
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "public",
+                                                                        "internal"
+                                                                    ]
+                                                                },
+                                                                "parentId": {
+                                                                    "description": "ID of the parent comment, if this is a reply",
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "statusUpdateId": {
+                                                                    "description": "ID of the status update this comment belongs to",
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "replyCount": {
+                                                                    "description": "Number of replies to this comment",
+                                                                    "type": "number"
+                                                                },
+                                                                "reactions": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "total": {
+                                                                                    "description": "Total number of reactions",
+                                                                                    "type": "number"
+                                                                                },
+                                                                                "reactions": {
+                                                                                    "type": "object",
+                                                                                    "propertyNames": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "additionalProperties": {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "count": {
+                                                                                                "description": "Number of reactions of this type",
+                                                                                                "type": "number"
+                                                                                            },
+                                                                                            "users": {
+                                                                                                "description": "List of users who reacted",
+                                                                                                "type": "array",
+                                                                                                "items": {
+                                                                                                    "type": "string"
+                                                                                                }
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "count",
+                                                                                            "users"
+                                                                                        ]
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "total",
+                                                                                "reactions"
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "createdAt": {
+                                                                    "description": "Timestamp when the comment was created",
+                                                                    "type": "string"
+                                                                },
+                                                                "updatedAt": {
+                                                                    "description": "Timestamp when the comment was last updated",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "releaseId",
+                                                                "organizationId",
+                                                                "createdBy",
+                                                                "content",
+                                                                "contentHtml",
+                                                                "contentMarkdown",
+                                                                "visibility",
+                                                                "parentId",
+                                                                "statusUpdateId",
+                                                                "replyCount",
+                                                                "reactions",
+                                                                "createdAt",
+                                                                "updatedAt"
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "required": [
+                                                    "comments"
+                                                ]
+                                            }
+                                        },
+                                        "pagination": {
+                                            "type": "object",
+                                            "properties": {
+                                                "limit": {
+                                                    "type": "number"
+                                                },
+                                                "page": {
+                                                    "type": "number"
+                                                },
+                                                "totalPages": {
+                                                    "type": "number"
+                                                },
+                                                "totalItems": {
+                                                    "type": "number"
+                                                },
+                                                "hasMore": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "limit",
+                                                "page",
+                                                "totalPages",
+                                                "totalItems",
+                                                "hasMore"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data",
+                                        "pagination"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid pagination parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/organization/{org_slug}/releases/{release_slug}/comments/{commentId}/replies": {
+            "get": {
+                "operationId": "getOrganizationByOrgSlugReleasesByReleaseSlugCommentsByCommentIdReplies",
+                "summary": "Get Comment Replies",
+                "description": "Retrieve public replies for the specified comment.",
+                "tags": [
+                    "Organization"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "replies": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "description": "Reply UUID",
+                                                                "type": "string"
+                                                            },
+                                                            "releaseId": {
+                                                                "description": "ID of the release this reply belongs to",
+                                                                "type": "string"
+                                                            },
+                                                            "organizationId": {
+                                                                "description": "ID of the organization this reply belongs to",
+                                                                "type": "string"
+                                                            },
+                                                            "createdBy": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "description": "User ID of the author",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "name": {
+                                                                                "description": "Name of the author",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "image": {
+                                                                                "description": "Image URL of the author",
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "createdAt": {
+                                                                                "description": "Timestamp when the author was created",
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "id",
+                                                                            "name",
+                                                                            "image",
+                                                                            "createdAt"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "content": {
+                                                                "description": "Content of the reply in BlockNote JSON format"
+                                                            },
+                                                            "contentHtml": {
+                                                                "description": "Content of the reply rendered as HTML",
+                                                                "type": "string"
+                                                            },
+                                                            "contentMarkdown": {
+                                                                "description": "Content of the reply rendered as Markdown",
+                                                                "type": "string"
+                                                            },
+                                                            "visibility": {
+                                                                "description": "Visibility of the reply",
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "public",
+                                                                    "internal"
+                                                                ]
+                                                            },
+                                                            "parentId": {
+                                                                "description": "ID of the parent comment, if this is a reply",
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "statusUpdateId": {
+                                                                "description": "ID of the status update this reply belongs to",
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "replyCount": {
+                                                                "description": "Number of replies to this comment",
+                                                                "type": "number"
+                                                            },
+                                                            "reactions": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "total": {
+                                                                                "description": "Total number of reactions",
+                                                                                "type": "number"
+                                                                            },
+                                                                            "reactions": {
+                                                                                "type": "object",
+                                                                                "propertyNames": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "additionalProperties": {
+                                                                                    "type": "object",
+                                                                                    "properties": {
+                                                                                        "count": {
+                                                                                            "description": "Number of reactions of this type",
+                                                                                            "type": "number"
+                                                                                        },
+                                                                                        "users": {
+                                                                                            "description": "List of users who reacted",
+                                                                                            "type": "array",
+                                                                                            "items": {
+                                                                                                "type": "string"
+                                                                                            }
+                                                                                        }
+                                                                                    },
+                                                                                    "required": [
+                                                                                        "count",
+                                                                                        "users"
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "total",
+                                                                            "reactions"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "createdAt": {
+                                                                "description": "Timestamp when the reply was created",
+                                                                "type": "string"
+                                                            },
+                                                            "updatedAt": {
+                                                                "description": "Timestamp when the reply was last updated",
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "releaseId",
+                                                            "organizationId",
+                                                            "createdBy",
+                                                            "content",
+                                                            "contentHtml",
+                                                            "contentMarkdown",
+                                                            "visibility",
+                                                            "parentId",
+                                                            "statusUpdateId",
+                                                            "replyCount",
+                                                            "reactions",
+                                                            "createdAt",
+                                                            "updatedAt"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "replies"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "const": false
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "org_slug",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "release_slug",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "commentId",
                         "required": true
                     }
                 ]
@@ -2810,7 +3680,7 @@
         },
         "/me/timeline_event": {
             "post": {
-                "operationId": "postMeTimeline_event",
+                "operationId": "postMeTimelineEvent",
                 "summary": "Create Timeline Event",
                 "description": "Create a new timeline event for a task.",
                 "tags": [
@@ -2960,7 +3830,7 @@
         },
         "/me/create_comment": {
             "post": {
-                "operationId": "postMeCreate_comment",
+                "operationId": "postMeCreateComment",
                 "summary": "Create Task Comment",
                 "description": "Create a new comment on a task.",
                 "tags": [
