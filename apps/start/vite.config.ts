@@ -59,6 +59,12 @@ const config = defineConfig({
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],
       },
+      // Workaround for Nitro issue #4113: Rolldown CJS-to-ESM interop crash
+      // with packages that use tslib (like prosekit). Externalizing prosekit
+      // avoids the __toESM(...).default undefined error at runtime.
+      rolldownConfig: {
+        external: ["prosekit", /^prosekit\//],
+      },
       routeRules: {
         "/api/auth/**": {}, // local auth
         "/api/image-preview/**": {},
