@@ -16,6 +16,10 @@ const config = defineConfig({
   build: {
     minify: false,
     sourcemap: true,
+    target: "esnext",
+  },
+  optimizeDeps: {
+    include: ["tslib"],
   },
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(
@@ -51,10 +55,17 @@ const config = defineConfig({
       }
       : undefined,
   },
+  ssr: {
+    noExternal: true,
+    target: "node",
+    // shiki uses onig.wasm which cannot be bundled — keep it external
+    external: ["shiki", "sharp"],
+  },
   plugins: [
     devtools(),
     !isDev &&
     nitro({
+      exportConditions: ["import", "module", "default"],
       // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],
