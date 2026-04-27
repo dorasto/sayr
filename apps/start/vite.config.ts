@@ -59,7 +59,9 @@ const config = defineConfig({
     noExternal: isDev ? [] : true,
     target: "node",
     // shiki uses onig.wasm which cannot be bundled — keep it external
-    external: ["shiki", "sharp"],
+    // sharp is a native module — keep it external
+    // jsdom has JSON file imports (css-tree/data/patch.json) that Nitro bundler can't resolve
+    external: ["shiki", "sharp", "jsdom"],
   },
   plugins: [
     devtools(),
