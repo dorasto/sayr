@@ -60,8 +60,29 @@ const config = defineConfig({
     target: "node",
     // shiki uses onig.wasm which cannot be bundled — keep it external
     // sharp is a native module — keep it external
-    // jsdom has JSON file imports (css-tree/data/patch.json) that Nitro bundler can't resolve
-    external: ["shiki", "sharp", "jsdom"],
+    // jsdom and its entire CSS parsing dependency chain have JSON file imports
+    // that Nitro bundler can't resolve (css-tree/data/patch.json, etc.)
+    external: [
+      "shiki",
+      "sharp",
+      "jsdom",
+      "cssom",
+      "css-tree",
+      "cssstyle",
+      "@acemir/cssom",
+      "w3c-xmlserializer",
+      "xml-name-validator",
+      "whatwg-encoding",
+      "whatwg-mimetype",
+      "html-encoding-sniffer",
+      "webidl-conversions",
+      "tough-cookie",
+      "saxes",
+      "symbol-tree",
+      "data-urls",
+      "decimal.js",
+      "abab",
+    ],
   },
   plugins: [
     devtools(),
@@ -71,6 +92,28 @@ const config = defineConfig({
       // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
       externals: {
         inline: ["@tabler/icons-react", "lucide-react"],
+        // Prevent Nitro from bundling jsdom and its CSS parsing dependency chain.
+        // These packages use require() for JSON files (e.g. css-tree/data/patch.json)
+        // which Nitro's ESM bundler cannot resolve.
+        external: [
+          "jsdom",
+          "cssom",
+          "css-tree",
+          "cssstyle",
+          "@acemir/cssom",
+          "w3c-xmlserializer",
+          "xml-name-validator",
+          "whatwg-encoding",
+          "whatwg-mimetype",
+          "html-encoding-sniffer",
+          "webidl-conversions",
+          "tough-cookie",
+          "saxes",
+          "symbol-tree",
+          "data-urls",
+          "decimal.js",
+          "abab",
+        ],
       },
       routeRules: {
         "/api/auth/**": {}, // local auth
