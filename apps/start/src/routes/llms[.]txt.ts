@@ -23,15 +23,16 @@ Each task has a public URL in the format:
 
 These pages are server-side rendered and contain:
 - Task title, status, and priority
-- Full task description (rich text, rendered as plain text in JSON-LD)
-- Public comments from team members
+- Full task description (rich text, rendered as plain text)
+- Public comments from team members with author names
 - Labels and metadata
 
-The page HTML <head> includes:
+The page HTML includes:
 - Open Graph meta tags with task title and description
-- JSON-LD (schema.org/WebPage) with structured task data including comments
+- JSON-LD (schema.org/Article) with structured task data including comments
+- Visually-hidden plain text content for AI extractors (data-llmo-content attribute)
 
-## API
+## Public API
 
 Public REST API base: ${apiBase}/api/public/v1/
 
