@@ -56,7 +56,7 @@ const config = defineConfig({
       : undefined,
   },
   ssr: {
-    noExternal: true,
+    noExternal: isDev ? [] : true,
     target: "node",
     // shiki uses onig.wasm which cannot be bundled — keep it external
     external: ["shiki", "sharp"],
