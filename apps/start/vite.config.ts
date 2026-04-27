@@ -38,21 +38,27 @@ const config = defineConfig({
     allowedHosts: true,
     proxy: isDev
       ? {
-        // /backend-api/internal/v1/... → http://localhost:5468/api/internal/v1/...
-        "/backend-api": {
-          target: "http://localhost:5468",
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/backend-api/, "/api"),
-          configure: (proxy) => {
-            proxy.on("error", (err) => {
-              console.log("[Proxy Error]", err);
-            });
-            proxy.on("proxyReq", (_proxyReq, req) => {
-              console.log("[Proxy]", req.method, req.url, "→", `http://localhost:5468${req.url?.replace(/^\/backend-api/, "/api")}`);
-            });
+          // /backend-api/internal/v1/... → http://localhost:5468/api/internal/v1/...
+          "/backend-api": {
+            target: "http://localhost:5468",
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/backend-api/, "/api"),
+            configure: (proxy) => {
+              proxy.on("error", (err) => {
+                console.log("[Proxy Error]", err);
+              });
+              proxy.on("proxyReq", (_proxyReq, req) => {
+                console.log(
+                  "[Proxy]",
+                  req.method,
+                  req.url,
+                  "→",
+                  `http://localhost:5468${req.url?.replace(/^\/backend-api/, "/api")}`,
+                );
+              });
+            },
           },
-        },
-      }
+        }
       : undefined,
   },
   ssr: {
@@ -60,72 +66,28 @@ const config = defineConfig({
     target: "node",
     // shiki uses onig.wasm which cannot be bundled — keep it external
     // sharp is a native module — keep it external
-    // jsdom and its entire CSS parsing dependency chain have JSON file imports
-    // that Nitro bundler can't resolve (css-tree/data/patch.json, etc.)
-    external: [
-      "shiki",
-      "sharp",
-      "jsdom",
-      "cssom",
-      "css-tree",
-      "cssstyle",
-      "@acemir/cssom",
-      "w3c-xmlserializer",
-      "xml-name-validator",
-      "whatwg-encoding",
-      "whatwg-mimetype",
-      "html-encoding-sniffer",
-      "webidl-conversions",
-      "tough-cookie",
-      "saxes",
-      "symbol-tree",
-      "data-urls",
-      "decimal.js",
-      "abab",
-    ],
+    external: ["shiki", "sharp"],
   },
   plugins: [
     devtools(),
     !isDev &&
-    nitro({
-      exportConditions: ["import", "module", "default"],
-      // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
-      externals: {
-        inline: ["@tabler/icons-react", "lucide-react"],
-        // Prevent Nitro from bundling jsdom and its CSS parsing dependency chain.
-        // These packages use require() for JSON files (e.g. css-tree/data/patch.json)
-        // which Nitro's ESM bundler cannot resolve.
-        external: [
-          "jsdom",
-          "cssom",
-          "css-tree",
-          "cssstyle",
-          "@acemir/cssom",
-          "w3c-xmlserializer",
-          "xml-name-validator",
-          "whatwg-encoding",
-          "whatwg-mimetype",
-          "html-encoding-sniffer",
-          "webidl-conversions",
-          "tough-cookie",
-          "saxes",
-          "symbol-tree",
-          "data-urls",
-          "decimal.js",
-          "abab",
-        ],
-      },
-      routeRules: {
-        "/api/auth/**": {}, // local auth
-        "/api/image-preview/**": {},
-        // ✅ proxy ONLY backend-api
-        "/backend-api/**": {
-          proxy: {
-            to: "http://localhost:5468/api/**",
+      nitro({
+        exportConditions: ["import", "module", "default"],
+        // @ts-expect-error - externals.inline is not in NitroPluginConfig types but exists at runtime
+        externals: {
+          inline: ["@tabler/icons-react", "lucide-react"],
+        },
+        routeRules: {
+          "/api/auth/**": {}, // local auth
+          "/api/image-preview/**": {},
+          // ✅ proxy ONLY backend-api
+          "/backend-api/**": {
+            proxy: {
+              to: "http://localhost:5468/api/**",
+            },
           },
         },
-      },
-    }),
+      }),
 
     // this is the plugin that enables path aliases
     viteTsConfigPaths({

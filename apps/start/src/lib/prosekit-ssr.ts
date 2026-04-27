@@ -1,4 +1,4 @@
-import { JSDOM } from "jsdom";
+import { parseHTML } from "linkedom";
 import { htmlFromJSON, createEditor } from "prosekit/core";
 import type { NodeJSON } from "prosekit/core";
 import { defineExtension } from "@/components/prosekit/extensions";
@@ -17,10 +17,10 @@ export function prosekitHtmlFromJSON(doc: NodeJSON | null | undefined): string {
 	if (!doc) return "";
 	try {
 		const schema = getSchema();
-		const dom = new JSDOM();
+		const { document } = parseHTML("<!DOCTYPE html><html><body></body></html>");
 		return htmlFromJSON(doc, {
 			schema,
-			document: dom.window.document,
+			document: document as unknown as Document,
 		});
 	} catch {
 		return extractTextContent(doc);
