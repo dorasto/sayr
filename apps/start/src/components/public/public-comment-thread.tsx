@@ -103,6 +103,8 @@ export function PublicCommentThreadBody({
 	blockedUserIds,
 	isOrgMember,
 	canAct,
+	fetchReplies,
+	onPostReply,
 }: {
 	parentComment: CommentData;
 	memberHighestTeam: Map<string, string | null>;
@@ -115,6 +117,10 @@ export function PublicCommentThreadBody({
 	isOrgMember?: boolean;
 	/** Whether the current user can perform write actions (comment, react, reply). */
 	canAct?: boolean;
+	/** Optional custom fetch function for replies (e.g., for release comments). */
+	fetchReplies?: () => Promise<CommentData[]>;
+	/** Optional custom post reply function (e.g., for release comments). */
+	onPostReply?: (content: NodeJSON) => Promise<boolean>;
 }) {
 	const { data: session } = authClient.useSession();
 	const queryClient = useQueryClient();
@@ -127,6 +133,9 @@ export function PublicCommentThreadBody({
 	} = useQuery({
 		queryKey: ["comment-replies", parentComment.id, parentComment.organizationId],
 		queryFn: async () => {
+			if (fetchReplies) {
+				return await fetchReplies();
+			}
 			const result = await FetchCommentRepliesAction(parentComment.organizationId, parentComment.id);
 			if (!result.success) throw new Error(result.error ?? "Failed to fetch replies");
 			return result.data;
@@ -135,9 +144,14 @@ export function PublicCommentThreadBody({
 		staleTime: 30_000,
 	});
 
-	// Map taskTimelineWithActor replies to CommentData shape
+	// Map taskTimelineWithActor replies to CommentData shape (or pass through if already CommentData)
 	const replies: CommentData[] = useMemo(() => {
 		if (!repliesRaw) return [];
+		// If fetchReplies was used, data is already CommentData[]
+		if (fetchReplies) {
+			return repliesRaw as CommentData[];
+		}
+		// Otherwise map from taskTimelineWithActor
 		return repliesRaw.map((r) => ({
 			id: r.id,
 			taskId: r.taskId ?? parentComment.taskId,
@@ -146,18 +160,18 @@ export function PublicCommentThreadBody({
 			visibility: r.visibility as "public" | "internal",
 			createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt ?? ""),
 			updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt ? String(r.updatedAt) : undefined,
-			createdBy: r.actor
+			createdBy: (r as any).actor
 				? {
-					id: r.actor.id,
-					name: r.actor.name,
-					image: r.actor.image,
-					displayName: r.actor.displayName ?? null,
+					id: (r as any).actor.id,
+					name: (r as any).actor.name,
+					image: (r as any).actor.image,
+					displayName: (r as any).actor.displayName ?? null,
 				}
 				: null,
 			reactions: r.reactions as CommentData["reactions"],
 			parentId: r.parentId ?? parentComment.id,
 		}));
-	}, [repliesRaw, parentComment.taskId, parentComment.id]);
+	}, [repliesRaw, parentComment.taskId, parentComment.id, fetchReplies]);
 
 	// Optimistic reaction toggle for replies
 	const handleReplyReaction = useCallback(
@@ -267,6 +281,7 @@ export function PublicCommentThreadBody({
 						parentComment={parentComment}
 						categories={categories}
 						onReplyPosted={() => refetch()}
+						onPostReply={onPostReply}
 					/>
 				</div>
 			)}
@@ -293,10 +308,13 @@ function PublicReplyInput({
 	parentComment,
 	categories,
 	onReplyPosted,
+	onPostReply,
 }: {
 	parentComment: CommentData;
 	categories?: schema.categoryType[];
 	onReplyPosted?: () => void;
+	/** Optional custom post reply function (e.g., for release comments). */
+	onPostReply?: (content: NodeJSON) => Promise<boolean>;
 }) {
 	const { data: session } = authClient.useSession();
 	const queryClient = useQueryClient();
@@ -314,31 +332,44 @@ function PublicReplyInput({
 
 		setIsSubmitting(true);
 		try {
-			const result = await CreateTaskCommentAction(
-				parentComment.organizationId,
-				parentComment.taskId,
-				content,
-				"public",
-				sseClientId,
-				parentComment.id,
-			);
-			if (result.success) {
-				setContent(undefined);
-				setEditorKey((prev) => prev + 1);
-				// Refresh both replies and parent comments (for updated replyCount)
-				queryClient.invalidateQueries({
-					queryKey: ["comment-replies", parentComment.id, parentComment.organizationId],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ["public-comments", parentComment.taskId, parentComment.organizationId],
-				});
-				onReplyPosted?.();
+			// Use custom post reply if provided (e.g., for release comments)
+			if (onPostReply) {
+				const success = await onPostReply(content);
+				if (success) {
+					setContent(undefined);
+					setEditorKey((prev) => prev + 1);
+					queryClient.invalidateQueries({
+						queryKey: ["comment-replies", parentComment.id, parentComment.organizationId],
+					});
+					onReplyPosted?.();
+				}
 			} else {
-				headlessToast.error({
-					title: "Failed to post reply",
-					description: result.error || "Something went wrong.",
-					id: "public-reply-error",
-				});
+				const result = await CreateTaskCommentAction(
+					parentComment.organizationId,
+					parentComment.taskId,
+					content,
+					"public",
+					sseClientId,
+					parentComment.id,
+				);
+				if (result.success) {
+					setContent(undefined);
+					setEditorKey((prev) => prev + 1);
+					// Refresh both replies and parent comments (for updated replyCount)
+					queryClient.invalidateQueries({
+						queryKey: ["comment-replies", parentComment.id, parentComment.organizationId],
+					});
+					queryClient.invalidateQueries({
+						queryKey: ["public-comments", parentComment.taskId, parentComment.organizationId],
+					});
+					onReplyPosted?.();
+				} else {
+					headlessToast.error({
+						title: "Failed to post reply",
+						description: result.error || "Something went wrong.",
+						id: "public-reply-error",
+					});
+				}
 			}
 		} catch {
 			headlessToast.error({
@@ -349,7 +380,7 @@ function PublicReplyInput({
 		} finally {
 			setIsSubmitting(false);
 		}
-	}, [content, isSubmitting, commentText, parentComment, sseClientId, queryClient, onReplyPosted]);
+	}, [content, isSubmitting, commentText, parentComment, sseClientId, queryClient, onReplyPosted, onPostReply]);
 
 	const displayName = session?.user?.name ?? "User";
 

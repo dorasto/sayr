@@ -1,5 +1,3 @@
-"use client";
-
 import type { schema } from "@repo/database";
 import {
   Avatar,
@@ -14,22 +12,23 @@ import { ensureCdnUrl, extractHslValues } from "@repo/util";
 import {
   IconLayoutSidebarRight,
   IconLayoutSidebarRightFilled,
+  IconPlus,
   IconRocket,
   IconUsers,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
-import type { NodeJSON } from "prosekit/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { PanelWrapper } from "@/components/generic/wrapper";
 import RenderIcon from "@/components/generic/RenderIcon";
-import Editor from "@/components/prosekit/editor";
-import processUploads from "@/components/prosekit/upload";
+import { ReleaseDescriptionEditor } from "@/components/releases/ReleaseDescriptionEditor";
 import { ReleaseInfo } from "@/components/releases/ReleaseInfo";
 import { ReleaseHeader } from "@/components/releases/ReleaseHeader";
 import { ReleaseSidebar } from "@/components/releases/ReleaseSidebar";
+import { ReleaseStatusUpdatesFeed } from "@/components/releases/ReleaseStatusUpdatesFeed";
+import { ReleaseDiscussion } from "@/components/releases/ReleaseDiscussion";
 import { UnifiedTaskView } from "@/components/tasks/views/unified-task-view";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import {
@@ -42,38 +41,33 @@ import {
   useWSMessageHandler,
   type WSMessageHandler,
 } from "@/hooks/useWSMessageHandler";
-import {
-  getReleaseWithTasksAction,
-  updateReleaseAction,
-} from "@/lib/fetches/release";
+import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
 import {
   releaseChartsActions,
   releaseChartsStore,
 } from "@/lib/stores/release-charts-store";
-import { extractTextContent, useToastAction } from "@/lib/util";
+import { useToastAction } from "@/lib/util";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Label } from "@repo/ui/components/label";
 import Loader from "@/components/Loader";
+import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
+import { commandActions } from "@/lib/command-store";
+import { Separator } from "@repo/ui/components/separator";
 
 interface ReleaseDetailPageProps {
   release: schema.releaseType;
 }
 
 function ReleaseDetailPageContent() {
-  const { serverEvents } = useLayoutData();
+  const { serverEvents, account } = useLayoutData();
   const { organization, setOrganization, categories, releases, setReleases } =
     useLayoutOrganization();
   const { release, setRelease } = useLayoutRelease();
 
   const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
   const [loading, setLoading] = useState(true);
-  const [description, setDescription] = useState<NodeJSON | undefined>(
-    release?.description || undefined,
-  );
-  const [savedDescription, setSavedDescription] = useState<
-    NodeJSON | undefined
-  >(undefined);
-  const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
+  const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
   const { runWithToast } = useToastAction();
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { setValue: setMentionContext } =
@@ -84,6 +78,13 @@ function ReleaseDetailPageContent() {
   );
   const useMobile = useIsMobile();
   const loadedReleaseIdRef = useRef<string | null>(null);
+  const refreshCommentsRef = useRef<(() => Promise<void>) | null>(null);
+  const handleRegisterRefresh = useCallback((fn: () => Promise<void>) => {
+    refreshCommentsRef.current = fn;
+  }, []);
+
+  // Register release-specific command palette commands
+  useReleaseCommands(release, tasks, setTasks);
 
   // Memoize to prevent unnecessary re-renders of Editor
   const availableUsers = useMemo(
@@ -102,7 +103,7 @@ function ReleaseDetailPageContent() {
     serverEvents,
     orgId: organization.id,
     organization: organization,
-    channel: "admin",
+    channel: "releases",
     setOrganization: setOrganization,
   });
 
@@ -126,9 +127,6 @@ function ReleaseDetailPageContent() {
         if (result.success && result.data) {
           setRelease(result.data);
           setTasks(result.data.tasks);
-          const desc = result.data.description as NodeJSON | undefined;
-          setDescription(desc);
-          setSavedDescription(desc);
           loadedReleaseIdRef.current = release.id;
         }
       } catch (error) {
@@ -180,10 +178,26 @@ function ReleaseDetailPageContent() {
         }
       }
     },
+    UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
+      if (
+        "data" in msg &&
+        (msg.data as { releaseId?: string })?.releaseId === release?.id
+      ) {
+        setStatusUpdatesRefreshKey((k) => k + 1);
+      }
+    },
+    UPDATE_RELEASE_COMMENTS: (msg) => {
+      if (
+        "data" in msg &&
+        (msg.data as { releaseId?: string })?.releaseId === release?.id
+      ) {
+        refreshCommentsRef.current?.();
+        setCommentsRefreshKey((k) => k + 1);
+      }
+    },
   };
 
-  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-  });
+  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 
   useEffect(() => {
     if (!serverEvents.event) return;
@@ -192,205 +206,6 @@ function ReleaseDetailPageContent() {
       serverEvents.event?.removeEventListener("message", handleMessage);
     };
   }, [serverEvents.event, handleMessage]);
-
-  const handleDescriptionSave = useCallback(
-    async (content: NodeJSON | undefined) => {
-      if (!release || !content) return;
-
-      try {
-        setIsSavingDescription(true);
-        const processedContent = await processUploads(
-          content,
-          "public",
-          organization.id,
-          "update-release-description",
-        );
-
-        const result = await runWithToast(
-          "update-release-description",
-          {
-            loading: {
-              title: "Saving...",
-              description: "Updating release description.",
-            },
-            success: {
-              title: "Saved",
-              description: "Description updated successfully.",
-            },
-            error: {
-              title: "Failed",
-              description: "Could not save description.",
-            },
-          },
-          () =>
-            updateReleaseAction(
-              organization.id,
-              release.id,
-              { description: processedContent },
-              sseClientId,
-            ),
-        );
-
-        if (result?.success) {
-          setDescription(processedContent);
-          setSavedDescription(processedContent);
-        }
-      } finally {
-        setIsSavingDescription(false);
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast],
-  );
-
-  // Check if description has unsaved changes
-  const hasUnsavedChanges = useMemo(() => {
-    const currentText = extractTextContent(description);
-    const savedText = extractTextContent(savedDescription);
-
-    return currentText !== savedText;
-  }, [description, savedDescription]);
-
-  // Handle status update
-  const handleStatusUpdate = useCallback(
-    async (newStatus: schema.releaseType["status"]) => {
-      if (!release || newStatus === release.status) return;
-
-      // Auto-set releasedAt when marking as released
-      const updates: any = { status: newStatus };
-      if (newStatus === "released" && !release.releasedAt) {
-        updates.releasedAt = new Date();
-      }
-
-      const result = await runWithToast(
-        "update-release-status",
-        {
-          loading: {
-            title: "Updating status...",
-            description: "Changing release status.",
-          },
-          success: {
-            title: "Status updated",
-            description: `Release status changed to ${newStatus}.`,
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update release status.",
-          },
-        },
-        () =>
-          updateReleaseAction(organization.id, release.id, updates, sseClientId),
-      );
-
-      if (result?.success && result.data) {
-        setRelease((prev) =>
-          prev
-            ? {
-              ...prev,
-              status: result.data.status,
-              releasedAt: result.data.releasedAt,
-            }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
-
-  // Handle target date update
-  const handleTargetDateUpdate = useCallback(
-    async (date: Date | null) => {
-      if (!release) return;
-
-      const result = await runWithToast(
-        "update-release-target-date",
-        {
-          loading: {
-            title: "Updating target date...",
-            description: date
-              ? "Setting target date."
-              : "Clearing target date.",
-          },
-          success: {
-            title: date ? "Target date set" : "Target date cleared",
-            description: date
-              ? `Target date set to ${date.toLocaleDateString()}.`
-              : "Target date has been cleared.",
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update target date.",
-          },
-        },
-        () =>
-          updateReleaseAction(
-            organization.id,
-            release.id,
-            { targetDate: date },
-            sseClientId,
-          ),
-      );
-
-      if (result?.success && result.data) {
-        setRelease((prev) =>
-          prev
-            ? {
-              ...prev,
-              targetDate: result.data.targetDate,
-            }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
-
-  // Handle released date update (admin only)
-  const handleReleasedAtUpdate = useCallback(
-    async (date: Date | null) => {
-      if (!release) return;
-
-      const result = await runWithToast(
-        "update-release-released-date",
-        {
-          loading: {
-            title: "Updating release date...",
-            description: date
-              ? "Setting release date."
-              : "Clearing release date.",
-          },
-          success: {
-            title: date ? "Release date set" : "Release date cleared",
-            description: date
-              ? `Release date set to ${date.toLocaleDateString()}.`
-              : "Release date has been cleared.",
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update release date.",
-          },
-        },
-        () =>
-          updateReleaseAction(
-            organization.id,
-            release.id,
-            { releasedAt: date },
-            sseClientId,
-          ),
-      );
-
-      if (result?.success && result.data) {
-        setRelease((prev) =>
-          prev
-            ? {
-              ...prev,
-              releasedAt: result.data.releasedAt,
-            }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
 
   // Handle name and slug update from header
   const handleNameSlugUpdate = useCallback(
@@ -424,54 +239,6 @@ function ReleaseDetailPageContent() {
               ...prev,
               name: result.data.name,
               slug: result.data.slug,
-            }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
-
-  // Handle header update (includes icon and color)
-  const handleHeaderUpdate = useCallback(
-    async (data: {
-      name: string;
-      slug: string;
-      icon: string;
-      color: string;
-    }) => {
-      if (!release) return;
-
-      const result = await runWithToast(
-        "update-release-header",
-        {
-          loading: {
-            title: "Saving...",
-            description: "Updating release information.",
-          },
-          success: {
-            title: "Saved",
-            description: "Release information updated successfully.",
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update release information.",
-          },
-        },
-        () =>
-          updateReleaseAction(organization.id, release.id, data, sseClientId),
-      );
-
-      if (result?.success && result.data) {
-        // Only update the fields that were changed, preserve tasks and createdBy
-        setRelease((prev) =>
-          prev
-            ? {
-              ...prev,
-              name: result.data.name,
-              slug: result.data.slug,
-              icon: result.data.icon,
-              color: result.data.color,
             }
             : null,
         );
@@ -531,13 +298,8 @@ function ReleaseDetailPageContent() {
       panelHeader={<Label>Information</Label>}
       panelBody={
         <div className="flex flex-col gap-3">
-          <ReleaseInfo
-            release={release}
-            onUpdate={handleHeaderUpdate}
-            onStatusUpdate={handleStatusUpdate}
-            onTargetDateUpdate={handleTargetDateUpdate}
-          />
-          <Label>Status</Label>
+          <ReleaseInfo release={release} />
+          {tasks.length > 0 && <Label>Status</Label>}
           <ReleaseSidebar
             tasks={tasks}
             taskStats={taskStats}
@@ -552,20 +314,22 @@ function ReleaseDetailPageContent() {
         <PageHeader>
           <PageHeader.Identity
             actions={
-              <Button
-                variant="accent"
-                className={cn(
-                  "gap-2 h-6 w-fit bg-accent border-transparent p-1",
-                  !isChartsPanelOpen && "bg-transparent",
-                )}
-                onClick={() => releaseChartsActions.toggle()}
-              >
-                {isChartsPanelOpen ? (
-                  <IconLayoutSidebarRightFilled className="w-3 h-3" />
-                ) : (
-                  <IconLayoutSidebarRight className="w-3 h-3" />
-                )}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="accent"
+                  className={cn(
+                    "gap-2 h-6 w-fit bg-accent border-transparent p-1",
+                    !isChartsPanelOpen && "bg-transparent",
+                  )}
+                  onClick={() => releaseChartsActions.toggle()}
+                >
+                  {isChartsPanelOpen ? (
+                    <IconLayoutSidebarRightFilled className="w-3 h-3" />
+                  ) : (
+                    <IconLayoutSidebarRight className="w-3 h-3" />
+                  )}
+                </Button>
+              </div>
             }
           >
             {!useMobile && (
@@ -593,7 +357,17 @@ function ReleaseDetailPageContent() {
                   </Button>
                 </Link>
                 <span className="text-muted-foreground text-xs">/</span>
-                <Link to="/$orgId/releases" params={{ orgId: organization.id }}>
+                <Link
+                  to="/$orgId/releases"
+                  params={{ orgId: organization.id }}
+                  search={{
+                    status: undefined,
+                    targetDateFrom: undefined,
+                    targetDateTo: undefined,
+                    releasedFrom: undefined,
+                    releasedTo: undefined,
+                  }}
+                >
                   <Button
                     variant={"ghost"}
                     className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
@@ -631,57 +405,76 @@ function ReleaseDetailPageContent() {
             </div>
           </PageHeader.Identity>
         </PageHeader>
-        <div className="flex-1 overflow-y-auto h-full flex flex-col relative">
+        <div className="flex-1 overflow-y-scroll h-full flex flex-col relative p-3 gap-3">
           {/* Header Section */}
-          <div className="flex flex-col gap-3 p-3">
-            <ReleaseHeader
-              release={release}
-              onStatusUpdate={handleStatusUpdate}
-              onTargetDateUpdate={handleTargetDateUpdate}
-              onReleasedAtUpdate={handleReleasedAtUpdate}
-              onUpdate={handleNameSlugUpdate}
-            />
+          <div className="flex flex-col gap-3">
+            <ReleaseHeader release={release} onUpdate={handleNameSlugUpdate} />
 
             {/* Description Section */}
             <div className="flex flex-col gap-3">
-              <div className="w-full min-w-full">
-                <Editor
-                  defaultContent={release?.description || undefined}
-                  onChange={setDescription}
-                  placeholder="Add a description for this release..."
-                  categories={categories}
-                  tasks={tasks}
-                  hideBlockHandle={true}
-                />
-                <div className="flex w-full">
-                  {hasUnsavedChanges && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="text-xs py-1 h-auto ml-auto"
-                      onClick={() => handleDescriptionSave(description)}
-                      disabled={isSavingDescription}
-                    >
-                      {isSavingDescription ? "Saving..." : "Update"}
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <ReleaseDescriptionEditor
+                release={release}
+                organizationId={organization.id}
+                categories={categories}
+                tasks={tasks}
+              />
             </div>
           </div>
+          {/* Status Updates & Discussion */}
+          <div className="flex flex-col gap-6">
+            <ReleaseStatusUpdatesFeed
+              releaseId={release.id}
+              orgId={organization.id}
+              currentUserId={account?.id}
+              canManage={true}
+              refreshKey={statusUpdatesRefreshKey}
+              commentsRefreshKey={commentsRefreshKey}
+            />
+          </div>
           {/* Tasks Section */}
-          <UnifiedTaskView
-            tasks={tasks}
-            setTasks={setTasks}
-            serverEvents={serverEvents}
-            availableUsers={availableUsers}
-            organization={organization}
-            categories={categories}
-            releases={releases}
-            compact={true}
-            forceShowCompleted={true}
-            className="h-auto overflow-visible"
-          />
+          <div className="bg-card rounded-xl overflow-clip border p-3 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label variant={"subheading"}>Tasks</Label>
+              <Button
+                variant="accent"
+                className="gap-1.5 h-6 w-fit bg-transparent border-transparent px-1.5 text-xs"
+                onClick={() => {
+                  const viewId = `release-add-tasks-${release.id}`;
+                  commandActions.setInitialView(viewId, "Add tasks");
+                  commandActions.open();
+                }}
+              >
+                <IconPlus className="w-3 h-3" />
+                <span>Add tasks</span>
+              </Button>
+            </div>
+
+            <UnifiedTaskView
+              tasks={tasks}
+              setTasks={setTasks}
+              serverEvents={serverEvents}
+              availableUsers={availableUsers}
+              organization={organization}
+              categories={categories}
+              releases={releases}
+              compact={true}
+              forceShowCompleted={true}
+              className="h-auto overflow-visible"
+              overviewLayout={true}
+              showGroupHeaders={false}
+            />
+          </div>
+          <Separator />
+          <div className="rounded-xl overflow-clip p-3 flex flex-col gap-2">
+            <ReleaseDiscussion
+              releaseId={release.id}
+              orgId={organization.id}
+              currentUserId={account?.id}
+              canComment={true}
+              canManage={true}
+              onRegisterRefresh={handleRegisterRefresh}
+            />
+          </div>
         </div>
       </div>
     </PanelWrapper>
@@ -692,12 +485,25 @@ export default function ReleaseDetailPage({
   release: initialRelease,
 }: ReleaseDetailPageProps) {
   const [release, setRelease] = useState<schema.ReleaseWithTasks | null>(
-    () => ({ ...initialRelease, tasks: [], createdBy: null }) as any,
+    () =>
+      ({
+        ...initialRelease,
+        tasks: [],
+        createdBy: null,
+        labels: [],
+        lead: null,
+      }) as any,
   );
 
   // Update release when initialRelease changes
   useEffect(() => {
-    setRelease({ ...initialRelease, tasks: [], createdBy: null } as any);
+    setRelease({
+      ...initialRelease,
+      tasks: [],
+      createdBy: null,
+      labels: [],
+      lead: null,
+    } as any);
   }, [initialRelease]);
 
   return (

@@ -4,6 +4,9 @@ import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
+import { releaseLabelAssignment } from "./label.schema";
+import { releaseStatusUpdate } from "./release_status_update.schema";
+import { releaseComment } from "./release_comment.schema";
 import type { NodeJSON } from ".";
 
 export const releaseStatusEnum = v.pgEnum("release_status", ["planned", "in-progress", "released", "archived"]);
@@ -27,6 +30,7 @@ export const release = table(
 		releasedAt: v.timestamp("released_at"),
 		color: v.varchar("color").default("hsla(0, 0%, 0%, 1)"),
 		icon: v.text("icon"),
+		leadId: v.text("lead_id").references(() => user.id, { onDelete: "set null" }),
 		createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),
 		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 		updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
@@ -41,13 +45,22 @@ export const release = table(
 
 export type releaseType = typeof release.$inferSelect;
 
-export const releaseRelations = relations(release, ({ one }) => ({
+export const releaseRelations = relations(release, ({ one, many }) => ({
 	organization: one(organization, {
 		fields: [release.organizationId],
 		references: [organization.id],
 	}),
+	lead: one(user, {
+		fields: [release.leadId],
+		references: [user.id],
+		relationName: "releaseLead",
+	}),
 	createdBy: one(user, {
 		fields: [release.createdBy],
 		references: [user.id],
+		relationName: "releaseCreatedBy",
 	}),
+	labels: many(releaseLabelAssignment),
+	statusUpdates: many(releaseStatusUpdate),
+	comments: many(releaseComment),
 }));

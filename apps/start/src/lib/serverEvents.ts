@@ -261,6 +261,14 @@ export type ServerEventMessage =
         data: { releaseId: string };
     })
     | (BaseMessage & {
+        type: "UPDATE_RELEASE_STATUS_UPDATES";
+        data: { releaseId: string };
+    })
+    | (BaseMessage & {
+        type: "UPDATE_RELEASE_COMMENTS";
+        data: { releaseId: string };
+    })
+    | (BaseMessage & {
         type: "CREATE_TASK";
         data: schema.TaskWithLabels;
     })

@@ -5,7 +5,7 @@ zerops:
   # ===============================
   - setup: marketing
     build:
-      base: nodejs@20
+      base: nodejs@22
       buildCommands:
         - pnpm i
         - pnpm -F marketing build
@@ -20,7 +20,7 @@ zerops:
           port: 3000
           path: /
     run:
-      base: nodejs@20
+      base: nodejs@22
       ports:
         - port: 3000
           httpSupport: true
@@ -88,6 +88,9 @@ zerops:
         # These VITE_* / define vars are baked into the bundle at build time (see vite.config.ts)
         APP_ENV: production
         SAYR_EDITION: cloud
+        # PostHog: baked into the client bundle at build time
+        VITE_PUBLIC_POSTHOG_KEY: ${VITE_PUBLIC_POSTHOG_KEY}
+        VITE_PUBLIC_POSTHOG_HOST: ${VITE_PUBLIC_POSTHOG_HOST}
       prepareCommands:
         # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
         - corepack enable && corepack prepare pnpm@latest --activate

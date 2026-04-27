@@ -176,10 +176,11 @@ export function TaskAssigneeChart({
 
           const tileContent = (
             <Tile
-              key={assignee.id}
+              key={assignee.id + assignee.name}
               className={cn(
                 "bg-card md:w-full gap-3 p-1",
-                renderTileWrapper && "cursor-pointer hover:bg-accent/50 transition-colors"
+                renderTileWrapper &&
+                  "cursor-pointer hover:bg-accent/50 transition-colors",
               )}
             >
               <TileHeader>
@@ -215,7 +216,9 @@ export function TaskAssigneeChart({
             </Tile>
           );
 
-          return renderTileWrapper ? renderTileWrapper(assignee.id, tileContent) : tileContent;
+          return renderTileWrapper
+            ? renderTileWrapper(assignee.id, tileContent)
+            : tileContent;
         })}
       </div>
     </div>

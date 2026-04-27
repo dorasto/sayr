@@ -3,6 +3,7 @@ import tasks from "./tasks";
 import comments from "./comments";
 import labels from "./labels";
 import categories from "./categories";
+import release from "./release";
 
 /**
  * Public Sayr Organization API — Version 1.
@@ -14,7 +15,8 @@ const OrgAPI = {
     tasks,
     comments,
     labels,
-    categories
+    categories,
+    release
 };
 
 export default OrgAPI;

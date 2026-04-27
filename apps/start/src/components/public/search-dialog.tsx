@@ -8,11 +8,14 @@ import {
   CommandSeparator,
 } from "@repo/ui/components/command";
 import { DialogTitle } from "@repo/ui/components/dialog";
+import { Badge } from "@repo/ui/components/badge";
 import { IconLoader2, IconRocket } from "@tabler/icons-react";
+import RenderIcon from "@/components/generic/RenderIcon";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import * as React from "react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { statusConfig } from "@/components/tasks/shared/config";
+import { getReleaseStatusConfig } from "@/components/releases/config";
 import { extractHslValues } from "@repo/util";
 
 const basePublicApiUrl =
@@ -25,6 +28,8 @@ interface PublicRelease {
   name: string;
   slug: string;
   status: string;
+  icon: string | null;
+  color: string | null;
 }
 
 interface PublicTaskResult {
@@ -83,8 +88,8 @@ export function PublicSearchDialog({
     fetch(`${basePublicApiUrl}/organization/${slug}/releases`)
       .then((r) => r.json())
       .then((data) => {
-        if (data?.data) {
-          setReleases(data.data);
+        if (data?.data?.releases) {
+          setReleases(data.data.releases);
         }
         setReleasesLoaded(true);
       })
@@ -211,23 +216,45 @@ export function PublicSearchDialog({
 
         {hasReleaseResults && (
           <CommandGroup heading="Releases">
-            {filteredReleases.map((release) => (
-              <CommandItem
-                key={release.id}
-                value={`release-${release.id}`}
-                keywords={[release.name, release.status]}
-                onSelect={() => {
-                  navigate({ to: `/orgs/${orgSlug}/releases/${release.slug}` });
-                  onOpenChange(false);
-                }}
-              >
-                <IconRocket className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="truncate">{release.name}</span>
-                <span className="ml-auto shrink-0 text-xs text-muted-foreground capitalize">
-                  {release.status}
-                </span>
-              </CommandItem>
-            ))}
+            {filteredReleases.map((release) => {
+              const cfg = getReleaseStatusConfig(release.status as Parameters<typeof getReleaseStatusConfig>[0]);
+              return (
+                <CommandItem
+                  key={release.id}
+                  value={`release-${release.id}`}
+                  keywords={[release.name, release.status]}
+                  onSelect={() => {
+                    navigate({ to: `/orgs/${orgSlug}/releases/${release.slug}` });
+                    onOpenChange(false);
+                  }}
+                >
+                  {release.icon ? (
+                    <span
+                      className="flex shrink-0 items-center justify-center rounded-lg size-5"
+                      style={{ background: release.color ? `${release.color}20` : `hsla(${extractHslValues(cfg?.hsla ?? "0,0%,50%,1")}, 0.1)` }}
+                    >
+                      <RenderIcon
+                        iconName={release.icon}
+                        color={release.color || cfg?.color || "#ffffff"}
+                        button
+                        className="size-4! [&_svg]:size-3! border-0"
+                      />
+                    </span>
+                  ) : (
+                    <span
+                      className="flex shrink-0 items-center justify-center rounded-lg size-5"
+                      style={{ background: release.color ? `${release.color}20` : `hsla(${extractHslValues(cfg?.hsla ?? "0,0%,50%,1")}, 0.1)` }}
+                    >
+                      <IconRocket className="size-3" style={{ color: release.color || cfg?.color }} />
+                    </span>
+                  )}
+                  <span className="truncate">{release.name}</span>
+                  <Badge className={`ml-auto shrink-0 text-xs ${cfg?.badgeClassName ?? ""}`}>
+                    {cfg?.label ?? release.status}
+                  </Badge>
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
         )}
       </CommandList>

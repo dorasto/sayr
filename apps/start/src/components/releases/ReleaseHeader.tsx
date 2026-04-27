@@ -1,36 +1,22 @@
 "use client";
 
-import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import { Calendar } from "@repo/ui/components/calendar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@repo/ui/components/dropdown-menu";
-import { Input } from "@repo/ui/components/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@repo/ui/components/popover";
-import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues } from "@repo/util";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
-import { IconCalendarEvent, IconCheck, IconX } from "@tabler/icons-react";
-import { formatDate } from "@repo/util";
 import type { schema } from "@repo/database";
 import { useState, useEffect } from "react";
 import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { releaseStatusConfig, RELEASE_STATUS_ORDER } from "./config";
+import { Input } from "@repo/ui/components/input";
+import { ReleaseFieldToolbar } from "./release-field-toolbar";
 
 interface ReleaseHeaderProps {
   release: schema.ReleaseWithTasks;
-  onStatusUpdate: (status: schema.releaseType["status"]) => void;
-  onTargetDateUpdate: (date: Date | null) => void;
-  onReleasedAtUpdate: (date: Date | null) => void;
   onUpdate: (data: {
     name: string;
     slug: string;
@@ -39,13 +25,7 @@ interface ReleaseHeaderProps {
   }) => void;
 }
 
-export function ReleaseHeader({
-  release,
-  onStatusUpdate,
-  onTargetDateUpdate,
-  onReleasedAtUpdate,
-  onUpdate,
-}: ReleaseHeaderProps) {
+export function ReleaseHeader({ release, onUpdate }: ReleaseHeaderProps) {
   const [editName, setEditName] = useState(release.name);
   const [editSlug, setEditSlug] = useState(release.slug);
   const [editIcon, setEditIcon] = useState(release.icon || "IconRocket");
@@ -128,7 +108,7 @@ export function ReleaseHeader({
   return (
     <div className="flex flex-col gap-1">
       {/* Title Input with Icon */}
-      <div className="relative flex items-center ">
+      <div className="relative flex items-center">
         {/* Icon Popover */}
         <Popover modal>
           <PopoverTrigger asChild>
@@ -163,10 +143,7 @@ export function ReleaseHeader({
                 />
               </div>
               <div className="px-3">
-                <IconPicker
-                  value={editIcon}
-                  update={handleIconChange}
-                />
+                <IconPicker value={editIcon} update={handleIconChange} />
               </div>
             </div>
           </PopoverContent>
@@ -198,116 +175,11 @@ export function ReleaseHeader({
 
       {/* Actions Row */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Status Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Badge
-              className={cn(
-                "border rounded-lg cursor-pointer gap-1.5",
-                releaseStatusConfig[release.status].badgeClassName,
-              )}
-            >
-              {releaseStatusConfig[release.status].icon("w-3 h-3")}
-              {releaseStatusConfig[release.status].label}
-            </Badge>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {RELEASE_STATUS_ORDER.map((status) => {
-              const config = releaseStatusConfig[status];
-              return (
-                <DropdownMenuItem
-                  key={status}
-                  onClick={() => onStatusUpdate(status)}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    {config.icon("w-4 h-4")}
-                    <span>{config.label}</span>
-                  </div>
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Target Date */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-6 gap-1.5 text-xs",
-                release.targetDate
-                  ? "text-foreground"
-                  : "text-muted-foreground",
-              )}
-            >
-              <IconCalendarEvent className="w-3 h-3" />
-              {release.targetDate
-                ? formatDate(release.targetDate)
-                : "Set target date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={
-                release.targetDate ? new Date(release.targetDate) : undefined
-              }
-              onSelect={(date) => onTargetDateUpdate(date || null)}
-            />
-            {release.targetDate && (
-              <div className="p-2 border-t">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => onTargetDateUpdate(null)}
-                >
-                  <IconX className="w-3 h-3 mr-1" />
-                  Clear date
-                </Button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
-
-        {/* Released Date */}
-        {release.releasedAt && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 gap-1.5 text-xs text-green-600"
-              >
-                <IconCheck className="w-3 h-3" />
-                Released: {formatDate(release.releasedAt)}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={
-                  release.releasedAt ? new Date(release.releasedAt) : undefined
-                }
-                onSelect={(date) => onReleasedAtUpdate(date || null)}
-              />
-              <div className="p-2 border-t">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => onReleasedAtUpdate(null)}
-                >
-                  <IconX className="w-3 h-3 mr-1" />
-                  Clear date
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        )}
+        <ReleaseFieldToolbar
+          release={release}
+          variant="toolbar"
+          fields={["status", "targetDate", "releasedAt"]}
+        />
       </div>
     </div>
   );
