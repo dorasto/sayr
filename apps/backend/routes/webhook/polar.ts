@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { db } from "@repo/database";
 import * as schema from "@repo/database";
 import { type TeamPermissions } from "@repo/database";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Polar, validateEvent, Subscription, CustomerSeat } from "@repo/auth";
 import { sseBroadcastByUserId } from "../events";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
@@ -21,6 +21,7 @@ function headersToRecord(headers: Headers): Record<string, string> {
     return result;
 }
 app.post("/", async (c) => {
+    const headers = headersToRecord(c.req.raw.headers);
     const traceAsync = createTraceAsync();
     const recordWideError = c.get("recordWideError");
     const rawBody = await c.req.text();
@@ -38,7 +39,7 @@ app.post("/", async (c) => {
     try {
         event = validateEvent(
             rawBody,
-            headersToRecord(c.req.raw.headers),
+            headers,
             process.env.POLAR_WEBHOOK_SECRET!
         );
     } catch (err) {
@@ -50,6 +51,7 @@ app.post("/", async (c) => {
             message: "Polar webhook signature verification failed",
             contextData: {
                 eventType: event?.type,
+                webhook_id: headers["webhook-id"] || "unknown",
             },
         });
         return c.text("Invalid signature", 400);
@@ -58,54 +60,73 @@ app.post("/", async (c) => {
     try {
         switch (event.type) {
             case "subscription.created":
-                await traceAsync("handleSubscriptionCreated", async () => {
+                await traceAsync("webhook.polar.subscription.created", async () => {
                     await handleSubscriptionCreated(event.data);
                 }, {
                     description: "Handling Polar subscription.created event",
                     data: {
                         eventType: event.type,
+                        polar_customer_id: event.data.customer.id,
+                        polar_subscription_id: event.data.id,
+                        sayr_id: event.data.customer.metadata?.firstUserId?.toString(),
+                        sayr_org_id: event.data.customer.externalId,
+                        webhook_id: headers["webhook-id"] || "unknown",
                     },
                 });
                 break;
 
             case "subscription.updated":
-                await traceAsync("handleSubscriptionUpdated", async () => {
+                await traceAsync("webhook.polar.subscription.updated", async () => {
                     await handleSubscriptionUpdated(event.data);
                 }, {
                     description: "Handling Polar subscription.updated event",
                     data: {
                         eventType: event.type,
+                        polar_customer_id: event.data.customer.id,
+                        polar_subscription_id: event.data.id,
+                        sayr_id: event.data.customer.metadata?.firstUserId?.toString(),
+                        sayr_org_id: event.data.customer.externalId,
+                        webhook_id: headers["webhook-id"] || "unknown",
                     },
                 });
                 break;
 
             case "subscription.canceled":
-                await traceAsync("handleSubscriptionCanceled", async () => {
+                await traceAsync("webhook.polar.subscription.canceled", async () => {
                     await handleSubscriptionCanceled(event.data);
                 }, {
                     description: "Handling Polar subscription.canceled event",
                     data: {
                         eventType: event.type,
+                        polar_customer_id: event.data.customer.id,
+                        polar_subscription_id: event.data.id,
+                        sayr_id: event.data.customer.metadata?.firstUserId?.toString(),
+                        sayr_org_id: event.data.customer.externalId,
+                        webhook_id: headers["webhook-id"] || "unknown",
                     },
                 });
                 break;
             case "customer_seat.revoked":
-                await traceAsync("handleSeatRevoked", async () => {
+                await traceAsync("webhook.polar.customer_seat.revoked", async () => {
                     await handleSeatRevoked(event.data);
                 }, {
                     description: "Handling Polar customer_seat.revoked event",
                     data: {
                         eventType: event.type,
+                        polar_subscription_id: event.data.id,
+                        webhook_id: headers["webhook-id"] || "unknown",
                     },
                 });
                 break;
             case "customer_seat.claimed":
-                await traceAsync("handleSeatClaimed", async () => {
+                await traceAsync("webhook.polar.customer_seat.claimed", async () => {
                     await handleSeatClaimed(event.data);
                 }, {
                     description: "Handling Polar customer_seat.claimed event",
                     data: {
                         eventType: event.type,
+                        polar_subscription_id: event.data.id,
+                        webhook_id: headers["webhook-id"] || "unknown",
                     },
                 });
                 break;
@@ -121,6 +142,7 @@ app.post("/", async (c) => {
             message: `Error handling Polar webhook event: ${(err as Error).message}`,
             contextData: {
                 eventType: event.type,
+                webhook_id: headers["webhook-id"] || "unknown",
             },
         });
         return c.text("Handler error", 500);
