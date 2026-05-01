@@ -97,7 +97,9 @@ const config = defineConfig({
       posthog({
         personalApiKey: process.env.POSTHOG_CLI_TOKEN,
         projectId: process.env.POSTHOG_CLI_ENV_ID || "",
-        host: process.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+        host: process.env.VITE_PUBLIC_POSTHOG_HOST?.startsWith("http")
+          ? process.env.VITE_PUBLIC_POSTHOG_HOST
+          : "https://eu.i.posthog.com",
         sourcemaps: {
           enabled: true,
           releaseName: "sayr-start",
