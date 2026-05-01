@@ -80,6 +80,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
+    "@posthog/rollup-plugin": "^1.4.2",
     "@repo/typescript-config": "workspace:*",
     "@tanstack/devtools-vite": "^0.6.0",
     "@testing-library/dom": "^10.4.1",
