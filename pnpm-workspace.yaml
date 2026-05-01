@@ -3,3 +3,5 @@ packages:
   - packages/*
   - integrations
   - integrations/services/*
+onlyBuiltDependencies:
+  - '@posthog/cli'

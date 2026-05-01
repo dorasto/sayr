@@ -4,6 +4,10 @@ set -e
 OUTPUT_DIR="/var/www/.output"
 MANIFEST="$OUTPUT_DIR/server/index.mjs"
 
+# Note: Source map upload is now handled during the build process by the PostHog Rollup plugin
+# See vite.config.ts for configuration details
+# The plugin automatically uploads source maps to PostHog during CI/CD builds
+
 # Replace build-time placeholders with runtime env var values.
 replace_env() {
     var_name=$1

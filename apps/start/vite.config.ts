@@ -5,6 +5,7 @@ import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig, loadEnv } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
+import posthog from "@posthog/rollup-plugin";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -86,6 +87,38 @@ const config = defineConfig({
               to: "http://localhost:5468/api/**",
             },
           },
+        },
+      }),
+
+    // PostHog Rollup plugin for error tracking source maps
+    // Uploads source maps during CI/CD build process (as per PostHog docs)
+    !isDev &&
+      posthog({
+        personalApiKey: process.env.POSTHOG_CLI_TOKEN || "",
+        projectId: process.env.POSTHOG_CLI_ENV_ID || "",
+        host: process.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+        sourcemaps: {
+          enabled: true,
+          releaseName: "sayr-start",
+          // Version detection priority:
+          // 1. appVersionName (Zerops system variable)
+          // 2. ZEROPS_APP_VERSION (manual override)
+          // 3. npm_package_version (package.json)
+          // 4. git commit hash
+          // 5. timestamp fallback
+          releaseVersion: 
+            process.env.appVersionName ||
+            process.env.ZEROPS_APP_VERSION ||
+            process.env.npm_package_version ||
+            (() => {
+              try {
+                const { execSync } = require('child_process');
+                return execSync('git rev-parse --short HEAD').toString().trim();
+              } catch (e) {
+                return `dev-${Date.now()}`;
+              }
+            })(),
+          deleteAfterUpload: false, // Keep source maps for debugging
         },
       }),
 
